@@ -66,14 +66,21 @@ Rails.application.configure do
   # Configure standard ActionCable
   config.action_cable.mount_path = '/cable'
   config.action_cable.url = "wss://bizblasts.onrender.com/cable"
-  config.action_cable.allowed_request_origins = [ "https://bizblasts.onrender.com", "http://bizblasts.onrender.com" ]
+  config.action_cable.allowed_request_origins = [ 
+    "https://bizblasts.onrender.com", 
+    "http://bizblasts.onrender.com",
+    "https://www.bizblasts.com",
+    "http://www.bizblasts.com",
+    "https://bizblasts.com",
+    "http://bizblasts.com"
+  ]
   
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "bizblasts.onrender.com" }
+  config.action_mailer.default_url_options = { host: "www.bizblasts.com" }
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
   # config.action_mailer.smtp_settings = {
@@ -95,11 +102,12 @@ Rails.application.configure do
   config.active_record.attributes_for_inspect = [ :id ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
+  config.hosts = [
+    "bizblasts.onrender.com",
+    "bizblasts.com",
+    "www.bizblasts.com"
+  ]
+  
   # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
