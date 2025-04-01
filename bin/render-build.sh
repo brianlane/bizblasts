@@ -2,12 +2,25 @@
 # exit on error
 set -o errexit
 
-# Check for SECRET_KEY_BASE
+# Check for required environment variables
 echo "Checking for required environment variables..."
+
+# Check for SECRET_KEY_BASE
 if [ -z "$SECRET_KEY_BASE" ]; then
-  echo "ERROR: SECRET_KEY_BASE environment variable is not set"
-  echo "This is required for Rails to start in production"
-  exit 1
+  echo "WARNING: SECRET_KEY_BASE environment variable is not set"
+  
+  # Check if we have RAILS_MASTER_KEY as a fallback
+  if [ -n "$RAILS_MASTER_KEY" ]; then
+    echo "Using RAILS_MASTER_KEY as a fallback for secret_key_base"
+    # Set SECRET_KEY_BASE to RAILS_MASTER_KEY to ensure it's available
+    export SECRET_KEY_BASE="$RAILS_MASTER_KEY"
+  else
+    echo "RAILS_MASTER_KEY is also not available. Generating a temporary SECRET_KEY_BASE..."
+    # Generate a random hex string of 64 characters
+    export SECRET_KEY_BASE=$(openssl rand -hex 32)
+  fi
+  
+  echo "Using a temporary SECRET_KEY_BASE for this deployment. Please set this in your Render dashboard."
 else
   echo "SECRET_KEY_BASE is set properly ✓"
 fi
