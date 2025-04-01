@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# User model that handles authentication and user management
+# Uses Devise for authentication and acts_as_tenant for multi-tenancy
 class User < ApplicationRecord
   acts_as_tenant(:company)
 

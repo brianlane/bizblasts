@@ -1,8 +1,14 @@
-# app/models/company.rb
+# frozen_string_literal: true
+
+# Company model that represents a tenant in the multi-tenant architecture
+# Manages subdomain validation and normalization for tenant routing
 class Company < ApplicationRecord
     validates :name, presence: true
     validates :subdomain, presence: true, uniqueness: true,
-              format: { with: /\A[a-z0-9]+\z/, message: "only allows lowercase letters and numbers without spaces" }
+              format: { 
+                with: /\A[a-z0-9]+\z/, 
+                message: "only allows lowercase letters and numbers without spaces" 
+              }
 
     before_validation :normalize_subdomain
 

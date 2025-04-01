@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative "boot"
 
 require "rails/all"
@@ -7,6 +9,8 @@ require "rails/all"
 Bundler.require(*Rails.groups)
 
 module Bizblasts
+  # Main application configuration class for Bizblasts
+  # Handles all Rails configuration settings and middleware setup
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
