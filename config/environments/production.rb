@@ -3,8 +3,7 @@
 require "active_support/core_ext/integer/time"
 
 # Set a default secret key base if not provided by environment
-key = "8568b0608e1c9e5e67a6f489a377c77662c250a3cad23c3547c7b295b639ec55"
-Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"] || key
+Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"]
 
 # Debug output for database configuration
 puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
