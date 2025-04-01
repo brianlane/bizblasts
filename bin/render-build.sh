@@ -2,6 +2,16 @@
 # exit on error
 set -o errexit
 
+# Check for SECRET_KEY_BASE
+echo "Checking for required environment variables..."
+if [ -z "$SECRET_KEY_BASE" ]; then
+  echo "ERROR: SECRET_KEY_BASE environment variable is not set"
+  echo "This is required for Rails to start in production"
+  exit 1
+else
+  echo "SECRET_KEY_BASE is set properly ✓"
+fi
+
 # Build commands for Render deployment
 echo "Installing dependencies..."
 bundle install

@@ -3,15 +3,19 @@
 require "active_support/core_ext/integer/time"
 
 # Set a default secret key base if not provided by environment
-Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"]
+# Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"]
 
 # Debug output for database configuration
 puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
 puts "DATABASE_HOST environment variable: #{ENV['DATABASE_HOST'] || 'NOT SET'}"
 puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] || 'NOT SET (using default 5432)'}"
+puts "SECRET_KEY_BASE set: #{ENV['SECRET_KEY_BASE'] ? 'Yes' : 'No'}"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
+
+  # Set secret_key_base from environment variable
+  config.secret_key_base = ENV["SECRET_KEY_BASE"]
 
   # Code is not reloaded between requests.
   config.enable_reloading = false
