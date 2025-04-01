@@ -70,14 +70,14 @@ test:
 #
 production:
   primary:
-  <<: *default
+    <<: *default
     # Force TCP connection instead of Unix socket
     url: <%= ENV['DATABASE_URL'] %>
     # If URL isn't provided, use these settings
     database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
-  username: <%= ENV['DATABASE_USERNAME'] %>
-  password: <%= ENV['DATABASE_PASSWORD'] %>
-  host: <%= ENV['DATABASE_HOST'] %>
+    username: <%= ENV['DATABASE_USERNAME'] %>
+    password: <%= ENV['DATABASE_PASSWORD'] %>
+    host: <%= ENV['DATABASE_HOST'] %>
     port: <%= ENV['DATABASE_PORT'] || '5432' %>
     # Force TCP sockets by setting this to false
     host_type: tcp
