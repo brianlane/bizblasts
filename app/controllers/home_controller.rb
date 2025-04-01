@@ -9,21 +9,7 @@ class HomeController < ApplicationController
   skip_before_action :set_tenant, only: [:index]
 
   def index
-    # Safely check if we can connect to the database
-    begin
-      # Only try to load data if the companies table exists
-      if ActiveRecord::Base.connection.table_exists?('companies')
-        @companies_count = Company.count
-      else
-        @companies_count = 0
-      end
-    rescue => e
-      # Log the error but continue with the request
-      Rails.logger.error("Error in home controller: #{e.message}")
-      @companies_count = 0
-    end
-
-    # Render the view
+    @companies_count = fetch_companies_count
     render :index
   end
 
@@ -34,5 +20,25 @@ class HomeController < ApplicationController
     @request_subdomain = request.subdomain
 
     render :debug
+  end
+
+  private
+
+  def fetch_companies_count
+    return 0 unless can_access_companies_table?
+    
+    begin
+      Company.count
+    rescue => e
+      Rails.logger.error("Error fetching companies count: #{e.message}")
+      0
+    end
+  end
+
+  def can_access_companies_table?
+    ActiveRecord::Base.connection.table_exists?('companies')
+  rescue => e
+    Rails.logger.error("Error checking companies table: #{e.message}")
+    false
   end
 end

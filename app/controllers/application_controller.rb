@@ -3,6 +3,8 @@
 # Main controller for the application that handles tenant setup, authentication,
 # and error handling. Provides methods for maintenance mode and database connectivity checks.
 class ApplicationController < ActionController::Base
+  include DatabaseErrorHandling
+  
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
@@ -80,11 +82,13 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # Error handlers - delegated to DatabaseErrorHandling concern
+  
   def tenant_not_found
     @subdomain = request.subdomain
     render template: "errors/tenant_not_found", status: :not_found
   end
-
+  
   def database_connection_error
     if maintenance_mode?
       handle_maintenance_health_check

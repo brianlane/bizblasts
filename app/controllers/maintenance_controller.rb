@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# Controller for displaying maintenance pages
+# Used during scheduled maintenance and for handling error states
 class MaintenanceController < ApplicationController
   # Skip authentication and database checks
   skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
