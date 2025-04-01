@@ -1,9 +1,12 @@
+# frozen_string_literal: true
+
 require "active_support/core_ext/integer/time"
 
-# Set secret key base directly to ensure it's available
-Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"] || "8568b0608e1c9e5e67a6f489a377c77662c250a3cad23c3547c7b295b639ec55dfa1adca648f2b469629864eddae6006943191eca71bd401fcce5cb10cabf8e6"
+# Set a default secret key base if not provided by environment
+key = "8568b0608e1c9e5e67a6f489a377c77662c250a3cad23c3547c7b295b639ec55"
+Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"] || key
 
-# Log database connection information during startup
+# Debug output for database configuration
 puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
 puts "DATABASE_HOST environment variable: #{ENV['DATABASE_HOST'] || 'NOT SET'}"
 puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] || 'NOT SET (using default 5432)'}"
@@ -45,7 +48,7 @@ Rails.application.configure do
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
-  config.log_tags = [ :request_id ]
+  config.log_tags = [:request_id]
   config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!)
@@ -66,7 +69,7 @@ Rails.application.configure do
   # Configure standard ActionCable
   config.action_cable.mount_path = '/cable'
   config.action_cable.url = "wss://bizblasts.onrender.com/cable"
-  config.action_cable.allowed_request_origins = [ 
+  config.action_cable.allowed_request_origins = [
     "https://bizblasts.onrender.com", 
     "http://bizblasts.onrender.com",
     "https://www.bizblasts.com",
@@ -99,7 +102,7 @@ Rails.application.configure do
   config.active_record.dump_schema_after_migration = false
 
   # Only use :id for inspections in production.
-  config.active_record.attributes_for_inspect = [ :id ]
+  config.active_record.attributes_for_inspect = [:id]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   config.hosts = [

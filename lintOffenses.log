@@ -1,0 +1,110 @@
+Inspecting 53 files
+.............CC.....C.C.........C....WW...CCCCCCCCCCC
+
+Offenses:
+
+app/models/company.rb:7:3: C: Rails/UniqueValidationWithoutIndex: Uniqueness validation should have a unique index on the database column.
+  validates :subdomain, presence: true, uniqueness: true, ...
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/models/user.rb:14:3: C: Rails/UniqueValidationWithoutIndex: Uniqueness validation should have a unique index on the database column.
+  validates :email, uniqueness: { scope: :company_id }
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config/environments/production.rb:7:121: C: Layout/LineLength: Line is too long. [141/120]
+                                           "8568b0608e1c9e5e67a6f489a377c77662c250a3cad23c3547c7b295b639ec55dfa1adca648f2b469629864eddae6006"
+                                                                                                                        ^^^^^^^^^^^^^^^^^^^^^
+config/environments/production.rb:52:57: C: [Correctable] Style/GlobalStdStream: Use $stdout instead of STDOUT.
+  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
+                                                        ^^^^^^
+config/importmap.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+# Pin npm packages by running ./bin/importmap
+^
+config/puma.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+# This configuration file will be evaluated by Puma. The top-level methods that
+^
+db/migrate/20250401030000_create_software_products.rb:31:3: W: Lint/DuplicateMethods: Method CreateSoftwareProducts#change is defined at both db/migrate/20250401030000_create_software_products.rb:2 and db/migrate/20250401030000_create_software_products.rb:31.
+  def change
+  ^^^^^^^^^^
+db/migrate/20250401030001_create_service_templates.rb:28:3: W: Lint/DuplicateMethods: Method CreateServiceTemplates#change is defined at both db/migrate/20250401030001_create_service_templates.rb:2 and db/migrate/20250401030001_create_service_templates.rb:28.
+  def change
+  ^^^^^^^^^^
+db/migrate/20250401055717_initial_add_company_id_to_users.rb:11:19: C: [Correctable] Rails/SquishedSQLHeredocs: Use <<-SQL.squish instead of <<-SQL.
+          execute <<-SQL
+                  ^^^^^^
+db/migrate/20250402000000_complete_company_id_migration_for_users.rb:17:19: C: [Correctable] Rails/SquishedSQLHeredocs: Use <<-SQL.squish instead of <<-SQL.
+          execute <<-SQL
+                  ^^^^^^
+db/queue_schema.rb:1:1: C: Metrics/BlockLength: Block has too many lines. [117/25]
+ActiveRecord::Schema[7.1].define(version: 1) do ...
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+db/queue_schema.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+ActiveRecord::Schema[7.1].define(version: 1) do
+^
+db/seeds.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+# This file should ensure the existence of records required to run the application in every environment (production,
+^
+db/seeds.rb:10:1: C: [Correctable] Rails/Output: Do not write to stdout. Use Rails's logger if you want to log.
+puts "Creating default tenant..."
+^^^^
+db/seeds.rb:12:1: C: [Correctable] Rails/Output: Do not write to stdout. Use Rails's logger if you want to log.
+puts "Default tenant created: #{default_company.name} (#{default_company.subdomain})"
+^^^^
+db/seeds.rb:15:1: C: [Correctable] Rails/Output: Do not write to stdout. Use Rails's logger if you want to log.
+puts "Creating admin user..."
+^^^^
+db/seeds.rb:20:3: C: [Correctable] Rails/Output: Do not write to stdout. Use Rails's logger if you want to log.
+  puts "Admin user created with email: #{admin_user.email} and password: password123"
+  ^^^^
+db/seeds.rb:22:3: C: [Correctable] Rails/Output: Do not write to stdout. Use Rails's logger if you want to log.
+  puts "Admin user already exists: #{admin_user.email}"
+  ^^^^
+db/seeds.rb:25:1: C: [Correctable] Rails/Output: Do not write to stdout. Use Rails's logger if you want to log.
+puts "Main database seeding completed!"
+^^^^
+lib/tasks/database.rake:1:1: C: Metrics/BlockLength: Block has too many lines. [59/25]
+namespace :db do ...
+^^^^^^^^^^^^^^^^
+lib/tasks/database.rake:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+namespace :db do
+^
+lib/tasks/database.rake:3:3: C: Metrics/BlockLength: Block has too many lines. [31/25]
+  task test_connection: :environment do ...
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+lib/tasks/tenancy_migration.rake:1:1: C: Metrics/BlockLength: Block has too many lines. [40/25]
+namespace :tenancy do ...
+^^^^^^^^^^^^^^^^^^^^^
+lib/tasks/tenancy_migration.rake:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+namespace :tenancy do
+^
+lib/tasks/tenancy_migration.rake:3:3: C: Metrics/BlockLength: Block has too many lines. [37/25]
+  task migrate_from_apartment: :environment do ...
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/application_system_test_case.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+require "test_helper"
+^
+test/application_system_test_case.rb:3:1: C: Style/Documentation: Missing top-level documentation comment for class ApplicationSystemTestCase.
+class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/models/company_test.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+require "test_helper"
+^
+test/models/user_test.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+require "test_helper"
+^
+test/test_helper.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+ENV["RAILS_ENV"] ||= "test"
+^
+test/test_helper.rb:6:3: C: Style/Documentation: Missing top-level documentation comment for class ActiveSupport::TestCase.
+  class TestCase
+  ^^^^^^^^^^^^^^
+~/bizblasts_new/Gemfile:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
+^
+
+53 files inspected, 32 offenses detected, 20 more offenses can be corrected with `rubocop -A`
+
+Tip: Based on detected gems, the following RuboCop extension libraries might be helpful:
+  * rubocop-capybara (https://rubygems.org/gems/rubocop-capybara)
+
+You can opt out of this message by adding the following to your config (see https://docs.rubocop.org/rubocop/extensions.html#extension-suggestions for more options):
+  AllCops:
+    SuggestExtensions: false

@@ -59,13 +59,13 @@ class CreateBookingSystem < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :services, [:company_id, :name], unique: true
+    add_index :services, %i[company_id name], unique: true
     add_index :services, :active
-    add_index :service_providers, [:company_id, :name], unique: true
+    add_index :service_providers, %i[company_id name], unique: true
     add_index :service_providers, :active
-    add_index :appointments, [:company_id, :start_time]
+    add_index :appointments, %i[company_id start_time]
     add_index :appointments, :status
     add_index :appointments, :paid
-    add_index :business_hours, [:company_id, :day_of_week], unique: true
+    add_index :business_hours, %i[company_id day_of_week], unique: true
   end
-end 
+end

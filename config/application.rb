@@ -20,15 +20,14 @@ module Bizblasts
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-
     # Apartment
     # Add this block to correctly initialize the Apartment middleware
-    #config.middleware.use Apartment::Elevators::Subdomain do |app, env|
-      # You can modify this to handle tenant selection logic
-      #request = Rack::Request.new(env)
-      #subdomain = request.host.split('.').first
-      #subdomain.presence
-    #end
+    # config.middleware.use Apartment::Elevators::Subdomain do |app, env|
+    # You can modify this to handle tenant selection logic
+    # request = Rack::Request.new(env)
+    # subdomain = request.host.split('.').first
+    # subdomain.presence
+    # end
 
     # Configuration for the application, engines, and railties goes here.
     #

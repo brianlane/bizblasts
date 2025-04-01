@@ -16,7 +16,7 @@ class HomeController < ApplicationController
   # Action to show which tenant we're currently on
   def debug
     @current_tenant = ActsAsTenant.current_tenant
-    @all_tenants = Company.all.pluck(:name, :subdomain)
+    @all_tenants = Company.pluck(:name, :subdomain)
     @request_subdomain = request.subdomain
 
     render :debug

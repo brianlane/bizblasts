@@ -13,4 +13,4 @@ class MaintenanceController < ApplicationController
   def index
     render "errors/maintenance", status: :service_unavailable
   end
-end 
+end

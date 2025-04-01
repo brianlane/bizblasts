@@ -29,3 +29,10 @@
 
 en:
   hello: "Hello world"
+  activerecord:
+    errors:
+      models:
+        company:
+          attributes:
+            subdomain:
+              lowercase_alphanumeric_only: "only allows lowercase letters and numbers without spaces"

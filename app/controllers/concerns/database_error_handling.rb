@@ -43,7 +43,9 @@ module DatabaseErrorHandling
     # For API requests return JSON
     respond_to do |format|
       format.html { render template: "errors/maintenance", status: :service_unavailable }
-      format.json { render json: { error: 'Database table error', details: exception.message }, status: :service_unavailable }
+      format.json do
+        render json: { error: 'Database table error', details: exception.message }, status: :service_unavailable
+      end
     end
   end
 
@@ -51,9 +53,7 @@ module DatabaseErrorHandling
     Rails.logger.error("SQL Statement error: #{exception.message}")
     
     # Handle the specific "relation does not exist" error
-    if exception.message.include?('relation "companies" does not exist')
-      return attempt_to_fix_companies_table
-    end
+    return attempt_to_fix_companies_table if exception.message.include?('relation "companies" does not exist')
     
     # Fallback to maintenance mode
     render_statement_invalid_response(exception)
@@ -87,4 +87,4 @@ module DatabaseErrorHandling
       format.json { render json: { error: 'Database error', details: exception.message }, status: :service_unavailable }
     end
   end
-end 
+end

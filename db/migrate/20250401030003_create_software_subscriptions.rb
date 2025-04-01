@@ -19,8 +19,8 @@ class CreateSoftwareSubscriptions < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :software_subscriptions, [:company_id, :software_product_id], unique: true
+    add_index :software_subscriptions, %i[company_id software_product_id], unique: true
     add_index :software_subscriptions, :status
     add_index :software_subscriptions, :license_key, unique: true
   end
-end 
+end

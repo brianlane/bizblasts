@@ -46,7 +46,8 @@ class ApplicationController < ActionController::Base
 
     # Skip for www or blank subdomains
     return if subdomain.blank? || subdomain == "www"
-    return unless table_exists_and_set_company(subdomain)
+
+    nil unless table_exists_and_set_company(subdomain)
   end
 
   def table_exists_and_set_company(subdomain)

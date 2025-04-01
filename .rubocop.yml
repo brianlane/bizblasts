@@ -1,0 +1,119 @@
+plugins:
+  - rubocop-rails
+  - rubocop-performance
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.4
+  Exclude:
+    - 'db/schema.rb'
+    - 'db/cable_schema.rb'
+    - 'db/queue_schema.rb'
+    - 'bin/**/*'
+    - 'vendor/**/*'
+    - 'node_modules/**/*'
+    - 'tmp/**/*'
+    - 'log/**/*'
+    - 'test/**/*'  # Exclude test files for now
+  SuggestExtensions: false
+
+# Allow some flexibility with string literals
+Style/StringLiterals:
+  Enabled: false
+
+# Allow both single-quoted and double-quoted strings
+Style/StringLiteralsInInterpolation:
+  Enabled: false
+
+# Allow some flexibility with class documentation
+Style/Documentation:
+  Enabled: true
+  Exclude:
+    - 'db/migrate/**/*'
+    - 'config/application.rb'
+    - 'test/**/*'
+
+# Be more permissive with class lengths for controllers
+Metrics/ClassLength:
+  Max: 150
+  Exclude:
+    - 'app/controllers/**/*'
+    - 'db/*.rb'  # Exclude schema files
+
+# Be more permissive with method lengths
+Metrics/MethodLength:
+  Max: 15
+  Exclude:
+    - 'db/migrate/**/*'
+    - 'lib/tasks/**/*'  # Exclude rake tasks
+
+# Be more permissive with ABC size for database operations
+Metrics/AbcSize:
+  Max: 25
+  Exclude:
+    - 'db/migrate/**/*'
+    - 'lib/tasks/**/*'  # Exclude rake tasks
+
+# Block length for rake tasks, migrations, etc.
+Metrics/BlockLength:
+  Max: 30
+  Exclude:
+    - 'config/environments/**/*'
+    - 'config/routes.rb'
+    - 'config/initializers/**/*'
+    - 'lib/tasks/**/*'
+    - 'db/*.rb'
+
+# Reasonable line length
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - 'config/environments/**/*'
+    - 'db/migrate/**/*'
+
+# Allow rescuing without error class in certain contexts
+Style/RescueStandardError:
+  Enabled: false
+
+# Allow trailing whitespace for now
+Layout/TrailingWhitespace:
+  Enabled: false
+
+# Enforce frozen string literal comment
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+  Exclude:
+    - 'db/migrate/**/*'
+    - 'db/seeds.rb'
+    - 'lib/tasks/**/*'
+    - 'test/**/*'
+    - 'config/importmap.rb'
+    - 'config/puma.rb'
+
+# Migration-specific rules
+Rails/ThreeStateBooleanColumn:
+  Exclude:
+    - 'db/migrate/**/*'
+
+# Allow outputs in seed files and rake tasks
+Rails/Output:
+  Exclude:
+    - 'config/environments/production.rb'
+    - 'db/seeds.rb'
+    - 'lib/tasks/**/*'
+
+# Allow STDOUT in production.rb
+Style/GlobalStdStream:
+  Exclude:
+    - 'config/environments/production.rb'
+
+Rails/UniqueValidationWithoutIndex:
+  Exclude:
+    - 'app/models/user.rb'
+    - 'app/models/company.rb'
+
+# Exclude certain SQL heredoc checks
+Rails/SquishedSQLHeredocs:
+  Exclude:
+    - 'db/migrate/**/*' 

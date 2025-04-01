@@ -7,7 +7,7 @@ class HealthController < ApplicationController
   skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
   skip_before_action :authenticate_user!
   skip_before_action :set_tenant
-  skip_before_action :check_database_connection, only: [:check, :db_check]
+  skip_before_action :check_database_connection, only: %i[check db_check]
 
   # Simple health check endpoint
   def check
@@ -79,4 +79,4 @@ class HealthController < ApplicationController
       env: environment_info
     }, status: :service_unavailable
   end
-end 
+end

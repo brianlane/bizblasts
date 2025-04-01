@@ -21,9 +21,9 @@ class CreateClientWebsites < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :client_websites, [:company_id, :subdomain], unique: true
+    add_index :client_websites, %i[company_id subdomain], unique: true
     add_index :client_websites, :domain, unique: true
     add_index :client_websites, :active
     add_index :client_websites, :status
   end
-end 
+end

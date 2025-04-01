@@ -54,16 +54,16 @@ namespace :db do
     
     puts "Testing production database connection..."
     puts "DATABASE_URL: #{ENV['DATABASE_URL'] ? 'Set (value hidden)' : 'NOT SET'}"
-    puts "DATABASE_HOST: #{ENV['DATABASE_HOST']}"
-    puts "DATABASE_PORT: #{ENV['DATABASE_PORT']}"
-    puts "DATABASE_NAME: #{ENV['DATABASE_NAME']}"
+    puts "DATABASE_HOST: #{ENV.fetch('DATABASE_HOST', nil)}"
+    puts "DATABASE_PORT: #{ENV.fetch('DATABASE_PORT', nil)}"
+    puts "DATABASE_NAME: #{ENV.fetch('DATABASE_NAME', nil)}"
     puts "DATABASE_USERNAME: #{ENV['DATABASE_USERNAME'] ? 'Set (value hidden)' : 'NOT SET'}"
     puts "DATABASE_PASSWORD: #{ENV['DATABASE_PASSWORD'] ? 'Set (value hidden)' : 'NOT SET'}"
     
     begin
       # Try to connect
       ActiveRecord::Base.establish_connection
-      result = ActiveRecord::Base.connection.execute("SELECT 1 as test")
+      ActiveRecord::Base.connection.execute("SELECT 1 as test")
       puts "Connection successful! Database is available."
       puts "Database adapter: #{ActiveRecord::Base.connection.adapter_name}"
       puts "Database version: #{ActiveRecord::Base.connection.execute("SELECT version()").first['version']}"
@@ -72,4 +72,4 @@ namespace :db do
       puts e.backtrace.first(5)
     end
   end
-end 
+end
