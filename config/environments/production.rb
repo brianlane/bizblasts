@@ -9,18 +9,19 @@ require "securerandom"
 # Debug output for database configuration
 puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
 puts "DATABASE_HOST environment variable: #{ENV['DATABASE_HOST'] || 'NOT SET'}"
-puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] || 'NOT SET (using default 5432)'}"
+puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] || 'NOT SET'} #{ENV['DATABASE_PORT'] ? '' : '(using default 5432)'}"
 puts "SECRET_KEY_BASE set: #{ENV['SECRET_KEY_BASE'] ? 'Yes' : 'No'}"
 puts "RAILS_MASTER_KEY set: #{ENV['RAILS_MASTER_KEY'] ? 'Yes' : 'No'}"
+puts "RAILS_ENV: #{ENV['RAILS_ENV']}"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  # Set secret_key_base from environment variable or use Rails master key if not set
-  # This is a fallback mechanism to ensure the app can start
+  # Disable credentials requirement since we're having issues with them
+  config.require_master_key = false
+
+  # Use an explicitly set secret key base without relying on credentials
   config.secret_key_base = ENV["SECRET_KEY_BASE"].presence || 
-                           Rails.application.credentials.secret_key_base || 
-                           ENV["RAILS_MASTER_KEY"] || 
                            SecureRandom.hex(64) # Generate random key as last resort
 
   # Code is not reloaded between requests.
