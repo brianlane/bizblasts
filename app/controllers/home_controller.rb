@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# HomeController handles the main landing page of the application
+# It is designed to be resilient to database issues
 class HomeController < ApplicationController
   # Skip authentication for index page
   skip_before_action :authenticate_user!, only: [:index]

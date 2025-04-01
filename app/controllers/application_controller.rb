@@ -24,10 +24,11 @@ class ApplicationController < ActionController::Base
 
   def maintenance_mode?
     # Use this to whitelist certain paths during database issues
-    request.path == '/healthcheck' || 
-    request.path == '/up' || 
-    request.path == '/maintenance' ||
-    request.path == '/db-check'
+    maintenance_paths.include?(request.path)
+  end
+
+  def maintenance_paths
+    ['/healthcheck', '/up', '/maintenance', '/db-check']
   end
 
   def check_database_connection
@@ -51,12 +52,23 @@ class ApplicationController < ActionController::Base
 
   def table_exists_and_set_company(subdomain)
     # First check if the companies table exists to prevent errors
-    unless ActiveRecord::Base.connection.table_exists?('companies')
+    unless companies_table_exists?
       Rails.logger.error("Companies table does not exist - skipping tenant setup")
       return false
     end
 
-    # Find the company by subdomain
+    find_and_set_company_tenant(subdomain)
+  rescue => e
+    # Log the error but continue with the request (default tenant)
+    Rails.logger.error("Error setting tenant: #{e.message}")
+    false
+  end
+
+  def companies_table_exists?
+    ActiveRecord::Base.connection.table_exists?('companies')
+  end
+
+  def find_and_set_company_tenant(subdomain)
     company = Company.find_by(subdomain: subdomain)
 
     if company
@@ -66,10 +78,6 @@ class ApplicationController < ActionController::Base
       tenant_not_found
       false
     end
-  rescue => e
-    # Log the error but continue with the request (default tenant)
-    Rails.logger.error("Error setting tenant: #{e.message}")
-    false
   end
 
   def tenant_not_found
@@ -125,18 +133,24 @@ class ApplicationController < ActionController::Base
 
   def attempt_to_fix_companies_table
     Rails.logger.info("Attempting to fix companies table")
+    create_companies_table
+    create_default_company
+    redirect_to request.path
+  rescue => e
+    Rails.logger.error("Failed to fix companies table: #{e.message}")
+    render_statement_invalid_response(e)
+  end
+
+  def create_companies_table
     ActiveRecord::Base.connection.create_table(:companies) do |t|
       t.string :name, null: false, default: 'Default'
       t.string :subdomain, null: false, default: 'default'
       t.timestamps
     end
-    # Create a default company
+  end
+
+  def create_default_company
     Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
-    # Retry the original request by redirecting
-    redirect_to request.path
-  rescue => e
-    Rails.logger.error("Failed to fix companies table: #{e.message}")
-    render_statement_invalid_response(e)
   end
 
   def render_statement_invalid_response(exception)
