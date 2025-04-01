@@ -25,6 +25,41 @@ else
   echo "SECRET_KEY_BASE is set properly ✓"
 fi
 
+# Create encrypted credentials file if it doesn't exist or RAILS_MASTER_KEY is not set
+if [ ! -f "config/credentials.yml.enc" ] || [ -z "$RAILS_MASTER_KEY" ]; then
+  echo "No credentials file found or RAILS_MASTER_KEY is not set."
+  
+  # Generate encryption keys
+  PRIMARY_KEY=$(openssl rand -hex 32)
+  DETERMINISTIC_KEY=$(openssl rand -hex 32)
+  KEY_DERIVATION_SALT=$(openssl rand -hex 32)
+  
+  # Create a temporary credentials YAML file
+  echo "Creating temporary credentials file with ActiveRecord encryption keys..."
+  cat > /tmp/temp_credentials.yml << EOL
+# ActiveRecord encryption keys (auto-generated for Render deployment)
+active_record_encryption:
+  primary_key: ${PRIMARY_KEY}
+  deterministic_key: ${DETERMINISTIC_KEY}
+  key_derivation_salt: ${KEY_DERIVATION_SALT}
+EOL
+
+  # If RAILS_MASTER_KEY is not set, generate one
+  if [ -z "$RAILS_MASTER_KEY" ]; then
+    echo "Generating new RAILS_MASTER_KEY..."
+    export RAILS_MASTER_KEY=$(openssl rand -hex 16)
+    echo "WARNING: A new RAILS_MASTER_KEY has been generated: ${RAILS_MASTER_KEY}"
+    echo "Please add this to your Render environment variables for future deployments."
+  fi
+
+  # Use the RAILS_MASTER_KEY to encrypt the credentials file
+  echo "${RAILS_MASTER_KEY}" > config/master.key
+  chmod 600 config/master.key
+  
+  # Encrypt the credentials file
+  EDITOR="cp /tmp/temp_credentials.yml" bin/rails credentials:edit --environment=production || echo "Failed to create credentials file but continuing..."
+fi
+
 # Build commands for Render deployment
 echo "Installing dependencies..."
 bundle install
