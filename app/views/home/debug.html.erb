@@ -1,0 +1,62 @@
+<h1>Multi-Tenant Debug Information</h1>
+
+<div style="margin: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+  <h2>Current Request</h2>
+  <p><strong>Request Subdomain:</strong> <%= @request_subdomain.presence || "(none)" %></p>
+  <p><strong>Current Tenant:</strong> <%= @current_tenant&.name || "(none)" %></p>
+  
+  <h2>Available Tenants</h2>
+  <% if @all_tenants.any? %>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background-color: #f2f2f2;">
+          <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Company Name</th>
+          <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Subdomain</th>
+          <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Test URL (lvh.me)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @all_tenants.each do |name, subdomain| %>
+          <tr>
+            <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><%= name %></td>
+            <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><%= subdomain %></td>
+            <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">
+              <a href="http://<%= subdomain %>.lvh.me:3000/home/debug" target="_blank">
+                <%= subdomain %>.lvh.me:3000
+              </a>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No tenants found in the database.</p>
+  <% end %>
+  
+  <h2>Test Your Tenants</h2>
+  <p>Use one of these methods to test multi-tenancy on localhost:</p>
+  <ol>
+    <li>
+      <strong>lvh.me:</strong> Visit 
+      <a href="http://lvh.me:3000/home/debug">lvh.me:3000</a> for public tenant, or 
+      <a href="http://<%= @all_tenants.first&.last %>.lvh.me:3000/home/debug"><%= @all_tenants.first&.last %>.lvh.me:3000</a> 
+      for specific tenant
+    </li>
+    <li>
+      <strong>127.0.0.1.xip.io:</strong> Visit 
+      <a href="http://127.0.0.1.xip.io:3000/home/debug">127.0.0.1.xip.io:3000</a> for public tenant, or
+      <a href="http://<%= @all_tenants.first&.last %>.127.0.0.1.xip.io:3000/home/debug"><%= @all_tenants.first&.last %>.127.0.0.1.xip.io:3000</a>
+      for specific tenant
+    </li>
+  </ol>
+  
+  <h3>Multi-Tenancy Information</h3>
+  <p>This application now uses <strong>acts_as_tenant</strong> for multi-tenancy.</p>
+  <p>Data is separated through row-level tenant scoping rather than schema-level separation.</p>
+</div>
+
+<div style="margin: 20px 0; text-align: center;">
+  <a href="/" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+    Back to Homepage
+  </a>
+</div> 

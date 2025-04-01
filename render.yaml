@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: bizblasts
+    env: ruby
+    buildCommand: "./bin/render-build.sh"
+    startCommand: "bundle exec puma -C config/puma.rb"
+    healthCheckPath: /healthcheck
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bizblast-postgresql
+          property: connectionString
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: bizblast-postgresql
+          property: host  
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: bizblast-postgresql
+          property: port
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: bizblast-postgresql
+          property: database
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: bizblast-postgresql
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: bizblast-postgresql
+          property: password
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_LOG_LEVEL
+        value: debug
+
+databases:
+  - name: bizblast-postgresql
+    plan: free
