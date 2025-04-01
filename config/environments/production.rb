@@ -9,31 +9,24 @@ require "securerandom"
 # Debug output for database configuration
 puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
 puts "DATABASE_HOST environment variable: #{ENV['DATABASE_HOST'] || 'NOT SET'}"
-puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] || 'NOT SET'} #{ENV['DATABASE_PORT'] ? '' : '(using default 5432)'}"
+puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] ? ENV['DATABASE_PORT'] : 'NOT SET (using default 5432)'}"
 puts "SECRET_KEY_BASE set: #{ENV['SECRET_KEY_BASE'] ? 'Yes' : 'No'}"
 puts "RAILS_MASTER_KEY set: #{ENV['RAILS_MASTER_KEY'] ? 'Yes' : 'No'}"
-puts "RAILS_ENV: #{ENV['RAILS_ENV']}"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  # Disable credentials requirement since we're having issues with them
-  config.require_master_key = false
-
-  # Use an explicitly set secret key base without relying on credentials
-  config.secret_key_base = ENV["SECRET_KEY_BASE"].presence || 
-                           SecureRandom.hex(64) # Generate random key as last resort
-
   # Code is not reloaded between requests.
   config.enable_reloading = false
 
-  # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
+  # Eager load code on boot. This eager loads most of Rails and
+  # your application in memory, allowing both threaded web servers
+  # and those relying on copy on write to perform better.
+  # Rake tasks automatically ignore this option for performance.
   config.eager_load = true
 
-  # Full error reports are disabled.
+  # Full error reports are disabled and caching is turned on.
   config.consider_all_requests_local = false
-
-  # Turn on fragment caching in view templates.
   config.action_controller.perform_caching = true
 
   # Cache assets for far-future expiry since they are all digest stamped.
@@ -57,11 +50,16 @@ Rails.application.configure do
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
-  # Log to STDOUT with the current request id as a default log tag.
-  config.log_tags = [:request_id]
-  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
+  # Log to STDOUT by default
+  config.logger = ActiveSupport::Logger.new(STDOUT)
+    .tap  { |logger| logger.formatter = ::Logger::Formatter.new }
+    .then { |logger| ActiveSupport::TaggedLogging.new(logger) }
 
-  # Change to "debug" to log everything (including potentially personally-identifiable information!)
+  # Prepend all log lines with the following tags.
+  config.log_tags = [ :request_id ]
+
+  # Info include generic and useful information about system operation, but avoids logging too much
+  # information to avoid inadvertent exposure of personally identifiable information (PII).
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
   # Prevent health checks from clogging up the logs.
@@ -123,4 +121,7 @@ Rails.application.configure do
   
   # Skip DNS rebinding protection for the default health check endpoint.
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+
+  # Set a better secret key base for production that doesn't rely on credentials
+  config.secret_key_base = ENV["SECRET_KEY_BASE"].presence || SecureRandom.hex(64)
 end
