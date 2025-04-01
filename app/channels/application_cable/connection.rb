@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 module ApplicationCable
+  # Connection class for Action Cable that identifies users
+  # and handles authorization for WebSocket connections
   class Connection < ActionCable::Connection::Base
     identified_by :current_user
 
@@ -8,7 +12,8 @@ module ApplicationCable
 
     private
       def find_verified_user
-        if verified_user = env['warden'].user
+        verified_user = env['warden'].user
+        if verified_user
           verified_user
         else
           reject_unauthorized_connection

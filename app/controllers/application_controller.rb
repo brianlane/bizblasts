@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# Main controller for the application that handles tenant setup, authentication,
+# and error handling. Provides methods for maintenance mode and database connectivity checks.
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
@@ -42,26 +46,30 @@ class ApplicationController < ActionController::Base
 
     # Skip for www or blank subdomains
     return if subdomain.blank? || subdomain == "www"
+    return unless table_exists_and_set_company(subdomain)
+  end
 
-    begin
-      # First check if the companies table exists to prevent errors
-      unless ActiveRecord::Base.connection.table_exists?('companies')
-        Rails.logger.error("Companies table does not exist - skipping tenant setup")
-        return
-      end
-
-      # Find the company by subdomain
-      company = Company.find_by(subdomain: subdomain)
-
-      if company
-        set_current_tenant(company)
-      else
-        tenant_not_found
-      end
-    rescue => e
-      # Log the error but continue with the request (default tenant)
-      Rails.logger.error("Error setting tenant: #{e.message}")
+  def table_exists_and_set_company(subdomain)
+    # First check if the companies table exists to prevent errors
+    unless ActiveRecord::Base.connection.table_exists?('companies')
+      Rails.logger.error("Companies table does not exist - skipping tenant setup")
+      return false
     end
+
+    # Find the company by subdomain
+    company = Company.find_by(subdomain: subdomain)
+
+    if company
+      set_current_tenant(company)
+      true
+    else
+      tenant_not_found
+      false
+    end
+  rescue => e
+    # Log the error but continue with the request (default tenant)
+    Rails.logger.error("Error setting tenant: #{e.message}")
+    false
   end
 
   def tenant_not_found
@@ -70,20 +78,26 @@ class ApplicationController < ActionController::Base
   end
 
   def database_connection_error
-    # Only return a success response for health checks
     if maintenance_mode?
-      if request.path == '/healthcheck'
-        render json: { status: 'ok', message: 'Health check passed, database not available' }, status: :ok
-      else
-        # For other maintenance paths, show a maintenance page
-        render template: "errors/maintenance", status: :service_unavailable
-      end
+      handle_maintenance_health_check
     else
-      # For all other pages, return a 503 service unavailable
-      respond_to do |format|
-        format.html { render template: "errors/maintenance", status: :service_unavailable }
-        format.json { render json: { error: 'Database connection error' }, status: :service_unavailable }
-      end
+      render_database_error_response
+    end
+  end
+
+  def handle_maintenance_health_check
+    if request.path == '/healthcheck'
+      render json: { status: 'ok', message: 'Health check passed, database not available' }, status: :ok
+    else
+      # For other maintenance paths, show a maintenance page
+      render template: "errors/maintenance", status: :service_unavailable
+    end
+  end
+
+  def render_database_error_response
+    respond_to do |format|
+      format.html { render template: "errors/maintenance", status: :service_unavailable }
+      format.json { render json: { error: 'Database connection error' }, status: :service_unavailable }
     end
   end
 
@@ -102,24 +116,30 @@ class ApplicationController < ActionController::Base
     
     # Handle the specific "relation does not exist" error
     if exception.message.include?('relation "companies" does not exist')
-      # Try to create the companies table on the fly
-      begin
-        Rails.logger.info("Attempting to fix companies table")
-        ActiveRecord::Base.connection.create_table(:companies) do |t|
-          t.string :name, null: false, default: 'Default'
-          t.string :subdomain, null: false, default: 'default'
-          t.timestamps
-        end
-        # Create a default company
-        Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
-        # Retry the original request by redirecting
-        return redirect_to request.path
-      rescue => e
-        Rails.logger.error("Failed to fix companies table: #{e.message}")
-      end
+      return attempt_to_fix_companies_table
     end
     
     # Fallback to maintenance mode
+    render_statement_invalid_response(exception)
+  end
+
+  def attempt_to_fix_companies_table
+    Rails.logger.info("Attempting to fix companies table")
+    ActiveRecord::Base.connection.create_table(:companies) do |t|
+      t.string :name, null: false, default: 'Default'
+      t.string :subdomain, null: false, default: 'default'
+      t.timestamps
+    end
+    # Create a default company
+    Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
+    # Retry the original request by redirecting
+    redirect_to request.path
+  rescue => e
+    Rails.logger.error("Failed to fix companies table: #{e.message}")
+    render_statement_invalid_response(e)
+  end
+
+  def render_statement_invalid_response(exception)
     respond_to do |format|
       format.html { render template: "errors/maintenance", status: :service_unavailable }
       format.json { render json: { error: 'Database error', details: exception.message }, status: :service_unavailable }
