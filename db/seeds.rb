@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This file should ensure the existence of records required to run the application in every environment (production,
 # development, test). The code should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
@@ -300,4 +302,19 @@ company_data.each do |company_info|
 end
 
 puts "Database seeding completed successfully!"
-AdminUser.create!(email: 'admin@example.com', password: 'password', password_confirmation: 'password') if Rails.env.development?
+
+# Create a default company (required for all tenancy associations)
+company = Company.find_or_initialize_by(name: "Example Company", subdomain: "example")
+if company.new_record?
+  company.save!
+  puts "Created default company: Example Company (subdomain: example)"
+end
+
+# Create an admin user
+if Rails.env.development? || Rails.env.test?
+  AdminUser.find_or_create_by!(email: 'admin@example.com') do |admin|
+    admin.password = 'password'
+    admin.password_confirmation = 'password'
+    puts "Created admin user: admin@example.com with password: password"
+  end
+end
