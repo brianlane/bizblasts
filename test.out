@@ -1,15 +1,1389 @@
 ==> Preparing test database...
 Dropped database 'bizblasts_test'
 Created database 'bizblasts_test'
+Seeding database with sample data...
 Creating default tenant...
 Default tenant created: Default Company (default)
 Creating admin user...
 Admin user created with email: admin@example.com and password: password123
-Main database seeding completed!
+Creating sample data for Default Company...
+Created customer: Fr. Doretha Braun
+Created customer: Chad Ankunding
+Created customer: Pres. Frida Paucek
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-03 18:46
+Created appointment at 2025-04-16 17:11
+Created appointment at 2025-04-15 00:29
+Created appointment at 2025-04-16 13:30
+Created appointment at 2025-04-13 23:30
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Douglass Moen
+Created customer: Colton Gutkowski JD
+Created customer: Mrs. Donita Morissette
+Created customer: Lurline Farrell
+Created customer: Tamika Feest
+Created customer: Veda Moen
+Created customer: Shenna D'Amore
+Created customer: Dannie Kassulke
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Salvatore Kuhlman
+Created service provider: Velvet Heller
+Created service provider: Sen. Gordon Parisian
+Created service provider: Georgette Roob
+Created past appointment at 2025-03-24 05:39
+Created past appointment at 2025-03-21 21:36
+Created past appointment at 2025-03-21 08:17
+Created past appointment at 2025-03-31 17:05
+Created past appointment at 2025-03-22 19:05
+Created past appointment at 2025-03-31 12:09
+Created past appointment at 2025-03-21 09:59
+Created past appointment at 2025-03-31 10:56
+Created past appointment at 2025-03-23 05:01
+Created past appointment at 2025-03-23 20:42
+Created future appointment at 2025-04-09 19:15
+Created future appointment at 2025-04-17 20:18
+Created future appointment at 2025-04-07 08:31
+Created future appointment at 2025-04-11 17:19
+Created future appointment at 2025-04-04 19:58
+Created future appointment at 2025-04-09 16:42
+Created future appointment at 2025-04-10 14:32
+Created future appointment at 2025-04-04 11:57
+Created future appointment at 2025-04-06 21:42
+Created future appointment at 2025-04-19 00:40
+Created future appointment at 2025-04-04 11:55
+Created future appointment at 2025-04-20 14:23
+Created future appointment at 2025-04-11 12:53
+Created future appointment at 2025-04-11 21:47
+Created future appointment at 2025-04-13 08:26
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Leena Bashirian
+Created customer: Mrs. Guy McClure
+Created customer: Tuyet Considine
+Created customer: Teressa Ernser VM
+Created customer: Jinny Crooks
+Created customer: Rep. August Oberbrunner
+Created customer: Andria Nikolaus
+Created customer: Msgr. Kristopher Swift
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Alita Stiedemann
+Created service provider: Darryl Beatty
+Created service provider: Mr. Liberty Borer
+Created past appointment at 2025-03-21 15:26
+Created past appointment at 2025-04-01 04:59
+Created past appointment at 2025-03-30 11:34
+Created past appointment at 2025-03-20 03:59
+Created past appointment at 2025-03-25 15:02
+Created past appointment at 2025-03-31 19:12
+Created past appointment at 2025-03-21 09:42
+Created past appointment at 2025-03-20 18:49
+Created past appointment at 2025-03-30 06:42
+Created past appointment at 2025-03-26 10:40
+Created future appointment at 2025-04-08 07:51
+Created future appointment at 2025-04-15 07:27
+Created future appointment at 2025-04-15 01:17
+Created future appointment at 2025-04-11 10:34
+Created future appointment at 2025-04-10 08:17
+Created future appointment at 2025-04-16 15:16
+Created future appointment at 2025-04-12 04:50
+Created future appointment at 2025-04-02 17:56
+Created future appointment at 2025-04-10 19:40
+Created future appointment at 2025-04-09 07:04
+Created future appointment at 2025-04-04 05:59
+Created future appointment at 2025-04-15 10:12
+Created future appointment at 2025-04-03 22:40
+Created future appointment at 2025-04-07 09:17
+Created future appointment at 2025-04-23 16:16
+Database seeding completed successfully!
 ==> Running tests...
-.................................................................................
+.............................................................................Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Jason Spinka
+Created customer: Ali Paucek
+Created customer: Mr. Imogene Funk
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-05 23:17
+Created appointment at 2025-04-11 09:00
+Created appointment at 2025-04-09 12:08
+Created appointment at 2025-04-10 15:19
+Created appointment at 2025-04-12 15:50
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Brad Thompson
+Created customer: Bruce Mills
+Created customer: Trenton Lind DVM
+Created customer: Raul Buckridge
+Created customer: Oscar VonRueden
+Created customer: Jospeh Lehner
+Created customer: Kurt Gottlieb
+Created customer: Rep. Truman Keeling
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Nathanael Swaniawski
+Created service provider: Ron Koelpin
+Created service provider: Jamie Thompson
+Created service provider: Pat Wilkinson Sr.
+Created past appointment at 2025-03-29 20:13
+Created past appointment at 2025-03-23 02:36
+Created past appointment at 2025-03-30 11:45
+Created past appointment at 2025-03-25 08:48
+Created past appointment at 2025-03-28 14:29
+Created past appointment at 2025-03-25 17:29
+Created past appointment at 2025-03-19 23:37
+Created past appointment at 2025-03-28 15:17
+Created past appointment at 2025-03-21 22:54
+Created past appointment at 2025-03-24 08:42
+Created future appointment at 2025-04-22 09:47
+Created future appointment at 2025-04-21 02:17
+Created future appointment at 2025-04-21 00:13
+Created future appointment at 2025-04-23 14:11
+Created future appointment at 2025-04-11 04:50
+Created future appointment at 2025-04-14 07:47
+Created future appointment at 2025-04-07 15:59
+Created future appointment at 2025-04-15 02:19
+Created future appointment at 2025-04-09 14:29
+Created future appointment at 2025-04-11 20:30
+Created future appointment at 2025-04-13 15:10
+Created future appointment at 2025-04-16 21:17
+Created future appointment at 2025-04-17 05:09
+Created future appointment at 2025-04-12 12:16
+Created future appointment at 2025-04-09 00:32
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Hisako Jacobs
+Created customer: Charolette Mitchell
+Created customer: Geraldine O'Connell
+Created customer: Paul Von
+Created customer: Jewel Swaniawski
+Created customer: Rufus Dickinson
+Created customer: Ms. Drew Douglas
+Created customer: Kathie Cole
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Frederick Krajcik
+Created service provider: Tisa Larkin
+Created service provider: Carmen Steuber III
+Created past appointment at 2025-03-30 20:19
+Created past appointment at 2025-03-28 19:07
+Created past appointment at 2025-03-22 17:14
+Created past appointment at 2025-03-21 23:11
+Created past appointment at 2025-03-26 22:48
+Created past appointment at 2025-03-21 08:51
+Created past appointment at 2025-03-24 07:28
+Created past appointment at 2025-03-23 06:56
+Created past appointment at 2025-03-21 09:22
+Created past appointment at 2025-03-23 19:55
+Created future appointment at 2025-04-20 23:07
+Created future appointment at 2025-04-18 03:07
+Created future appointment at 2025-04-03 18:02
+Created future appointment at 2025-04-22 15:43
+Created future appointment at 2025-04-03 18:40
+Created future appointment at 2025-04-06 06:13
+Created future appointment at 2025-04-15 07:27
+Created future appointment at 2025-04-17 16:01
+Created future appointment at 2025-04-08 09:59
+Created future appointment at 2025-04-14 16:00
+Created future appointment at 2025-04-08 02:12
+Created future appointment at 2025-04-16 10:59
+Created future appointment at 2025-04-08 03:56
+Created future appointment at 2025-04-07 16:16
+Created future appointment at 2025-04-04 02:16
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Billy Wiza
+Created customer: Sen. Lanie Hilpert
+Created customer: Marissa Morissette
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-07 14:35
+Created appointment at 2025-04-13 23:40
+Created appointment at 2025-04-11 11:45
+Created appointment at 2025-04-06 06:50
+Created appointment at 2025-04-05 08:48
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Lida Pagac
+Created customer: Ross Maggio
+Created customer: Nigel Ullrich
+Created customer: Mrs. Wilbert Rippin
+Created customer: Arthur Hoppe
+Created customer: Sen. Golden Willms
+Created customer: Rep. Jimmie Rutherford
+Created customer: Sima Lebsack
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Pablo Lakin
+Created service provider: Rev. Wes Hoppe
+Created service provider: Yong Kiehn
+Created service provider: Cecilia Wiza
+Created past appointment at 2025-04-01 09:17
+Created past appointment at 2025-03-22 00:23
+Created past appointment at 2025-03-19 21:32
+Created past appointment at 2025-03-26 21:13
+Created past appointment at 2025-03-28 11:37
+Created past appointment at 2025-03-21 03:09
+Created past appointment at 2025-03-24 22:52
+Created past appointment at 2025-03-31 17:22
+Created past appointment at 2025-03-24 14:09
+Created past appointment at 2025-03-19 20:43
+Created future appointment at 2025-04-16 02:59
+Created future appointment at 2025-04-02 22:52
+Created future appointment at 2025-04-07 10:22
+Created future appointment at 2025-04-15 16:03
+Created future appointment at 2025-04-17 05:46
+Created future appointment at 2025-04-22 08:30
+Created future appointment at 2025-04-12 16:27
+Created future appointment at 2025-04-11 12:17
+Created future appointment at 2025-04-08 08:20
+Created future appointment at 2025-04-11 19:12
+Created future appointment at 2025-04-11 06:33
+Created future appointment at 2025-04-16 18:41
+Created future appointment at 2025-04-23 08:41
+Created future appointment at 2025-04-04 07:46
+Created future appointment at 2025-04-15 00:31
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Mikaela Jacobi Jr.
+Created customer: Becki Osinski
+Created customer: Michael D'Amore
+Created customer: Asa Koepp
+Created customer: Morton Gibson
+Created customer: Clay Brakus
+Created customer: Ramonita Reinger
+Created customer: Lyndon Dooley
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Joshua Satterfield MD
+Created service provider: Louis Hamill I
+Created service provider: Dwain Schuster
+Created past appointment at 2025-03-25 18:39
+Created past appointment at 2025-03-19 19:56
+Created past appointment at 2025-03-25 21:00
+Created past appointment at 2025-03-28 22:37
+Created past appointment at 2025-03-31 04:02
+Created past appointment at 2025-04-01 04:19
+Created past appointment at 2025-03-28 06:48
+Created past appointment at 2025-03-26 01:09
+Created past appointment at 2025-03-22 03:50
+Created past appointment at 2025-03-25 10:03
+Created future appointment at 2025-04-08 10:56
+Created future appointment at 2025-04-12 12:26
+Created future appointment at 2025-04-14 19:00
+Created future appointment at 2025-04-18 19:09
+Created future appointment at 2025-04-21 04:35
+Created future appointment at 2025-04-17 12:17
+Created future appointment at 2025-04-22 18:29
+Created future appointment at 2025-04-20 11:08
+Created future appointment at 2025-04-07 21:58
+Created future appointment at 2025-04-21 06:18
+Created future appointment at 2025-04-04 08:38
+Created future appointment at 2025-04-22 13:51
+Created future appointment at 2025-04-11 23:49
+Created future appointment at 2025-04-04 14:24
+Created future appointment at 2025-04-16 23:22
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Ethelyn Goldner
+Created customer: Stephen Ebert
+Created customer: Eduardo Kling
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-14 07:22
+Created appointment at 2025-04-05 04:08
+Created appointment at 2025-04-12 22:21
+Created appointment at 2025-04-05 21:15
+Created appointment at 2025-04-06 11:22
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Nichol Kiehn
+Created customer: Frank Padberg DO
+Created customer: Agnus Green
+Created customer: Annette Donnelly
+Created customer: Asa Shanahan DDS
+Created customer: Dean Barrows DC
+Created customer: Miss Adeline Auer
+Created customer: The Hon. Carmella Abshire
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Pres. Lai Turner
+Created service provider: Valery Adams III
+Created service provider: Collin Morissette
+Created service provider: Ms. Bradley Schinner
+Created past appointment at 2025-03-29 02:12
+Created past appointment at 2025-04-01 00:15
+Created past appointment at 2025-03-31 17:53
+Created past appointment at 2025-03-23 05:13
+Created past appointment at 2025-03-21 13:48
+Created past appointment at 2025-03-22 18:52
+Created past appointment at 2025-03-22 11:06
+Created past appointment at 2025-03-20 08:20
+Created past appointment at 2025-03-24 05:58
+Created past appointment at 2025-03-27 18:28
+Created future appointment at 2025-04-13 09:59
+Created future appointment at 2025-04-05 13:23
+Created future appointment at 2025-04-08 18:48
+Created future appointment at 2025-04-17 01:02
+Created future appointment at 2025-04-16 23:29
+Created future appointment at 2025-04-14 08:49
+Created future appointment at 2025-04-20 16:46
+Created future appointment at 2025-04-17 01:45
+Created future appointment at 2025-04-12 06:35
+Created future appointment at 2025-04-15 18:16
+Created future appointment at 2025-04-06 06:57
+Created future appointment at 2025-04-18 13:12
+Created future appointment at 2025-04-20 11:33
+Created future appointment at 2025-04-07 00:30
+Created future appointment at 2025-04-21 21:25
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Doyle Klein
+Created customer: Gigi Goldner
+Created customer: Valerie Blanda
+Created customer: Candelaria Legros
+Created customer: Machelle Miller
+Created customer: Luciano Hansen
+Created customer: Jonell Donnelly III
+Created customer: Adella Hartmann
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Ms. Jesusa Lind
+Created service provider: Ollie Moore
+Created service provider: Mrs. Lavern Brekke
+Created past appointment at 2025-03-23 20:11
+Created past appointment at 2025-03-29 05:45
+Created past appointment at 2025-03-28 00:24
+Created past appointment at 2025-03-22 20:13
+Created past appointment at 2025-03-30 20:22
+Created past appointment at 2025-03-28 10:30
+Created past appointment at 2025-03-21 21:33
+Created past appointment at 2025-03-25 23:58
+Created past appointment at 2025-03-22 06:15
+Created past appointment at 2025-03-19 19:03
+Created future appointment at 2025-04-17 04:18
+Created future appointment at 2025-04-09 16:43
+Created future appointment at 2025-04-20 22:11
+Created future appointment at 2025-04-20 06:42
+Created future appointment at 2025-04-06 06:20
+Created future appointment at 2025-04-11 12:24
+Created future appointment at 2025-04-11 20:41
+Created future appointment at 2025-04-17 10:48
+Created future appointment at 2025-04-19 16:52
+Created future appointment at 2025-04-16 18:07
+Created future appointment at 2025-04-09 00:36
+Created future appointment at 2025-04-08 23:18
+Created future appointment at 2025-04-13 18:17
+Created future appointment at 2025-04-10 20:00
+Created future appointment at 2025-04-07 13:59
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Rev. Peter Robel
+Created customer: Lawana Emmerich
+Created customer: Pattie Denesik
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-11 10:14
+Created appointment at 2025-04-09 01:18
+Created appointment at 2025-04-08 11:40
+Created appointment at 2025-04-13 15:17
+Created appointment at 2025-04-13 06:44
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Chadwick McLaughlin
+Created customer: Kelley Abernathy DO
+Created customer: Cornelius Yundt MD
+Created customer: Vicenta DuBuque
+Created customer: Alejandra D'Amore
+Created customer: Krystle Abbott
+Created customer: Towanda Rogahn DDS
+Created customer: Tod Rohan DVM
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Andrew Windler
+Created service provider: Son Padberg
+Created service provider: Freddy Erdman
+Created service provider: Dr. Aron Stark
+Created past appointment at 2025-03-30 19:35
+Created past appointment at 2025-03-22 20:09
+Created past appointment at 2025-03-22 15:30
+Created past appointment at 2025-03-25 16:23
+Created past appointment at 2025-03-31 05:04
+Created past appointment at 2025-03-26 02:15
+Created past appointment at 2025-03-24 11:30
+Created past appointment at 2025-03-21 19:32
+Created past appointment at 2025-03-20 00:34
+Created past appointment at 2025-03-25 20:40
+Created future appointment at 2025-04-04 05:14
+Created future appointment at 2025-04-16 23:33
+Created future appointment at 2025-04-06 15:34
+Created future appointment at 2025-04-21 01:23
+Created future appointment at 2025-04-23 07:49
+Created future appointment at 2025-04-10 03:50
+Created future appointment at 2025-04-14 02:05
+Created future appointment at 2025-04-19 19:57
+Created future appointment at 2025-04-17 18:26
+Created future appointment at 2025-04-09 23:58
+Created future appointment at 2025-04-19 19:35
+Created future appointment at 2025-04-13 03:02
+Created future appointment at 2025-04-20 17:36
+Created future appointment at 2025-04-04 05:08
+Created future appointment at 2025-04-17 11:16
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Dianna Macejkovic
+Created customer: Quinn Gerlach
+Created customer: Enrique Koch
+Created customer: Pres. Julianne Hermann
+Created customer: Hayden Wilkinson
+Created customer: Mrs. Lachelle Huel
+Created customer: Belen Greenholt DC
+Created customer: Margaret Hintz
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Roxana Koss Jr.
+Created service provider: Laurinda Moen
+Created service provider: Elliott Corwin
+Created past appointment at 2025-03-25 13:46
+Created past appointment at 2025-03-24 05:36
+Created past appointment at 2025-03-20 09:49
+Created past appointment at 2025-03-26 16:30
+Created past appointment at 2025-03-21 03:09
+Created past appointment at 2025-03-21 14:42
+Created past appointment at 2025-03-29 11:43
+Created past appointment at 2025-03-24 05:34
+Created past appointment at 2025-04-01 05:54
+Created past appointment at 2025-03-21 17:43
+Created future appointment at 2025-04-11 05:35
+Created future appointment at 2025-04-20 20:24
+Created future appointment at 2025-04-19 16:56
+Created future appointment at 2025-04-20 05:50
+Created future appointment at 2025-04-07 13:05
+Created future appointment at 2025-04-21 02:59
+Created future appointment at 2025-04-16 03:22
+Created future appointment at 2025-04-11 07:31
+Created future appointment at 2025-04-20 08:48
+Created future appointment at 2025-04-04 03:19
+Created future appointment at 2025-04-09 14:03
+Created future appointment at 2025-04-20 04:26
+Created future appointment at 2025-04-06 17:59
+Created future appointment at 2025-04-08 04:34
+Created future appointment at 2025-04-22 02:58
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Shawnta Moore
+Created customer: Cassey Fritsch
+Created customer: Olen Hessel
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-07 17:38
+Created appointment at 2025-04-13 12:29
+Created appointment at 2025-04-12 23:38
+Created appointment at 2025-04-10 23:26
+Created appointment at 2025-04-10 18:51
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Gregg Effertz CPA
+Created customer: Nickolas Lang
+Created customer: Vance Kautzer
+Created customer: Oswaldo Watsica
+Created customer: Msgr. Leonel Tillman
+Created customer: Barbar Littel
+Created customer: Darrel Jacobi CPA
+Created customer: Rickey Runolfsson
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Bryant Leannon
+Created service provider: Asia Ullrich
+Created service provider: Gil Hudson
+Created service provider: Anissa Greenfelder
+Created past appointment at 2025-03-29 20:21
+Created past appointment at 2025-03-22 14:20
+Created past appointment at 2025-03-30 12:19
+Created past appointment at 2025-03-26 08:26
+Created past appointment at 2025-03-31 23:37
+Created past appointment at 2025-03-25 18:44
+Created past appointment at 2025-03-30 16:15
+Created past appointment at 2025-03-20 01:57
+Created past appointment at 2025-04-01 09:24
+Created past appointment at 2025-03-22 06:37
+Created future appointment at 2025-04-12 23:47
+Created future appointment at 2025-04-12 08:52
+Created future appointment at 2025-04-08 16:22
+Created future appointment at 2025-04-07 19:31
+Created future appointment at 2025-04-03 06:58
+Created future appointment at 2025-04-22 22:12
+Created future appointment at 2025-04-19 17:30
+Created future appointment at 2025-04-06 20:04
+Created future appointment at 2025-04-17 17:05
+Created future appointment at 2025-04-14 19:14
+Created future appointment at 2025-04-12 13:37
+Created future appointment at 2025-04-19 14:59
+Created future appointment at 2025-04-11 20:01
+Created future appointment at 2025-04-14 22:24
+Created future appointment at 2025-04-16 07:11
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Ileen Morar
+Created customer: Wilfred McClure
+Created customer: Breana Green
+Created customer: Aubrey Koch
+Created customer: Fernando Pfeffer DO
+Created customer: Miss John Kuhlman
+Created customer: Charley Abshire
+Created customer: Rolf Green
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Frederic Hills DVM
+Created service provider: Noma Veum
+Created service provider: Sen. Shirley Bednar
+Created past appointment at 2025-03-23 15:16
+Created past appointment at 2025-03-31 06:31
+Created past appointment at 2025-03-23 00:19
+Created past appointment at 2025-03-28 20:51
+Created past appointment at 2025-03-31 04:46
+Created past appointment at 2025-03-27 15:22
+Created past appointment at 2025-03-27 19:23
+Created past appointment at 2025-03-28 08:59
+Created past appointment at 2025-03-25 19:05
+Created past appointment at 2025-03-23 11:45
+Created future appointment at 2025-04-12 02:13
+Created future appointment at 2025-04-18 08:08
+Created future appointment at 2025-04-03 12:48
+Created future appointment at 2025-04-05 01:25
+Created future appointment at 2025-04-09 16:11
+Created future appointment at 2025-04-15 17:17
+Created future appointment at 2025-04-21 18:48
+Created future appointment at 2025-04-12 14:19
+Created future appointment at 2025-04-03 22:29
+Created future appointment at 2025-04-22 16:55
+Created future appointment at 2025-04-05 23:48
+Created future appointment at 2025-04-07 18:36
+Created future appointment at 2025-04-17 07:09
+Created future appointment at 2025-04-11 19:31
+Created future appointment at 2025-04-12 05:36
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Jospeh Cole
+Created customer: Amb. Raymond Carter
+Created customer: Foster Wisoky
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-06 23:59
+Created appointment at 2025-04-05 19:03
+Created appointment at 2025-04-08 06:18
+Created appointment at 2025-04-04 19:27
+Created appointment at 2025-04-15 01:10
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Carlton Harris
+Created customer: Mark Konopelski
+Created customer: Edmund Kautzer
+Created customer: Marlin Prosacco
+Created customer: Mr. Tyrone Maggio
+Created customer: Ian Miller
+Created customer: Lyman Farrell
+Created customer: Rev. Marissa Berge
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Hyon Koch DO
+Created service provider: Coy Heaney
+Created service provider: Hui Skiles
+Created service provider: Perry MacGyver
+Created past appointment at 2025-03-26 17:52
+Created past appointment at 2025-03-28 22:55
+Created past appointment at 2025-03-21 14:54
+Created past appointment at 2025-03-28 04:08
+Created past appointment at 2025-03-30 17:24
+Created past appointment at 2025-04-01 03:07
+Created past appointment at 2025-03-20 14:28
+Created past appointment at 2025-03-29 16:08
+Created past appointment at 2025-03-21 18:27
+Created past appointment at 2025-03-30 21:03
+Created future appointment at 2025-04-13 17:13
+Created future appointment at 2025-04-04 14:10
+Created future appointment at 2025-04-15 10:31
+Created future appointment at 2025-04-11 13:28
+Created future appointment at 2025-04-19 19:50
+Created future appointment at 2025-04-07 01:03
+Created future appointment at 2025-04-19 16:43
+Created future appointment at 2025-04-08 17:16
+Created future appointment at 2025-04-18 14:16
+Created future appointment at 2025-04-03 22:21
+Created future appointment at 2025-04-08 09:30
+Created future appointment at 2025-04-08 20:34
+Created future appointment at 2025-04-08 01:49
+Created future appointment at 2025-04-17 01:09
+Created future appointment at 2025-04-15 21:15
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Lucilla Durgan
+Created customer: Shelton Keeling
+Created customer: Rodolfo Herzog DVM
+Created customer: Shantae Hayes
+Created customer: Clifton Pacocha
+Created customer: Ivy Jast
+Created customer: Alysia Lemke
+Created customer: Hipolito Strosin
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Cheryle Okuneva
+Created service provider: Thomasine Mitchell
+Created service provider: Frankie Auer
+Created past appointment at 2025-03-28 07:30
+Created past appointment at 2025-03-27 05:10
+Created past appointment at 2025-03-20 19:22
+Created past appointment at 2025-03-27 00:07
+Created past appointment at 2025-03-23 07:54
+Created past appointment at 2025-03-31 23:31
+Created past appointment at 2025-03-31 16:02
+Created past appointment at 2025-03-22 16:33
+Created past appointment at 2025-03-22 22:16
+Created past appointment at 2025-03-21 06:17
+Created future appointment at 2025-04-13 13:15
+Created future appointment at 2025-04-12 16:28
+Created future appointment at 2025-04-04 02:03
+Created future appointment at 2025-04-19 08:45
+Created future appointment at 2025-04-09 15:32
+Created future appointment at 2025-04-14 09:45
+Created future appointment at 2025-04-21 21:58
+Created future appointment at 2025-04-12 09:02
+Created future appointment at 2025-04-06 16:33
+Created future appointment at 2025-04-15 23:12
+Created future appointment at 2025-04-18 01:02
+Created future appointment at 2025-04-06 20:19
+Created future appointment at 2025-04-15 19:31
+Created future appointment at 2025-04-11 13:14
+Created future appointment at 2025-04-03 14:37
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Fr. Ashley Will
+Created customer: Douglass Shanahan
+Created customer: Darrick Beahan Esq.
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-10 03:18
+Created appointment at 2025-04-04 10:24
+Created appointment at 2025-04-16 13:34
+Created appointment at 2025-04-12 19:36
+Created appointment at 2025-04-05 11:01
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Madeleine Walsh
+Created customer: Earnest Armstrong
+Created customer: Johnny Auer
+Created customer: Bethann Larson PhD
+Created customer: Gwyneth Bayer
+Created customer: Lloyd Heaney
+Created customer: Louis Miller
+Created customer: Lyle Grimes
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Dannielle Wiegand
+Created service provider: Flora Kris
+Created service provider: Burton Schaefer
+Created service provider: Johnie Purdy Ret.
+Created past appointment at 2025-03-23 13:05
+Created past appointment at 2025-03-24 14:31
+Created past appointment at 2025-03-31 03:59
+Created past appointment at 2025-03-28 16:13
+Created past appointment at 2025-03-21 19:12
+Created past appointment at 2025-03-30 07:39
+Created past appointment at 2025-03-21 00:03
+Created past appointment at 2025-03-26 14:59
+Created past appointment at 2025-04-01 06:13
+Created past appointment at 2025-03-31 23:11
+Created future appointment at 2025-04-06 07:51
+Created future appointment at 2025-04-15 22:12
+Created future appointment at 2025-04-20 23:18
+Created future appointment at 2025-04-11 04:32
+Created future appointment at 2025-04-17 13:44
+Created future appointment at 2025-04-23 08:15
+Created future appointment at 2025-04-03 09:12
+Created future appointment at 2025-04-20 23:14
+Created future appointment at 2025-04-06 19:37
+Created future appointment at 2025-04-18 16:37
+Created future appointment at 2025-04-11 20:36
+Created future appointment at 2025-04-16 03:50
+Created future appointment at 2025-04-03 00:46
+Created future appointment at 2025-04-22 23:10
+Created future appointment at 2025-04-06 01:05
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Leticia Boyer
+Created customer: Reynalda Block
+Created customer: Tobias Turcotte
+Created customer: Rafaela Ward
+Created customer: Msgr. Rosalinda Hills
+Created customer: Mr. Margery Lemke
+Created customer: Jammie Kuhlman
+Created customer: Fr. Jeniffer Gislason
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Laverne Heathcote
+Created service provider: Joni Powlowski
+Created service provider: Malcom Murphy
+Created past appointment at 2025-03-21 03:13
+Created past appointment at 2025-03-27 10:42
+Created past appointment at 2025-03-30 13:41
+Created past appointment at 2025-03-27 17:25
+Created past appointment at 2025-03-20 03:58
+Created past appointment at 2025-03-27 19:27
+Created past appointment at 2025-03-24 08:15
+Created past appointment at 2025-04-01 12:18
+Created past appointment at 2025-03-26 22:14
+Created past appointment at 2025-03-26 21:09
+Created future appointment at 2025-04-20 13:43
+Created future appointment at 2025-04-05 18:04
+Created future appointment at 2025-04-10 11:24
+Created future appointment at 2025-04-14 14:42
+Created future appointment at 2025-04-15 17:47
+Created future appointment at 2025-04-20 11:16
+Created future appointment at 2025-04-17 22:27
+Created future appointment at 2025-04-20 04:25
+Created future appointment at 2025-04-17 08:56
+Created future appointment at 2025-04-23 01:07
+Created future appointment at 2025-04-22 16:38
+Created future appointment at 2025-04-12 05:57
+Created future appointment at 2025-04-12 13:53
+Created future appointment at 2025-04-19 22:03
+Created future appointment at 2025-04-05 20:38
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Amb. Doreen Skiles
+Created customer: Sol Mohr PhD
+Created customer: Tommie McKenzie
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-05 23:39
+Created appointment at 2025-04-05 23:38
+Created appointment at 2025-04-10 23:19
+Created appointment at 2025-04-06 20:49
+Created appointment at 2025-04-11 19:55
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Jake Lockman
+Created customer: Frederick Thompson JD
+Created customer: Merlin Kihn
+Created customer: Freddie Padberg
+Created customer: Malissa Boyer
+Created customer: Miss Phil Bosco
+Created customer: Chong Gislason
+Created customer: Kathlene Hilll
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Danette Friesen
+Created service provider: Manual Von DDS
+Created service provider: Sang Tremblay Esq.
+Created service provider: Bennie Stroman Esq.
+Created past appointment at 2025-03-21 10:01
+Created past appointment at 2025-03-30 20:06
+Created past appointment at 2025-03-28 09:35
+Created past appointment at 2025-03-22 07:18
+Created past appointment at 2025-03-30 19:34
+Created past appointment at 2025-04-01 08:46
+Created past appointment at 2025-03-26 00:21
+Created past appointment at 2025-03-25 23:54
+Created past appointment at 2025-03-23 01:48
+Created past appointment at 2025-03-25 02:06
+Created future appointment at 2025-04-23 02:07
+Created future appointment at 2025-04-16 10:01
+Created future appointment at 2025-04-03 14:43
+Created future appointment at 2025-04-03 03:51
+Created future appointment at 2025-04-08 08:50
+Created future appointment at 2025-04-19 20:51
+Created future appointment at 2025-04-04 05:03
+Created future appointment at 2025-04-09 16:32
+Created future appointment at 2025-04-11 15:29
+Created future appointment at 2025-04-13 19:49
+Created future appointment at 2025-04-08 23:12
+Created future appointment at 2025-04-14 02:33
+Created future appointment at 2025-04-17 12:21
+Created future appointment at 2025-04-04 08:48
+Created future appointment at 2025-04-17 07:04
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Lia Mann
+Created customer: Amanda Hessel
+Created customer: Yaeko Thompson
+Created customer: John Torp
+Created customer: Leandro Frami
+Created customer: Dante Bailey
+Created customer: Arnold Murphy
+Created customer: Carrol West
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Jarod Oberbrunner
+Created service provider: Aura Kling
+Created service provider: Regan Barrows DC
+Created past appointment at 2025-03-26 22:21
+Created past appointment at 2025-03-21 14:26
+Created past appointment at 2025-03-26 07:09
+Created past appointment at 2025-03-29 15:49
+Created past appointment at 2025-03-21 21:33
+Created past appointment at 2025-03-31 06:37
+Created past appointment at 2025-03-23 08:43
+Created past appointment at 2025-03-23 20:24
+Created past appointment at 2025-03-22 11:46
+Created past appointment at 2025-03-27 03:24
+Created future appointment at 2025-04-14 09:34
+Created future appointment at 2025-04-05 00:42
+Created future appointment at 2025-04-19 18:13
+Created future appointment at 2025-04-20 18:38
+Created future appointment at 2025-04-19 16:03
+Created future appointment at 2025-04-07 00:06
+Created future appointment at 2025-04-13 04:08
+Created future appointment at 2025-04-21 19:08
+Created future appointment at 2025-04-09 03:59
+Created future appointment at 2025-04-11 04:50
+Created future appointment at 2025-04-02 22:08
+Created future appointment at 2025-04-07 00:06
+Created future appointment at 2025-04-18 19:30
+Created future appointment at 2025-04-03 16:02
+Created future appointment at 2025-04-09 17:11
+Database seeding completed successfully!
+Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user already exists: admin@example.com
+Creating sample data for Default Company...
+Created appointment at 2025-04-04 17:58
+Created appointment at 2025-04-08 20:03
+Created appointment at 2025-04-06 11:18
+Created appointment at 2025-04-07 12:16
+Created appointment at 2025-04-15 08:25
+Creating Larry's Landscaping...
+Created service provider: Cole Stehr
+Created service provider: Leroy Schmitt
+Created service provider: Wilburn Larkin
+Created service provider: Nina Auer
+Created past appointment at 2025-03-24 17:34
+Created past appointment at 2025-03-22 03:12
+Created past appointment at 2025-03-22 12:46
+Created past appointment at 2025-03-29 20:39
+Created past appointment at 2025-03-27 23:28
+Created past appointment at 2025-03-20 19:16
+Created past appointment at 2025-03-21 01:42
+Created past appointment at 2025-03-30 06:17
+Created past appointment at 2025-03-28 01:31
+Created past appointment at 2025-03-23 17:19
+Created future appointment at 2025-04-07 11:57
+Created future appointment at 2025-04-22 04:14
+Created future appointment at 2025-04-15 01:31
+Created future appointment at 2025-04-13 17:22
+Created future appointment at 2025-04-11 17:29
+Created future appointment at 2025-04-03 23:22
+Created future appointment at 2025-04-14 09:32
+Created future appointment at 2025-04-14 04:25
+Created future appointment at 2025-04-22 20:10
+Created future appointment at 2025-04-05 07:23
+Created future appointment at 2025-04-12 20:27
+Created future appointment at 2025-04-14 10:34
+Created future appointment at 2025-04-06 13:24
+Created future appointment at 2025-04-03 04:51
+Created future appointment at 2025-04-07 19:29
+Creating Pete's Pool Service...
+Created service provider: Gov. Bryanna Kshlerin
+Created service provider: Despina Ryan
+Created service provider: Mrs. Edythe Jacobson
+Created past appointment at 2025-03-31 17:01
+Created past appointment at 2025-03-20 18:37
+Created past appointment at 2025-03-30 06:29
+Created past appointment at 2025-03-20 12:36
+Created past appointment at 2025-03-26 14:20
+Created past appointment at 2025-03-31 16:31
+Created past appointment at 2025-03-29 06:47
+Created past appointment at 2025-03-22 03:49
+Created past appointment at 2025-03-27 08:20
+Created past appointment at 2025-03-24 18:26
+Created future appointment at 2025-04-03 07:40
+Created future appointment at 2025-04-16 10:51
+Created future appointment at 2025-04-13 23:21
+Created future appointment at 2025-04-17 02:49
+Created future appointment at 2025-04-20 12:59
+Created future appointment at 2025-04-08 13:07
+Created future appointment at 2025-04-13 03:03
+Created future appointment at 2025-04-15 05:25
+Created future appointment at 2025-04-15 09:16
+Created future appointment at 2025-04-16 16:27
+Created future appointment at 2025-04-07 08:48
+Created future appointment at 2025-04-09 07:52
+Created future appointment at 2025-04-17 05:45
+Created future appointment at 2025-04-03 19:10
+Created future appointment at 2025-04-21 10:45
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Irwin Steuber DDS
+Created customer: Leon Green
+Created customer: Kristofer Bahringer
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-11 19:20
+Created appointment at 2025-04-07 23:10
+Created appointment at 2025-04-05 12:37
+Created appointment at 2025-04-07 00:25
+Created appointment at 2025-04-16 14:37
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Mr. Keith Adams
+Created customer: Margaret Konopelski V
+Created customer: Rodney Baumbach
+Created customer: Leif Kuhic
+Created customer: Gregg Fisher CPA
+Created customer: Amb. Sang Armstrong
+Created customer: Billye Reichert
+Created customer: Lila Heidenreich
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Dee Greenholt Esq.
+Created service provider: Sheryl Goodwin
+Created service provider: Rodolfo Miller DVM
+Created service provider: Lynsey Botsford
+Created past appointment at 2025-03-30 00:05
+Created past appointment at 2025-03-31 10:53
+Created past appointment at 2025-03-28 04:15
+Created past appointment at 2025-03-24 22:47
+Created past appointment at 2025-03-28 14:24
+Created past appointment at 2025-03-30 02:13
+Created past appointment at 2025-03-27 04:28
+Created past appointment at 2025-03-25 02:50
+Created past appointment at 2025-03-29 13:47
+Created past appointment at 2025-03-22 00:52
+Created future appointment at 2025-04-09 09:13
+Created future appointment at 2025-04-04 08:20
+Created future appointment at 2025-04-19 08:47
+Created future appointment at 2025-04-05 00:36
+Created future appointment at 2025-04-03 12:49
+Created future appointment at 2025-04-16 19:51
+Created future appointment at 2025-04-15 22:30
+Created future appointment at 2025-04-03 09:29
+Created future appointment at 2025-04-04 20:22
+Created future appointment at 2025-04-15 23:45
+Created future appointment at 2025-04-16 20:05
+Created future appointment at 2025-04-10 03:37
+Created future appointment at 2025-04-14 13:04
+Created future appointment at 2025-04-03 23:29
+Created future appointment at 2025-04-20 03:07
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Aldo Mayer
+Created customer: Patty Jerde
+Created customer: Ms. Inger Mohr
+Created customer: Valentin Sipes
+Created customer: Rosaura Wilderman
+Created customer: Kraig Keebler
+Created customer: Ms. Mozelle Gusikowski
+Created customer: Jody Lehner
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Fr. Marco Hoeger
+Created service provider: Kia Anderson
+Created service provider: Alysha Koch DO
+Created past appointment at 2025-03-26 12:41
+Created past appointment at 2025-03-25 12:57
+Created past appointment at 2025-03-21 16:29
+Created past appointment at 2025-03-27 05:14
+Created past appointment at 2025-03-22 04:29
+Created past appointment at 2025-03-23 03:30
+Created past appointment at 2025-03-26 16:54
+Created past appointment at 2025-03-20 00:18
+Created past appointment at 2025-03-31 11:19
+Created past appointment at 2025-04-01 01:12
+Created future appointment at 2025-04-14 15:42
+Created future appointment at 2025-04-06 12:39
+Created future appointment at 2025-04-03 11:29
+Created future appointment at 2025-04-09 06:52
+Created future appointment at 2025-04-23 13:39
+Created future appointment at 2025-04-14 16:34
+Created future appointment at 2025-04-22 06:03
+Created future appointment at 2025-04-19 10:52
+Created future appointment at 2025-04-18 04:01
+Created future appointment at 2025-04-18 14:29
+Created future appointment at 2025-04-15 06:20
+Created future appointment at 2025-04-08 22:36
+Created future appointment at 2025-04-08 17:16
+Created future appointment at 2025-04-22 20:02
+Created future appointment at 2025-04-06 13:33
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: The Hon. Jerrod Koss
+Created customer: Blondell Feeney
+Created customer: Connie Dickens
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-04 00:23
+Created appointment at 2025-04-16 16:33
+Created appointment at 2025-04-16 07:10
+Created appointment at 2025-04-05 12:22
+Created appointment at 2025-04-05 14:43
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Moises Sawayn
+Created customer: Terry Cassin
+Created customer: Zackary Carroll
+Created customer: Fredric Rohan DC
+Created customer: Sean Swaniawski DO
+Created customer: Lauryn Berge
+Created customer: Phyliss Wilderman
+Created customer: Gilberto Bode
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Kevin Collier
+Created service provider: Lowell Schmidt JD
+Created service provider: Steven Johnson DC
+Created service provider: Felix Kautzer
+Created past appointment at 2025-03-22 18:44
+Created past appointment at 2025-03-24 21:47
+Created past appointment at 2025-03-31 23:14
+Created past appointment at 2025-03-25 07:40
+Created past appointment at 2025-04-01 10:21
+Created past appointment at 2025-03-19 23:56
+Created past appointment at 2025-03-26 14:04
+Created past appointment at 2025-04-01 06:04
+Created past appointment at 2025-03-20 05:33
+Created past appointment at 2025-03-21 16:51
+Created future appointment at 2025-04-02 22:23
+Created future appointment at 2025-04-10 13:53
+Created future appointment at 2025-04-21 02:57
+Created future appointment at 2025-04-20 20:46
+Created future appointment at 2025-04-03 02:53
+Created future appointment at 2025-04-02 18:16
+Created future appointment at 2025-04-16 15:02
+Created future appointment at 2025-04-02 23:20
+Created future appointment at 2025-04-09 20:30
+Created future appointment at 2025-04-10 07:50
+Created future appointment at 2025-04-09 10:33
+Created future appointment at 2025-04-07 23:32
+Created future appointment at 2025-04-13 09:53
+Created future appointment at 2025-04-06 19:26
+Created future appointment at 2025-04-14 05:02
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Ralph Vandervort
+Created customer: Emiko Bahringer
+Created customer: Ezekiel Heaney Ret.
+Created customer: Clora Bruen
+Created customer: Shannon Miller DVM
+Created customer: Hillary Jast
+Created customer: Levi Schimmel
+Created customer: Rosena Reynolds
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Donovan Steuber
+Created service provider: Brianne Wehner
+Created service provider: Michal Stiedemann
+Created past appointment at 2025-03-30 03:06
+Created past appointment at 2025-03-22 07:58
+Created past appointment at 2025-03-29 04:27
+Created past appointment at 2025-03-28 16:25
+Created past appointment at 2025-03-30 12:15
+Created past appointment at 2025-04-01 08:59
+Created past appointment at 2025-03-20 22:19
+Created past appointment at 2025-03-30 23:01
+Created past appointment at 2025-03-31 07:37
+Created past appointment at 2025-03-20 13:30
+Created future appointment at 2025-04-18 14:04
+Created future appointment at 2025-04-09 16:44
+Created future appointment at 2025-04-09 14:27
+Created future appointment at 2025-04-12 01:42
+Created future appointment at 2025-04-08 17:27
+Created future appointment at 2025-04-05 05:22
+Created future appointment at 2025-04-12 15:15
+Created future appointment at 2025-04-23 02:20
+Created future appointment at 2025-04-06 18:59
+Created future appointment at 2025-04-16 21:15
+Created future appointment at 2025-04-09 04:00
+Created future appointment at 2025-04-12 16:36
+Created future appointment at 2025-04-17 10:46
+Created future appointment at 2025-04-06 19:57
+Created future appointment at 2025-04-21 22:58
+Database seeding completed successfully!
+.Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Mrs. Eugenia Orn
+Created customer: Jesenia Blick
+Created customer: Mrs. Hunter Welch
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-12 02:24
+Created appointment at 2025-04-10 01:11
+Created appointment at 2025-04-10 11:51
+Created appointment at 2025-04-16 06:40
+Created appointment at 2025-04-13 01:30
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Awilda Smith
+Created customer: Tambra Torphy
+Created customer: Kimberley Senger LLD
+Created customer: The Hon. Nydia West
+Created customer: Basil Feeney
+Created customer: Latina Gerhold
+Created customer: Winifred Hamill
+Created customer: Rodney Grant DO
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Wanetta Kohler
+Created service provider: Shona Gutkowski
+Created service provider: Pres. Stephen Crist
+Created service provider: Joe Weber
+Created past appointment at 2025-03-26 16:47
+Created past appointment at 2025-04-01 13:09
+Created past appointment at 2025-03-25 22:36
+Created past appointment at 2025-03-23 10:40
+Created past appointment at 2025-03-30 15:17
+Created past appointment at 2025-03-25 22:23
+Created past appointment at 2025-03-20 08:56
+Created past appointment at 2025-03-23 04:10
+Created past appointment at 2025-04-01 09:18
+Created past appointment at 2025-03-31 05:52
+Created future appointment at 2025-04-07 18:32
+Created future appointment at 2025-04-10 07:24
+Created future appointment at 2025-04-14 02:54
+Created future appointment at 2025-04-07 14:20
+Created future appointment at 2025-04-10 01:41
+Created future appointment at 2025-04-09 21:55
+Created future appointment at 2025-04-11 15:18
+Created future appointment at 2025-04-03 09:02
+Created future appointment at 2025-04-07 16:31
+Created future appointment at 2025-04-22 17:35
+Created future appointment at 2025-04-20 02:04
+Created future appointment at 2025-04-18 19:36
+Created future appointment at 2025-04-11 23:32
+Created future appointment at 2025-04-08 12:54
+Created future appointment at 2025-04-03 15:18
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Jeffrey Ortiz
+Created customer: Misti Osinski Ret.
+Created customer: George Schmeler
+Created customer: Bo Jakubowski
+Created customer: Samara Erdman I
+Created customer: Tyson Reynolds
+Created customer: Julian Hand Sr.
+Created customer: Risa Howe II
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Farah Sipes
+Created service provider: Prof. Daniel Jacobs
+Created service provider: Miss Rosendo Mills
+Created past appointment at 2025-03-25 06:45
+Created past appointment at 2025-03-26 04:41
+Created past appointment at 2025-03-20 15:28
+Created past appointment at 2025-03-25 06:04
+Created past appointment at 2025-03-27 06:50
+Created past appointment at 2025-03-19 21:38
+Created past appointment at 2025-03-31 20:41
+Created past appointment at 2025-03-24 06:38
+Created past appointment at 2025-04-01 14:52
+Created past appointment at 2025-03-27 16:56
+Created future appointment at 2025-04-16 10:35
+Created future appointment at 2025-04-23 07:55
+Created future appointment at 2025-04-23 17:37
+Created future appointment at 2025-04-15 23:49
+Created future appointment at 2025-04-13 15:54
+Created future appointment at 2025-04-05 19:44
+Created future appointment at 2025-04-17 03:43
+Created future appointment at 2025-04-03 13:19
+Created future appointment at 2025-04-21 11:57
+Created future appointment at 2025-04-16 13:09
+Created future appointment at 2025-04-07 21:18
+Created future appointment at 2025-04-13 14:24
+Created future appointment at 2025-04-22 00:53
+Created future appointment at 2025-04-21 11:34
+Created future appointment at 2025-04-14 12:51
+Database seeding completed successfully!
+.....
 
-Finished in 7.31 seconds (files took 1.39 seconds to load)
-81 examples, 0 failures
+Finished in 20.14 seconds (files took 1.17 seconds to load)
+92 examples, 0 failures
 
 ==> Tests completed successfully!

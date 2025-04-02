@@ -65,6 +65,7 @@ group :development, :test do
   gem "shoulda-matchers", "~> 6.0"
   gem "rails-controller-testing"
   gem "faker" # For generating fake data in tests/factories
+  gem "database_cleaner-active_record" # For cleaning the database between tests
 end
 
 group :development do

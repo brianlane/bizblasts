@@ -31,7 +31,7 @@ RSpec.describe 'Health Checks', type: :request do
       expect(response).to have_http_status(:success)
     end
     
-    it 'returns appropriate error when database connection fails' do
+    it 'returns appropriate error when database connection fails', :no_db_clean => true do
       allow(ActiveRecord::Base.connection).to receive(:execute).and_raise(ActiveRecord::ConnectionNotEstablished)
       
       get db_check_path
