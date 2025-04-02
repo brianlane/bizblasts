@@ -34,6 +34,10 @@ gem "solid_queue"
 gem "devise"
 gem "devise-jwt"
 
+# Admin interface
+gem "activeadmin"
+gem "sassc-rails" # Required by ActiveAdmin for styles
+
 # Multitenancy
 gem "acts_as_tenant"
 

@@ -300,3 +300,4 @@ company_data.each do |company_info|
 end
 
 puts "Database seeding completed successfully!"
+AdminUser.create!(email: 'admin@example.com', password: 'password', password_confirmation: 'password') if Rails.env.development?
