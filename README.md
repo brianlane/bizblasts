@@ -71,3 +71,49 @@ end
 ## Development
 
 For development purposes, use `lvh.me:3000` to test the multi-tenant functionality with subdomains.
+
+## Testing
+
+This application uses RSpec, FactoryBot, and Shoulda Matchers for testing.
+
+### Running Tests
+
+You can run all tests with the included script:
+
+```bash
+bin/test
+```
+
+Or run RSpec directly:
+
+```bash
+bundle exec rspec
+```
+
+### Writing Tests
+
+- Model tests: `spec/models/`
+- Request tests: `spec/requests/`
+- System tests: `spec/system/`
+- Mailer tests: `spec/mailers/`
+- Job tests: `spec/jobs/`
+
+### Factories
+
+Factory definitions are in `spec/factories/`. Use them in your tests:
+
+```ruby
+# Create a record and save it to the database
+user = create(:user)
+
+# Build a record without saving it
+company = build(:company, name: "Custom Name")
+```
+
+### Continuous Integration
+
+Tests are automatically run on GitHub Actions:
+1. When pull requests are created or updated
+2. When code is pushed to the main branch
+
+The CI workflow is defined in `.github/workflows/ci.yml`.

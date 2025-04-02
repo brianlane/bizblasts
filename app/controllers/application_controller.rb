@@ -19,6 +19,12 @@ class ApplicationController < ActionController::Base
   # Error handling for tenant not found
   rescue_from ActsAsTenant::Errors::NoTenantSet, with: :tenant_not_found
 
+  # Allow manually setting tenant in tests
+  def self.allow_tenant_params
+    # Used for testing - permits manually setting tenant in Devise controllers
+    before_action :set_tenant_from_params, if: -> { Rails.env.test? && params[:tenant_id].present? }
+  end
+
   private
 
   def maintenance_mode?
@@ -83,5 +89,10 @@ class ApplicationController < ActionController::Base
   def tenant_not_found
     @subdomain = request.subdomain
     render template: "errors/tenant_not_found", status: :not_found
+  end
+
+  def set_tenant_from_params
+    company = Company.find_by(id: params[:tenant_id])
+    set_current_tenant(company) if company
   end
 end

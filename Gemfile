@@ -28,15 +28,13 @@ gem "tzinfo-data", platforms: %i[windows jruby]
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
 gem "solid_cache"
 gem "solid_queue"
-# Temporarily commented out until we can properly configure it
-# gem "solid_cable"
+
 
 # Authentication
 gem "devise"
 gem "devise-jwt"
 
-# Multitenancy - switching from apartment to acts_as_tenant
-# gem 'ros-apartment', require: 'apartment'
+# Multitenancy
 gem "acts_as_tenant"
 
 # Reduces boot times through caching; required in config/boot.rb
@@ -60,6 +58,12 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Testing framework
+  gem "rspec-rails", "~> 6.1.0"
+  gem "factory_bot_rails"
+  gem "shoulda-matchers", "~> 6.0"
+  gem "rails-controller-testing"
 end
 
 group :development do

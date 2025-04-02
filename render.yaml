@@ -39,7 +39,7 @@ services:
       - key: RAILS_ENV
         value: production
       - key: RAILS_LOG_LEVEL
-        value: debug
+        value: info
 
 databases:
   - name: bizblast-postgresql

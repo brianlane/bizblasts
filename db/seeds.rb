@@ -11,7 +11,10 @@ puts "Creating default tenant..."
 default_company = Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
 puts "Default tenant created: #{default_company.name} (#{default_company.subdomain})"
 
-# Create an admin user in the public schema
+# Set the default company as the current tenant
+ActsAsTenant.current_tenant = default_company
+
+# Create an admin user in the default tenant
 puts "Creating admin user..."
 admin_user = User.find_or_initialize_by(email: 'admin@example.com')
 if admin_user.new_record?
@@ -21,5 +24,8 @@ if admin_user.new_record?
 else
   puts "Admin user already exists: #{admin_user.email}"
 end
+
+# Reset the current tenant
+ActsAsTenant.current_tenant = nil
 
 puts "Main database seeding completed!"

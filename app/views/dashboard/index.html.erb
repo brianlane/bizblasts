@@ -1,0 +1,13 @@
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+
+  <div class="mb-6">
+    <p>Welcome to your dashboard!</p>
+    <p class="text-sm text-gray-600">Company: <%= @company.name %></p>
+  </div>
+
+  <div class="flex space-x-4">
+    <%= link_to "Home", root_path, class: "btn-secondary" %>
+    <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "btn-primary" %>
+  </div>
+</div> 

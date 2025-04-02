@@ -51,34 +51,9 @@ module DatabaseErrorHandling
 
   def handle_statement_invalid(exception)
     Rails.logger.error("SQL Statement error: #{exception.message}")
-    
-    # Handle the specific "relation does not exist" error
-    return attempt_to_fix_companies_table if exception.message.include?('relation "companies" does not exist')
-    
+
     # Fallback to maintenance mode
     render_statement_invalid_response(exception)
-  end
-
-  def attempt_to_fix_companies_table
-    Rails.logger.info("Attempting to fix companies table")
-    create_companies_table
-    create_default_company
-    redirect_to request.path
-  rescue => e
-    Rails.logger.error("Failed to fix companies table: #{e.message}")
-    render_statement_invalid_response(e)
-  end
-
-  def create_companies_table
-    ActiveRecord::Base.connection.create_table(:companies) do |t|
-      t.string :name, null: false, default: 'Default'
-      t.string :subdomain, null: false, default: 'default'
-      t.timestamps
-    end
-  end
-
-  def create_default_company
-    Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
   end
 
   def render_statement_invalid_response(exception)

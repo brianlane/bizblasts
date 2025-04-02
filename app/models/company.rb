@@ -4,7 +4,7 @@
 # Manages subdomain validation and normalization for tenant routing
 class Company < ApplicationRecord
   validates :name, presence: true
-  validates :subdomain, presence: true, uniqueness: true,
+  validates :subdomain, presence: true, uniqueness: { case_sensitive: false },
                         format: { 
                           with: /\A[a-z0-9]+\z/, 
                           message: :lowercase_alphanumeric_only

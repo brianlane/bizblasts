@@ -10,6 +10,26 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
-  # Make email unique per tenant rather than globally
+  # Override Devise's default uniqueness validation
+  def email_changed?
+    false
+  end
+  
+  # Override Devise's email uniqueness validator 
+  # to ensure uniqueness is scoped to company_id
+  def self.find_by_email(email)
+    unscoped.find_by(email: email, company_id: ActsAsTenant.current_tenant&.id)
+  end
+  
+  # Keep original email uniqueness validation from our model
   validates :email, uniqueness: { scope: :company_id }
+  
+  # Ensure company_id is set before validation
+  before_validation :ensure_company_id_set
+  
+  private
+  
+  def ensure_company_id_set
+    self.company_id ||= ActsAsTenant.current_tenant&.id
+  end
 end
