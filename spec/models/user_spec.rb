@@ -3,6 +3,10 @@
 require 'rails_helper'
 
 RSpec.describe User, type: :model do
+  describe 'associations' do
+    it { is_expected.to belong_to(:company) }
+  end
+
   before(:each) do
     # Clear any potential tenant to prevent test pollution
     ActsAsTenant.current_tenant = nil

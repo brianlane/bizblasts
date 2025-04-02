@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_02_160017) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_02_170609) do
   create_schema "default"
   create_schema "tenant1"
   create_schema "tenant2"
@@ -38,8 +38,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_160017) do
     t.text "cancellation_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "customer_id", null: false
     t.index ["company_id", "start_time"], name: "index_appointments_on_company_id_and_start_time"
     t.index ["company_id"], name: "index_appointments_on_company_id"
+    t.index ["customer_id"], name: "index_appointments_on_customer_id"
     t.index ["paid"], name: "index_appointments_on_paid"
     t.index ["service_id"], name: "index_appointments_on_service_id"
     t.index ["service_provider_id"], name: "index_appointments_on_service_provider_id"
@@ -91,6 +93,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_160017) do
     t.string "subdomain"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "customers", force: :cascade do |t|
+    t.string "name"
+    t.string "email"
+    t.string "phone"
+    t.bigint "company_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_customers_on_company_id"
   end
 
   create_table "service_providers", force: :cascade do |t|
@@ -209,11 +221,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_160017) do
   end
 
   add_foreign_key "appointments", "companies"
+  add_foreign_key "appointments", "customers"
   add_foreign_key "appointments", "service_providers"
   add_foreign_key "appointments", "services"
   add_foreign_key "business_hours", "companies"
   add_foreign_key "client_websites", "companies"
   add_foreign_key "client_websites", "service_templates"
+  add_foreign_key "customers", "companies"
   add_foreign_key "service_providers", "companies"
   add_foreign_key "services", "companies"
   add_foreign_key "software_subscriptions", "companies"

@@ -4,6 +4,7 @@
 # Uses Devise for authentication and acts_as_tenant for multi-tenancy
 class User < ApplicationRecord
   acts_as_tenant(:company)
+  belongs_to :company
 
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
