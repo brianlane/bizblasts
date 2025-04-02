@@ -148,8 +148,22 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
           # REDIS_URL: redis://localhost:6379/0
         run: |
-          bundle exec rails db:create
-          bundle exec rails db:schema:load
+          echo "Rails environment information:"
+          bundle exec rails -v
+          echo "Current directory: $(pwd)"
+          echo "Database configuration:"
+          cat config/database.yml
+          
+          # Create and set up test database with PSQL directly
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          
+          # Load schema
+          bundle exec rake db:schema:load
+          
+          # Seed test data
+          bundle exec rake db:seed
+          
+          # Run tests
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests
