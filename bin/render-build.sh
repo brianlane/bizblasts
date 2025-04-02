@@ -6,58 +6,20 @@ set -o errexit
 echo "Checking for required environment variables..."
 
 # Check for SECRET_KEY_BASE
-if [ -z "$SECRET_KEY_BASE" ]; then
-  echo "WARNING: SECRET_KEY_BASE environment variable is not set"
-  
-  # Check if we have RAILS_MASTER_KEY as a fallback
-  if [ -n "$RAILS_MASTER_KEY" ]; then
-    echo "Using RAILS_MASTER_KEY as a fallback for secret_key_base"
-    # Set SECRET_KEY_BASE to RAILS_MASTER_KEY to ensure it's available
-    export SECRET_KEY_BASE="$RAILS_MASTER_KEY"
-  else
-    echo "RAILS_MASTER_KEY is also not available. Generating a temporary SECRET_KEY_BASE..."
-    # Generate a random hex string of 64 characters
-    export SECRET_KEY_BASE=$(openssl rand -hex 32)
-  fi
-  
-  echo "Using a temporary SECRET_KEY_BASE for this deployment. Please set this in your Render dashboard."
+if [ -z "$SECRET_KEY_BASE" ] && [ -z "$RAILS_MASTER_KEY" ]; then
+  echo "ERROR: Neither SECRET_KEY_BASE nor RAILS_MASTER_KEY is set"
+  echo "One of these is required for Rails to start in production"
+  exit 1
 else
-  echo "SECRET_KEY_BASE is set properly ✓"
-fi
-
-# Create encrypted credentials file if it doesn't exist or RAILS_MASTER_KEY is not set
-if [ ! -f "config/credentials.yml.enc" ] || [ -z "$RAILS_MASTER_KEY" ]; then
-  echo "No credentials file found or RAILS_MASTER_KEY is not set."
-  
-  # Generate encryption keys
-  PRIMARY_KEY=$(openssl rand -hex 32)
-  DETERMINISTIC_KEY=$(openssl rand -hex 32)
-  KEY_DERIVATION_SALT=$(openssl rand -hex 32)
-  
-  # Create a temporary credentials YAML file
-  echo "Creating temporary credentials file with ActiveRecord encryption keys..."
-  cat > /tmp/temp_credentials.yml << EOL
-# ActiveRecord encryption keys (auto-generated for Render deployment)
-active_record_encryption:
-  primary_key: ${PRIMARY_KEY}
-  deterministic_key: ${DETERMINISTIC_KEY}
-  key_derivation_salt: ${KEY_DERIVATION_SALT}
-EOL
-
-  # If RAILS_MASTER_KEY is not set, generate one
-  if [ -z "$RAILS_MASTER_KEY" ]; then
-    echo "Generating new RAILS_MASTER_KEY..."
-    export RAILS_MASTER_KEY=$(openssl rand -hex 16)
-    echo "WARNING: A new RAILS_MASTER_KEY has been generated: ${RAILS_MASTER_KEY}"
-    echo "Please add this to your Render environment variables for future deployments."
+  if [ -n "$SECRET_KEY_BASE" ]; then
+    echo "SECRET_KEY_BASE is set properly ✓"
   fi
-
-  # Use the RAILS_MASTER_KEY to encrypt the credentials file
-  echo "${RAILS_MASTER_KEY}" > config/master.key
-  chmod 600 config/master.key
-  
-  # Encrypt the credentials file
-  EDITOR="cp /tmp/temp_credentials.yml" bin/rails credentials:edit --environment=production || echo "Failed to create credentials file but continuing..."
+  if [ -n "$RAILS_MASTER_KEY" ]; then
+    echo "RAILS_MASTER_KEY is set properly ✓"
+    # Ensure master key file exists if RAILS_MASTER_KEY is set
+    echo "$RAILS_MASTER_KEY" > config/master.key
+    chmod 600 config/master.key
+  fi
 fi
 
 # Build commands for Render deployment
