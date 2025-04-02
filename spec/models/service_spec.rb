@@ -19,6 +19,22 @@ RSpec.describe Service, type: :model do
     it { is_expected.to validate_presence_of(:duration_minutes) }
     it { is_expected.to validate_numericality_of(:duration_minutes).only_integer.is_greater_than(0) }
 
-    it { is_expected.to validate_inclusion_of(:active).in_array([true, false]) }
+    # Custom test for boolean validation without triggering warning
+    it "validates that :active is a boolean" do
+      # Test that nil is not valid
+      service = build(:service, active: nil)
+      expect(service.valid?).to be false
+      expect(service.errors[:active]).to include("is not included in the list")
+      
+      # Test that false is valid
+      service = build(:service, active: false)
+      service.valid?
+      expect(service.errors[:active]).to be_empty
+      
+      # Test that true is valid
+      service = build(:service, active: true)
+      service.valid?
+      expect(service.errors[:active]).to be_empty
+    end
   end
 end
