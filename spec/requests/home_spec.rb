@@ -32,8 +32,11 @@ RSpec.describe 'Home', type: :request do
     
     context 'when authenticated as AdminUser' do 
       let(:admin_user) { create(:admin_user) } 
-      # We need a default company for the tenant setting
-      let!(:default_company) { Company.find_or_create_by!(name: 'Default Company', subdomain: 'default') }
+      # Setup for tests that need specific data
+      let(:test_company) { create(:company, name: "Test Specific Company", subdomain: "testspecific") }
+      let(:test_user) { create(:user, company: test_company) }
+      # Use let instead of let! for default company to avoid race conditions with seeds
+      let(:default_company) { Company.find_or_create_by!(name: 'Default Company', subdomain: 'default') }
       
       # The behavior of this endpoint has been verified manually, but is difficult to test
       # in a request spec due to complex interactions between:

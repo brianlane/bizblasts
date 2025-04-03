@@ -38,13 +38,15 @@ puts "Seeding database with sample data..."
 # Keep the existing default company and admin
 puts "Creating default tenant..."
 default_company = Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
-puts "Default tenant created: #{default_company.name} (#{default_company.subdomain})"
+default_company.reload # Explicitly reload
+puts "Default tenant created: #{default_company.name} (#{default_company.subdomain}) ID: #{default_company.id}"
 
 # Create an admin user in the default tenant
 puts "Creating admin user..."
 admin_user = User.find_or_initialize_by(email: 'admin@example.com') do |user|
+  user.company_id = default_company.id # Assign by ID
   user.password = 'password123'
-  user.company = default_company
+  # user.company = default_company # Original line
 end
 
 if admin_user.new_record?
@@ -467,5 +469,29 @@ puts "Database seeding completed successfully!"
 #     puts "Created admin user: admin@example.com with password: password"
 #   end
 # end
+
+# Create an admin user using environment variables
+admin_email = ENV['ADMIN_EMAIL']
+admin_password = ENV['ADMIN_PASSWORD']
+
+if admin_email.present? && admin_password.present?
+  if Rails.env.development? || Rails.env.test? # Ensure this only runs in dev/test
+    admin = AdminUser.find_or_initialize_by(email: admin_email) do |user|
+      user.password = admin_password
+      user.password_confirmation = admin_password # Assuming confirmation matches
+    end
+
+    if admin.new_record?
+      admin.save!
+      puts "Created admin user: #{admin_email} with password from ENV"
+    else
+      # Optionally update the password if it differs, or just report existence
+      # admin.update(password: admin_password, password_confirmation: admin_password) if admin.valid_password?(admin_password) == false
+      puts "Admin user #{admin_email} already exists."
+    end
+  end
+else
+  puts "Skipping AdminUser creation: ADMIN_EMAIL or ADMIN_PASSWORD environment variables not set."
+end
 
 SEEDS_LOADED = true # Mark as loaded
