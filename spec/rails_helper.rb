@@ -24,11 +24,33 @@ module Sprockets
           clean: true,
           cache_manifest: false,
           assets: [],
-          files: []
+          files: [],
+          find_asset: ->(path) { nil },
+          assets_prefix: '/assets',
+          dir: File.join(Rails.public_path, 'assets'),
+          digests: {},
+          each_logical_path: ->(&block) {},
+          each_file: ->(&block) {}
         )
       end
     end
   end
+end
+
+# Also disable Propshaft integration
+if defined?(Propshaft)
+  module PropshaftMock
+    def self.method_missing(method, *args, &block)
+      nil
+    end
+    
+    def self.respond_to_missing?(method, include_private = false)
+      true
+    end
+  end
+  
+  Object.send(:remove_const, :Propshaft) if defined?(Propshaft)
+  Propshaft = PropshaftMock
 end
 
 # Now it's safe to load the environment
