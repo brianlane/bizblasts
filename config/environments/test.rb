@@ -20,13 +20,19 @@ Rails.application.configure do
   config.eager_load = ENV["CI"].present?
 
   # Configure public file server for tests with cache-control for performance.
+  config.public_file_server.enabled = true
   config.public_file_server.headers = { "cache-control" => "public, max-age=3600" }
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.cache_store = :null_store
-
   
+  # Use memory store instead of null store for better performance
+  config.cache_store = :memory_store, { size: 64.megabytes }
+
+  # Disable log files for tests to reduce I/O
+  config.logger = ActiveSupport::Logger.new(nil)
+  config.log_level = :fatal
+
   # Devise
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
@@ -43,6 +49,9 @@ Rails.application.configure do
   # The :test delivery method accumulates sent emails in the
   # ActionMailer::Base.deliveries array.
   config.action_mailer.delivery_method = :test
+  
+  # Skip mail delivery altogether for tests
+  config.action_mailer.perform_deliveries = false
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }
@@ -58,4 +67,19 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+  
+  # Performance optimizations for testing
+  config.active_record.verbose_query_logs = false
+  
+  # Faster tests without concurrency checks
+  config.allow_concurrency = false
+  
+  # Disable SQL logging to speed up tests
+  config.active_record.logger = nil
+  
+  # Disable asset compilation during tests
+  config.assets.compile = false
+  
+  # Disable fragment caching for tests
+  config.action_controller.perform_caching = false
 end

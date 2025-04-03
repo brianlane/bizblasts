@@ -11,7 +11,8 @@ RSpec.describe 'Maintenance', type: :request do
     
     it 'renders the maintenance template' do
       get maintenance_path
-      expect(response).to render_template("errors/maintenance")
+      expect(response).to have_http_status(:service_unavailable)
+      expect(response.body).to include('Maintenance')
     end
     
     it 'does not require authentication' do

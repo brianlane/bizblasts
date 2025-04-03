@@ -11,11 +11,6 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
-  # Override Devise's default uniqueness validation
-  def email_changed?
-    false
-  end
-  
   # Override Devise's email uniqueness validator 
   # to ensure uniqueness is scoped to company_id
   def self.find_by_email(email)

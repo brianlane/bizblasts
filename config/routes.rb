@@ -26,6 +26,14 @@ Rails.application.routes.draw do
 
   # Dashboard for authenticated users
   get "dashboard" => "dashboard#index", as: :dashboard
+  
+  # Appointments resource with available_slots endpoint
+  resources :appointments do
+    collection do
+      get 'available_slots'
+      post 'available_slots'
+    end
+  end
 
   # Defines the root path route ("/")
   root "home#index"

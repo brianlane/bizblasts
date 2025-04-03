@@ -10,10 +10,12 @@ module RequestSpecHelper
   end
 
   # Sign in helper for request specs
-  def sign_in(user)
-    if user.is_a?(AdminUser)
+  def sign_in(user, options = {})
+    scope = options[:scope] || (user.is_a?(AdminUser) ? :admin_user : :user)
+    
+    if scope == :admin_user
       # For ActiveAdmin, we need special handling
-      login_as(user, scope: :admin_user)
+      login_as(user, scope: scope)
       
       # Before we perform the request, set the current admin user
       # This is necessary because ActiveAdmin uses a different authentication method
@@ -21,16 +23,25 @@ module RequestSpecHelper
         .to receive(:env)
         .and_wrap_original do |original, *args|
           env = original.call(*args)
-          env['warden'] ||= double
-          allow(env['warden']).to receive(:authenticate!).and_return(user)
-          allow(env['warden']).to receive(:authenticate).and_return(user)
-          allow(env['warden']).to receive(:user).with(:admin_user).and_return(user)
-          allow(env['warden']).to receive(:user).with(:user).and_return(nil)
-          allow(env['warden']).to receive(:user).with(no_args).and_return(user)
+          
+          # Create a more complete warden double
+          warden = double('warden')
+          allow(warden).to receive(:authenticate!).and_return(user)
+          allow(warden).to receive(:authenticate).and_return(user)
+          allow(warden).to receive(:user).with(:admin_user).and_return(user)
+          allow(warden).to receive(:user).with(:user).and_return(nil)
+          allow(warden).to receive(:user).with(no_args).and_return(user)
+          
+          # Add manager method that returns a manager mock
+          manager = double('manager')
+          allow(manager).to receive(:session_serializer).and_return(double('serializer', store: user, fetch: user))
+          allow(warden).to receive(:manager).and_return(manager)
+          
+          env['warden'] = warden
           env
         end
     else
-      login_as(user, scope: :user)
+      login_as(user, scope: scope)
     end
   end
 

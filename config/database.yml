@@ -44,9 +44,25 @@ development:
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
-test:
+test: &test
   <<: *default
-  database: bizblasts_test
+  database: <%= ENV['RAILS_TEST_DATABASE_NAME'] || 'bizblasts_test' %>
+  # Make tests faster with higher connection pool
+  pool: <%= ENV.fetch("PARALLEL_TEST_PROCESSORS", 1).to_i * 5 %>
+  # Disable prepared statements to reduce memory usage
+  prepared_statements: false
+  # Disable schema dumps
+  schema_dump: false
+  # Use simple query protocol for speed
+  variables:
+    statement_timeout: 5000 # 5 seconds timeout
+
+# For parallel testing setup
+<% (1..ENV.fetch('PARALLEL_TEST_PROCESSORS', 1).to_i).each do |i| %>
+test_<%= i %>:
+  <<: *test
+  database: bizblasts_test_<%= i %>
+<% end %>
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is

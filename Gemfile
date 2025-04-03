@@ -55,7 +55,13 @@ gem "thruster", require: false
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[mri windows], require: "debug/prelude"
+  gem "debug", platforms: %i[ mri mingw x64_mingw ]
+  gem "dotenv-rails"
+  gem "factory_bot_rails"
+  gem "faker"
+  gem "rspec-rails"
+  gem "capybara"
+  gem "selenium-webdriver"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
@@ -64,21 +70,16 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   # Testing framework
-  gem "rspec-rails", "~> 6.1.0"
-  gem "factory_bot_rails"
   gem "shoulda-matchers", "~> 6.0"
-  gem "rails-controller-testing"
-  gem "faker" # For generating fake data in tests/factories
   gem "database_cleaner-active_record" # For cleaning the database between tests
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+  # Annotate models
+  gem "annotate"
 end
-
-group :test do
-  # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
-  gem "capybara"
-  gem "selenium-webdriver"
-end
+# For time-of-day calculations in availability logic
+gem 'tod'
+gem 'parallel_tests', group: [:development, :test]

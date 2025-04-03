@@ -70,6 +70,8 @@ class ApplicationController < ActionController::Base
     false
   end
 
+  protected
+
   def companies_table_exists?
     ActiveRecord::Base.connection.table_exists?('companies')
   end

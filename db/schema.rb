@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_02_184906) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_02_194804) do
   create_schema "default"
   create_schema "tenant1"
   create_schema "tenant2"
@@ -48,9 +48,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_184906) do
     t.bigint "company_id", null: false
     t.bigint "service_id", null: false
     t.bigint "service_provider_id", null: false
-    t.string "client_name", null: false
-    t.string "client_email"
-    t.string "client_phone"
     t.datetime "start_time", null: false
     t.datetime "end_time", null: false
     t.string "status", default: "scheduled"
