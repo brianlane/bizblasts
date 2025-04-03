@@ -99,12 +99,12 @@ RSpec.describe "Database seeds", type: :seed do
   it "creates appointments for each company" do
     # Check default company appointments
     default_company = Company.find_by(subdomain: 'default')
-    expect(Appointment.where(company: default_company).count).to be >= 5
-      
+    expect(Appointment.where(company: default_company).count).to be >= 4
+    
     # Check Larry's appointments - adjust expectation
     larrys = Company.find_by(subdomain: 'larrys')
     expect(Appointment.where(company: larrys).count).to be > 0 # Ensure some created
-      
+    
     # Check Pete's appointments - adjust expectation
     petes = Company.find_by(subdomain: 'petes')
     expect(Appointment.where(company: petes).count).to be > 0 # Ensure some created

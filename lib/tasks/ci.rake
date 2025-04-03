@@ -12,11 +12,31 @@ namespace :ci do
     puts "Setting up CI environment..."
     Rake::Task["ci:setup"].invoke
     
-    # Then handle database setup
-    puts "Performing full database reset for CI..."
-    setup_database(force: true)
+    # Create database if it doesn't exist
+    puts "Setting up database..."
+    begin
+      ActiveRecord::Base.connection
+    rescue ActiveRecord::NoDatabaseError
+      puts "Database doesn't exist, creating..."
+      Rake::Task["db:create"].invoke
+    rescue => e
+      puts "Error connecting to database: #{e.message}, attempting to create..."
+      Rake::Task["db:create"].invoke rescue nil
+    end
     
-    # Finally, seed the database
+    # Run migrations (only once)
+    puts "Running database migrations..."
+    begin
+      Rake::Task["db:migrate"].invoke
+    rescue => e
+      puts "Migration error: #{e.message}"
+      # Only if migration fails, try a fresh database
+      Rake::Task["db:drop"].invoke rescue nil
+      Rake::Task["db:create"].invoke
+      Rake::Task["db:migrate"].invoke
+    end
+    
+    # Seed the database (only after migrations are complete)
     puts "Seeding test database..."
     Rake::Task["db:seed"].invoke
     

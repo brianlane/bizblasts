@@ -172,11 +172,16 @@ jobs:
           bundle info propshaft || echo "Propshaft not found"
           
           # Create database with SQL directly to avoid Rails startup issues
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
           
-          # Run comprehensive setup for GitHub Actions
+          # Run comprehensive setup for GitHub Actions (handles all db setup and migrations)
           echo "Running comprehensive GitHub Actions setup..."
           bundle exec rake ci:github_actions
+          
+          # Verify that migrations were applied successfully
+          echo "Verifying migrations were applied..."
+          bundle exec rails db:migrate:status
           
           # Run tests
           echo "Running tests..."
