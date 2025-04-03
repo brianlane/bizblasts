@@ -22,7 +22,8 @@ Rails.application.routes.draw do
   get "maintenance" => "maintenance#index", as: :maintenance
 
   # Add debug route to test multi-tenancy
-  get "home/debug" => "home#debug", as: :tenant_debug
+  get "home/debug" => redirect("/admin/debug"), as: :old_tenant_debug
+  get "admin/debug" => "admin/debug#index", as: :tenant_debug
 
   # Dashboard for authenticated users
   get "dashboard" => "dashboard#index", as: :dashboard

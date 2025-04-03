@@ -81,5 +81,13 @@ ActiveAdmin.register_page "Dashboard" do
         end
       end
     end
+
+    panel "Administration Tools" do
+      ul do
+        li do
+          link_to("Tenant Debug Information", admin_debug_path)
+        end
+      end
+    end
   end
 end
