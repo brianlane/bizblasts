@@ -21,8 +21,6 @@ RSpec.describe "Database seeds", type: :seed do
     puts "--- Cleaning database after seeds_spec suite ---"
     # Manually delete in correct order to avoid FK violations
     # Use globally defined constants from database_cleaner.rb
-    # TRUNCATION_ORDER = %w[appointments users client_websites software_subscriptions customers service_providers services companies service_templates software_products].freeze
-    # EXCLUDED_TABLES = %w[spatial_ref_sys ar_internal_metadata schema_migrations].freeze
     begin
       ActiveRecord::Base.connection.execute("SET statement_timeout = 60000") # 60 seconds for cleaning
       (TRUNCATION_ORDER - EXCLUDED_TABLES).each do |table|

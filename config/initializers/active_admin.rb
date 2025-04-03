@@ -269,11 +269,6 @@ ActiveAdmin.setup do |config|
         websites.add label: "Service Templates", url: "/admin/service_templates", priority: 2
       end
       
-      menu.add label: "Software", priority: 3 do |software|
-        software.add label: "Software Products", url: "/admin/software_products", priority: 1
-        software.add label: "Software Subscriptions", url: "/admin/software_subscriptions", priority: 2
-      end
-      
       menu.add label: "Business", priority: 4 do |business|
         business.add label: "Companies", url: "/admin/companies", priority: 1
         business.add label: "Users", url: "/admin/users", priority: 2

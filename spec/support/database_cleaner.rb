@@ -3,7 +3,7 @@
 # Define tables to exclude and the order for truncation globally
 EXCLUDED_TABLES = %w[spatial_ref_sys ar_internal_metadata schema_migrations].freeze
 # Add tables with foreign keys pointing to others first
-TRUNCATION_ORDER = %w[appointments users client_websites software_subscriptions customers service_providers services companies service_templates software_products].freeze
+TRUNCATION_ORDER = %w[appointments users client_websites customers service_providers services companies service_templates].freeze
 
 # Configure DatabaseCleaner to help with test isolation
 RSpec.configure do |config|

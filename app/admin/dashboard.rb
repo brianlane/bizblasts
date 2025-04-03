@@ -11,8 +11,7 @@ ActiveAdmin.register_page "Dashboard" do
             "Total Users" => User.count,
             "Total Client Websites" => ClientWebsite.count,
             "Active Client Websites" => ClientWebsite.where(active: true).count,
-            "Total Service Templates" => ServiceTemplate.count,
-            "Total Software Products" => SoftwareProduct.count
+            "Total Service Templates" => ServiceTemplate.count
           }
           
           table_for stats do
@@ -50,22 +49,6 @@ ActiveAdmin.register_page "Dashboard" do
           }
           
           table_for pie_data do
-            column("Status") { |item| item[0] }
-            column("Count") { |item| item[1] }
-          end
-        end
-      end
-      
-      column do
-        panel "Software Subscriptions Summary" do
-          subscription_data = {
-            "Active" => SoftwareSubscription.where(status: "active").count,
-            "Trial" => SoftwareSubscription.where(status: "trial").count,
-            "Expired" => SoftwareSubscription.where(status: "expired").count,
-            "Cancelled" => SoftwareSubscription.where(status: "cancelled").count
-          }
-          
-          table_for subscription_data do
             column("Status") { |item| item[0] }
             column("Count") { |item| item[1] }
           end

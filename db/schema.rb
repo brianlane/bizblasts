@@ -181,54 +181,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_194804) do
     t.index ["company_id"], name: "index_services_on_company_id"
   end
 
-  create_table "software_products", force: :cascade do |t|
-    t.string "name", null: false
-    t.text "description"
-    t.string "version"
-    t.string "category"
-    t.boolean "active", default: true
-    t.jsonb "features", default: []
-    t.jsonb "pricing", default: {}
-    t.string "license_type"
-    t.text "setup_instructions"
-    t.string "documentation_url"
-    t.string "support_url"
-    t.boolean "requires_installation", default: false
-    t.boolean "is_saas", default: true
-    t.string "status", default: "draft"
-    t.datetime "published_at"
-    t.jsonb "metadata", default: {}
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["active"], name: "index_software_products_on_active"
-    t.index ["category"], name: "index_software_products_on_category"
-    t.index ["status"], name: "index_software_products_on_status"
-  end
-
-  create_table "software_subscriptions", force: :cascade do |t|
-    t.bigint "company_id", null: false
-    t.bigint "software_product_id", null: false
-    t.string "status", default: "active"
-    t.datetime "started_at"
-    t.datetime "ends_at"
-    t.string "license_key"
-    t.string "subscription_type"
-    t.jsonb "subscription_details", default: {}
-    t.boolean "auto_renew", default: true
-    t.string "payment_status"
-    t.string "stripe_subscription_id"
-    t.string "stripe_customer_id"
-    t.jsonb "usage_metrics", default: {}
-    t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["company_id", "software_product_id"], name: "idx_on_company_id_software_product_id_3a351575da", unique: true
-    t.index ["company_id"], name: "index_software_subscriptions_on_company_id"
-    t.index ["license_key"], name: "index_software_subscriptions_on_license_key", unique: true
-    t.index ["software_product_id"], name: "index_software_subscriptions_on_software_product_id"
-    t.index ["status"], name: "index_software_subscriptions_on_status"
-  end
-
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -253,7 +205,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_194804) do
   add_foreign_key "customers", "companies"
   add_foreign_key "service_providers", "companies"
   add_foreign_key "services", "companies"
-  add_foreign_key "software_subscriptions", "companies"
-  add_foreign_key "software_subscriptions", "software_products"
   add_foreign_key "users", "companies"
 end

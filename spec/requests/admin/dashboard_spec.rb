@@ -5,9 +5,7 @@ RSpec.describe "Admin Dashboard", type: :request do
   let!(:user) { create(:user, company: company) }
   let!(:service_template) { create(:service_template, name: "Website Template") }
   let!(:client_website) { create(:client_website, name: "Test Website", company: company, service_template: service_template) }
-  let!(:software_product) { create(:software_product, name: "CRM Software") }
-  let!(:software_subscription) { create(:software_subscription, company: company, software_product: software_product) }
-
+  
   context "when admin user is not signed in" do
     it "requires authentication for /admin" do
       get "/admin"

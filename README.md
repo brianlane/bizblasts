@@ -1,6 +1,6 @@
 # BizBlasts
 
-BizBlasts is a multi-tenant Rails 8 application for small business websites with software leasing capabilities.
+BizBlasts is a multi-tenant Rails 8 application for business websites.
 
 ## Prerequisites
 
@@ -47,7 +47,6 @@ rails server
 * Multi-tenant architecture using acts_as_tenant
 * Authentication using Devise
 * Customizable business templates
-* Software leasing functionality
 * Payment processing with Stripe
 
 ## Multi-Tenancy Implementation

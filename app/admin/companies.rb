@@ -82,24 +82,6 @@ ActiveAdmin.register Company do
         end
       end
     end
-
-    panel "Software Subscriptions" do
-      table_for company.software_subscriptions do
-        column :id
-        column "Software" do |subscription|
-          subscription.software_product.name
-        end
-        column :status
-        column :started_at
-        column :ends_at
-        column do |subscription|
-          links = []
-          links << link_to("View", admin_software_subscription_path(subscription))
-          links << link_to("Edit", edit_admin_software_subscription_path(subscription))
-          safe_join(links, " | ")
-        end
-      end
-    end
   end
 
   # Form customization
