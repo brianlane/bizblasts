@@ -15,15 +15,20 @@ if Rails.env.test? && ENV['DISABLE_PROPSHAFT'].present?
         Sprockets::Manifest.class_eval do
           alias_method :original_initialize, :initialize
           
-          def initialize(environment, dir = nil, **options)
-            if dir.is_a?(String) || dir.nil?
-              @directory = dir ? File.expand_path(dir) : nil
-              @environment = environment
-              @filename = options[:filename] || "manifest.json"
+          # Use a more flexible argument pattern that works with any number of arguments
+          def initialize(*args)
+            env = args[0]
+            dir = args[1]
+            
+            # Handle Propshaft::Assembly by checking if dir responds to :to_s
+            if dir.nil? || (dir.respond_to?(:to_s) && dir.to_s.is_a?(String))
+              @environment = env
+              @directory = dir.nil? ? nil : File.expand_path(dir.to_s)
+              @filename = "manifest.json"
             else
-              # If dir is not a string (e.g., Propshaft::Assembly), use empty settings
+              # If dir is something unusual (like Propshaft::Assembly), use empty settings
+              @environment = env
               @directory = nil
-              @environment = environment
               @filename = "manifest.json"
             end
           end

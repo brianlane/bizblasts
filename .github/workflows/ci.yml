@@ -150,6 +150,7 @@ jobs:
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+          SPROCKETS_DEBUG: true
         run: |
           echo "Rails environment information:"
           bundle exec rails -v
@@ -157,8 +158,19 @@ jobs:
           echo "Database configuration:"
           cat config/database.yml
           
+          # Verify environment variables
+          echo "Environment variables:"
+          echo "DISABLE_PROPSHAFT=${DISABLE_PROPSHAFT}"
+          echo "RAILS_DISABLE_ASSET_COMPILATION=${RAILS_DISABLE_ASSET_COMPILATION}"
+          
           # Create and set up test database with PSQL directly
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          
+          # Debug gem versions
+          echo "Sprockets gem version:"
+          bundle info sprockets || echo "Sprockets not found"
+          echo "Propshaft gem version:"
+          bundle info propshaft || echo "Propshaft not found"
           
           # Use our custom CI setup task that handles Propshaft/Sprockets conflicts
           bundle exec rake ci:setup
