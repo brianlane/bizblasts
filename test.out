@@ -1,253 +1,140 @@
 4 processes for 23 specs, ~ 5 specs per process
 
-An error occurred while loading ./spec/controllers/home_controller_spec.rb.
-Failure/Error: dir: File.join(Rails.public_path, 'assets'),
+Randomized with seed 4859
+..
+Randomized with seed 41166
+...
+Randomized with seed 45845
+.....................................................................................
+Randomized with seed 61113
+--- Loading seeds for seeds_spec suite ---
+Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Company (default)
+Creating admin user...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Company...
+Created customer: Scottie Bashirian
+Created customer: Felicita Sauer
+Created customer: Beverley Monahan
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created service provider: Provider 1
+Created service provider: Provider 2
+Created appointment at 2025-04-07 09:00 - 11:00 for Provider 1
+Created appointment at 2025-04-08 12:00 - 13:00 for Provider 1
+Created appointment at 2025-04-07 15:00 - 15:30 for Provider 1
+Created appointment at 2025-04-09 09:00 - 11:00 for Provider 2
+Created appointment at 2025-04-10 12:00 - 13:00 for Provider 2
+Creating Larry's Landscaping...
+Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+Created customer: Arlene Powlowski
+Created customer: Wilbert O'Kon
+Created customer: Stasia Zieme Esq.
+Created customer: Ms. Camila Grant
+Created customer: Nickolas Marks
+Created customer: Iluminada MacGyver Sr.
+Created customer: George Dietrich
+Created customer: Ms. Brad Hoppe
+Created service: Lawn Mowing
+Created service: Garden Design
+Created service: Tree Trimming
+Created service: Irrigation Installation
+Created service provider: Ying Crist
+Created service provider: Brain Quitzon
+Created service provider: Mikki Stehr
+Created service provider: Earlene Morar VM
+Created past appointment at 2025-03-24 09:00 - 10:00 for Ying Crist
+Created past appointment at 2025-04-01 12:00 - 15:00 for Ying Crist
+Created past appointment at 2025-03-17 15:00 - 16:00 for Ying Crist
+Created upcoming appointment at 2025-04-14 09:00 - 10:00 for Ying Crist
+Created upcoming appointment at 2025-04-08 12:00 - 14:00 for Ying Crist
+Created upcoming appointment at 2025-04-14 15:00 - 16:00 for Ying Crist
+Created past appointment at 2025-03-19 09:00 - 10:00 for Brain Quitzon
+Created past appointment at 2025-03-20 12:00 - 15:00 for Brain Quitzon
+Created upcoming appointment at 2025-04-16 09:00 - 13:00 for Brain Quitzon
+Created upcoming appointment at 2025-04-17 12:00 - 13:00 for Brain Quitzon
+Created past appointment at 2025-03-21 09:00 - 13:00 for Mikki Stehr
+Created past appointment at 2025-03-17 12:00 - 13:00 for Mikki Stehr
+Created upcoming appointment at 2025-04-11 09:00 - 11:00 for Mikki Stehr
+Created upcoming appointment at 2025-04-07 12:00 - 14:00 for Mikki Stehr
+Created past appointment at 2025-03-18 09:00 - 12:00 for Earlene Morar VM
+Created past appointment at 2025-03-19 12:00 - 16:00 for Earlene Morar VM
+Created upcoming appointment at 2025-04-08 09:00 - 13:00 for Earlene Morar VM
+Created upcoming appointment at 2025-04-09 12:00 - 15:00 for Earlene Morar VM
+Creating Pete's Pool Service...
+Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
+Created staff user: staff2@petes.com
+Created customer: Earle Hirthe
+Created customer: Rev. Savannah Schuppe
+Created customer: Arcelia Walter
+Created customer: Concetta Schroeder
+Created customer: Inell Hodkiewicz
+Created customer: Zoila Casper
+Created customer: Britt Harris II
+Created customer: Jeneva Kuphal
+Created service: Pool Cleaning
+Created service: Filter Change
+Created service: Chemical Treatment
+Created service: Equipment Repair
+Created service provider: Dr. Willard Hamill
+Created service provider: Roosevelt Bayer
+Created service provider: Elbert Sanford CPA
+Created past appointment at 2025-03-17 09:00 - 11:00 for Dr. Willard Hamill
+Created past appointment at 2025-03-25 12:00 - 12:30 for Dr. Willard Hamill
+Created past appointment at 2025-03-24 15:00 - 16:30 for Dr. Willard Hamill
+Created upcoming appointment at 2025-04-14 09:00 - 10:00 for Dr. Willard Hamill
+Created upcoming appointment at 2025-04-08 12:00 - 14:00 for Dr. Willard Hamill
+Created upcoming appointment at 2025-04-14 15:00 - 16:00 for Dr. Willard Hamill
+Created past appointment at 2025-03-19 09:00 - 09:30 for Roosevelt Bayer
+Created past appointment at 2025-03-20 12:00 - 13:30 for Roosevelt Bayer
+Created past appointment at 2025-03-19 15:00 - 15:30 for Roosevelt Bayer
+Created upcoming appointment at 2025-04-16 09:00 - 10:30 for Roosevelt Bayer
+Created upcoming appointment at 2025-04-17 12:00 - 13:30 for Roosevelt Bayer
+Created upcoming appointment at 2025-04-09 15:00 - 15:30 for Roosevelt Bayer
+Created past appointment at 2025-03-28 09:00 - 11:00 for Elbert Sanford CPA
+Created past appointment at 2025-03-17 12:00 - 14:00 for Elbert Sanford CPA
+Created past appointment at 2025-03-21 15:00 - 15:30 for Elbert Sanford CPA
+Created upcoming appointment at 2025-04-11 09:00 - 10:00 for Elbert Sanford CPA
+Created upcoming appointment at 2025-04-14 12:00 - 13:30 for Elbert Sanford CPA
+Created upcoming appointment at 2025-04-11 15:00 - 15:30 for Elbert Sanford CPA
+Database seeding completed successfully!
+--- Finished loading seeds for seeds_spec suite ---
+..
 
-NoMethodError:
-  undefined method 'public_path' for module Sprockets::Rails
-# ./spec/rails_helper.rb:30:in 'Sprockets::Railtie.build_manifest'
-# ./config/environment.rb:7:in '<top (required)>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<top (required)>'
-# ./spec/controllers/home_controller_spec.rb:3:in '<top (required)>'
+Finished in 51.97 seconds (files took 7.96 seconds to load)
+39 examples, 0 failures
 
-An error occurred while loading ./spec/integration/multi_tenant_registration_spec.rb.
-Failure/Error: require_relative '../config/environment'
+Randomized with seed 45845
 
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/integration/multi_tenant_registration_spec.rb:3:in '<main>'
+....................--- Cleaning database after seeds_spec suite ---
+--- Finished cleaning after seeds_spec suite ---
+..............................
 
-An error occurred while loading ./spec/models/service_provider_spec.rb.
-Failure/Error: require_relative '../config/environment'
+Finished in 1 minute 32.49 seconds (files took 7.98 seconds to load)
+35 examples, 0 failures
 
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/service_provider_spec.rb:1:in '<main>'
+Randomized with seed 41166
 
-An error occurred while loading ./spec/system/admin/companies_spec.rb.
-Failure/Error: require_relative '../config/environment'
+.......
 
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/system/admin/companies_spec.rb:1:in '<main>'
-No examples found.
+Finished in 1 minute 39.98 seconds (files took 7.73 seconds to load)
+29 examples, 0 failures
 
+Randomized with seed 61113
 
-Finished in 0.00132 seconds (files took 5.25 seconds to load)
-0 examples, 0 failures, 4 errors occurred outside of examples
+.
 
+Finished in 1 minute 40.11 seconds (files took 7.98 seconds to load)
+47 examples, 0 failures
 
-An error occurred while loading ./spec/mailers/application_mailer_spec.rb.
-Failure/Error: dir: File.join(Rails.public_path, 'assets'),
-
-NoMethodError:
-  undefined method 'public_path' for module Sprockets::Rails
-# ./spec/rails_helper.rb:30:in 'Sprockets::Railtie.build_manifest'
-# ./config/environment.rb:7:in '<top (required)>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<top (required)>'
-# ./spec/mailers/application_mailer_spec.rb:3:in '<top (required)>'
-
-An error occurred while loading ./spec/models/admin_user_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/admin_user_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/models/appointment_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/appointment_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/models/user_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/user_spec.rb:3:in '<main>'
-
-An error occurred while loading ./spec/requests/admin/companies_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/requests/admin/companies_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/requests/home_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/requests/home_spec.rb:3:in '<main>'
-
-An error occurred while loading ./spec/controllers/appointments_controller_spec.rb.
-Failure/Error: dir: File.join(Rails.public_path, 'assets'),
-
-NoMethodError:
-  undefined method 'public_path' for module Sprockets::Rails
-# ./spec/rails_helper.rb:30:in 'Sprockets::Railtie.build_manifest'
-# ./config/environment.rb:7:in '<top (required)>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<top (required)>'
-# ./spec/controllers/appointments_controller_spec.rb:3:in '<top (required)>'
-
-An error occurred while loading ./spec/models/company_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/company_spec.rb:3:in '<main>'
-
-An error occurred while loading ./spec/models/customer_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/customer_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/requests/admin/dashboard_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/requests/admin/dashboard_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/requests/multi_tenant_registration_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/requests/multi_tenant_registration_spec.rb:3:in '<main>'
-
-An error occurred while loading ./spec/system/admin/dashboard_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/system/admin/dashboard_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/jobs/application_job_spec.rb.
-Failure/Error: dir: File.join(Rails.public_path, 'assets'),
-
-NoMethodError:
-  undefined method 'public_path' for module Sprockets::Rails
-# ./spec/rails_helper.rb:30:in 'Sprockets::Railtie.build_manifest'
-# ./config/environment.rb:7:in '<top (required)>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<top (required)>'
-# ./spec/jobs/application_job_spec.rb:3:in '<top (required)>'
-
-An error occurred while loading ./spec/models/service_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/models/service_spec.rb:1:in '<main>'
-
-An error occurred while loading ./spec/requests/health_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/requests/health_spec.rb:3:in '<main>'
-
-An error occurred while loading ./spec/seeds/seeds_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/seeds/seeds_spec.rb:3:in '<main>'
-
-An error occurred while loading ./spec/system/authentication_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/system/authentication_spec.rb:3:in '<main>'
-No examples found.
-
-No examples found.
+Randomized with seed 4859
 
 
-Finished in 0.00222 seconds (files took 5.31 seconds to load)
-0 examples, 0 failures, 5 errors occurred outside of examples
+150 examples, 0 failures
 
-
-Finished in 0.00156 seconds (files took 5.3 seconds to load)
-0 examples, 0 failures, 6 errors occurred outside of examples
-
-
-An error occurred while loading ./spec/requests/maintenance_spec.rb.
-Failure/Error: require_relative '../config/environment'
-
-FrozenError:
-  can't modify frozen Array: ["/Users/brianlane/bizblasts/lib", "/Users/brianlane/bizblasts/app/channels", "/Users/brianlane/bizblasts/app/controllers", "/Users/brianlane/bizblasts/app/controllers/concerns", "/Users/brianlane/bizblasts/app/helpers", "/Users/brianlane/bizblasts/app/jobs", "/Users/brianlane/bizblasts/app/mailers", "/Users/brianlane/bizblasts/app/models", "/Users/brianlane/bizblasts/app/models/concerns", "/Users/brianlane/bizblasts/app/services", "/usr/local/lib/ruby/gems/3.4.0/gems/inherited_resources-1.14.0/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/helpers", "/usr/local/lib/ruby/gems/3.4.0/gems/devise-4.9.4/app/mailers", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_queue-1.1.4/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/solid_cache-1.0.7/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/actionmailbox-8.0.2/app/models", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/controllers/concerns", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/jobs", "/usr/local/lib/ruby/gems/3.4.0/gems/activestorage-8.0.2/app/models"]
-# ./config/environment.rb:7:in '<main>'
-# ./spec/rails_helper.rb:57:in 'Kernel#require_relative'
-# ./spec/rails_helper.rb:57:in '<main>'
-# ./spec/requests/maintenance_spec.rb:3:in '<main>'
-No examples found.
-
-
-Finished in 0.00179 seconds (files took 5.31 seconds to load)
-0 examples, 0 failures, 7 errors occurred outside of examples
-
-
-22 errors, 0 examples, 0 failures
-
-Took 5 seconds
+Took 108 seconds (1:48)

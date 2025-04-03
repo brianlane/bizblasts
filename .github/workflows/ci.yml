@@ -142,17 +142,14 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
-      - name: Make scripts executable
-        run: chmod +x bin/ci
-
       - name: Run tests
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
           # REDIS_URL: redis://localhost:6379/0
-          # Disable asset compilation to avoid Propshaft/Sprockets conflicts
-          RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_PROPSHAFT: true
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: |
           echo "Rails environment information:"
           bundle exec rails -v
@@ -163,14 +160,14 @@ jobs:
           # Create and set up test database with PSQL directly
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
           
-          # Load schema using the CI script
-          bin/ci bundle exec rake db:schema:load
+          # Use our custom CI setup task that handles Propshaft/Sprockets conflicts
+          bundle exec rake ci:setup
           
           # Seed test data
-          bin/ci bundle exec rake db:seed
+          bundle exec rake db:seed
           
           # Run tests
-          bin/ci bundle exec rspec
+          bundle exec rspec
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4

@@ -80,6 +80,13 @@ Rails.application.configure do
   # Disable asset compilation during tests
   config.assets.compile = false
   
+  # Explicitly disable Propshaft if environment variable is set
+  if ENV['DISABLE_PROPSHAFT'].present?
+    config.assets.enabled = false if config.assets.respond_to?(:enabled=)
+    config.assets.css_compressor = nil
+    config.assets.js_compressor = nil
+  end
+  
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false
 end

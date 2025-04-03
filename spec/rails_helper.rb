@@ -24,33 +24,25 @@ module Sprockets
           clean: true,
           cache_manifest: false,
           assets: [],
-          files: [],
-          find_asset: ->(path) { nil },
-          assets_prefix: '/assets',
-          dir: File.join(Rails.public_path, 'assets'),
-          digests: {},
-          each_logical_path: ->(&block) {},
-          each_file: ->(&block) {}
+          files: []
         )
       end
     end
   end
 end
 
-# Also disable Propshaft integration
-if defined?(Propshaft)
-  module PropshaftMock
-    def self.method_missing(method, *args, &block)
-      nil
-    end
+# Override Sprockets Manifest to handle Propshaft cases
+require 'sprockets/manifest'
+module Sprockets
+  class Manifest
+    alias_method :original_initialize, :initialize
     
-    def self.respond_to_missing?(method, include_private = false)
-      true
+    def initialize(environment, dir = nil, **options)
+      @directory = dir.is_a?(String) ? dir : nil
+      @environment = environment
+      @filename = options[:filename] || "manifest.json"
     end
   end
-  
-  Object.send(:remove_const, :Propshaft) if defined?(Propshaft)
-  Propshaft = PropshaftMock
 end
 
 # Now it's safe to load the environment
