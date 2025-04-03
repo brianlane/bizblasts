@@ -1,6 +1,28 @@
 # frozen_string_literal: true
 
 namespace :ci do
+  desc "Full GitHub Actions setup - handles everything in the right order"
+  task github_actions: :environment do
+    # Set environment variables
+    ENV['DISABLE_PROPSHAFT'] = 'true'
+    ENV['RAILS_DISABLE_ASSET_COMPILATION'] = 'true'
+    ENV['DISABLE_DATABASE_ENVIRONMENT_CHECK'] = '1'
+    
+    # Fix asset conflicts first
+    puts "Setting up CI environment..."
+    Rake::Task["ci:setup"].invoke
+    
+    # Then handle database setup
+    puts "Performing full database reset for CI..."
+    setup_database(force: true)
+    
+    # Finally, seed the database
+    puts "Seeding test database..."
+    Rake::Task["db:seed"].invoke
+    
+    puts "GitHub Actions setup complete and ready for testing!"
+  end
+
   desc "Set up database for CI with asset conflicts handled"
   task setup: :environment do
     # Ensure Propshaft is disabled
@@ -37,10 +59,63 @@ namespace :ci do
       end
     end
     
-    # Now run the actual schema load
-    puts "Loading database schema..."
-    Rake::Task["db:schema:load"].invoke
+    # Ensure the database is properly set up
+    setup_database
     
     puts "CI database setup complete!"
+  end
+  
+  desc "Run all database setup commands to ensure schema is ready"
+  task reset_db: :environment do
+    setup_database(force: true)
+  end
+  
+  # Helper method to set up the database
+  def setup_database(force: false)
+    # Check for the database connection
+    begin
+      ActiveRecord::Base.connection
+    rescue ActiveRecord::NoDatabaseError
+      # Create the database if it doesn't exist
+      puts "Database doesn't exist, creating..."
+      Rake::Task["db:create"].invoke
+    rescue => e
+      puts "Error connecting to database: #{e.message}"
+      # Force create the database
+      puts "Attempting to create database anyway..."
+      Rake::Task["db:create"].invoke
+    end
+    
+    # Try running migrations first
+    begin
+      if force
+        puts "Forcing database reset..."
+        Rake::Task["db:drop"].invoke if ActiveRecord::Base.connection.table_exists?('schema_migrations')
+        Rake::Task["db:create"].invoke
+      end
+      
+      puts "Running database migrations..."
+      Rake::Task["db:migrate"].invoke
+    rescue ActiveRecord::NoDatabaseError
+      puts "Database doesn't exist, creating and migrating..."
+      Rake::Task["db:create"].invoke
+      Rake::Task["db:migrate"].invoke
+    rescue ActiveRecord::StatementInvalid => e
+      puts "SQL error: #{e.message}, attempting to load schema..."
+      # If there's a SQL error, try loading the schema
+      begin
+        Rake::Task["db:schema:load"].invoke
+      rescue => schema_error
+        puts "Schema load failed: #{schema_error.message}, doing full reset..."
+        Rake::Task["db:drop"].invoke rescue nil
+        Rake::Task["db:create"].invoke
+        Rake::Task["db:migrate"].invoke
+      end
+    rescue => e
+      puts "Migration error: #{e.message}, attempting full reset..."
+      Rake::Task["db:drop"].invoke rescue nil
+      Rake::Task["db:create"].invoke
+      Rake::Task["db:migrate"].invoke
+    end
   end
 end 

@@ -145,12 +145,14 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
           # REDIS_URL: redis://localhost:6379/0
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           SPROCKETS_DEBUG: true
+          # Skip schema version check to ensure migrations run
+          SKIP_SCHEMA_VERSION_CHECK: true
         run: |
           echo "Rails environment information:"
           bundle exec rails -v
@@ -163,22 +165,21 @@ jobs:
           echo "DISABLE_PROPSHAFT=${DISABLE_PROPSHAFT}"
           echo "RAILS_DISABLE_ASSET_COMPILATION=${RAILS_DISABLE_ASSET_COMPILATION}"
           
-          # Create and set up test database with PSQL directly
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
-          
           # Debug gem versions
           echo "Sprockets gem version:"
           bundle info sprockets || echo "Sprockets not found"
           echo "Propshaft gem version:"
           bundle info propshaft || echo "Propshaft not found"
           
-          # Use our custom CI setup task that handles Propshaft/Sprockets conflicts
-          bundle exec rake ci:setup
+          # Create database with SQL directly to avoid Rails startup issues
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
           
-          # Seed test data
-          bundle exec rake db:seed
+          # Run comprehensive setup for GitHub Actions
+          echo "Running comprehensive GitHub Actions setup..."
+          bundle exec rake ci:github_actions
           
           # Run tests
+          echo "Running tests..."
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests

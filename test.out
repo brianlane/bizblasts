@@ -2,145 +2,158 @@
 Applying early Sprockets/Propshaft conflict fix...
 Sprockets::Manifest successfully patched.
 
-Randomized with seed 11904
-......Applying early Sprockets/Propshaft conflict fix...
-Sprockets::Manifest successfully patched.
-
-Randomized with seed 14686
+Randomized with seed 62219
 .Applying early Sprockets/Propshaft conflict fix...
 Sprockets::Manifest successfully patched.
 
-Randomized with seed 52259
-..Applying early Sprockets/Propshaft conflict fix...
+Randomized with seed 25992
+.Applying early Sprockets/Propshaft conflict fix...
 Sprockets::Manifest successfully patched.
 
-Randomized with seed 51118
-..................................................--- Loading seeds for seeds_spec suite ---
+Randomized with seed 1397
+..............Applying early Sprockets/Propshaft conflict fix...
+Sprockets::Manifest successfully patched.
+
+Randomized with seed 42524
+..............--- Loading seeds for seeds_spec suite ---
 Seeding database with sample data...
 Creating default tenant...
 Default tenant created: Default Company (default)
 Creating admin user...
-..Admin user created with email: admin@example.com and password: password123
+.Admin user created with email: admin@example.com and password: password123
 Creating sample data for Default Company...
-...............Created customer: Stuart Quitzon
-Created customer: Lyle Morar
-Created customer: Gertrud Gorczany
-.Created service: Basic Consultation
-.Created service: Website Setup
-..Created service: Monthly Support
-....Created service provider: Provider 1
+Created customer: Ms. Creola Hyatt
+Created customer: Allyn Grady
+Created customer: Ian Jacobi
+...Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+..Created service provider: Provider 1
 Created service provider: Provider 2
-.Created appointment at 2025-04-14 09:00 - 10:00 for Provider 1
-Created appointment at 2025-04-15 12:00 - 14:00 for Provider 1
-.Created appointment at 2025-04-14 15:00 - 16:00 for Provider 1
-.Created appointment at 2025-04-09 09:00 - 11:00 for Provider 2
-.Created appointment at 2025-04-03 12:00 - 12:30 for Provider 2
+......Created appointment at 2025-04-07 09:00 - 11:00 for Provider 1
+...Created appointment at 2025-04-08 12:00 - 12:30 for Provider 1
+Created appointment at 2025-04-09 09:00 - 11:00 for Provider 2
+Created appointment at 2025-04-17 12:00 - 13:00 for Provider 2
 Creating Larry's Landscaping...
-Created owner user: owner@larrys.com with password: password123
-.Created staff user: staff1@larrys.com
-..Created staff user: staff2@larrys.com
-Created customer: Breanne Pacocha
-Created customer: Yoko Lehner
-.Created customer: Ana Casper
-Created customer: Curtis Boehm
-.Created customer: Carma Stanton DC
-Created customer: Denisse Schroeder
-..Created customer: Carroll Quitzon
-Created customer: Ashley Carroll
-.
-
-Finished in 50.69 seconds (files took 8.5 seconds to load)
-39 examples, 0 failures
-
-Randomized with seed 52259
-
-Created service: Lawn Mowing
-Created service: Garden Design
-...Created service: Tree Trimming
+...Created owner user: owner@larrys.com with password: password123
+Created staff user: staff1@larrys.com
+Created staff user: staff2@larrys.com
+.Created customer: Von Jacobs
+.Created customer: Pres. Brady Kris
+Created customer: Bradley Tillman
+Created customer: Taylor Shanahan
+.Created customer: Wally Ratke
+..Created customer: Tanisha Larkin III
+Created customer: Charlyn Pouros VM
+Created customer: Damian Rosenbaum
+.Created service: Lawn Mowing
+.Created service: Garden Design
+.Created service: Tree Trimming
 Created service: Irrigation Installation
-Created service provider: Carol Marvin
-.Created service provider: Carla Veum Esq.
-..Created service provider: Takako Olson
-Created service provider: Carter Swift
-Created past appointment at 2025-03-24 09:00 - 12:00 for Carol Marvin
-.Created past appointment at 2025-03-18 12:00 - 14:00 for Carol Marvin
-Created upcoming appointment at 2025-04-07 09:00 - 11:00 for Carol Marvin
-.Created upcoming appointment at 2025-04-08 12:00 - 16:00 for Carol Marvin
-Created past appointment at 2025-03-26 09:00 - 11:00 for Carla Veum Esq.
-Created past appointment at 2025-03-27 12:00 - 14:00 for Carla Veum Esq.
-.Created past appointment at 2025-03-19 15:00 - 16:00 for Carla Veum Esq.
-Created upcoming appointment at 2025-04-16 09:00 - 10:00 for Carla Veum Esq.
-Created upcoming appointment at 2025-04-17 12:00 - 16:00 for Carla Veum Esq.
-Created past appointment at 2025-03-28 09:00 - 12:00 for Takako Olson
-.Created past appointment at 2025-03-17 12:00 - 16:00 for Takako Olson
-.Created past appointment at 2025-03-28 15:00 - 16:00 for Takako Olson
-Created upcoming appointment at 2025-04-18 09:00 - 11:00 for Takako Olson
-Created upcoming appointment at 2025-04-14 12:00 - 13:00 for Takako Olson
-.Created past appointment at 2025-03-18 09:00 - 11:00 for Carter Swift
-Created past appointment at 2025-03-19 12:00 - 14:00 for Carter Swift
-Created upcoming appointment at 2025-04-15 09:00 - 13:00 for Carter Swift
-Created upcoming appointment at 2025-04-09 12:00 - 14:00 for Carter Swift
-..Created upcoming appointment at 2025-04-15 15:00 - 16:00 for Carter Swift
+....Created service provider: Hipolito Ullrich
+.Created service provider: Mrs. Earlean Weissnat
+Created service provider: Miss Lahoma Wisozk
+.Created service provider: Alfonso McClure
+..Created past appointment at 2025-03-17 09:00 - 13:00 for Hipolito Ullrich
+.Created past appointment at 2025-03-25 12:00 - 13:00 for Hipolito Ullrich
+.Created upcoming appointment at 2025-04-07 09:00 - 12:00 for Hipolito Ullrich
+..Created upcoming appointment at 2025-04-08 12:00 - 14:00 for Hipolito Ullrich
+Created past appointment at 2025-03-26 09:00 - 10:00 for Mrs. Earlean Weissnat
+.Created past appointment at 2025-03-27 12:00 - 14:00 for Mrs. Earlean Weissnat
+.Created upcoming appointment at 2025-04-16 09:00 - 10:00 for Mrs. Earlean Weissnat
+.Created upcoming appointment at 2025-04-10 12:00 - 14:00 for Mrs. Earlean Weissnat
+Created past appointment at 2025-03-28 09:00 - 12:00 for Miss Lahoma Wisozk
+..Created past appointment at 2025-03-24 12:00 - 16:00 for Miss Lahoma Wisozk
+Created upcoming appointment at 2025-04-04 09:00 - 10:00 for Miss Lahoma Wisozk
+..Created upcoming appointment at 2025-04-21 12:00 - 13:00 for Miss Lahoma Wisozk
+Created upcoming appointment at 2025-04-11 15:00 - 16:00 for Miss Lahoma Wisozk
+Created past appointment at 2025-04-01 09:00 - 12:00 for Alfonso McClure
+Created past appointment at 2025-03-19 12:00 - 15:00 for Alfonso McClure
+..Created upcoming appointment at 2025-04-15 09:00 - 13:00 for Alfonso McClure
+Created upcoming appointment at 2025-04-16 12:00 - 15:00 for Alfonso McClure
+Created upcoming appointment at 2025-04-08 15:00 - 16:00 for Alfonso McClure
 Creating Pete's Pool Service...
-Created owner user: owner@petes.com with password: password123
-.Created staff user: staff1@petes.com
+...Created owner user: owner@petes.com with password: password123
+Created staff user: staff1@petes.com
 Created staff user: staff2@petes.com
-.Created customer: Cristopher Ebert
-Created customer: Charley Pfeffer
-Created customer: Ming Sawayn
-.Created customer: Tommie Monahan
-.Created customer: Msgr. Maisha Wehner
-Created customer: Ivelisse Breitenberg PhD
-Created customer: Heidi Bernhard
-Created customer: Amb. Bella Dickinson
-.Created service: Pool Cleaning
+..Created customer: Wilson Bosco
+Created customer: Lurlene King
+Created customer: Beau Padberg DDS
+Created customer: Tesha Stiedemann IV
+.Created customer: Fabian Bauch
+.Created customer: Robby Stroman III
+Created customer: Nathanial Sanford Sr.
+....Created customer: Cristopher O'Kon
+Created service: Pool Cleaning
 .Created service: Filter Change
 Created service: Chemical Treatment
-Created service: Equipment Repair
-.Created service provider: Ray McClure
-Created service provider: Owen Kertzmann
-Created service provider: Msgr. Randal Runolfsdottir
-Created past appointment at 2025-03-24 09:00 - 10:30 for Ray McClure
-..Created past appointment at 2025-03-18 12:00 - 13:30 for Ray McClure
-.Created past appointment at 2025-03-24 15:00 - 16:30 for Ray McClure
-.Created upcoming appointment at 2025-04-14 09:00 - 10:30 for Ray McClure
-Created upcoming appointment at 2025-04-22 12:00 - 13:00 for Ray McClure
-.Created past appointment at 2025-03-26 09:00 - 10:00 for Owen Kertzmann
-..Created past appointment at 2025-03-27 12:00 - 12:30 for Owen Kertzmann
-Created upcoming appointment at 2025-04-16 09:00 - 10:00 for Owen Kertzmann
-Created upcoming appointment at 2025-04-17 12:00 - 14:00 for Owen Kertzmann
-Created upcoming appointment at 2025-04-16 15:00 - 15:30 for Owen Kertzmann
-Created past appointment at 2025-03-14 09:00 - 10:00 for Msgr. Randal Runolfsdottir
-..Created past appointment at 2025-03-17 12:00 - 13:00 for Msgr. Randal Runolfsdottir
-Created upcoming appointment at 2025-04-11 09:00 - 10:00 for Msgr. Randal Runolfsdottir
-Created upcoming appointment at 2025-04-14 12:00 - 12:30 for Msgr. Randal Runolfsdottir
-Created upcoming appointment at 2025-04-11 15:00 - 16:00 for Msgr. Randal Runolfsdottir
+..Created service: Equipment Repair
+Created service provider: Chin Reilly
+Created service provider: Debby Towne DVM
+Created service provider: Jonas Dach
+Created past appointment at 2025-03-24 09:00 - 10:30 for Chin Reilly
+Created past appointment at 2025-03-18 12:00 - 13:00 for Chin Reilly
+Created past appointment at 2025-03-24 15:00 - 16:00 for Chin Reilly
+..Created upcoming appointment at 2025-04-14 09:00 - 10:00 for Chin Reilly
+Created upcoming appointment at 2025-04-08 12:00 - 14:00 for Chin Reilly
+Created past appointment at 2025-03-26 09:00 - 11:00 for Debby Towne DVM
+.Created past appointment at 2025-03-20 12:00 - 13:00 for Debby Towne DVM
+Created upcoming appointment at 2025-04-09 09:00 - 09:30 for Debby Towne DVM
+.
+
+Finished in 54.64 seconds (files took 8.64 seconds to load)
+39 examples, 0 failures
+
+Randomized with seed 1397
+
+Created upcoming appointment at 2025-04-17 12:00 - 14:00 for Debby Towne DVM
+Created past appointment at 2025-03-21 09:00 - 10:00 for Jonas Dach
+Created past appointment at 2025-03-24 12:00 - 12:30 for Jonas Dach
+Created past appointment at 2025-03-28 15:00 - 15:30 for Jonas Dach
+.Created upcoming appointment at 2025-04-11 09:00 - 10:00 for Jonas Dach
+Created upcoming appointment at 2025-04-07 12:00 - 13:30 for Jonas Dach
+Created upcoming appointment at 2025-04-11 15:00 - 16:00 for Jonas Dach
 Database seeding completed successfully!
 --- Finished loading seeds for seeds_spec suite ---
-...........
+....F.--- Cleaning database after seeds_spec suite ---
+--- Finished cleaning after seeds_spec suite ---
 
-Finished in 1 minute 27.94 seconds (files took 8.45 seconds to load)
+
+Failures:
+
+  1) Database seeds creates appointments for each company
+     Failure/Error: expect(Appointment.where(company: default_company).count).to be >= 5
+
+       expected: >= 5
+            got:    4
+     # ./spec/seeds/seeds_spec.rb:102:in 'block (2 levels) in <main>'
+     # ./spec/spec_helper.rb:81:in 'block (3 levels) in <top (required)>'
+     # ./spec/spec_helper.rb:80:in 'block (2 levels) in <top (required)>'
+
+Finished in 1 minute 0.44 seconds (files took 8.73 seconds to load)
+9 examples, 1 failure
+
+Failed examples:
+
+rspec ./spec/seeds/seeds_spec.rb:99 # Database seeds creates appointments for each company
+
+Randomized with seed 62219
+
+.........................
+
+Finished in 1 minute 34.05 seconds (files took 8.7 seconds to load)
 35 examples, 0 failures
 
-Randomized with seed 14686
+Randomized with seed 25992
 
-..........--- Cleaning database after seeds_spec suite ---
-.--- Finished cleaning after seeds_spec suite ---
+...
 
-
-Finished in 1 minute 36.79 seconds (files took 8.45 seconds to load)
-29 examples, 0 failures
-
-Randomized with seed 11904
-
-..
-
-Finished in 1 minute 37.52 seconds (files took 8.49 seconds to load)
+Finished in 1 minute 39.98 seconds (files took 8.72 seconds to load)
 47 examples, 0 failures
 
-Randomized with seed 51118
+Randomized with seed 42524
 
 
-150 examples, 0 failures
+130 examples, 1 failure
 
-Took 106 seconds (1:46)
+Took 109 seconds (1:49)
