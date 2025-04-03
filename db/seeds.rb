@@ -475,20 +475,19 @@ admin_email = ENV['ADMIN_EMAIL']
 admin_password = ENV['ADMIN_PASSWORD']
 
 if admin_email.present? && admin_password.present?
-  if Rails.env.development? || Rails.env.test? # Ensure this only runs in dev/test
-    admin = AdminUser.find_or_initialize_by(email: admin_email) do |user|
-      user.password = admin_password
-      user.password_confirmation = admin_password # Assuming confirmation matches
-    end
+  # Allow admin creation in any environment with proper env vars
+  admin = AdminUser.find_or_initialize_by(email: admin_email) do |user|
+    user.password = admin_password
+    user.password_confirmation = admin_password # Assuming confirmation matches
+  end
 
-    if admin.new_record?
-      admin.save!
-      puts "Created admin user: #{admin_email} with password from ENV"
-    else
-      # Optionally update the password if it differs, or just report existence
-      # admin.update(password: admin_password, password_confirmation: admin_password) if admin.valid_password?(admin_password) == false
-      puts "Admin user #{admin_email} already exists."
-    end
+  if admin.new_record?
+    admin.save!
+    puts "Created admin user: #{admin_email} with password from ENV"
+  else
+    # Optionally update the password if it differs, or just report existence
+    # admin.update(password: admin_password, password_confirmation: admin_password) if admin.valid_password?(admin_password) == false
+    puts "Admin user #{admin_email} already exists."
   end
 else
   puts "Skipping AdminUser creation: ADMIN_EMAIL or ADMIN_PASSWORD environment variables not set."
