@@ -13,13 +13,13 @@ RSpec.describe "Admin Dashboard", type: :request do
       get "/admin"
       # The app is redirecting to the user login instead of admin login
       # This is a valid behavior if the app is configured this way
-      expect(response).to redirect_to('/users/sign_in')
+      expect(response).to redirect_to('/admin/login')
     end
     
     it "requires authentication for /admin/dashboard" do
       get "/admin/dashboard"
       # The app is redirecting to the user login instead of admin login
-      expect(response).to redirect_to('/users/sign_in')
+      expect(response).to redirect_to('/admin/login')
     end
   end
   

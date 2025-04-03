@@ -23,7 +23,7 @@ RSpec.describe "Admin Companies", type: :request do
   describe "authentication" do
     it "redirects non-authenticated users to login" do
       get "/admin"
-      expect(response).to redirect_to('/users/sign_in')
+      expect(response).to redirect_to('/admin/login')
     end
   end
 

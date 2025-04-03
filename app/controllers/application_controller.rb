@@ -14,7 +14,7 @@ class ApplicationController < ActionController::Base
   before_action :check_database_connection
 
   # Authentication (after tenant is set)
-  before_action :authenticate_user!, unless: :maintenance_mode?
+  before_action :authenticate_user!, unless: :skip_user_authentication?
 
   # Error handling for tenant not found
   rescue_from ActsAsTenant::Errors::NoTenantSet, with: :tenant_not_found
@@ -26,6 +26,10 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def skip_user_authentication?
+    devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
+  end
 
   def maintenance_mode?
     # Use this to whitelist certain paths during database issues
