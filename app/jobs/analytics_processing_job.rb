@@ -2,38 +2,43 @@ class AnalyticsProcessingJob < ApplicationJob
   queue_as :analytics
 
   def perform(report_type, tenant_id = nil, options = {})
+    business = nil # Define business outside the if block
     # Set up tenant context if provided
     if tenant_id.present?
       business = Business.find_by(id: tenant_id)
       return unless business
       
-      # Set the current tenant for the duration of this job
-      Current.business = business
-      Current.business_id = business.id
+      # Use ActsAsTenant API to set the current tenant
+      ActsAsTenant.current_tenant = business
     end
     
     # Default date range if not provided
     options[:start_date] ||= 30.days.ago.to_date
     options[:end_date] ||= Date.current
     
-    # Process the report based on its type
-    case report_type
-    when 'booking_summary'
-      process_booking_summary(options)
-    when 'revenue_summary'
-      process_revenue_summary(options)
-    when 'marketing_summary'
-      process_marketing_summary(options)
-    when 'customer_retention'
-      process_customer_retention(options)
-    when 'staff_performance'
-      process_staff_performance(options)
-    else
-      Rails.logger.error "Unknown report type: #{report_type}"
-    end
+    # Process the report and store result explicitly
+    report_result = 
+      case report_type
+      when 'booking_summary'
+        process_booking_summary(options)
+      when 'revenue_summary'
+        process_revenue_summary(options)
+      when 'marketing_summary'
+        process_marketing_summary(options)
+      when 'customer_retention'
+        process_customer_retention(options)
+      when 'staff_performance'
+        process_staff_performance(options)
+      else
+        Rails.logger.error "Unknown report type: #{report_type}"
+        nil # Ensure nil is returned for unknown types
+      end
     
-    # Reset tenant context when done
-    Current.reset if tenant_id.present?
+    return report_result # Explicitly return the result
+
+  ensure # Use ensure block to guarantee reset
+    # Reset tenant context using ActsAsTenant API if it was set
+    ActsAsTenant.current_tenant = nil if tenant_id.present?
   end
   
   private
@@ -55,9 +60,9 @@ class AnalyticsProcessingJob < ApplicationJob
     completion_rate = total_count > 0 ? (completed_count.to_f / total_count * 100).round(2) : 0
     cancellation_rate = total_count > 0 ? (cancelled_count.to_f / total_count * 100).round(2) : 0
     
-    # Calculate average booking value
-    completed_with_amount = bookings.completed.where.not(amount: nil)
-    average_value = completed_with_amount.any? ? completed_with_amount.average(:amount).to_f.round(2) : 0
+    # Calculate average booking value based on associated service price
+    completed_bookings = bookings.completed.joins(:service) # Join services
+    average_value = completed_bookings.any? ? completed_bookings.average('services.price').to_f.round(2) : 0
     
     # Store results
     result = {

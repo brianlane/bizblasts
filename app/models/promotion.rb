@@ -6,25 +6,28 @@ class Promotion < ApplicationRecord
   
   validates :name, presence: true
   validates :code, presence: true, uniqueness: { scope: :business_id }
-  validates :starts_at, presence: true
-  validates :ends_at, presence: true
+  validates :start_date, presence: true
+  validates :end_date, presence: true
   validates :discount_type, presence: true
   validates :discount_value, presence: true, numericality: { greater_than: 0 }
+  validates :active, inclusion: { in: [true, false] }
+  validates :current_usage, numericality: { greater_than_or_equal_to: 0 }
+  validates :usage_limit, numericality: { greater_than: 0 }, allow_nil: true
   
   enum :discount_type, {
     percentage: 0,
     fixed_amount: 1
   }
   
-  scope :active, -> { where('starts_at <= ? AND ends_at >= ?', Time.current, Time.current) }
-  scope :upcoming, -> { where('starts_at > ?', Time.current) }
-  scope :expired, -> { where('ends_at < ?', Time.current) }
+  scope :active, -> { where(active: true).where('start_date <= ? AND end_date >= ?', Time.current, Time.current) }
+  scope :upcoming, -> { where(active: true).where('start_date > ?', Time.current) }
+  scope :expired, -> { where(active: false).or(where('end_date < ?', Time.current)) }
   
-  def active?
-    starts_at <= Time.current && ends_at >= Time.current
+  def single_use?
+    usage_limit == 1
   end
   
-  def redeemed_count
-    promotion_redemptions.count
+  def usage_limit_reached?
+    usage_limit.present? && current_usage >= usage_limit
   end
 end

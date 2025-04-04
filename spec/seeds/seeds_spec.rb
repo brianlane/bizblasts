@@ -2,29 +2,16 @@
 
 require 'rails_helper'
 
-RSpec.describe "Database seeds", :seed_context do
+# Add metadata to skip default :each cleaning
+RSpec.describe "Database seeds", :seed_context, :no_db_clean do
   # Load seeds once for this context, after cleaning
   before(:context) do
     puts "--- Loading seeds for seed context ---"
     Rails.application.load_seed
   end
 
-  # Clean DB tables after tests
-  after(:context) do
-    puts "--- Cleaning database after seeds_spec suite ---"
-    tables = %w[
-      bookings services_staff_members services staff_members tenant_customers users businesses 
-    ]
-    
-    # Clean tables in reverse dependency order
-    tables.each do |table|
-      begin
-        ActiveRecord::Base.connection.execute("DELETE FROM #{ActiveRecord::Base.connection.quote_table_name(table)}")
-      rescue => e
-        puts "Error cleaning table #{table}: #{e.message}"
-      end
-    end
-  end
+  # REMOVED: Clean DB tables after tests - Let global before(:suite) handle this
+  # after(:context) do ... end 
 
   # --- Tests ---
   context "when seeds have been run" do

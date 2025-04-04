@@ -46,10 +46,11 @@ development:
 # Do not set this db to the same as development or production.
 test: &test
   <<: *default
-  database: <%= ENV.fetch("DATABASE_NAME", "bizdb") %>_test<%= ENV['TEST_ENV_NUMBER'] %>
-  username: <%= ENV.fetch("DATABASE_USERNAME", "postgres") %>
-  password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
-  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  # Force predictable name and host for reliable local testing & parallel_tests
+  database: bizblasts_test<%= ENV['TEST_ENV_NUMBER'] %>
+  username: <%= ENV.fetch("DATABASE_USERNAME", "brianlane") %> # Use macOS username as default
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "") %> # Default to empty password for local dev
+  host: localhost 
   port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
   pool: 10 # Increase connection pool for parallel tests
   prepared_statements: false # Disable for test speed
@@ -97,6 +98,7 @@ production:
     # Force TCP sockets by setting this to false
     host_type: tcp
   
+  # Restore production DB configs
   # Configure service-specific database connections using the same database
   # Rails 8 expects a specific format for these configurations
   cache:
@@ -134,6 +136,6 @@ production:
     port: <%= ENV['DATABASE_PORT'] || '5432' %>
     # Force TCP sockets by setting this to false
     host_type: tcp
-
+  
   # For multiple database connections, we'll rely on Rails to set up connections
   # based on the DATABASE_URL environment variable

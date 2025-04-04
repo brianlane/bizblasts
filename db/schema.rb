@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_04_224340) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -37,7 +37,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "promotion_id"
+    t.decimal "original_amount", precision: 10, scale: 2
+    t.decimal "discount_amount", precision: 10, scale: 2
+    t.decimal "amount", precision: 10, scale: 2
     t.index ["business_id"], name: "index_bookings_on_business_id"
+    t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
     t.index ["staff_member_id"], name: "index_bookings_on_staff_member_id"
     t.index ["start_time"], name: "index_bookings_on_start_time"
@@ -90,9 +95,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "promotion_id"
+    t.decimal "original_amount", precision: 10, scale: 2
+    t.decimal "discount_amount", precision: 10, scale: 2
     t.index ["booking_id"], name: "index_invoices_on_booking_id"
     t.index ["business_id"], name: "index_invoices_on_business_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
+    t.index ["promotion_id"], name: "index_invoices_on_promotion_id"
     t.index ["status"], name: "index_invoices_on_status"
     t.index ["tenant_customer_id"], name: "index_invoices_on_tenant_customer_id"
   end
@@ -205,6 +214,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
     t.datetime "updated_at", null: false
     t.string "position"
     t.string "photo_url"
+    t.jsonb "availability", default: {}, null: false
     t.index ["business_id"], name: "index_staff_members_on_business_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
   end
@@ -246,6 +256,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
   end
 
   add_foreign_key "bookings", "businesses"
+  add_foreign_key "bookings", "promotions"
   add_foreign_key "bookings", "services"
   add_foreign_key "bookings", "staff_members"
   add_foreign_key "bookings", "tenant_customers"
@@ -253,6 +264,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
   add_foreign_key "campaign_recipients", "tenant_customers"
   add_foreign_key "invoices", "bookings"
   add_foreign_key "invoices", "businesses"
+  add_foreign_key "invoices", "promotions"
   add_foreign_key "invoices", "tenant_customers"
   add_foreign_key "marketing_campaigns", "businesses"
   add_foreign_key "marketing_campaigns", "promotions"

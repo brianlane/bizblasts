@@ -8,12 +8,7 @@ FactoryBot.define do
     status { 'confirmed' }
     notes { 'Test booking' }
     
-    # Skip callbacks for test performance
-    to_create { |instance| 
-      instance.save(validate: false) 
-    }
-    
-    # Use build strategy for associations to minimize DB operations
+    # Use build strategy for associations by default (can be overridden in specs)
     association :business, strategy: :build
     association :service, strategy: :build
     association :staff_member, strategy: :build

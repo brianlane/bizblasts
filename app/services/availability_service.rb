@@ -12,8 +12,8 @@ class AvailabilityService
   def self.available_slots(service_provider, date, service = nil, interval: 30)
     return [] unless service_provider.active?
     
-    # Get the service duration in minutes (default to interval if no service)
-    duration = service&.duration_minutes || interval
+    # Get the service duration in minutes (use correct attribute name)
+    duration = service&.duration || interval
     
     # Generate all possible time slots for the day at the given interval
     all_slots = generate_time_slots(date, interval)
@@ -62,10 +62,10 @@ class AvailabilityService
   
   # Check if a service provider is available for the entire duration
   def self.check_full_availability(service_provider, start_time, end_time)
-    # Check the start time
+    # Restore original logic
+    return false unless service_provider.active? # Check active status first
     return false unless service_provider.available_at?(start_time)
     
-    # For longer durations, check availability at intervals
     check_time = start_time + 15.minutes
     while check_time < end_time
       return false unless service_provider.available_at?(check_time)
@@ -80,17 +80,17 @@ class AvailabilityService
     date_start = date.beginning_of_day
     date_end = date.end_of_day
     
-    # Get all scheduled appointments for this provider on this date
-    existing_appointments = Appointment.where(
-      service_provider_id: service_provider.id,
-      status: 'scheduled'
+    # Get all confirmed bookings for this provider on this date
+    existing_bookings = Booking.where(
+      staff_member_id: service_provider.id, 
+      status: :confirmed # Use the correct enum symbol
     ).where('start_time >= ? AND start_time <= ?', date_start, date_end)
     
     # Create time ranges that are already booked
-    booked_ranges = existing_appointments.map do |appointment|
+    booked_ranges = existing_bookings.map do |booking|
       # Add a small buffer before and after (e.g., 5 minutes)
       buffer = 5.minutes
-      [appointment.start_time - buffer, appointment.end_time + buffer]
+      [booking.start_time - buffer, booking.end_time + buffer]
     end
     
     # Filter available slots to exclude those overlapping with booked times
