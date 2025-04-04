@@ -2,26 +2,18 @@
 
 # Helper module for ActiveAdmin testing
 module ActiveAdminHelpers
-  # Sign in as an admin user
+  # Sign in as an admin user using FactoryBot
   def sign_in_admin
-    @admin_user ||= AdminUser.first || AdminUser.create!(
-      email: 'admin@example.com',
-      password: 'password123',
-      password_confirmation: 'password123'
-    )
-    
+    # Use FactoryBot sequence to ensure uniqueness in parallel tests
+    @admin_user ||= create(:admin_user)
     sign_in @admin_user
   end
   
-  # Return the admin auth headers for requests
+  # Return the admin auth headers for requests using FactoryBot
   def admin_headers
-    admin = AdminUser.first || AdminUser.create!(
-      email: 'admin@example.com',
-      password: 'password123',
-      password_confirmation: 'password123'
-    )
+    admin = @admin_user || create(:admin_user) # Reuse if already created in the same example
     
     # For controller specs
-    { 'HTTP_AUTHORIZATION' => "Basic #{Base64.encode64("#{admin.email}:password123")}" }
+    { 'HTTP_AUTHORIZATION' => "Basic #{Base64.encode64("#{admin.email}:#{admin.password}")}" }
   end
-end 
+end

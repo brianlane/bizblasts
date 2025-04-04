@@ -14,24 +14,15 @@ RSpec.configure do |config|
     
     # No need to mock Ransack here, we'll handle it in the business model
     
-    # Create admin user if it doesn't exist
-    admin_email = ENV['ADMIN_EMAIL'] || 'admin@example.com'
-    password = ENV['ADMIN_PASSWORD'] || 'password123'
-    
-    @admin_user = AdminUser.find_by(email: admin_email)
-    unless @admin_user
-      @admin_user = AdminUser.create!(
-        email: admin_email,
-        password: password,
-        password_confirmation: password
-      )
-    end
+    # Use FactoryBot with worker number to ensure unique email in parallel
+    worker_num = ENV['TEST_ENV_NUMBER']
+    @admin_user = create(:admin_user, email: "admin-#{worker_num || '0'}-#{SecureRandom.hex(4)}@example.com") # Add random hex for extra safety
     
     # Sign in as admin user via warden
     post admin_user_session_path, params: {
       admin_user: {
-        email: admin_email,
-        password: password
+        email: @admin_user.email,
+        password: @admin_user.password # Use the factory generated password
       }
     }
   end

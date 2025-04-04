@@ -36,7 +36,7 @@ gem "devise-jwt"
 
 # Admin interface
 gem "activeadmin"
-gem "sassc-rails" # Required by ActiveAdmin for styles
+# gem "sassc-rails" # REMOVED - Conflicts with Propshaft/Importmap
 
 # Multitenancy
 gem "acts_as_tenant"
@@ -52,6 +52,9 @@ gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
+
+# Use node based css bundling
+gem "cssbundling-rails"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

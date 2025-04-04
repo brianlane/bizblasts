@@ -78,11 +78,11 @@ Rails.application.configure do
   config.active_record.logger = nil
   
   # Completely disable asset handling for tests
-  config.assets.enabled = false
-  config.assets.compile = false
-  config.assets.css_compressor = nil
-  config.assets.js_compressor = nil
-  config.assets.prefix = "/test-assets"
+  # config.assets.enabled = false
+  # config.assets.compile = false
+  # config.assets.css_compressor = nil
+  # config.assets.js_compressor = nil
+  # config.assets.prefix = "/test-assets"
   
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false

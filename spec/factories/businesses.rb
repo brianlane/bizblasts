@@ -2,9 +2,15 @@
 
 FactoryBot.define do
   factory :business do
-    # Use a simple sequence to avoid complex validations
-    sequence(:name) { |n| "Business #{n}" }
-    sequence(:subdomain) { |n| "test-business-#{n}" }
+    # Incorporate parallel worker number for uniqueness
+    sequence(:name) do |n|
+      worker_num = ENV['TEST_ENV_NUMBER']
+      "Business #{worker_num.present? ? worker_num + '-' : ''}#{n}"
+    end
+    sequence(:subdomain) do |n|
+      worker_num = ENV['TEST_ENV_NUMBER']
+      "test-business-#{worker_num.present? ? worker_num + '-' : ''}#{n}"
+    end
     
     # Set default values rather than generating them
     time_zone { "UTC" }
