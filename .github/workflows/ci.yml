@@ -164,7 +164,11 @@ jobs:
 
       # ADDED: Build CSS Assets
       - name: Build CSS
-        run: npm run build:css
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          echo "ActiveAdmin Path: $AA_PATH"
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
 
       - name: Run tests
         env:
