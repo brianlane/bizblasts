@@ -2,218 +2,218 @@
 Applying early Sprockets/Propshaft conflict fix...
 Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 25984
+Randomized with seed 50551
 .Applying early Sprockets/Propshaft conflict fix...
 Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 25887
-...--- Skipping DB clean for example: returns appropriate error when database connection fails ---
+Randomized with seed 36990
+.Applying early Sprockets/Propshaft conflict fix...
+Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
+
+Randomized with seed 10357
+.....Applying early Sprockets/Propshaft conflict fix...
+Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
+
+Randomized with seed 40429
+...........................................................................--- Cleaning DB before seed context using DELETION ---
+...................--- Skipping DB clean for example: returns appropriate error when database connection fails ---
 --- Skipping DB clean for example: returns appropriate error when database connection fails ---
-..Applying early Sprockets/Propshaft conflict fix...
-Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
+......
 
-Randomized with seed 57293
-.........Applying early Sprockets/Propshaft conflict fix...
-Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
-
-Randomized with seed 59087
-.............................--- Cleaning DB before seed context using DELETION ---
-.....--- Loading seeds for seed context ---
-Seeding database with sample data...
-Creating default tenant...
-...Default tenant created: Default Business (default) ID: 30
-Creating admin user (skipped in production)...
-..Admin user created with email: admin@example.com and password: password123
-Creating sample data for Default Business...
-....Created customer: Serina Kuhic
-..Created customer: Xavier Powlowski
-.Created customer: Mitsue Rowe
-..Created service: Basic Consultation
-Created service: Website Setup
-..Created service: Monthly Support
-....Created staff member: Staff Member 1
-.Created staff member: Staff Member 2
-....Created booking at 2025-04-14 09:00 - 10:00 for Staff Member 1
-.Created booking at 2025-04-15 12:00 - 13:00 for Staff Member 1
-Created booking at 2025-04-09 09:00 - 10:00 for Staff Member 2
-.Created booking at 2025-04-17 12:00 - 14:00 for Staff Member 2
-Created booking at 2025-04-09 15:00 - 15:30 for Staff Member 2
-Seed data creation complete!
-.Created admin user: bizblaststeam@gmail.com with password from ENV
-........................
-
-Top 10 slowest examples (22.98 seconds, 59.4% of total time):
+Top 10 slowest examples (22.9 seconds, 57.6% of total time):
+  Authentication user sign out allows a signed-in user to sign out
+    3.62 seconds ./spec/system/authentication_spec.rb:159
   Authentication user sign up allows a new user to sign up with proper business context
-    3.99 seconds ./spec/system/authentication_spec.rb:86
-  Booking validations is valid if end_time is after start_time
-    2.67 seconds ./spec/models/booking_spec.rb:40
-  Authentication user sign out allows a signed-in user to sign out
-    2.5 seconds ./spec/system/authentication_spec.rb:159
-  Authentication user sign out allows a signed-in user to sign out
-    2.22 seconds ./spec/system/authentication_spec.rb:40
-  Authentication user sign in shows errors when login information is invalid
-    2.14 seconds ./spec/system/authentication_spec.rb:143
+    3.34 seconds ./spec/system/authentication_spec.rb:86
+  Authentication user registration shows errors with invalid registration information
+    2.41 seconds ./spec/system/authentication_spec.rb:60
   Booking validations is expected to validate that :end_time cannot be empty/falsy
-    2.09 seconds ./spec/models/booking_spec.rb:30
-  Authentication user sign in allows a registered user to sign in
-    1.95 seconds ./spec/system/authentication_spec.rb:130
+    2.1 seconds ./spec/models/booking_spec.rb:30
+  Authentication user sign out allows a signed-in user to sign out
+    2.05 seconds ./spec/system/authentication_spec.rb:40
   Booking validations is expected to validate that :start_time cannot be empty/falsy
-    1.82 seconds ./spec/models/booking_spec.rb:29
-  StaffMember scopes .active returns only active staff members
-    1.8 seconds ./spec/models/service_provider_spec.rb:24
+    2 seconds ./spec/models/booking_spec.rb:29
   Booking validations is expected to validate that :status cannot be empty/falsy
-    1.8 seconds ./spec/models/booking_spec.rb:31
+    1.93 seconds ./spec/models/booking_spec.rb:31
+  StaffMember scopes .active returns only active staff members
+    1.93 seconds ./spec/models/service_provider_spec.rb:24
+  Authentication user sign in allows a registered user to sign in
+    1.81 seconds ./spec/system/authentication_spec.rb:130
+  Authentication user sign in shows an error with incorrect credentials
+    1.69 seconds ./spec/system/authentication_spec.rb:26
 
 Top 5 slowest example groups:
   Authentication
-    2.07 seconds average (18.62 seconds / 9 examples) ./spec/system/authentication_spec.rb:6
+    2.07 seconds average (18.61 seconds / 9 examples) ./spec/system/authentication_spec.rb:6
   Booking
-    1.15 seconds average (10.39 seconds / 9 examples) ./spec/models/booking_spec.rb:3
+    1.21 seconds average (10.86 seconds / 9 examples) ./spec/models/booking_spec.rb:3
   StaffMember
-    1.05 seconds average (5.26 seconds / 5 examples) ./spec/models/service_provider_spec.rb:5
-  ApplicationJob
-    0.36782 seconds average (0.36782 seconds / 1 example) ./spec/jobs/application_job_spec.rb:5
+    1.12 seconds average (5.6 seconds / 5 examples) ./spec/models/service_provider_spec.rb:5
   Health Checks
-    0.34131 seconds average (1.71 seconds / 5 examples) ./spec/requests/health_spec.rb:5
-.
-Finished in 38.68 seconds (files took 10.29 seconds to load)
+    0.41284 seconds average (2.06 seconds / 5 examples) ./spec/requests/health_spec.rb:5
+  ApplicationJob
+    0.27333 seconds average (0.27333 seconds / 1 example) ./spec/jobs/application_job_spec.rb:5
+
+Finished in 39.78 seconds (files took 10.67 seconds to load)
 29 examples, 0 failures
 
-Randomized with seed 25984
+Randomized with seed 50551
 
 .Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
 Line Coverage: 0.0% (0 / 3487)
-....--- Cleaning database after seeds_spec suite ---
-.......
+......
 
-Top 10 slowest examples (24.94 seconds, 54.9% of total time):
-  Application Routes Admin routes when authenticated GET /admin/dashboard returns success
-    3.37 seconds ./spec/requests/routes_spec.rb:49
-  User scopes .staff_users returns admin, manager, and staff roles
-    3.16 seconds ./spec/models/user_spec.rb:54
-  User scopes .active returns only active users
-    2.88 seconds ./spec/models/user_spec.rb:49
-  User acts_as_tenant integration scopes queries to the current tenant
-    2.82 seconds ./spec/models/user_spec.rb:91
-  Application Routes Admin routes when authenticated GET /admin returns success
-    2.79 seconds ./spec/requests/routes_spec.rb:44
-  StaffMember scopes .active returns only active staff members
-    2.03 seconds ./spec/models/staff_member_spec.rb:22
-  TenantCustomer validations allows duplicate emails across different businesses
-    2.01 seconds ./spec/models/tenant_customer_spec.rb:42
-  User validations allows duplicate emails across different businesses
-    1.98 seconds ./spec/models/user_spec.rb:30
-  TenantCustomer validations validates uniqueness of email scoped to business_id
-    1.97 seconds ./spec/models/tenant_customer_spec.rb:18
-  StaffMember validations is expected to validate that :name cannot be empty/falsy
-    1.95 seconds ./spec/models/staff_member_spec.rb:16
-
-Top 6 slowest example groups:
-  Application Routes
-    1.6 seconds average (9.63 seconds / 6 examples) ./spec/requests/routes_spec.rb:3
-  User
-    1.33 seconds average (18.68 seconds / 14 examples) ./spec/models/user_spec.rb:5
-  StaffMember
-    1.31 seconds average (6.54 seconds / 5 examples) ./spec/models/staff_member_spec.rb:5
-  TenantCustomer
-    1.02 seconds average (5.11 seconds / 5 examples) ./spec/models/tenant_customer_spec.rb:5
-  ServiceTemplate
-    0.494 seconds average (2.47 seconds / 5 examples) ./spec/models/service_template_spec.rb:3
-  ApplicationMailer
-    0.33425 seconds average (0.6685 seconds / 2 examples) ./spec/mailers/application_mailer_spec.rb:5
-
-Finished in 45.47 seconds (files took 10.3 seconds to load)
-37 examples, 0 failures
-
-Randomized with seed 57293
-
-.Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 0.0% (0 / 3487)
-........
-
-Top 10 slowest examples (32.07 seconds, 60.4% of total time):
+Top 10 slowest examples (30.05 seconds, 60.9% of total time):
   Admin Companies POST /admin/businesses creates a new business
-    5.32 seconds ./spec/requests/admin/companies_spec.rb:49
+    5.53 seconds ./spec/requests/admin/companies_spec.rb:49
   Admin Companies DELETE /admin/businesses/:id deletes a business
-    4.45 seconds ./spec/requests/admin/companies_spec.rb:67
-  Admin Companies GET /admin/businesses lists all businesses
-    3.37 seconds ./spec/requests/admin/companies_spec.rb:41
+    4.75 seconds ./spec/requests/admin/companies_spec.rb:67
   Admin Companies authentication allows authenticated admin users to access
-    3.31 seconds ./spec/requests/admin/companies_spec.rb:34
-  TenantScoped default_scope is automatically applied to all queries
-    2.83 seconds ./spec/models/tenant_scoped_spec.rb:48
-  TenantScoped scoping behavior scopes queries to the current tenant
-    2.73 seconds ./spec/models/tenant_scoped_spec.rb:18
+    3.13 seconds ./spec/requests/admin/companies_spec.rb:34
+  Admin Companies GET /admin/businesses lists all businesses
+    2.88 seconds ./spec/requests/admin/companies_spec.rb:41
   TenantScoped scoping behavior associates new records with the current tenant
-    2.67 seconds ./spec/models/tenant_scoped_spec.rb:30
-  Admin Companies ActiveAdmin configuration has Business model
-    2.58 seconds ./spec/requests/admin/companies_spec.rb:19
+    2.52 seconds ./spec/models/tenant_scoped_spec.rb:30
   MultiTenant Registration users with identical emails in different tenants allows registration and authentication with the same email in different businesses
-    2.51 seconds ./spec/requests/multi_tenant_registration_spec.rb:23
-  Admin Companies authentication redirects non-authenticated users to login
-    2.3 seconds ./spec/requests/admin/companies_spec.rb:26
+    2.47 seconds ./spec/requests/multi_tenant_registration_spec.rb:23
+  TenantScoped scoping behavior scopes queries to the current tenant
+    2.39 seconds ./spec/models/tenant_scoped_spec.rb:18
+  TenantScoped scoping behavior prevents creating records without a tenant
+    2.31 seconds ./spec/models/tenant_scoped_spec.rb:37
+  TenantScoped default_scope is automatically applied to all queries
+    2.28 seconds ./spec/models/tenant_scoped_spec.rb:48
+  Admin Companies ActiveAdmin configuration has AdminUser model
+    1.77 seconds ./spec/requests/admin/companies_spec.rb:14
 
 Top 6 slowest example groups:
   Admin Companies
-    3.13 seconds average (25.05 seconds / 8 examples) ./spec/requests/admin/companies_spec.rb:5
-  TenantScoped
-    2.57 seconds average (10.28 seconds / 4 examples) ./spec/models/tenant_scoped_spec.rb:5
+    2.9 seconds average (23.18 seconds / 8 examples) ./spec/requests/admin/companies_spec.rb:5
   MultiTenant Registration
-    2.52 seconds average (2.52 seconds / 1 example) ./spec/requests/multi_tenant_registration_spec.rb:5
-  Home
-    0.79864 seconds average (3.99 seconds / 5 examples) ./spec/requests/home_spec.rb:5
+    2.47 seconds average (2.47 seconds / 1 example) ./spec/requests/multi_tenant_registration_spec.rb:5
+  TenantScoped
+    2.38 seconds average (9.51 seconds / 4 examples) ./spec/models/tenant_scoped_spec.rb:5
   Business
-    0.74947 seconds average (7.49 seconds / 10 examples) ./spec/models/business_spec.rb:5
+    0.77116 seconds average (7.71 seconds / 10 examples) ./spec/models/business_spec.rb:5
+  Home
+    0.69053 seconds average (3.45 seconds / 5 examples) ./spec/requests/home_spec.rb:5
   Admin Configuration
-    0.34103 seconds average (1.02 seconds / 3 examples) ./spec/system/admin/companies_spec.rb:4
+    0.40925 seconds average (1.23 seconds / 3 examples) ./spec/system/admin/companies_spec.rb:4
 
-Finished in 53.06 seconds (files took 10.35 seconds to load)
+Finished in 49.35 seconds (files took 10.5 seconds to load)
 31 examples, 0 failures
 
-Randomized with seed 59087
+Randomized with seed 10357
 
-..
+--- Loading seeds for seed context ---
+Seeding database with sample data...
+Creating default tenant...
+Default tenant created: Default Business (default) ID: 60
+Creating admin user (skipped in production)...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Business...
+.
 
-Top 10 slowest examples (23.64 seconds, 43.2% of total time):
-  Admin Dashboard GET /admin shows system metrics
-    3.8 seconds ./spec/requests/admin/dashboard_spec.rb:13
-  Admin Dashboard GET /admin has a link to tenant debug information
-    3.59 seconds ./spec/requests/admin/dashboard_spec.rb:19
-  Admin Dashboard GET /admin displays the admin dashboard
-    3.24 seconds ./spec/requests/admin/dashboard_spec.rb:7
-  MultiTenant Email Uniqueness allows the same email to be used across different tenants when properly configured
-    2.87 seconds ./spec/integration/multi_tenant_registration_spec.rb:6
-  Service scopes .active returns only active services
-    2.06 seconds ./spec/models/service_spec.rb:37
-  Service validations allows duplicate names across different businesses
-    1.74 seconds ./spec/models/service_spec.rb:27
-  Database seeds when seeds have been run data validity creates valid service records
-    1.71 seconds ./spec/seeds/seeds_spec.rb:62
-  Database seeds when seeds have been run data validity creates valid customer records
-    1.61 seconds ./spec/seeds/seeds_spec.rb:72
-  Database seeds when seeds have been run data validity creates valid booking records
-    1.55 seconds ./spec/seeds/seeds_spec.rb:82
-  Service validations validates uniqueness of name scoped to business_id
-    1.47 seconds ./spec/models/service_spec.rb:20
+Top 10 slowest examples (33.49 seconds, 61.7% of total time):
+  Application Routes Admin routes when authenticated GET /admin/dashboard returns success
+    11.56 seconds ./spec/requests/routes_spec.rb:49
+  Application Routes Admin routes when authenticated GET /admin returns success
+    4.14 seconds ./spec/requests/routes_spec.rb:44
+  User scopes .active returns only active users
+    3.42 seconds ./spec/models/user_spec.rb:49
+  User scopes .staff_users returns admin, manager, and staff roles
+    2.73 seconds ./spec/models/user_spec.rb:54
+  User acts_as_tenant integration scopes queries to the current tenant
+    2.22 seconds ./spec/models/user_spec.rb:91
+  TenantCustomer validations validates uniqueness of email scoped to business_id
+    2.12 seconds ./spec/models/tenant_customer_spec.rb:18
+  User validations allows duplicate emails across different businesses
+    1.9 seconds ./spec/models/user_spec.rb:30
+  TenantCustomer validations allows duplicate emails across different businesses
+    1.88 seconds ./spec/models/tenant_customer_spec.rb:42
+  StaffMember scopes .active returns only active staff members
+    1.8 seconds ./spec/models/staff_member_spec.rb:22
+  User multi-tenant validations validates that emails are unique within a business
+    1.7 seconds ./spec/models/user_spec.rb:114
 
 Top 6 slowest example groups:
-  Admin Dashboard
-    3.55 seconds average (10.64 seconds / 3 examples) ./spec/requests/admin/dashboard_spec.rb:5
-  MultiTenant Email Uniqueness
-    2.87 seconds average (2.87 seconds / 1 example) ./spec/integration/multi_tenant_registration_spec.rb:5
-  Database seeds
-    2.5 seconds average (25.01 seconds / 10 examples) ./spec/seeds/seeds_spec.rb:5
-  Service
-    1.27 seconds average (11.4 seconds / 9 examples) ./spec/models/service_spec.rb:5
-  HomeController
-    1.04 seconds average (1.04 seconds / 1 example) ./spec/controllers/home_controller_spec.rb:5
-  Maintenance
-    0.35743 seconds average (1.43 seconds / 4 examples) ./spec/requests/maintenance_spec.rb:5
+  Application Routes
+    3.18 seconds average (19.1 seconds / 6 examples) ./spec/requests/routes_spec.rb:3
+  User
+    1.31 seconds average (18.35 seconds / 14 examples) ./spec/models/user_spec.rb:5
+  StaffMember
+    1.13 seconds average (5.64 seconds / 5 examples) ./spec/models/staff_member_spec.rb:5
+  TenantCustomer
+    1.02 seconds average (5.08 seconds / 5 examples) ./spec/models/tenant_customer_spec.rb:5
+  ServiceTemplate
+    0.5594 seconds average (2.8 seconds / 5 examples) ./spec/models/service_template_spec.rb:3
+  ApplicationMailer
+    0.33547 seconds average (0.67094 seconds / 2 examples) ./spec/mailers/application_mailer_spec.rb:5
 
-Finished in 54.72 seconds (files took 10.35 seconds to load)
+Finished in 54.25 seconds (files took 10.72 seconds to load)
+37 examples, 0 failures
+
+Randomized with seed 36990
+
+Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 0.0% (0 / 3487)
+Created customer: June Gutkowski
+Created customer: Geraldo Homenick
+Created customer: Antionette Heaney I
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created staff member: Staff Member 1
+Created staff member: Staff Member 2
+Created booking at 2025-04-21 09:00 - 09:30 for Staff Member 1
+Created booking at 2025-04-08 12:00 - 13:00 for Staff Member 1
+Created booking at 2025-04-21 15:00 - 15:30 for Staff Member 1
+Created booking at 2025-04-23 09:00 - 10:00 for Staff Member 2
+Created booking at 2025-04-10 12:00 - 13:00 for Staff Member 2
+Seed data creation complete!
+Created admin user: bizblaststeam@gmail.com with password from ENV
+..........--- Cleaning database after seeds_spec suite ---
+
+
+Top 10 slowest examples (24.67 seconds, 32.3% of total time):
+  Admin Dashboard GET /admin has a link to tenant debug information
+    3.88 seconds ./spec/requests/admin/dashboard_spec.rb:19
+  Admin Dashboard GET /admin shows system metrics
+    3.4 seconds ./spec/requests/admin/dashboard_spec.rb:13
+  Admin Dashboard GET /admin displays the admin dashboard
+    3.05 seconds ./spec/requests/admin/dashboard_spec.rb:7
+  Service scopes .active returns only active services
+    2.67 seconds ./spec/models/service_spec.rb:37
+  MultiTenant Email Uniqueness allows the same email to be used across different tenants when properly configured
+    2.54 seconds ./spec/integration/multi_tenant_registration_spec.rb:6
+  Service validations allows duplicate names across different businesses
+    2.17 seconds ./spec/models/service_spec.rb:27
+  Database seeds when seeds have been run data validity creates valid customer records
+    1.87 seconds ./spec/seeds/seeds_spec.rb:72
+  Database seeds when seeds have been run data validity creates valid service records
+    1.74 seconds ./spec/seeds/seeds_spec.rb:62
+  Database seeds when seeds have been run data integrity maintains proper associations between records
+    1.69 seconds ./spec/seeds/seeds_spec.rb:47
+  Database seeds when seeds have been run data validity creates valid booking records
+    1.65 seconds ./spec/seeds/seeds_spec.rb:82
+
+Top 6 slowest example groups:
+  Database seeds
+    4.65 seconds average (46.5 seconds / 10 examples) ./spec/seeds/seeds_spec.rb:5
+  Admin Dashboard
+    3.44 seconds average (10.33 seconds / 3 examples) ./spec/requests/admin/dashboard_spec.rb:5
+  MultiTenant Email Uniqueness
+    2.55 seconds average (2.55 seconds / 1 example) ./spec/integration/multi_tenant_registration_spec.rb:5
+  Service
+    1.36 seconds average (12.27 seconds / 9 examples) ./spec/models/service_spec.rb:5
+  HomeController
+    0.84257 seconds average (0.84257 seconds / 1 example) ./spec/controllers/home_controller_spec.rb:5
+  Maintenance
+    0.45383 seconds average (1.82 seconds / 4 examples) ./spec/requests/maintenance_spec.rb:5
+
+Finished in 1 minute 16.35 seconds (files took 10.62 seconds to load)
 28 examples, 0 failures
 
-Randomized with seed 25887
+Randomized with seed 40429
 
 Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
 Line Coverage: 0.0% (0 / 3487)
@@ -222,4 +222,4 @@ Line Coverage: 0.0% (0 / 3487)
 
 125 examples, 0 failures
 
-Took 67 seconds (1:07)
+Took 90 seconds (1:30)
