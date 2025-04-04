@@ -142,6 +142,30 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
+      - name: Setup Database
+        run: |
+          # Your commands to setup the test DB
+          # Example:
+          # cp config/database.yml.ci config/database.yml
+          # bundle exec rails db:create RAILS_ENV=test
+          # bundle exec rails db:schema:load RAILS_ENV=test
+          ./bin/rails db:test:prepare # Use the app's built-in prepare task if available
+
+      # ADDED: Node.js Setup
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Or your preferred LTS version
+          cache: 'npm'
+
+      # ADDED: Install JS Dependencies
+      - name: Install JS Dependencies
+        run: npm install
+
+      # ADDED: Build CSS Assets
+      - name: Build CSS
+        run: npm run build:css
+
       - name: Run tests
         env:
           RAILS_ENV: test
