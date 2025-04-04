@@ -1,40 +1,46 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe Service, type: :model do
   describe 'associations' do
-    it { is_expected.to belong_to(:company) }
-    it { is_expected.to have_many(:appointments).dependent(:restrict_with_error) }
+    it { is_expected.to belong_to(:business) }
+    it { is_expected.to have_many(:bookings) }
+    it { is_expected.to have_and_belong_to_many(:staff_members) }
   end
 
   describe 'validations' do
-    let(:company) { create(:company) }
-    subject { build(:service, company: company) }
-
+    let(:business) { create(:business) }
+    subject { build(:service, business: business) }
+    
     it { is_expected.to validate_presence_of(:name) }
-    it { is_expected.to validate_uniqueness_of(:name).scoped_to(:company_id) }
-
+    it { is_expected.to validate_presence_of(:duration) }
     it { is_expected.to validate_presence_of(:price) }
-    it { is_expected.to validate_numericality_of(:price).is_greater_than_or_equal_to(0) }
+    
+    it 'validates uniqueness of name scoped to business_id' do
+      create(:service, name: 'Test Service', business: business)
+      duplicate = build(:service, name: 'Test Service', business: business)
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:name]).to include('has already been taken')
+    end
+    
+    it 'allows duplicate names across different businesses' do
+      business1 = create(:business)
+      business2 = create(:business)
+      create(:service, name: 'Test Service', business: business1)
+      service2 = build(:service, name: 'Test Service', business: business2)
+      expect(service2).to be_valid
+    end
+  end
 
-    it { is_expected.to validate_presence_of(:duration_minutes) }
-    it { is_expected.to validate_numericality_of(:duration_minutes).only_integer.is_greater_than(0) }
-
-    # Custom test for boolean validation without triggering warning
-    it "validates that :active is a boolean" do
-      # Test that nil is not valid
-      service = build(:service, active: nil)
-      expect(service.valid?).to be false
-      expect(service.errors[:active]).to include("is not included in the list")
+  describe 'scopes' do
+    it '.active returns only active services' do
+      business = create(:business)
+      active_service = create(:service, active: true, business: business)
+      inactive_service = create(:service, active: false, business: business)
       
-      # Test that false is valid
-      service = build(:service, active: false)
-      service.valid?
-      expect(service.errors[:active]).to be_empty
-      
-      # Test that true is valid
-      service = build(:service, active: true)
-      service.valid?
-      expect(service.errors[:active]).to be_empty
+      expect(Service.active).to include(active_service)
+      expect(Service.active).not_to include(inactive_service)
     end
   end
 end

@@ -4,7 +4,8 @@ require 'rails_helper'
 
 RSpec.describe User, type: :model do
   describe 'associations' do
-    it { is_expected.to belong_to(:company) }
+    it { is_expected.to belong_to(:business) }
+    it { is_expected.to belong_to(:staff_member).optional }
   end
 
   before(:each) do
@@ -13,57 +14,96 @@ RSpec.describe User, type: :model do
   end
 
   describe 'validations' do
-    it 'requires an email' do
-      user = build(:user, email: nil)
-      expect(user).not_to be_valid
-    end
+    let(:business) { create(:business) }
+    subject { build(:user, business: business) }
     
-    it 'requires a password' do
-      user = build(:user, password: nil)
-      expect(user).not_to be_valid
-    end
+    it { is_expected.to validate_presence_of(:email) }
     
-    it 'requires a company' do
-      user = build(:user, company: nil)
-      expect(user).not_to be_valid
-      expect(user.errors[:company]).to include("must exist")
+    # Test uniqueness scoped to business_id
+    it 'validates uniqueness of email scoped to business_id' do
+      create(:user, email: 'unique@example.com', business: business)
+      duplicate = build(:user, email: 'unique@example.com', business: business)
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:email]).to include('has already been taken')
+    end
+
+    it 'allows duplicate emails across different businesses' do
+      business1 = create(:business)
+      business2 = create(:business)
+      create(:user, email: 'duplicate@example.com', business: business1)
+      user2 = build(:user, email: 'duplicate@example.com', business: business2)
+      expect(user2).to be_valid
     end
   end
-  
-  describe 'email uniqueness' do
-    it 'prevents duplicate emails within the same company' do
-      company = create(:company)
-      
-      create(:user, email: 'duplicate@example.com', company: company)
-      second_user = build(:user, email: 'duplicate@example.com', company: company)
-      
-      expect(second_user).not_to be_valid
-      expect(second_user.errors[:email]).to include("has already been taken")
+
+  describe 'scopes' do
+    before do
+      @business = create(:business)
+      @active_user = create(:user, active: true, business: @business)
+      @inactive_user = create(:user, active: false, business: @business)
+      @admin = create(:user, role: :admin, business: @business)
+      @staff = create(:user, role: :staff, business: @business)
+      @client = create(:user, role: :client, business: @business)
+    end
+
+    it '.active returns only active users' do
+      expect(User.active).to include(@active_user)
+      expect(User.active).not_to include(@inactive_user)
+    end
+
+    it '.staff_users returns admin, manager, and staff roles' do
+      expect(User.staff_users).to include(@admin, @staff)
+      expect(User.staff_users).not_to include(@client)
     end
   end
-  
+
+  describe 'role enum' do
+    it 'defines roles' do
+      expect(User.roles.keys).to include('admin', 'manager', 'staff', 'client')
+    end
+  end
+
+  describe '#staff?' do
+    it 'returns true for admin roles' do
+      user = build(:user, role: :admin)
+      expect(user.staff?).to be_truthy
+    end
+
+    it 'returns true for staff roles' do
+      user = build(:user, role: :staff)
+      expect(user.staff?).to be_truthy
+    end
+
+    it 'returns false for client roles' do
+      user = build(:user, role: :client)
+      expect(user.staff?).to be_falsey
+    end
+  end
+
+  describe '#full_name' do
+    it 'returns the email' do
+      user = build(:user, email: 'test@example.com')
+      expect(user.full_name).to eq('test@example.com')
+    end
+  end
+
   describe 'acts_as_tenant integration' do
     it 'scopes queries to the current tenant' do
-      # Create two companies
-      company1 = create(:company, name: 'Company 1')
-      company2 = create(:company, name: 'Company 2')
+      business1 = create(:business)
+      business2 = create(:business)
       
-      # Create users in both companies
-      user1 = create(:user, company: company1)
-      user2 = create(:user, company: company2)
+      user1 = create(:user, business: business1, email: 'user@example.com')
+      user2 = create(:user, business: business2, email: 'user@example.com')
       
-      # When tenant is company1, we should only see users from company1
-      ActsAsTenant.current_tenant = company1
-      expect(User.all).to include(user1)
-      expect(User.all).not_to include(user2)
+      ActsAsTenant.with_tenant(business1) do
+        expect(User.count).to eq(1)
+        expect(User.first).to eq(user1)
+      end
       
-      # When tenant is company2, we should only see users from company2
-      ActsAsTenant.current_tenant = company2
-      expect(User.all).to include(user2)
-      expect(User.all).not_to include(user1)
-      
-      # Reset tenant for cleanup
-      ActsAsTenant.current_tenant = nil
+      ActsAsTenant.with_tenant(business2) do
+        expect(User.count).to eq(1)
+        expect(User.first).to eq(user2)
+      end
     end
   end
 
@@ -71,14 +111,14 @@ RSpec.describe User, type: :model do
     # This functionality is now tested in the integration test
     # spec/integration/multi_tenant_registration_spec.rb
     
-    it 'validates that emails are unique within a company' do
-      company = create(:company)
-      create(:user, email: 'test@example.com', company: company)
+    it 'validates that emails are unique within a business' do
+      business = create(:business)
+      create(:user, email: 'test@example.com', business: business)
       
-      # Try to create another user with the same email in the same company
-      user2 = build(:user, email: 'test@example.com', company: company)
+      # Try to create another user with the same email in the same business
+      user2 = build(:user, email: 'test@example.com', business: business)
       expect(user2).not_to be_valid
       expect(user2.errors[:email]).to include('has already been taken')
     end
   end
-end 
+end

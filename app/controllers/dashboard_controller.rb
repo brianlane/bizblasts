@@ -3,7 +3,7 @@
 # Controller for the user dashboard
 class DashboardController < ApplicationController
   def index
-    @company = ActsAsTenant.current_tenant || Company.find_by(id: current_user&.company_id)
+    @company = ActsAsTenant.current_tenant || Business.find_by(id: current_user&.business_id)
     
     # Fallback if tenant can't be determined
     unless @company

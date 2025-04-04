@@ -7,11 +7,11 @@ ActiveAdmin.register_page "Dashboard" do
       column do
         panel "System Overview" do
           stats = {
-            "Total Companies" => Company.count,
+            "Total Businesses" => Business.count,
             "Total Users" => User.count,
-            "Total Client Websites" => ClientWebsite.count,
-            "Active Client Websites" => ClientWebsite.where(active: true).count,
-            "Total Service Templates" => ServiceTemplate.count
+            "Total Services" => Service.count,
+            "Total Staff Members" => StaffMember.count,
+            "Total Bookings" => Booking.count
           }
           
           table_for stats do
@@ -23,17 +23,16 @@ ActiveAdmin.register_page "Dashboard" do
 
       column do
         panel "Recent Activity" do
-          para "Recent companies created"
-          table_for Company.order(created_at: :desc).limit(5) do
-            column("Name") { |company| link_to(company.name, admin_company_path(company)) }
-            column("Created") { |company| time_ago_in_words(company.created_at) + " ago" }
+          para "Recent businesses created"
+          table_for Business.order(created_at: :desc).limit(5) do
+            column("Name") { |business| link_to(business.name, admin_business_path(business)) }
+            column("Created") { |business| time_ago_in_words(business.created_at) + " ago" }
           end
 
-          para "Recent client websites created"
-          table_for ClientWebsite.order(created_at: :desc).limit(5) do
-            column("Name") { |website| link_to(website.name, admin_client_website_path(website)) }
-            column("Company") { |website| website.company.name }
-            column("Status") { |website| status_tag(website.status) }
+          para "Recent users created"
+          table_for User.order(created_at: :desc).limit(5) do
+            column("Email") { |user| user.email }
+            column("Created") { |user| time_ago_in_words(user.created_at) + " ago" }
           end
         end
       end
@@ -41,14 +40,15 @@ ActiveAdmin.register_page "Dashboard" do
     
     columns do
       column do
-        panel "Website Status Summary" do
-          pie_data = {
-            "Live" => ClientWebsite.where(status: "published").count,
-            "Draft" => ClientWebsite.where(status: "draft").count,
-            "Inactive" => ClientWebsite.where(active: false).count
+        panel "Booking Status Summary" do
+          booking_data = {
+            "Pending" => Booking.where(status: "pending").count,
+            "Confirmed" => Booking.where(status: "confirmed").count,
+            "Completed" => Booking.where(status: "completed").count,
+            "Cancelled" => Booking.where(status: "cancelled").count
           }
           
-          table_for pie_data do
+          table_for booking_data do
             column("Status") { |item| item[0] }
             column("Count") { |item| item[1] }
           end
@@ -59,8 +59,8 @@ ActiveAdmin.register_page "Dashboard" do
     columns do
       column do
         panel "Performance Metrics" do
-          para "Website analytics would be displayed here, integrating with web analytics APIs."
-          para "This would include metrics like page load times, visitors, and conversion rates."
+          para "Business analytics would be displayed here, integrating with analytics APIs."
+          para "This would include metrics like bookings, revenue, and customer engagement rates."
         end
       end
     end

@@ -8,16 +8,16 @@ module Users
     
     private
 
-    # Override Devise's resource_params method to add the company_id
+    # Override Devise's resource_params method to add the business_id
     def sign_up_params
       devise_params = super
       
-      # Setting company_id to current tenant if set
+      # Setting business_id to current tenant if set
       if ActsAsTenant.current_tenant
-        # Convert ActionController::Parameters to hash and merge company_id
+        # Convert ActionController::Parameters to hash and merge business_id
         new_params = devise_params.to_h
-        new_params[:company_id] = ActsAsTenant.current_tenant.id
-        ActionController::Parameters.new(user: new_params).require(:user).permit(:email, :password, :password_confirmation, :company_id)
+        new_params[:business_id] = ActsAsTenant.current_tenant.id
+        ActionController::Parameters.new(user: new_params).require(:user).permit(:email, :password, :password_confirmation, :business_id)
       else
         devise_params
       end
