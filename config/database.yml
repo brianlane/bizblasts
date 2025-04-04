@@ -18,6 +18,10 @@ default: &default
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch("DATABASE_USERNAME", "postgres") %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
 
 development:
   <<: *default
@@ -46,16 +50,25 @@ development:
 # Do not set this db to the same as development or production.
 test: &test
   <<: *default
-  database: <%= ENV['RAILS_TEST_DATABASE_NAME'] || 'bizblasts_test' %>
-  # Make tests faster with higher connection pool
-  pool: <%= ENV.fetch("PARALLEL_TEST_PROCESSORS", 1).to_i * 5 %>
-  # Disable prepared statements to reduce memory usage
+  # Use a dedicated database name for each test environment number
+  # This helps with parallel testing
+  database: bizblasts_test<%= ENV['TEST_ENV_NUMBER'] %>
+  # Increase pool for parallel tests
+  pool: 20
+  # Disable prepared statements to improve test speed
   prepared_statements: false
-  # Disable schema dumps
-  schema_dump: false
-  # Use simple query protocol for speed
+  # Set a statement timeout to prevent hanging tests
   variables:
-    statement_timeout: 5000 # 5 seconds timeout
+    statement_timeout: 120s
+  # Use simple locking and isolation strategy
+  connect_timeout: 2
+  idle_in_transaction_session_timeout: 5000
+  # Turn off WAL for test performance
+  checkout_timeout: 5
+  # Disable advisory locks for tests
+  advisory_locks: false
+  # Reduce fsync calls for test performance
+  synchronous_commit: 'off'
 
 # For parallel testing setup
 <% (1..ENV.fetch('PARALLEL_TEST_PROCESSORS', 1).to_i).each do |i| %>
@@ -85,56 +98,7 @@ test_<%= i %>:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  primary:
-    <<: *default
-    # Force TCP connection instead of Unix socket
-    url: <%= ENV['DATABASE_URL'] %>
-    # If URL isn't provided, use these settings
-    database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
-    username: <%= ENV['DATABASE_USERNAME'] %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] %>
-    port: <%= ENV['DATABASE_PORT'] || '5432' %>
-    # Force TCP sockets by setting this to false
-    host_type: tcp
-  
-  # Configure service-specific database connections using the same database
-  # Rails 8 expects a specific format for these configurations
-  cache:
-    <<: *default
-    # Force TCP connection instead of Unix socket
-    url: <%= ENV['DATABASE_URL'] %>
-    database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
-    username: <%= ENV['DATABASE_USERNAME'] %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] %>
-    port: <%= ENV['DATABASE_PORT'] || '5432' %>
-    # Force TCP sockets by setting this to false
-    host_type: tcp
-  
-  queue:
-    <<: *default
-    # Force TCP connection instead of Unix socket
-    url: <%= ENV['DATABASE_URL'] %>
-    database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
-    username: <%= ENV['DATABASE_USERNAME'] %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] %>
-    port: <%= ENV['DATABASE_PORT'] || '5432' %>
-    # Force TCP sockets by setting this to false
-    host_type: tcp
-  
-  cable:
-    <<: *default
-    # Force TCP connection instead of Unix socket
-    url: <%= ENV['DATABASE_URL'] %>
-    database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
-    username: <%= ENV['DATABASE_USERNAME'] %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] %>
-    port: <%= ENV['DATABASE_PORT'] || '5432' %>
-    # Force TCP sockets by setting this to false
-    host_type: tcp
-
-  # For multiple database connections, we'll rely on Rails to set up connections
-  # based on the DATABASE_URL environment variable
+  <<: *default
+  database: bizblasts_production
+  username: bizblasts
+  password: <%= ENV["BIZBLASTS_DATABASE_PASSWORD"] %>

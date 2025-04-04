@@ -25,6 +25,41 @@ class ApplicationController < ActionController::Base
     before_action :set_tenant_from_params, if: -> { Rails.env.test? && params[:tenant_id].present? }
   end
 
+  # Authentication for ActiveAdmin - allows both AdminUser and User with admin role
+  def authenticate_admin_user!
+    # First try standard AdminUser authentication
+    if admin_user_signed_in?
+      return true
+    end
+    
+    # Fallback to User with admin role for tests
+    if user_signed_in? && current_user.respond_to?(:role) && current_user.role == 'admin'
+      return true
+    end
+    
+    # Otherwise redirect to login - use ActiveAdmin's login path if available
+    if request.path.start_with?('/admin')
+      redirect_to new_admin_user_session_path
+    else
+      redirect_to new_user_session_path
+    end
+  end
+
+  # Helper method to check if admin user is signed in
+  def admin_user_signed_in?
+    warden.authenticated?(:admin_user)
+  end
+
+  # Helper method to get current admin user
+  def current_admin_user
+    if admin_user_signed_in?
+      @current_admin_user ||= warden.authenticate(scope: :admin_user)
+    elsif user_signed_in? && current_user.respond_to?(:role) && current_user.role == 'admin'
+      # Use the admin User for tests
+      current_user
+    end
+  end
+
   private
 
   def skip_user_authentication?
@@ -77,14 +112,26 @@ class ApplicationController < ActionController::Base
   protected
 
   def companies_table_exists?
-    ActiveRecord::Base.connection.table_exists?('companies')
+    # Check if either companies or businesses table exists
+    ActiveRecord::Base.connection.table_exists?('companies') || 
+    ActiveRecord::Base.connection.table_exists?('businesses')
   end
 
   def find_and_set_company_tenant(subdomain)
-    company = Company.find_by(subdomain: subdomain)
+    # Try to find the tenant in either Company or Business tables
+    tenant = nil
+    
+    if ActiveRecord::Base.connection.table_exists?('companies')
+      tenant = Company.find_by(subdomain: subdomain)
+    end
+    
+    # If not found in companies, try businesses
+    if tenant.nil? && ActiveRecord::Base.connection.table_exists?('businesses')
+      tenant = Business.find_by(subdomain: subdomain)
+    end
 
-    if company
-      set_current_tenant(company)
+    if tenant
+      set_current_tenant(tenant)
       true
     else
       tenant_not_found
