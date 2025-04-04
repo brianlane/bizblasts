@@ -15,8 +15,8 @@
 /tmp/*
 !/log/.keep
 !/tmp/.keep
-test.out
-test.log
+/test.out
+/test.log
 
 # Ignore pidfiles, but keep the directory.
 /tmp/pids/*
@@ -56,3 +56,7 @@ yarn-debug.log*
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# Ignore test output files
+test.out
+test.log

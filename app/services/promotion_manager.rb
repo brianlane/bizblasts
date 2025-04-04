@@ -7,34 +7,38 @@ class PromotionManager
     
     return { valid: false, error: "Invalid promotion code" } unless promotion
     
-    # Check if promotion is active
-    unless promotion.active?
+    # Check if promotion is active (using the boolean column and dates)
+    unless promotion.active && promotion.start_date <= Time.current && promotion.end_date >= Time.current
       return { valid: false, error: "Promotion has expired or not yet active" }
     end
     
     # Check if customer has already redeemed (if single-use and customer provided)
-    if customer_id.present? && promotion.single_use?
-      if PromotionRedemption.exists?(promotion: promotion, customer_id: customer_id, business_id: business_id)
+    if customer_id.present? && promotion.single_use? # Uses method from model
+      # Corrected check: remove business_id from scope
+      if PromotionRedemption.exists?(promotion: promotion, tenant_customer_id: customer_id)
         return { valid: false, error: "You have already used this promotion" }
       end
     end
     
-    # Check if promotion has reached max redemptions
-    if promotion.max_redemptions.present? && promotion.max_redemptions > 0
-      if promotion.redeemed_count >= promotion.max_redemptions
-        return { valid: false, error: "This promotion has reached its maximum number of uses" }
-      end
+    # Check if promotion has reached max redemptions (using the columns)
+    if promotion.usage_limit_reached? # Uses method from model
+      return { valid: false, error: "This promotion has reached its maximum number of uses" }
     end
     
     { valid: true, promotion: promotion }
   end
   
   def self.apply_promotion_to_booking(booking, promotion_code)
-    result = validate_promotion_code(promotion_code, booking.business_id, booking.customer_id)
+    result = validate_promotion_code(promotion_code, booking.business_id, booking.tenant_customer_id)
     
     return result unless result[:valid]
     
     promotion = result[:promotion]
+    
+    # Check usage limit again before applying (race condition mitigation)
+    if promotion.usage_limit_reached?
+      return { valid: false, error: "Promotion usage limit reached just before applying." }
+    end
     
     # Calculate the discount
     original_amount = booking.amount || 0
@@ -43,15 +47,18 @@ class PromotionManager
     # Apply the discount to the booking
     discounted_amount = [original_amount - discount_amount, 0].max
     
-    booking.update(
-      promotion_id: promotion.id,
-      original_amount: original_amount,
-      discount_amount: discount_amount,
-      amount: discounted_amount
-    )
-    
-    # Record the redemption
-    create_redemption(promotion, booking.customer, booking)
+    # Update booking and redemption in a transaction
+    ApplicationRecord.transaction do
+      booking.update!(
+        promotion_id: promotion.id,
+        original_amount: original_amount,
+        discount_amount: discount_amount,
+        amount: discounted_amount
+      )
+      
+      # Record the redemption & increment usage count
+      create_redemption(promotion, booking.tenant_customer, booking)
+    end
     
     { 
       valid: true, 
@@ -60,14 +67,22 @@ class PromotionManager
       discount_amount: discount_amount,
       final_amount: discounted_amount
     }
+  rescue ActiveRecord::RecordInvalid => e
+    # Handle potential validation errors (e.g., redemption uniqueness)
+    { valid: false, error: e.message }
   end
   
   def self.apply_promotion_to_invoice(invoice, promotion_code)
-    result = validate_promotion_code(promotion_code, invoice.business_id, invoice.customer_id)
+    result = validate_promotion_code(promotion_code, invoice.business_id, invoice.tenant_customer_id)
     
     return result unless result[:valid]
     
     promotion = result[:promotion]
+    
+    # Check usage limit again before applying
+    if promotion.usage_limit_reached?
+      return { valid: false, error: "Promotion usage limit reached just before applying." }
+    end
     
     # Calculate the discount
     original_amount = invoice.amount || 0
@@ -76,15 +91,19 @@ class PromotionManager
     # Apply the discount to the invoice
     discounted_amount = [original_amount - discount_amount, 0].max
     
-    invoice.update(
-      promotion_id: promotion.id,
-      original_amount: original_amount,
-      discount_amount: discount_amount,
-      amount: discounted_amount
-    )
-    
-    # Record the redemption
-    create_redemption(promotion, invoice.customer, invoice.booking)
+    # Update invoice and redemption in a transaction
+    ApplicationRecord.transaction do
+      invoice.update!(
+        promotion_id: promotion.id,
+        original_amount: original_amount,
+        discount_amount: discount_amount,
+        amount: discounted_amount
+      )
+      
+      # Record the redemption & increment usage count
+      booking = invoice.respond_to?(:booking) ? invoice.booking : nil
+      create_redemption(promotion, invoice.tenant_customer, booking)
+    end
     
     { 
       valid: true, 
@@ -93,6 +112,8 @@ class PromotionManager
       discount_amount: discount_amount,
       final_amount: discounted_amount
     }
+  rescue ActiveRecord::RecordInvalid => e
+    { valid: false, error: e.message }
   end
   
   def self.generate_unique_code(prefix = nil)
@@ -117,12 +138,14 @@ class PromotionManager
   end
   
   def self.create_redemption(promotion, customer, booking = nil)
-    PromotionRedemption.create(
+    # Create redemption and increment usage count atomically
+    redemption = PromotionRedemption.create!(
       promotion: promotion,
-      customer: customer,
+      tenant_customer: customer, # Use correct association
       booking: booking,
-      business_id: promotion.business_id,
       redeemed_at: Time.current
     )
+    promotion.increment!(:current_usage)
+    redemption
   end
 end

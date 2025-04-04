@@ -44,19 +44,43 @@ class StaffMember < ApplicationRecord
   def available_at?(time)
     return false unless active?
     
-    # Get the day of week and normalize to symbol
     day_of_week = time.strftime('%A').downcase.to_sym
-    
-    # Check exceptions first (specific dates override regular schedule)
+    current_tod = Tod::TimeOfDay.new(time.hour, time.min) 
+
+    applicable_intervals = []
+    # Check exceptions first 
     date_str = time.strftime('%Y-%m-%d')
-    if availability&.dig(:exceptions, date_str)
-      return check_time_in_intervals(time, availability[:exceptions][date_str])
+    
+    # --> New Debugging <--
+    av_hash = self.availability # Read the attribute
+    puts "[DEBUG available_at?] Availability Hash: #{av_hash.inspect}" 
+    puts "[DEBUG available_at?] Availability Keys: #{av_hash&.keys.inspect}" 
+    # --> End Debugging <--
+    
+    if av_hash&.dig('exceptions', date_str) # Use string key for 'exceptions'
+      applicable_intervals = av_hash['exceptions'][date_str]
+    else
+      # Check regular schedule
+      applicable_intervals = av_hash&.dig(day_of_week.to_s) # Use string key for day_of_week
     end
+
+    return false if applicable_intervals.blank?
+
+    # Pre-process intervals into Tod objects
+    parsed_intervals = applicable_intervals.map do |interval|
+      begin
+        start_str = interval[:start] || interval["start"]
+        end_str = interval[:end] || interval["end"]
+        start_tod = Tod::TimeOfDay.parse(start_str)
+        end_tod = Tod::TimeOfDay.parse(end_str)
+        start_tod...end_tod # Create a Range of Tod::TimeOfDay
+      rescue ArgumentError => e
+        nil
+      end
+    end.compact
     
-    # Check regular schedule for that day
-    return false unless availability&.dig(day_of_week)
-    
-    check_time_in_intervals(time, availability[day_of_week])
+    # Check if the current time falls within any of the valid ranges
+    parsed_intervals.any? { |range| range.cover?(current_tod) }
   end
   
   # Define ransackable attributes for ActiveAdmin
@@ -71,27 +95,8 @@ class StaffMember < ApplicationRecord
   
   private
   
-  def check_time_in_intervals(time, intervals)
-    # No intervals means not available
-    return false if intervals.blank?
-    
-    # Convert time to minutes since midnight for easier comparison
-    minutes = time.hour * 60 + time.min
-    
-    # Check each interval
-    intervals.any? do |interval|
-      start_time = parse_time_to_minutes(interval[:start] || interval["start"])
-      end_time = parse_time_to_minutes(interval[:end] || interval["end"])
-      
-      # Time is in range if >= start and < end
-      start_time && end_time && minutes >= start_time && minutes < end_time
-    end
-  end
-  
-  def parse_time_to_minutes(time_str)
-    return nil unless time_str.is_a?(String) && time_str.match?(/^\d{1,2}:\d{2}$/)
-    
-    hours, minutes = time_str.split(':').map(&:to_i)
-    hours * 60 + minutes
-  end
+  # Remove check_time_in_intervals as logic is moved into available_at?
+  # def check_time_in_intervals(time_of_day, intervals)
+  #   ...
+  # end
 end

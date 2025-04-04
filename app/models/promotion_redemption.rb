@@ -1,11 +1,9 @@
 class PromotionRedemption < ApplicationRecord
-  include TenantScoped
-  
   belongs_to :promotion
-  belongs_to :customer
+  belongs_to :tenant_customer, class_name: 'TenantCustomer'
   belongs_to :booking, optional: true
   
-  validates :customer_id, uniqueness: { scope: [:business_id, :promotion_id], 
+  validates :tenant_customer_id, uniqueness: { scope: :promotion_id, 
                                       message: "has already redeemed this promotion" }, 
                         if: -> { promotion&.single_use? }
   

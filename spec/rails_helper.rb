@@ -1,3 +1,22 @@
+require 'simplecov'
+
+# Configure simplecov for test coverage reporting
+SimpleCov.start 'rails' do
+  # Set a command name to ensure results merge correctly in parallel tests
+  command_name "RSpec-#{ENV['TEST_ENV_NUMBER']}" if ENV['TEST_ENV_NUMBER']
+
+  add_filter '/bin/'
+  add_filter '/db/'
+  add_filter '/spec/' # Don't include tests in coverage
+  add_filter '/config/'
+  add_filter '/vendor/'
+
+  # Enable branch coverage analysis
+  enable_coverage :branch
+  # Combine coverage reports from parallel tests
+  merge_timeout 3600 # Set a generous timeout for merging (e.g., 1 hour)
+end
+
 # frozen_string_literal: true
 
 # This file is copied to spec/ when you run 'rails generate rspec:install'
@@ -18,18 +37,8 @@ require 'shoulda/matchers'
 require 'database_cleaner/active_record'
 require 'parallel_tests/rspec/runtime_logger' # If using parallel_tests logging
 require 'capybara/rails'
-require 'simplecov'
 require 'fileutils' # Add FileUtils for directory creation
 # require 'mock_asset_helpers' # REMOVED: Support files are loaded later by RSpec
-
-# Configure simplecov for test coverage reporting
-SimpleCov.start 'rails' do
-  add_filter '/bin/'
-  add_filter '/db/'
-  add_filter '/spec/'
-  add_filter '/config/'
-  add_filter '/vendor/'
-end
 
 # Load all support files
 Dir[Rails.root.join('spec/support/**/*.rb')].sort.each { |f| require f }
@@ -41,78 +50,13 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 
-# Define DatabaseCleaner constants globally (use ||= to prevent reinitialization)
+# Define DatabaseCleaner constants globally
 EXCLUDED_TABLES ||= %w[schema_migrations ar_internal_metadata].freeze
-# Revised truncation order - dependent tables first
-TRUNCATION_ORDER ||= %w[
-  active_storage_variant_records
-  active_storage_attachments
-  active_storage_blobs
-  bookings
-  services_staff_members 
-  services 
-  staff_members 
-  tenant_customers 
-  users 
-  admin_users
-  businesses 
-].freeze
 
 # RSpec configuration
 RSpec.configure do |config|
-  # Ensure test schema is up-to-date before any configuration (REMOVED - Handled by parallel_helper.rb)
-  # ActiveRecord::Migration.maintain_test_schema!
-
-  # Allow DatabaseCleaner to run even if DATABASE_URL is remote
-  DatabaseCleaner.allow_remote_database_url = true 
-
   # Include Factory Bot syntax methods
   config.include FactoryBot::Syntax::Methods
-
-  # Configure DatabaseCleaner hooks (start/clean handled in database_cleaner.rb)
-  # Note: Strategy is set in the database_cleaner.rb before(:each) hook
-  # config.before(:suite) do
-  #   DatabaseCleaner.strategy = :transaction
-  # end
-
-  config.before(:each) do
-    DatabaseCleaner.strategy = :transaction
-  end
-
-  # Use truncation for system tests or JS tests
-  config.before(:each, type: :system) do
-    DatabaseCleaner.strategy = :truncation
-  end
-
-  config.before(:each, js: true) do
-    DatabaseCleaner.strategy = :truncation
-  end
-
-  config.before(:each) do
-    DatabaseCleaner.start
-  end
-
-  # Clean after each test using standard DatabaseCleaner clean (Now re-enabled)
-  config.after(:each) do |example|
-    if example.metadata[:no_db_clean]
-      puts "--- Skipping DB clean for example: #{example.description} ---"
-    else
-      begin
-        # DatabaseCleaner.clean # DISABLED FOR PARALLEL - Causes deadlocks
-      rescue ActiveRecord::ConnectionNotEstablished
-        puts "--- WARN: Skipping DB clean due to ConnectionNotEstablished in example: #{example.description} ---"
-      end
-    end
-    # Reset tenant after each test
-    ActsAsTenant.current_tenant = nil
-  end
-
-  # Ensure a final cleanup after the suite (optional, but good practice)
-  # config.after(:suite) do
-  #   DatabaseCleaner.clean_with(:truncation)
-  # end
-
-  # Load seeds once for the entire suite using file lock
 
   # Include Devise helpers
   config.include Devise::Test::ControllerHelpers, type: :controller
@@ -137,64 +81,52 @@ RSpec.configure do |config|
   config.include Capybara::DSL, type: :system
   config.include Capybara::RSpecMatchers, type: :system
 
-  # == DatabaseCleaner Configuration ==
-  # REMOVED - require 'database_cleaner/active_record' should handle this.
-  # DatabaseCleaner.orm = :active_record 
-
+  # == DatabaseCleaner Configuration for Parallel Tests ==
   config.before(:suite) do
-    # Allow remote database URL if needed (e.g., CI environment)
-    DatabaseCleaner.allow_remote_database_url = true
-    # Ensure the database is clean before the suite starts
+    # Ensure DB is clean before suite
     DatabaseCleaner.clean_with(:truncation, except: EXCLUDED_TABLES)
-    # FactoryBot sequences need rewinding (keep this here)
+    # Set the default strategy for the suite
+    DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
+    # Rewind sequences AFTER cleaning and setting strategy
     FactoryBot.rewind_sequences
   end
 
-  # Clean before running seed context tests using deletion (faster)
-  config.before(:context, :seed_context) do
-    puts "--- Cleaning DB before seed context using DELETION ---"
-    DatabaseCleaner.clean_with(:deletion, except: EXCLUDED_TABLES)
-  end
-
-  config.before(:each) do |example|
-    # Default to :transaction strategy
-    DatabaseCleaner.strategy = :transaction
-    # System tests override to use truncation
-    if example.metadata[:type] == :system || example.metadata[:js]
-       DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES, pre_count: true, reset_ids: true }
-    end
-    DatabaseCleaner.start
-  end
-
-  # Clean after each test using the determined strategy
-  config.after(:each) do |example|
-    if example.metadata[:no_db_clean]
-      puts "--- Skipping DB clean for example: #{example.description} ---"
-    else
-      begin
-        # DatabaseCleaner.clean # DISABLED FOR PARALLEL - Causes deadlocks
-      rescue ActiveRecord::ConnectionNotEstablished
-        puts "--- WARN: Skipping DB clean due to ConnectionNotEstablished in example: #{example.description} ---"
+  config.around(:each) do |example|
+    # Check for metadata to skip cleaning if needed
+    unless example.metadata[:no_db_clean]
+      DatabaseCleaner.cleaning do
+        example.run
       end
+    else
+      example.run # Run example without DatabaseCleaner wrapping
     end
+    # Reset tenant after each test (important)
+    ActsAsTenant.current_tenant = nil
   end
+  
   # == End DatabaseCleaner Configuration ==
 
   # RSpec Rails configurations
   config.infer_spec_type_from_file_location!
   config.filter_rails_from_backtrace!
-
-  # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
-  config.fixture_paths = [
-    Rails.root.join("spec/fixtures")
-  ]
-
-  # If you're not using ActiveRecord, or you'd prefer not to run each of your
-  # examples within a transaction, remove the following line or assign false
-  # instead of true.
-  config.use_transactional_fixtures = true
+  config.fixture_paths = [ Rails.root.join("spec/fixtures") ]
+  
+  # IMPORTANT: Must be false when using truncation strategy
+  config.use_transactional_fixtures = false 
 
   # RSpec Rails can automatically mix in different behaviours to your tests
+  config.order = :random
+  Kernel.srand config.seed
+  config.expect_with :rspec do |expectations|
+    expectations.include_chain_clauses_in_custom_matcher_descriptions = true
+  end
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+  config.filter_run_when_matching :focus
+  config.example_status_persistence_file_path = "tmp/spec_examples.txt"
+  config.disable_monkey_patching!
+  config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
 end
 
 # Configure Shoulda Matchers
