@@ -1,11 +1,12 @@
 //= link_tree ../images
 //= link_directory ../javascripts .js
-//= link_directory ../stylesheets .css
+// = link_directory ../stylesheets .css // Removed to let Propshaft handle main CSS
 //= link application.js
 //= link controllers/application.js
 //= link controllers/hello_controller.js
 //= link controllers/index.js
 //= link_tree ../../javascript .js
-//= link_tree ../builds
+// = link_tree ../builds // Removed as Propshaft handles this directory
 //= link active_admin.js
-//= link active_admin.scss 
+//= link active_admin.css # Link the compiled CSS from app/assets/builds
+//= link application.css

@@ -16,12 +16,14 @@ class HomeController < ApplicationController
   private
 
   def fetch_companies_count
-    return 0 unless companies_table_exists?
+    # Check specifically for businesses table now
+    return 0 unless ActiveRecord::Base.connection.table_exists?('businesses')
     
     begin
-      Company.count
+      # Count businesses instead of companies
+      Business.count 
     rescue => e
-      Rails.logger.error("Error fetching companies count: #{e.message}")
+      Rails.logger.error("Error fetching businesses count: #{e.message}")
       0
     end
   end

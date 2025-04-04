@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_04_004404) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_04_183052) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -146,6 +146,28 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_004404) do
     t.datetime "updated_at", null: false
     t.index ["business_id"], name: "index_promotions_on_business_id"
     t.index ["code", "business_id"], name: "index_promotions_on_code_and_business_id", unique: true
+  end
+
+  create_table "service_templates", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.string "category"
+    t.string "industry"
+    t.boolean "active", default: true
+    t.string "status", default: "draft"
+    t.jsonb "features"
+    t.jsonb "pricing"
+    t.jsonb "content"
+    t.jsonb "settings"
+    t.datetime "published_at"
+    t.jsonb "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_service_templates_on_active"
+    t.index ["category"], name: "index_service_templates_on_category"
+    t.index ["industry"], name: "index_service_templates_on_industry"
+    t.index ["name"], name: "index_service_templates_on_name"
+    t.index ["status"], name: "index_service_templates_on_status"
   end
 
   create_table "services", force: :cascade do |t|

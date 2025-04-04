@@ -10,17 +10,25 @@ module Users
 
     # Override Devise's resource_params method to add the business_id
     def sign_up_params
-      devise_params = super
+      devise_params = super # This already returns permitted params
       
-      # Setting business_id to current tenant if set
+      # Merge business_id if current_tenant is set
       if ActsAsTenant.current_tenant
-        # Convert ActionController::Parameters to hash and merge business_id
-        new_params = devise_params.to_h
-        new_params[:business_id] = ActsAsTenant.current_tenant.id
-        ActionController::Parameters.new(user: new_params).require(:user).permit(:email, :password, :password_confirmation, :business_id)
+        devise_params.merge(business_id: ActsAsTenant.current_tenant.id)
       else
         devise_params
       end
+    end
+
+    # Redirect to root path after successful sign up
+    def after_sign_up_path_for(resource)
+      # Debugging: Check resource state
+      Rails.logger.debug "[RegistrationsController] after_sign_up_path_for called."
+      Rails.logger.debug "[RegistrationsController] Resource persisted?: #{resource.persisted?}"
+      Rails.logger.debug "[RegistrationsController] Resource errors: #{resource.errors.full_messages.join(', ')}" if resource.errors.any?
+      Rails.logger.debug "[RegistrationsController] Resource business_id: #{resource.business_id}"
+      
+      root_path
     end
   end
 end 

@@ -41,21 +41,25 @@ default_business = Business.find_or_create_by!(name: 'Default Business', subdoma
 default_business.reload # Explicitly reload
 puts "Default tenant created: #{default_business.name} (#{default_business.subdomain}) ID: #{default_business.id}"
 
-# Create an admin user in the default tenant
-puts "Creating admin user..."
-admin_user = User.find_or_initialize_by(email: 'admin@example.com') do |user|
-  user.business_id = default_business.id
-  user.password = 'password123'
-  user.password_confirmation = 'password123'
-  user.role = :admin
-  user.active = true
-end
+# Create an admin user in the default tenant (SKIP in production)
+if !Rails.env.production?
+  puts "Creating admin user (skipped in production)..."
+  admin_user = User.find_or_initialize_by(email: 'admin@example.com') do |user|
+    user.business_id = default_business.id
+    user.password = 'password123'
+    user.password_confirmation = 'password123'
+    user.role = :admin
+    user.active = true
+  end
 
-if admin_user.new_record?
-  admin_user.save!
-  puts "Admin user created with email: #{admin_user.email} and password: password123"
+  if admin_user.new_record?
+    admin_user.save!
+    puts "Admin user created with email: #{admin_user.email} and password: password123"
+  else
+    puts "Admin user already exists: #{admin_user.email}"
+  end
 else
-  puts "Admin user already exists: #{admin_user.email}"
+  puts "Skipping creation of generic 'admin@example.com' in production."
 end
 
 # Add some sample data for default business

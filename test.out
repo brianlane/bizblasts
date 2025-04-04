@@ -1,295 +1,225 @@
-4 processes for 25 specs, ~ 6 specs per process
-TEST_ENV_NUMBER= PARALLEL_TEST_GROUPS=4 bundle exec rspec --format documentation -O spec/spec.opts spec/controllers/home_controller_spec.rb spec/features/booking_spec.rb spec/features/marketing_spec.rb spec/features/mobile_spec.rb spec/models/tenant_scoped_spec.rb spec/requests/health_spec.rb spec/system/admin/companies_spec.rb spec/system/authentication_spec.rb
-TEST_ENV_NUMBER=2 PARALLEL_TEST_GROUPS=4 bundle exec rspec --format documentation -O spec/spec.opts spec/integration/multi_tenant_registration_spec.rb spec/jobs/application_job_spec.rb spec/models/service_provider_spec.rb spec/models/service_spec.rb spec/models/user_spec.rb
-TEST_ENV_NUMBER=3 PARALLEL_TEST_GROUPS=4 bundle exec rspec --format documentation -O spec/spec.opts spec/models/business_spec.rb spec/models/tenant_customer_spec.rb spec/requests/admin/dashboard_spec.rb spec/requests/maintenance_spec.rb spec/seeds/seeds_spec.rb
-TEST_ENV_NUMBER=4 PARALLEL_TEST_GROUPS=4 bundle exec rspec --format documentation -O spec/spec.opts spec/mailers/application_mailer_spec.rb spec/models/booking_spec.rb spec/models/staff_member_spec.rb spec/requests/admin/companies_spec.rb spec/requests/home_spec.rb spec/requests/multi_tenant_registration_spec.rb spec/services/availability_service_spec.rb
+4 processes for 27 specs, ~ 6 specs per process
 Applying early Sprockets/Propshaft conflict fix...
-Sprockets::Manifest successfully patched.
+Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 21883
+Randomized with seed 25984
+.Applying early Sprockets/Propshaft conflict fix...
+Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-StaffMember
-  scopes
-Applying early Sprockets/Propshaft conflict fix...
-Sprockets::Manifest successfully patched.
+Randomized with seed 25887
+...--- Skipping DB clean for example: returns appropriate error when database connection fails ---
+--- Skipping DB clean for example: returns appropriate error when database connection fails ---
+..Applying early Sprockets/Propshaft conflict fix...
+Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 29868
+Randomized with seed 57293
+.........Applying early Sprockets/Propshaft conflict fix...
+Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Health Checks
-  GET /healthcheck
-Applying early Sprockets/Propshaft conflict fix...
-Sprockets::Manifest successfully patched.
-
-Randomized with seed 13496
-
-Maintenance
-  GET /maintenance
-Applying early Sprockets/Propshaft conflict fix...
-Sprockets::Manifest successfully patched.
-
-Randomized with seed 63550
-
-Admin Companies
-  ActiveAdmin configuration
-    .active returns only active staff members
-  validations
-    returns JSON with status ok
-    returns a successful response
-  GET /up
-    returns a successful response for the Rails health check
-  GET /db-check
-    returns appropriate error when database connection fails
-    returns a successful response when database is connected
-
-Admin Configuration
-  has AdminUser model defined
-    bypasses tenant setting
-  has expected ActiveAdmin resources registered
-    returns a service unavailable response
-  has ActiveAdmin configured correctly
-
-TenantScoped
-  default_scope
-    renders the maintenance template
-    does not require authentication
-
-Business
-  associations
-    is expected to validate that :name cannot be empty/falsy
-  associations
-    is expected to belong to user optional: true
-    is expected to have many users
-    is expected to have many bookings
-    is expected to have many staff_members
-    is expected to belong to business required: true
-
-User
-  associations
-    is expected to have many tenant_customers
-    is expected to belong to staff_member optional: true
-    is expected to have many bookings
-    has Business model
-    is expected to belong to business required: true
-  scopes
-    is expected to have many services
-  validations
-    is automatically applied to all queries
-  scoping behavior
-    is expected to validate that :name cannot be empty/falsy
-    is expected to validate that :subdomain cannot be empty/falsy
-    has AdminUser model
-    validates subdomain uniqueness
-  subdomain format validation
-    has ActiveAdmin configured correctly
-  DELETE /admin/businesses/:id
-    rejects subdomains with special characters
-    .staff_users returns admin, manager, and staff roles
-    accepts valid subdomains
-
-Admin Dashboard
-  GET /admin
-    .active returns only active users
-  multi-tenant validations
-    displays the admin dashboard
-    validates that emails are unique within a business
-  role enum
-    defines roles
-  #full_name
-    returns the email
-  acts_as_tenant integration
-    deletes a business
-  authentication
-    has a link to tenant debug information
-    scopes queries to the current tenant
-  #staff?
-    returns true for admin roles
-    returns false for client roles
-    returns true for staff roles
-  validations
-    redirects non-authenticated users to login
-    allows duplicate emails across different businesses
-    shows system metrics
-
-Database seeds
-  when running seeds
---- Loading seeds for seeds_spec suite ---
+Randomized with seed 59087
+.............................--- Cleaning DB before seed context using DELETION ---
+.....--- Loading seeds for seed context ---
 Seeding database with sample data...
 Creating default tenant...
-    allows authenticated admin users to access
-  POST /admin/businesses
-    validates uniqueness of email scoped to business_id
-Default tenant created: Default Business (default) ID: 22
-Creating admin user...
-    scopes queries to the current tenant (FAILED - 1)
-    is expected to validate that :email cannot be empty/falsy
-
-MultiTenant Email Uniqueness
-
-Failures:
-
-  1) TenantScoped scoping behavior scopes queries to the current tenant
-     Failure/Error: instance.save(validate: false)
-
-     ActiveRecord::QueryCanceled:
-       PG::QueryCanceled: ERROR:  canceling statement due to statement timeout
-       CONTEXT:  while inserting index tuple (0,8) in relation "index_businesses_on_subdomain"
-     # ./spec/factories/businesses.rb:15:in 'block (3 levels) in <main>'
-     # ./spec/models/tenant_scoped_spec.rb:7:in 'block (2 levels) in <top (required)>'
-     # ./spec/models/tenant_scoped_spec.rb:9:in 'block (2 levels) in <top (required)>'
-     # ------------------
-     # --- Caused by: ---
-     # PG::QueryCanceled:
-     #   ERROR:  canceling statement due to statement timeout
-     #   CONTEXT:  while inserting index tuple (0,8) in relation "index_businesses_on_subdomain"
-     #   ./spec/factories/businesses.rb:15:in 'block (3 levels) in <main>'
-
-Finished in 20.22 seconds (files took 6.08 seconds to load)
-10 examples, 1 failure
-
-Failed examples:
-
-rspec ./spec/models/tenant_scoped_spec.rb:18 # TenantScoped scoping behavior scopes queries to the current tenant
-
-Randomized with seed 29868
-
-Coverage report generated for (1/3), (1/4), (2/3), (2/4), (3/3), (3/4), (4/4), RSpec to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 20.78% (542 / 2608)
-Admin user created with email: admin@example.com and password: password123
+...Default tenant created: Default Business (default) ID: 30
+Creating admin user (skipped in production)...
+..Admin user created with email: admin@example.com and password: password123
 Creating sample data for Default Business...
-Created customer: Mary Bayer
-Created customer: Lincoln Pouros III
-Created customer: Daren Langworth
-  allows the same email to be used across different tenants when properly configured
-
-ApplicationJob
-  inheritance
-    inherits from ActiveJob::Base
-
-Service
-  scopes
-    creates a new business
-  GET /admin/businesses
-Created service: Basic Consultation
+....Created customer: Serina Kuhic
+..Created customer: Xavier Powlowski
+.Created customer: Mitsue Rowe
+..Created service: Basic Consultation
 Created service: Website Setup
-Created service: Monthly Support
-    .active returns only active services
-  validations
-Created staff member: Staff Member 1
-    lists all businesses
-
-StaffMember
-  associations
-Created staff member: Staff Member 2
-    allows duplicate names across different businesses
-    is expected to belong to user optional: true
-    is expected to have many bookings
-Created booking at 2025-04-14 09:00 - 11:00 for Staff Member 1
-    is expected to belong to business required: true
-  validations
-    validates uniqueness of name scoped to business_id
-Created booking at 2025-04-15 12:00 - 14:00 for Staff Member 1
-Created booking at 2025-04-14 15:00 - 16:00 for Staff Member 1
-    is expected to validate that :name cannot be empty/falsy
-  scopes
-    is expected to validate that :name cannot be empty/falsy
+..Created service: Monthly Support
+....Created staff member: Staff Member 1
+.Created staff member: Staff Member 2
+....Created booking at 2025-04-14 09:00 - 10:00 for Staff Member 1
+.Created booking at 2025-04-15 12:00 - 13:00 for Staff Member 1
 Created booking at 2025-04-09 09:00 - 10:00 for Staff Member 2
-Created booking at 2025-04-10 12:00 - 14:00 for Staff Member 2
-    is expected to validate that :duration cannot be empty/falsy
+.Created booking at 2025-04-17 12:00 - 14:00 for Staff Member 2
 Created booking at 2025-04-09 15:00 - 15:30 for Staff Member 2
 Seed data creation complete!
-Admin user bizblaststeam@gmail.com already exists.
-    data integrity
-    is expected to validate that :price cannot be empty/falsy
-  associations
-    .active returns only active staff members
+.Created admin user: bizblaststeam@gmail.com with password from ENV
+........................
 
-ApplicationMailer
-  uses the correct default from address
-  uses the correct layout
+Top 10 slowest examples (22.98 seconds, 59.4% of total time):
+  Authentication user sign up allows a new user to sign up with proper business context
+    3.99 seconds ./spec/system/authentication_spec.rb:86
+  Booking validations is valid if end_time is after start_time
+    2.67 seconds ./spec/models/booking_spec.rb:40
+  Authentication user sign out allows a signed-in user to sign out
+    2.5 seconds ./spec/system/authentication_spec.rb:159
+  Authentication user sign out allows a signed-in user to sign out
+    2.22 seconds ./spec/system/authentication_spec.rb:40
+  Authentication user sign in shows errors when login information is invalid
+    2.14 seconds ./spec/system/authentication_spec.rb:143
+  Booking validations is expected to validate that :end_time cannot be empty/falsy
+    2.09 seconds ./spec/models/booking_spec.rb:30
+  Authentication user sign in allows a registered user to sign in
+    1.95 seconds ./spec/system/authentication_spec.rb:130
+  Booking validations is expected to validate that :start_time cannot be empty/falsy
+    1.82 seconds ./spec/models/booking_spec.rb:29
+  StaffMember scopes .active returns only active staff members
+    1.8 seconds ./spec/models/service_provider_spec.rb:24
+  Booking validations is expected to validate that :status cannot be empty/falsy
+    1.8 seconds ./spec/models/booking_spec.rb:31
 
-Home
-  GET /
-    is expected to belong to business required: true
-    is expected to have many bookings
-    is expected to have and belong to many staff_members
+Top 5 slowest example groups:
+  Authentication
+    2.07 seconds average (18.62 seconds / 9 examples) ./spec/system/authentication_spec.rb:6
+  Booking
+    1.15 seconds average (10.39 seconds / 9 examples) ./spec/models/booking_spec.rb:3
+  StaffMember
+    1.05 seconds average (5.26 seconds / 5 examples) ./spec/models/service_provider_spec.rb:5
+  ApplicationJob
+    0.36782 seconds average (0.36782 seconds / 1 example) ./spec/jobs/application_job_spec.rb:5
+  Health Checks
+    0.34131 seconds average (1.71 seconds / 5 examples) ./spec/requests/health_spec.rb:5
+.
+Finished in 38.68 seconds (files took 10.29 seconds to load)
+29 examples, 0 failures
 
-Finished in 29.31 seconds (files took 6.1 seconds to load)
-30 examples, 0 failures
+Randomized with seed 25984
 
-Randomized with seed 21883
+.Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 0.0% (0 / 3487)
+....--- Cleaning database after seeds_spec suite ---
+.......
 
-    renders the correct content for index
-Coverage report generated for (1/3), (1/4), (2/3), (2/4), (3/3), (3/4), (4/4), RSpec to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 20.78% (542 / 2608)
-    does not require authentication
-      maintains proper associations between records
-    sample data
-    returns a successful response
-  GET /admin/debug
-    when not authenticated as admin
-      creates sample customers for each business
-      redirects to the admin login page
-  GET /home/debug (now moved to /admin/debug)
-    redirects to the admin debug page
+Top 10 slowest examples (24.94 seconds, 54.9% of total time):
+  Application Routes Admin routes when authenticated GET /admin/dashboard returns success
+    3.37 seconds ./spec/requests/routes_spec.rb:49
+  User scopes .staff_users returns admin, manager, and staff roles
+    3.16 seconds ./spec/models/user_spec.rb:54
+  User scopes .active returns only active users
+    2.88 seconds ./spec/models/user_spec.rb:49
+  User acts_as_tenant integration scopes queries to the current tenant
+    2.82 seconds ./spec/models/user_spec.rb:91
+  Application Routes Admin routes when authenticated GET /admin returns success
+    2.79 seconds ./spec/requests/routes_spec.rb:44
+  StaffMember scopes .active returns only active staff members
+    2.03 seconds ./spec/models/staff_member_spec.rb:22
+  TenantCustomer validations allows duplicate emails across different businesses
+    2.01 seconds ./spec/models/tenant_customer_spec.rb:42
+  User validations allows duplicate emails across different businesses
+    1.98 seconds ./spec/models/user_spec.rb:30
+  TenantCustomer validations validates uniqueness of email scoped to business_id
+    1.97 seconds ./spec/models/tenant_customer_spec.rb:18
+  StaffMember validations is expected to validate that :name cannot be empty/falsy
+    1.95 seconds ./spec/models/staff_member_spec.rb:16
 
-MultiTenant Registration
-  users with identical emails in different tenants
-      creates sample services for each business
-      creates staff members for each business
-      creates bookings for each business
-    data validity
-    allows registration and authentication with the same email in different businesses
+Top 6 slowest example groups:
+  Application Routes
+    1.6 seconds average (9.63 seconds / 6 examples) ./spec/requests/routes_spec.rb:3
+  User
+    1.33 seconds average (18.68 seconds / 14 examples) ./spec/models/user_spec.rb:5
+  StaffMember
+    1.31 seconds average (6.54 seconds / 5 examples) ./spec/models/staff_member_spec.rb:5
+  TenantCustomer
+    1.02 seconds average (5.11 seconds / 5 examples) ./spec/models/tenant_customer_spec.rb:5
+  ServiceTemplate
+    0.494 seconds average (2.47 seconds / 5 examples) ./spec/models/service_template_spec.rb:3
+  ApplicationMailer
+    0.33425 seconds average (0.6685 seconds / 2 examples) ./spec/mailers/application_mailer_spec.rb:5
 
-Booking
-  validations
-      creates valid customer records
-      creates valid booking records
-    is expected to validate that :status cannot be empty/falsy
-      creates valid service records
-    default tenant
-      creates the default business
-      creates an admin user for the default business
---- Cleaning database after seeds_spec suite ---
-    is expected to validate that :start_time cannot be empty/falsy
+Finished in 45.47 seconds (files took 10.3 seconds to load)
+37 examples, 0 failures
 
-TenantCustomer
-  associations
-    is expected to have many bookings
-    is expected to belong to business required: true
-  validations
-    validates presence of name
-    is expected to validate that :end_time cannot be empty/falsy
-    is invalid if end_time is before start_time
-    is valid if end_time is after start_time
-  associations
-    is expected to belong to service required: true
-    is expected to belong to tenant_customer required: true
-    allows duplicate emails across different businesses
-    is expected to belong to staff_member required: true
-    is expected to belong to business required: true
+Randomized with seed 57293
 
-Finished in 39.32 seconds (files took 6.18 seconds to load)
-30 examples, 0 failures
+.Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 0.0% (0 / 3487)
+........
 
-Randomized with seed 63550
+Top 10 slowest examples (32.07 seconds, 60.4% of total time):
+  Admin Companies POST /admin/businesses creates a new business
+    5.32 seconds ./spec/requests/admin/companies_spec.rb:49
+  Admin Companies DELETE /admin/businesses/:id deletes a business
+    4.45 seconds ./spec/requests/admin/companies_spec.rb:67
+  Admin Companies GET /admin/businesses lists all businesses
+    3.37 seconds ./spec/requests/admin/companies_spec.rb:41
+  Admin Companies authentication allows authenticated admin users to access
+    3.31 seconds ./spec/requests/admin/companies_spec.rb:34
+  TenantScoped default_scope is automatically applied to all queries
+    2.83 seconds ./spec/models/tenant_scoped_spec.rb:48
+  TenantScoped scoping behavior scopes queries to the current tenant
+    2.73 seconds ./spec/models/tenant_scoped_spec.rb:18
+  TenantScoped scoping behavior associates new records with the current tenant
+    2.67 seconds ./spec/models/tenant_scoped_spec.rb:30
+  Admin Companies ActiveAdmin configuration has Business model
+    2.58 seconds ./spec/requests/admin/companies_spec.rb:19
+  MultiTenant Registration users with identical emails in different tenants allows registration and authentication with the same email in different businesses
+    2.51 seconds ./spec/requests/multi_tenant_registration_spec.rb:23
+  Admin Companies authentication redirects non-authenticated users to login
+    2.3 seconds ./spec/requests/admin/companies_spec.rb:26
 
-    validates uniqueness of email scoped to business_id
+Top 6 slowest example groups:
+  Admin Companies
+    3.13 seconds average (25.05 seconds / 8 examples) ./spec/requests/admin/companies_spec.rb:5
+  TenantScoped
+    2.57 seconds average (10.28 seconds / 4 examples) ./spec/models/tenant_scoped_spec.rb:5
+  MultiTenant Registration
+    2.52 seconds average (2.52 seconds / 1 example) ./spec/requests/multi_tenant_registration_spec.rb:5
+  Home
+    0.79864 seconds average (3.99 seconds / 5 examples) ./spec/requests/home_spec.rb:5
+  Business
+    0.74947 seconds average (7.49 seconds / 10 examples) ./spec/models/business_spec.rb:5
+  Admin Configuration
+    0.34103 seconds average (1.02 seconds / 3 examples) ./spec/system/admin/companies_spec.rb:4
 
-Finished in 40.65 seconds (files took 6.09 seconds to load)
-32 examples, 0 failures
+Finished in 53.06 seconds (files took 10.35 seconds to load)
+31 examples, 0 failures
 
-Randomized with seed 13496
+Randomized with seed 59087
 
-Coverage report generated for (1/3), (1/4), (2/3), (2/4), (3/3), (3/4), (4/4), RSpec to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 20.9% (545 / 2608)
-Coverage report generated for (1/3), (1/4), (2/3), (2/4), (3/3), (3/4), (4/4), RSpec to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 21.17% (552 / 2608)
+..
 
-102 examples, 1 failure
+Top 10 slowest examples (23.64 seconds, 43.2% of total time):
+  Admin Dashboard GET /admin shows system metrics
+    3.8 seconds ./spec/requests/admin/dashboard_spec.rb:13
+  Admin Dashboard GET /admin has a link to tenant debug information
+    3.59 seconds ./spec/requests/admin/dashboard_spec.rb:19
+  Admin Dashboard GET /admin displays the admin dashboard
+    3.24 seconds ./spec/requests/admin/dashboard_spec.rb:7
+  MultiTenant Email Uniqueness allows the same email to be used across different tenants when properly configured
+    2.87 seconds ./spec/integration/multi_tenant_registration_spec.rb:6
+  Service scopes .active returns only active services
+    2.06 seconds ./spec/models/service_spec.rb:37
+  Service validations allows duplicate names across different businesses
+    1.74 seconds ./spec/models/service_spec.rb:27
+  Database seeds when seeds have been run data validity creates valid service records
+    1.71 seconds ./spec/seeds/seeds_spec.rb:62
+  Database seeds when seeds have been run data validity creates valid customer records
+    1.61 seconds ./spec/seeds/seeds_spec.rb:72
+  Database seeds when seeds have been run data validity creates valid booking records
+    1.55 seconds ./spec/seeds/seeds_spec.rb:82
+  Service validations validates uniqueness of name scoped to business_id
+    1.47 seconds ./spec/models/service_spec.rb:20
 
+Top 6 slowest example groups:
+  Admin Dashboard
+    3.55 seconds average (10.64 seconds / 3 examples) ./spec/requests/admin/dashboard_spec.rb:5
+  MultiTenant Email Uniqueness
+    2.87 seconds average (2.87 seconds / 1 example) ./spec/integration/multi_tenant_registration_spec.rb:5
+  Database seeds
+    2.5 seconds average (25.01 seconds / 10 examples) ./spec/seeds/seeds_spec.rb:5
+  Service
+    1.27 seconds average (11.4 seconds / 9 examples) ./spec/models/service_spec.rb:5
+  HomeController
+    1.04 seconds average (1.04 seconds / 1 example) ./spec/controllers/home_controller_spec.rb:5
+  Maintenance
+    0.35743 seconds average (1.43 seconds / 4 examples) ./spec/requests/maintenance_spec.rb:5
 
-Tests have failed for a parallel_test group. Use the following command to run the group again:
+Finished in 54.72 seconds (files took 10.35 seconds to load)
+28 examples, 0 failures
 
-TEST_ENV_NUMBER= PARALLEL_TEST_GROUPS=4 bundle exec rspec --format documentation -O spec/spec.opts spec/controllers/home_controller_spec.rb spec/features/booking_spec.rb spec/features/marketing_spec.rb spec/features/mobile_spec.rb spec/models/tenant_scoped_spec.rb spec/requests/health_spec.rb spec/system/admin/companies_spec.rb spec/system/authentication_spec.rb --seed 29868
+Randomized with seed 25887
 
-Took 49 seconds
+Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 0.0% (0 / 3487)
+Coverage report generated for (1/4), (2/4), (3/4), (4/4) to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 0.0% (0 / 3487)
+
+125 examples, 0 failures
+
+Took 67 seconds (1:07)

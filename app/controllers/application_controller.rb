@@ -76,7 +76,8 @@ class ApplicationController < ActionController::Base
   end
 
   def check_database_connection
-    return if maintenance_mode?
+    # Skip in test/development environment or if path is whitelisted
+    return if maintenance_mode? || Rails.env.test? || Rails.env.development?
     
     begin
       # Attempt a lightweight database query

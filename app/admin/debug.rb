@@ -16,7 +16,7 @@ ActiveAdmin.register_page "Debug" do
           end
 
           panel "Available Tenants" do
-            all_tenants = Company.pluck(:name, :subdomain)
+            all_tenants = Business.pluck(:name, :subdomain)
             if all_tenants.any?
               table_for all_tenants do
                 column("Company Name") { |tenant| tenant[0] }
@@ -43,7 +43,7 @@ ActiveAdmin.register_page "Debug" do
                 span "Visit "
                 a "lvh.me:3000", href: "http://lvh.me:3000"
                 span " for public tenant, or "
-                first_subdomain = Company.first&.subdomain
+                first_subdomain = Business.first&.subdomain
                 if first_subdomain
                   a "#{first_subdomain}.lvh.me:3000", href: "http://#{first_subdomain}.lvh.me:3000"
                 else
@@ -56,7 +56,7 @@ ActiveAdmin.register_page "Debug" do
                 span "Visit "
                 a "127.0.0.1.xip.io:3000", href: "http://127.0.0.1.xip.io:3000"
                 span " for public tenant, or "
-                first_subdomain = Company.first&.subdomain
+                first_subdomain = Business.first&.subdomain
                 if first_subdomain
                   a "#{first_subdomain}.127.0.0.1.xip.io:3000", href: "http://#{first_subdomain}.127.0.0.1.xip.io:3000"
                 else

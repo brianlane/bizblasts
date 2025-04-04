@@ -83,20 +83,35 @@ RSpec.describe 'Authentication', type: :system do
   describe "user sign up" do
     let(:business) { create(:business) }
     
-    before do
-      # Set tenant via ActsAsTenant to ensure proper business context
-      ActsAsTenant.current_tenant = business
-    end
-    
-    after do
-      # Reset tenant after test
-      ActsAsTenant.current_tenant = nil
-    end
-    
     it "allows a new user to sign up with proper business context" do
-      # Skip this test since we're not testing actual sign up UI
-      # This would require more complex integration with our multi-tenant system
-      skip "User sign up requires business context in a multi-tenant app"
+      # Visit the registration path via the business subdomain
+      # Construct the URL manually for rack_test
+      registration_url = "http://#{business.subdomain}.example.com/users/sign_up"
+      visit registration_url
+      
+      # Ensure the page loaded correctly (optional check)
+      expect(page).to have_content("Sign up")
+
+      new_email = "new_user_#{SecureRandom.hex(4)}@example.com"
+      new_password = "password123"
+
+      fill_in "Email", with: new_email
+      fill_in "Password", with: new_password
+      fill_in "Password confirmation", with: new_password
+
+      click_button "Sign up"
+
+      # Verify successful signup and redirection (e.g., to root path for logged-in users)
+      expect(page).to have_current_path(root_path) # Check for root path
+      # expect(page).to have_content("Welcome! You have signed up successfully.") # Flash message might vary
+      # Check for content visible to logged-in users on the root page
+      # expect(page).to have_content("Sign out") # Sign out is likely in the layout, not home index
+      expect(page).to have_link("Dashboard") # Check for Dashboard link instead
+
+      # Optional: Verify the user was created and associated with the correct tenant
+      new_user = User.find_by(email: new_email)
+      expect(new_user).not_to be_nil
+      expect(new_user.business).to eq(business) 
     end
     
     it "shows errors when signup information is invalid" do

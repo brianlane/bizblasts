@@ -85,20 +85,6 @@ RSpec.configure do |config|
   # Store spec status to allow running failed tests more easily
   config.example_status_persistence_file_path = "tmp/spec_examples.txt"
   
-  # Enable faster database transactions
-  config.around(:each) do |example|
-    # Use transactions for faster database cleanup
-    if example.metadata[:type] == :feature || example.metadata[:js] == true
-      example.run
-    else
-      # Use transactions for faster rollback
-      ActiveRecord::Base.transaction do
-        example.run
-        raise ActiveRecord::Rollback
-      end
-    end
-  end
-  
   # Print the slowest examples at the end of the test run
   config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
   
