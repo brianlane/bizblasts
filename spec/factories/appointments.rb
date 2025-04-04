@@ -1,10 +1,10 @@
 FactoryBot.define do
   factory :appointment do
-    # Associations - assumes factories for company, service, service_provider, and customer exist
-    association :company
+    # Associations - assumes factories for business, service, staff_member, and tenant_customer exist
+    association :business
     association :service
-    association :service_provider
-    association :customer
+    association :staff_member
+    association :tenant_customer, factory: :tenant_customer
 
     # Attributes
     start_time { Time.current + 1.day }

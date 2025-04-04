@@ -32,7 +32,7 @@ RSpec.describe 'Home', type: :request do
     context 'when not authenticated as admin' do
       it 'redirects to the admin login page' do
         get '/admin/debug'
-        expect(response).to redirect_to('/admin/login')
+        expect(response).to redirect_to(new_admin_user_session_path)
       end
     end
   end

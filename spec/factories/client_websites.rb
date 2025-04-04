@@ -11,7 +11,7 @@ FactoryBot.define do
     settings { { show_contact: true, enable_booking: true } }
     theme { { primary_color: "#336699", font: "Arial" } }
     seo_settings { { meta_title: "Business Name", meta_description: "Our services" } }
-    association :company
+    association :business
     association :service_template
   end
 end 

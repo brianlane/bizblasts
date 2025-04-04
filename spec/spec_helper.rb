@@ -31,42 +31,57 @@ module TestCache
 end
 
 RSpec.configure do |config|
-  # rspec-expectations config goes here. You can use an alternate
-  # assertion/expectation library such as wrong or the stdlib/minitest
-  # assertions if you prefer.
+  # Performance optimizations
+  config.before(:suite) do
+    # Preload Rails framework to improve startup time
+    Rails.application.eager_load!
+  end
+
+  config.before(:each, type: :model) do
+    # Use transactions for model specs for faster rollback
+    ActiveRecord::Base.establish_connection
+    ActiveRecord::Base.connection.begin_transaction(joinable: false)
+  end
+
+  config.after(:each, type: :model) do
+    ActiveRecord::Base.connection.rollback_transaction
+  end
+  
+  # These two settings work together to allow you to limit a spec run
+  # to individual examples or groups you care about by tagging them with
+  # `:focus` metadata. When nothing is tagged with `:focus`, all examples
+  # get run.
+  config.filter_run :focus
+  config.run_all_when_everything_filtered = true
+
+  # Run specs in random order to surface order dependencies
+  config.order = :random
+  Kernel.srand config.seed
+
+  # rspec-expectations config
   config.expect_with :rspec do |expectations|
-    # This option will default to `true` in RSpec 4. It makes the `description`
-    # and `failure_message` of custom matchers include text for helper methods
-    # defined using `chain`, e.g.:
-    #     be_bigger_than(2).and_smaller_than(4).description
-    #     # => "be bigger than 2 and smaller than 4"
-    # ...rather than:
-    #     # => "be bigger than 2"
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
   end
 
-  # rspec-mocks config goes here. You can use an alternate test double
-  # library (such as bogus or mocha) by changing the `mock_with` option here.
+  # rspec-mocks config
   config.mock_with :rspec do |mocks|
-    # Prevents you from mocking or stubbing a method that does not exist on
-    # a real object. This is generally recommended, and will default to
-    # `true` in RSpec 4.
     mocks.verify_partial_doubles = true
   end
 
-  # This option will default to `:apply_to_host_groups` in RSpec 4 (and will
-  # have no way to turn it off -- the option exists only for backwards
-  # compatibility in RSpec 3). It causes shared context metadata to be
-  # inherited by the metadata hash of host groups and examples, rather than
-  # triggering implicit auto-inclusion in groups with matching metadata.
-  config.shared_context_metadata_behavior = :apply_to_host_groups
-
-  # Enable faster focused tests
+  # This allows you to limit a spec run to individual examples or groups
+  # you care about by tagging them with `:focus` metadata.
   config.filter_run_when_matching :focus
-  
-  # Limit default spec verbosity
-  config.default_formatter = ENV['CI'] ? 'doc' : 'progress'
-  
+
+  # Limits the available syntax to the non-monkey patched syntax
+  config.disable_monkey_patching!
+
+  # Many RSpec users commonly either run the entire suite or an individual
+  # file, and it's useful to allow more verbose output when running an
+  # individual spec file.
+  if config.files_to_run.one?
+    config.default_formatter = 'doc'
+  end
+
   # Store spec status to allow running failed tests more easily
   config.example_status_persistence_file_path = "tmp/spec_examples.txt"
   
@@ -86,12 +101,6 @@ RSpec.configure do |config|
   
   # Print the slowest examples at the end of the test run
   config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
-  
-  # Run specs in random order to surface order dependencies
-  config.order = :random
-  
-  # Seed global randomization in this process using the `--seed` CLI option
-  Kernel.srand config.seed
   
   # Disable logging during tests
   ActiveRecord::Base.logger = nil

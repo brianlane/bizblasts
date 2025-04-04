@@ -10,27 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_02_194804) do
-  create_schema "default"
-  create_schema "tenant1"
-  create_schema "tenant2"
-
+ActiveRecord::Schema[8.0].define(version: 2025_04_04_004404) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-
-  create_table "active_admin_comments", force: :cascade do |t|
-    t.string "namespace"
-    t.text "body"
-    t.string "resource_type"
-    t.bigint "resource_id"
-    t.string "author_type"
-    t.bigint "author_id"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["author_type", "author_id"], name: "index_active_admin_comments_on_author"
-    t.index ["namespace"], name: "index_active_admin_comments_on_namespace"
-    t.index ["resource_type", "resource_id"], name: "index_active_admin_comments_on_resource"
-  end
 
   create_table "admin_users", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -44,166 +26,225 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_194804) do
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
   end
 
-  create_table "appointments", force: :cascade do |t|
-    t.bigint "company_id", null: false
-    t.bigint "service_id", null: false
-    t.bigint "service_provider_id", null: false
+  create_table "bookings", force: :cascade do |t|
     t.datetime "start_time", null: false
     t.datetime "end_time", null: false
-    t.string "status", default: "scheduled"
-    t.decimal "price", precision: 10, scale: 2
+    t.integer "status", default: 0
     t.text "notes"
-    t.jsonb "metadata", default: {}
-    t.string "stripe_payment_intent_id"
-    t.string "stripe_customer_id"
-    t.boolean "paid", default: false
-    t.datetime "cancelled_at"
-    t.text "cancellation_reason"
+    t.bigint "service_id", null: false
+    t.bigint "staff_member_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "customer_id", null: false
-    t.index ["company_id", "start_time"], name: "index_appointments_on_company_id_and_start_time"
-    t.index ["company_id"], name: "index_appointments_on_company_id"
-    t.index ["customer_id"], name: "index_appointments_on_customer_id"
-    t.index ["paid"], name: "index_appointments_on_paid"
-    t.index ["service_id"], name: "index_appointments_on_service_id"
-    t.index ["service_provider_id"], name: "index_appointments_on_service_provider_id"
-    t.index ["status"], name: "index_appointments_on_status"
+    t.index ["business_id"], name: "index_bookings_on_business_id"
+    t.index ["service_id"], name: "index_bookings_on_service_id"
+    t.index ["staff_member_id"], name: "index_bookings_on_staff_member_id"
+    t.index ["start_time"], name: "index_bookings_on_start_time"
+    t.index ["status"], name: "index_bookings_on_status"
+    t.index ["tenant_customer_id"], name: "index_bookings_on_tenant_customer_id"
   end
 
-  create_table "business_hours", force: :cascade do |t|
-    t.bigint "company_id", null: false
-    t.integer "day_of_week", null: false
-    t.time "open_time"
-    t.time "close_time"
-    t.boolean "is_closed", default: false
-    t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["company_id", "day_of_week"], name: "index_business_hours_on_company_id_and_day_of_week", unique: true
-    t.index ["company_id"], name: "index_business_hours_on_company_id"
-  end
-
-  create_table "client_websites", force: :cascade do |t|
-    t.bigint "company_id", null: false
-    t.bigint "service_template_id", null: false
+  create_table "businesses", force: :cascade do |t|
     t.string "name", null: false
-    t.string "subdomain"
-    t.string "domain"
-    t.boolean "active", default: true
-    t.jsonb "content", default: {}
-    t.jsonb "settings", default: {}
-    t.jsonb "theme", default: {}
-    t.string "status", default: "draft"
-    t.datetime "published_at"
-    t.boolean "custom_domain_enabled", default: false
-    t.boolean "ssl_enabled", default: false
-    t.jsonb "seo_settings", default: {}
-    t.jsonb "analytics", default: {}
-    t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["active"], name: "index_client_websites_on_active"
-    t.index ["company_id", "subdomain"], name: "index_client_websites_on_company_id_and_subdomain", unique: true
-    t.index ["company_id"], name: "index_client_websites_on_company_id"
-    t.index ["domain"], name: "index_client_websites_on_domain", unique: true
-    t.index ["service_template_id"], name: "index_client_websites_on_service_template_id"
-    t.index ["status"], name: "index_client_websites_on_status"
-  end
-
-  create_table "companies", force: :cascade do |t|
-    t.string "name"
-    t.string "subdomain"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "customers", force: :cascade do |t|
-    t.string "name"
-    t.string "email"
+    t.string "subdomain", null: false
+    t.string "industry"
     t.string "phone"
-    t.bigint "company_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_customers_on_company_id"
-  end
-
-  create_table "service_providers", force: :cascade do |t|
-    t.bigint "company_id", null: false
-    t.string "name", null: false
     t.string "email"
-    t.string "phone"
+    t.string "website"
+    t.string "address"
+    t.string "city"
+    t.string "state"
+    t.string "zip"
+    t.text "description"
+    t.string "time_zone", default: "UTC"
     t.boolean "active", default: true
-    t.jsonb "availability", default: {}
-    t.jsonb "settings", default: {}
-    t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["active"], name: "index_service_providers_on_active"
-    t.index ["company_id", "name"], name: "index_service_providers_on_company_id_and_name", unique: true
-    t.index ["company_id"], name: "index_service_providers_on_company_id"
+    t.index ["name"], name: "index_businesses_on_name"
+    t.index ["subdomain"], name: "index_businesses_on_subdomain", unique: true
   end
 
-  create_table "service_templates", force: :cascade do |t|
+  create_table "campaign_recipients", force: :cascade do |t|
+    t.bigint "marketing_campaign_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.datetime "sent_at"
+    t.boolean "opened", default: false
+    t.boolean "clicked", default: false
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["marketing_campaign_id"], name: "index_campaign_recipients_on_marketing_campaign_id"
+    t.index ["tenant_customer_id"], name: "index_campaign_recipients_on_tenant_customer_id"
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.string "invoice_number", null: false
+    t.datetime "due_date"
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.decimal "tax_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_amount", precision: 10, scale: 2, null: false
+    t.integer "status", default: 0
+    t.bigint "booking_id"
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_invoices_on_booking_id"
+    t.index ["business_id"], name: "index_invoices_on_business_id"
+    t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
+    t.index ["status"], name: "index_invoices_on_status"
+    t.index ["tenant_customer_id"], name: "index_invoices_on_tenant_customer_id"
+  end
+
+  create_table "marketing_campaigns", force: :cascade do |t|
     t.string "name", null: false
     t.text "description"
-    t.string "category"
-    t.string "industry"
+    t.integer "campaign_type", default: 0
+    t.datetime "start_date"
+    t.datetime "end_date"
     t.boolean "active", default: true
-    t.jsonb "features", default: []
-    t.jsonb "pricing", default: {}
-    t.jsonb "content", default: {}
-    t.jsonb "settings", default: {}
-    t.string "status", default: "draft"
-    t.datetime "published_at"
-    t.jsonb "metadata", default: {}
+    t.integer "status", default: 0
+    t.text "content"
+    t.jsonb "settings"
+    t.bigint "business_id", null: false
+    t.bigint "promotion_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["active"], name: "index_service_templates_on_active"
-    t.index ["category"], name: "index_service_templates_on_category"
-    t.index ["industry"], name: "index_service_templates_on_industry"
-    t.index ["status"], name: "index_service_templates_on_status"
+    t.index ["business_id"], name: "index_marketing_campaigns_on_business_id"
+    t.index ["name", "business_id"], name: "index_marketing_campaigns_on_name_and_business_id", unique: true
+    t.index ["promotion_id"], name: "index_marketing_campaigns_on_promotion_id"
+  end
+
+  create_table "promotion_redemptions", force: :cascade do |t|
+    t.bigint "promotion_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "booking_id"
+    t.bigint "invoice_id"
+    t.datetime "redeemed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_promotion_redemptions_on_booking_id"
+    t.index ["invoice_id"], name: "index_promotion_redemptions_on_invoice_id"
+    t.index ["promotion_id"], name: "index_promotion_redemptions_on_promotion_id"
+    t.index ["tenant_customer_id"], name: "index_promotion_redemptions_on_tenant_customer_id"
+  end
+
+  create_table "promotions", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "code", null: false
+    t.text "description"
+    t.integer "discount_type", default: 0
+    t.decimal "discount_value", precision: 10, scale: 2, null: false
+    t.datetime "start_date"
+    t.datetime "end_date"
+    t.integer "usage_limit"
+    t.integer "current_usage", default: 0
+    t.boolean "active", default: true
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_promotions_on_business_id"
+    t.index ["code", "business_id"], name: "index_promotions_on_code_and_business_id", unique: true
   end
 
   create_table "services", force: :cascade do |t|
-    t.bigint "company_id", null: false
     t.string "name", null: false
     t.text "description"
-    t.decimal "price", precision: 10, scale: 2
-    t.integer "duration_minutes"
+    t.integer "duration", null: false
+    t.decimal "price", precision: 10, scale: 2, null: false
     t.boolean "active", default: true
-    t.jsonb "settings", default: {}
-    t.text "notes"
+    t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["active"], name: "index_services_on_active"
-    t.index ["company_id", "name"], name: "index_services_on_company_id_and_name", unique: true
-    t.index ["company_id"], name: "index_services_on_company_id"
+    t.index ["business_id"], name: "index_services_on_business_id"
+    t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
+  end
+
+  create_table "services_staff_members", force: :cascade do |t|
+    t.bigint "service_id", null: false
+    t.bigint "staff_member_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_id", "staff_member_id"], name: "index_services_staff_members_uniqueness", unique: true
+    t.index ["service_id"], name: "index_services_staff_members_on_service_id"
+    t.index ["staff_member_id"], name: "index_services_staff_members_on_staff_member_id"
+  end
+
+  create_table "staff_members", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "email"
+    t.string "phone"
+    t.text "bio"
+    t.boolean "active", default: true
+    t.bigint "business_id", null: false
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "position"
+    t.string "photo_url"
+    t.index ["business_id"], name: "index_staff_members_on_business_id"
+    t.index ["user_id"], name: "index_staff_members_on_user_id"
+  end
+
+  create_table "tenant_customers", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "email"
+    t.string "phone"
+    t.string "address"
+    t.text "notes"
+    t.bigint "business_id", null: false
+    t.datetime "last_appointment"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_tenant_customers_on_business_id"
+    t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "email", default: "", null: false
+    t.string "email", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
+    t.datetime "confirmation_sent_at"
+    t.string "unconfirmed_email"
+    t.integer "role", default: 0
+    t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "company_id", null: false
-    t.index ["company_id", "email"], name: "index_users_on_company_id_and_email", unique: true
-    t.index ["company_id"], name: "index_users_on_company_id"
+    t.bigint "business_id"
+    t.bigint "staff_member_id"
+    t.index ["business_id", "email"], name: "index_users_on_business_id_and_email", unique: true
+    t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
-  add_foreign_key "appointments", "companies"
-  add_foreign_key "appointments", "customers"
-  add_foreign_key "appointments", "service_providers"
-  add_foreign_key "appointments", "services"
-  add_foreign_key "business_hours", "companies"
-  add_foreign_key "client_websites", "companies"
-  add_foreign_key "client_websites", "service_templates"
-  add_foreign_key "customers", "companies"
-  add_foreign_key "service_providers", "companies"
-  add_foreign_key "services", "companies"
-  add_foreign_key "users", "companies"
+  add_foreign_key "bookings", "businesses"
+  add_foreign_key "bookings", "services"
+  add_foreign_key "bookings", "staff_members"
+  add_foreign_key "bookings", "tenant_customers"
+  add_foreign_key "campaign_recipients", "marketing_campaigns"
+  add_foreign_key "campaign_recipients", "tenant_customers"
+  add_foreign_key "invoices", "bookings"
+  add_foreign_key "invoices", "businesses"
+  add_foreign_key "invoices", "tenant_customers"
+  add_foreign_key "marketing_campaigns", "businesses"
+  add_foreign_key "marketing_campaigns", "promotions"
+  add_foreign_key "promotion_redemptions", "bookings"
+  add_foreign_key "promotion_redemptions", "invoices"
+  add_foreign_key "promotion_redemptions", "promotions"
+  add_foreign_key "promotion_redemptions", "tenant_customers"
+  add_foreign_key "promotions", "businesses"
+  add_foreign_key "services", "businesses"
+  add_foreign_key "services_staff_members", "services"
+  add_foreign_key "services_staff_members", "staff_members"
+  add_foreign_key "staff_members", "businesses"
+  add_foreign_key "staff_members", "users"
+  add_foreign_key "tenant_customers", "businesses"
+  add_foreign_key "users", "businesses"
+  add_foreign_key "users", "staff_members"
 end

@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
-RSpec.describe "Admin Companies", type: :request do
-  let!(:company) { create(:company, name: "Test Company", subdomain: "testcompany") }
+RSpec.describe "Admin Companies", type: :request, admin: true do
+  let!(:business) { create(:business, name: "Test Business", subdomain: "testbusiness") }
   
   describe "ActiveAdmin configuration" do
     it "has ActiveAdmin configured correctly" do
@@ -14,39 +16,69 @@ RSpec.describe "Admin Companies", type: :request do
       expect(AdminUser).to respond_to(:find_by)
     end
     
-    it "has Company model" do
-      expect(defined?(Company)).to eq("constant")
-      expect(Company.count).to be >= 1
+    it "has Business model" do
+      expect(defined?(Business)).to eq("constant")
+      expect(Business.count).to be >= 1
     end
   end
   
   describe "authentication" do
     it "redirects non-authenticated users to login" do
-      get "/admin"
-      expect(response).to redirect_to('/admin/login')
+      # Sign out first to test unauthenticated access
+      delete destroy_admin_user_session_path
+      
+      get "/admin/businesses"
+      expect(response).to redirect_to(new_admin_user_session_path)
+    end
+    
+    it "allows authenticated admin users to access" do
+      get "/admin/businesses"
+      expect(response).to be_successful
     end
   end
 
-  describe "database operations" do
-    it "can create a company through direct database operations" do
-      company_count = Company.count
-      new_company = Company.create!(name: "New Test Company", subdomain: "newtest")
-      expect(Company.count).to eq(company_count + 1)
-      expect(new_company.persisted?).to be true
-      expect(new_company.name).to eq("New Test Company")
+  describe "GET /admin/businesses" do
+    it "lists all businesses" do
+      get "/admin/businesses"
+      expect(response).to be_successful
+      expect(response.body).to include(business.name)
     end
-    
-    it "can update a company through direct database operations" do
-      company.update!(name: "Updated Name")
-      expect(company.reload.name).to eq("Updated Name")
+  end
+  
+  describe "POST /admin/businesses" do
+    it "creates a new business" do
+      expect {
+        post "/admin/businesses", params: { 
+          business: { 
+            name: "New Business", 
+            subdomain: "newbusiness",
+            industry: "landscaping"
+          } 
+        }
+      }.to change(Business, :count).by(1)
+      
+      expect(response).to redirect_to(admin_business_path(Business.last))
+      follow_redirect!
+      expect(response.body).to include("New Business")
     end
-    
-    it "can delete a company through direct database operations" do
-      company_to_delete = create(:company, name: "Deletable")
-      company_count = Company.count
-      company_to_delete.destroy
-      expect(Company.count).to eq(company_count - 1)
-      expect(Company.find_by(id: company_to_delete.id)).to be_nil
+  end
+  
+  describe "DELETE /admin/businesses/:id" do
+    it "deletes a business" do
+      # Create a business with minimal associations
+      business_to_delete = create(:business, name: "Deletable")
+      
+      # Track the ID for checking directly
+      business_id = business_to_delete.id
+      
+      # Delete the business
+      delete "/admin/businesses/#{business_to_delete.id}"
+      
+      # Check that the business was deleted
+      expect(Business.exists?(business_id)).to be_falsey
+      
+      # Check redirection
+      expect(response).to redirect_to(admin_businesses_path)
     end
   end
 end 
