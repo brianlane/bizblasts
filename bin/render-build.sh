@@ -27,8 +27,32 @@ echo "Installing dependencies..."
 bundle install
 
 echo "Precompiling assets..."
+# Ensure the public/assets directory exists
+mkdir -p public/assets
+
+# Compile the CSS
 bundle exec rails assets:precompile
 bundle exec rails assets:clean
+
+# Explicitly copy ActiveAdmin assets to ensure they're available in production
+if [ -f "app/assets/builds/active_admin.css" ]; then
+  echo "Copying ActiveAdmin assets to public/assets..."
+  cp app/assets/builds/active_admin.css public/assets/
+  
+  # Get MD5 hash in a cross-platform way (works on both Linux and macOS)
+  if command -v md5sum > /dev/null; then
+    # Linux
+    MD5=$(md5sum app/assets/builds/active_admin.css | cut -d' ' -f1)
+  else
+    # macOS
+    MD5=$(md5 -q app/assets/builds/active_admin.css)
+  fi
+  
+  cp app/assets/builds/active_admin.css public/assets/active_admin-${MD5}.css
+  echo "ActiveAdmin assets copied successfully ✓"
+else
+  echo "WARNING: ActiveAdmin CSS not found in app/assets/builds!"
+fi
 
 # Print environment information
 echo "Rails environment: $RAILS_ENV"
