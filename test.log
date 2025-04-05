@@ -1,6 +1,5 @@
 ==> Running tests (Database Cleaning ENABLED)...
 Running full test suite in parallel (4 processes)...
-Formatter SimpleCov::Formatter::HTMLFormatter failed with Errno::ENOENT: No such file or directory @ apply2files - /Users/brianlane/bizblasts/coverage/assets/0.13.1/images/ui-bg_glass_75_e6e6e6_1x400.png (/usr/local/Cellar/ruby/3.4.2/lib/ruby/3.4.0/fileutils.rb:1048:in 'File.unlink')
 ==> Tests completed in 11 seconds!
 
 ==> Individual process results:

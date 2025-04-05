@@ -40,7 +40,7 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root "home#index"
 
-  # Fallback route for ActiveAdmin assets
+  # Direct asset serving routes
   get "/assets/active_admin.css", to: proc { |env|
     # Try to find the file in multiple locations
     possible_paths = [
@@ -53,22 +53,23 @@ Rails.application.routes.draw do
     if file_path
       Rails.logger.info "Serving ActiveAdmin CSS from: #{file_path}"
       content = File.read(file_path)
-      [200, {"Content-Type" => "text/css"}, [content]]
+      [200, {"Content-Type" => "text/css", "Cache-Control" => "public, max-age=31536000"}, [content]]
     else
       Rails.logger.error "ActiveAdmin CSS not found in any of: #{possible_paths.join(', ')}"
       [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
     end
-  }, constraints: lambda { |req| req.format == :css || req.path.end_with?('.css') }
+  }
   
+  # Handle digested version
   get "/assets/active_admin-:digest.css", to: proc { |env|
     # Just serve the non-digested version
     file_path = Rails.root.join('public', 'assets', 'active_admin.css')
     
     if File.exist?(file_path)
       content = File.read(file_path)
-      [200, {"Content-Type" => "text/css"}, [content]]
+      [200, {"Content-Type" => "text/css", "Cache-Control" => "public, max-age=31536000"}, [content]]
     else
       [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
     end
-  }, constraints: lambda { |req| req.format == :css || req.path.end_with?('.css') }
+  }
 end

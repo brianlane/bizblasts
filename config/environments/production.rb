@@ -39,6 +39,12 @@ Rails.application.configure do
   config.assets.paths ||= []
   config.assets.paths << Rails.root.join('public', 'assets').to_s
   config.assets.paths << Rails.root.join('app', 'assets', 'builds').to_s
+  
+  # Ensure ActiveAdmin assets are properly handled
+  config.assets.precompile += %w(active_admin.css active_admin.js)
+  
+  # Allow serving of static assets directly from public/assets
+  config.assets.compile = false
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"

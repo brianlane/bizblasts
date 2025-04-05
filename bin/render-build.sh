@@ -47,13 +47,76 @@ if [ -f "app/assets/stylesheets/active_admin.scss" ]; then
     --load-path=node_modules \
     --load-path="$AA_PATH/app/assets/stylesheets" || \
   echo "Warning: Failed to compile ActiveAdmin CSS manually, continuing with fallback"
-  
-  # If compilation failed, create a basic fallback file
-  if [ ! -s "app/assets/builds/active_admin.css" ]; then
-    echo "Creating fallback ActiveAdmin CSS file..."
-    cp app/assets/builds/active_admin.css public/assets/active_admin.css 2>/dev/null || \
-    echo "/* Basic ActiveAdmin styles */" > public/assets/active_admin.css
-  fi
+fi
+
+# Create a basic CSS file if it doesn't exist or is empty
+if [ ! -s "app/assets/builds/active_admin.css" ]; then
+  echo "Creating basic fallback ActiveAdmin CSS file..."
+  cat > app/assets/builds/active_admin.css << 'EOL'
+/* Fallback ActiveAdmin CSS */
+body.active_admin {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  font-size: 14px;
+  color: #333;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+#header {
+  background: #5E6469;
+  color: white;
+  padding: 10px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+#header h1 {
+  font-weight: normal;
+  margin: 0;
+}
+
+#header a, #header a:link, #header a:visited {
+  color: white;
+  text-decoration: none;
+}
+
+body.logged_out {
+  background: #f8f8f8;
+  padding-top: 50px;
+}
+
+#login {
+  max-width: 400px;
+  margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#login h2 {
+  margin-top: 0;
+  text-align: center;
+  color: #5E6469;
+}
+
+.flash {
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 3px;
+}
+
+.flash.notice {
+  background: #dff0d8;
+  color: #3c763d;
+}
+
+.flash.error {
+  background: #f2dede;
+  color: #a94442;
+}
+EOL
 fi
 
 # Compile the CSS
@@ -63,38 +126,20 @@ bundle exec rails assets:clean
 # Force ActiveAdmin CSS to public/assets 
 echo "Ensuring ActiveAdmin assets are available in public assets..."
 mkdir -p public/assets
+cp app/assets/builds/active_admin.css public/assets/
 
-# Try multiple possible source locations
-for source in app/assets/builds/active_admin.css app/assets/stylesheets/active_admin.css public/assets/active_admin-*.css; do
-  if [ -f "$source" ]; then
-    echo "Found ActiveAdmin CSS at $source"
-    cp "$source" public/assets/active_admin.css
-    
-    # Get MD5 hash in a cross-platform way (works on both Linux and macOS)
-    if command -v md5sum > /dev/null; then
-      # Linux
-      MD5=$(md5sum "$source" | cut -d' ' -f1)
-    else
-      # macOS
-      MD5=$(md5 -q "$source")
-    fi
-    
-    cp "$source" "public/assets/active_admin-${MD5}.css"
-    echo "ActiveAdmin assets copied successfully ✓"
-    break
-  fi
-done
-
-# If we still don't have the file, create a symbolic link
-if [ ! -f "public/assets/active_admin.css" ]; then
-  echo "WARNING: ActiveAdmin CSS not found in expected locations, creating alternative..."
-  
-  # Create a simple CSS file as a fallback
-  echo "/* Fallback ActiveAdmin CSS */" > public/assets/active_admin.css
-  cp public/assets/active_admin.css public/assets/active_admin-fallback.css
-  
-  echo "Created fallback ActiveAdmin CSS"
+# Generate MD5 hash in a cross-platform way 
+if command -v md5sum > /dev/null; then
+  # Linux
+  MD5=$(md5sum "app/assets/builds/active_admin.css" | cut -d' ' -f1)
+else
+  # macOS
+  MD5=$(md5 -q "app/assets/builds/active_admin.css")
 fi
+
+# Create a digested version for cache busting
+cp app/assets/builds/active_admin.css "public/assets/active_admin-${MD5}.css"
+echo "ActiveAdmin assets copied successfully ✓"
 
 # Print environment information
 echo "Rails environment: $RAILS_ENV"
