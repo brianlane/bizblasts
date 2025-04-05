@@ -27,6 +27,18 @@ if defined?(Propshaft)
     end
   end
   
+  # Disable fingerprinting in production - we'll handle asset versioning manually
+  if Rails.env.production?
+    begin
+      if Rails.application.config.respond_to?(:assets)
+        Rails.application.config.assets.digest = false
+        puts "Disabled asset fingerprinting in production to avoid issues with ActiveAdmin"
+      end
+    rescue => e
+      puts "Failed to disable asset fingerprinting: #{e.message}"
+    end
+  end
+  
   # Register specific paths for ActiveAdmin CSS files
   # This ensures they're findable regardless of precompilation
   Rails.application.config.after_initialize do
@@ -44,13 +56,17 @@ if defined?(Propshaft)
             # Special case for active_admin.css
             if path == "active_admin.css"
               Rails.root.join('public', 'assets', 'active_admin.css').to_s
+            elsif path == "application.css"
+              Rails.root.join('public', 'assets', 'application.css').to_s
+            elsif path == "application.js"
+              Rails.root.join('public', 'assets', 'application.js').to_s
             else
               original_compute_path.call(path, **options)
             end
           end
-          Rails.logger.info "Added special handling for active_admin.css path computation"
+          Rails.logger.info "Added special handling for asset path computation"
         rescue => e
-          Rails.logger.error "Failed to add special handling for active_admin.css: #{e.message}"
+          Rails.logger.error "Failed to add special handling for assets: #{e.message}"
         end
       end
     end

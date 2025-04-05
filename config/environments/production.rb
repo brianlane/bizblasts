@@ -41,10 +41,20 @@ Rails.application.configure do
   config.assets.paths << Rails.root.join('app', 'assets', 'builds').to_s
   
   # Ensure ActiveAdmin assets are properly handled
-  config.assets.precompile += %w(active_admin.css active_admin.js)
+  config.assets.precompile += %w(active_admin.css active_admin.js application.css application.js)
+  
+  # Disable asset fingerprinting in production - we'll handle it manually
+  config.assets.digest = false
   
   # Allow serving of static assets directly from public/assets
   config.assets.compile = false
+  
+  # Set up static file serving directly
+  config.public_file_server.enabled = true
+  config.public_file_server.headers = {
+    'Cache-Control' => 'public, max-age=31536000',
+    'Expires' => 1.year.from_now.to_formatted_s(:rfc822)
+  }
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
