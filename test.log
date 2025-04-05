@@ -1,11 +1,11 @@
 ==> Running tests (Database Cleaning ENABLED)...
 Running full test suite in parallel (4 processes)...
-==> Tests completed in 11 seconds!
+==> Tests completed in 13 seconds!
 
 ==> Individual process results:
 50 examples, 0 failures
-55 examples, 0 failures
 56 examples, 0 failures
+55 examples, 0 failures
 58 examples, 0 failures
 219 examples, 0 failures
 
