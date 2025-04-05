@@ -60,24 +60,6 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # Fallback for serving ActiveAdmin assets directly if they're missing from the asset pipeline
-  def self.serve_admin_assets
-    Rails.application.routes.draw do
-      # Direct file serving for admin assets as a last resort
-      get '/assets/active_admin.css', to: proc { |env|
-        file_path = Rails.root.join('public', 'assets', 'active_admin.css')
-        if File.exist?(file_path)
-          [200, {"Content-Type" => "text/css"}, [File.read(file_path)]]
-        else
-          [404, {"Content-Type" => "text/plain"}, ["Admin assets not found"]]
-        end
-      }, constraints: lambda { |req| req.format == :css }
-    end
-  end
-  
-  # Call the method to set up routes
-  serve_admin_assets
-
   private
 
   def skip_user_authentication?

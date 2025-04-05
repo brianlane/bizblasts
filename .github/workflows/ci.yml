@@ -167,18 +167,8 @@ jobs:
         run: |
           AA_PATH=$(bundle info activeadmin --path)
           echo "ActiveAdmin Path: $AA_PATH"
-          mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
-          
-          # Ensure ActiveAdmin CSS compiles with proper import paths
-          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
-            --no-source-map \
-            --load-path=node_modules \
-            --load-path="$AA_PATH/app/assets/stylesheets"
-          
-          # Copy the compiled CSS to public/assets as a fallback
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
 
       - name: Run tests
         env:

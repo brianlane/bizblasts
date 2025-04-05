@@ -14,20 +14,9 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Use both Rails asset helper and direct link as fallback %>
-    <% begin %>
-      <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <% rescue => e %>
-      <% Rails.logger.error "Failed to load stylesheet with helper: #{e.message}" %>
-      <link rel="stylesheet" href="/assets/application.css" data-turbo-track="reload">
-    <% end %>
-    
-    <% begin %>
-      <%= javascript_importmap_tags %>
-    <% rescue => e %>
-      <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
-      <script src="/assets/application.js" data-turbo-track="reload"></script>
-    <% end %>
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
   <body>
