@@ -40,5 +40,16 @@ module Bizblasts
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+    
+    # Ensure asset paths are set up early for Propshaft
+    if defined?(Propshaft)
+      config.assets.paths ||= []
+      
+      # Add app/assets/builds to the asset load path
+      config.assets.paths << Rails.root.join('app', 'assets', 'builds').to_s
+      
+      # Add public/assets to the asset load path for production fallbacks
+      config.assets.paths << Rails.root.join('public', 'assets').to_s
+    end
   end
 end

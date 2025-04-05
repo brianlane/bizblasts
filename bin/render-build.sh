@@ -124,22 +124,60 @@ bundle exec rails assets:precompile
 bundle exec rails assets:clean
 
 # Force ActiveAdmin CSS to public/assets 
-echo "Ensuring ActiveAdmin assets are available in public assets..."
+echo "Ensuring assets are available in public/assets..."
 mkdir -p public/assets
+
+# Copy ActiveAdmin CSS
 cp app/assets/builds/active_admin.css public/assets/
 
-# Generate MD5 hash in a cross-platform way 
+# Generate MD5 hash for ActiveAdmin CSS
 if command -v md5sum > /dev/null; then
   # Linux
-  MD5=$(md5sum "app/assets/builds/active_admin.css" | cut -d' ' -f1)
+  AA_MD5=$(md5sum "app/assets/builds/active_admin.css" | cut -d' ' -f1)
 else
   # macOS
-  MD5=$(md5 -q "app/assets/builds/active_admin.css")
+  AA_MD5=$(md5 -q "app/assets/builds/active_admin.css")
 fi
 
 # Create a digested version for cache busting
-cp app/assets/builds/active_admin.css "public/assets/active_admin-${MD5}.css"
+cp app/assets/builds/active_admin.css "public/assets/active_admin-${AA_MD5}.css"
 echo "ActiveAdmin assets copied successfully ✓"
+
+# Ensure application.css exists
+if [ ! -f "app/assets/builds/application.css" ] || [ ! -s "app/assets/builds/application.css" ]; then
+  echo "Creating basic application.css file..."
+  echo "/* Basic application styles */" > app/assets/builds/application.css
+fi
+
+# Copy application CSS and generate digested version
+cp app/assets/builds/application.css public/assets/
+if command -v md5sum > /dev/null; then
+  # Linux
+  APP_CSS_MD5=$(md5sum "app/assets/builds/application.css" | cut -d' ' -f1)
+else
+  # macOS
+  APP_CSS_MD5=$(md5 -q "app/assets/builds/application.css")
+fi
+cp app/assets/builds/application.css "public/assets/application-${APP_CSS_MD5}.css"
+echo "Application CSS copied successfully ✓"
+
+# Ensure application.js exists
+if [ ! -f "app/assets/builds/application.js" ]; then
+  echo "Creating basic application.js file..."
+  echo "/* Basic application JavaScript */" > app/assets/builds/application.js
+fi
+
+# Copy application JS and generate digested version
+cp app/assets/builds/application.js public/assets/
+if command -v md5sum > /dev/null; then
+  # Linux
+  APP_JS_MD5=$(md5sum "app/assets/builds/application.js" | cut -d' ' -f1)
+else
+  # macOS
+  APP_JS_MD5=$(md5 -q "app/assets/builds/application.js")
+fi
+cp app/assets/builds/application.js "public/assets/application-${APP_JS_MD5}.js"
+echo "Application JS copied successfully ✓"
 
 # Print environment information
 echo "Rails environment: $RAILS_ENV"
