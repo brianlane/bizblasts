@@ -1,8 +1,6 @@
 class SmsMessage < ApplicationRecord
-  include TenantScoped
-  
   belongs_to :marketing_campaign, optional: true
-  belongs_to :customer
+  belongs_to :tenant_customer
   belongs_to :booking, optional: true
   
   validates :phone_number, presence: true
@@ -21,7 +19,7 @@ class SmsMessage < ApplicationRecord
   def deliver
     SmsNotificationJob.perform_later(phone_number, content, { 
       booking_id: booking_id,
-      customer_id: customer_id,
+      tenant_customer_id: tenant_customer_id,
       marketing_campaign_id: marketing_campaign_id
     })
   end

@@ -6,7 +6,7 @@ class MarketingCampaign < ApplicationRecord
   validates :name, presence: true
   validates :campaign_type, presence: true
   validates :status, presence: true
-  validates :scheduled_at, presence: true
+  validates :scheduled_at, presence: true, if: :scheduled?
   
   enum :campaign_type, {
     email: 0,

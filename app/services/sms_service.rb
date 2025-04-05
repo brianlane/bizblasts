@@ -44,29 +44,29 @@ class SmsService
   end
   
   def self.send_booking_confirmation(booking)
-    customer = booking.customer
-    service = booking.bookable.is_a?(Service) ? booking.bookable : nil
+    customer = booking.tenant_customer
+    service = booking.service
     
     message = "Booking confirmed: #{service&.name || 'Appointment'} on #{booking.start_time.strftime('%b %d at %I:%M %p')}. " \
               "Reply HELP for assistance or CANCEL to cancel your appointment."
     
     send_message(customer.phone, message, { 
-      customer_id: customer.id,
+      tenant_customer_id: customer.id,
       booking_id: booking.id,
       business_id: booking.business_id
     })
   end
   
   def self.send_booking_reminder(booking, timeframe)
-    customer = booking.customer
-    service = booking.bookable.is_a?(Service) ? booking.bookable : nil
+    customer = booking.tenant_customer
+    service = booking.service
     
     message = "Reminder: Your #{service&.name || 'appointment'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} " \
               "at #{booking.start_time.strftime('%I:%M %p')}. " \
               "Reply HELP for assistance or CONFIRM to confirm."
     
     send_message(customer.phone, message, { 
-      customer_id: customer.id,
+      tenant_customer_id: customer.id,
       booking_id: booking.id,
       business_id: booking.business_id
     })
@@ -103,15 +103,20 @@ class SmsService
   end
   
   def self.create_sms_record(phone_number, content, options = {})
-    # Create a record of the SMS message in the database
+    # REMOVED: Business ID derivation - SmsMessage doesn't have business_id
+    # business_id = options[:business_id] 
+    # business_id ||= TenantCustomer.find_by(id: options[:tenant_customer_id])&.business_id
+    # business_id ||= Booking.find_by(id: options[:booking_id])&.business_id
+    # business_id ||= MarketingCampaign.find_by(id: options[:marketing_campaign_id])&.business_id
+    
     SmsMessage.create(
       phone_number: phone_number,
       content: content,
       status: :pending,
-      customer_id: options[:customer_id],
+      tenant_customer_id: options[:tenant_customer_id],
       booking_id: options[:booking_id],
-      marketing_campaign_id: options[:marketing_campaign_id],
-      business_id: options[:business_id] || Current.business_id
+      marketing_campaign_id: options[:marketing_campaign_id]
+      # REMOVED: business_id: business_id 
     )
   end
 end

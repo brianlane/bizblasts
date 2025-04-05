@@ -77,15 +77,14 @@ class MarketingService
   end
   
   def self.segment_customers(business_id, segment_params)
-    # Placeholder for customer segmentation
-    # In a real implementation, this would filter customers based on criteria
-    
-    customers = Customer.where(business_id: business_id, active: true)
+    # Corrected: Use TenantCustomer model
+    customers = TenantCustomer.where(business_id: business_id, active: true)
     
     if segment_params[:has_booking_in_last_days].present?
       days = segment_params[:has_booking_in_last_days].to_i
       date_threshold = days.days.ago
       
+      # TenantCustomer has_many :bookings
       customers = customers.joins(:bookings)
                           .where('bookings.start_time > ?', date_threshold)
                           .distinct
@@ -94,8 +93,9 @@ class MarketingService
     if segment_params[:service_id].present?
       service_id = segment_params[:service_id]
       
-      customers = customers.joins(bookings: :bookable)
-                          .where(bookings: { bookable_type: 'Service', bookable_id: service_id })
+      # Check TenantCustomer associations - assuming has_many :bookings through which we get service
+      customers = customers.joins(bookings: :service) # Join through booking to service
+                          .where(bookings: { service_id: service_id })
                           .distinct
     end
     
@@ -103,14 +103,16 @@ class MarketingService
       days = segment_params[:no_booking_in_last_days].to_i
       date_threshold = days.days.ago
       
-      # This is a simplified query and would need to be more complex in a real implementation
-      customers_with_recent_bookings = Customer.joins(:bookings)
+      # Find customers with recent bookings
+      customers_with_recent_bookings_ids = TenantCustomer
+                                              .joins(:bookings)
                                               .where('bookings.start_time > ?', date_threshold)
                                               .where(business_id: business_id)
                                               .distinct
                                               .pluck(:id)
       
-      customers = customers.where.not(id: customers_with_recent_bookings)
+      # Exclude those customers
+      customers = customers.where.not(id: customers_with_recent_bookings_ids)
     end
     
     customers
@@ -130,10 +132,10 @@ class MarketingService
     
     # Simulate some metrics
     campaign.update(
-      metadata: {
+      settings: campaign.settings.merge({
         emails_sent: customer_count,
         send_date: Time.current
-      }
+      })
     )
   end
   
@@ -158,10 +160,10 @@ class MarketingService
     end
     
     campaign.update(
-      metadata: {
+      settings: campaign.settings.merge({
         sms_count: customers.count,
         send_date: Time.current
-      }
+      })
     )
   end
 end

@@ -7,25 +7,29 @@ class BookingManager
       # Create the booking
       booking = Booking.new(booking_params)
       
-      # Check if the bookable item is available
-      bookable = booking.bookable
-      unless bookable.available?(booking.start_time, booking.end_time)
-        booking.errors.add(:base, "The selected time is not available")
+      # Corrected: Check availability using staff_member
+      staff_member = StaffMember.find(booking.staff_member_id) if booking.staff_member_id
+      unless staff_member && staff_member.available?(booking.start_time, booking.end_time)
+        booking.errors.add(:base, "The selected time is not available for this staff member")
         return [nil, booking.errors]
       end
       
       # Save the booking
-      return [nil, booking.errors] unless booking.save
+      unless booking.save
+        return [nil, booking.errors]
+      end
       
-      # Send confirmation email or SMS if requested
-      if booking.send_confirmation
+      # Check flags from the params hash, not the booking object
+      if booking_params[:send_confirmation]
         # Placeholder for sending confirmation
+        Rails.logger.info "[BookingManager] Send confirmation flag set for Booking ##{booking.id}"
         # BookingMailer.confirmation(booking).deliver_later
       end
       
-      # Set up payment if payment is required upfront
-      if booking.require_payment && booking.amount.present? && booking.amount > 0
+      # Check flags from the params hash
+      if booking_params[:require_payment] && booking.amount.present? && booking.amount > 0
         # Use stripe_service to create a payment intent
+        Rails.logger.info "[BookingManager] Require payment flag set for Booking ##{booking.id}"
         # payment_intent = StripeService.create_payment_intent(booking, booking.amount)
       end
       
@@ -38,17 +42,15 @@ class BookingManager
   
   def self.update_booking(booking, booking_params)
     ActiveRecord::Base.transaction do
-      # Check if new time is available, if time is being changed
-      if booking_params[:start_time].present? || booking_params[:end_time].present?
-        start_time = booking_params[:start_time] || booking.start_time
-        end_time = booking_params[:end_time] || booking.end_time
-        
-        # Only check availability if the time has changed
-        if start_time != booking.start_time || end_time != booking.end_time
-          unless booking.bookable.available?(start_time, end_time)
-            booking.errors.add(:base, "The selected time is not available")
-            return [nil, booking.errors]
-          end
+      # Corrected: Check availability using staff_member
+      staff_member = booking.staff_member
+      start_time = booking_params[:start_time] || booking.start_time
+      end_time = booking_params[:end_time] || booking.end_time
+      
+      if start_time != booking.start_time || end_time != booking.end_time
+        unless staff_member && staff_member.available?(start_time, end_time)
+          booking.errors.add(:base, "The selected time is not available for this staff member")
+          return [nil, booking.errors]
         end
       end
       
@@ -73,24 +75,32 @@ class BookingManager
   def self.cancel_booking(booking, reason = nil)
     ActiveRecord::Base.transaction do
       # Update booking status
-      booking.cancel!
+      booking.update!(status: :cancelled) # Use update! to catch potential errors
       
       # Record cancellation reason if provided
-      booking.update(cancellation_reason: reason) if reason.present?
+      booking.update!(cancellation_reason: reason) if reason.present?
       
-      # Notify customer
+      # Notify customer (Placeholder)
       # BookingMailer.cancellation(booking).deliver_later
       
-      # Process refund if applicable
-      if booking.payments.successful.exists?
+      # Find associated invoice
+      invoice = booking.invoice
+      
+      # Process refund if applicable (via Invoice)
+      if invoice && invoice.payments.successful.exists?
         # Placeholder for refund processing
-        # booking.payments.successful.each do |payment|
+        Rails.logger.info "[BookingManager] Processing refund for cancelled Booking ##{booking.id} via Invoice ##{invoice.id}"
+        # invoice.payments.successful.each do |payment|
         #   StripeService.refund_payment(payment)
         # end
       end
       
-      true
+      true # Return true on success
     end
+  rescue ActiveRecord::RecordInvalid => e
+    # Log error and return false if updates fail
+    Rails.logger.error "[BookingManager] Failed to cancel Booking ##{booking.id}: #{e.message}"
+    false 
   end
   
   private
