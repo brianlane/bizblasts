@@ -42,3 +42,7 @@ module Bizblasts
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end
+
+Rails.application.config.assets.paths << Rails.root.join("app", "assets", "fonts")
+Rails.application.config.assets.paths << Gem.loaded_specs['activeadmin'].full_gem_path + "/app/assets/stylesheets"
+Rails.application.config.assets.paths << Gem.loaded_specs['activeadmin'].full_gem_path + "/app/assets/javascripts"

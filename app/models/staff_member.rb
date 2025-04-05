@@ -41,46 +41,97 @@ class StaffMember < ApplicationRecord
     end
   end
   
-  def available_at?(time)
-    return false unless active?
-    
-    day_of_week = time.strftime('%A').downcase.to_sym
-    current_tod = Tod::TimeOfDay.new(time.hour, time.min) 
+  # availability is stored as: { "monday" => ["09:00-12:00", "13:00-17:00"], ... }
+  # Method to check if staff member is available for a given time *duration*
+  def available?(start_time, end_time)
+    return false unless active? && start_time && end_time && end_time > start_time
 
-    applicable_intervals = []
-    # Check exceptions first 
-    date_str = time.strftime('%Y-%m-%d')
-    
-    # --> New Debugging <--
-    av_hash = self.availability # Read the attribute
-    puts "[DEBUG available_at?] Availability Hash: #{av_hash.inspect}" 
-    puts "[DEBUG available_at?] Availability Keys: #{av_hash&.keys.inspect}" 
-    # --> End Debugging <--
-    
-    if av_hash&.dig('exceptions', date_str) # Use string key for 'exceptions'
-      applicable_intervals = av_hash['exceptions'][date_str]
-    else
-      # Check regular schedule
-      applicable_intervals = av_hash&.dig(day_of_week.to_s) # Use string key for day_of_week
-    end
+    day_of_week = start_time.strftime('%A').downcase
+    intervals_for_day = availability&.dig(day_of_week)
+    return false unless intervals_for_day.present?
 
-    return false if applicable_intervals.blank?
+    available_ranges = intervals_for_day.map do |interval_data|
+      start_str = nil
+      end_str = nil
+      if interval_data.is_a?(String)
+        # Handle "HH:MM-HH:MM" format
+        start_str, end_str = interval_data.split('-')
+      elsif interval_data.is_a?(Hash)
+        # Handle {start: "HH:MM", end: "HH:MM"} format (symbol or string keys)
+        start_str = interval_data[:start] || interval_data["start"]
+        end_str = interval_data[:end] || interval_data["end"]
+      end
+      
+      # Skip if format is unrecognized or strings are missing
+      next unless start_str && end_str 
 
-    # Pre-process intervals into Tod objects
-    parsed_intervals = applicable_intervals.map do |interval|
       begin
-        start_str = interval[:start] || interval["start"]
-        end_str = interval[:end] || interval["end"]
         start_tod = Tod::TimeOfDay.parse(start_str)
         end_tod = Tod::TimeOfDay.parse(end_str)
-        start_tod...end_tod # Create a Range of Tod::TimeOfDay
-      rescue ArgumentError => e
+        start_tod...end_tod
+      rescue ArgumentError
+        nil # Ignore intervals that can't be parsed
+      end
+    end.compact # Remove nil entries from map
+
+    # Return false if no valid ranges were found for the day
+    return false if available_ranges.empty?
+
+    # Check for overlapping bookings for this staff member during the requested time
+    has_overlapping_booking = Booking
+                                .where(staff_member: self)
+                                .where.not(status: :cancelled)
+                                .where("start_time < ? AND end_time > ?", end_time, start_time)
+                                .exists?
+
+    return false if has_overlapping_booking
+
+    # If all checks pass, the slot is available
+    true
+  end
+  
+  # Check if staff member is generally available at a specific point in time 
+  # based on their defined working hours for that day.
+  # Does NOT check against existing bookings.
+  def available_at?(time)
+    return false unless active? && time
+
+    day_of_week = time.strftime('%A').downcase
+    date_str = time.strftime('%Y-%m-%d')
+    av_hash = self.availability # Read the attribute
+
+    # Check for exceptions first for the specific date
+    intervals_for_day = av_hash&.dig('exceptions', date_str)
+    
+    # If no exception for the date, use the regular day schedule
+    intervals_for_day ||= av_hash&.dig(day_of_week)
+    
+    return false unless intervals_for_day.present?
+
+    time_of_day = Tod::TimeOfDay.new(time.hour, time.min, time.sec)
+
+    available_ranges = intervals_for_day.map do |interval_data|
+      start_str = nil
+      end_str = nil
+      if interval_data.is_a?(String)
+        start_str, end_str = interval_data.split('-')
+      elsif interval_data.is_a?(Hash)
+        start_str = interval_data[:start] || interval_data["start"]
+        end_str = interval_data[:end] || interval_data["end"]
+      end
+      next unless start_str && end_str
+      begin
+        start_tod = Tod::TimeOfDay.parse(start_str)
+        end_tod = Tod::TimeOfDay.parse(end_str)
+        start_tod...end_tod
+      rescue ArgumentError
         nil
       end
     end.compact
-    
-    # Check if the current time falls within any of the valid ranges
-    parsed_intervals.any? { |range| range.cover?(current_tod) }
+
+    return false if available_ranges.empty?
+
+    available_ranges.any? { |range| range.cover?(time_of_day) }
   end
   
   # Define ransackable attributes for ActiveAdmin

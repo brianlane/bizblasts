@@ -2,16 +2,23 @@
 
 FactoryBot.define do
   factory :booking do
-    # Simple and consistent values
-    start_time { Time.zone.now + 1.day }
-    end_time { Time.zone.now + 1.day + 1.hour }
-    status { 'confirmed' }
-    notes { 'Test booking' }
+    association :business
+    association :service 
+    association :staff_member
+    association :tenant_customer
     
-    # Use build strategy for associations by default (can be overridden in specs)
-    association :business, strategy: :build
-    association :service, strategy: :build
-    association :staff_member, strategy: :build
-    association :tenant_customer, strategy: :build
+    start_time { Time.current.beginning_of_hour + 1.day + 9.hours } # Default to 9 AM tomorrow
+    
+    # Calculate end_time based on start_time and service duration
+    # Use transient attribute to allow passing duration if service is not set
+    transient do
+      duration_minutes { service&.duration || 60 } # Default to 60 mins if no service
+    end
+    end_time { start_time + duration_minutes.minutes if start_time }
+    
+    status { :confirmed }
+    notes { "Test booking details." }
+    amount { service&.price } # Set amount from service price
+    # promotion, original_amount, discount_amount usually set by services
   end
 end 

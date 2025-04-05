@@ -62,11 +62,11 @@ class AvailabilityService
   
   # Check if a service provider is available for the entire duration
   def self.check_full_availability(service_provider, start_time, end_time)
-    # Restore original logic
+    # Restore original logic using available_at? (which checks work hours only)
     return false unless service_provider.active? # Check active status first
     return false unless service_provider.available_at?(start_time)
     
-    check_time = start_time + 15.minutes
+    check_time = start_time + 15.minutes # Check every 15 mins
     while check_time < end_time
       return false unless service_provider.available_at?(check_time)
       check_time += 15.minutes

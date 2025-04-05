@@ -1,19 +1,15 @@
 ==> Running tests (Database Cleaning ENABLED)...
 Running full test suite in parallel (4 processes)...
-Warning: coverage data provided by Coverage [24] exceeds number of lines in /Users/brianlane/bizblasts/app/models/promotion_redemption.rb [23]
-Warning: coverage data provided by Coverage [24] exceeds number of lines in /Users/brianlane/bizblasts/app/models/promotion_redemption.rb [23]
-Warning: coverage data provided by Coverage [24] exceeds number of lines in /Users/brianlane/bizblasts/app/models/promotion_redemption.rb [23]
-Warning: coverage data provided by Coverage [24] exceeds number of lines in /Users/brianlane/bizblasts/app/models/promotion_redemption.rb [23]
-==> Tests completed in 11 seconds!
+==> Tests completed in 12 seconds!
 
 ==> Individual process results:
-29 examples, 0 failures
-42 examples, 0 failures
-41 examples, 0 failures
+50 examples, 0 failures
+55 examples, 0 failures
 56 examples, 0 failures
-168 examples, 0 failures
+58 examples, 0 failures
+219 examples, 0 failures
 
 ==> Test Summary: All tests passed! (Exit Code: 0)
-    (Ran 336 tests, 0 failures)
-    Overall Coverage: 53.53%
+    (Ran 438 tests, 0 failures)
+    Overall Coverage: 56.47%
 See test.out for detailed output

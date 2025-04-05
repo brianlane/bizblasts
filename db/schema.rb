@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_04_224340) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_05_164806) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_224340) do
     t.decimal "original_amount", precision: 10, scale: 2
     t.decimal "discount_amount", precision: 10, scale: 2
     t.decimal "amount", precision: 10, scale: 2
+    t.text "cancellation_reason"
     t.index ["business_id"], name: "index_bookings_on_business_id"
     t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
@@ -120,6 +121,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_224340) do
     t.bigint "promotion_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "scheduled_at"
+    t.datetime "started_at"
+    t.datetime "completed_at"
     t.index ["business_id"], name: "index_marketing_campaigns_on_business_id"
     t.index ["name", "business_id"], name: "index_marketing_campaigns_on_name_and_business_id", unique: true
     t.index ["promotion_id"], name: "index_marketing_campaigns_on_promotion_id"
@@ -202,6 +206,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_224340) do
     t.index ["staff_member_id"], name: "index_services_staff_members_on_staff_member_id"
   end
 
+  create_table "sms_messages", force: :cascade do |t|
+    t.bigint "marketing_campaign_id"
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "booking_id"
+    t.string "phone_number", null: false
+    t.text "content", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "sent_at"
+    t.datetime "delivered_at"
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "external_id"
+    t.index ["booking_id"], name: "index_sms_messages_on_booking_id"
+    t.index ["external_id"], name: "index_sms_messages_on_external_id"
+    t.index ["marketing_campaign_id"], name: "index_sms_messages_on_marketing_campaign_id"
+    t.index ["status"], name: "index_sms_messages_on_status"
+    t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
+  end
+
   create_table "staff_members", force: :cascade do |t|
     t.string "name", null: false
     t.string "email"
@@ -276,6 +300,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_04_224340) do
   add_foreign_key "services", "businesses"
   add_foreign_key "services_staff_members", "services"
   add_foreign_key "services_staff_members", "staff_members"
+  add_foreign_key "sms_messages", "bookings"
+  add_foreign_key "sms_messages", "marketing_campaigns"
+  add_foreign_key "sms_messages", "tenant_customers"
   add_foreign_key "staff_members", "businesses"
   add_foreign_key "staff_members", "users"
   add_foreign_key "tenant_customers", "businesses"
