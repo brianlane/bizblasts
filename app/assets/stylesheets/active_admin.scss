@@ -27,8 +27,8 @@ $form-label-color: $section-header-text-color !default;
 $page-header-text-color: #cdcdcd !default;
 
 // Try to import the standard Active Admin styles
-@import "active_admin/mixins" !optional;
-@import "active_admin/base" !optional;
+@import "active_admin/mixins";
+@import "active_admin/base";
 
 // Define our own basic styles in case imports fail
 body.active_admin {

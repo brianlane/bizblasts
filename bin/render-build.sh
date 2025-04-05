@@ -36,11 +36,24 @@ if [ -f "app/assets/stylesheets/active_admin.scss" ]; then
   
   # Install required node packages
   yarn add sass
+
+  # Get ActiveAdmin gem path
+  AA_PATH=$(bundle show activeadmin)
+  echo "ActiveAdmin Path: $AA_PATH"
   
-  # Compile SCSS to CSS
-  bundle exec sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css --no-source-map || \
-  npx sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css --no-source-map || \
-  echo "Warning: Failed to compile ActiveAdmin CSS manually"
+  # Compile SCSS to CSS with proper load paths
+  npx sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css \
+    --no-source-map \
+    --load-path=node_modules \
+    --load-path="$AA_PATH/app/assets/stylesheets" || \
+  echo "Warning: Failed to compile ActiveAdmin CSS manually, continuing with fallback"
+  
+  # If compilation failed, create a basic fallback file
+  if [ ! -s "app/assets/builds/active_admin.css" ]; then
+    echo "Creating fallback ActiveAdmin CSS file..."
+    cp app/assets/builds/active_admin.css public/assets/active_admin.css 2>/dev/null || \
+    echo "/* Basic ActiveAdmin styles */" > public/assets/active_admin.css
+  fi
 fi
 
 # Compile the CSS
