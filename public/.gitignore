@@ -1,6 +1,0 @@
-# Ignore all files in public except those needed for deployment
-*
-!.gitignore
-
-# Don't ignore the assets directory
-!assets/ 
