@@ -30,28 +30,57 @@ echo "Precompiling assets..."
 # Ensure the public/assets directory exists
 mkdir -p public/assets
 
+# Handle ActiveAdmin assets explicitly to ensure they're properly compiled
+if [ -f "app/assets/stylesheets/active_admin.scss" ]; then
+  echo "Compiling ActiveAdmin assets manually..."
+  
+  # Install required node packages
+  yarn add sass
+  
+  # Compile SCSS to CSS
+  bundle exec sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css --no-source-map || \
+  npx sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css --no-source-map || \
+  echo "Warning: Failed to compile ActiveAdmin CSS manually"
+fi
+
 # Compile the CSS
 bundle exec rails assets:precompile
 bundle exec rails assets:clean
 
-# Explicitly copy ActiveAdmin assets to ensure they're available in production
-if [ -f "app/assets/builds/active_admin.css" ]; then
-  echo "Copying ActiveAdmin assets to public/assets..."
-  cp app/assets/builds/active_admin.css public/assets/
-  
-  # Get MD5 hash in a cross-platform way (works on both Linux and macOS)
-  if command -v md5sum > /dev/null; then
-    # Linux
-    MD5=$(md5sum app/assets/builds/active_admin.css | cut -d' ' -f1)
-  else
-    # macOS
-    MD5=$(md5 -q app/assets/builds/active_admin.css)
+# Force ActiveAdmin CSS to public/assets 
+echo "Ensuring ActiveAdmin assets are available in public assets..."
+mkdir -p public/assets
+
+# Try multiple possible source locations
+for source in app/assets/builds/active_admin.css app/assets/stylesheets/active_admin.css public/assets/active_admin-*.css; do
+  if [ -f "$source" ]; then
+    echo "Found ActiveAdmin CSS at $source"
+    cp "$source" public/assets/active_admin.css
+    
+    # Get MD5 hash in a cross-platform way (works on both Linux and macOS)
+    if command -v md5sum > /dev/null; then
+      # Linux
+      MD5=$(md5sum "$source" | cut -d' ' -f1)
+    else
+      # macOS
+      MD5=$(md5 -q "$source")
+    fi
+    
+    cp "$source" "public/assets/active_admin-${MD5}.css"
+    echo "ActiveAdmin assets copied successfully ✓"
+    break
   fi
+done
+
+# If we still don't have the file, create a symbolic link
+if [ ! -f "public/assets/active_admin.css" ]; then
+  echo "WARNING: ActiveAdmin CSS not found in expected locations, creating alternative..."
   
-  cp app/assets/builds/active_admin.css public/assets/active_admin-${MD5}.css
-  echo "ActiveAdmin assets copied successfully ✓"
-else
-  echo "WARNING: ActiveAdmin CSS not found in app/assets/builds!"
+  # Create a simple CSS file as a fallback
+  echo "/* Fallback ActiveAdmin CSS */" > public/assets/active_admin.css
+  cp public/assets/active_admin.css public/assets/active_admin-fallback.css
+  
+  echo "Created fallback ActiveAdmin CSS"
 fi
 
 # Print environment information

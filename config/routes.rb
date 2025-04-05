@@ -41,6 +41,34 @@ Rails.application.routes.draw do
   root "home#index"
 
   # Fallback route for ActiveAdmin assets
-  get "/assets/active_admin.css", to: redirect("/assets/active_admin.css"), as: :active_admin_css
-  get "/assets/active_admin-:digest.css", to: redirect("/assets/active_admin-:digest.css"), as: :active_admin_css_digested
+  get "/assets/active_admin.css", to: proc { |env|
+    # Try to find the file in multiple locations
+    possible_paths = [
+      Rails.root.join('public', 'assets', 'active_admin.css'),
+      Rails.root.join('app', 'assets', 'builds', 'active_admin.css')
+    ]
+    
+    file_path = possible_paths.find { |path| File.exist?(path) }
+    
+    if file_path
+      Rails.logger.info "Serving ActiveAdmin CSS from: #{file_path}"
+      content = File.read(file_path)
+      [200, {"Content-Type" => "text/css"}, [content]]
+    else
+      Rails.logger.error "ActiveAdmin CSS not found in any of: #{possible_paths.join(', ')}"
+      [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
+    end
+  }, constraints: lambda { |req| req.format == :css || req.path.end_with?('.css') }
+  
+  get "/assets/active_admin-:digest.css", to: proc { |env|
+    # Just serve the non-digested version
+    file_path = Rails.root.join('public', 'assets', 'active_admin.css')
+    
+    if File.exist?(file_path)
+      content = File.read(file_path)
+      [200, {"Content-Type" => "text/css"}, [content]]
+    else
+      [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
+    end
+  }, constraints: lambda { |req| req.format == :css || req.path.end_with?('.css') }
 end

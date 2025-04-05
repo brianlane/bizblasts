@@ -9,6 +9,7 @@
 // = link_tree ../builds // Removed as Propshaft handles this directory
 //= link active_admin.js
 //= link active_admin.css # Link the compiled CSS from app/assets/builds
+//= link ../builds/active_admin.css
 //= link application.css
 //= link_tree ../../javascript .js
 //= link_tree ../../../vendor/javascript .js
