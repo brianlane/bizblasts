@@ -2,233 +2,233 @@
 Applying early Sprockets/Propshaft conflict fix...
 Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 18280
+Randomized with seed 14705
 .Applying early Sprockets/Propshaft conflict fix...
 Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 36057
+Randomized with seed 47895
 .Applying early Sprockets/Propshaft conflict fix...
 Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 59409
-.............Applying early Sprockets/Propshaft conflict fix...
+Randomized with seed 54792
+......Applying early Sprockets/Propshaft conflict fix...
 Could not load sprockets/manifest: cannot load such file -- sprockets/manifest
 
-Randomized with seed 42437
-...............................................................................................................................................................
-
-Top 10 slowest examples (1.56 seconds, 35.7% of total time):
-  MultiTenant Registration users with identical emails in different tenants allows registration and authentication with the same email in different businesses
-    0.3923 seconds ./spec/requests/multi_tenant_registration_spec.rb:23
-  Booking associations is expected to belong to staff_member required: true
-    0.22678 seconds ./spec/models/booking_spec.rb:7
-  Booking associations is expected to belong to business required: true
-    0.1819 seconds ./spec/models/booking_spec.rb:5
-  Booking validations is expected to validate that :start_time cannot be empty/falsy
-    0.11651 seconds ./spec/models/booking_spec.rb:29
-  Booking associations is expected to belong to tenant_customer required: true
-    0.11617 seconds ./spec/models/booking_spec.rb:8
-  Booking validations is invalid if end_time is before start_time
-    0.11482 seconds ./spec/models/booking_spec.rb:34
-  Admin Configuration has expected ActiveAdmin resources registered
-    0.11096 seconds ./spec/system/admin/companies_spec.rb:15
-  BookingManager.update_booking when updating time to an unavailable slot does not update the booking
-    0.10595 seconds ./spec/services/booking_manager_spec.rb:186
-  Booking validations is expected to validate that :end_time cannot be empty/falsy
-    0.09984 seconds ./spec/models/booking_spec.rb:30
-  BookingManager.update_booking when updating non-time attributes updates the booking successfully
-    0.09559 seconds ./spec/services/booking_manager_spec.rb:136
-
-Top 7 slowest example groups:
-  MultiTenant Registration
-    0.3928 seconds average (0.3928 seconds / 1 example) ./spec/requests/multi_tenant_registration_spec.rb:5
-  Booking
-    0.121 seconds average (1.09 seconds / 9 examples) ./spec/models/booking_spec.rb:3
-  Admin Configuration
-    0.09154 seconds average (0.27461 seconds / 3 examples) ./spec/system/admin/companies_spec.rb:4
-  AvailabilityService
-    0.07759 seconds average (0.31036 seconds / 4 examples) ./spec/services/availability_service_spec.rb:4
-  BookingManager
-    0.07622 seconds average (1.07 seconds / 14 examples) ./spec/services/booking_manager_spec.rb:5
-  User
-    0.0649 seconds average (0.90859 seconds / 14 examples) ./spec/models/user_spec.rb:5
-  ServiceTemplate
-    0.05342 seconds average (0.2671 seconds / 5 examples) ./spec/models/service_template_spec.rb:3
-
-Finished in 4.37 seconds (files took 5.04 seconds to load)
-50 examples, 0 failures
-
-Randomized with seed 42437
-
-....................Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 56.47% (1301 / 2304)
-Branch Coverage: 30.08% (157 / 522)
-...
-
-Top 10 slowest examples (1.83 seconds, 37.3% of total time):
-  MarketingService.segment_customers returns all active customers if no filters provided
-    0.35199 seconds ./spec/services/marketing_service_spec.rb:289
-  MarketingService.get_campaign_metrics for a combined campaign returns combined placeholder metrics
-    0.24927 seconds ./spec/services/marketing_service_spec.rb:221
-  MarketingService.segment_customers with :has_booking_in_last_days filter returns no customers if threshold is too short
-    0.22343 seconds ./spec/services/marketing_service_spec.rb:253
-  AnalyticsProcessingJob#perform with report_type: booking_summary with tenant_id processes booking summary scoped to the tenant
-    0.1972 seconds ./spec/jobs/analytics_processing_job_spec.rb:63
-  MarketingService.get_campaign_metrics for an SMS campaign returns metrics based on associated SmsMessages
-    0.19044 seconds ./spec/services/marketing_service_spec.rb:204
-  MarketingService.get_campaign_metrics for an email campaign returns placeholder email metrics
-    0.1626 seconds ./spec/services/marketing_service_spec.rb:195
-  AnalyticsProcessingJob#perform with report_type: booking_summary without tenant_id (global) processes booking summary for all tenants
-    0.12138 seconds ./spec/jobs/analytics_processing_job_spec.rb:45
-  StaffMember associations is expected to belong to business required: true
-    0.11728 seconds ./spec/models/staff_member_spec.rb:7
-  Health Checks GET /up returns a successful response for the Rails health check
-    0.11089 seconds ./spec/requests/health_spec.rb:20
-  MarketingService.segment_customers with :has_booking_in_last_days filter returns customers with recent bookings
-    0.10667 seconds ./spec/services/marketing_service_spec.rb:248
-
-Top 7 slowest example groups:
-  AnalyticsProcessingJob
-    0.13676 seconds average (0.41028 seconds / 3 examples) ./spec/jobs/analytics_processing_job_spec.rb:5
-  MarketingService
-    0.10647 seconds average (2.66 seconds / 25 examples) ./spec/services/marketing_service_spec.rb:5
-  StaffMember
-    0.07788 seconds average (0.93457 seconds / 12 examples) ./spec/models/staff_member_spec.rb:5
-  Maintenance
-    0.06096 seconds average (0.24385 seconds / 4 examples) ./spec/requests/maintenance_spec.rb:5
-  Health Checks
-    0.05823 seconds average (0.29117 seconds / 5 examples) ./spec/requests/health_spec.rb:5
-  TenantScoped
-    0.05405 seconds average (0.21621 seconds / 4 examples) ./spec/models/tenant_scoped_spec.rb:5
-  ApplicationMailer
-    0.04434 seconds average (0.08869 seconds / 2 examples) ./spec/mailers/application_mailer_spec.rb:5
-
-Finished in 4.91 seconds (files took 5.03 seconds to load)
-55 examples, 0 failures
-
-Randomized with seed 36057
-
-..
-
-Top 10 slowest examples (1.58 seconds, 32.1% of total time):
-  Admin Debug Page GET /admin/debug when no tenants exist shows 'No tenants found' message
-    0.2549 seconds ./spec/requests/admin/debug_spec.rb:31
-  PromotionManager.apply_promotion_to_invoice with an invalid promotion code returns validation error and does not modify invoice or redemption
-    0.19188 seconds ./spec/services/promotion_manager_spec.rb:323
-  Admin Debug Page GET /admin/debug when no tenants exist shows current request info (no tenant)
-    0.1877 seconds ./spec/requests/admin/debug_spec.rb:25
-  Admin Debug Page GET /admin/debug when tenants exist returns http success
-    0.186 seconds ./spec/requests/admin/debug_spec.rb:63
-  PromotionManager.apply_promotion_to_invoice with a valid percentage promotion applies discount, updates invoice, increments usage, creates redemption
-    0.15238 seconds ./spec/services/promotion_manager_spec.rb:293
-  PromotionManager.apply_promotion_to_booking when usage limit is reached between validation and application returns an error and does not apply the promotion
-    0.12823 seconds ./spec/services/promotion_manager_spec.rb:198
-  Admin Debug Page GET /admin/debug when no tenants exist shows the 'Back to Homepage' link
-    0.12142 seconds ./spec/requests/admin/debug_spec.rb:46
-  Admin Debug Page GET /admin/debug when no tenants exist shows multi-tenancy info
-    0.12125 seconds ./spec/requests/admin/debug_spec.rb:41
-  Admin Debug Page GET /admin/debug when request is within a tenant context shows current request info with the correct tenant
-    0.11865 seconds ./spec/requests/admin/debug_spec.rb:95
-  Business validations is expected to validate that :subdomain cannot be empty/falsy
-    0.11736 seconds ./spec/models/business_spec.rb:18
-
-Top 7 slowest example groups:
-  Admin Debug Page
-    0.127 seconds average (1.4 seconds / 11 examples) ./spec/requests/admin/debug_spec.rb:5
-  PromotionManager
-    0.09762 seconds average (1.76 seconds / 18 examples) ./spec/services/promotion_manager_spec.rb:5
-  Application Routes
-    0.07086 seconds average (0.42517 seconds / 6 examples) ./spec/requests/routes_spec.rb:3
-  TenantCustomer
-    0.06493 seconds average (0.32463 seconds / 5 examples) ./spec/models/tenant_customer_spec.rb:5
-  Business
-    0.06331 seconds average (0.63313 seconds / 10 examples) ./spec/models/business_spec.rb:5
-  StaffMember
-    0.05489 seconds average (0.27444 seconds / 5 examples) ./spec/models/service_provider_spec.rb:5
-  HomeController
-    0.05279 seconds average (0.05279 seconds / 1 example) ./spec/controllers/home_controller_spec.rb:5
-
-Finished in 4.93 seconds (files took 5.02 seconds to load)
-56 examples, 0 failures
-
-Randomized with seed 59409
-
-.......Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 56.47% (1301 / 2304)
-Branch Coverage: 30.08% (157 / 522)
-.Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 56.47% (1301 / 2304)
-Branch Coverage: 30.08% (157 / 522)
-..--- Loading seeds for seed context ---
+Randomized with seed 7192
+...................................................................................--- Loading seeds for seed context ---
 Seeding database with sample data...
 Creating default tenant...
-Default tenant created: Default Business (default) ID: 1
+.Default tenant created: Default Business (default) ID: 1
 Creating admin user (skipped in production)...
 Admin user created with email: admin@example.com and password: password123
 Creating sample data for Default Business...
-Created customer: Faustino Schumm MD
-Created customer: Ludie Kemmer
-Created customer: Genaro Renner
+Created customer: Adrian Hyatt
+Created customer: Lawerence Wunsch
+.Created customer: Porter Gerhold
 Created service: Basic Consultation
 Created service: Website Setup
 Created service: Monthly Support
 Created staff member: Staff Member 1
 Created staff member: Staff Member 2
-Created booking at 2025-04-21 09:00 - 10:00 for Staff Member 1
-Created booking at 2025-04-08 12:00 - 13:00 for Staff Member 1
-Created booking at 2025-04-21 15:00 - 15:30 for Staff Member 1
-Created booking at 2025-04-16 09:00 - 09:30 for Staff Member 2
-Created booking at 2025-04-10 12:00 - 14:00 for Staff Member 2
+..Created booking at 2025-04-14 09:00 - 10:00 for Staff Member 1
+.Created booking at 2025-04-15 12:00 - 12:30 for Staff Member 1
+Created booking at 2025-04-21 15:00 - 16:00 for Staff Member 1
+Created booking at 2025-04-09 09:00 - 10:00 for Staff Member 2
+Created booking at 2025-04-17 12:00 - 12:30 for Staff Member 2
 Seed data creation complete!
 Created admin user: bizblaststeam@gmail.com with password from ENV
-..........
+....................................................................................
 
-Top 10 slowest examples (2.66 seconds, 46.8% of total time):
+Top 10 slowest examples (1.18 seconds, 35.0% of total time):
+  MultiTenant Registration users with identical emails in different tenants allows registration and authentication with the same email in different businesses
+    0.39884 seconds ./spec/requests/multi_tenant_registration_spec.rb:23
+  BookingManager.update_booking when updating time to an unavailable slot does not reschedule reminders
+    0.14287 seconds ./spec/services/booking_manager_spec.rb:195
+  Booking validations is expected to validate that :end_time cannot be empty/falsy
+    0.10257 seconds ./spec/models/booking_spec.rb:30
+  User scopes .active returns only active users
+    0.09033 seconds ./spec/models/user_spec.rb:49
+  User acts_as_tenant integration scopes queries to the current tenant
+    0.08083 seconds ./spec/models/user_spec.rb:91
+  AvailabilityService.available_slots when staff member has standard 9-5 availability and an existing appointment conflicts excludes slots that overlap with the booking (considering buffer/duration)
+    0.0749 seconds ./spec/services/availability_service_spec.rb:99
+  BookingManager.cancel_booking records the cancellation reason if provided
+    0.07459 seconds ./spec/services/booking_manager_spec.rb:234
+  BookingManager.update_booking when update parameters are invalid does not update the booking and returns validation errors
+    0.07435 seconds ./spec/services/booking_manager_spec.rb:208
+  User scopes .staff_users returns admin, manager, and staff roles
+    0.07415 seconds ./spec/models/user_spec.rb:54
+  AvailabilityService.available_slots when staff member has standard 9-5 availability and no existing appointments returns slots for a different interval (e.g., 15 mins)
+    0.06666 seconds ./spec/services/availability_service_spec.rb:75
+
+Top 7 slowest example groups:
+  MultiTenant Registration
+    0.39954 seconds average (0.39954 seconds / 1 example) ./spec/requests/multi_tenant_registration_spec.rb:5
+  BookingManager
+    0.07069 seconds average (0.98963 seconds / 14 examples) ./spec/services/booking_manager_spec.rb:5
+  AvailabilityService
+    0.06428 seconds average (0.25714 seconds / 4 examples) ./spec/services/availability_service_spec.rb:4
+  User
+    0.0562 seconds average (0.78684 seconds / 14 examples) ./spec/models/user_spec.rb:5
+  Booking
+    0.05229 seconds average (0.47059 seconds / 9 examples) ./spec/models/booking_spec.rb:3
+  Admin Configuration
+    0.04898 seconds average (0.14694 seconds / 3 examples) ./spec/system/admin/companies_spec.rb:4
+  ServiceTemplate
+    0.04892 seconds average (0.24461 seconds / 5 examples) ./spec/models/service_template_spec.rb:3
+
+Finished in 3.37 seconds (files took 4.59 seconds to load)
+50 examples, 0 failures
+
+Randomized with seed 7192
+
+..................Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 56.47% (1301 / 2304)
+Branch Coverage: 30.08% (157 / 522)
+......
+
+Top 10 slowest examples (1.09 seconds, 28.4% of total time):
+  Admin Debug Page GET /admin/debug when tenants exist returns http success
+    0.19348 seconds ./spec/requests/admin/debug_spec.rb:63
+  PromotionManager.apply_promotion_to_invoice with an invalid promotion code returns validation error and does not modify invoice or redemption
+    0.13515 seconds ./spec/services/promotion_manager_spec.rb:323
+  PromotionManager.apply_promotion_to_booking with a valid percentage promotion applies the discount, updates the booking, increments usage, and creates redemption
+    0.11142 seconds ./spec/services/promotion_manager_spec.rb:129
+  PromotionManager.apply_promotion_to_invoice with a valid percentage promotion applies discount, updates invoice, increments usage, creates redemption
+    0.10076 seconds ./spec/services/promotion_manager_spec.rb:293
+  PromotionManager.apply_promotion_to_booking when fixed discount is greater than booking amount discounts amount to 0 and records correct discount amount
+    0.09999 seconds ./spec/services/promotion_manager_spec.rb:217
+  Application Routes Admin routes when authenticated GET /admin/dashboard returns success
+    0.09799 seconds ./spec/requests/routes_spec.rb:49
+  PromotionManager.apply_promotion_to_booking with a valid fixed amount promotion applies the discount, updates the booking, increments usage, and creates redemption
+    0.09476 seconds ./spec/services/promotion_manager_spec.rb:156
+  PromotionManager.validate_promotion_code with a valid, active code returns valid: true and the promotion object
+    0.09146 seconds ./spec/services/promotion_manager_spec.rb:37
+  PromotionManager.apply_promotion_to_booking when booking amount is already 0 does not apply further discount but records redemption and increments usage
+    0.08696 seconds ./spec/services/promotion_manager_spec.rb:246
+  Application Routes Admin routes GET /admin/login returns success
+    0.08088 seconds ./spec/requests/routes_spec.rb:34
+
+Top 7 slowest example groups:
+  PromotionManager
+    0.08216 seconds average (1.48 seconds / 18 examples) ./spec/services/promotion_manager_spec.rb:5
+  Admin Debug Page
+    0.07767 seconds average (0.85435 seconds / 11 examples) ./spec/requests/admin/debug_spec.rb:5
+  Application Routes
+    0.07386 seconds average (0.44314 seconds / 6 examples) ./spec/requests/routes_spec.rb:3
+  TenantCustomer
+    0.05082 seconds average (0.25412 seconds / 5 examples) ./spec/models/tenant_customer_spec.rb:5
+  Business
+    0.04728 seconds average (0.47283 seconds / 10 examples) ./spec/models/business_spec.rb:5
+  StaffMember
+    0.04615 seconds average (0.23073 seconds / 5 examples) ./spec/models/service_provider_spec.rb:5
+  HomeController
+    0.04526 seconds average (0.04526 seconds / 1 example) ./spec/controllers/home_controller_spec.rb:5
+
+Finished in 3.85 seconds (files took 4.61 seconds to load)
+56 examples, 0 failures
+
+Randomized with seed 54792
+
+...
+
+Top 10 slowest examples (1.34 seconds, 34.0% of total time):
+  MarketingService.get_campaign_metrics for a combined campaign returns combined placeholder metrics
+    0.22157 seconds ./spec/services/marketing_service_spec.rb:221
+  AnalyticsProcessingJob#perform with report_type: booking_summary without tenant_id (global) processes booking summary for all tenants
+    0.18991 seconds ./spec/jobs/analytics_processing_job_spec.rb:45
+  MarketingService.get_campaign_metrics for an email campaign returns placeholder email metrics
+    0.17505 seconds ./spec/services/marketing_service_spec.rb:195
+  MarketingService.get_campaign_metrics for an SMS campaign returns metrics based on associated SmsMessages
+    0.1505 seconds ./spec/services/marketing_service_spec.rb:204
+  AnalyticsProcessingJob#perform with report_type: booking_summary with tenant_id processes booking summary scoped to the tenant
+    0.13159 seconds ./spec/jobs/analytics_processing_job_spec.rb:63
+  Maintenance GET /maintenance bypasses tenant setting
+    0.10034 seconds ./spec/requests/maintenance_spec.rb:23
+  MarketingService.segment_customers with combined filters returns customers matching all criteria
+    0.09597 seconds ./spec/services/marketing_service_spec.rb:278
+  StaffMember validations is expected to validate that :name cannot be empty/falsy
+    0.09216 seconds ./spec/models/staff_member_spec.rb:16
+  MarketingService.segment_customers with :has_booking_in_last_days filter returns customers with recent bookings
+    0.09109 seconds ./spec/services/marketing_service_spec.rb:248
+  AnalyticsProcessingJob#perform with unknown report_type logs an error
+    0.09021 seconds ./spec/jobs/analytics_processing_job_spec.rb:79
+
+Top 7 slowest example groups:
+  AnalyticsProcessingJob
+    0.13797 seconds average (0.41391 seconds / 3 examples) ./spec/jobs/analytics_processing_job_spec.rb:5
+  MarketingService
+    0.08109 seconds average (2.03 seconds / 25 examples) ./spec/services/marketing_service_spec.rb:5
+  Maintenance
+    0.06227 seconds average (0.24909 seconds / 4 examples) ./spec/requests/maintenance_spec.rb:5
+  TenantScoped
+    0.05955 seconds average (0.23821 seconds / 4 examples) ./spec/models/tenant_scoped_spec.rb:5
+  StaffMember
+    0.05483 seconds average (0.65799 seconds / 12 examples) ./spec/models/staff_member_spec.rb:5
+  ApplicationMailer
+    0.04589 seconds average (0.09178 seconds / 2 examples) ./spec/mailers/application_mailer_spec.rb:5
+  Health Checks
+    0.03908 seconds average (0.19542 seconds / 5 examples) ./spec/requests/health_spec.rb:5
+
+Finished in 3.94 seconds (files took 4.63 seconds to load)
+55 examples, 0 failures
+
+Randomized with seed 47895
+
+......Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 56.47% (1301 / 2304)
+Branch Coverage: 30.08% (157 / 522)
+Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 56.47% (1301 / 2304)
+Branch Coverage: 30.08% (157 / 522)
+......
+
+Top 10 slowest examples (2.25 seconds, 46.5% of total time):
   Admin Companies POST /admin/businesses creates a new business
-    1.07 seconds ./spec/requests/admin/companies_spec.rb:49
+    0.97603 seconds ./spec/requests/admin/companies_spec.rb:49
   MultiTenant Email Uniqueness allows the same email to be used across different tenants when properly configured
-    0.40932 seconds ./spec/integration/multi_tenant_registration_spec.rb:6
-  Service validations allows duplicate names across different businesses
-    0.23472 seconds ./spec/models/service_spec.rb:27
-  Service validations is expected to validate that :duration cannot be empty/falsy
-    0.18584 seconds ./spec/models/service_spec.rb:17
-  Admin Companies DELETE /admin/businesses/:id deletes a business
-    0.14398 seconds ./spec/requests/admin/companies_spec.rb:67
+    0.35533 seconds ./spec/integration/multi_tenant_registration_spec.rb:6
   Authentication user sign out allows a signed-in user to sign out
-    0.14224 seconds ./spec/system/authentication_spec.rb:159
-  SmsService.send_booking_confirmation calls send_message with the correct arguments and formatted message
-    0.1231 seconds ./spec/services/sms_service_spec.rb:87
-  Service validations is expected to validate that :price cannot be empty/falsy
-    0.11784 seconds ./spec/models/service_spec.rb:18
-  Service validations validates uniqueness of name scoped to business_id
-    0.11764 seconds ./spec/models/service_spec.rb:20
+    0.17603 seconds ./spec/system/authentication_spec.rb:40
   Admin Companies GET /admin/businesses lists all businesses
-    0.10845 seconds ./spec/requests/admin/companies_spec.rb:41
+    0.12871 seconds ./spec/requests/admin/companies_spec.rb:41
+  SmsService.send_booking_confirmation calls send_message with the correct arguments and formatted message
+    0.11091 seconds ./spec/services/sms_service_spec.rb:87
+  Authentication user sign out allows a signed-in user to sign out
+    0.10473 seconds ./spec/system/authentication_spec.rb:159
+  Service validations validates uniqueness of name scoped to business_id
+    0.10294 seconds ./spec/models/service_spec.rb:20
+  Admin Companies DELETE /admin/businesses/:id deletes a business
+    0.09774 seconds ./spec/requests/admin/companies_spec.rb:67
+  Authentication user sign up allows a new user to sign up with proper business context
+    0.09715 seconds ./spec/system/authentication_spec.rb:86
+  Authentication user sign up shows errors when signup information is invalid
+    0.09574 seconds ./spec/system/authentication_spec.rb:117
 
 Top 9 slowest example groups:
   MultiTenant Email Uniqueness
-    0.40955 seconds average (0.40955 seconds / 1 example) ./spec/integration/multi_tenant_registration_spec.rb:5
+    0.35613 seconds average (0.35613 seconds / 1 example) ./spec/integration/multi_tenant_registration_spec.rb:5
   Admin Companies
-    0.22352 seconds average (1.79 seconds / 8 examples) ./spec/requests/admin/companies_spec.rb:5
-  Service
-    0.11245 seconds average (1.01 seconds / 9 examples) ./spec/models/service_spec.rb:5
-  Admin Dashboard
-    0.09917 seconds average (0.2975 seconds / 3 examples) ./spec/requests/admin/dashboard_spec.rb:5
+    0.19305 seconds average (1.54 seconds / 8 examples) ./spec/requests/admin/companies_spec.rb:5
   Authentication
-    0.08929 seconds average (0.80358 seconds / 9 examples) ./spec/system/authentication_spec.rb:6
-  Home
-    0.0669 seconds average (0.33448 seconds / 5 examples) ./spec/requests/home_spec.rb:5
+    0.09166 seconds average (0.82493 seconds / 9 examples) ./spec/system/authentication_spec.rb:6
+  Admin Dashboard
+    0.0781 seconds average (0.23431 seconds / 3 examples) ./spec/requests/admin/dashboard_spec.rb:5
   SmsService
-    0.06572 seconds average (0.78866 seconds / 12 examples) ./spec/services/sms_service_spec.rb:5
+    0.07307 seconds average (0.87688 seconds / 12 examples) ./spec/services/sms_service_spec.rb:5
+  Service
+    0.05431 seconds average (0.48877 seconds / 9 examples) ./spec/models/service_spec.rb:5
+  Home
+    0.04352 seconds average (0.2176 seconds / 5 examples) ./spec/requests/home_spec.rb:5
   ApplicationJob
-    0.03458 seconds average (0.03458 seconds / 1 example) ./spec/jobs/application_job_spec.rb:5
+    0.03695 seconds average (0.03695 seconds / 1 example) ./spec/jobs/application_job_spec.rb:5
   Database seeds
-    0.01437 seconds average (0.1437 seconds / 10 examples) ./spec/seeds/seeds_spec.rb:6
+    0.01856 seconds average (0.1856 seconds / 10 examples) ./spec/seeds/seeds_spec.rb:6
 
-Finished in 5.67 seconds (files took 5.02 seconds to load)
+Finished in 4.83 seconds (files took 4.62 seconds to load)
 58 examples, 0 failures
 
-Randomized with seed 18280
+Randomized with seed 14705
 
 Coverage report generated for RSpec-, RSpec-2, RSpec-3, RSpec-4 to /Users/brianlane/bizblasts/coverage.
 Line Coverage: 56.47% (1301 / 2304)
@@ -236,4 +236,4 @@ Branch Coverage: 30.08% (157 / 522)
 
 219 examples, 0 failures
 
-Took 11 seconds
+Took 10 seconds
