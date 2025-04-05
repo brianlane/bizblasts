@@ -45,5 +45,8 @@ module Bizblasts
     config.assets.paths << Rails.root.join("app", "assets", "fonts")
     config.assets.paths << Gem.loaded_specs['activeadmin'].full_gem_path + "/app/assets/stylesheets"
     config.assets.paths << Gem.loaded_specs['activeadmin'].full_gem_path + "/app/assets/javascripts"
+
+    # Explicitly add assets for precompilation (might help build process)
+    config.assets.precompile += %w( active_admin.js active_admin.css )
   end
 end
