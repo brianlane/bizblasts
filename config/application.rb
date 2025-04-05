@@ -40,16 +40,5 @@ module Bizblasts
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
-
-    # Add ActiveAdmin assets to Propshaft load paths
-    config.assets.paths << Rails.root.join("app", "assets", "fonts")
-    config.assets.paths << Gem.loaded_specs['activeadmin'].full_gem_path + "/app/assets/stylesheets"
-    config.assets.paths << Gem.loaded_specs['activeadmin'].full_gem_path + "/app/assets/javascripts"
-
-    # Explicitly add the output path for Propshaft (should be default, but just in case)
-    config.assets.paths << Rails.root.join("public", "assets")
-
-    # Explicitly add assets for precompilation (might help build process)
-    config.assets.precompile += %w( active_admin.js active_admin.css )
   end
 end

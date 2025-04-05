@@ -39,4 +39,8 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   root "home#index"
+
+  # Fallback route for ActiveAdmin assets
+  get "/assets/active_admin.css", to: redirect("/assets/active_admin.css"), as: :active_admin_css
+  get "/assets/active_admin-:digest.css", to: redirect("/assets/active_admin-:digest.css"), as: :active_admin_css_digested
 end
