@@ -6,7 +6,7 @@
     "build:css:active_admin": "sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules",
     "build:css": "npm run build:css:application && npm run build:css:active_admin"
   },
-  "devDependencies": {
+  "dependencies": {
     "sass": "^1.86.3"
   }
 }

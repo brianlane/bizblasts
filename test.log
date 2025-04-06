@@ -1,7 +1,6 @@
 ==> Running tests (Database Cleaning ENABLED)...
 Running full test suite in parallel (4 processes)...
-Warning: coverage data provided by Coverage [170] exceeds number of lines in /Users/brianlane/bizblasts/app/controllers/application_controller.rb [152]
-==> Tests completed in 10 seconds!
+==> Tests completed in 12 seconds!
 
 ==> Individual process results:
 50 examples, 0 failures
