@@ -51,7 +51,7 @@ class Booking < ApplicationRecord
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
     %w[id start_time end_time status notes service_id staff_member_id tenant_customer_id 
-       business_id created_at updated_at]
+       business_id created_at updated_at amount original_amount discount_amount cancellation_reason]
   end
   
   # Define ransackable associations for ActiveAdmin

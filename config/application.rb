@@ -31,7 +31,7 @@ module Bizblasts
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w(assets tasks))
+    config.autoload_lib(ignore: %w[assets tasks])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -40,8 +40,16 @@ module Bizblasts
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
-
-    # Add app/assets/builds to asset paths for Propshaft precompilation
-    config.assets.paths << Rails.root.join("app/assets/builds")
+    
+    # Ensure asset paths are set up early for Propshaft
+    if defined?(Propshaft)
+      config.assets.paths ||= []
+      
+      # Add app/assets/builds to the asset load path
+      config.assets.paths << Rails.root.join('app', 'assets', 'builds').to_s
+      
+      # Add public/assets to the asset load path for production fallbacks
+      config.assets.paths << Rails.root.join('public', 'assets').to_s
+    end
   end
 end
