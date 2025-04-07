@@ -7,7 +7,6 @@
     "build:css": "npm run build:css:application && npm run build:css:active_admin"
   },
   "devDependencies": {
-    "@activeadmin/activeadmin": "^3.3.0",
     "sass": "^1.86.3"
   }
 }
