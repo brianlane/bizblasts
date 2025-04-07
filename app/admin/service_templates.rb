@@ -1,7 +1,37 @@
 ActiveAdmin.register ServiceTemplate do
-  # Permit parameters for create/update actions
+  # Permit parameters for create/update actions - revert to scalar symbols
   permit_params :name, :description, :category, :industry, :active, :status, 
                 :features, :pricing, :content, :settings
+
+  controller do
+    # Parse JSON string params before create and update
+    before_action :parse_json_params, only: [:create, :update]
+
+    private
+
+    def parse_json_params
+      # Don't modify @resource directly here
+      %i[features pricing content settings].each do |param|
+        param_value = params[:service_template][param]
+        if param_value.is_a?(String) && param_value.present?
+          begin
+            parsed_json = JSON.parse(param_value)
+            # Replace the string param with the parsed hash/array
+            params[:service_template][param] = parsed_json 
+          rescue JSON::ParserError => e
+            Rails.logger.error("Failed to parse JSON for #{param}: #{e.message}")
+            # Add error directly to the params hash key that ActiveAdmin might check?
+            # This is less standard, model validations are better.
+            # For now, set to nil to avoid saving bad string, model validation should handle missing data if required.
+            params[:service_template][param] = nil 
+          end
+        elsif param_value.blank?
+           params[:service_template][param] = nil 
+        end
+      end
+      # Let the standard controller action use the modified params[:service_template]
+    end
+  end
 
   # Filter options for the index page
   filter :name
@@ -22,9 +52,6 @@ ActiveAdmin.register ServiceTemplate do
       status_tag template.status
     end
     column :active
-    column "Websites" do |template|
-      ClientWebsite.where(service_template_id: template.id).count
-    end
     column :created_at
     actions
   end
@@ -43,13 +70,7 @@ ActiveAdmin.register ServiceTemplate do
       row :created_at
       row :updated_at
       row :features do |template|
-        ul do
-          if template.features.present? && template.features.is_a?(Array)
-            template.features.each do |feature|
-              li feature.to_s
-            end
-          end
-        end
+        pre JSON.pretty_generate(template.features) if template.features.present?
       end
       row :pricing do |template|
         pre JSON.pretty_generate(template.pricing) if template.pricing.present?
@@ -65,21 +86,7 @@ ActiveAdmin.register ServiceTemplate do
       end
     end
 
-    panel "Websites Using This Template" do
-      table_for ClientWebsite.where(service_template_id: resource.id) do
-        column :id
-        column :name
-        column :company
-        column :status
-        column :active
-        column do |website|
-          links = []
-          links << link_to("View", admin_client_website_path(website))
-          links << link_to("Edit", edit_admin_client_website_path(website))
-          safe_join(links, " | ")
-        end
-      end
-    end
+    active_admin_comments # Ensure comments are still shown if needed
   end
 
   # Form customization
@@ -128,10 +135,6 @@ ActiveAdmin.register ServiceTemplate do
     else
       link_to "Activate Template", activate_admin_service_template_path(resource), method: :put
     end
-  end
-  
-  action_item :create_website, only: [:show] do
-    link_to "Create Website with this Template", new_admin_client_website_path(service_template_id: resource.id)
   end
   
   # Custom member actions

@@ -25,4 +25,14 @@ ActiveAdmin.register AdminUser do
     f.actions
   end
 
+  controller do
+    def destroy
+      if resource == current_admin_user
+        redirect_to admin_admin_users_path, alert: "Cannot delete yourself."
+      else
+        super
+      end
+    end
+  end
+
 end

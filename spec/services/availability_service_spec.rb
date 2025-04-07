@@ -117,6 +117,76 @@ RSpec.describe AvailabilityService, type: :service do
       end
     end
     
+    context 'when staff member has split shift availability' do
+      let(:split_availability) do
+        {
+          monday: [{ "start" => "09:00", "end" => "12:00" }, { "start" => "14:00", "end" => "17:00" }],
+          wednesday: [{ "start" => "09:00", "end" => "12:00" }, { "start" => "14:00", "end" => "17:00" }], 
+          # Other days omitted for brevity or empty
+        }
+      end
+      before { staff_member.update!(availability: split_availability) }
+
+      it 'returns slots only within the defined intervals' do
+        slots = described_class.available_slots(staff_member, date, service, interval: 30)
+        slot_times_h_m = slots.map { |s| s[:start_time].strftime('%H:%M') }
+
+        # Should include slots in 9-12 and 14-17 ranges
+        expect(slot_times_h_m).to include('09:00')
+        expect(slot_times_h_m).to include('11:00') # Last start time for 9-12 with 60min duration
+        expect(slot_times_h_m).to include('14:00')
+        expect(slot_times_h_m).to include('16:00') # Last start time for 14-17
+
+        # Should NOT include slots during the break or outside hours
+        expect(slot_times_h_m).not_to include('08:30')
+        expect(slot_times_h_m).not_to include('11:30') # End time would be 12:30
+        expect(slot_times_h_m).not_to include('12:00')
+        expect(slot_times_h_m).not_to include('12:30')
+        expect(slot_times_h_m).not_to include('13:00')
+        expect(slot_times_h_m).not_to include('13:30')
+        expect(slot_times_h_m).not_to include('16:30') # End time would be 17:30
+        expect(slot_times_h_m).not_to include('17:00')
+      end
+    end
+
+    context 'when there is a date exception (holiday)' do
+      let(:availability_with_exception) do
+        {
+          wednesday: [{ "start" => "09:00", "end" => "17:00" }], 
+          exceptions: { date.iso8601 => [] } # Closed on this specific Wednesday
+        }
+      end
+      before { staff_member.update!(availability: availability_with_exception) }
+
+      it 'returns no slots for the exception date' do
+        slots = described_class.available_slots(staff_member, date, service, interval: 30)
+        expect(slots).to be_empty
+      end
+    end
+    
+    context 'when there is a date exception (special hours)' do
+      let(:availability_with_special_hours) do
+        {
+          wednesday: [{ "start" => "09:00", "end" => "17:00" }], # Normal Wednesday
+          exceptions: { date.iso8601 => [{ "start" => "10:00", "end" => "14:00" }] } # Special hours
+        }
+      end
+       before { staff_member.update!(availability: availability_with_special_hours) }
+
+      it 'returns slots only within the special hours' do
+        slots = described_class.available_slots(staff_member, date, service, interval: 30)
+        slot_times_h_m = slots.map { |s| s[:start_time].strftime('%H:%M') }
+
+        expect(slot_times_h_m).to include('10:00')
+        expect(slot_times_h_m).to include('13:00') # Last start for 60min service ending at 14:00
+
+        expect(slot_times_h_m).not_to include('09:00')
+        expect(slot_times_h_m).not_to include('09:30')
+        expect(slot_times_h_m).not_to include('13:30')
+        expect(slot_times_h_m).not_to include('14:00')
+      end
+    end
+
     # TODO: Add tests for non-standard availability, exceptions, etc.
   end
 end 

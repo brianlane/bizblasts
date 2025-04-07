@@ -240,6 +240,26 @@ RSpec.describe BookingManager, type: :service do
     
     # TODO: Add test for customer notification if implemented
     # TODO: Add test for refund processing if implemented (requires payment setup)
-    # TODO: Add test for cancelling an already cancelled booking (should likely succeed idempotently)
+    
+    it 'succeeds even if the booking is already cancelled' do
+      booking_to_cancel.update!(status: :cancelled, cancellation_reason: "Initial reason")
+      
+      result = described_class.cancel_booking(booking_to_cancel, "Second attempt reason")
+      
+      expect(result).to be true
+      booking_to_cancel.reload
+      expect(booking_to_cancel.status).to eq('cancelled')
+      # Check if the reason gets updated or stays the same (depends on desired behavior)
+      # Assuming it should update:
+      expect(booking_to_cancel.cancellation_reason).to eq("Second attempt reason")
+    end
+
+    it 'returns false if update fails' do
+      # Force an update failure
+      allow(booking_to_cancel).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(booking_to_cancel))
+      
+      result = described_class.cancel_booking(booking_to_cancel, "Reason")
+      expect(result).to be false
+    end
   end
 end 

@@ -288,7 +288,6 @@ RSpec.describe PromotionManager, type: :service do
       create(:promotion, :fixed_amount, business: tenant, code: 'INVFIXED25', discount_value: 25)
     }
 
-    # Basic success case - more detailed checks similar to booking apply
     context 'with a valid percentage promotion' do
       it 'applies discount, updates invoice, increments usage, creates redemption' do
         initial_usage = percent_promo_inv.current_usage
@@ -298,15 +297,13 @@ RSpec.describe PromotionManager, type: :service do
           expect(result[:valid]).to be true
           expect(result[:promotion]).to eq(percent_promo_inv)
           expect(result[:original_amount]).to eq(100.00)
-          expect(result[:discount_amount]).to eq(15.00) # 15% of 100
+          expect(result[:discount_amount]).to eq(15.00)
           expect(result[:final_amount]).to eq(85.00)
           
           invoice.reload
           expect(invoice.promotion_id).to eq(percent_promo_inv.id)
-          # Assuming invoice model also has discount_amount and original_amount? Need to check.
-          # Let's assume it does for now based on service code.
           expect(invoice.discount_amount).to eq(15.00)
-          expect(invoice.amount).to eq(85.00) # Check if service updates amount or total_amount
+          expect(invoice.amount).to eq(85.00)
           
           percent_promo_inv.reload
           expect(percent_promo_inv.current_usage).to eq(initial_usage + 1)
@@ -315,14 +312,33 @@ RSpec.describe PromotionManager, type: :service do
         redemption = PromotionRedemption.last
         expect(redemption.promotion).to eq(percent_promo_inv)
         expect(redemption.tenant_customer).to eq(customer)
-        expect(redemption.booking).to eq(booking_for_invoice) # Check booking linked via invoice
+        expect(redemption.booking).to eq(booking_for_invoice)
+      end
+    end
+
+    context 'with a valid fixed amount promotion' do
+      it 'applies discount, updates invoice, increments usage, creates redemption' do
+        expect { 
+          result = described_class.apply_promotion_to_invoice(invoice, 'INVFIXED25')
+
+          expect(result[:valid]).to be true
+          expect(result[:discount_amount]).to eq(25.00)
+          expect(result[:final_amount]).to eq(75.00)
+
+          invoice.reload
+          expect(invoice.promotion_id).to eq(fixed_promo_inv.id)
+          expect(invoice.amount).to eq(75.00)
+          
+          fixed_promo_inv.reload
+          expect(fixed_promo_inv.current_usage).to eq(1)
+        }.to change(PromotionRedemption, :count).by(1)
       end
     end
 
     context 'with an invalid promotion code' do
-      it 'returns validation error and does not modify invoice or redemption' do
-        expect { 
-          result = described_class.apply_promotion_to_invoice(invoice, 'INVALIDCODE')
+      it 'returns validation error and does not change invoice or redemptions' do
+         expect { 
+          result = described_class.apply_promotion_to_invoice(invoice, 'BADINVCODE')
           expect(result[:valid]).to be false
           expect(result[:error]).to eq("Invalid promotion code")
           
@@ -332,7 +348,88 @@ RSpec.describe PromotionManager, type: :service do
       end
     end
     
-    # TODO: Add other cases (fixed, limits, edge cases) similar to booking tests
+    context 'when fixed discount is greater than invoice amount' do
+      let!(:expensive_fixed_promo_inv) { 
+        create(:promotion, :fixed_amount, business: tenant, code: 'INV_OVER150', discount_value: 150.00)
+      }
+      
+      it 'discounts amount to 0 and records correct discount amount' do
+        expect { 
+          result = described_class.apply_promotion_to_invoice(invoice, 'INV_OVER150')
+          
+          expect(result[:valid]).to be true
+          expect(result[:promotion]).to eq(expensive_fixed_promo_inv)
+          expect(result[:original_amount]).to eq(100.00) # Based on invoice setup
+          expect(result[:discount_amount]).to eq(100.00) # Capped at original amount
+          expect(result[:final_amount]).to eq(0.00)
+
+          invoice.reload
+          expect(invoice.promotion_id).to eq(expensive_fixed_promo_inv.id)
+          expect(invoice.discount_amount).to eq(100.00)
+          expect(invoice.amount).to eq(0.00)
+          
+          expensive_fixed_promo_inv.reload
+          expect(expensive_fixed_promo_inv.current_usage).to eq(1)
+        }.to change(PromotionRedemption, :count).by(1)
+      end
+    end
+
+    context 'when invoice amount is already 0' do
+      before do
+        # Modify the existing invoice for this context
+        invoice.update!(amount: 0.00, original_amount: 0.00, discount_amount: nil, promotion: nil) 
+        # Also reload the percent_promo_inv to reset usage count from previous tests in the group
+        percent_promo_inv.reload 
+      end
+      
+      it 'does not apply further discount but records redemption and increments usage' do
+        initial_usage = percent_promo_inv.current_usage
+        
+        expect { 
+          # Use the modified zero-amount invoice
+          result = described_class.apply_promotion_to_invoice(invoice, 'INVPERCENT15')
+          
+          expect(result[:valid]).to be true
+          expect(result[:promotion]).to eq(percent_promo_inv)
+          expect(result[:original_amount]).to eq(0.00)
+          expect(result[:discount_amount]).to eq(0.00) # No discount applied
+          expect(result[:final_amount]).to eq(0.00)
+
+          invoice.reload
+          expect(invoice.promotion_id).to eq(percent_promo_inv.id)
+          expect(invoice.discount_amount).to eq(0.00)
+          expect(invoice.amount).to eq(0.00)
+          
+          percent_promo_inv.reload
+          expect(percent_promo_inv.current_usage).to eq(initial_usage + 1)
+
+        }.to change(PromotionRedemption, :count).by(1)
+      end
+    end
+
+    context 'when usage limit is reached between validation and application' do
+      let!(:limited_promo_inv_apply) { 
+        create(:promotion, :percentage, business: tenant, code: 'INV_LIMIT_APPLY', discount_value: 5, usage_limit: 1, current_usage: 0)
+      }
+
+      it 'returns an error and does not apply the promotion' do
+        # Simulate limit being reached after validation but before update in transaction
+        allow(Promotion).to receive(:find_by).with(code: 'INV_LIMIT_APPLY', business_id: invoice.business_id).and_return(limited_promo_inv_apply)
+        allow(limited_promo_inv_apply).to receive(:usage_limit_reached?).and_return(false, true) # False for validate, True for apply check
+        
+        expect {
+          result = described_class.apply_promotion_to_invoice(invoice, 'INV_LIMIT_APPLY')
+          expect(result[:valid]).to be false
+          expect(result[:error]).to eq("Promotion usage limit reached just before applying.")
+
+          invoice.reload
+          expect(invoice.promotion_id).to be_nil
+          expect(limited_promo_inv_apply.current_usage).to eq(0) # Usage not incremented
+        }.not_to change(PromotionRedemption, :count)
+      end
+    end
+
+    # All TODOs addressed for apply_promotion_to_invoice
   end
   
   describe '.generate_unique_code' do
