@@ -26,6 +26,7 @@ fi
 echo "Installing dependencies..."
 bundle install
 
+
 echo "Precompiling assets..."
 bundle exec rake assets:precompile
 bundle exec rake assets:clean
@@ -35,13 +36,13 @@ echo "Rails environment: $RAILS_ENV"
 echo "SECRET_KEY_BASE set: $(if [ -n "$SECRET_KEY_BASE" ]; then echo "Yes"; else echo "No"; fi)"
 echo "RAILS_MASTER_KEY set: $(if [ -n "$RAILS_MASTER_KEY" ]; then echo "Yes"; else echo "No"; fi)"
 
-# Print database config for debugging
-echo "Database configuration:"
-bundle exec rails runner "puts ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).inspect"
-
 # Create database if it doesn't exist
 echo "Checking if database exists..."
 bundle exec rake db:version > /dev/null 2>&1 || bundle exec rake db:create
+
+# Print database config for debugging
+echo "Database configuration:"
+bundle exec rails runner "puts ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).inspect"
 
 # Only load schema for fresh databases, not in production with existing data
 if [[ "$RAILS_ENV" != "production" || ! -z "$RESET_DB" ]]; then
@@ -57,12 +58,12 @@ bundle exec rake db:migrate || echo "Migrations failed, but continuing..."
 
 # Verify that companies table exists
 echo "Verifying that companies table exists..."
-if bundle exec rake runner "puts ActiveRecord::Base.connection.table_exists?('companies')"; then
+if bundle exec rails runner "puts ActiveRecord::Base.connection.table_exists?('companies')"; then
   echo "Companies table exists! Database setup successful."
 else
   echo "WARNING: Companies table does not exist. Attempting manual creation..."
   # Create the companies table manually as last resort
-  bundle exec rake runner "
+  bundle exec rails runner "
     unless ActiveRecord::Base.connection.table_exists?('companies')
       ActiveRecord::Base.connection.create_table(:companies) do |t|
         t.string :name, null: false, default: 'Default'
@@ -76,7 +77,7 @@ fi
 
 # Create default company if needed
 echo "Creating default company record..."
-bundle exec rake runner "
+bundle exec rails runner "
   Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
   puts \"Default company count: #{Company.count}\"
 "
@@ -84,7 +85,7 @@ bundle exec rake runner "
 # Create admin user from environment variables if configured
 if [[ -n "$ADMIN_EMAIL" && -n "$ADMIN_PASSWORD" ]]; then
   echo "Creating admin user from environment variables..."
-  bundle exec rake runner "
+  bundle exec rails runner "
     admin = AdminUser.find_or_initialize_by(email: '$ADMIN_EMAIL') do |user|
       user.password = '$ADMIN_PASSWORD'
       user.password_confirmation = '$ADMIN_PASSWORD'
