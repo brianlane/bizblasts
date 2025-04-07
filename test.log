@@ -4,8 +4,8 @@ Running full test suite in parallel (4 processes)...
 
 ==> Individual process results:
 50 examples, 0 failures
-56 examples, 0 failures
 55 examples, 0 failures
+56 examples, 0 failures
 58 examples, 0 failures
 219 examples, 0 failures
 

@@ -37,7 +37,7 @@ echo "RAILS_MASTER_KEY set: $(if [ -n "$RAILS_MASTER_KEY" ]; then echo "Yes"; el
 
 # Print database config for debugging
 echo "Database configuration:"
-bundle exec rake runner "puts ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).inspect"
+bundle exec rails runner "puts ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).inspect"
 
 # Create database if it doesn't exist
 echo "Checking if database exists..."
