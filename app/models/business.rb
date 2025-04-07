@@ -74,7 +74,7 @@ class Business < ApplicationRecord
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
-    %w[staff_members services bookings tenant_customers]
+    %w[staff_members services bookings tenant_customers users]
   end
   
   private

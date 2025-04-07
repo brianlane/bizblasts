@@ -136,12 +136,12 @@ class StaffMember < ApplicationRecord
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name email phone bio active business_id created_at updated_at]
+    %w[id name email phone bio active business_id user_id position created_at updated_at photo_url]
   end
   
   # Define ransackable associations for ActiveAdmin
   def self.ransackable_associations(auth_object = nil)
-    %w[business bookings services]
+    %w[business bookings services user]
   end
   
   private

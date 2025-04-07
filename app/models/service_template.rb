@@ -1,5 +1,5 @@
 class ServiceTemplate < ApplicationRecord
-  has_many :client_websites, dependent: :restrict_with_error
+  # Removed has_many :client_websites association
 
   validates :name, presence: true
   
