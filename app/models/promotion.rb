@@ -30,4 +30,14 @@ class Promotion < ApplicationRecord
   def usage_limit_reached?
     usage_limit.present? && current_usage >= usage_limit
   end
+
+  # Allow searching/filtering on these attributes in ActiveAdmin
+  def self.ransackable_attributes(auth_object = nil)
+    %w[id name code description discount_type discount_value start_date end_date usage_limit current_usage active business_id created_at updated_at]
+  end
+
+  # Allow searching/filtering through these associations in ActiveAdmin
+  def self.ransackable_associations(auth_object = nil)
+    %w[business promotion_redemptions customers]
+  end
 end

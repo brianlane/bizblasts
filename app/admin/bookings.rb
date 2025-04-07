@@ -1,4 +1,4 @@
-ActiveAdmin.register Appointment do
+ActiveAdmin.register Booking do
 
   # See permitted parameters documentation:
   # https://github.com/activeadmin/activeadmin/blob/master/docs/2-resource-customization.md#setting-up-strong-parameters
@@ -19,10 +19,10 @@ ActiveAdmin.register Appointment do
   filter :staff_member
   filter :tenant_customer
   filter :service
-  filter :status, as: :select, collection: Appointment.statuses
+  filter :status, as: :select, collection: Booking.statuses
   filter :start_time
-  filter :price
-  filter :paid
+  filter :amount
+  filter :promotion
   
   index do
     selectable_column
@@ -34,10 +34,10 @@ ActiveAdmin.register Appointment do
     column :start_time
     column :end_time
     column :status
-    column :price do |appointment|
-      number_to_currency(appointment.price) if appointment.price
+    column :amount do |booking|
+      number_to_currency(booking.amount) if booking.amount
     end
-    column :paid
+    column :promotion
     actions
   end
   
@@ -51,34 +51,42 @@ ActiveAdmin.register Appointment do
       row :start_time
       row :end_time
       row :status
-      row :price do |appointment|
-        number_to_currency(appointment.price) if appointment.price
+      row :original_amount do |booking|
+        number_to_currency(booking.original_amount) if booking.original_amount
       end
-      row :paid
+      row :discount_amount do |booking|
+        number_to_currency(booking.discount_amount) if booking.discount_amount
+      end
+      row :amount do |booking|
+        number_to_currency(booking.amount) if booking.amount
+      end
       row :notes
       row :metadata
       row :stripe_payment_intent_id
       row :stripe_customer_id
+      row :promotion
       row :cancelled_at
       row :cancellation_reason
       row :created_at
       row :updated_at
+      row :invoice do |booking|
+        link_to booking.invoice.invoice_number, admin_invoice_path(booking.invoice) if booking.invoice
+      end
     end
   end
   
   form do |f|
     f.inputs do
       f.input :business
-      f.input :tenant_customer, collection: TenantCustomer.where(business: f.object.business || ActsAsTenant.current_tenant)
-      f.input :staff_member, collection: StaffMember.where(business: f.object.business || ActsAsTenant.current_tenant)
-      f.input :service, collection: Service.where(business: f.object.business || ActsAsTenant.current_tenant)
+      current_business = f.object.business || ActsAsTenant.current_tenant
+      f.input :tenant_customer, collection: TenantCustomer.where(business: current_business)
+      f.input :staff_member, collection: StaffMember.where(business: current_business)
+      f.input :service, collection: Service.where(business: current_business)
       f.input :start_time
       f.input :end_time
-      f.input :status, as: :select, collection: Appointment.statuses.keys.map { |s| [s.titleize, s] }
-      f.input :price
-      f.input :paid
+      f.input :status, as: :select, collection: Booking.statuses.keys.map { |s| [s.titleize, s] }
       f.input :notes
-      f.input :cancelled_at
+      f.input :promotion, collection: Promotion.where(business: current_business)
       f.input :cancellation_reason
     end
     f.actions
