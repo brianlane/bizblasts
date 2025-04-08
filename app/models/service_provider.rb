@@ -1,15 +1,19 @@
 # frozen_string_literal: true
 
 class ServiceProvider < ApplicationRecord
-  belongs_to :company
-  has_many :appointments, dependent: :restrict_with_error # Prevent deleting if appointments exist
+  self.table_name = 'staff_members' # Explicitly set table name
 
-  validates :company, presence: true
-  validates :name, presence: true, uniqueness: { scope: :company_id }
+  belongs_to :business # Specify FK is inferred correctly by Rails convention
+  has_many :bookings, foreign_key: :staff_member_id, dependent: :restrict_with_error # Re-applying this change as it seems more consistent
+  # has_many :appointments, dependent: :restrict_with_error # Remove appointment association
+
+  validates :business, presence: true # Update validation to use :business
+  validates :name, presence: true, uniqueness: { scope: :business_id } # Scope remains business_id
   validates :active, inclusion: { in: [true, false] }
   # Add validations for email and phone format, allowing them to be blank
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
-  validates :phone, format: { with: /\A\+?\d{1,3}[-.\s]?\(?\d{1,3}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}\z/, message: "must be a valid phone number" }, allow_blank: true
+  # Updated regex to be more permissive for common phone formats (incl. Faker)
+  validates :phone, format: { with: /\A(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\z/, message: "must be a valid phone number" }, allow_blank: true
 
   # Validate the structure of the availability JSON upon saving
   validate :validate_availability_structure
@@ -84,11 +88,12 @@ class ServiceProvider < ApplicationRecord
           end
           
           availability['exceptions'][date] = valid_slots
-        elsif slots.blank?
-          # Ensure empty submission is an empty array not empty string
+        else # Handle non-array or blank values by converting to empty array
           availability['exceptions'][date] = []
         end
       end
+    elsif availability.key?('exceptions') # Handle case where 'exceptions' key exists but value isn't a hash
+      availability['exceptions'] = {}
     end
   end
 
@@ -187,7 +192,7 @@ class ServiceProvider < ApplicationRecord
     return if time_str.blank? # Allow blank times? Decide based on requirements.
 
     # First check format with regex to ensure it matches HH:MM format
-    unless time_str.match?(/\A\d{1,2}:\d{2}\z/)
+    unless time_str.match?(/\A\d{2}:\d{2}\z/)
       errors.add(:availability, :invalid_time_format, message: "invalid #{description} for '#{day_key}': '#{time_str}'. Use HH:MM format.")
       return
     end
