@@ -1,15 +1,15 @@
 ==> Running tests (Database Cleaning ENABLED)...
 Running full test suite in parallel (4 processes)...
-==> Tests completed in 15 seconds!
+==> Tests completed in 14 seconds!
 
 ==> Individual process results:
-52 examples, 0 failures
-74 examples, 0 failures
-63 examples, 0 failures
-80 examples, 0 failures
-269 examples, 0 failures
+68 examples, 0 failures
+64 examples, 0 failures
+75 examples, 0 failures
+98 examples, 0 failures
+305 examples, 0 failures
 
 ==> Test Summary: All tests passed! (Exit Code: 0)
-    (Ran 538 tests, 0 failures)
-    Overall Coverage: 68.09%
+    (Ran 610 tests, 0 failures)
+    Overall Coverage: 72.36%
 See test.out for detailed output
