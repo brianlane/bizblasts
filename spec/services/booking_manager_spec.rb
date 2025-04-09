@@ -44,8 +44,10 @@ RSpec.describe BookingManager, type: :service do
 
     context 'when the time slot is available' do
       before do
-        # Mock staff member availability check to return true
-        allow(staff_member).to receive(:available?).with(start_time, end_time).and_return(true)
+        # Mock AvailabilityService check to return true
+        allow(AvailabilityService).to receive(:is_available?)
+          .with(staff_member: staff_member, start_time: start_time, end_time: end_time)
+          .and_return(true)
         # Need to ensure find returns the mockable staff_member
         allow(StaffMember).to receive(:find).with(staff_member.id).and_return(staff_member)
       end
@@ -84,8 +86,10 @@ RSpec.describe BookingManager, type: :service do
 
     context 'when the time slot is not available' do
        before do
-         # Mock staff member availability check to return false
-         allow(staff_member).to receive(:available?).with(start_time, end_time).and_return(false)
+         # Mock AvailabilityService check to return false
+         allow(AvailabilityService).to receive(:is_available?)
+           .with(staff_member: staff_member, start_time: start_time, end_time: end_time)
+           .and_return(false)
          allow(StaffMember).to receive(:find).with(staff_member.id).and_return(staff_member)
        end
        
@@ -110,7 +114,8 @@ RSpec.describe BookingManager, type: :service do
       
       it 'does not create a booking and returns validation errors' do
         # Availability check might pass or fail depending on mock, but save should fail
-        allow(staff_member).to receive(:available?).and_return(true)
+        # Stub AvailabilityService to return true for this case to ensure save failure is tested
+        allow(AvailabilityService).to receive(:is_available?).and_return(true)
         allow(StaffMember).to receive(:find).with(staff_member.id).and_return(staff_member)
         
         expect {
@@ -151,8 +156,10 @@ RSpec.describe BookingManager, type: :service do
 
     context 'when updating time to an available slot' do
       before do
-        # Mock availability for the *new* time slot
-        allow(staff_member).to receive(:available?).with(new_start_time, new_end_time).and_return(true)
+        # Mock availability for the *new* time slot using AvailabilityService
+        allow(AvailabilityService).to receive(:is_available?)
+          .with(staff_member: staff_member, start_time: new_start_time, end_time: new_end_time)
+          .and_return(true)
         # No need to mock find, as update_booking uses booking.staff_member directly
       end
 
@@ -179,8 +186,10 @@ RSpec.describe BookingManager, type: :service do
 
     context 'when updating time to an unavailable slot' do
        before do
-         # Mock availability for the *new* time slot
-         allow(staff_member).to receive(:available?).with(new_start_time, new_end_time).and_return(false)
+         # Mock availability for the *new* time slot using AvailabilityService
+         allow(AvailabilityService).to receive(:is_available?)
+           .with(staff_member: staff_member, start_time: new_start_time, end_time: new_end_time)
+           .and_return(false)
        end
 
       it 'does not update the booking' do
@@ -202,7 +211,7 @@ RSpec.describe BookingManager, type: :service do
     context 'when update parameters are invalid' do
        before do
          # Assume availability check passes if time isn't changing or is valid
-         allow(staff_member).to receive(:available?).and_return(true)
+         allow(AvailabilityService).to receive(:is_available?).and_return(true)
        end
        
       it 'does not update the booking and returns validation errors' do

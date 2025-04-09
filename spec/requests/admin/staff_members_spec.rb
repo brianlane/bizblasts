@@ -3,9 +3,11 @@
 require 'rails_helper'
 
 RSpec.describe "Admin StaffMembers", type: :request, admin: true do
-  let(:admin_user) { AdminUser.first || create(:admin_user) }
+  include FactoryBot::Syntax::Methods
+  
+  let!(:admin_user) { create(:admin_user) }
+  # Use the :staff_member factory
   let!(:business) { create(:business) }
-  # Use the :staff_member factory (renamed from :service_provider)
   let!(:staff_member) { create(:staff_member, business: business) }
 
   before do

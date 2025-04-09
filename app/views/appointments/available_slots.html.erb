@@ -1,48 +1,30 @@
-<div class="available-slots-container">
-  <h1>Available Time Slots</h1>
-  
-  <div class="provider-info">
-    <h2><%= @service_provider.name %></h2>
-    <% if @service.present? %>
-      <p>Service: <%= @service.name %> (<%= @service.duration_minutes %> minutes)</p>
-    <% end %>
-    <p>Date: <%= @date.strftime('%A, %B %d, %Y') %></p>
-  </div>
-  
-  <div class="date-selector">
-    <%= form_tag available_slots_bookings_path, method: :get do %>
-      <%= hidden_field_tag :service_provider_id, @service_provider.id %>
-      <%= hidden_field_tag :service_id, @service&.id %>
-      <%= hidden_field_tag :interval, @interval %>
-      
-      <%= date_field_tag :date, @date %>
-      <%= submit_tag "View Available Slots" %>
-    <% end %>
-  </div>
-  
-  <div class="slots-container">
-    <% if @slots.empty? %>
-      <p class="no-slots">No available slots for this date. Please select another date.</p>
-    <% else %>
-      <div class="time-slots">
-        <h3>Available Times</h3>
-        <div class="slots-grid">
-          <% @slots.each do |slot| %>
-            <div class="time-slot">
-              <%= link_to slot[:formatted_time], 
-                          new_booking_path(
-                            service_provider_id: @service_provider.id,
-                            service_id: @service&.id,
-                            start_time: slot[:start_time],
-                            end_time: slot[:end_time]
-                          ), 
-                          class: "slot-link" %>
-            </div>
-          <% end %>
-        </div>
+<div id="available-slots-container" class="mt-4">
+  <% if @staff_member %>
+    <h2><%= @staff_member.name %></h2>
+    <p class="text-gray-600 mb-2">Available Slots for <%= @date.strftime("%A, %B %d, %Y") %></p>
+    
+    <% if @slots.any? %>
+      <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        <% @slots.each do |slot_time| %>
+          <%# Each slot_time is now just a Time object %>
+          <%= button_to slot_time.strftime('%l:%M %p').strip, 
+                confirm_appointment_path, 
+                method: :get,
+                params: { 
+                  service_id: @service.id, 
+                  staff_member_id: @staff_member.id, 
+                  date: @date.iso8601,
+                  time: slot_time.strftime('%H:%M') # Pass time in HH:MM for precision
+                },
+                class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
+        <% end %>
       </div>
+    <% else %>
+      <p class="text-gray-500">No available slots found for this date.</p>
     <% end %>
-  </div>
+  <% else %>
+    <p class="text-red-500">Staff member not found.</p>
+  <% end %>
 </div>
 
 <style>

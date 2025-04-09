@@ -267,14 +267,12 @@ ActiveAdmin.setup do |config|
       
       menu.add label: "Business", priority: 4 do |business|
         business.add label: "Businesses", url: "/admin/businesses", priority: 1
-        business.add label: "Users", url: "/admin/users", priority: 2
-        business.add label: "Customers", url: "/admin/customers", priority: 3
-      end
-      
-      menu.add label: "Services", priority: 5 do |services|
-        services.add label: "Services", url: "/admin/services", priority: 1
-        services.add label: "Service Providers", url: "/admin/service_providers", priority: 2
-        services.add label: "Bookings", url: "/admin/bookings", priority: 3
+        business.add label: "Staff Members", url: "/admin/staff_members", priority: 2
+        business.add label: "Services", url: "/admin/services", priority: 3
+        business.add label: "Bookings", url: "/admin/bookings", priority: 4
+        business.add label: "Users", url: "/admin/users", priority: 5
+        business.add label: "Admin Users", url: "/admin/admin_users", priority: 6
+        business.add label: "Service Templates", url: "/admin/service_templates", priority: 7
       end
     end
   end
