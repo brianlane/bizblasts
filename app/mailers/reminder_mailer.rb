@@ -1,8 +1,8 @@
 class ReminderMailer < ApplicationMailer
-  def appointment_reminder(appointment)
-    # Placeholder for appointment reminder email
-    @appointment = appointment
-    mail(to: appointment.email, subject: 'Reminder: Your upcoming appointment')
+  def booking_reminder(booking)
+    # Placeholder for booking reminder email
+    @booking = booking
+    mail(to: booking.email, subject: 'Reminder: Your upcoming booking')
   end
 
   def follow_up(customer, service)

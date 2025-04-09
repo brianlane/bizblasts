@@ -202,12 +202,12 @@ end
 SEEDS_LOADED = true
 puts "Seed data creation complete!"
 
-# Remove redundant/conflicting company and admin user creation at the end
-# # Create a default company (required for all tenancy associations)
-# company = Company.find_or_initialize_by(name: "Example Company", subdomain: "example")
-# if company.new_record?
-#   company.save!
-#   puts "Created default company: Example Company (subdomain: example)"
+# Remove redundant/conflicting business and admin user creation at the end
+# # Create a default business (required for all tenancy associations)
+# business = Business.find_or_initialize_by(name: "Example Business", subdomain: "example")
+# if business.new_record?
+#   business.save!
+#   puts "Created default business: Example Business (subdomain: example)"
 # end
 # 
 # # Create an admin user

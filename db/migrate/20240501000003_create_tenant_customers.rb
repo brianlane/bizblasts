@@ -7,7 +7,7 @@ class CreateTenantCustomers < ActiveRecord::Migration[8.0]
       t.string :address
       t.text :notes
       t.references :business, null: false, foreign_key: true
-      t.datetime :last_appointment
+      t.datetime :last_booking
       t.boolean :active, default: true
 
       t.timestamps

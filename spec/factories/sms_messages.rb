@@ -4,7 +4,7 @@ FactoryBot.define do
     association :marketing_campaign
     
     phone_number { tenant_customer&.phone || "+15551234567" } 
-    content { "Your appointment reminder." }
+    content { "Your booking reminder." }
     status { :sent } 
     sent_at { 1.minute.ago }
     # delivered_at, error_message set by status methods

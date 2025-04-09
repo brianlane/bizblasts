@@ -111,17 +111,17 @@ class ApplicationController < ActionController::Base
     # Skip for www or blank subdomains
     return if subdomain.blank? || subdomain == "www"
 
-    nil unless table_exists_and_set_company(subdomain)
+    nil unless table_exists_and_set_business(subdomain)
   end
 
-  def table_exists_and_set_company(subdomain)
-    # First check if the companies table exists to prevent errors
-    unless companies_table_exists?
-      Rails.logger.error("Companies table does not exist - skipping tenant setup")
+  def table_exists_and_set_business(subdomain)
+    # First check if the businesses table exists to prevent errors
+    unless businesses_table_exists?
+      Rails.logger.error("Businesses table does not exist - skipping tenant setup")
       return false
     end
 
-    find_and_set_company_tenant(subdomain)
+    find_and_set_business_tenant(subdomain)
   rescue => e
     # Log the error but continue with the request (default tenant)
     Rails.logger.error("Error setting tenant: #{e.message}")
@@ -130,21 +130,20 @@ class ApplicationController < ActionController::Base
 
   protected
 
-  def companies_table_exists?
-    # Check if either companies or businesses table exists
-    ActiveRecord::Base.connection.table_exists?('companies') || 
+  def businesses_table_exists?
+    # Check if either businesses table exists
     ActiveRecord::Base.connection.table_exists?('businesses')
   end
 
-  def find_and_set_company_tenant(subdomain)
-    # Try to find the tenant in either Company or Business tables
+  def find_and_set_business_tenant(subdomain)
+    # Try to find the tenant in either Business or Business tables
     tenant = nil
     
-    if ActiveRecord::Base.connection.table_exists?('companies')
-      tenant = Company.find_by(subdomain: subdomain)
+    if ActiveRecord::Base.connection.table_exists?('businesses')
+      tenant = Business.find_by(subdomain: subdomain)
     end
     
-    # If not found in companies, try businesses
+    # If not found in businesses, try businesses
     if tenant.nil? && ActiveRecord::Base.connection.table_exists?('businesses')
       tenant = Business.find_by(subdomain: subdomain)
     end
@@ -164,7 +163,7 @@ class ApplicationController < ActionController::Base
   end
 
   def set_tenant_from_params
-    company = Company.find_by(id: params[:tenant_id])
-    set_current_tenant(company) if company
+    business = Business.find_by(id: params[:tenant_id])
+    set_current_tenant(business) if business
   end
 end

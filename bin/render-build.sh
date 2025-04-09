@@ -204,30 +204,30 @@ fi
 echo "Running migrations..."
 bundle exec rails db:migrate || echo "Migrations failed, but continuing..."
 
-# Verify that companies table exists
-echo "Verifying that companies table exists..."
-if bundle exec rails runner "puts ActiveRecord::Base.connection.table_exists?('companies')"; then
-  echo "Companies table exists! Database setup successful."
+# Verify that businesses table exists
+echo "Verifying that businesses table exists..."
+if bundle exec rails runner "puts ActiveRecord::Base.connection.table_exists?('businesses')"; then
+  echo "Businesses table exists! Database setup successful."
 else
-  echo "WARNING: Companies table does not exist. Attempting manual creation..."
-  # Create the companies table manually as last resort
+  echo "WARNING: Businesses table does not exist. Attempting manual creation..."
+  # Create the businesses table manually as last resort
   bundle exec rails runner "
-    unless ActiveRecord::Base.connection.table_exists?('companies')
-      ActiveRecord::Base.connection.create_table(:companies) do |t|
+    unless ActiveRecord::Base.connection.table_exists?('businesses')
+      ActiveRecord::Base.connection.create_table(:businesses) do |t|
         t.string :name, null: false, default: 'Default'
         t.string :subdomain, null: false, default: 'default'
         t.timestamps
       end
-      puts 'Companies table created manually!'
+      puts 'Businesses table created manually!'
     end
   "
 fi
 
-# Create default company if needed
-echo "Creating default company record..."
+# Create default business if needed
+echo "Creating default business record..."
 bundle exec rails runner "
-  Company.find_or_create_by!(name: 'Default Company', subdomain: 'default')
-  puts \"Default company count: #{Company.count}\"
+  Business.find_or_create_by!(name: 'Default Business', subdomain: 'default')
+  puts \"Default business count: #{Business.count}\"
 "
 
 # Create admin user from environment variables if configured

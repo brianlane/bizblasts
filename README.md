@@ -28,7 +28,7 @@ yarn install
 rails db:create
 rails db:migrate
 
-# Seed the database with initial data (including default company/tenant)
+# Seed the database with initial data (including default business/tenant)
 rails db:seed
 ```
 
@@ -54,15 +54,15 @@ rails server
 This application uses the `acts_as_tenant` gem for multi-tenancy. Key aspects:
 
 1. Tenants are identified by subdomain
-2. Tenant data is scoped with the `company_id` column on models
-3. All models requiring tenant isolation use `acts_as_tenant(:company)`
+2. Tenant data is scoped with the `business_id` column on models
+3. All models requiring tenant isolation use `acts_as_tenant(:business)`
 4. The application controller sets the current tenant based on subdomain
 
 ### Adding a New Tenant-Scoped Model
 
 ```ruby
 class YourModel < ApplicationRecord
-  acts_as_tenant(:company)
+  acts_as_tenant(:business)
   # rest of your model...
 end
 ```
@@ -106,7 +106,7 @@ Factory definitions are in `spec/factories/`. Use them in your tests:
 user = create(:user)
 
 # Build a record without saving it
-company = build(:company, name: "Custom Name")
+business = build(:business, name: "Custom Name")
 ```
 
 ### Continuous Integration

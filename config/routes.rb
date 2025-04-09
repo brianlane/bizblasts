@@ -29,8 +29,8 @@ Rails.application.routes.draw do
   # Dashboard for authenticated users
   get "dashboard" => "dashboard#index", as: :dashboard
   
-  # Appointments resource with available_slots endpoint
-  resources :appointments do
+  # Bookings resource with available_slots endpoint
+  resources :bookings do
     collection do
       get 'available_slots'
       post 'available_slots'

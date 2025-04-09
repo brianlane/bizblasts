@@ -10,7 +10,7 @@
   </div>
   
   <div class="date-selector">
-    <%= form_tag available_slots_appointments_path, method: :get do %>
+    <%= form_tag available_slots_bookings_path, method: :get do %>
       <%= hidden_field_tag :service_provider_id, @service_provider.id %>
       <%= hidden_field_tag :service_id, @service&.id %>
       <%= hidden_field_tag :interval, @interval %>
@@ -30,7 +30,7 @@
           <% @slots.each do |slot| %>
             <div class="time-slot">
               <%= link_to slot[:formatted_time], 
-                          new_appointment_path(
+                          new_booking_path(
                             service_provider_id: @service_provider.id,
                             service_id: @service&.id,
                             start_time: slot[:start_time],

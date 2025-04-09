@@ -23,11 +23,11 @@ class AvailabilityService
       start_time = Time.zone.parse("#{date.iso8601} #{slot[:time]}")
       end_time = start_time + duration.minutes
       
-      # Check if entire appointment duration would be within availability
+      # Check if entire booking duration would be within availability
       check_full_availability(service_provider, start_time, end_time)
     end
     
-    # Now filter out slots that conflict with existing appointments
+    # Now filter out slots that conflict with existing bookings
     available_slots = filter_booked_slots(available_slots, service_provider, date, duration)
     
     # Convert available times to full timestamps
@@ -75,7 +75,7 @@ class AvailabilityService
     true
   end
   
-  # Filter out slots that conflict with existing appointments
+  # Filter out slots that conflict with existing bookings
   def self.filter_booked_slots(slots, service_provider, date, duration)
     date_start = date.beginning_of_day
     date_end = date.end_of_day

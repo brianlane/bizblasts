@@ -36,7 +36,7 @@ class TenantCustomer < ApplicationRecord
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name email phone address notes active last_appointment created_at updated_at business_id]
+    %w[id name email phone address notes active last_booking created_at updated_at business_id]
   end
   
   # Define ransackable associations for ActiveAdmin
