@@ -3,6 +3,7 @@
 # Main controller for the application that handles tenant setup, authentication,
 # and error handling. Provides methods for maintenance mode and database connectivity checks.
 class ApplicationController < ActionController::Base
+  include Pundit::Authorization
   include DatabaseErrorHandling
   
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
@@ -32,17 +33,10 @@ class ApplicationController < ActionController::Base
       return true
     end
     
-    # Fallback to User with admin role for tests
-    if user_signed_in? && current_user.respond_to?(:role) && current_user.role == 'admin'
-      return true
-    end
+    # Removed fallback to User with admin role
     
     # Otherwise redirect to login - use ActiveAdmin's login path if available
-    if request.path.start_with?('/admin')
-      redirect_to new_admin_user_session_path
-    else
-      redirect_to new_user_session_path
-    end
+    redirect_to new_admin_user_session_path
   end
 
   # Helper method to check if admin user is signed in
@@ -52,12 +46,8 @@ class ApplicationController < ActionController::Base
 
   # Helper method to get current admin user
   def current_admin_user
-    if admin_user_signed_in?
-      @current_admin_user ||= warden.authenticate(scope: :admin_user)
-    elsif user_signed_in? && current_user.respond_to?(:role) && current_user.role == 'admin'
-      # Use the admin User for tests
-      current_user
-    end
+    # Removed fallback to User with admin role
+    @current_admin_user ||= warden.authenticate(scope: :admin_user) if admin_user_signed_in?
   end
 
   # Fallback for serving ActiveAdmin assets directly if they're missing from the asset pipeline

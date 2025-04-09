@@ -34,6 +34,9 @@ gem "solid_queue"
 gem "devise"
 gem "devise-jwt"
 
+# Authorization
+gem "pundit"
+
 # Admin interface
 gem "activeadmin"
 # gem "sassc-rails" # REMOVED - Conflicts with Propshaft/Importmap
