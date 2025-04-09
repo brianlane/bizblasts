@@ -49,7 +49,7 @@ RSpec.describe AvailabilityService, type: :service do
         staff_member.update!(availability: standard_availability)
       end
 
-      context 'and no existing appointments' do
+      context 'and no existing bookings' do
         it 'returns all slots within the 9-5 range for a 60min service' do
           # Sanity check
           # staff_member.reload # Might not be needed with around block?
@@ -83,7 +83,7 @@ RSpec.describe AvailabilityService, type: :service do
          end
       end
 
-      context 'and an existing appointment conflicts' do
+      context 'and an existing booking conflicts' do
         let!(:customer) { create(:tenant_customer, business: tenant) }
         let!(:booking) do
           create(:booking, 

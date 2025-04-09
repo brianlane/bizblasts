@@ -32,7 +32,7 @@ en:
   activerecord:
     errors:
       models:
-        company:
+        business:
           attributes:
             subdomain:
               lowercase_alphanumeric_only: "only allows lowercase letters and numbers without spaces"

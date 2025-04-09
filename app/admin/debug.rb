@@ -19,7 +19,7 @@ ActiveAdmin.register_page "Debug" do
             all_tenants = Business.pluck(:name, :subdomain)
             if all_tenants.any?
               table_for all_tenants do
-                column("Company Name") { |tenant| tenant[0] }
+                column("Business Name") { |tenant| tenant[0] }
                 column("Subdomain") { |tenant| tenant[1] }
                 column("Test URL (lvh.me)") do |tenant|
                   subdomain = tenant[1]

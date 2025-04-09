@@ -86,7 +86,7 @@ RSpec.describe SmsService, type: :service do
     
     it 'calls send_message with the correct arguments and formatted message' do
       expected_message = "Booking confirmed: Consultation on #{(Time.current + 3.days).strftime('%b %d at %I:%M %p')}. " \
-                         "Reply HELP for assistance or CANCEL to cancel your appointment."
+                         "Reply HELP for assistance or CANCEL to cancel your booking."
       expected_options = { 
         tenant_customer_id: customer.id,
         booking_id: booking.id,

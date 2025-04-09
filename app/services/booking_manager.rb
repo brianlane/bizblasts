@@ -106,11 +106,11 @@ class BookingManager
   private
   
   def self.schedule_reminders(booking)
-    # Schedule reminder for 24 hours before appointment
+    # Schedule reminder for 24 hours before booking
     reminder_time = booking.start_time - 24.hours
     BookingReminderJob.set(wait_until: reminder_time).perform_later(booking.id, '24h')
     
-    # Schedule reminder for 1 hour before appointment
+    # Schedule reminder for 1 hour before booking
     reminder_time = booking.start_time - 1.hour
     BookingReminderJob.set(wait_until: reminder_time).perform_later(booking.id, '1h')
   end

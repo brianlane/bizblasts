@@ -16,8 +16,8 @@ RSpec.describe "Admin Configuration", type: :model do
     expect(ActiveAdmin.application.namespaces[:admin].resources.keys).to include("Dashboard")
     
     # Verify that the companies resource is registered if available
-    if ActiveAdmin.application.namespaces[:admin].resources.keys.include?("Company")
-      expect(ActiveAdmin.application.namespaces[:admin].resources["Company"]).to be_present
+    if ActiveAdmin.application.namespaces[:admin].resources.keys.include?("Business")
+      expect(ActiveAdmin.application.namespaces[:admin].resources["Business"]).to be_present
     end
   end
 end 

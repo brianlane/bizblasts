@@ -2,16 +2,16 @@
 
 ## Future Enhancements
 
-1. **Email notifications for appointments**
-   - Send confirmation emails when appointments are created
-   - Send reminder emails before appointments
+1. **Email notifications for bookings**
+   - Send confirmation emails when bookings are created
+   - Send reminder emails before bookings
    - Send notification emails to service providers when they get a new booking
    - Allow customization of email templates
 
 2. **Calendar integration options**
    - Add Google Calendar integration 
    - Add Office 365/Outlook integration
-   - Implement iCalendar (.ics) file downloads for appointments
+   - Implement iCalendar (.ics) file downloads for bookings
    - Two-way sync between external calendars and BizBlasts
 
 3. **Customer-facing booking widget for public websites**

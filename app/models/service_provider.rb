@@ -5,7 +5,7 @@ class ServiceProvider < ApplicationRecord
 
   belongs_to :business # Specify FK is inferred correctly by Rails convention
   has_many :bookings, foreign_key: :staff_member_id, dependent: :restrict_with_error # Re-applying this change as it seems more consistent
-  # has_many :appointments, dependent: :restrict_with_error # Remove appointment association
+  # has_many :bookings, dependent: :restrict_with_error # Remove booking association
 
   validates :business, presence: true # Update validation to use :business
   validates :name, presence: true, uniqueness: { scope: :business_id } # Scope remains business_id

@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :customer do
-    association :company
+    association :business
     name { Faker::Name.name }
     email { Faker::Internet.unique.email }
     phone { Faker::PhoneNumber.phone_number }

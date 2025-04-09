@@ -200,7 +200,7 @@ ActiveAdmin.setup do |config|
   # Add additional meta tags to the head element of active admin pages.
   #
   # Add tags to all pages logged in users see:
-  #   config.meta_tags = { author: 'My Company' }
+  #   config.meta_tags = { author: 'My Business' }
 
   # By default, sign up/sign in/recover password pages are excluded
   # from showing up in search engine results by adding a robots meta
@@ -270,7 +270,7 @@ ActiveAdmin.setup do |config|
       end
       
       menu.add label: "Business", priority: 4 do |business|
-        business.add label: "Companies", url: "/admin/companies", priority: 1
+        business.add label: "Businesses", url: "/admin/businesses", priority: 1
         business.add label: "Users", url: "/admin/users", priority: 2
         business.add label: "Customers", url: "/admin/customers", priority: 3
       end
@@ -278,7 +278,7 @@ ActiveAdmin.setup do |config|
       menu.add label: "Services", priority: 5 do |services|
         services.add label: "Services", url: "/admin/services", priority: 1
         services.add label: "Service Providers", url: "/admin/service_providers", priority: 2
-        services.add label: "Appointments", url: "/admin/appointments", priority: 3
+        services.add label: "Bookings", url: "/admin/bookings", priority: 3
       end
     end
   end
