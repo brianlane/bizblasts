@@ -7,7 +7,7 @@ class BookingsController < ApplicationController
   
   # GET /bookings
   def index
-    @bookings = current_business_scope.bookings.includes(:service, :service_provider, :customer)
+    @bookings = current_business_scope.bookings.includes(:service, :staff_member, :customer)
                    .order(start_time: :desc)
     
     # Filter by status if provided
@@ -15,9 +15,9 @@ class BookingsController < ApplicationController
       @bookings = @bookings.where(status: params[:status])
     end
     
-    # Filter by service_provider_id if provided
-    if params[:service_provider_id].present?
-      @bookings = @bookings.where(service_provider_id: params[:service_provider_id])
+    # Filter by staff_member_id if provided
+    if params[:staff_member_id].present?
+      @bookings = @bookings.where(staff_member_id: params[:staff_member_id])
     end
     
     # Filter by customer_id if provided
@@ -35,9 +35,9 @@ class BookingsController < ApplicationController
   def new
     @booking = current_business_scope.bookings.new
     
-    # Pre-fill service and service provider from params if provided
+    # Pre-fill service and staff member from params if provided
     @booking.service_id = params[:service_id] if params[:service_id].present?
-    @booking.service_provider_id = params[:service_provider_id] if params[:service_provider_id].present?
+    @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
     @booking.customer_id = params[:customer_id] if params[:customer_id].present?
     
     # Set default start and end times if empty
@@ -94,18 +94,18 @@ class BookingsController < ApplicationController
   # GET or POST /bookings/available_slots
   def available_slots
     @date = params[:date] ? Date.parse(params[:date]) : Date.current
-    @service_provider = ServiceProvider.find_by(id: params[:service_provider_id])
+    @staff_member = Business.find_by(id: params[:staff_member_id])
     @service = Service.find_by(id: params[:service_id])
     @interval = (params[:interval] || 30).to_i
     
-    if @service_provider.nil?
-      render json: { error: 'Service provider not found' }, status: :not_found
+    if @staff_member.nil?
+      render json: { error: 'Staff member not found' }, status: :not_found
       return
     end
     
     # Get the available time slots using our service
     @slots = AvailabilityService.available_slots(
-      @service_provider, 
+      @staff_member, 
       @date, 
       @service, 
       interval: @interval
@@ -128,7 +128,7 @@ class BookingsController < ApplicationController
   def booking_params
     params.require(:booking).permit(
       :service_id, 
-      :service_provider_id, 
+      :staff_member_id, 
       :customer_id, 
       :start_time, 
       :end_time, 

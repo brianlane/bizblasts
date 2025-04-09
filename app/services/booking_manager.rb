@@ -9,7 +9,7 @@ class BookingManager
       
       # Corrected: Check availability using staff_member
       staff_member = StaffMember.find(booking.staff_member_id) if booking.staff_member_id
-      unless staff_member && staff_member.available?(booking.start_time, booking.end_time)
+      unless staff_member && AvailabilityService.is_available?(staff_member: staff_member, start_time: booking.start_time, end_time: booking.end_time)
         booking.errors.add(:base, "The selected time is not available for this staff member")
         return [nil, booking.errors]
       end
@@ -48,7 +48,7 @@ class BookingManager
       end_time = booking_params[:end_time] || booking.end_time
       
       if start_time != booking.start_time || end_time != booking.end_time
-        unless staff_member && staff_member.available?(start_time, end_time)
+        unless staff_member && AvailabilityService.is_available?(staff_member: staff_member, start_time: start_time, end_time: end_time)
           booking.errors.add(:base, "The selected time is not available for this staff member")
           return [nil, booking.errors]
         end

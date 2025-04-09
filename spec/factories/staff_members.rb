@@ -1,30 +1,52 @@
+# frozen_string_literal: true
+
 FactoryBot.define do
   factory :staff_member do
     association :business
-    name { Faker::Name.name } 
+    name { Faker::Name.name }
     email { Faker::Internet.unique.email }
-    phone { "#{rand(200..999)}-#{rand(100..999)}-#{rand(1000..9999)}" }
+    # Use Faker for phone number for more realistic formats
+    phone { Faker::PhoneNumber.unique.phone_number }
     active { true }
-    availability { {} } # Empty default availability
+    # Default availability (Mon-Fri 9-5)
+    availability do
+      {
+        'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'exceptions' => {}
+      }
+    end
 
-    trait :with_standard_availability do
-      availability do 
+    # Trait for inactive staff member
+    trait :inactive do
+      active { false }
+    end
+
+    # Trait for complex availability including exceptions
+    trait :with_complex_availability do
+      availability do
         {
-          "monday" => [{ "start" => "09:00", "end" => "12:00" }, { "start" => "13:00", "end" => "17:00" }],
-          "tuesday" => [{ "start" => "10:00", "end" => "16:00" }],
-          "wednesday" => [], # Closed
-          "thursday" => [{ "start" => "09:00", "end" => "17:00" }],
-          "friday" => [{ "start" => "09:00", "end" => "17:00" }],
-          "exceptions" => {
-            "2024-12-25" => [], # Holiday - Closed
-            "2024-11-28" => [{ "start" => "10:00", "end" => "14:00" }] # Special Hours
+          monday: [{ start: '08:00', end: '12:00' }, { start: '13:00', end: '17:00' }],
+          tuesday: [], # Closed
+          wednesday: [{ start: '10:00', end: '15:00' }],
+          # Thursday uses default
+          friday: [{ start: '09:00', end: '13:00' }],
+          saturday: [{ start: '10:00', end: '14:00' }],
+          # Sunday uses default (empty)
+          exceptions: {
+            "#{Date.today.iso8601}": [{ start: '11:00', end: '14:00' }], # Special hours today
+            "#{Date.tomorrow.iso8601}": [] # Closed tomorrow
           }
         }
       end
     end
 
-    # availability { { monday: [{ start: '09:00', end: '17:00' }] } } # Example
-    # settings { {} }
-    # notes { Faker::Lorem.sentence }
+    # Optional: Trait to associate with a User
+    trait :with_user do
+      association :user
+    end
   end
 end 

@@ -2,107 +2,103 @@
 
 # Service for managing and calculating availability time slots
 class AvailabilityService
-  # Generate available time slots for a service provider on a specific date
-  # 
-  # @param service_provider [ServiceProvider] the service provider to check
-  # @param date [Date] the date to check availability for
-  # @param service [Service] (optional) the service being booked
-  # @param interval [Integer] (optional) the interval in minutes between slots, defaults to 30
-  # @return [Array<Hash>] array of available time slots with :start_time and :end_time keys
-  def self.available_slots(service_provider, date, service = nil, interval: 30)
-    return [] unless service_provider.active?
-    
-    # Get the service duration in minutes (use correct attribute name)
-    duration = service&.duration || interval
-    
-    # Generate all possible time slots for the day at the given interval
-    all_slots = generate_time_slots(date, interval)
-    
-    # Filter slots based on service provider availability
-    available_slots = all_slots.select do |slot|
-      start_time = Time.zone.parse("#{date.iso8601} #{slot[:time]}")
-      end_time = start_time + duration.minutes
-      
-      # Check if entire booking duration would be within availability
-      check_full_availability(service_provider, start_time, end_time)
+  # Generate available time slots for a staff member on a specific date
+  #
+  # @param staff_member [StaffMember] the staff member to check
+  # @param date [Date] the date for which to generate slots
+  # @param service [Service, optional] the service being booked (to determine duration)
+  # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @return [Array<Time>] an array of available start times
+  def self.available_slots(staff_member, date, service = nil, interval: 30)
+    return [] unless staff_member.active?
+
+    duration = service&.duration || interval # Use service duration or default interval
+    time_slots = []
+    # Ensure start/end of day are in the correct Time.zone
+    start_of_day = Time.zone.local(date.year, date.month, date.day).beginning_of_day
+    end_of_day = Time.zone.local(date.year, date.month, date.day).end_of_day
+    current_time = start_of_day
+
+    while current_time + duration.minutes <= end_of_day
+      # Filter slots based on staff member availability
+      # Check if the staff member is available for the *entire* duration of the slot
+      start_slot_time = current_time
+      end_slot_time = current_time + duration.minutes
+
+      # Use the check_full_availability helper method
+      if check_full_availability(staff_member, start_slot_time, end_slot_time)
+        time_slots << start_slot_time
+      end
+
+      current_time += interval.minutes
     end
-    
-    # Now filter out slots that conflict with existing bookings
-    available_slots = filter_booked_slots(available_slots, service_provider, date, duration)
-    
-    # Convert available times to full timestamps
-    available_slots.map do |slot|
-      start_time = Time.zone.parse("#{date.iso8601} #{slot[:time]}")
-      end_time = start_time + duration.minutes
-      {
-        start_time: start_time,
-        end_time: end_time,
-        formatted_time: start_time.strftime('%l:%M %p').strip # For display purposes
-      }
-    end
+
+    # Remove slots that conflict with existing bookings
+    available_slots = filter_booked_slots(time_slots, staff_member, date, duration)
+
+    available_slots
   end
-  
+
+  # Check if a staff member is available for a specific time range
+  #
+  # @param staff_member [StaffMember] the staff member
+  # @param start_time [Time] the start of the time range
+  # @param end_time [Time] the end of the time range
+  # @return [Boolean] true if the staff member is available, false otherwise
+  def self.is_available?(staff_member:, start_time:, end_time:)
+    # Check active status first
+    return false unless staff_member.active?
+    # Use the detailed check_full_availability method
+    check_full_availability(staff_member, start_time, end_time)
+  end
+
+
   private
-  
-  # Generate all possible time slots for a day at given interval
-  def self.generate_time_slots(date, interval)
-    slots = []
+
+  # Check if a staff member is available for the entire duration
+  def self.check_full_availability(staff_member, start_time, end_time)
+    # Check availability in small increments (e.g., 5 minutes) within the interval
+    return false unless staff_member.active? # Check active status first
+    return false unless staff_member.available_at?(start_time)
     
-    # Start at 0:00 and go until 23:59
-    current_time = Tod::TimeOfDay.new(0, 0)
-    end_of_day = Tod::TimeOfDay.new(23, 59)
-    
-    while current_time < end_of_day
-      slots << { time: current_time.strftime('%H:%M') }
-      current_time = current_time + interval.minutes
-    end
-    
-    slots
-  end
-  
-  # Check if a service provider is available for the entire duration
-  def self.check_full_availability(service_provider, start_time, end_time)
-    # Restore original logic using available_at? (which checks work hours only)
-    return false unless service_provider.active? # Check active status first
-    return false unless service_provider.available_at?(start_time)
-    
-    check_time = start_time + 15.minutes # Check every 15 mins
+    check_time = start_time + 5.minutes
     while check_time < end_time
-      return false unless service_provider.available_at?(check_time)
-      check_time += 15.minutes
+      return false unless staff_member.available_at?(check_time)
+      check_time += 5.minutes
     end
-    
+    # Also check the very end time boundary, as available_at? uses '< end_time'
+    # This ensures availability *up to* the end time.
+    return false unless staff_member.available_at?(end_time - 1.minute)
     true
   end
-  
-  # Filter out slots that conflict with existing bookings
-  def self.filter_booked_slots(slots, service_provider, date, duration)
-    date_start = date.beginning_of_day
-    date_end = date.end_of_day
-    
-    # Get all confirmed bookings for this provider on this date
+
+  # Filter out time slots that overlap with existing bookings
+  def self.filter_booked_slots(slots, staff_member, date, duration)
+    # Fetch bookings for the staff member that overlap the given date
+    # Ensure start/end of day for query are also in the correct Time.zone
+    start_of_day_for_query = Time.zone.local(date.year, date.month, date.day).beginning_of_day
+    end_of_day_for_query = Time.zone.local(date.year, date.month, date.day).end_of_day
+    # Revert to pre-fetching bookings overlapping the day
     existing_bookings = Booking.where(
-      staff_member_id: service_provider.id, 
-      status: :confirmed # Use the correct enum symbol
-    ).where('start_time >= ? AND start_time <= ?', date_start, date_end)
-    
-    # Create time ranges that are already booked
-    booked_ranges = existing_bookings.map do |booking|
-      # Add a small buffer before and after (e.g., 5 minutes)
-      buffer = 5.minutes
-      [booking.start_time - buffer, booking.end_time + buffer]
-    end
-    
-    # Filter available slots to exclude those overlapping with booked times
-    slots.reject do |slot|
-      start_time = Time.zone.parse("#{date.iso8601} #{slot[:time]}")
-      end_time = start_time + duration.minutes
-      
-      # Check if this slot overlaps with any booked range
-      booked_ranges.any? do |booked_start, booked_end|
-        (start_time >= booked_start && start_time < booked_end) || # Slot starts during a booking
-        (end_time > booked_start && end_time <= booked_end) || # Slot ends during a booking
-        (start_time <= booked_start && end_time >= booked_end) # Slot completely contains a booking
+      staff_member_id: staff_member.id
+    ).where.not(
+      status: [:cancelled, :rejected]
+    ).where(
+      "bookings.start_time < ? AND bookings.end_time > ?", end_of_day_for_query, start_of_day_for_query
+    )
+
+    return slots if existing_bookings.empty?
+
+    slots.reject do |slot_start_time_local|
+      slot_end_time_local = slot_start_time_local + duration.minutes
+
+      # Convert slot times to UTC for comparison
+      slot_start_utc = slot_start_time_local.utc
+      slot_end_utc = slot_end_time_local.utc
+
+      existing_bookings.any? do |booking| # booking times are already UTC
+        # Compare UTC times
+        booking.start_time < slot_end_utc && booking.end_time > slot_start_utc
       end
     end
   end
