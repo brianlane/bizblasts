@@ -27,89 +27,89 @@ Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 19450
+Randomized with seed 35144
 .Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 46214
-.Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
+Randomized with seed 31965
+...Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 20325
-..........Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
+Randomized with seed 56923
+.......Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 57020
-.........................................................................................................................................................................................................................................................................--- Loading seeds for seed context ---
+Randomized with seed 21694
+..............................................................................................................................................................................................................................
+
+Finished in 6.74 seconds (files took 4.39 seconds to load)
+78 examples, 0 failures
+
+Randomized with seed 31965
+
+......--- Loading seeds for seed context ---
 Seeding database with sample data...
 Creating default tenant...
 Default tenant created: Default Business (default) ID: 1
 Creating admin user (skipped in production)...
 Admin user created with email: admin@example.com and password: password123
 Creating sample data for Default Business...
-..Created customer: Nelson Yost
-Created customer: Maryanna Becker
-Created customer: Sandy Kuhn
-.Created service: Basic Consultation
+Created customer: Jeramy Conn
+.Created customer: Josephine Dibbert
+Created customer: Sharda D'Amore
+Created service: Basic Consultation
 Created service: Website Setup
 Created service: Monthly Support
 Created staff member: Staff Member 1
 Created staff member: Staff Member 2
-Created booking at 2025-04-21 09:00 - 10:00 for Staff Member 1
-Created booking at 2025-04-15 12:00 - 13:00 for Staff Member 1
-..Created booking at 2025-04-14 15:00 - 16:00 for Staff Member 1
-Created booking at 2025-04-16 09:00 - 11:00 for Staff Member 2
-Created booking at 2025-04-17 12:00 - 14:00 for Staff Member 2
-Created booking at 2025-04-23 15:00 - 16:00 for Staff Member 2
+Created booking at 2025-04-14 09:00 - 11:00 for Staff Member 1
+Created booking at 2025-04-22 12:00 - 12:30 for Staff Member 1
+Created booking at 2025-04-14 15:00 - 15:30 for Staff Member 1
+Created booking at 2025-04-16 09:00 - 10:00 for Staff Member 2
+Created booking at 2025-04-24 12:00 - 14:00 for Staff Member 2
+Created booking at 2025-04-16 15:00 - 16:00 for Staff Member 2
 Seed data creation complete!
 Created admin user: bizblaststeam@gmail.com with password from ENV
-.........................................
+.................Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 75.46% (1636 / 2168)
+Branch Coverage: 45.15% (242 / 536)
+.......
 
-Finished in 7.39 seconds (files took 4.04 seconds to load)
-78 examples, 0 failures
-
-Randomized with seed 57020
-
-.............Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 75.2% (1628 / 2165)
-Branch Coverage: 45.83% (242 / 528)
-.....
-
-Finished in 7.94 seconds (files took 4.11 seconds to load)
+Finished in 7.48 seconds (files took 4.44 seconds to load)
 114 examples, 0 failures
 
-Randomized with seed 46214
+Randomized with seed 21694
 
-.
-
-Finished in 8.05 seconds (files took 4.05 seconds to load)
-70 examples, 0 failures
-
-Randomized with seed 20325
-
-Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 75.2% (1628 / 2165)
-Branch Coverage: 45.83% (242 / 528)
 ...
 
-Finished in 21.14 seconds (files took 4.08 seconds to load)
+Finished in 7.69 seconds (files took 4.34 seconds to load)
+70 examples, 0 failures
+
+Randomized with seed 56923
+
+Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 75.47% (1637 / 2169)
+Branch Coverage: 45.15% (242 / 536)
+..............................................................................
+
+Finished in 20.6 seconds (files took 4.36 seconds to load)
 83 examples, 0 failures
 
-Randomized with seed 19450
+Randomized with seed 35144
 
 Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 75.2% (1628 / 2165)
-Branch Coverage: 45.83% (242 / 528)
+Line Coverage: 75.5% (1639 / 2171)
+Branch Coverage: 45.15% (242 / 536)
 Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
-Line Coverage: 75.2% (1628 / 2165)
-Branch Coverage: 45.83% (242 / 528)
+Line Coverage: 75.51% (1640 / 2172)
+Branch Coverage: 45.52% (244 / 536)
 
 345 examples, 0 failures
 
-Took 26 seconds
+Took 27 seconds
 Tests Passed
 ==> Tests completed in 42 seconds!
     Reused 5 existing database(s) - saved ~15 seconds
@@ -133,6 +133,6 @@ Tests Passed
 
 ==> Test Summary: All tests passed! (Exit Code: 0)
     (Ran 690 tests, 0 failures)
-    Overall Coverage: 75.2%
+    Overall Coverage: 75.51%
 
 See test.out for detailed output

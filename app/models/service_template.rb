@@ -1,4 +1,8 @@
 class ServiceTemplate < ApplicationRecord
+  # Explicitly define attribute type for enum
+  attribute :template_type, :integer
+  attribute :industry, :integer # Also define for industry for consistency
+  
   has_many :businesses, foreign_key: :service_template_id, dependent: :nullify
 
   validates :name, presence: true
