@@ -4,7 +4,19 @@ require 'rails_helper'
 
 RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
   let(:admin_user) { AdminUser.first || create(:admin_user) }
-  let!(:service_template) { create(:service_template, status: 'draft', active: true) }
+  
+  # Explicitly create a valid record, bypassing factory for debugging
+  let!(:service_template) do 
+    ServiceTemplate.create!(
+      name: "Test Template from Let", 
+      description: "Debug description",
+      industry: :landscaping, # Use a valid enum key
+      template_type: :full_website, # Use a valid enum key
+      active: true,
+      published_at: nil, # Start as draft
+      structure: { test: true }
+    )
+  end
 
   before do
     sign_in admin_user
@@ -15,7 +27,12 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
       get "/admin/service_templates"
       expect(response).to be_successful
       expect(response.body).to include(service_template.name)
-      expect(response.body).to include(service_template.category)
+      expect(response.body).to include("Industry")
+      expect(response.body).to include("Template Type")
+      expect(response.body).to include("Published")
+      expect(response.body).to include("Landscaping")
+      expect(response.body).to include("Full website")
+      expect(response.body).to include('class="status_tag draft warn"')
     end
   end
 
@@ -27,6 +44,9 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
   #     expect(response.body).to include(service_template.name)
   #     expect(response.body).to include("Template Details")
   #     expect(response.body).to include("Publish Template") # Action item
+  #     expect(response.body).to include("Template Structure")
+  #     expect(response.body).to include("Industry")
+  #     expect(response.body).to include("Landscaping")
   #   end
   # end
 
@@ -36,23 +56,22 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
       expect(response).to be_successful
       expect(response.body).to include("New Service Template")
       expect(response.body).to include("Template Details")
-      expect(response.body).to include("Features and Content")
+      expect(response.body).to include("Template Structure")
+      expect(response.body).to include("service_template_industry")
+      expect(response.body).to include("service_template_template_type")
+      expect(response.body).to include("service_template_structure")
     end
   end
 
   describe "POST /admin/service_templates" do
     let(:valid_attributes) do
-      { 
+      {
         name: "New Awesome Template",
-        category: "marketing",
-        industry: "agency",
-        status: 'draft',
+        industry: "pool_service",
+        template_type: "booking",
         active: true,
         description: "A new template",
-        features: '["Feature A", "Feature B"]', # JSON needs to be passed as string
-        pricing: '{"monthly": 99}',
-        content: '{"headline": "New"}',
-        settings: '{"theme": "dark"}'
+        structure: JSON.generate({ pages: [{ title: "Booking Page", slug: "book" }] })
       }
     end
 
@@ -64,22 +83,20 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
       new_template = ServiceTemplate.last
       expect(response).to redirect_to(admin_service_template_path(new_template))
       
-      # Comment out checks after redirect due to rendering issues in test env
-      # follow_redirect!
-      # expect(response.body).to include("Service Template Details")
-      # expect(response.body).to include("New Awesome Template")
-      # Comment out checks for parsed JSON attributes due to update issues
-      # expect(new_template.features).to eq(["Feature A", "Feature B"])
-      # expect(new_template.pricing).to eq({"monthly" => 99})
+      expect(new_template.name).to eq("New Awesome Template")
+      expect(new_template.industry).to eq("pool_service")
+      expect(new_template.template_type).to eq("booking")
+      expect(JSON.parse(new_template.structure)).to eq({"pages" => [{ "title" => "Booking Page", "slug" => "book" }]})
     end
   end
 
   describe "PATCH /admin/service_templates/:id" do
     let(:updated_attributes) do
-      { 
+      {
         name: "Updated Template Name",
         description: "Updated description",
-        pricing: '{"monthly": 199, "yearly": 1999}' # Update pricing
+        industry: "home_service",
+        structure: JSON.generate({ pages: [{ title: "Home", slug: "home" }, { title: "About", slug: "about" }], theme: "light" })
       }
     end
 
@@ -89,88 +106,89 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
       service_template.reload
       expect(response).to redirect_to(admin_service_template_path(service_template))
       
-      # Comment out checks after redirect due to rendering issues in test env
-      # follow_redirect!
-      # expect(response.body).to include("Service Template Details")
-      # expect(response.body).to include("Updated Template Name")
+      expect(service_template.name).to eq("Updated Template Name")
       expect(service_template.description).to eq("Updated description")
-      # Comment out check for parsed JSON attributes due to update issues
-      # expect(service_template.pricing['monthly']).to eq(199)
+      expect(service_template.industry).to eq("home_service")
+      expect(JSON.parse(service_template.structure)).to eq({"pages" => [{ "title" => "Home", "slug" => "home" }, { "title" => "About", "slug" => "about" }], "theme" => "light"})
     end
   end
 
   describe "DELETE /admin/service_templates/:id" do
     it "deletes the service template" do
-      # Need to ensure no client websites are associated if restrict_with_error is active
-      # Since we removed client websites, this should be fine now.
       template_to_delete = create(:service_template, name: "Delete Me")
       expect {
         delete "/admin/service_templates/#{template_to_delete.id}"
       }.to change(ServiceTemplate, :count).by(-1)
       
       expect(response).to redirect_to(admin_service_templates_path)
-      # Comment out checks after redirect due to rendering issues in test env
-      # follow_redirect!
-      # expect(response.body).to include("Service Templates")
-      # expect(response.body).not_to include("Delete Me")
     end
   end
 
-  # Custom Member Actions
+  # Custom Member Actions (using published_at)
   describe "PUT /admin/service_templates/:id/publish" do
     it "publishes the template" do
-      put publish_admin_service_template_path(service_template)
-      service_template.reload
-      expect(service_template.status).to eq('published')
-      expect(service_template.published_at).not_to be_nil
-      expect(response).to redirect_to(admin_service_template_path(service_template))
-      # follow_redirect!
-      # expect(response.body).to include("Template has been published!")
+      template = ServiceTemplate.find(service_template.id) # Reload from DB
+      expect(template.published_at).to be_nil
+      put publish_admin_service_template_path(template)
+      template.reload
+      expect(template.published_at).not_to be_nil # Check if update worked
+      expect(response).to redirect_to(admin_service_template_path(template))
     end
   end
 
   describe "PUT /admin/service_templates/:id/unpublish" do
-    before { service_template.update!(status: 'published', published_at: Time.current) }
+    # Ensure it starts published and valid
+    before do
+      reloaded_template = ServiceTemplate.find(service_template.id)
+      reloaded_template.update!(published_at: Time.current)
+    end
     it "unpublishes the template" do
-      put unpublish_admin_service_template_path(service_template)
-      service_template.reload
-      expect(service_template.status).to eq('draft')
-      expect(service_template.published_at).to be_nil
-      expect(response).to redirect_to(admin_service_template_path(service_template))
-      # follow_redirect!
-      # expect(response.body).to include("Template has been unpublished!")
+      template = ServiceTemplate.find(service_template.id) # Reload from DB
+      expect(template.published_at).not_to be_nil
+      put unpublish_admin_service_template_path(template)
+      template.reload
+      expect(template.published_at).to be_nil
+      expect(response).to redirect_to(admin_service_template_path(template))
     end
   end
 
   describe "PUT /admin/service_templates/:id/activate" do
-    before { service_template.update!(active: false) }
+    # Ensure it starts inactive and valid
+    before do
+      reloaded_template = ServiceTemplate.find(service_template.id)
+      reloaded_template.update!(active: false)
+    end
     it "activates the template" do
-      put activate_admin_service_template_path(service_template)
-      service_template.reload
-      expect(service_template.active).to be true
-      expect(response).to redirect_to(admin_service_template_path(service_template))
-      # follow_redirect!
-      # expect(response.body).to include("Template has been activated!")
+      template = ServiceTemplate.find(service_template.id) # Reload from DB
+      expect(template.active).to be false
+      put activate_admin_service_template_path(template)
+      template.reload
+      expect(template.active).to be true
+      expect(response).to redirect_to(admin_service_template_path(template))
     end
   end
 
   describe "PUT /admin/service_templates/:id/deactivate" do
-    before { service_template.update!(active: true) }
+    # Ensure it starts active and valid
+    before do
+      reloaded_template = ServiceTemplate.find(service_template.id)
+      reloaded_template.update!(active: true)
+    end
     it "deactivates the template" do
-      put deactivate_admin_service_template_path(service_template)
-      service_template.reload
-      expect(service_template.active).to be false
-      expect(response).to redirect_to(admin_service_template_path(service_template))
-      # follow_redirect!
-      # expect(response.body).to include("Template has been deactivated!")
+      template = ServiceTemplate.find(service_template.id) # Reload from DB
+      expect(template.active).to be true
+      put deactivate_admin_service_template_path(template)
+      template.reload
+      expect(template.active).to be false
+      expect(response).to redirect_to(admin_service_template_path(template))
     end
   end
 
   # Batch Actions
   describe "POST /admin/service_templates/batch_action" do
-    let!(:template1) { create(:service_template, status: 'draft', active: true) }
-    let!(:template2) { create(:service_template, status: 'draft', active: false) }
-    let!(:template3) { create(:service_template, status: 'published', active: true) }
+    let!(:template1) { create(:service_template, published_at: nil, active: true) }
+    let!(:template2) { create(:service_template, published_at: nil, active: false) }
+    let!(:template3) { create(:service_template, published_at: Time.current, active: true) }
     let(:template_ids) { [template1.id, template2.id, template3.id] }
 
     it "publishes selected templates" do
@@ -179,11 +197,9 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
         collection_selection: [template1.id, template2.id]
       }
       expect(response).to redirect_to(admin_service_templates_path)
-      # follow_redirect!
-      # expect(response.body).to include("Templates have been published!")
-      expect(template1.reload.status).to eq('published')
-      expect(template2.reload.status).to eq('published')
-      expect(template3.reload.status).to eq('published') # Unchanged
+      expect(template1.reload.published_at).not_to be_nil
+      expect(template2.reload.published_at).not_to be_nil
+      expect(template3.reload.published_at).not_to be_nil
     end
 
     it "unpublishes selected templates" do
@@ -192,24 +208,20 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
         collection_selection: [template1.id, template3.id]
       }
       expect(response).to redirect_to(admin_service_templates_path)
-      # follow_redirect!
-      # expect(response.body).to include("Templates have been unpublished!")
-      expect(template1.reload.status).to eq('draft')
-      expect(template2.reload.status).to eq('draft') # Unchanged
-      expect(template3.reload.status).to eq('draft') 
+      expect(template1.reload.published_at).to be_nil
+      expect(template2.reload.published_at).to be_nil
+      expect(template3.reload.published_at).to be_nil
     end
     
     it "activates selected templates" do
-       post "/admin/service_templates/batch_action", params: {
+      post "/admin/service_templates/batch_action", params: {
         batch_action: "activate",
         collection_selection: [template1.id, template2.id]
       }
       expect(response).to redirect_to(admin_service_templates_path)
-      # follow_redirect!
-      # expect(response.body).to include("Templates have been activated!")
       expect(template1.reload.active).to be true
       expect(template2.reload.active).to be true
-      expect(template3.reload.active).to be true # Unchanged
+      expect(template3.reload.active).to be true
     end
 
     it "deactivates selected templates" do
@@ -218,10 +230,8 @@ RSpec.describe "Admin ServiceTemplates", type: :request, admin: true do
         collection_selection: [template1.id, template3.id]
       }
       expect(response).to redirect_to(admin_service_templates_path)
-      # follow_redirect!
-      # expect(response.body).to include("Templates have been deactivated!")
       expect(template1.reload.active).to be false
-      expect(template2.reload.active).to be false # Unchanged
+      expect(template2.reload.active).to be false
       expect(template3.reload.active).to be false
     end
   end

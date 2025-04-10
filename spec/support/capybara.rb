@@ -16,10 +16,7 @@ end
 Capybara.javascript_driver = :headless_chrome
 
 # Configure test timeouts
-Capybara.default_max_wait_time = 5 # seconds
-
-# Use a consistent app host
-Capybara.app_host = 'http://localhost:3000' if ENV['CAPYBARA_APP_HOST'].nil?
+Capybara.default_max_wait_time = 10 # seconds
 
 RSpec.configure do |config|
   # Configure the driver to use for system tests

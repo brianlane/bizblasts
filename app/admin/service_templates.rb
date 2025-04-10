@@ -1,44 +1,13 @@
 ActiveAdmin.register ServiceTemplate do
-  # Permit parameters for create/update actions - revert to scalar symbols
-  permit_params :name, :description, :category, :industry, :active, :status, 
-                :features, :pricing, :content, :settings
-
-  controller do
-    # Parse JSON string params before create and update
-    before_action :parse_json_params, only: [:create, :update]
-
-    private
-
-    def parse_json_params
-      # Don't modify @resource directly here
-      %i[features pricing content settings].each do |param|
-        param_value = params[:service_template][param]
-        if param_value.is_a?(String) && param_value.present?
-          begin
-            parsed_json = JSON.parse(param_value)
-            # Replace the string param with the parsed hash/array
-            params[:service_template][param] = parsed_json 
-          rescue JSON::ParserError => e
-            Rails.logger.error("Failed to parse JSON for #{param}: #{e.message}")
-            # Add error directly to the params hash key that ActiveAdmin might check?
-            # This is less standard, model validations are better.
-            # For now, set to nil to avoid saving bad string, model validation should handle missing data if required.
-            params[:service_template][param] = nil 
-          end
-        elsif param_value.blank?
-           params[:service_template][param] = nil 
-        end
-      end
-      # Let the standard controller action use the modified params[:service_template]
-    end
-  end
+  # Permit parameters: Use strings for enums as submitted by the form
+  permit_params :name, :description, :industry, :active, :template_type, :structure, :published_at
 
   # Filter options for the index page
   filter :name
-  filter :category
-  filter :industry
+  filter :industry, as: :select, collection: ServiceTemplate.industries.keys
+  filter :template_type, as: :select, collection: ServiceTemplate.template_types.keys
   filter :active
-  filter :status
+  filter :published_at
   filter :created_at
 
   # Index page customization
@@ -46,14 +15,22 @@ ActiveAdmin.register ServiceTemplate do
     selectable_column
     id_column
     column :name
-    column :category
-    column :industry
-    column :status do |template|
-      status_tag template.status
+    column :industry, sortable: :industry do |template|
+      template.industry&.humanize
+    end
+    column :template_type do |template|
+      template.template_type&.humanize
+    end
+    column :published do |template|
+      status_tag(template.published? ? 'Published' : 'Draft', class: template.published? ? 'ok' : 'warn')
     end
     column :active
     column :created_at
-    actions
+    actions defaults: false do |template|
+      item "View", resource_path(template)
+      item "Edit", edit_resource_path(template)
+      item "Delete", resource_path(template), method: :delete, data: { confirm: ("Are you sure?" unless Rails.env.test?) }
+    end
   end
 
   # Show page customization
@@ -62,27 +39,20 @@ ActiveAdmin.register ServiceTemplate do
       row :id
       row :name
       row :description
-      row :category
-      row :industry
-      row :status
+      row :industry do |template|
+        template.industry&.humanize
+      end
+      row :template_type do |template|
+        template.template_type&.humanize
+      end
+      row :published do |template|
+        template.published? ? "Published (#{template.published_at.strftime('%Y-%m-%d %H:%M')})" : "Draft"
+      end
       row :active
-      row :published_at
       row :created_at
       row :updated_at
-      row :features do |template|
-        pre JSON.pretty_generate(template.features) if template.features.present?
-      end
-      row :pricing do |template|
-        pre JSON.pretty_generate(template.pricing) if template.pricing.present?
-      end
-      row :content do |template|
-        pre JSON.pretty_generate(template.content) if template.content.present?
-      end
-      row :settings do |template|
-        pre JSON.pretty_generate(template.settings) if template.settings.present?
-      end
-      row :metadata do |template|
-        pre JSON.pretty_generate(template.metadata) if template.metadata.present?
+      row :structure do |template|
+        pre JSON.pretty_generate(template.structure) if template.structure.present?
       end
     end
 
@@ -92,43 +62,36 @@ ActiveAdmin.register ServiceTemplate do
   # Form customization
   form do |f|
     f.semantic_errors
-    
+
     f.inputs "Template Details" do
       f.input :name
       f.input :description
-      f.input :category
-      f.input :industry
-      f.input :status, as: :select, collection: ['draft', 'published']
+      f.input :industry, as: :select, collection: ServiceTemplate.industries.keys.map { |k| [k.humanize, k] }
+      f.input :template_type, as: :select, collection: ServiceTemplate.template_types.keys.map { |k| [k.humanize, k] }
       f.input :active
     end
-    
-    f.inputs "Features and Content" do
-      f.input :features, as: :text, input_html: { rows: 5 },
-        hint: "JSON array format. Example: [\"Responsive Design\",\"SEO Friendly\",\"Contact Form\"]"
-      f.input :pricing, as: :text, input_html: { rows: 5 },
-        hint: "JSON format. Example: {\"monthly\":49.99,\"yearly\":499.99}"
-      f.input :content, as: :text, input_html: { rows: 5 }, 
-        hint: "JSON format for default content settings"
-      f.input :settings, as: :text, input_html: { rows: 5 },
-        hint: "JSON format for template configuration"
+
+    f.inputs "Template Structure" do
+      f.input :structure, as: :text, input_html: { rows: 15 },
+        hint: "JSON format defining the pages and sections for this template. Example: { \"pages\": [ { \"title\": \"Home\", \"slug\": \"home\", ... } ] }"
     end
-    
+
     f.actions
   end
 
-  # Custom actions
+  # Custom actions (adjusted for published_at)
   action_item :publish, only: [:show, :edit] do
-    if resource.status != 'published'
+    unless resource.published?
       link_to "Publish Template", publish_admin_service_template_path(resource), method: :put
     end
   end
-  
+
   action_item :unpublish, only: [:show, :edit] do
-    if resource.status == 'published'
+    if resource.published?
       link_to "Unpublish Template", unpublish_admin_service_template_path(resource), method: :put
     end
   end
-  
+
   action_item :toggle_active, only: [:show, :edit] do
     if resource.active
       link_to "Deactivate Template", deactivate_admin_service_template_path(resource), method: :put
@@ -136,54 +99,64 @@ ActiveAdmin.register ServiceTemplate do
       link_to "Activate Template", activate_admin_service_template_path(resource), method: :put
     end
   end
-  
-  # Custom member actions
+
+  # Custom member actions (Using update!)
   member_action :publish, method: :put do
-    resource.update(status: 'published', published_at: Time.current)
+    resource.update!(published_at: Time.current)
     redirect_to resource_path, notice: "Template has been published!"
   end
-  
+
   member_action :unpublish, method: :put do
-    resource.update(status: 'draft', published_at: nil)
+    resource.update!(published_at: nil)
     redirect_to resource_path, notice: "Template has been unpublished!"
   end
-  
+
   member_action :activate, method: :put do
-    resource.update(active: true)
+    resource.update!(active: true)
     redirect_to resource_path, notice: "Template has been activated!"
   end
-  
+
   member_action :deactivate, method: :put do
-    resource.update(active: false)
+    resource.update!(active: false)
     redirect_to resource_path, notice: "Template has been deactivated!"
   end
-  
-  # Batch actions
+
+  # Batch actions (Using update!)
   batch_action :publish do |ids|
     batch_action_collection.find(ids).each do |template|
-      template.update(status: 'published', published_at: Time.current)
+      template.update!(published_at: Time.current)
     end
-    redirect_to collection_path, notice: "Templates have been published!"
+    redirect_to collection_path, notice: "Selected templates have been published!"
   end
-  
+
   batch_action :unpublish do |ids|
     batch_action_collection.find(ids).each do |template|
-      template.update(status: 'draft', published_at: nil)
+      template.update!(published_at: nil)
     end
-    redirect_to collection_path, notice: "Templates have been unpublished!"
+    redirect_to collection_path, notice: "Selected templates have been unpublished!"
   end
-  
+
   batch_action :activate do |ids|
     batch_action_collection.find(ids).each do |template|
-      template.update(active: true)
+      template.update!(active: true)
     end
-    redirect_to collection_path, notice: "Templates have been activated!"
+    redirect_to collection_path, notice: "Selected templates have been activated!"
   end
-  
+
   batch_action :deactivate do |ids|
     batch_action_collection.find(ids).each do |template|
-      template.update(active: false)
+      template.update!(active: false)
     end
-    redirect_to collection_path, notice: "Templates have been deactivated!"
+    redirect_to collection_path, notice: "Selected templates have been deactivated!"
+  end
+
+  # Controller customization to manually handle destroy and redirect
+  controller do
+    def destroy
+      resource = ServiceTemplate.find(params[:id])
+      resource.destroy
+      flash[:notice] = "Service template was successfully destroyed."
+      redirect_to collection_path
+    end
   end
 end

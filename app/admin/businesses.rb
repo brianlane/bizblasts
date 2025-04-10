@@ -88,7 +88,9 @@ ActiveAdmin.register Business do
       table_for business.users do
         column :id
         column :email
-        column :role
+        column :role do |user|
+          user.role&.humanize
+        end
         column :created_at
         column do |user|
           links = []

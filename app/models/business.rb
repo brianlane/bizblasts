@@ -3,6 +3,8 @@
 class Business < ApplicationRecord
   # Business represents a tenant in the multi-tenant architecture
   
+  belongs_to :service_template, optional: true
+  
   has_many :users, dependent: :destroy
   has_many :tenant_customers, dependent: :destroy
   has_many :services, dependent: :destroy
@@ -14,6 +16,10 @@ class Business < ApplicationRecord
   has_many :promotions, dependent: :destroy
   has_many :pages, dependent: :destroy
   has_many :loyalty_programs, dependent: :destroy
+  
+  # For Client relationships (many-to-many with User)
+  has_many :client_businesses, dependent: :destroy
+  has_many :clients, through: :client_businesses, source: :user
   
   validates :name, presence: true
   validates :subdomain, presence: true
@@ -74,7 +80,7 @@ class Business < ApplicationRecord
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
-    %w[staff_members services bookings tenant_customers users]
+    %w[staff_members services bookings tenant_customers users clients client_businesses]
   end
   
   private
