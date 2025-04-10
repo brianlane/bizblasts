@@ -8,27 +8,30 @@
 // $sidebar-width: 242px;
 
 // IMPORTANT: We use Propshaft instead of Sprockets, so we need more explicit imports
+// Import the color module for modern color functions
+@use "sass:color";
+
 // Set default variables in case Active Admin mixins are not found
 $primary-color: #5E6469 !default;
 $secondary-color: #f0f0f0 !default;
 $text-color: #323537 !default;
 $link-color: #38678b !default;
 $section-header-text-color: $primary-color !default;
-$current-menu-item-background: lighten($primary-color, 12%) !default;
-$hover-menu-item-background: lighten($primary-color, 12%) !default;
-$table-stripe-color: lighten($primary-color, 57%) !default;
+$current-menu-item-background: color.adjust($primary-color, $lightness: 12%) !default;
+$hover-menu-item-background: color.adjust($primary-color, $lightness: 12%) !default;
+$table-stripe-color: color.adjust($primary-color, $lightness: 57%) !default;
 $table-selected-color: #d9e4ec !default;
 $error-color: #932419 !default;
 $blank-slate-primary-color: #AAA !default;
-$breadcrumbs-color: lighten($primary-color, 20%) !default;
-$breadcrumbs-separator-color: lighten($primary-color, 20%) !default;
+$breadcrumbs-color: color.adjust($primary-color, $lightness: 20%) !default;
+$breadcrumbs-separator-color: color.adjust($primary-color, $lightness: 20%) !default;
 $required-field-marker: $error-color !default;
 $form-label-color: $section-header-text-color !default;
 $page-header-text-color: #cdcdcd !default;
 
-// Try to import the standard Active Admin styles
-@import "mixins";
-@import "base";
+// Use modern @use rule to import Active Admin styles (assuming they are found via asset paths)
+@use "active_admin/mixins" as aa_mixins;
+@use "active_admin/base" as aa_base;
 
 // Define our own basic styles in case imports fail
 body.active_admin {

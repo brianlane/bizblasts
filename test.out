@@ -1,94 +1,102 @@
 ==> Preparing test databases...
 Database bizblasts_test already exists, migrating (only if needed)...
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 Database bizblasts_test1 already exists, migrating (only if needed)...
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 Database bizblasts_test2 already exists, migrating (only if needed)...
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 Database bizblasts_test3 already exists, migrating (only if needed)...
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 Database bizblasts_test4 already exists, migrating (only if needed)...
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 ==> Running tests (Database Cleaning ENABLED)...
 Running full test suite in parallel (4 processes)...
 Running: bundle exec parallel_rspec spec -n 4 -o --format progress
 4 processes for 43 specs, ~ 10 specs per process
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
 Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 2967
-.Setting up Propshaft asset paths for ActiveAdmin...
+Randomized with seed 26052
+.Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
+Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 58314
-..Setting up Propshaft asset paths for ActiveAdmin...
+Randomized with seed 50308
+...Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
+Setting up Propshaft asset paths for ActiveAdmin...
 Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
 
-Randomized with seed 58524
-......Setting up Propshaft asset paths for ActiveAdmin...
-Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
-
-Randomized with seed 7224
-..................................................................................................................................................................................................................................................................................
-
-Finished in 6.27 seconds (files took 4.11 seconds to load)
-78 examples, 0 failures
-
-Randomized with seed 58524
-
-..............--- Loading seeds for seed context ---
+Randomized with seed 49911
+--- Loading seeds for seed context ---
 Seeding database with sample data...
 Creating default tenant...
 Default tenant created: Default Business (default) ID: 1
 Creating admin user (skipped in production)...
 Admin user created with email: admin@example.com and password: password123
 Creating sample data for Default Business...
-Created customer: Jeffery Terry
-Created customer: Tommy Hermiston
-Created customer: Sen. John Langworth
-.Created service: Basic Consultation
+Created customer: Bryce Doyle DVM
+Created customer: Frankie Blick
+Created customer: Shannon Boyer
+Created service: Basic Consultation
 Created service: Website Setup
 Created service: Monthly Support
 Created staff member: Staff Member 1
 Created staff member: Staff Member 2
-Created booking at 2025-04-28 09:00 - 11:00 for Staff Member 1
-Created booking at 2025-04-29 12:00 - 12:30 for Staff Member 1
-.Created booking at 2025-04-28 15:00 - 16:00 for Staff Member 1
+Created booking at 2025-04-28 09:00 - 10:00 for Staff Member 1
+Created booking at 2025-04-22 12:00 - 13:00 for Staff Member 1
 Created booking at 2025-04-23 09:00 - 10:00 for Staff Member 2
-Created booking at 2025-04-17 12:00 - 12:30 for Staff Member 2
+Created booking at 2025-04-17 12:00 - 13:00 for Staff Member 2
 Seed data creation complete!
 Created admin user: bizblaststeam@gmail.com with password from ENV
-......Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
+........Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets
+Setting up Propshaft asset paths for ActiveAdmin...
+Added ActiveAdmin asset paths: /usr/local/lib/ruby/gems/3.4.0/gems/activeadmin-3.3.0
+
+Randomized with seed 36613
+.....................................................................................................................................................................................................................................
+
+Finished in 6.78 seconds (files took 4.35 seconds to load)
+78 examples, 0 failures
+
+Randomized with seed 26052
+
+............Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
 Line Coverage: 75.2% (1628 / 2165)
 Branch Coverage: 45.83% (242 / 528)
-.....
+.........
 
-Finished in 6.8 seconds (files took 4.16 seconds to load)
+Finished in 7.4 seconds (files took 4.42 seconds to load)
 114 examples, 0 failures
 
-Randomized with seed 2967
+Randomized with seed 49911
 
-...
+.
 
-Finished in 7.03 seconds (files took 4.1 seconds to load)
+Finished in 7.46 seconds (files took 4.41 seconds to load)
 70 examples, 0 failures
 
-Randomized with seed 58314
+Randomized with seed 50308
 
 Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
 Line Coverage: 75.2% (1628 / 2165)
 Branch Coverage: 45.83% (242 / 528)
-................................
+..................................................................................
 
-Finished in 18.9 seconds (files took 4.1 seconds to load)
+Finished in 19.11 seconds (files took 4.41 seconds to load)
 83 examples, 0 failures
 
-Randomized with seed 7224
+Randomized with seed 36613
 
 Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
 Line Coverage: 75.2% (1628 / 2165)
@@ -101,7 +109,7 @@ Branch Coverage: 45.83% (242 / 528)
 
 Took 25 seconds
 Tests Passed
-==> Tests completed in 39 seconds!
+==> Tests completed in 40 seconds!
     Reused 5 existing database(s) - saved ~15 seconds
 
 ==> Individual process results:
@@ -111,7 +119,7 @@ Tests Passed
 83 examples, 0 failures
 345 examples, 0 failures
 
-==> Tests completed in 39 seconds!
+==> Tests completed in 40 seconds!
     Reused 5 existing database(s) - saved ~15 seconds
 
 ==> Individual process results:

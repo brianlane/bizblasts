@@ -50,6 +50,15 @@ module Bizblasts
       
       # Add public/assets to the asset load path for production fallbacks
       config.assets.paths << Rails.root.join('public', 'assets').to_s
+      
+      # Add ActiveAdmin asset paths
+      begin
+        aa_path = Bundler.rubygems.find_name('activeadmin').first.full_gem_path
+        config.assets.paths << File.join(aa_path, 'app', 'assets', 'stylesheets')
+        puts "Added ActiveAdmin asset paths: #{File.join(aa_path, 'app', 'assets', 'stylesheets')}" # Added puts for debugging CI
+      rescue Bundler::GemNotFound
+        warn "ActiveAdmin gem not found. Skipping asset path configuration."
+      end
     end
   end
 end
