@@ -1,73 +1,67 @@
 # frozen_string_literal: true
 
-# User model that handles authentication and user management
-# Uses Devise for authentication and acts_as_tenant for multi-tenancy
+# User model: Handles authentication, roles, and associations.
+# Clients can associate with multiple businesses via ClientBusiness.
+# Staff/Managers belong to a single business.
 class User < ApplicationRecord
-  include TenantScoped
-  
-  acts_as_tenant(:business)
-  belongs_to :business
+  # Associations
+  belongs_to :business, optional: true # Required only for manager/staff roles
   belongs_to :staff_member, optional: true
+  has_many :client_businesses, dependent: :destroy
+  has_many :associated_businesses, through: :client_businesses, source: :business
 
-  # Include default devise modules. Others available are:
-  # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
+  # Devise modules
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
-  # Override Devise's email uniqueness validator 
-  validates :email, presence: true, 
+  # Validations
+  validates :email, presence: true,
                     format: { with: URI::MailTo::EMAIL_REGEXP },
-                    uniqueness: { scope: :business_id, case_sensitive: false }
-  
-  # Ensure business_id is set before validation
-  before_validation :ensure_business_id_set
-  
+                    uniqueness: { case_sensitive: false } # Global uniqueness
   validates :role, presence: true
-  
+  validates :business_id, presence: true, if: :requires_business?
+
+  # Roles Enum - :admin removed, default changed to :client
   enum :role, {
-    admin: 0,
     manager: 1,
     staff: 2,
     client: 3
-  }
-  
+  }, default: :client
+
+  # Scopes
   scope :active, -> { where(active: true) }
-  scope :staff_users, -> { where(role: [:admin, :manager, :staff]) }
-  
+  scope :business_users, -> { where(role: [:manager, :staff]) }
+  scope :clients, -> { where(role: :client) }
+
+  # Methods
   def active_for_authentication?
     super && active?
   end
-  
-  def staff?
-    admin? || manager? || self.role == 'staff'
+
+  # Check if user role requires belonging to a business
+  def requires_business?
+    manager? || staff?
   end
-  
+
   def full_name
-    email
+    [first_name, last_name].compact.join(' ').presence || email
   end
-  
-  # Override Devise's email uniqueness validation
-  def email_changed?
-    false
-  end
-  
-  def will_save_change_to_email?
-    false
-  end
-  
-  # Define which attributes are allowed to be searched with Ransack
+
+  # Ransackable Attributes & Associations
   def self.ransackable_attributes(auth_object = nil)
-    %w[id email role created_at updated_at business_id]
+    # Allow searching by associated business name via business_name
+    %w[id email role first_name last_name active created_at updated_at business_id]
   end
-  
-  # Define which associations are allowed to be searched with Ransack
+
   def self.ransackable_associations(auth_object = nil)
-    %w[business]
+    # Include new associations
+    %w[business staff_member client_businesses associated_businesses]
   end
-  
-  private
-  
-  def ensure_business_id_set
-    self.business_id = ActsAsTenant.current_tenant&.id if business_id.nil? && ActsAsTenant.current_tenant.present?
-  end
+
+  # NOTE: The old :admin role (value 0) is no longer valid.
+  # A data migration (Rake task) is needed to:
+  # 1. Convert existing users with role 0 to role 1 (manager).
+  # 2. Create ClientBusiness records for existing clients based on their current business_id.
+  # 3. Set business_id to NULL for all client users after step 2.
+
 end

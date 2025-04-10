@@ -48,7 +48,7 @@ if !Rails.env.production?
     user.business_id = default_business.id
     user.password = 'password123'
     user.password_confirmation = 'password123'
-    user.role = :admin
+    user.role = :manager
     user.active = true
   end
 

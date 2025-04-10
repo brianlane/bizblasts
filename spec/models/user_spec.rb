@@ -4,121 +4,136 @@ require 'rails_helper'
 
 RSpec.describe User, type: :model do
   describe 'associations' do
-    it { is_expected.to belong_to(:business) }
+    it { is_expected.to belong_to(:business).optional }
     it { is_expected.to belong_to(:staff_member).optional }
-  end
-
-  before(:each) do
-    # Clear any potential tenant to prevent test pollution
-    ActsAsTenant.current_tenant = nil
+    it { is_expected.to have_many(:client_businesses).dependent(:destroy) }
+    it { is_expected.to have_many(:associated_businesses).through(:client_businesses).source(:business) }
   end
 
   describe 'validations' do
-    let(:business) { create(:business) }
-    subject { build(:user, business: business) }
-    
-    it { is_expected.to validate_presence_of(:email) }
-    
-    # Test uniqueness scoped to business_id
-    it 'validates uniqueness of email scoped to business_id' do
-      create(:user, email: 'unique@example.com', business: business)
-      duplicate = build(:user, email: 'unique@example.com', business: business)
+    it 'validates uniqueness of email globally' do
+      create(:user, email: 'unique@example.com')
+      duplicate = build(:user, email: 'unique@example.com')
       expect(duplicate).not_to be_valid
       expect(duplicate.errors[:email]).to include('has already been taken')
     end
+    
+    it { is_expected.to validate_presence_of(:email) }
+    it { is_expected.to validate_presence_of(:role) }
 
-    it 'allows duplicate emails across different businesses' do
-      business1 = create(:business)
-      business2 = create(:business)
-      create(:user, email: 'duplicate@example.com', business: business1)
-      user2 = build(:user, email: 'duplicate@example.com', business: business2)
-      expect(user2).to be_valid
+    context 'when role requires a business (manager/staff)' do
+      let(:business) { create(:business) }
+      
+      it 'is valid with a business' do
+        user = build(:user, role: :manager, business: business)
+        expect(user).to be_valid
+        user = build(:user, role: :staff, business: business)
+        expect(user).to be_valid
+      end
+
+      it 'is invalid without a business' do
+        user = build(:user, role: :manager, business: nil)
+        expect(user).not_to be_valid
+        expect(user.errors[:business_id]).to include("can't be blank")
+        user = build(:user, role: :staff, business: nil)
+        expect(user).not_to be_valid
+        expect(user.errors[:business_id]).to include("can't be blank")
+      end
+    end
+
+    context 'when role does not require a business (client)' do
+      it 'is valid without a business' do
+        user = build(:user, role: :client, business: nil)
+        expect(user).to be_valid
+      end
+      
+      it 'is valid with a business (though business_id will be ignored/nulled later for clients)' do
+        business = create(:business)
+        user = build(:user, role: :client, business: business) 
+        expect(user).to be_valid 
+      end
     end
   end
 
   describe 'scopes' do
-    before do
-      @business = create(:business)
-      @active_user = create(:user, active: true, business: @business)
-      @inactive_user = create(:user, active: false, business: @business)
-      @admin = create(:user, role: :admin, business: @business)
-      @staff = create(:user, role: :staff, business: @business)
-      @client = create(:user, role: :client, business: @business)
-    end
+    let!(:business) { create(:business) }
+    let!(:active_user) { create(:user, active: true, role: :client) }
+    let!(:inactive_user) { create(:user, active: false, role: :client) }
+    let!(:manager) { create(:user, role: :manager, business: business) }
+    let!(:staff) { create(:user, role: :staff, business: business) }
+    let!(:client) { create(:user, role: :client) }
 
     it '.active returns only active users' do
-      expect(User.active).to include(@active_user)
-      expect(User.active).not_to include(@inactive_user)
+      expect(User.active.to_a).to include(active_user)
+      expect(User.active.to_a).not_to include(inactive_user)
     end
 
-    it '.staff_users returns admin, manager, and staff roles' do
-      expect(User.staff_users).to include(@admin, @staff)
-      expect(User.staff_users).not_to include(@client)
+    it '.business_users returns manager and staff roles' do
+      expect(User.business_users.to_a).to include(manager, staff)
+      expect(User.business_users.to_a).not_to include(client, active_user, inactive_user)
+    end
+    
+    it '.clients returns only client roles' do
+       expect(User.clients.to_a).to include(client, active_user, inactive_user)
+       expect(User.clients.to_a).not_to include(manager, staff)
     end
   end
 
   describe 'role enum' do
-    it 'defines roles' do
-      expect(User.roles.keys).to include('admin', 'manager', 'staff', 'client')
+    it 'defines roles (excluding admin)' do
+      expect(User.roles.keys).to contain_exactly('manager', 'staff', 'client')
+    end
+    
+    it 'defaults role to client' do
+      user = User.new
+      expect(user.role).to eq('client')
     end
   end
 
-  describe '#staff?' do
-    it 'returns true for admin roles' do
-      user = build(:user, role: :admin)
-      expect(user.staff?).to be_truthy
+  describe '#requires_business?' do
+    it 'returns true for manager roles' do
+      user = build(:user, role: :manager)
+      expect(user.requires_business?).to be true
     end
 
     it 'returns true for staff roles' do
       user = build(:user, role: :staff)
-      expect(user.staff?).to be_truthy
+      expect(user.requires_business?).to be true
     end
 
     it 'returns false for client roles' do
       user = build(:user, role: :client)
-      expect(user.staff?).to be_falsey
+      expect(user.requires_business?).to be false
     end
   end
 
   describe '#full_name' do
-    it 'returns the email' do
-      user = build(:user, email: 'test@example.com')
-      expect(user.full_name).to eq('test@example.com')
-    end
-  end
-
-  describe 'acts_as_tenant integration' do
-    it 'scopes queries to the current tenant' do
-      business1 = create(:business)
-      business2 = create(:business)
-      
-      user1 = create(:user, business: business1, email: 'user@example.com')
-      user2 = create(:user, business: business2, email: 'user@example.com')
-      
-      ActsAsTenant.with_tenant(business1) do
-        expect(User.count).to eq(1)
-        expect(User.first).to eq(user1)
-      end
-      
-      ActsAsTenant.with_tenant(business2) do
-        expect(User.count).to eq(1)
-        expect(User.first).to eq(user2)
+    context 'when first and last name are present' do
+      it 'returns the combined first and last name' do
+        user = build(:user, first_name: 'John', last_name: 'Doe', email: 'test@example.com')
+        expect(user.full_name).to eq('John Doe')
       end
     end
-  end
-
-  describe 'multi-tenant validations' do
-    # This functionality is now tested in the integration test
-    # spec/integration/multi_tenant_registration_spec.rb
     
-    it 'validates that emails are unique within a business' do
-      business = create(:business)
-      create(:user, email: 'test@example.com', business: business)
-      
-      # Try to create another user with the same email in the same business
-      user2 = build(:user, email: 'test@example.com', business: business)
-      expect(user2).not_to be_valid
-      expect(user2.errors[:email]).to include('has already been taken')
+    context 'when only first name is present' do
+      it 'returns the first name' do
+        user = build(:user, first_name: 'John', last_name: nil, email: 'test@example.com')
+        expect(user.full_name).to eq('John')
+      end
+    end
+
+    context 'when only last name is present' do
+      it 'returns the last name' do
+        user = build(:user, first_name: nil, last_name: 'Doe', email: 'test@example.com')
+        expect(user.full_name).to eq('Doe')
+      end
+    end
+
+    context 'when first and last name are blank' do
+      it 'returns the email' do
+        user = build(:user, first_name: nil, last_name: '', email: 'test@example.com')
+        expect(user.full_name).to eq('test@example.com')
+      end
     end
   end
 end

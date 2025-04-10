@@ -3,7 +3,7 @@ require 'simplecov'
 # Configure simplecov for test coverage reporting
 SimpleCov.start 'rails' do
   # Set a command name to ensure results merge correctly in parallel tests
-  command_name "RSpec-#{ENV['TEST_ENV_NUMBER']}" if ENV['TEST_ENV_NUMBER']
+  command_name "RSpec-#{ENV['TEST_ENV_NUMBER'] || 'main'}"
 
   add_filter '/bin/'
   add_filter '/db/'
@@ -15,6 +15,13 @@ SimpleCov.start 'rails' do
   enable_coverage :branch
   # Combine coverage reports from parallel tests
   merge_timeout 3600 # Set a generous timeout for merging (e.g., 1 hour)
+  
+  # Use JSON formatter for parallel compatibility
+  if ENV['TEST_ENV_NUMBER']
+    SimpleCov.at_exit do
+      SimpleCov.result.format!
+    end
+  end
 end
 
 # frozen_string_literal: true

@@ -129,7 +129,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
   # Test show page content
   describe "GET /admin/businesses/:id show content" do
     let!(:business_with_user) { create(:business) }
-    let!(:user) { create(:user, business: business_with_user, role: :admin) } 
+    let!(:user) { create(:user, business: business_with_user, role: :manager) } 
     before { get "/admin/businesses/#{business_with_user.id}" }
 
     it "shows business attributes" do
@@ -142,7 +142,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
     it "shows the Users panel with user details" do
       expect(response.body).to include("Users") # Panel title
       expect(response.body).to include(user.email)
-      expect(response.body).to include(user.role)
+      expect(response.body).to include(user.role.humanize)
       # Check for link to view user
       expect(response.body).to include(admin_user_path(user)) 
     end

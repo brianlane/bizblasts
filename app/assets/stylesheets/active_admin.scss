@@ -27,8 +27,8 @@ $form-label-color: $section-header-text-color !default;
 $page-header-text-color: #cdcdcd !default;
 
 // Try to import the standard Active Admin styles
-@import "active_admin/mixins";
-@import "active_admin/base";
+@import "mixins";
+@import "base";
 
 // Define our own basic styles in case imports fail
 body.active_admin {
@@ -83,3 +83,8 @@ body.logged_out {
 // For example, to change the default status-tag color:
 //
 //   .status_tag { background: #6090DB; }
+
+// Custom style to properly hide Formtastic input wrappers
+.input-hidden {
+  display: none !important; // Use !important to override potential inline styles or other rules
+}
