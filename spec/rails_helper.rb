@@ -99,13 +99,16 @@ RSpec.configure do |config|
   end
 
   config.around(:each) do |example|
-    # Check for metadata to skip cleaning if needed
-    unless example.metadata[:no_db_clean]
+    # Skip cleaning if :seed_test metadata is present (seeds_spec handles its own)
+    if example.metadata[:seed_test]
+      example.run
+    # Original logic for skipping cleaning if needed
+    elsif example.metadata[:no_db_clean]
+      example.run # Run example without DatabaseCleaner wrapping
+    else
       DatabaseCleaner.cleaning do
         example.run
       end
-    else
-      example.run # Run example without DatabaseCleaner wrapping
     end
     # Reset tenant after each test (important)
     ActsAsTenant.current_tenant = nil

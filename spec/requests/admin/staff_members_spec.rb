@@ -12,7 +12,7 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
 
   before do
     sign_in admin_user
-    # ActsAsTenant.current_tenant = business # Uncomment if tenant context is needed
+    ActsAsTenant.current_tenant = business # Set tenant context
   end
 
   describe "GET /admin/staff_members" do

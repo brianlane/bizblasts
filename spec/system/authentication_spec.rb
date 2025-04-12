@@ -50,109 +50,71 @@ RSpec.describe 'Authentication', type: :system do
     end
   end
   
-  describe 'user registration' do
+  describe 'client sign up' do
+    it 'allows a new client to sign up' do
+      visit new_client_registration_path
+      within('form') do
+        fill_in 'First name', with: 'New'
+        fill_in 'Last name', with: 'Client'
+        fill_in 'Email', with: 'newclient@example.com'
+        fill_in 'Password', with: 'password'
+        fill_in 'Password confirmation', with: 'password'
+        click_button 'Sign up'
+      end
+      expect(page).to have_content('Welcome! You have signed up successfully.')
+      expect(User.last.email).to eq('newclient@example.com')
+      expect(User.last.client?).to be true
+    end
+    
     it 'shows errors with invalid registration information' do
-      business = create(:business)
-      
-      # Set tenant via ActsAsTenant instead of URL parameter
-      ActsAsTenant.current_tenant = business
-      
-      visit '/users/sign_up'
-      
-      # Submit the form without filling in any fields
-      # Use a more robust way to find the button
+      visit new_client_registration_path
       within('form') do
         # Just click the first button which should be the submit button
-        first('input[type="submit"]').click
+        first('input[type="submit"]').click 
       end
-      
-      # Check for validation errors
+      expect(page).to have_content('errors prohibited this user from being saved')
       expect(page).to have_content("Email can't be blank")
-      
-      # Reset the tenant
-      ActsAsTenant.current_tenant = nil
-    end
-  end
-
-  describe "user sign up" do
-    let(:business) { create(:business) }
-    
-    it "allows a new user to sign up with proper business context" do
-      # Visit the registration path via the business subdomain
-      # Construct the URL manually for rack_test
-      registration_url = "http://#{business.subdomain}.example.com/users/sign_up"
-      visit registration_url
-      
-      # Ensure the page loaded correctly (optional check)
-      expect(page).to have_content("Sign up")
-
-      new_email = "new_user_#{SecureRandom.hex(4)}@example.com"
-      new_password = "password123"
-
-      fill_in "Email", with: new_email
-      fill_in "Password", with: new_password
-      fill_in "Password confirmation", with: new_password
-
-      click_button "Sign up"
-
-      # Verify successful signup and redirection (e.g., to root path for logged-in users)
-      expect(page).to have_current_path(root_path) # Check for root path
-      # Check for content indicating successful login, e.g., user email in navbar or sign out link
-      expect(page).to have_link("Dashboard") # Check for Dashboard link instead
-
-      # Optional: Verify the user was created and associated with the correct tenant
-      new_user = User.find_by(email: new_email)
-      expect(new_user).not_to be_nil
-      expect(new_user.business).to eq(business) 
-    end
-    
-    it "shows errors when signup information is invalid" do
-      visit new_user_registration_path
-      
-      fill_in "Email", with: "invalid"
-      click_button "Sign up"
-      
-      expect(page).to have_content("Email is invalid")
+      expect(page).to have_content("Password can't be blank")
     end
   end
   
-  describe "user sign in" do
+  describe 'user sign in' do
     # Attempt 2: Use manager role
     let!(:business_for_manager) { create(:business) }
-    let!(:user) { create(:user, :manager, business: business_for_manager, password: "password123") }
+    let!(:user) { create(:user, :manager, business: business_for_manager, password: 'password123') }
     
-    it "allows a registered user to sign in" do
+    it 'allows a registered user to sign in' do
       visit new_user_session_path
       
-      fill_in "Email", with: user.email
-      fill_in "Password", with: "password123"
+      fill_in 'Email', with: user.email
+      fill_in 'Password', with: 'password123'
       
-      click_button "Log in"
+      click_button 'Log in'
       
       # Check that we're redirected to the dashboard after login
       expect(page).to have_current_path(dashboard_path) # Expect dashboard path
-      expect(page).to have_content("Sign out")
+      expect(page).to have_content('Sign out')
     end
     
-    it "shows errors when login information is invalid" do
+    it 'shows errors when login information is invalid' do
       visit new_user_session_path
       
-      fill_in "Email", with: user.email
-      fill_in "Password", with: "wrongpassword"
+      fill_in 'Email', with: user.email
+      fill_in 'Password', with: 'wrongpassword'
       
-      click_button "Log in"
+      click_button 'Log in'
       
       # Check for failure content - if page shows login form again
       expect(current_path).to eq('/users/sign_in')
     end
   end
   
-  describe "user sign out" do
+  describe 'user sign out' do
     # Attempt 2: Use manager role
     let!(:business_for_manager) { create(:business) }
-    let!(:user) { create(:user, :manager, business: business_for_manager, password: "password123") }
+    let!(:user) { create(:user, :manager, business: business_for_manager, password: 'password123') }
     
-    it "allows a signed-in user to sign out" do
+    it 'allows a signed-in user to sign out' do
       # Use our custom helper
       sign_in_system_user(user)
       
@@ -164,7 +126,7 @@ RSpec.describe 'Authentication', type: :system do
       sign_out_system_user
       
       # Verify we're signed out - should see the home page or login
-      expect(page).to have_current_path("/")
+      expect(page).to have_current_path('/')
     end
   end
 end 

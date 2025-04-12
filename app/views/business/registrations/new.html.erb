@@ -1,0 +1,158 @@
+<h2>Create Your Business Account</h2>
+
+<%= form_for(resource, as: resource_name, url: business_registration_path) do |f| %>
+  <%= render "devise/shared/error_messages", resource: resource %>
+
+  <h3>Owner Information</h3>
+  <div class="field">
+    <%= f.label :first_name %><br />
+    <%= f.text_field :first_name, required: true %>
+  </div>
+
+  <div class="field">
+    <%= f.label :last_name %><br />
+    <%= f.text_field :last_name, required: true %>
+  </div>
+
+  <div class="field">
+    <%= f.label :email %><br />
+    <%= f.email_field :email, required: true, autocomplete: "email" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :password %>
+    <% if @minimum_password_length %>
+    <em>(<%= @minimum_password_length %> characters minimum)</em>
+    <% end %><br />
+    <%= f.password_field :password, required: true, autocomplete: "new-password" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :password_confirmation %><br />
+    <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password" %>
+  </div>
+
+  <hr>
+
+  <h3>Business Information</h3>
+  <%= f.fields_for :business, resource.business || resource.build_business do |business_f| %>
+    <div class="field">
+      <%= business_f.label :name, "Business Name" %><br />
+      <%= business_f.text_field :name, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :industry %><br />
+      <%= business_f.select :industry, Business.industries.keys.map { |ind| [ind.humanize.titleize, ind] }, { prompt: 'Select Industry' }, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :phone, "Business Phone" %><br />
+      <%= business_f.telephone_field :phone, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :email, "Business Contact Email" %><br />
+      <%= business_f.email_field :email, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :address %><br />
+      <%= business_f.text_field :address, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :city %><br />
+      <%= business_f.text_field :city, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :state %><br />
+      <%= business_f.text_field :state, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :zip %><br />
+      <%= business_f.text_field :zip, required: true %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :description %><br />
+      <%= business_f.text_area :description, required: true, rows: 4 %>
+    </div>
+
+    <div class="field">
+      <%= business_f.label :tier %>
+      <%# TODO: Add descriptions for each tier %>
+      <%= business_f.select :tier, Business.tiers.keys.map { |t| [t.humanize.titleize, t] }, { prompt: 'Select Tier' }, required: true, data: { action: "change->business-registration#toggleDomainFields" } %>
+      <div id="tier-descriptions" style="font-size: 0.9em; color: #555; margin-top: 5px;">
+        <p data-tier="free" style="display: none;"><strong>Free:</strong> Basic features, BizBlasts subdomain required (your-name.bizblasts.com).</p>
+        <p data-tier="standard" style="display: none;"><strong>Standard:</strong> More features, custom domain or subdomain optional.</p>
+        <p data-tier="premium" style="display: none;"><strong>Premium:</strong> All features, custom domain or subdomain optional.</p>
+      </div>
+    </div>
+
+    <div class="field" id="hostname-field" style="display: none;"> <%# Initially hidden %>
+      <%= business_f.label :hostname %><br />
+      <%= business_f.text_field :hostname, placeholder: "your-name.bizblasts.com or www.yourdomain.com" %>
+      <small id="hostname-help-text"></small>
+    </div>
+
+  <% end %>
+
+  <div class="actions">
+    <%= f.submit "Create Business Account" %>
+  </div>
+<% end %>
+
+<%= render "devise/shared/links" %>
+
+<%# Basic Stimulus controller for toggling fields %>
+<div data-controller="business-registration">
+  <%# Controller target is implicitly the form fields_for :business %>
+</div>
+
+<script type="text/javascript">
+  // Simple inline script if Stimulus setup is not ready
+  document.addEventListener('DOMContentLoaded', function() {
+    const tierSelect = document.getElementById('user_business_attributes_tier');
+    const hostnameFieldDiv = document.getElementById('hostname-field');
+    const hostnameInput = hostnameFieldDiv.querySelector('input[name="user[business_attributes][hostname]"]'); // Corrected selector
+    const hostnameHelpText = document.getElementById('hostname-help-text');
+    const tierDescriptionDiv = document.getElementById('tier-descriptions');
+
+    function toggleFields() {
+      const selectedTier = tierSelect.value;
+      
+      // Hide all descriptions first
+      tierDescriptionDiv.querySelectorAll('p[data-tier]').forEach(p => p.style.display = 'none');
+      // Clear help text
+      hostnameHelpText.textContent = '';
+
+      if (selectedTier === 'free') {
+        hostnameFieldDiv.style.display = 'block';
+        hostnameInput.required = true;
+        hostnameInput.placeholder = 'your-name'; // Just the subdomain part
+        hostnameHelpText.textContent = '.bizblasts.com (Required - lowercase letters, numbers, hyphens only)';
+        const desc = tierDescriptionDiv.querySelector('p[data-tier="free"]');
+        if (desc) desc.style.display = 'block';
+      } else if (selectedTier === 'standard' || selectedTier === 'premium') {
+        hostnameFieldDiv.style.display = 'block';
+        hostnameInput.required = false; // Optional for paid tiers
+        hostnameInput.placeholder = 'your-subdomain.bizblasts.com OR www.yourdomain.com';
+        hostnameHelpText.textContent = 'Enter your desired subdomain OR your existing custom domain.';
+        const desc = tierDescriptionDiv.querySelector(`p[data-tier="${selectedTier}"]`);
+        if (desc) desc.style.display = 'block';
+      } else {
+        hostnameFieldDiv.style.display = 'none';
+        hostnameInput.required = false;
+        hostnameInput.placeholder = ''; // Clear placeholder
+      }
+    }
+
+    if (tierSelect) {
+      tierSelect.addEventListener('change', toggleFields);
+      toggleFields(); 
+    }
+  });
+</script> 

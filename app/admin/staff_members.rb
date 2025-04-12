@@ -67,12 +67,20 @@ ActiveAdmin.register StaffMember do
   index do
     selectable_column
     id_column
-    column :business
+    column :position
+    column :user
+    column :business do |staff_member|
+      if staff_member.business&.id
+        link_to staff_member.business.name, admin_business_path(staff_member.business.id)
+      elsif staff_member.business
+        staff_member.business.name || status_tag("Invalid Business")
+      else
+        status_tag("None")
+      end
+    end
     column :name
     column :email
     column :phone
-    column :position
-    column :active
     column "Availability Summary" do |staff|
       if staff.availability.present? && staff.availability.is_a?(Hash)
         days = staff.availability.keys.reject {|k| k.to_s == 'exceptions'}.count
@@ -89,7 +97,15 @@ ActiveAdmin.register StaffMember do
   show do
     attributes_table do
       row :id
-      row :business
+      row :business do |staff_member|
+        if staff_member.business&.id
+          link_to staff_member.business.name, admin_business_path(staff_member.business.id)
+        elsif staff_member.business
+          staff_member.business.name || status_tag("Invalid Business")
+        else
+          status_tag("None")
+        end
+      end
       row :user
       row :name
       row :email

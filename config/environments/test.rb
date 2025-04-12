@@ -29,9 +29,11 @@ Rails.application.configure do
   # Use memory store instead of null store for better performance
   config.cache_store = :memory_store, { size: 64.megabytes }
 
-  # Disable log files for tests to reduce I/O
-  config.logger = ActiveSupport::Logger.new(nil)
-  config.log_level = :fatal
+  # Enable logging to a file for tests
+  # config.logger = ActiveSupport::Logger.new(nil)
+  # config.log_level = :fatal
+  config.log_level = :debug
+  config.logger = ActiveSupport::Logger.new(Rails.root.join("log", "test.log"))
 
   # Devise
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
@@ -74,8 +76,10 @@ Rails.application.configure do
   # Faster tests without concurrency checks
   config.allow_concurrency = false
   
-  # Disable SQL logging to speed up tests
-  config.active_record.logger = nil
+  # Enable SQL logging for debugging
+  # config.active_record.logger = nil
+  config.active_record.logger = ActiveSupport::Logger.new($stdout)
+  config.active_record.logger.level = Logger::DEBUG
   
   # Completely disable asset handling for tests
   # config.assets.enabled = false
@@ -86,4 +90,19 @@ Rails.application.configure do
   
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false
+
+  # Allow requests to test domains and subdomains
+  # Based on RSpec setup and custom domains used in tests
+  config.hosts = [
+    "localhost",               # Standard localhost
+    "127.0.0.1",             # Standard loopback IP
+    "www.example.com",       # Default RSpec/Capybara host
+    /.*\.lvh.me/,            # Allow *.lvh.me for local testing
+    "std-biz.com",           # Custom domain from specs
+    "premium-biz.com"        # Custom domain from specs
+    # Add any other specific subdomains/domains used in tests if needed
+  ]
+
+  # Allow specific hosts for testing tenant contexts
+  config.hosts += ["alpha.example.com", "beta.example.com"]
 end

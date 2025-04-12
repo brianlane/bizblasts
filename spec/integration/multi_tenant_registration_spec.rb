@@ -7,7 +7,7 @@ RSpec.describe "MultiTenant Email Uniqueness", type: :request do
     # Verify that the database constraint is now global (unique index on just email)
     connection = ActiveRecord::Base.connection
     indices = connection.indexes(:users)
-    email_index = indices.find { |i| i.name == 'index_users_on_email_unique' }
+    email_index = indices.find { |i| i.name == 'index_users_on_email' }
     
     # Verify that we have the right index structure
     expect(email_index).to be_present

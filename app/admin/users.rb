@@ -19,7 +19,15 @@ ActiveAdmin.register User do
     column :role do |user|
       user.role&.humanize
     end
-    column :business
+    column :business do |user|
+      if user.business&.id
+        link_to user.business.name, admin_business_path(user.business.id)
+      elsif user.business
+        user.business.name || status_tag("Invalid Business")
+      else
+        status_tag("None")
+      end
+    end
     column "Staff Member" do |user|
       if user.business && user.staff_member
         link_to(user.staff_member.name, admin_staff_member_path(user.staff_member))
@@ -54,7 +62,13 @@ ActiveAdmin.register User do
       
       if resource.client?
         row :associated_businesses do |user|
-          user.associated_businesses.map { |b| link_to(b.name, admin_business_path(b)) }.join(", ").html_safe
+          user.associated_businesses.map do |b|
+            if b&.id
+              link_to(b.name, admin_business_path(b.id))
+            else
+              b&.name || "Invalid Business Record"
+            end
+          end.join(", ").html_safe
         end
       end
       

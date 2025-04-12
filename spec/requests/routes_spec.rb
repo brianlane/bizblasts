@@ -18,12 +18,23 @@ RSpec.describe "Application Routes", type: :request do
 
   describe "Authentication routes" do
     it "GET /users/sign_in returns success" do
-      get "/users/sign_in"
+      get new_user_session_path
       expect(response).to have_http_status(:success)
     end
 
-    it "GET /users/sign_up returns success" do
-      get "/users/sign_up"
+    it "POST /users/sign_in returns success (redirect)" do
+      # Assuming valid user credentials lead to redirect
+      # This might need actual user creation and sign-in attempt depending on setup
+      user = create(:user, email: 'test@example.com', password: 'password', password_confirmation: 'password') # Create the user
+      post user_session_path, params: { user: { email: user.email, password: user.password } }
+      # Expect redirect to root or dashboard, adjust as necessary
+      # For simplicity, checking for redirect status
+      # Updated to expect :see_other (303) for Turbo redirect
+      expect(response).to have_http_status(:see_other)
+    end
+
+    it "GET /users/password/new returns success" do
+      get new_user_password_path
       expect(response).to have_http_status(:success)
     end
   end

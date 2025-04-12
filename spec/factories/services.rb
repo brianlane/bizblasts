@@ -9,13 +9,13 @@ FactoryBot.define do
     price { 50 }
     active { true }
     
-    # Skip callbacks for test performance
-    to_create { |instance| 
-      instance.save(validate: false) 
-    }
+    # Remove skipping validations
+    # to_create { |instance| 
+    #   instance.save(validate: false) 
+    # }
     
-    # Use build strategy for associations to minimize DB operations
-    association :business, strategy: :build
+    # Association should ideally be set correctly now
+    association :business # strategy: :build might not be needed if parent sets correctly
     
     trait :with_staff_members do
       after(:create) do |service, evaluator|

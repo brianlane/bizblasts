@@ -27,7 +27,15 @@ ActiveAdmin.register Booking do
   index do
     selectable_column
     id_column
-    column :business
+    column :business do |booking|
+      if booking.business&.id
+        link_to booking.business.name, admin_business_path(booking.business.id)
+      elsif booking.business
+        booking.business.name || status_tag("Invalid Business")
+      else
+        status_tag("None")
+      end
+    end
     column :tenant_customer
     column :staff_member
     column :service

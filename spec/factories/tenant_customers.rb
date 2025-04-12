@@ -10,13 +10,8 @@ FactoryBot.define do
     phone { "555-123-4567" }
     notes { "Test customer" }
     
-    # Skip callbacks for test performance
-    to_create { |instance| 
-      instance.save(validate: false) 
-    }
-    
-    # Minimize database operations by using build instead of create for associations
-    association :business, strategy: :build
+    # Association should be set correctly
+    association :business 
     
     trait :with_bookings do
       after(:create) do |customer, evaluator|

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_10_211140) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_11_210315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -67,7 +67,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_211140) do
 
   create_table "businesses", force: :cascade do |t|
     t.string "name", null: false
-    t.string "subdomain", null: false
     t.string "industry"
     t.string "phone"
     t.string "email"
@@ -82,9 +81,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_211140) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "service_template_id"
+    t.string "tier"
+    t.string "hostname"
+    t.string "host_type"
+    t.index ["host_type"], name: "index_businesses_on_host_type"
+    t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
-    t.index ["subdomain"], name: "index_businesses_on_subdomain", unique: true
   end
 
   create_table "campaign_recipients", force: :cascade do |t|
@@ -323,11 +326,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_211140) do
     t.string "first_name"
     t.string "last_name"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
-    t.index ["email"], name: "index_users_on_email_unique", unique: true
+    t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
-  add_foreign_key "bookings", "businesses"
+  add_foreign_key "bookings", "businesses", on_delete: :cascade
   add_foreign_key "bookings", "promotions"
   add_foreign_key "bookings", "services"
   add_foreign_key "bookings", "staff_members"
@@ -335,30 +338,30 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_211140) do
   add_foreign_key "businesses", "service_templates"
   add_foreign_key "campaign_recipients", "marketing_campaigns"
   add_foreign_key "campaign_recipients", "tenant_customers"
-  add_foreign_key "client_businesses", "businesses"
+  add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
   add_foreign_key "invoices", "bookings"
-  add_foreign_key "invoices", "businesses"
+  add_foreign_key "invoices", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "promotions"
   add_foreign_key "invoices", "tenant_customers"
-  add_foreign_key "marketing_campaigns", "businesses"
+  add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
   add_foreign_key "page_sections", "pages"
-  add_foreign_key "pages", "businesses"
+  add_foreign_key "pages", "businesses", on_delete: :cascade
   add_foreign_key "promotion_redemptions", "bookings"
   add_foreign_key "promotion_redemptions", "invoices"
   add_foreign_key "promotion_redemptions", "promotions"
   add_foreign_key "promotion_redemptions", "tenant_customers"
-  add_foreign_key "promotions", "businesses"
-  add_foreign_key "services", "businesses"
+  add_foreign_key "promotions", "businesses", on_delete: :cascade
+  add_foreign_key "services", "businesses", on_delete: :cascade
   add_foreign_key "services_staff_members", "services"
   add_foreign_key "services_staff_members", "staff_members"
   add_foreign_key "sms_messages", "bookings"
   add_foreign_key "sms_messages", "marketing_campaigns"
   add_foreign_key "sms_messages", "tenant_customers"
-  add_foreign_key "staff_members", "businesses"
+  add_foreign_key "staff_members", "businesses", on_delete: :cascade
   add_foreign_key "staff_members", "users"
-  add_foreign_key "tenant_customers", "businesses"
-  add_foreign_key "users", "businesses"
+  add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
+  add_foreign_key "users", "businesses", on_delete: :cascade
   add_foreign_key "users", "staff_members"
 end

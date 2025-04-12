@@ -3,10 +3,30 @@
 Rails.application.routes.draw do
   devise_for :admin_users, ActiveAdmin::Devise.config
   ActiveAdmin.routes(self)
-  devise_for :users, controllers: {
-    registrations: 'users/registrations',
-    sessions: 'users/sessions'
+  devise_for :users, skip: [:registrations], controllers: {
+    sessions: 'users/sessions',
+    # Add other controllers like passwords, confirmations if needed
   }
+
+  # Scoped Devise routes for specific registration flows
+  devise_scope :user do
+    # Client Registration Routes
+    get '/client/sign_up', to: 'client/registrations#new', as: :new_client_registration
+    post '/client', to: 'client/registrations#create', as: :client_registration
+
+    # Business Registration Routes
+    get '/business/sign_up', to: 'business/registrations#new', as: :new_business_registration
+    post '/business', to: 'business/registrations#create', as: :business_registration
+
+    # Routes for editing user registration, canceling etc. might still use the base controller
+    # or could be scoped further if client/business edit flows differ significantly.
+    # Example using base controller:
+    get '/users/edit', to: 'users/registrations#edit', as: :edit_user_registration
+    patch '/users', to: 'users/registrations#update', as: :user_registration # Note: default path used by Devise form helpers
+    put '/users', to: 'users/registrations#update' # Allow PUT as well
+    delete '/users', to: 'users/registrations#destroy'
+  end
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

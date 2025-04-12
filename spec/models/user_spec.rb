@@ -11,15 +11,55 @@ RSpec.describe User, type: :model do
   end
 
   describe 'validations' do
-    it 'validates uniqueness of email globally' do
-      create(:user, email: 'unique@example.com')
-      duplicate = build(:user, email: 'unique@example.com')
-      expect(duplicate).not_to be_valid
-      expect(duplicate.errors[:email]).to include('has already been taken')
-    end
-    
     it { is_expected.to validate_presence_of(:email) }
     it { is_expected.to validate_presence_of(:role) }
+
+    context 'with email uniqueness scoped by role type' do
+      let!(:existing_client) { create(:user, role: :client, email: 'test@example.com') }
+      let!(:business1) { create(:business) }
+      let!(:existing_manager) { create(:user, role: :manager, email: 'manager@example.com', business: business1) }
+      let!(:business2) { create(:business) }
+
+      it 'disallows a manager and client to have the same email' do
+        new_manager = build(:user, role: :manager, email: existing_client.email, business: business2)
+        expect(new_manager).not_to be_valid
+        expect(new_manager.errors[:email]).to include("has already been taken")
+      end
+
+      it 'disallows duplicate emails for clients' do
+        duplicate_client = build(:user, role: :client, email: 'test@example.com')
+        expect(duplicate_client).not_to be_valid
+        expect(duplicate_client.errors[:email]).to include('has already been taken')
+      end
+
+      it 'disallows duplicate emails for business users (manager/staff)' do
+        duplicate_manager = build(:user, role: :manager, email: 'manager@example.com', business: business2)
+        expect(duplicate_manager).not_to be_valid
+        expect(duplicate_manager.errors[:email]).to include('has already been taken')
+
+        new_staff = build(:user, role: :staff, email: 'manager@example.com', business: business2)
+        expect(new_staff).not_to be_valid
+        expect(new_staff.errors[:email]).to include('has already been taken')
+      end
+
+      it 'allows updating a user without changing email' do
+        existing_client.first_name = "Updated"
+        expect(existing_client).to be_valid
+        
+        existing_manager.first_name = "Updated Manager"
+        expect(existing_manager).to be_valid
+      end
+
+      it 'is invalid if email is taken by a user with any role' do
+        new_client = build(:user, role: :client, email: existing_manager.email)
+        expect(new_client).not_to be_valid
+        expect(new_client.errors[:email]).to include("has already been taken")
+
+        new_manager = build(:user, role: :manager, email: existing_client.email, business: business2)
+        expect(new_manager).not_to be_valid
+        expect(new_manager.errors[:email]).to include("has already been taken")
+      end
+    end
 
     context 'when role requires a business (manager/staff)' do
       let(:business) { create(:business) }
