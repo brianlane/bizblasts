@@ -3,6 +3,10 @@
 require_relative "boot"
 
 require "rails/all"
+
+# Explicitly require acts_as_tenant early
+# require "acts_as_tenant"
+
 # # Pick the frameworks you want:
 # require "active_model/railtie"
 # require "active_job/railtie"
@@ -28,6 +32,10 @@ module Bizblasts
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
 
+    # Explicitly add ActsAsTenant middleware by requiring its specific file
+    # require "acts_as_tenant/middleware" # Reverted - Let gem handle it
+    # config.middleware.use ActsAsTenant::Middleware # Reverted - Let gem handle it
+
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
@@ -40,25 +48,5 @@ module Bizblasts
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
-    
-    # Ensure asset paths are set up early for Propshaft
-    if defined?(Propshaft)
-      config.assets.paths ||= []
-      
-      # Add app/assets/builds to the asset load path
-      config.assets.paths << Rails.root.join('app', 'assets', 'builds').to_s
-      
-      # Add public/assets to the asset load path for production fallbacks
-      config.assets.paths << Rails.root.join('public', 'assets').to_s
-      
-      # Add ActiveAdmin asset paths
-      begin
-        aa_path = Bundler.rubygems.find_name('activeadmin').first.full_gem_path
-        config.assets.paths << File.join(aa_path, 'app', 'assets', 'stylesheets')
-        puts "Added ActiveAdmin asset paths: #{File.join(aa_path, 'app', 'assets', 'stylesheets')}" # Added puts for debugging CI
-      rescue Bundler::GemNotFound
-        warn "ActiveAdmin gem not found. Skipping asset path configuration."
-      end
-    end
   end
 end

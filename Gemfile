@@ -68,6 +68,7 @@ group :development, :test do
   gem "rspec-rails"
   gem "capybara"
   gem "selenium-webdriver"
+  gem "cuprite"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
@@ -82,6 +83,9 @@ group :development, :test do
   
   # For test performance metrics
   gem "simplecov", require: false
+
+  # For checking rendered templates in controller/request specs
+  gem "rails-controller-testing"
 end
 
 group :development do

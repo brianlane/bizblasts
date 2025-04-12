@@ -10,8 +10,9 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   # Set current tenant based on subdomain
-  set_current_tenant_through_filter
-  before_action :set_tenant, unless: :maintenance_mode?
+  # set_current_tenant_through_filter # Removed - Relying solely on custom :set_tenant filter
+  # Ensure set_tenant runs for the debug page to correctly identify tenant context
+  before_action :set_tenant, unless: -> { maintenance_mode? }
   before_action :check_database_connection
 
   # Authentication (after tenant is set)
@@ -96,26 +97,56 @@ class ApplicationController < ActionController::Base
   end
 
   def set_tenant
-    subdomain = request.subdomain.presence
+    hostname = request.subdomain.presence
 
-    # Skip for www or blank subdomains
-    return if subdomain.blank? || subdomain == "www"
-
-    nil unless table_exists_and_set_business(subdomain)
-  end
-
-  def table_exists_and_set_business(subdomain)
-    # First check if the businesses table exists to prevent errors
-    unless businesses_table_exists?
-      Rails.logger.error("Businesses table does not exist - skipping tenant setup")
-      return false
+    # If a specific hostname is present (and not www)
+    if hostname.present? && hostname != "www"
+      # Check table exists first to avoid errors
+      unless businesses_table_exists?
+        Rails.logger.error("Businesses table does not exist - skipping tenant setup for hostname: #{hostname}")
+        # Decide how to handle this - clear tenant and proceed, or show an error?
+        # For now, let's clear and proceed to avoid blocking non-tenant pages.
+        clear_tenant_and_log("Businesses table missing, clearing tenant.")
+        return
+      end
+      
+      # Attempt to find and set the tenant by hostname
+      if find_and_set_business_tenant(hostname)
+        Rails.logger.info "Tenant set from hostname: #{hostname}"
+        return # Tenant found and set, done.
+      else
+        # Hostname provided but no matching tenant found
+        Rails.logger.warn "Tenant not found for hostname: #{hostname}"
+        tenant_not_found # Render the specific error page
+        return # Stop further processing
+      end
     end
 
-    find_and_set_business_tenant(subdomain)
-  rescue => e
-    # Log the error but continue with the request (default tenant)
-    Rails.logger.error("Error setting tenant: #{e.message}")
-    false
+    # --- No specific hostname or it was 'www' ---
+
+    # Session fallback logic (unchanged)
+    if user_signed_in? && session[:signed_up_business_id].present?
+      business = Business.find_by(id: session[:signed_up_business_id])
+      if business
+        set_current_tenant(business)
+        Rails.logger.info "Tenant set from session fallback: Business ##{business.id}"
+        # Consider clearing session.delete(:signed_up_business_id)
+      else
+        clear_tenant_and_log("Session fallback business ID not found: #{session[:signed_up_business_id]}")
+        session.delete(:signed_up_business_id)
+      end
+      return # Tenant set (or cleared) based on session
+    end
+
+    # Default case: No specific tenant context found (no valid hostname, no session fallback)
+    clear_tenant_and_log("No specific tenant context found, clearing tenant.")
+    # ActsAsTenant.current_tenant is already nil here
+  end
+
+  # Helper to clear tenant and log
+  def clear_tenant_and_log(message)
+    Rails.logger.warn(message)
+    ActsAsTenant.current_tenant = nil
   end
 
   protected
@@ -125,24 +156,12 @@ class ApplicationController < ActionController::Base
     ActiveRecord::Base.connection.table_exists?('businesses')
   end
 
-  def find_and_set_business_tenant(subdomain)
-    # Try to find the tenant in either Business or Business tables
-    tenant = nil
-    
-    if ActiveRecord::Base.connection.table_exists?('businesses')
-      tenant = Business.find_by(subdomain: subdomain)
-    end
-    
-    # If not found in businesses, try businesses
-    if tenant.nil? && ActiveRecord::Base.connection.table_exists?('businesses')
-      tenant = Business.find_by(subdomain: subdomain)
-    end
-
+  def find_and_set_business_tenant(hostname)
+    tenant = Business.find_by(hostname: hostname)
     if tenant
-      set_current_tenant(tenant)
+      Business.set_current_tenant(tenant)
       true
     else
-      tenant_not_found
       false
     end
   end
@@ -154,6 +173,6 @@ class ApplicationController < ActionController::Base
 
   def set_tenant_from_params
     business = Business.find_by(id: params[:tenant_id])
-    set_current_tenant(business) if business
+    Business.set_current_tenant(business) if business
   end
 end

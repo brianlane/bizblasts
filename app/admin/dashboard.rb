@@ -25,8 +25,14 @@ ActiveAdmin.register_page "Dashboard" do
         panel "Recent Activity" do
           para "Recent businesses created"
           table_for Business.order(created_at: :desc).limit(5) do
-            column("Name") { |business| link_to(business.name, admin_business_path(business)) }
-            column("Created") { |business| time_ago_in_words(business.created_at) + " ago" }
+            column("Name") do |business|
+              if business&.id
+                link_to(business.name, admin_business_path(business.id))
+              else
+                business.name || "Invalid Business Record" # Display name or placeholder if no ID
+              end
+            end
+            column("Created") { |business| time_ago_in_words(business.created_at) + " ago" if business&.created_at }
           end
 
           para "Recent users created"

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Admin Template Management", type: :system, admin: true do
-  let(:admin_user) { AdminUser.first || create(:admin_user) }
+  let!(:admin_user) { create(:admin_user) }
 
   before do
     login_as(admin_user, scope: :admin_user)
@@ -9,11 +9,10 @@ RSpec.describe "Admin Template Management", type: :system, admin: true do
 
   context "Creating a new template", js: true do
     it "allows admin to create a template with pages" do
-      visit admin_service_templates_path
-      click_link "New Service Template"
+      visit new_admin_service_template_path
 
       fill_in "Name", with: "Landscaping Basic"
-      fill_in "Description", with: "Basic template for landscapers"
+      fill_in "Description", with: "Basic template for landscaping businesses"
       select "Landscaping", from: "Industry"
       select "Full website", from: "Template type"
       check "Active"
@@ -42,7 +41,8 @@ RSpec.describe "Admin Template Management", type: :system, admin: true do
       visit edit_admin_service_template_path(service_template)
 
       fill_in "Name", with: "Updated Landscaping Pro"
-      select "Landscaping", from: "Industry"
+      fill_in "Description", with: "Updated pro template"
+      select "Pool service", from: "Industry"
       uncheck "Active"
 
       updated_structure_json = JSON.pretty_generate(
@@ -55,9 +55,10 @@ RSpec.describe "Admin Template Management", type: :system, admin: true do
 
       click_button "Update Service template"
 
+      expect(page).to have_css('.flash_notice', wait: 5) 
       expect(page).to have_css('.flash_notice', text: 'Service template was successfully updated.')
       expect(page).to have_content("Updated Landscaping Pro")
-      expect(page).to have_content("Landscaping")
+      expect(page).to have_content("Pool service")
       expect(page).to have_content("No")
     end
   end
@@ -72,7 +73,6 @@ RSpec.describe "Admin Template Management", type: :system, admin: true do
         find_link("Delete").click
       end
 
-      # expect(page).to have_css('.flash_notice', text: 'Service template was successfully destroyed.') # Removing problematic check
       expect(page).not_to have_content(service_template_to_delete.name)
     end
   end

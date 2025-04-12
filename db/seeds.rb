@@ -37,9 +37,22 @@ puts "Seeding database with sample data..."
 
 # Keep the existing default business and admin
 puts "Creating default tenant..."
-default_business = Business.find_or_create_by!(name: 'Default Business', subdomain: 'default')
+default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
+  biz.name = 'Default Business'
+  biz.industry = :other # Provide a default valid industry
+  biz.phone = '000-000-0000'
+  biz.email = 'default@example.com'
+  biz.address = '1 Default St'
+  biz.city = 'Defaultown'
+  biz.state = 'DF'
+  biz.zip = '00000'
+  biz.description = 'The default business for system operations.'
+  biz.tier = :free # Free tier requires subdomain host_type
+  biz.active = true
+end
+
 default_business.reload # Explicitly reload
-puts "Default tenant created: #{default_business.name} (#{default_business.subdomain}) ID: #{default_business.id}"
+puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
 
 # Create an admin user in the default tenant (SKIP in production)
 if !Rails.env.production?

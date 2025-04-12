@@ -3,32 +3,84 @@
 class Business < ApplicationRecord
   # Business represents a tenant in the multi-tenant architecture
   
+  # Enums
+  enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
+  enum :industry, {
+    hair_salon: 'hair_salon',
+    beauty_spa: 'beauty_spa',
+    massage_therapy: 'massage_therapy',
+    fitness_studio: 'fitness_studio',
+    tutoring_service: 'tutoring_service',
+    cleaning_service: 'cleaning_service',
+    handyman_service: 'handyman_service',
+    pet_grooming: 'pet_grooming',
+    photography: 'photography',
+    consulting: 'consulting',
+    other: 'other'
+  }
+  enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
+  
   belongs_to :service_template, optional: true
   
-  has_many :users, dependent: :destroy
-  has_many :tenant_customers, dependent: :destroy
-  has_many :services, dependent: :destroy
-  has_many :staff_members, dependent: :destroy
-  has_many :bookings, dependent: :destroy
-  has_many :invoices, dependent: :destroy
-  has_many :payments, dependent: :destroy
-  has_many :marketing_campaigns, dependent: :destroy
-  has_many :promotions, dependent: :destroy
-  has_many :pages, dependent: :destroy
-  has_many :loyalty_programs, dependent: :destroy
+  # Removed dependent: :destroy from all - Let DB cascade handle via FKs
+  has_many :users, inverse_of: :business, validate: false
+  has_many :tenant_customers
+  has_many :services
+  has_many :staff_members
+  has_many :bookings
+  has_many :invoices
+  has_many :payments
+  has_many :marketing_campaigns
+  has_many :promotions
+  has_many :pages
+  has_many :loyalty_programs
   
   # For Client relationships (many-to-many with User)
-  has_many :client_businesses, dependent: :destroy
+  has_many :client_businesses
   has_many :clients, through: :client_businesses, source: :user
   
+  # Validations
   validates :name, presence: true
-  validates :subdomain, presence: true
+  validates :industry, presence: true, inclusion: { in: industries.keys }
+  validates :phone, presence: true # Consider adding format validation
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP } # Business contact email
+  validates :address, presence: true
+  validates :city, presence: true
+  validates :state, presence: true
+  validates :zip, presence: true # Consider adding format validation
+  validates :description, presence: true
+  validates :tier, presence: true, inclusion: { in: tiers.keys }
   
-  validate :subdomain_uniqueness, if: -> { subdomain.present? }
+  # New Validations for hostname/host_type
+  validates :hostname, presence: true, uniqueness: { case_sensitive: false }
+  validates :host_type, presence: true, inclusion: { in: host_types.keys }
+
+  # Subdomain format
+  validates :hostname, 
+            format: { 
+              with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/, 
+              message: "can only contain lowercase letters, numbers, and single hyphens" 
+            }, 
+            exclusion: { 
+              in: %w(www admin mail api help support status blog), 
+              message: "'%{value}' is reserved." 
+            }, 
+            if: :host_type_subdomain?
+            
+  # Custom domain format
+  validates :hostname, 
+            format: { 
+              with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/, 
+              message: "is not a valid domain name" 
+            }, 
+            if: :host_type_custom_domain?
+            
+  # Free tier must use subdomain
+  validate :free_tier_requires_subdomain_host_type, if: :free_tier?
   
   scope :active, -> { where(active: true) }
   
-  before_validation :normalize_subdomain
+  before_validation :normalize_hostname
   
   # Find the current tenant
   def self.current
@@ -41,7 +93,7 @@ class Business < ApplicationRecord
   end
   
   def to_param
-    subdomain
+    hostname
   end
   
   def active_services
@@ -60,22 +112,9 @@ class Business < ApplicationRecord
     bookings.today
   end
   
-  # Override destroy to ensure proper deletion
-  def destroy
-    # First remove associations that might block deletion
-    self.users.update_all(business_id: nil)
-    self.tenant_customers.destroy_all
-    self.services.destroy_all
-    self.staff_members.destroy_all
-    self.bookings.destroy_all
-    
-    # Then proceed with actual deletion
-    super
-  end
-  
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name subdomain time_zone active created_at updated_at]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at]
   end
   
   # Define which associations are allowed to be searched with Ransack
@@ -85,22 +124,16 @@ class Business < ApplicationRecord
   
   private
   
-  def normalize_subdomain
-    return if subdomain.blank?
-    
-    # Convert to lowercase and remove any non-alphanumeric characters
-    self.subdomain = subdomain.downcase.gsub(/[^a-z0-9]/, '')
+  def normalize_hostname
+    return if hostname.blank?
+    self.hostname = hostname.downcase.strip
+    # No longer perform aggressive gsub cleaning for subdomains here,
+    # let the format validator handle invalid characters/structures.
   end
   
-  def subdomain_uniqueness
-    return unless subdomain.present?
-    
-    # Skip expensive query if this is a new record with a unique subdomain
-    return if new_record? && !Business.exists?(subdomain: subdomain)
-    
-    # For existing records, ensure no other records have the same subdomain
-    if Business.where.not(id: id).exists?(subdomain: subdomain)
-      errors.add(:subdomain, "has already been taken")
+  def free_tier_requires_subdomain_host_type
+    unless host_type_subdomain?
+      errors.add(:host_type, "must be 'subdomain' for the Free tier")
     end
   end
 end 
