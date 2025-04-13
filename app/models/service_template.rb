@@ -8,6 +8,7 @@ class ServiceTemplate < ApplicationRecord
   validates :name, presence: true
   validates :industry, presence: true
   validates :template_type, presence: true
+  validate :structure_must_be_valid_json
 
   enum :industry, {
     landscaping: 0,
@@ -78,5 +79,25 @@ class ServiceTemplate < ApplicationRecord
 
   def published?
     published_at.present?
+  end
+
+  private
+
+  def structure_must_be_valid_json
+    return if structure.blank? # Allow blank structure
+
+    # If structure is already parsed (e.g., from form), it might be a Hash
+    return if structure.is_a?(Hash) 
+
+    # If it's a string, try parsing it
+    begin
+      parsed = JSON.parse(structure)
+      # Optionally, add further checks on the parsed structure if needed
+      # unless parsed.is_a?(Hash) && parsed.key?('pages')
+      #   errors.add(:structure, 'must be a JSON object with a top-level "pages" key')
+      # end
+    rescue JSON::ParserError => e
+      errors.add(:structure, "is not valid JSON: #{e.message}")
+    end
   end
 end 

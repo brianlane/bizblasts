@@ -152,6 +152,56 @@ ActiveAdmin.register ServiceTemplate do
 
   # Controller customization to manually handle destroy and redirect
   controller do
+    # Rescue from JSON parsing errors that might occur during assignment
+    rescue_from JSON::ParserError do |exception|
+      flash[:error] = "Invalid JSON format provided for Structure: #{exception.message}"
+      # Determine redirect path based on action
+      path = case params[:action]
+             when 'create'
+               new_resource_path
+             when 'update'
+               edit_resource_path(resource)
+             else
+               collection_path # Fallback
+             end
+      # Redirect back to the form, potentially preserving input if possible (ActiveAdmin might handle this)
+      redirect_to path, status: :unprocessable_entity
+    end
+
+    # Explicitly define create action for logging
+    def create
+      Rails.logger.info("--- ServiceTemplate Create Action Start ---")
+      Rails.logger.info("Params: #{params.inspect}")
+      @service_template = ServiceTemplate.new(permitted_params[:service_template])
+      Rails.logger.info("New ServiceTemplate object: #{@service_template.inspect}")
+      
+      if @service_template.save
+        Rails.logger.info("ServiceTemplate saved successfully: #{@service_template.id}")
+        redirect_to resource_path(@service_template), notice: "Service template was successfully created."
+      else
+        Rails.logger.error("ServiceTemplate save failed: #{@service_template.errors.full_messages.join(', ')}")
+        render :new, status: :unprocessable_entity
+      end
+      Rails.logger.info("--- ServiceTemplate Create Action End ---")
+    end
+
+    # Explicitly define update action for logging
+    def update
+      Rails.logger.info("--- ServiceTemplate Update Action Start ---")
+      Rails.logger.info("Params: #{params.inspect}")
+      @service_template = ServiceTemplate.find(params[:id])
+      Rails.logger.info("Found ServiceTemplate object: #{@service_template.inspect}")
+      
+      if @service_template.update(permitted_params[:service_template])
+        Rails.logger.info("ServiceTemplate updated successfully: #{@service_template.id}")
+        redirect_to resource_path(@service_template), notice: "Service template was successfully updated."
+      else
+        Rails.logger.error("ServiceTemplate update failed: #{@service_template.errors.full_messages.join(', ')}")
+        render :edit, status: :unprocessable_entity
+      end
+      Rails.logger.info("--- ServiceTemplate Update Action End ---")
+    end
+
     def destroy
       resource = ServiceTemplate.find(params[:id])
       resource.destroy

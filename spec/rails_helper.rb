@@ -95,10 +95,20 @@ RSpec.configure do |config|
     # Set the default strategy for the suite
     DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
     # Rewind sequences AFTER cleaning and setting strategy
-    FactoryBot.rewind_sequences
+    # FactoryBot.rewind_sequences # Removed from here
   end
 
   config.around(:each) do |example|
+    # Set strategy explicitly for system tests
+    if example.metadata[:type] == :system
+      DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
+    else
+      # Keep the default strategy for other types (or set explicitly if needed)
+      # DatabaseCleaner.strategy = :transaction # Example if using transaction for others
+      # Or just rely on the default set in before(:suite) if consistent
+      DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Assuming truncation default
+    end
+
     # Skip cleaning if :seed_test metadata is present (seeds_spec handles its own)
     if example.metadata[:seed_test]
       example.run
@@ -112,6 +122,13 @@ RSpec.configure do |config|
     end
     # Reset tenant after each test (important)
     ActsAsTenant.current_tenant = nil
+    # Rewind sequences after each test
+    FactoryBot.rewind_sequences
+    # Reset Capybara session state
+    Capybara.reset_sessions!
+
+    # Optional: Reset strategy back to default if necessary, though usually not needed
+    # DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } 
   end
   
   # == End DatabaseCleaner Configuration ==
