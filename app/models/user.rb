@@ -29,6 +29,10 @@ class User < ApplicationRecord
   # Add validation for business presence for specific roles
   validates :business_id, presence: true, if: :requires_business?
 
+  # Add first_name and last_name attributes
+  validates :first_name, presence: true
+  validates :last_name, presence: true
+
   # Roles Enum - :admin removed, default changed to :client
   enum :role, {
     manager: 1,

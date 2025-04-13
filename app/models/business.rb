@@ -3,6 +3,9 @@
 class Business < ApplicationRecord
   # Business represents a tenant in the multi-tenant architecture
   
+  # Explicitly declare the attribute type for the tier enum
+  attribute :tier, :string
+  
   # Enums
   enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
   enum :industry, {
