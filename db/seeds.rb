@@ -59,6 +59,8 @@ if !Rails.env.production?
   puts "Creating admin user (skipped in production)..."
   admin_user = User.find_or_initialize_by(email: 'admin@example.com') do |user|
     user.business_id = default_business.id
+    user.first_name = 'Admin'
+    user.last_name = 'User'
     user.password = 'password123'
     user.password_confirmation = 'password123'
     user.role = :manager
