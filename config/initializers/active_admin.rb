@@ -259,21 +259,7 @@ ActiveAdmin.setup do |config|
   config.namespace :admin do |admin|
     admin.build_menu :default do |menu|
       menu.add label: "Dashboard", url: "/admin/dashboard", priority: 1
-      
-      menu.add label: "Websites", priority: 2 do |websites|
-        websites.add label: "Client Websites", url: "/admin/client_websites", priority: 1
-        websites.add label: "Service Templates", url: "/admin/service_templates", priority: 2
-      end
-      
-      menu.add label: "Business", priority: 4 do |business|
-        business.add label: "Businesses", url: "/admin/businesses", priority: 1
-        business.add label: "Staff Members", url: "/admin/staff_members", priority: 2
-        business.add label: "Services", url: "/admin/services", priority: 3
-        business.add label: "Bookings", url: "/admin/bookings", priority: 4
-        business.add label: "Users", url: "/admin/users", priority: 5
-        business.add label: "Admin Users", url: "/admin/admin_users", priority: 6
-        business.add label: "Service Templates", url: "/admin/service_templates", priority: 7
-      end
+      menu.add label: "Client Websites", url: "/admin/client_websites", priority: 2
     end
   end
 
