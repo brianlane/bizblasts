@@ -154,6 +154,10 @@ RSpec.configure do |config|
   config.example_status_persistence_file_path = "tmp/spec_examples.txt"
   config.disable_monkey_patching!
   config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
+
+  config.before(:each, type: :system) do
+    driven_by :rack_test
+  end
 end
 
 # Configure Shoulda Matchers

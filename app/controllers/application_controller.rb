@@ -141,6 +141,17 @@ class ApplicationController < ActionController::Base
     # Default case: No specific tenant context found (no valid hostname, no session fallback)
     clear_tenant_and_log("No specific tenant context found, clearing tenant.")
     # ActsAsTenant.current_tenant is already nil here
+
+    if user_signed_in?
+      case current_user.role
+      when 'manager'
+        ActsAsTenant.current_tenant = current_user.business
+      when 'client'
+        ActsAsTenant.current_tenant = nil
+      when 'admin'
+        return # Skip tenant setup for admins
+      end
+    end
   end
 
   # Helper to clear tenant and log

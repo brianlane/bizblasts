@@ -35,7 +35,7 @@
   <hr>
 
   <h3>Business Information</h3>
-  <%= f.fields_for :business, resource.business || resource.build_business do |business_f| %>
+  <%= f.fields_for :business_attributes, resource.business || resource.build_business do |business_f| %>
     <div class="field">
       <%= business_f.label :name, "Business Name" %><br />
       <%= business_f.text_field :name, required: true %>

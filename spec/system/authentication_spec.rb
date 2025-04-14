@@ -129,4 +129,35 @@ RSpec.describe 'Authentication', type: :system do
       expect(page).to have_current_path('/')
     end
   end
+
+  describe 'business sign out' do
+    let(:business) { create(:business) }
+    let(:manager) { create(:user, :manager, business: business) }
+
+    it 'allows a signed-in business to sign out' do
+      login_as(manager, scope: :user)
+      visit dashboard_path
+      
+      click_link 'Sign Out' # Match exact case
+      
+      expect(page).to have_current_path('/')
+    end
+  end
+
+  describe 'client sign out' do
+    let(:client) { create(:client) }
+
+    it 'allows a signed-in client to sign out' do
+      login_as(client, scope: :user)
+      visit root_path
+      
+      # Debugging: Print page source to see what's rendered
+      puts page.body
+      
+      expect(page).to have_link('Sign Out') # Match exact case
+      click_link 'Sign Out' # Match exact case
+      
+      expect(page).to have_current_path('/')
+    end
+  end
 end 

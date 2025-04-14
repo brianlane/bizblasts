@@ -3,6 +3,8 @@
 module Users
   # Custom sessions controller to handle redirection after sign-in
   class SessionsController < Devise::SessionsController
+    skip_before_action :set_tenant, only: :destroy
+
     # For tests, we need to override the sign_in method
     def create
       super do |resource|
@@ -24,6 +26,13 @@ module Users
     def after_sign_in_path_for(resource)
       # Go to the dashboard as the primary destination
       dashboard_path
+    end
+
+    def destroy
+      super do
+        # After sign out, redirect to the home page
+        redirect_to root_path and return
+      end
     end
   end
 end 

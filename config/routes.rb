@@ -8,6 +8,11 @@ Rails.application.routes.draw do
     # Add other controllers like passwords, confirmations if needed
   }
 
+  devise_for :businesses, skip: [:registrations], controllers: {
+    sessions: 'businesses/sessions',
+    # Add other controllers if needed
+  }
+
   # Scoped Devise routes for specific registration flows
   devise_scope :user do
     # Client Registration Routes
@@ -25,6 +30,9 @@ Rails.application.routes.draw do
     patch '/users', to: 'users/registrations#update', as: :user_registration # Note: default path used by Devise form helpers
     put '/users', to: 'users/registrations#update' # Allow PUT as well
     delete '/users', to: 'users/registrations#destroy'
+
+    # Route for signing out via GET
+    get '/users/sign_out', to: 'users/sessions#destroy'
   end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
@@ -46,9 +54,18 @@ Rails.application.routes.draw do
   get "home/debug" => redirect("/admin/debug"), as: :old_tenant_debug
   get "admin/debug" => "admin/debug#index", as: :tenant_debug
 
-  # Dashboard for authenticated users
-  get "dashboard" => "dashboard#index", as: :dashboard
-  
+  authenticated :user, ->(user) { user.manager? } do
+    get 'dashboard', to: 'dashboard#index'
+  end
+
+  authenticated :user, ->(user) { user.client? } do
+    get 'dashboard', to: 'client_dashboard#index'
+  end
+
+  authenticated :user, ->(user) { user.admin? } do
+    get 'dashboard', to: 'admin_dashboard#index'
+  end
+
   # Bookings resource with available_slots endpoint
   resources :bookings do
     collection do
