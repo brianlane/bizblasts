@@ -9,17 +9,23 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
+  # Redirect admin access attempts from subdomains to the main domain
+  before_action :redirect_admin_from_subdomain
+
   # Set current tenant based on subdomain
   # set_current_tenant_through_filter # Removed - Relying solely on custom :set_tenant filter
   # Ensure set_tenant runs for the debug page to correctly identify tenant context
-  before_action :set_tenant, unless: -> { maintenance_mode? }
+  # before_action :set_tenant, unless: -> { maintenance_mode? } # REMOVED global tenant filter
   before_action :check_database_connection
 
-  # Authentication (after tenant is set)
+  # Authentication (now runs before tenant is set in specific controllers)
   before_action :authenticate_user!, unless: :skip_user_authentication?
 
   # Error handling for tenant not found
   rescue_from ActsAsTenant::Errors::NoTenantSet, with: :tenant_not_found
+
+  # Handle Pundit NotAuthorizedError
+  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   # Allow manually setting tenant in tests
   def self.allow_tenant_params
@@ -71,6 +77,21 @@ class ApplicationController < ActionController::Base
 
   private
 
+  # Redirects requests to /admin from a subdomain to the main domain
+  def redirect_admin_from_subdomain
+    # Check if it's an admin path and on a subdomain
+    if request.path.start_with?('/admin') && request.subdomain.present? && request.subdomain != 'www'
+      # Construct the main domain URL (keeping the port and protocol)
+      main_domain_host = "lvh.me" # Or your production domain logic
+      port = request.port unless [80, 443].include?(request.port)
+      port_str = port ? ":#{port}" : ""
+      main_domain_url = "#{request.protocol}#{main_domain_host}#{port_str}#{request.fullpath}"
+
+      Rails.logger.info "[Redirect Admin] Redirecting admin access from subdomain #{request.host} to #{main_domain_url}"
+      redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
+    end
+  end
+
   def skip_user_authentication?
     devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
   end
@@ -112,7 +133,7 @@ class ApplicationController < ActionController::Base
       
       # Attempt to find and set the tenant by hostname
       if find_and_set_business_tenant(hostname)
-        Rails.logger.info "Tenant set from hostname: #{hostname}"
+        Rails.logger.info "[SetTenant] Tenant set from hostname: #{hostname} to Business: #{ActsAsTenant.current_tenant&.name}"
         return # Tenant found and set, done.
       else
         # Hostname provided but no matching tenant found
@@ -185,5 +206,18 @@ class ApplicationController < ActionController::Base
   def set_tenant_from_params
     business = Business.find_by(id: params[:tenant_id])
     Business.set_current_tenant(business) if business
+  end
+
+  # Pundit authorization failure handler
+  def user_not_authorized
+    flash[:alert] = "You are not authorized to access this area."
+    
+    # For clients, redirect to their dashboard
+    if user_signed_in? && current_user.client?
+      redirect_to dashboard_path and return
+    end
+    
+    # Otherwise redirect to root path
+    redirect_to root_path, allow_other_host: true and return # Explicit redirect, allow cross-host if necessary, and stop filter chain
   end
 end

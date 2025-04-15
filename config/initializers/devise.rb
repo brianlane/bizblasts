@@ -254,49 +254,83 @@ Devise.setup do |config|
 
   # Set this configuration to false if you want /users/sign_out to sign out
   # only the current scope. By default, Devise signs out all scopes.
-  # config.sign_out_all_scopes = true
+  # config.sign_out_all_scopes = true # Reverted to default or commented out
 
   # ==> Navigation configuration
-  # Lists the formats that should be treated as navigational. Formats like
-  # :html should redirect to the sign in page when the user does not have
-  # access, but formats like :xml or :json, should return 401.
+  # Lists navigational links/routes for devise controllers. For example,
+  # if you are using Devise Registerable module, you will have the following
+  # routes defined by default:
   #
-  # If you have any extra navigational formats, like :iphone or :mobile, you
-  # should add them to the navigational formats lists.
+  #   new_user_session_path -> POST /users/sign_in
+  #   user_session_path -> DELETE /users/sign_out
+  #   new_user_password_path -> GET /users/password/new
+  #   edit_user_password_path -> GET /users/password/edit
+  #   user_password_path -> PATCH /users/password
+  #                     -> PUT /users/password
+  #   new_user_confirmation_path -> GET /users/confirmation/new
+  #   user_confirmation_path -> GET /users/confirmation
+  #   new_user_registration_path -> GET /users/sign_up
+  #   edit_user_registration_path -> GET /users/edit
+  #   user_registration_path -> POST /users
+  #                          -> PATCH /users
+  #                          -> PUT /users
+  #                          -> DELETE /users
   #
-  # The "*/*" below is required to match Internet Explorer requests.
-  # config.navigational_formats = ['*/*', :html, :turbo_stream]
-
-  # The default HTTP method used to sign out a resource. Default is :delete.
-  config.sign_out_via = :delete
-
-  # ==> OmniAuth
-  # Add a new OmniAuth provider. Check the wiki for more information on setting
-  # up on your models and hooks.
-  # config.omniauth :github, 'APP_ID', 'APP_SECRET', scope: 'user,public_repo'
-
+  # The navigational links are used for configuring redirects and generating URLs
+  # helpers such as `after_sign_in_path_for` and `post_register_path_for`.
+  # You can customize which paths to use per scope/resource since Devise may
+  # forward the user to the route defined by the navigational link.
+  #
+  # Example:
+  # config.navigational_formats = ["*/*", :html, :turbo_stream]
+  #
   # ==> Warden configuration
   # If you want to use other strategies, that are not supported by Devise, or
-  # change the failure app, you can configure them inside the config.warden block.
+  # change the failure app, ask Warden to load them.
   #
   # config.warden do |manager|
   #   manager.intercept_401 = false
   #   manager.default_strategies(scope: :user).unshift :some_external_strategy
   # end
 
+  # Add custom Warden hooks for ActsAsTenant compatibility WITH LOGGING
+  # Place this INSIDE Devise.setup block
+  config.warden do |manager|
+    # Log what's being stored in the session
+    manager.serialize_into_session(:user) do |user|
+      Rails.logger.debug "[Devise Setup Warden Hook] Serialize Into Session - User ID: #{user.id}"
+      user.id # Standard serialization: store only the ID
+    end
+
+    # Log what's being retrieved and how it's looked up
+    manager.serialize_from_session(:user) do |user_id|
+      Rails.logger.debug "[Devise Setup Warden Hook] Serialize From Session - Looking for User ID: #{user_id}"
+      user = nil
+      # Perform lookup outside tenant scope to find user globally
+      ActsAsTenant.without_tenant do 
+        user = User.find_by(id: user_id)
+      end
+      
+      if user
+        Rails.logger.debug "[Devise Setup Warden Hook] Serialize From Session - User found: #{user.email}"
+        # Explicitly set the user in Warden for this request
+        # env = manager.env # Get the Rack env from the manager instance
+        # env['warden']&.set_user(user, scope: :user, store: false) # store: false prevents reserialization loop
+        # Rails.logger.debug "[Devise Setup Warden Hook] Explicitly set user in warden session"
+      else
+        Rails.logger.warn "[Devise Setup Warden Hook] Serialize From Session - User NOT found for ID: #{user_id}"
+      end
+      user # Return user or nil
+    end
+  end
+
   # ==> Mountable engine configurations
   # When using Devise inside an engine, let's call it `MyEngine`, and this engine
   # is mountable, there are some extra configurations to be taken into account.
-  # The following options are available, assuming the engine is mounted as:
-  #
-  #     mount MyEngine, at: '/my_engine'
-  #
-  # The router that invoked `devise_for`, in the example above, would be:
+  # The following options are available:
   # config.router_name = :my_engine
-  #
-  # When using OmniAuth, Devise cannot automatically set OmniAuth path,
-  # so you need to do it manually. For the users scope, it would be:
   # config.omniauth_path_prefix = '/my_engine/users/auth'
+  # config.skip_routes = true
 
   # ==> Hotwire/Turbo configuration
   # When using Devise with Hotwire/Turbo, the http status for error responses

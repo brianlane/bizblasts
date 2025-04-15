@@ -84,6 +84,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_11_210315) do
     t.string "tier"
     t.string "hostname"
     t.string "host_type"
+    t.string "subdomain"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"

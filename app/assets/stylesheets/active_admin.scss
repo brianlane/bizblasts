@@ -30,8 +30,8 @@ $form-label-color: $section-header-text-color !default;
 $page-header-text-color: #cdcdcd !default;
 
 // Revert to @import for ActiveAdmin files to resolve variable scope issues
-@import "active_admin/mixins";
-@import "active_admin/base";
+@import "mixins";
+@import "base";
 
 // Define our own basic styles in case imports fail
 body.active_admin {

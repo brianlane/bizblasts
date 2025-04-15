@@ -69,6 +69,7 @@ group :development, :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "cuprite"
+  gem "webdrivers"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false

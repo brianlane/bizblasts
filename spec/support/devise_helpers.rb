@@ -14,13 +14,18 @@ module DeviseHelpers
   
   # Sign out a user in system tests
   def sign_out_system_user
-    click_link "Sign out"
+    click_sign_out_link_or_button
   end
 
-  def sign_out
+  # Renamed to avoid conflict with Devise::Test::IntegrationHelpers#sign_out
+  def click_sign_out_link_or_button
     # Turbo uses data-turbo-method for delete requests
-    if has_link?('Sign out', exact: true)
+    if has_link?('Sign Out', exact: true)
+      click_link 'Sign Out'
+    elsif has_link?('Sign out', exact: true)
       click_link 'Sign out'
+    elsif has_button?('Sign Out', exact: true)
+      click_button 'Sign Out'
     elsif has_button?('Sign out', exact: true)
       click_button 'Sign out'
     else

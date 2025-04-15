@@ -141,14 +141,9 @@ RSpec.describe "Admin Debug Page", type: :request do
       get admin_debug_path
     end
   
-    it "returns http success" do
-      expect(response).to have_http_status(:success)
-    end
-  
-    it "shows current request info with the correct tenant" do
-      # Verify the tenant name is displayed correctly in the Current Request panel
-      expect(response.body).to include("<strong>Current Tenant: </strong>")
-      expect(response.body).to include("<span>#{tenant1.name}</span>")
+    it "redirects permanently to the main domain" do
+      expect(response).to have_http_status(:moved_permanently)
+      expect(response.location).to eq("http://lvh.me/admin/debug")
     end
   end
 end 

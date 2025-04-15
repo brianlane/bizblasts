@@ -4,7 +4,7 @@
   "scripts": {
     "build:css:application": "sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
     "build:css:active_admin": "sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules/@activeadmin/activeadmin/src/scss --load-path=node_modules",
-    "build:css": "npm run build:css:application && npm run build:css:active_admin"
+    "build:css": "yarn run build:css:application && yarn run build:css:active_admin"
   },
   "devDependencies": {
     "@activeadmin/activeadmin": "^3.3.0",

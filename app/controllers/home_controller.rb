@@ -6,7 +6,7 @@ class HomeController < ApplicationController
   # Skip authentication for index page
   skip_before_action :authenticate_user!, only: [:index]
   # For added safety, skip tenant setting for the home page
-  skip_before_action :set_tenant, only: [:index]
+  # skip_before_action :set_tenant, only: [:index] # REMOVED: Global filter was removed
 
   def index
     @companies_count = fetch_companies_count

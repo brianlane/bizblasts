@@ -79,4 +79,6 @@ Rails.application.configure do
   config.hosts << "lvh.me"
   config.hosts << /.*\.lvh\.me/
   config.hosts << /.*\.127\.0\.0\.1\.xip\.io/
+
+  config.session_store :cookie_store, key: '_bizblasts_session', domain: :all
 end

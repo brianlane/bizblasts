@@ -91,18 +91,23 @@ Rails.application.configure do
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false
 
-  # Allow requests to test domains and subdomains
-  # Based on RSpec setup and custom domains used in tests
+  # Specifies the allowed hosts for preventing Host header attacks.
+  # Please make sure you understand the security implications of adding hosts here.
+  # See https://guides.rubyonrails.org/configuring.html#config-hosts
   config.hosts = [
     "localhost",               # Standard localhost
     "127.0.0.1",             # Standard loopback IP
     "www.example.com",       # Default RSpec/Capybara host
-    /.*\.lvh.me/,            # Allow *.lvh.me for local testing
-    "std-biz.com",           # Custom domain from specs
-    "premium-biz.com"        # Custom domain from specs
-    # Add any other specific subdomains/domains used in tests if needed
+    /.*\.lvh.me/,            # Allow *.lvh.me for local testing (alternative to example.com)
+    # Allow any subdomain of example.com for tenant testing
+    /[a-z0-9\-]+\.example\.com/
+    # Add any specific custom domains used in tests if not covered by regex
+    # "std-biz.com",           # Custom domain from specs
+    # "premium-biz.com"        # Custom domain from specs
   ]
 
-  # Allow specific hosts for testing tenant contexts
-  config.hosts += ["alpha.example.com", "beta.example.com"]
+  # Allow specific hosts for testing tenant contexts (Now covered by regex above)
+  # config.hosts += ["alpha.example.com", "beta.example.com"]
+
+  config.session_store :cookie_store, key: '_bizblasts_session', domain: :all
 end
