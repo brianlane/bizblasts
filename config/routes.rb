@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require Rails.root.join('lib/constraints/subdomain_constraint')
+
 Rails.application.routes.draw do
   devise_for :admin_users, ActiveAdmin::Devise.config
   ActiveAdmin.routes(self)
@@ -54,8 +56,12 @@ Rails.application.routes.draw do
   get "home/debug" => redirect("/admin/debug"), as: :old_tenant_debug
   get "admin/debug" => "admin/debug#index", as: :tenant_debug
 
-  authenticated :user, ->(user) { user.manager? } do
-    get 'dashboard', to: 'dashboard#index'
+  # General authenticated routes
+  authenticated :user do
+    # Commenting out the generic dashboard route to avoid conflict with tenant/admin/client dashboards
+    # get 'dashboard', to: 'dashboard#index' 
+    # Point authenticated root to the main home page, rely on after_sign_in_path_for for role-based redirect
+    root 'home#index', as: :authenticated_root 
   end
 
   authenticated :user, ->(user) { user.client? } do
@@ -67,7 +73,7 @@ Rails.application.routes.draw do
   end
 
   # Bookings resource with available_slots endpoint
-  resources :bookings do
+  resources :bookings, except: [:new] do
     collection do
       get 'available_slots'
       post 'available_slots'
@@ -177,4 +183,27 @@ Rails.application.routes.draw do
       [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
     end
   }
+
+  # Multi-Tenant Business Routes (accessed via subdomain/custom domain)
+  constraints(SubdomainConstraint) do
+    scope module: 'business_manager' do
+      get '/dashboard', to: 'dashboard#index', as: :business_manager_dashboard
+      # Future business manager routes will go here
+      # e.g., resources :pages, controller: 'pages' # within business_manager scope
+    end
+  end
+
+  # Public facing tenant website routes
+  constraints(SubdomainConstraint) do
+    scope module: 'public' do
+      get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
+      get '/about', to: 'pages#show', page: 'about'
+      get '/services', to: 'pages#show', page: 'services'
+      get '/contact', to: 'pages#show', page: 'contact'
+      # Add routes for booking, dynamic pages etc.
+      get '/book', to: 'booking#new', as: :new_booking
+      resources :booking, only: [:create]
+      get '/:page', to: 'pages#show', as: :tenant_page
+    end
+  end
 end

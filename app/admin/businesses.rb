@@ -3,7 +3,7 @@
 ActiveAdmin.register Business do
   # Remove tenant scoping for admin panel
   controller do
-    skip_before_action :set_tenant, if: -> { true }
+    # skip_before_action :set_tenant, if: -> { true } # REMOVED: Global filter was removed
     
     # Override finding resource logic to handle ID or hostname
     def find_resource

@@ -4,7 +4,7 @@ module Businesses
   # Custom sessions controller for businesses
   class SessionsController < Devise::SessionsController
     # Skip tenant setting for sign out
-    skip_before_action :set_tenant, only: :destroy
+    # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
 
     # You might need to customize create or after_sign_in_path_for
     # depending on business login requirements and redirection

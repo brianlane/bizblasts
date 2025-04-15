@@ -45,6 +45,7 @@ require 'database_cleaner/active_record'
 require 'parallel_tests/rspec/runtime_logger' # If using parallel_tests logging
 require 'capybara/rails'
 require 'fileutils' # Add FileUtils for directory creation
+require 'warden'
 # require 'mock_asset_helpers' # REMOVED: Support files are loaded later by RSpec
 
 # Load all support files
@@ -87,6 +88,11 @@ RSpec.configure do |config|
   config.include Capybara::RSpecMatchers, type: :feature
   config.include Capybara::DSL, type: :system
   config.include Capybara::RSpecMatchers, type: :system
+
+  # Add Warden test helpers for Devise tests
+  config.include Warden::Test::Helpers
+  config.before(:suite) { Warden.test_mode! }
+  config.after(:each) { Warden.test_reset! }
 
   # == DatabaseCleaner Configuration for Parallel Tests ==
   config.before(:suite) do

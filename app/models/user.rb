@@ -76,6 +76,31 @@ class User < ApplicationRecord
   # 2. Create ClientBusiness records for existing clients based on their current business_id.
   # 3. Set business_id to NULL for all client users after step 2.
 
+  # Explicitly public role check methods
+  public
+
+  def manager?
+    role == 'manager'
+  end
+
+  def staff?
+    role == 'staff'
+  end
+  
+  def client?
+    role == 'client'
+  end
+
+  # Platform admins are handled by AdminUser model
+  def admin?
+    false
+  end
+
+  def has_any_role?(*roles_to_check)
+    # Convert symbols to strings for comparison with the string value from the enum
+    roles_to_check.any? { |role_sym| self.role == role_sym.to_s }
+  end
+
   private # Ensure private keyword exists or add it if needed
 
   # Helper method for conditional password validation (mimics Devise behavior)
