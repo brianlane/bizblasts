@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_11_210315) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_16_181109) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -242,6 +242,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_11_210315) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "featured"
+    t.jsonb "availability_settings"
     t.index ["business_id"], name: "index_services_on_business_id"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
   end
@@ -274,6 +276,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_11_210315) do
     t.index ["marketing_campaign_id"], name: "index_sms_messages_on_marketing_campaign_id"
     t.index ["status"], name: "index_sms_messages_on_status"
     t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
+  end
+
+  create_table "staff_assignments", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "service_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_id"], name: "index_staff_assignments_on_service_id"
+    t.index ["user_id"], name: "index_staff_assignments_on_user_id"
   end
 
   create_table "staff_members", force: :cascade do |t|
@@ -360,6 +371,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_11_210315) do
   add_foreign_key "sms_messages", "bookings"
   add_foreign_key "sms_messages", "marketing_campaigns"
   add_foreign_key "sms_messages", "tenant_customers"
+  add_foreign_key "staff_assignments", "services"
+  add_foreign_key "staff_assignments", "users"
   add_foreign_key "staff_members", "businesses", on_delete: :cascade
   add_foreign_key "staff_members", "users"
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade

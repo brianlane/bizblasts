@@ -21,15 +21,6 @@ module AssetPipelineHelper
       end
     end
     
-    # Override Sprockets helpers
-    if defined?(Sprockets::Rails::Helper)
-      Sprockets::Rails::Helper.class_eval do
-        def asset_path(source, options = {})
-          "/assets/#{source}"
-        end
-      end
-    end
-    
     # Override Propshaft helpers
     if defined?(Propshaft::Helper)
       Propshaft::Helper.class_eval do

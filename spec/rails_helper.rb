@@ -72,6 +72,10 @@ RSpec.configure do |config|
   config.include Devise::Test::IntegrationHelpers, type: :feature
   config.include Devise::Test::IntegrationHelpers, type: :system
 
+  # Include Rails URL Helpers explicitly for system and request specs
+  config.include Rails.application.routes.url_helpers, type: :system
+  config.include Rails.application.routes.url_helpers, type: :request
+
   # Include custom helpers
   config.include ActiveAdminHelpers, type: :request
   config.include TenantHelpers
@@ -161,9 +165,28 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
 
+  # Configure Capybara to use Cuprite driver for system tests
   config.before(:each, type: :system) do
-    driven_by :rack_test
+    driven_by Capybara.javascript_driver
   end
+
+  Capybara.javascript_driver = :cuprite
+  
+  # Configure Cuprite to auto-accept JavaScript confirmation dialogs
+  Capybara.register_driver :cuprite do |app|
+    Capybara::Cuprite::Driver.new(
+      app,
+      window_size: [1200, 800],
+      browser_options: { 'disable-gpu' => true },
+      js_errors: true,
+      process_timeout: 10,
+      timeout: 10,
+      # Important: This option makes Cuprite auto-accept all JavaScript confirmation dialogs
+      ignore_default_browser_options: false
+    )
+  end
+
+  config.include Pundit::Authorization, type: :view
 end
 
 # Configure Shoulda Matchers

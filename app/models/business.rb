@@ -28,14 +28,15 @@ class Business < ApplicationRecord
   # Removed dependent: :destroy from all - Let DB cascade handle via FKs
   has_many :users, inverse_of: :business, validate: false
   has_many :tenant_customers
-  has_many :services
+  has_many :services, dependent: :destroy
   has_many :staff_members
   has_many :bookings
   has_many :invoices
   has_many :payments
   has_many :marketing_campaigns
   has_many :promotions
-  has_many :pages
+  has_many :pages, dependent: :destroy
+  has_many :page_sections, through: :pages
   has_many :loyalty_programs
   
   # For Client relationships (many-to-many with User)

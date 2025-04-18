@@ -8,7 +8,9 @@ class User < ApplicationRecord
   belongs_to :business, optional: true, inverse_of: :users
   belongs_to :staff_member, optional: true
   has_many :client_businesses, dependent: :destroy
-  has_many :associated_businesses, through: :client_businesses, source: :business
+  has_many :businesses, through: :client_businesses
+  has_many :staff_assignments, dependent: :destroy
+  has_many :assigned_services, through: :staff_assignments, source: :service
 
   # Allow creating business via user form during sign-up
   # accepts_nested_attributes_for :business # Removed - Business creation handled explicitly in controller
@@ -66,8 +68,8 @@ class User < ApplicationRecord
   end
 
   def self.ransackable_associations(auth_object = nil)
-    # Include new associations
-    %w[business staff_member client_businesses associated_businesses]
+    # Include new associations, correcting the name
+    %w[business staff_member client_businesses businesses staff_assignments assigned_services]
   end
 
   # NOTE: The old :admin role (value 0) is no longer valid.

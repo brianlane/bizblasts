@@ -188,7 +188,6 @@ jobs:
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
-          SPROCKETS_DEBUG: true
           # Skip schema version check to ensure migrations run
           SKIP_SCHEMA_VERSION_CHECK: true
         run: |
@@ -204,8 +203,6 @@ jobs:
           echo "RAILS_DISABLE_ASSET_COMPILATION=${RAILS_DISABLE_ASSET_COMPILATION}"
           
           # Debug gem versions
-          echo "Sprockets gem version:"
-          bundle info sprockets || echo "Sprockets not found"
           echo "Propshaft gem version:"
           bundle info propshaft || echo "Propshaft not found"
           
