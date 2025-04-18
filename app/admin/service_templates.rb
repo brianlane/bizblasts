@@ -29,7 +29,7 @@ ActiveAdmin.register ServiceTemplate do
     actions defaults: false do |template|
       item "View", resource_path(template)
       item "Edit", edit_resource_path(template)
-      item "Delete", resource_path(template), method: :delete, data: { confirm: ("Are you sure?" unless Rails.env.test?) }
+      item "Delete", resource_path(template), 'data-turbo-method': :delete, 'data-turbo-confirm': "Are you sure?"
     end
   end
 

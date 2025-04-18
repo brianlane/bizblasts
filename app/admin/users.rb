@@ -38,12 +38,8 @@ ActiveAdmin.register User do
     column "Position" do |user|
       user.staff_member&.position
     end
-    column "Associated Businesses" do |user|
-      if user.client?
-        user.associated_businesses.count
-      else
-        status_tag("N/A")
-      end
+    column "Businesses Count" do |user|
+      user.businesses.count
     end
     column :active
     actions

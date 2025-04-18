@@ -1,52 +1,69 @@
 <h1 class="text-3xl font-bold mb-6">Welcome to <%= @current_business.name %> Dashboard</h1>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  <!-- Example Dashboard Widgets -->
 
-  <!-- Upcoming Bookings -->
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-xl font-semibold mb-4">Upcoming Bookings</h2>
-    <%# Placeholder: Replace with actual booking data %>
-    <% if @upcoming_bookings.present? %>
-      <ul>
-        <% @upcoming_bookings.each do |booking| %>
-          <li class="border-b last:border-b-0 py-2">
-            <span class="font-medium"><%= booking.service.name %></span> with <%= booking.tenant_customer.name %>
+  <!-- Recent Bookings (Last 7 Days) -->
+  <div id="recent-bookings-widget" class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-semibold mb-4">Recent Bookings (Last 7 Days)</h2>
+    <% recent_bookings = @current_business.bookings.where(start_time: 7.days.ago..Time.current).order(start_time: :desc).limit(5) %>
+    <% if recent_bookings.present? %>
+      <ul class="divide-y divide-gray-200">
+        <% recent_bookings.each do |booking| %>
+          <li class="py-3">
+            <span class="font-medium"><%= booking.service.name %></span> with <%= booking.tenant_customer&.name || 'Deleted Customer' %>
             <span class="text-sm text-gray-600 block"><%= booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p") %></span>
           </li>
         <% end %>
       </ul>
-      <%# Link to full bookings page %>
-      <%= link_to "View All Bookings", "#", class: "text-blue-600 hover:underline mt-4 inline-block" %>
+      <%= link_to "View All Bookings", "#", class: "text-blue-600 hover:underline mt-4 inline-block" %> <%# Placeholder link %>
     <% else %>
-      <p class="text-gray-600">No upcoming bookings.</p>
-      <%# Link to booking creation? %>
+      <p class="text-gray-600">No bookings in the last 7 days.</p>
     <% end %>
   </div>
 
-  <!-- Quick Stats (Placeholder) -->
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-xl font-semibold mb-4">Quick Stats</h2>
+  <!-- Upcoming Appointments (Next 7 Days) -->
+  <div id="upcoming-appointments-widget" class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-semibold mb-4">Upcoming Appointments (Next 7 Days)</h2>
+    <% upcoming_appointments = @current_business.bookings.where(start_time: Time.current..7.days.from_now).order(start_time: :asc).limit(5) %>
+    <% if upcoming_appointments.present? %>
+      <ul class="divide-y divide-gray-200">
+        <% upcoming_appointments.each do |booking| %>
+          <li class="py-3">
+            <span class="font-medium"><%= booking.service.name %></span> with <%= booking.tenant_customer&.name || 'Deleted Customer' %>
+            <span class="text-sm text-gray-600 block"><%= booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p") %></span>
+          </li>
+        <% end %>
+      </ul>
+      <%= link_to "View All Bookings", "#", class: "text-blue-600 hover:underline mt-4 inline-block" %> <%# Placeholder link %>
+    <% else %>
+      <p class="text-gray-600">No upcoming appointments in the next 7 days.</p>
+    <% end %>
+  </div>
+
+  <!-- Website Visitor Statistics (Placeholder) -->
+  <div id="website-stats-widget" class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-semibold mb-4">Website Visitor Statistics</h2>
     <div class="space-y-3">
-      <p><strong>Total Customers:</strong> <span class="text-blue-600">123</span></p>
-      <p><strong>Bookings Today:</strong> <span class="text-green-600">5</span></p>
-      <p><strong>Revenue This Month:</strong> <span class="text-indigo-600">$1,234.56</span></p>
+      <p><strong>Total Visitors (Last 30d):</strong> <span class="text-blue-600">---</span></p>
+      <p><strong>Page Views (Last 30d):</strong> <span class="text-green-600">---</span></p>
+      <p><strong>Bounce Rate:</strong> <span class="text-indigo-600">---</span></p>
+      <p class="text-sm text-gray-500 italic">Analytics coming soon!</p>
     </div>
-    <%# Link to analytics page %>
-    <%= link_to "View Full Analytics", "#", class: "text-blue-600 hover:underline mt-4 inline-block" %>
+    <%= link_to "View Full Analytics", "#", class: "text-blue-600 hover:underline mt-4 inline-block" %> <%# Placeholder link %>
   </div>
 
   <!-- Quick Actions -->
-  <div class="bg-white p-6 rounded-lg shadow">
+  <div id="quick-actions-widget" class="bg-white p-6 rounded-lg shadow">
     <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
     <div class="space-y-2">
-      <%= link_to "Create New Booking", "#", class: "block text-blue-600 hover:underline" %>
-      <%= link_to "Add New Customer", "#", class: "block text-blue-600 hover:underline" %>
-      <%= link_to "Manage Services", "#", class: "block text-blue-600 hover:underline" %>
-      <%= link_to "Edit Website Pages", "#", class: "block text-blue-600 hover:underline" %>
+      <%= link_to "Create New Booking", "#", class: "block text-blue-600 hover:underline" %> <%# Placeholder %>
+      <%= link_to "Add New Customer", "#", class: "block text-blue-600 hover:underline" %> <%# Placeholder %>
+      <%= link_to "Manage Services", "/services", class: "block text-blue-600 hover:underline" %>
+      <%= link_to "Manage Invoices", "#", class: "block text-blue-600 hover:underline" %> <%# Placeholder %>
+      <%= link_to "Edit Website Pages", "#", class: "block text-blue-600 hover:underline" %> <%# Placeholder %>
     </div>
   </div>
 
-  <%# Add more dashboard widgets as needed %>
+  <%# Removed old placeholder widgets %>
 
 </div> 

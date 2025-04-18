@@ -2,6 +2,12 @@
 
 # Controller for the main business dashboard.
 class BusinessManager::DashboardController < BusinessManager::BaseController
+  # Explicitly include helpers needed for views rendered by this controller,
+  # especially if routes are constrained.
+  helper Rails.application.routes.url_helpers
+  # Include specific namespace helpers if the above isn't enough
+  # helper BusinessManager::ServicesHelper
+
   def index
     # The @current_business instance variable is set by the authorize_business_user! in BaseController
     # Fetch data needed for the dashboard view, e.g.:

@@ -7,7 +7,9 @@ RSpec.describe User, type: :model do
     it { is_expected.to belong_to(:business).optional }
     it { is_expected.to belong_to(:staff_member).optional }
     it { is_expected.to have_many(:client_businesses).dependent(:destroy) }
-    it { is_expected.to have_many(:associated_businesses).through(:client_businesses).source(:business) }
+    it { is_expected.to have_many(:businesses).through(:client_businesses) }
+    it { is_expected.to have_many(:staff_assignments).dependent(:destroy) }
+    it { is_expected.to have_many(:assigned_services).through(:staff_assignments).source(:service) }
   end
 
   describe 'validations' do

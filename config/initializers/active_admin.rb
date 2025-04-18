@@ -344,12 +344,4 @@ ActiveAdmin.setup do |config|
   #
   # config.order_clause = MyOrderClause
 
-  # == Webpacker
-  #
-  # By default, Active Admin uses Propshaft for bootstrapping
-  # and other assets. If you would like to use Webpacker instead
-  # (i.e. you're using React, Vue, or other JS framework for
-  # your JS), you can set this flag to true.
-  #
-  # config.use_webpacker = true
 end
