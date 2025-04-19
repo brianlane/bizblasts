@@ -58,7 +58,7 @@ ActiveAdmin.register User do
       
       if resource.client?
         row :associated_businesses do |user|
-          user.associated_businesses.map do |b|
+          user.businesses.map do |b|
             if b&.id
               link_to(b.name, admin_business_path(b.id))
             else
