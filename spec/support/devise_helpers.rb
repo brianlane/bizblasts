@@ -19,7 +19,6 @@ module DeviseHelpers
 
   # Renamed to avoid conflict with Devise::Test::IntegrationHelpers#sign_out
   def click_sign_out_link_or_button
-    # Turbo uses data-turbo-method for delete requests
     if has_link?('Sign Out', exact: true)
       click_link 'Sign Out'
     elsif has_link?('Sign out', exact: true)

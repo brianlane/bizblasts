@@ -109,15 +109,16 @@ RSpec.configure do |config|
   end
 
   config.around(:each) do |example|
-    # Set strategy explicitly for system tests
-    if example.metadata[:type] == :system
-      DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
-    else
-      # Keep the default strategy for other types (or set explicitly if needed)
-      # DatabaseCleaner.strategy = :transaction # Example if using transaction for others
-      # Or just rely on the default set in before(:suite) if consistent
-      DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Assuming truncation default
-    end
+    # Set strategy explicitly for system tests (Now defaulting to truncation anyway)
+    DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Ensure truncation
+    # if example.metadata[:type] == :system
+    #   DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
+    # else
+    #   # Keep the default strategy for other types (or set explicitly if needed)
+    #   # DatabaseCleaner.strategy = :transaction # Example if using transaction for others
+    #   # Or just rely on the default set in before(:suite) if consistent
+    #   DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Assuming truncation default
+    # end
 
     # Skip cleaning if :seed_test metadata is present (seeds_spec handles its own)
     if example.metadata[:seed_test]
@@ -126,6 +127,7 @@ RSpec.configure do |config|
     elsif example.metadata[:no_db_clean]
       example.run # Run example without DatabaseCleaner wrapping
     else
+      # Use the original .cleaning block with truncation
       DatabaseCleaner.cleaning do
         example.run
       end
@@ -135,10 +137,13 @@ RSpec.configure do |config|
     # Rewind sequences after each test
     FactoryBot.rewind_sequences
     # Reset Capybara session state
-    Capybara.reset_sessions!
+    # Reset Capybara session state only if it's a system/feature test (Keep this specific reset)
+    if example.metadata[:type] == :system || example.metadata[:type] == :feature
+      Capybara.reset_sessions!
+    end
 
     # Optional: Reset strategy back to default if necessary, though usually not needed
-    # DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } 
+    # DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Removed explicit reset
   end
   
   # == End DatabaseCleaner Configuration ==
@@ -170,6 +175,9 @@ RSpec.configure do |config|
     driven_by Capybara.javascript_driver
   end
 
+  # Assign dynamic server ports for parallel system tests
+  Capybara.server_port = 9887 + ENV['TEST_ENV_NUMBER'].to_i
+
   Capybara.javascript_driver = :cuprite
   
   # Configure Cuprite to auto-accept JavaScript confirmation dialogs
@@ -179,8 +187,10 @@ RSpec.configure do |config|
       window_size: [1200, 800],
       browser_options: { 'disable-gpu' => true },
       js_errors: true,
-      process_timeout: 10,
-      timeout: 10,
+      process_timeout: 30,
+      timeout: 30,
+      headless: true,
+      dialog_handler: ->(page, dialog) { dialog.accept },
       # Important: This option makes Cuprite auto-accept all JavaScript confirmation dialogs
       ignore_default_browser_options: false
     )

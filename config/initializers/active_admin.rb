@@ -12,6 +12,13 @@ ActiveAdmin.setup do |config|
   #
   config.site_title_link = "/"
 
+  # This is the recommended way to add JavaScript to ActiveAdmin in Rails 8
+  config.authentication_method = :authenticate_admin_user!
+
+  # Manually add our JavaScript
+  script_code = File.read(Rails.root.join('app/assets/javascripts/delete_fix.js'))
+  config.head = "<script>#{script_code}</script>".html_safe
+
   # Set an optional image to be displayed for the header
   # instead of a string (overrides :site_title)
   #
