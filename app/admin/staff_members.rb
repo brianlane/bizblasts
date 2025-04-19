@@ -18,6 +18,7 @@ ActiveAdmin.register StaffMember do
   # Permit parameters for StaffMember
   permit_params :business_id, :user_id, :name, :email, :phone, :active, :notes,
                :position, :photo_url,
+               # Simplify back to allowing any hash structure
                availability: {}
 
   # Custom action for availability management
@@ -33,28 +34,34 @@ ActiveAdmin.register StaffMember do
           parsed_availability = JSON.parse(availability_param)
         rescue JSON::ParserError => e
           Rails.logger.error("Failed to parse availability JSON: #{e.message}")
-          flash.now[:error] = "Invalid availability format submitted."
-          render :manage_availability and return # Render form with error
+          redirect_back fallback_location: admin_staff_member_path(@staff_member), 
+                        flash: { error: "Invalid availability format submitted." } and return
         end
       elsif availability_param.is_a?(Hash)
-        # If it's already a hash, use it directly (e.g., from API call)
         parsed_availability = availability_param
       else
-        # Handle nil or unexpected type - perhaps set to empty hash or error?
-        parsed_availability = {} # Default to empty if param is missing/invalid type
+        parsed_availability = {} 
       end
 
-      # Proceed with update only if parsing was successful (or handled)
-      if flash[:error].blank? && @staff_member.update(availability: parsed_availability)
-        redirect_to admin_staff_member_path(@staff_member), notice: "Availability updated successfully"
+      # Attempt update if we have a hash
+      if parsed_availability.is_a?(Hash) 
+        # Removed the explicit .to_json call here - let Rails handle hash assignment
+        if @staff_member.update(availability: parsed_availability)
+          redirect_to admin_staff_member_path(@staff_member), notice: "Availability updated successfully"
+        else
+          redirect_back fallback_location: admin_staff_member_path(@staff_member),
+                        flash: { error: "Failed to update availability: #{@staff_member.errors.full_messages.join(', ')}" }
+        end
       else
-        # Add parsing errors or update errors to flash
-        flash.now[:error] ||= "Failed to update availability: #{@staff_member.errors.full_messages.join(', ')}"
-        render :manage_availability # Re-render the form
+        # This case handles if parsing failed and resulted in non-hash (e.g., nil)
+        # or if the initial param was neither string nor hash.
+        redirect_back fallback_location: admin_staff_member_path(@staff_member),
+                      flash: { error: "Invalid or unprocessable availability data format." } # More specific error
       end
+
     else
-      # GET request: Render the availability management form
-      # You might need to pass @staff_member.availability to the view
+      # GET request: Redirect to the show page
+      redirect_to admin_staff_member_path(@staff_member), notice: "Manage availability via the show page."
     end
   end
   
@@ -82,10 +89,12 @@ ActiveAdmin.register StaffMember do
     column :email
     column :phone
     column "Availability Summary" do |staff|
-      if staff.availability.present? && staff.availability.is_a?(Hash)
+      if staff.availability.is_a?(Hash)
         days = staff.availability.keys.reject {|k| k.to_s == 'exceptions'}.count
         exceptions = staff.availability.dig('exceptions')&.keys&.count || 0
-        "#{days} days, #{exceptions} exceptions"
+        day_str = "#{days} #{days == 1 ? 'day' : 'days'}"
+        ex_str = "#{exceptions} #{exceptions == 1 ? 'exception' : 'exceptions'}"
+        "#{day_str}, #{ex_str}"
       else
         "Not set"
       end
@@ -120,7 +129,7 @@ ActiveAdmin.register StaffMember do
       row :updated_at
       row "Availability" do |staff|
         link_to "View & Manage Availability", manage_availability_admin_staff_member_path(staff)
-        pre JSON.pretty_generate(staff.availability) if staff.availability.present?
+        pre JSON.pretty_generate(staff.availability) if staff.availability.is_a?(Hash)
       end
     end
     active_admin_comments
