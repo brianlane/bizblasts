@@ -63,7 +63,7 @@ RSpec.describe "Client::Registrations", type: :request do
 
       it "re-renders the 'new' template with errors" do
         post client_registration_path, params: invalid_attributes
-        expect(response).to have_http_status(:unprocessable_entity) # Or :success if Turbo Streams are used for errors
+        expect(response).to have_http_status(:unprocessable_entity) 
         expect(response.body).to include("Email is invalid") # Check for specific error message
       end
     end

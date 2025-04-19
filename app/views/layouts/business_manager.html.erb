@@ -7,7 +7,7 @@
   <%= csp_meta_tag %>
 
   <%# Link to your Tailwind CSS build %>
-  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  <%= stylesheet_link_tag "application" %>
   <%= javascript_importmap_tags %>
 </head>
 
@@ -45,7 +45,7 @@
       </nav>
       <div class="mt-auto">
         <p class="text-sm text-gray-400">Signed in as <%= current_user.email %> (<%= current_user.role.humanize %>)</p>
-        <%= link_to "Sign Out", destroy_user_session_path, data: { turbo_method: :delete }, class: "block py-2 px-4 mt-2 text-center bg-red-600 rounded hover:bg-red-700" %>
+        <%= link_to "Sign Out", destroy_user_session_path, method: :delete, class: "block py-2 px-4 mt-2 text-center bg-red-600 rounded hover:bg-red-700" %>
       </div>
     </div>
 

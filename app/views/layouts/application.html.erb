@@ -16,17 +16,17 @@
 
     <%# Use both Rails asset helper and direct link as fallback %>
     <% begin %>
-      <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+      <%= stylesheet_link_tag "application" %>
     <% rescue => e %>
       <% Rails.logger.error "Failed to load stylesheet with helper: #{e.message}" %>
-      <link rel="stylesheet" href="/assets/application.css" data-turbo-track="reload">
+      <link rel="stylesheet" href="/assets/application.css">
     <% end %>
     
     <% begin %>
       <%= javascript_importmap_tags %>
     <% rescue => e %>
       <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
-      <script src="/assets/application.js" data-turbo-track="reload"></script>
+      <script src="/assets/application.js"></script>
     <% end %>
   </head>
 
@@ -42,7 +42,7 @@
 
     <% if user_signed_in? %>
       <%# Sign out link for regular Users (manager, staff, client) %>
-      <%= link_to "Sign out", destroy_user_session_path, data: { "turbo-method": :delete } %>
+      <%= link_to "Sign out", destroy_user_session_path, method: :delete %>
     <% end %>
   </body>
 </html>

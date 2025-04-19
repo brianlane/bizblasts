@@ -26,11 +26,7 @@ ActiveAdmin.register ServiceTemplate do
     end
     column :active
     column :created_at
-    actions defaults: false do |template|
-      item "View", resource_path(template)
-      item "Edit", edit_resource_path(template)
-      item "Delete", resource_path(template), 'data-turbo-method': :delete, 'data-turbo-confirm': "Are you sure?"
-    end
+    actions
   end
 
   # Show page customization
