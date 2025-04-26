@@ -48,15 +48,13 @@ module Public
         return
       end
       
-      # Simplistic approach: Render a view based on the sanitized slug
-      # Views should be located in app/views/public/pages/
-      template_path = File.join('public', 'pages', @page_slug)
-      
-      if lookup_context.exists?(@page_slug, 'public/pages', false)
-        render template: template_path
+      # Render only known static pages via explicit templates
+      slug = params[:page].to_s.downcase
+      case slug
+      when 'services'
+        render template: 'public/pages/services'
       else
-        # Log the original requested slug and the sanitized version for debugging
-        Rails.logger.warn "[Public::PagesController] Template for raw slug '#{raw_slug}' (sanitized to '#{@page_slug}') not found for tenant #{current_tenant.name}. Rendering home."
+        # Default to home for 'home' and any other slug
         render template: 'public/pages/home'
       end
     end
