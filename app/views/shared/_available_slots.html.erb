@@ -1,0 +1,84 @@
+<%
+# Shared partial for rendering available time slots
+# Accepts the following parameters:
+# - service: The service being booked
+# - staff_member: The staff member to show slots for
+# - date: The date to show slots for
+# - available_slots: Array of available time slots
+# - is_subdomain: Boolean indicating if this is for subdomain view
+# - container_class: Additional CSS classes for the container (optional)
+# - selectable: Whether slots can be selected (to book or manage, default: true)
+%>
+
+<% 
+  # Set defaults if not provided
+  local_assigns[:selectable] = true if local_assigns[:selectable].nil?
+  local_assigns[:container_class] ||= ""
+  local_assigns[:is_subdomain] ||= false
+%>
+
+<div class="available-slots-container <%= container_class %>">
+  <%# Remove staff info section as slots can be from multiple staff %>
+  <%# if staff_member.present? %>
+  <%#   <div class="staff-info mb-4"> %>
+  <%#     <h3 class="text-lg font-semibold"><%= staff_member.name %></h3> %>
+  <%#     <% if service.present? %> %>
+  <%#       <div class="text-sm text-gray-600"> %>
+  <%#         <span><%= service.name %></span> %>
+  <%#         <span class="ml-2">(<%= service.duration %> min)</span> %>
+  <%#         <% if service.price.present? %> %>
+  <%#           <span class="ml-2"><%= number_to_currency(service.price) %></span> %>
+  <%#         <% end %> %>
+  <%#       </div> %>
+  <%#     <% end %> %>
+  <%#   </div> %>
+  <%# end %>
+  
+  <div class="date-display mb-4">
+    <h4 class="text-md font-medium"><%= date.strftime("%A, %B %d, %Y") %></h4>
+  </div>
+  
+  <% if available_slots.any? %>
+    <div class="slots-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <% available_slots.each do |slot| %>
+        <% 
+          start_time = slot[:start_time]
+          end_time = slot[:end_time]
+          formatted_time = start_time.strftime('%l:%M %p').strip
+          
+          # Prepare params for booking link
+          booking_params = { 
+            service_id: service&.id, 
+            staff_member_id: slot[:staff_member_id], # Use ID from slot hash
+            date: date.iso8601,
+            start_time: start_time.strftime('%H:%M')
+          }
+
+          # Determine the appropriate path based on subdomain
+          link_path = if is_subdomain
+                       new_tenant_booking_path(booking_params)
+                     else
+                       new_booking_path(booking_params)
+                     end
+        %>
+        
+        <% if selectable %>
+          <%= link_to link_path, 
+                class: "block text-center py-3 px-2 bg-green-100 hover:bg-green-200 text-green-800 rounded transition" do %>
+            <div><%= formatted_time %></div>
+            <%# Display staff name if available in slot data %>
+            <% if slot[:staff_member_name].present? %>
+              <div class="text-xs text-green-700">with <%= slot[:staff_member_name] %></div>
+            <% end %>
+          <% end %>
+        <% else %>
+          <div class="slot-display bg-gray-200 py-2 px-4 rounded text-sm text-center">
+            <%= formatted_time %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-gray-500">No available slots found for this date.</p>
+  <% end %>
+</div>

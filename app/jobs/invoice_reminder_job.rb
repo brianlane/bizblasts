@@ -54,7 +54,7 @@ class InvoiceReminderJob < ApplicationJob
     Rails.logger.info "Overdue invoice reminder sent for invoice ##{invoice.id} at #{Time.current}"
     
     # Send SMS for overdue invoices
-    days_overdue = (Date.current - invoice.due_date).to_i
+    days_overdue = (Date.today - invoice.due_date).to_i
     message = "Your invoice is #{days_overdue} days overdue. Please make payment as soon as possible."
     send_sms_reminder(invoice, message)
   end

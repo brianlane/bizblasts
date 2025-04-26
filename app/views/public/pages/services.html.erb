@@ -1,0 +1,31 @@
+<%# View for public/pages#show when page slug is 'services' %>
+<%# Accessed via tenant subdomain: e.g., http://mybiz.lvh.me:3000/services %>
+
+<% @business = current_tenant %>
+
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-6">Our Services at <%= @business.name %></h1>
+
+  <% if @business.services.active.any? %>
+    <div class="space-y-4">
+      <% @business.services.active.order(:name).each do |service| %>
+        <div class="border rounded-lg p-4 shadow-sm">
+          <h2 class="text-xl font-semibold"><%= service.name %></h2>
+          <p class="text-gray-700 mt-1"><%= service.description %></p>
+          <p class="text-gray-900 font-medium mt-2">
+            Duration: <%= service.duration %> minutes | Price: <%= number_to_currency(service.price) %>
+          </p>
+          <div class="mt-4">
+            <%# Link to the booking form page %>
+            <% first_active_staff = service.staff_members.active.first %>
+            <%= link_to "Book Now", 
+                tenant_calendar_path(service_id: service.id, staff_member_id: first_active_staff&.id), 
+                class: "inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p>We currently don't have any services listed. Please check back later!</p>
+  <% end %>
+</div> 

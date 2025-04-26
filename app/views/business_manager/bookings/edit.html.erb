@@ -1,0 +1,133 @@
+<%# app/views/business_manager/bookings/edit.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <% if flash[:notice] %>
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <span class="block sm:inline"><%= flash[:notice] %></span>
+    </div>
+  <% end %>
+  
+  <% if flash[:alert] %>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <span class="block sm:inline"><%= flash[:alert] %></span>
+    </div>
+  <% end %>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+      <h1 class="text-xl font-bold">Edit Booking #<%= @booking.id %></h1>
+      <div class="flex space-x-4">
+        <%= link_to business_manager_booking_path(@booking), class: "text-blue-600 hover:text-blue-800" do %>
+          ← Back to Booking
+        <% end %>
+      </div>
+    </div>
+    
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <%= form_with model: @booking, url: business_manager_booking_path(@booking), method: :patch, local: true do |f| %>
+        <% if @booking.errors.any? %>
+          <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400 booking-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 001.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                  The following errors prevented this booking from being saved:
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc pl-5 space-y-1">
+                    <% @booking.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
+          <!-- Customer Information - Read Only -->
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Customer Information</h3>
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <p class="text-sm font-medium text-gray-900"><%= @booking.tenant_customer.name %></p>
+              <p class="text-sm text-gray-600"><%= @booking.tenant_customer.email %></p>
+              <% if @booking.tenant_customer.phone.present? %>
+                <p class="text-sm text-gray-600"><%= @booking.tenant_customer.phone %></p>
+              <% end %>
+            </div>
+          </div>
+          
+          <!-- Staff Member - Editable -->
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Staff Member</h3>
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <%= f.label :staff_member_id, class: "block text-sm font-medium text-gray-700" %>
+              <%= f.collection_select :staff_member_id, 
+                                     current_tenant.staff_members.order(:name), 
+                                     :id, 
+                                     :name, 
+                                     {}, 
+                                     { class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" } %>
+            </div>
+          </div>
+          
+          <!-- Date & Time - Read Only -->
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Date & Time</h3>
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <p class="text-sm">
+                <span class="font-medium">Date: </span>
+                <%= @booking.start_time.strftime("%A, %B %d, %Y") %>
+              </p>
+              <p class="text-sm">
+                <span class="font-medium">Time: </span>
+                <%= @booking.start_time.strftime("%I:%M %p") %> - <%= @booking.end_time.strftime("%I:%M %p") %>
+              </p>
+              <p class="text-xs text-gray-500 mt-2">
+                To change date/time, use the "Reschedule" option from the booking details page.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Service Information - Read Only -->
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Service</h3>
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <p class="text-sm">
+                <span class="font-medium">Service: </span>
+                <%= @booking.service.name %>
+              </p>
+              <p class="text-sm">
+                <span class="font-medium">Duration: </span>
+                <%= @booking.service.duration %> minutes
+              </p>
+              <p class="text-sm">
+                <span class="font-medium">Price: </span>
+                <%= number_to_currency(@booking.amount) %>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Notes Field - Editable -->
+        <div class="mb-6">
+          <%= f.label :notes, "Booking Notes", class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= f.text_area :notes, rows: 5, class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md", placeholder: "Enter notes about this booking..." %>
+          <p class="mt-2 text-sm text-gray-500">
+            These notes are internal and will not be visible to the customer.
+          </p>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <%= link_to "Cancel", business_manager_booking_path(@booking), class: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          
+          <%= f.submit "Update Booking", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 

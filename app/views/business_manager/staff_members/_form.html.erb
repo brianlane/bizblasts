@@ -1,0 +1,69 @@
+<%# app/views/business_manager/staff_members/_form.html.erb %>
+
+<%= form_with(model: [:business_manager, staff_member], local: true) do |form| %>
+  <% if staff_member.errors.any? %>
+    <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <strong class="font-bold"><%= pluralize(staff_member.errors.count, "error") %> prohibited this staff member from being saved:</strong>
+      <ul class="mt-2 list-disc list-inside">
+        <% staff_member.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%# Assuming linking to an existing User record %>
+    <%= form.label :user_id, "Select User", class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.collection_select :user_id, User.where(role: 'staff').order(:email), :id, :email, { prompt: 'Select an existing user' }, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    <%# Consider adding a link/flow to invite/create new Users if needed %> 
+  </div>
+
+  <%# Name, email, phone might be pre-filled from User or editable here %>
+  <div class="mb-4">
+    <%= form.label :name, "Display Name (optional, defaults to User name)", class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :position, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :position, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :phone, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :phone, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+  
+  <div class="mb-4">
+    <%= form.label :bio, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_area :bio, rows: 4, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+  
+  <div class="mb-4">
+    <%= form.label :photo_url, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :photo_url, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.check_box :active %>
+    <%= form.label :active, class: "ml-2 text-gray-700 text-sm font-bold" %>
+  </div>
+
+  <div class="mb-4">
+    <h3 class="text-lg font-semibold mb-2">Assign Services</h3>
+    <%= form.collection_check_boxes :service_ids, @current_business.services.order(:name), :id, :name do |b|
+      b.label(class: "inline-flex items-center mr-4 mb-2") do
+        b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
+        content_tag(:span, b.text, class: "ml-2")
+      end
+    end %>
+  </div>
+
+  <%# TODO: Add input for availability_settings if needed / decide on management flow %>
+  <%# TODO: Add input for notes if needed %>
+
+  <div class="actions">
+    <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
+  </div>
+<% end %> 

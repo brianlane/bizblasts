@@ -97,7 +97,7 @@ class StripeService
         customer: payment.customer,
         booking: payment.booking,
         amount: payment.amount,
-        due_date: Date.current,
+        due_date: Date.today,
         status: :paid,
         paid_at: Time.current,
         business_id: payment.business_id

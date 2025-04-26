@@ -1,0 +1,153 @@
+<div class="booking-form-container" id="booking-form-container">
+  
+  <!-- Booking form overlay -->
+  <div class="booking-overlay hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+       id="booking-overlay">
+    <div class="booking-form-wrapper bg-white rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto p-6">
+      
+      <!-- Error container -->
+      <div class="error-container hidden bg-red-100 text-red-700 p-4 rounded mb-4"
+           id="booking-error-container"></div>
+      
+      <!-- Confirmation container (shown after successful booking) -->
+      <div class="confirmation-container hidden"
+           id="booking-confirmation-container"></div>
+      
+      <!-- Booking form -->
+      <form class="booking-form" id="booking-form">
+        <h2 class="text-xl font-bold mb-4">Book Appointment</h2>
+        
+        <!-- Service selection -->
+        <div class="form-group mb-4">
+          <label for="booking_service_id" class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+          <select id="booking_service_id" name="booking[service_id]" required
+                 class="form-select rounded border px-3 py-2 w-full">
+            <option value="">Select a service</option>
+            <% Service.active.order(:name).each do |service| %>
+              <option value="<%= service.id %>"><%= service.name %> (<%= service.duration %> min, <%= number_to_currency(service.price) %>)</option>
+            <% end %>
+          </select>
+        </div>
+        
+        <!-- Staff member selection -->
+        <div class="form-group mb-4">
+          <label for="booking_staff_member_id" class="block text-sm font-medium text-gray-700 mb-1">Staff Member</label>
+          <select id="booking_staff_member_id" name="booking[staff_member_id]" required
+                 class="form-select rounded border px-3 py-2 w-full">
+            <option value="">Select a staff member</option>
+            <% StaffMember.active.order(:name).each do |staff_member| %>
+              <option value="<%= staff_member.id %>"><%= staff_member.name %></option>
+            <% end %>
+          </select>
+        </div>
+        
+        <!-- Date and time selection with navigation -->
+        <div class="form-group mb-4">
+          <div class="flex items-center mb-2">
+            <label for="booking_date" class="block text-sm font-medium text-gray-700">Date</label>
+            <div class="date-navigation ml-auto flex">
+              <button type="button" class="text-blue-500 hover:text-blue-700 px-2"
+                     id="prev-date-btn">
+                &larr; Previous
+              </button>
+              <button type="button" class="text-blue-500 hover:text-blue-700 px-2"
+                     id="next-date-btn">
+                Next &rarr;
+              </button>
+            </div>
+          </div>
+          <input type="date" id="booking_date" name="booking[date]" required
+                class="form-input rounded border px-3 py-2 w-full">
+        </div>
+        
+        <!-- Time selection -->
+        <div class="form-group mb-4">
+          <label for="booking_time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+          <select id="booking_time" name="booking[time]" required
+                 class="form-select rounded border px-3 py-2 w-full">
+            <option value="">Select a time</option>
+            <!-- Time options will be populated by JS -->
+          </select>
+        </div>
+        
+        <!-- Customer information -->
+        <div class="form-group mb-4">
+          <label for="booking_customer_name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+          <input type="text" id="booking_customer_name" name="booking[customer_name]" required
+                class="form-input rounded border px-3 py-2 w-full">
+        </div>
+        
+        <div class="form-group mb-4">
+          <label for="booking_customer_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="booking_customer_email" name="booking[customer_email]" required
+                class="form-input rounded border px-3 py-2 w-full">
+        </div>
+        
+        <div class="form-group mb-4">
+          <label for="booking_customer_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+          <input type="tel" id="booking_customer_phone" name="booking[customer_phone]" required
+                class="form-input rounded border px-3 py-2 w-full">
+        </div>
+        
+        <!-- Notes -->
+        <div class="form-group mb-4">
+          <label for="booking_notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+          <textarea id="booking_notes" name="booking[notes]" rows="3"
+                   class="form-textarea rounded border px-3 py-2 w-full"></textarea>
+        </div>
+        
+        <!-- Form actions -->
+        <div class="form-actions flex justify-between">
+          <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                 id="cancel-booking-btn">
+            Cancel
+          </button>
+          <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                 id="submit-booking-btn">
+            Book Appointment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Add vanilla JavaScript here to handle form functionality 
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('booking-form');
+    const overlay = document.getElementById('booking-overlay');
+    const prevDateBtn = document.getElementById('prev-date-btn');
+    const nextDateBtn = document.getElementById('next-date-btn');
+    const cancelBtn = document.getElementById('cancel-booking-btn');
+    
+    // Date navigation
+    prevDateBtn.addEventListener('click', function() {
+      const dateField = document.getElementById('booking_date');
+      const currentDate = new Date(dateField.value);
+      currentDate.setDate(currentDate.getDate() - 1);
+      dateField.value = currentDate.toISOString().split('T')[0];
+      // Refresh time slots here
+    });
+    
+    nextDateBtn.addEventListener('click', function() {
+      const dateField = document.getElementById('booking_date');
+      const currentDate = new Date(dateField.value);
+      currentDate.setDate(currentDate.getDate() + 1);
+      dateField.value = currentDate.toISOString().split('T')[0];
+      // Refresh time slots here
+    });
+    
+    // Cancel button
+    cancelBtn.addEventListener('click', function() {
+      overlay.classList.add('hidden');
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Form submission logic here
+      // You can use fetch API to submit the form data
+    });
+  });
+</script> 

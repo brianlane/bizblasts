@@ -1,0 +1,363 @@
+<div class="max-w-5xl mx-auto p-4" 
+     data-controller="calendar"
+     data-calendar-endpoint-value="<%= tenant_available_slots_path %>"
+     data-calendar-is-subdomain-value="true"
+     <% if @service.present? %>data-calendar-service-id-value="<%= @service.id %>"<% end %>>
+  
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Book an Appointment at <%= @business.name %></h1>
+    <%= link_to "← Back to Business", tenant_root_path, class: "text-blue-600 hover:underline" %>
+  </div>
+  
+  <div class="mb-8 bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-semibold mb-4">Select Service</h2>
+    
+    <%= form_with url: tenant_calendar_path, method: :get, class: "space-y-4", local: true do |form| %>
+      <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div>
+          <%= form.label :service_id, "Service", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= form.select :service_id, 
+              options_from_collection_for_select(@services, :id, :name, params[:service_id]), 
+              { include_blank: "Select a service" }, 
+              { class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
+        </div>
+      </div>
+      
+      <div class="flex justify-end">
+        <%= form.submit "View Availability", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+  </div>
+  
+  <% if @service %>
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">Available Time Slots</h2>
+        <div class="flex space-x-2">
+          <%= link_to "Previous Month", tenant_calendar_path(service_id: @service.id, date: @date.prev_month), class: "px-3 py-1 bg-gray-200 rounded hover:bg-gray-300" %>
+          <span class="px-3 py-1 font-medium"><%= @date.strftime("%B %Y") %></span>
+          <%= link_to "Next Month", tenant_calendar_path(service_id: @service.id, date: @date.next_month), class: "px-3 py-1 bg-gray-200 rounded hover:bg-gray-300" %>
+        </div>
+      </div>
+      
+      <div class="calendar-container">
+        <%= month_calendar(start_date: @date.beginning_of_month, end_date: @date.end_of_month, today: @date) do |date| %>
+          <div class="calendar-day" 
+               data-calendar-target="day" 
+               data-date="<%= date.to_s %>"
+               data-action="click->calendar#dayClick">
+            <div class="calendar-date"><%= date.day %></div>
+            <div class="available-slots-count text-xs font-medium px-2 py-1 rounded-full inline-flex items-center justify-center" style="background-color: #4caf50; color: white;">
+              <% slots_count = (@calendar_data[date.to_s] || []).length %>
+              <span><%= slots_count %></span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <% if @service %>
+        <div class="mt-6 p-4 bg-gray-50 rounded">
+          <h3 class="font-semibold mb-2">Service Details</h3>
+          <p class="text-sm"><strong>Name:</strong> <%= @service.name %></p>
+          <p class="text-sm"><strong>Duration:</strong> <%= @service.duration %> minutes</p>
+          <p class="text-sm"><strong>Price:</strong> <%= number_to_currency(@service.price) %></p>
+          <% if @service.description.present? %>
+            <p class="text-sm mt-2"><%= @service.description %></p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+  
+  <!-- Slot detail overlay -->
+  <div class="slot-detail-overlay hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+       data-calendar-target="overlay">
+    <div class="slot-detail-container bg-white p-6 rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto"
+         data-calendar-target="slotDetail">
+      <!-- Slot details will be rendered here by the controller -->
+    </div>
+  </div>
+</div>
+
+<% if @service.present? && @calendar_data.present? %>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log("DOM loaded, initializing calendar with data");
+      
+      // Ensure calendar counters are set immediately
+      <% @calendar_data.each do |date, slots| %>
+        try {
+          const dayElement = document.querySelector('[data-date="<%= date %>"]');
+          if (dayElement) {
+            const counter = dayElement.querySelector('.available-slots-count span');
+            if (counter) {
+              counter.textContent = '<%= slots.length %>';
+              dayElement.classList.add('has-available-slots');
+              
+              const slotCountElement = dayElement.querySelector('.available-slots-count');
+              if (slotCountElement) {
+                slotCountElement.style.backgroundColor = '<%= slots.length > 0 ? "#4caf50" : "#999999" %>';
+                slotCountElement.style.color = 'white';
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error updating day element for date <%= date %>:", e);
+        }
+      <% end %>
+      
+      // Set up click handlers for days
+      document.querySelectorAll('[data-calendar-target="day"]').forEach(day => {
+        day.addEventListener('click', function(event) {
+          const date = this.dataset.date;
+          console.log(`Day clicked: ${date}`);
+          // Move the blue highlight to the clicked cell
+          document.querySelectorAll('.calendar-container .today').forEach(el => el.classList.remove('today'));
+          const cell = this.closest('td');
+          if (cell) cell.classList.add('today');
+          
+          // Fetch the day's slots directly
+          fetch(`<%= tenant_available_slots_path %>?service_id=<%= @service&.id %>&date=${date}`, {
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            // Show a popup with the available slots
+            showSlotDetail(date, data);
+          })
+          .catch(error => {
+            console.error('Error fetching day slots:', error);
+          });
+        });
+      });
+      
+      // Function to show slot detail popup
+      function showSlotDetail(date, data) {
+        const slots = data[date] || [];
+        // Parse the calendar date as a local date (avoid UTC shift)
+        const [year, month, day] = date.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day);
+        const formattedDate = dateObj.toLocaleDateString(undefined, { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        // Create overlay if it doesn't exist
+        let overlay = document.querySelector('.slot-detail-overlay');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.className = 'slot-detail-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+          document.body.appendChild(overlay);
+        }
+        
+        // Create container for slot details
+        let slotDetail = document.querySelector('.slot-detail-container');
+        if (!slotDetail) {
+          slotDetail = document.createElement('div');
+          slotDetail.className = 'slot-detail-container bg-white p-6 rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto';
+          overlay.appendChild(slotDetail);
+        }
+        
+        // Build HTML for the slots
+        let html = `
+          <div class="slot-detail-header mb-4">
+            <h3 class="text-xl font-bold text-center">Available Time Slots</h3>
+            <p class="text-center text-gray-600 mt-1">${formattedDate}</p>
+            <button class="close-button absolute top-4 right-4 text-gray-500 hover:text-gray-700">&times;</button>
+          </div>
+          <div class="slot-list space-y-3">
+        `;
+        
+        if (slots.length > 0) {
+          slots.forEach(slot => {
+            // Parse the UTC time and adjust for the user's local timezone
+            const startTimeUTC = new Date(slot.start_time);
+            
+            // Format the times in the user's local timezone
+            const formattedStartTime = startTimeUTC.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'UTC',
+              hour12: true
+            });
+            
+            // Add Staff Member Name if available in slot data
+            const staffNameHtml = slot.staff_member_name ? `<div class="text-xs text-gray-600 mt-1">Staff: ${slot.staff_member_name}</div>` : '';
+            
+            html += `
+              <div class="slot-item border rounded-lg overflow-hidden">
+                <div class="flex justify-between items-center p-4 ${slot.booked ? 'bg-red-100' : 'bg-green-100'}">
+                  <div>
+                    <span class="time text-lg font-medium">${formattedStartTime}</span>
+                    ${staffNameHtml}
+                  </div>
+                  <span class="status font-medium px-3 py-1 rounded ${slot.booked ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}">${slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+                ${!slot.booked ? `
+                <a 
+                  href="<%= new_tenant_booking_path %>?service_id=<%= @service&.id %>&date=${date}&start_time=${startTimeUTC.getUTCHours()}:${startTimeUTC.getUTCMinutes()}&staff_member_id=${slot.staff_member_id}"
+                  class="book-slot-button block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 text-center"
+                >Book</a>
+                ` : ''}
+              </div>
+            `;
+          });
+        } else {
+          html += `<div class="no-slots bg-gray-100 p-4 rounded-lg text-gray-600 text-center">No available slots for this day</div>`;
+        }
+        
+        html += `</div>
+          <div class="mt-6 flex items-center justify-center text-sm text-gray-600">
+            <span class="inline-block w-4 h-4 bg-green-600 rounded-full mr-2"></span>
+            Number of available time slots
+          </div>`;
+        slotDetail.innerHTML = html;
+        
+        // Show the overlay
+        overlay.classList.remove('hidden');
+        
+        // Add event listener to close button
+        const closeButton = slotDetail.querySelector('.close-button');
+        if (closeButton) {
+          closeButton.addEventListener('click', function() {
+            overlay.classList.add('hidden');
+          });
+        }
+      }
+    });
+  </script>
+<% end %>
+
+<style>
+  .calendar-container .simple-calendar {
+    width: 100%;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .calendar-container table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  .calendar-container th {
+    padding: 12px;
+    text-align: center;
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  .calendar-container .day {
+    height: 100px;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+    transition: background-color 0.2s;
+  }
+  
+  .calendar-container .day:hover {
+    background-color: #f0f9ff;
+    cursor: pointer;
+  }
+  
+  .calendar-container .wday-0,
+  .calendar-container .wday-6 {
+    background-color: #f9fafb;
+  }
+  
+  .calendar-container .today {
+    background-color: #e0f2fe;
+  }
+  
+  .calendar-container .prev-month,
+  .calendar-container .next-month {
+    color: #9ca3af;
+  }
+  
+  .calendar-day {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .calendar-date {
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .available-slots-count {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    margin-top: auto;
+  }
+  
+  .slot-detail-header {
+    position: relative;
+  }
+  
+  .close-button {
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  
+  /* Navigation buttons */
+  .calendar-container .simple-calendar nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: white;
+    align-items: center;
+  }
+  
+  .calendar-container .simple-calendar nav a {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  
+  .calendar-container .simple-calendar nav a:hover {
+    background-color: #2563eb;
+  }
+  
+  .calendar-container .simple-calendar nav span {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Remove any server-side today highlights
+    document.querySelectorAll('.calendar-container .today').forEach(element => element.classList.remove('today'));
+    // Compute YYYY-MM-DD using the client's local date
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    // Find the calendar-day div for that date and mark its table cell as today
+    const dayDiv = document.querySelector(`[data-date="${today}"]`);
+    if (dayDiv) {
+      const cell = dayDiv.closest('td');
+      if (cell) cell.classList.add('today');
+    }
+  });
+</script> 

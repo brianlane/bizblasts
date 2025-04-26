@@ -86,15 +86,28 @@ ActiveAdmin.register Booking do
   form do |f|
     f.inputs do
       f.input :business
-      current_business = f.object.business || ActsAsTenant.current_tenant
-      f.input :tenant_customer, collection: TenantCustomer.where(business: current_business)
-      f.input :staff_member, collection: StaffMember.where(business: current_business)
-      f.input :service, collection: Service.where(business: current_business)
+      
+      # Define variable for business
+      current_business = if f.object.business_id
+        Business.find_by(id: f.object.business_id)
+      elsif ActsAsTenant.current_tenant
+        ActsAsTenant.current_tenant
+      end
+      
+      # Get collections based on the current business
+      tenant_customers = current_business ? TenantCustomer.where(business: current_business) : TenantCustomer.none
+      staff_members = current_business ? StaffMember.where(business: current_business) : StaffMember.none
+      services = current_business ? Service.where(business: current_business) : Service.none
+      promotions = current_business ? Promotion.where(business: current_business) : Promotion.none
+      
+      f.input :tenant_customer, collection: tenant_customers
+      f.input :staff_member, collection: staff_members, selected: f.object.staff_member_id
+      f.input :service, collection: services, selected: f.object.service_id
       f.input :start_time
       f.input :end_time
       f.input :status, as: :select, collection: Booking.statuses.keys.map { |s| [s.titleize, s] }
       f.input :notes
-      f.input :promotion, collection: Promotion.where(business: current_business)
+      f.input :promotion, collection: promotions
       f.input :cancellation_reason
     end
     f.actions

@@ -25,14 +25,16 @@ FactoryBot.define do
     end 
 
     # Add required fields with valid defaults
-    industry { Business.industries.keys.sample } 
-    phone { "123-456-7890" } 
-    sequence(:email) { |n| "business#{n}@example.com" } 
-    address { "123 Main St" }
-    city { "Anytown" }
-    state { "CA" }
-    zip { "12345" }
-    description { "A test business description." }
+    industry { %w[hair_salon beauty_spa massage_therapy fitness_studio tutoring_service cleaning_service handyman_service pet_grooming photography consulting other].sample }
+    phone { Faker::PhoneNumber.phone_number }
+    sequence(:email) { |n| "business#{n}@example.com" }
+    sequence(:subdomain) { |n| "business#{n}" }
+    address { Faker::Address.street_address }
+    city { Faker::Address.city }
+    state { Faker::Address.state_abbr }
+    zip { Faker::Address.zip_code }
+    description { Faker::Company.catch_phrase }
+    website { Faker::Internet.url }
     
     # Set tier, ensuring free tier gets subdomain host_type
     tier do 
@@ -44,7 +46,7 @@ FactoryBot.define do
       end
     end
 
-    time_zone { "UTC" }
+    time_zone { 'UTC' }
     active { true }
     
     # Traits for specific host types/tiers
@@ -82,14 +84,22 @@ FactoryBot.define do
     end
     
     trait :with_services do
+      transient do
+        services_count { 3 }
+      end
+      
       after(:create) do |business, evaluator|
-        create_list(:service, 3, business: business)
+        create_list(:service, evaluator.services_count, business: business)
       end
     end
     
     trait :with_staff do
+      transient do
+        staff_count { 2 }
+      end
+      
       after(:create) do |business, evaluator|
-        create_list(:staff_member, 2, business: business)
+        create_list(:staff_member, evaluator.staff_count, business: business)
       end
     end
     
@@ -98,5 +108,35 @@ FactoryBot.define do
       with_staff
       with_bookings
     end
+
+    trait :inactive do
+      active { false }
+    end
+
+    factory :complete_business do
+      transient do
+        services_count { 3 }
+        staff_count { 2 }
+        customers_count { 5 }
+      end
+      
+      after(:create) do |business, evaluator|
+        # Create services
+        services = create_list(:service, evaluator.services_count, business: business)
+        
+        # Create staff
+        staff = create_list(:staff_member, evaluator.staff_count, business: business)
+        
+        # Associate staff with services
+        staff.each do |staff_member|
+          services.each do |service|
+            create(:services_staff_member, service: service, staff_member: staff_member)
+          end
+        end
+        
+        # Create customers
+        create_list(:tenant_customer, evaluator.customers_count, business: business)
+      end
+    end
   end
-end 
+end

@@ -1,0 +1,58 @@
+<%# View for public/booking#confirmation %>
+<%# Accessed via tenant subdomain: e.g., http://mybiz.lvh.me:3000/booking/1/confirmation %>
+
+<% @business = current_tenant %>
+
+<div class="container mx-auto px-4 py-8">
+
+  <% if @booking %>
+    <h1 class="text-3xl font-bold mb-4 text-green-600">Booking Confirmed!</h1>
+    <p class="text-lg mb-6">Your booking at <strong><%= @business.name %></strong> has been successfully submitted.</p>
+
+    <div class="border rounded-lg p-6 bg-gray-50 shadow-sm">
+      <h2 class="text-xl font-semibold mb-4">Booking Details:</h2>
+      <p><strong>Service:</strong> <%= @booking.service_name %></p>
+      <p><strong>Date & Time:</strong> <%= @booking.start_time.strftime("%A, %B %d, %Y at %I:%M %p") %></p>
+      <p><strong>Duration:</strong> <%= @booking.service.duration %> minutes</p>
+      <% if @booking.staff_member %>
+        <p><strong>Staff Member:</strong> <%= @booking.staff_member_name %></p>
+      <% end %>
+      <p><strong>Status:</strong> <span class="capitalize font-medium <%= status_color(@booking.status) %>"><%= @booking.status %></span></p>
+      <% if @booking.notes.present? %>
+        <p><strong>Notes:</strong> <%= @booking.notes %></p>
+      <% end %>
+      <p><strong>Amount:</strong> <%= number_to_currency(@booking.amount) %></p>
+    </div>
+
+    <div class="mt-8">
+      <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline" %>
+      <%# TODO: Add link to client dashboard/bookings list %>
+      <%# link_to "View My Bookings", client_bookings_path, class: "ml-4 text-blue-600 hover:underline" %>
+    </div>
+
+  <% else %>
+    <%# This part should ideally not be reached due to controller redirect %>
+    <h1 class="text-3xl font-bold mb-4 text-red-600">Booking Not Found</h1>
+    <p>We could not find the details for this booking.</p>
+    <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline mt-4 inline-block" %>
+  <% end %>
+
+</div>
+
+<%# Helper for status color - could go in a view helper module %>
+<% def status_color(status)
+  case status
+  when 'pending'
+    'text-yellow-600'
+  when 'confirmed'
+    'text-green-600'
+  when 'cancelled'
+    'text-red-600'
+  when 'completed'
+    'text-blue-600'
+  when 'no_show'
+    'text-gray-600'
+  else
+    'text-gray-700'
+  end
+end %> 

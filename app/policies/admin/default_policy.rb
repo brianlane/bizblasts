@@ -10,5 +10,17 @@ module Admin
     # which allow actions if the user is an AdminUser.
     
     # Add overrides here if a different default behavior is needed.
+    
+    # Allow admin users to access custom actions
+    def method_missing(method_name, *args, &block)
+      # Allow all member actions if the method ends with a question mark
+      # and the user is an admin
+      return admin? if method_name.to_s.end_with?('?')
+      super
+    end
+    
+    def respond_to_missing?(method_name, include_private = false)
+      method_name.to_s.end_with?('?') || super
+    end
   end
 end 

@@ -19,9 +19,4 @@ module MockAssetHelpers
       %(<script src="/assets/#{source}#{'.js' unless source.to_s.end_with?('.js')}"#{' defer="defer"' if options['defer']}></script>)
     }.join("\n").html_safe
   end
-
-  # Mock importmap helper
-  def javascript_importmap_tags(entry_point = 'application')
-    %(<script type="importmap">{"imports":{}}</script><script type="module">import "#{entry_point}"</script>).html_safe
-  end
 end

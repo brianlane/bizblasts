@@ -1,0 +1,32 @@
+BOOKING CONFIRMATION - <%= @business.name %>
+
+Dear <%= @customer.name %>,
+
+Thank you for booking with us. Your appointment has been confirmed with the following details:
+
+Service: <%= @booking.service_name %>
+Staff Member: <%= @booking.staff_member_name %>
+Date: <%= @booking.start_time.strftime("%A, %B %d, %Y") %>
+Time: <%= @booking.start_time.strftime("%I:%M %p") %> - <%= @booking.end_time.strftime("%I:%M %p") %>
+Duration: <%= @booking.duration.to_i %> minutes
+<% if @booking.notes.present? %>
+Notes: <%= @booking.notes %>
+<% end %>
+<% if @booking.amount.present? %>
+Price: <%= number_to_currency(@booking.amount) %>
+<% end %>
+
+If you need to make any changes to your booking, please contact us or visit our website.
+
+<% if @business.phone.present? %>
+Phone: <%= @business.phone %>
+<% end %>
+<% if @business.email.present? %>
+Email: <%= @business.email %>
+<% end %>
+
+Thank you for choosing <%= @business.name %>. We look forward to seeing you!
+
+--
+This is an automated email, please do not reply directly to this message.
+© <%= Date.today.year %> <%= @business.name %>. All rights reserved. 

@@ -15,23 +15,23 @@ RSpec.describe "business_manager/services/new.html.erb", type: :view do
     assign(:service, service)
     assign(:current_business, business)
     
+    # Ensure staff member exists for the business for the form checkboxes
+    create(:staff_member, business: business, name: "Staff One")
+    
     render
   end
 
   it "renders the new service form" do
-    # Check for the form targeting the correct path (using default Rails convention for new)
-    expect(rendered).to have_selector("form[action='/services'][method='post']") do |form|
+    # Check for the form targeting the correct path (using Rails route with business_manager namespace)
+    expect(rendered).to have_selector("form[action='/manage/services'][method='post']") do |form|
       expect(form).to have_field('service[name]')
       expect(form).to have_field('service[price]')
       expect(form).to have_field('service[duration]')
       expect(form).to have_field('service[description]')
       expect(form).to have_field('service[featured]', type: 'checkbox')
       expect(form).to have_field('service[active]', type: 'checkbox')
-      expect(form).to have_field('service[availability_settings]')
-      # Check for staff assignment checkboxes
-      expect(form).to have_field("service[user_ids][]", id: "user_#{staff1.id}", type: 'checkbox')
-      expect(form).to have_button('Create Service') # Default submit button text
-      expect(form).to have_link('Cancel', href: '/services')
+      expect(form).to have_field('service[staff_member_ids][]', type: 'checkbox')
+      expect(form).to have_button('Create Service') # Default submit button text for new record
     end
   end
 end

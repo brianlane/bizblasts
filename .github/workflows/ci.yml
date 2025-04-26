@@ -37,38 +37,6 @@ jobs:
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: brakeman --no-pager
 
-  scan_js:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4.2'
-          bundler-cache: true
-
-      - name: Install all gems
-        run: bundle install --jobs 4 --retry 3 --with development test
-
-      - name: Create bin directory and scripts
-        run: |
-          mkdir -p bin
-          echo '#!/usr/bin/env ruby' > bin/importmap
-          echo 'require_relative "../config/application"' >> bin/importmap
-          echo 'require "importmap/commands"' >> bin/importmap
-
-      - name: Make bin scripts executable
-        run: chmod +x bin/*
-
-      - name: Install importmap-rails
-        run: gem install importmap-rails
-
-      - name: Scan for security vulnerabilities in JavaScript dependencies
-        run: bundle exec importmap audit || echo "Skipping importmap audit for now"
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -180,6 +148,12 @@ jobs:
           mkdir -p public/assets
           cp ./app/assets/builds/active_admin.css ./public/assets/
 
+      - name: Set up dependencies
+        run: |
+          gem install bundler
+          bundle install --jobs 4 --retry 3
+          yarn install
+
       - name: Run tests
         env:
           RAILS_ENV: test
@@ -191,35 +165,7 @@ jobs:
           # Skip schema version check to ensure migrations run
           SKIP_SCHEMA_VERSION_CHECK: true
         run: |
-          echo "Rails environment information:"
-          bundle exec rails -v
-          echo "Current directory: $(pwd)"
-          echo "Database configuration:"
-          cat config/database.yml
-          
-          # Verify environment variables
-          echo "Environment variables:"
-          echo "DISABLE_PROPSHAFT=${DISABLE_PROPSHAFT}"
-          echo "RAILS_DISABLE_ASSET_COMPILATION=${RAILS_DISABLE_ASSET_COMPILATION}"
-          
-          # Debug gem versions
-          echo "Propshaft gem version:"
-          bundle info propshaft || echo "Propshaft not found"
-          
-          # Create database with SQL directly to avoid Rails startup issues
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
-          
-          # Run comprehensive setup for GitHub Actions (handles all db setup and migrations)
-          echo "Running comprehensive GitHub Actions setup..."
-          bundle exec rake ci:github_actions
-          
-          # Verify that migrations were applied successfully
-          echo "Verifying migrations were applied..."
-          bundle exec rails db:migrate:status
-          
-          # Run tests
-          echo "Running tests..."
+          bundle exec rails db:setup
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests
@@ -231,7 +177,7 @@ jobs:
           if-no-files-found: ignore
 
   deploy:
-    needs: [scan_ruby, scan_js, lint, test]
+    needs: [scan_ruby, lint, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     

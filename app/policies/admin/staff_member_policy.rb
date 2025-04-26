@@ -9,5 +9,10 @@ module Admin
       end
     end
     # Add specific rules here if needed, otherwise inherits defaults
+    
+    # Specifically allow manage_availability action for admin users
+    def manage_availability?
+      admin?
+    end
   end
 end 

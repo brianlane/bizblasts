@@ -88,7 +88,6 @@ Style/FrozenStringLiteralComment:
     - 'db/seeds.rb'
     - 'lib/tasks/**/*'
     - 'test/**/*'
-    - 'config/importmap.rb'
     - 'config/puma.rb'
 
 # Migration-specific rules

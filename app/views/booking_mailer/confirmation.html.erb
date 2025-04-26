@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .business-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+    .booking-details {
+      background-color: #f7f7f7;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .detail-label {
+      font-weight: bold;
+      color: #666;
+    }
+    .footer {
+      font-size: 14px;
+      color: #999;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="business-name"><%= @business.name %></div>
+      <h1>Booking Confirmation</h1>
+    </div>
+    
+    <p>Dear <%= @customer.name %>,</p>
+    
+    <p>Thank you for booking with us. Your appointment has been confirmed with the following details:</p>
+    
+    <div class="booking-details">
+      <p><span class="detail-label">Service:</span> <%= @booking.service_name %></p>
+      <p><span class="detail-label">Staff Member:</span> <%= @booking.staff_member_name %></p>
+      <p><span class="detail-label">Date:</span> <%= @booking.start_time.strftime("%A, %B %d, %Y") %></p>
+      <p><span class="detail-label">Time:</span> <%= @booking.start_time.strftime("%I:%M %p") %> - <%= @booking.end_time.strftime("%I:%M %p") %></p>
+      <p><span class="detail-label">Duration:</span> <%= @booking.duration.to_i %> minutes</p>
+      
+      <% if @booking.notes.present? %>
+        <p><span class="detail-label">Notes:</span> <%= @booking.notes %></p>
+      <% end %>
+      
+      <% if @booking.amount.present? %>
+        <p><span class="detail-label">Price:</span> <%= number_to_currency(@booking.amount) %></p>
+      <% end %>
+    </div>
+    
+    <p>If you need to make any changes to your booking, please contact us or visit our website.</p>
+    
+    <% if @business.phone.present? %>
+      <p>Phone: <%= @business.phone %></p>
+    <% end %>
+    
+    <% if @business.email.present? %>
+      <p>Email: <%= @business.email %></p>
+    <% end %>
+    
+    <p>Thank you for choosing <%= @business.name %>. We look forward to seeing you!</p>
+    
+    <div class="footer">
+      <p>This is an automated email, please do not reply directly to this message.</p>
+      <p>&copy; <%= Date.today.year %> <%= @business.name %>. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html> 

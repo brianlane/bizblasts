@@ -10,8 +10,6 @@ gem "propshaft"
 gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
-# Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
-gem "importmap-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -35,7 +33,7 @@ gem "pundit"
 
 # Admin interface
 gem "activeadmin"
-# gem "sassc-rails" # REMOVED - Conflicts with Propshaft/Importmap
+# gem "sassc-rails" # REMOVED - Conflicts with Propshaft
 
 # Multitenancy
 gem "acts_as_tenant"
@@ -93,4 +91,5 @@ group :development do
 end
 # For time-of-day calculations in availability logic
 gem 'tod'
+gem 'simple_calendar'
 gem 'parallel_tests', group: [:development, :test]

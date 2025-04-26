@@ -2,13 +2,14 @@
 
 FactoryBot.define do
   factory :staff_member do
-    association :business
     name { Faker::Name.name }
-    email { Faker::Internet.unique.email }
-    # Use Faker for phone number for more realistic formats
-    phone { Faker::PhoneNumber.unique.phone_number }
+    email { Faker::Internet.email }
+    phone { Faker::PhoneNumber.phone_number }
+    bio { Faker::Lorem.paragraph }
     active { true }
-    # Default availability (Mon-Fri 9-5)
+    position { Faker::Job.title }
+    association :business
+    
     availability do
       {
         'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
@@ -16,37 +17,97 @@ FactoryBot.define do
         'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
         'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
         'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'saturday' => [],
+        'sunday' => [],
         'exceptions' => {}
       }
     end
-
-    # Trait for inactive staff member
+    
     trait :inactive do
       active { false }
     end
-
-    # Trait for complex availability including exceptions
-    trait :with_complex_availability do
+    
+    trait :weekend_available do
       availability do
         {
-          monday: [{ start: '08:00', end: '12:00' }, { start: '13:00', end: '17:00' }],
-          tuesday: [], # Closed
-          wednesday: [{ start: '10:00', end: '15:00' }],
-          # Thursday uses default
-          friday: [{ start: '09:00', end: '13:00' }],
-          saturday: [{ start: '10:00', end: '14:00' }],
-          # Sunday uses default (empty)
-          exceptions: {
-            "#{Date.today.iso8601}": [{ start: '11:00', end: '14:00' }], # Special hours today
-            "#{Date.tomorrow.iso8601}": [] # Closed tomorrow
+          'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'saturday' => [{ 'start' => '10:00', 'end' => '16:00' }],
+          'sunday' => [{ 'start' => '10:00', 'end' => '14:00' }],
+          'exceptions' => {}
+        }
+      end
+    end
+    
+    trait :split_shifts do
+      availability do
+        {
+          'monday' => [
+            { 'start' => '09:00', 'end' => '12:00' },
+            { 'start' => '13:00', 'end' => '17:00' }
+          ],
+          'tuesday' => [
+            { 'start' => '09:00', 'end' => '12:00' },
+            { 'start' => '13:00', 'end' => '17:00' }
+          ],
+          'wednesday' => [
+            { 'start' => '09:00', 'end' => '12:00' },
+            { 'start' => '13:00', 'end' => '17:00' }
+          ],
+          'thursday' => [
+            { 'start' => '09:00', 'end' => '12:00' },
+            { 'start' => '13:00', 'end' => '17:00' }
+          ],
+          'friday' => [
+            { 'start' => '09:00', 'end' => '12:00' },
+            { 'start' => '13:00', 'end' => '17:00' }
+          ],
+          'saturday' => [],
+          'sunday' => [],
+          'exceptions' => {}
+        }
+      end
+    end
+    
+    trait :with_exception do
+      availability do
+        {
+          'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'saturday' => [],
+          'sunday' => [],
+          'exceptions' => {
+            Date.today.to_s => [{ 'start' => '10:00', 'end' => '14:00' }]
           }
         }
       end
     end
 
-    # Optional: Trait to associate with a User
-    trait :with_user do
-      association :user
+    trait :with_complex_availability do
+      availability do
+        {
+          'monday' => [
+            { 'start' => '08:00', 'end' => '12:00' },
+            { 'start' => '13:00', 'end' => '17:00' }
+          ],
+          'tuesday' => [], # Closed
+          'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'saturday' => [{ 'start' => '10:00', 'end' => '15:00' }],
+          'sunday' => [], # Closed
+          'exceptions' => {
+            Date.today.to_s => [{ 'start' => '11:30', 'end' => '14:00' }],
+            (Date.today + 1).to_s => [] # Closed for holiday
+          }
+        }
+      end
     end
   end
-end 
+end

@@ -72,7 +72,7 @@ class CalendarSyncService
     end
   end
   
-  def self.import_events_from_provider(staff_member, provider = :google, start_date = Date.current, end_date = 30.days.from_now)
+  def self.import_events_from_provider(staff_member, provider = :google, start_date = Date.today, end_date = 30.days.from_now)
     # Import events from an external calendar to check for conflicts
     
     return { success: false, error: "Staff member not provided" } unless staff_member

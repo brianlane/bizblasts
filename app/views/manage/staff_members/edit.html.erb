@@ -1,0 +1,6 @@
+<h1>Editing Staff Member: <%= @staff_member.name || @staff_member.user&.email %></h1>
+
+<%= render 'form', staff_member: @staff_member %>
+
+<%= link_to 'Show', manage_staff_member_path(@staff_member), class: "text-blue-600 hover:text-blue-800 mr-2" %> |
+<%= link_to 'Back', manage_staff_members_path, class: "text-blue-600 hover:text-blue-800 ml-2" %>

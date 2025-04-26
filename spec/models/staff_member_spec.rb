@@ -10,8 +10,9 @@ RSpec.describe StaffMember, type: :model do
   describe 'associations' do
     it { is_expected.to belong_to(:business) }
     it { is_expected.to have_many(:bookings).dependent(:restrict_with_error) }
-    it { is_expected.to belong_to(:user).optional } # Added from original StaffMember
-    it { is_expected.to have_and_belong_to_many(:services) } # Added from original StaffMember
+    it { is_expected.to belong_to(:user).optional }
+    it { is_expected.to have_many(:services_staff_members).dependent(:destroy) }
+    it { is_expected.to have_many(:services).through(:services_staff_members) }
   end
 
   describe 'validations' do
@@ -26,15 +27,13 @@ RSpec.describe StaffMember, type: :model do
     it { is_expected.not_to allow_value(nil).for(:active) }
 
     it { is_expected.to allow_value("test@example.com").for(:email) }
-    it { is_expected.to allow_value("").for(:email) } # Allowing blank based on merged logic
+    it { is_expected.to allow_value("").for(:email) }
     it { is_expected.not_to allow_value("invalid-email").for(:email) }
-    # is_expected.to validate_presence_of(:email).on(:create) # Keep presence validation, but allow blank means it's optional on update? # Removed - allow_blank: true makes this fail
 
     it { is_expected.to allow_value("+1-555-123-4567").for(:phone) }
-    it { is_expected.to allow_value("").for(:phone) } # Allowing blank based on merged logic
+    it { is_expected.to allow_value("").for(:phone) }
     it { is_expected.not_to allow_value("12345").for(:phone).with_message("must be a valid phone number") }
-    # is_expected.to validate_presence_of(:phone).on(:create) # Keep presence validation # Removed - allow_blank: true makes this fail
-    it { is_expected.to allow_value("").for(:phone) } # Explicitly test allow_blank: true
+    it { is_expected.to allow_value("").for(:phone) }
   end
 
   describe '#available_at?' do
@@ -105,6 +104,29 @@ RSpec.describe StaffMember, type: :model do
       end
 
       it 'is not available outside exception hours on an exception date' do
+        # Add more debugging to see what's happening
+        puts "Today's date: #{exception_date_today}"
+        puts "Today 9am: #{today_9am.inspect}"
+        puts "Complex member availability: #{complex_member.availability.inspect}"
+        
+        # Check the exact format of the date being used in the method
+        date_str = today_9am.to_date.iso8601
+        puts "Date string being used for lookup: #{date_str}"
+        
+        # Check if exceptions actually has this key
+        exceptions = complex_member.availability['exceptions'] || {}
+        puts "Exceptions keys: #{exceptions.keys.inspect}"
+        puts "Exception exists for today: #{exceptions.key?(date_str)}"
+        
+        # Check what find_intervals_for returns
+        day_name = today_9am.strftime('%A').downcase
+        weekly_schedule = complex_member.availability.except('exceptions')
+        intervals = complex_member.send(:find_intervals_for, date_str, day_name, exceptions, weekly_schedule)
+        puts "Intervals returned: #{intervals.inspect}"
+        
+        result = complex_member.available_at?(today_9am)
+        puts "Final result: #{result}"
+        
         expect(complex_member.available_at?(today_9am)).to be false
         expect(complex_member.available_at?(today_2pm)).to be false
       end
@@ -235,4 +257,4 @@ RSpec.describe StaffMember, type: :model do
       expect(member.errors[:availability]).to include("start time must be before end time for interval #1 on 'exception date #{valid_date}'")
     end
   end
-end 
+end

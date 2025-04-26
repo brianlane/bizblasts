@@ -1,6 +1,5 @@
-<%# app/views/business_manager/services/new.html.erb %>
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <h1 class="text-2xl font-semibold text-gray-900 mb-6">New Service</h1>
+<h1>New Service</h1>
 
-  <%= render 'form', service: @service %>
-</div>
+<%= render 'form', service: @service %>
+
+<%= link_to 'Back', business_manager_services_path, class: "text-blue-600 hover:text-blue-800" %>

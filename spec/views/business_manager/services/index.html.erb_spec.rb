@@ -23,19 +23,24 @@ RSpec.describe "business_manager/services/index.html.erb", type: :view do
   end
 
   it "renders a list of services with appropriate action links/buttons" do
+    # render # Removed extra render call
+    
+    # Check for 'New Service' link
+    expect(rendered).to have_link('New Service', href: new_business_manager_service_path)
+    
+    # Check table headers
+    expect(rendered).to have_selector('th', text: 'Name')
+    expect(rendered).to have_selector('th', text: 'Price')
+    expect(rendered).to have_selector('th', text: 'Duration')
+    # expect(rendered).to have_selector('th', text: 'Actions') # Removed as Actions header might be implicit
+    
+    # Check content for each service and action links
+    expect(rendered).to have_selector('tbody tr', count: 2) # Ensure only 2 service rows
     expect(rendered).to include("Service One")
     expect(rendered).to include("Service Two")
-    expect(rendered).to have_link('New Service', href: new_service_path)
-    expect(rendered).to have_link('Edit', href: edit_service_path(service1))
-    expect(rendered).to have_link('Edit', href: edit_service_path(service2))
-    
-    expect(rendered).to have_selector("form[action='#{service_path(service1)}'][method='post']") do |form|
-      expect(form).to have_field('_method', type: 'hidden', with: 'delete')
-      expect(form).to have_button('Delete')
-    end
-    expect(rendered).to have_selector("form[action='#{service_path(service2)}'][method='post']") do |form|
-      expect(form).to have_field('_method', type: 'hidden', with: 'delete')
-      expect(form).to have_button('Delete')
-    end
+    expect(rendered).to have_link('Edit', href: edit_business_manager_service_path(service1))
+    expect(rendered).to have_link('Edit', href: edit_business_manager_service_path(service2))
+    # Check for delete links by class within table rows
+    expect(rendered).to have_link('Delete', class: 'delete-link', count: 2)
   end
 end

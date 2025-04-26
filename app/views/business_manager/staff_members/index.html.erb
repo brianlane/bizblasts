@@ -1,0 +1,83 @@
+<%# app/views/business_manager/staff_members/index.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Manage Staff</h1>
+    <%= link_to 'New Staff Member', new_business_manager_staff_member_path, class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <% if @staff_members.any? %>
+    <table class="min-w-full bg-white border border-gray-200">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Position</th>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Services</th>
+          <th class="px-6 py-3 border-b border-gray-200"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <% @staff_members.each do |staff_member| %>
+          <tr>
+            <td class="px-6 py-4 whitespace-nowrap"><%= link_to staff_member.name || "(No name set)", business_manager_staff_member_path(staff_member), class: "text-blue-600 hover:text-blue-800" %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.user&.email %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.position %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= boolean_status_tag staff_member.active %></td>
+            <td class="px-6 py-4"><%= staff_member.services.map(&:name).join(", ").presence || "-" %></td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <% if policy(staff_member).edit? %>
+                <%= link_to 'Edit', edit_business_manager_staff_member_path(staff_member), class: "text-indigo-600 hover:text-indigo-900 mr-3" %>
+              <% end %>
+              <% if policy(staff_member).destroy? %>
+                <%= link_to 'Delete',
+                            "#",
+                            class: "text-red-600 hover:text-red-900 delete-link",
+                            data: { confirm_message: "Are you sure you want to delete the staff member '#{staff_member.full_name}'?", delete_url: business_manager_staff_member_path(staff_member) } %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="text-gray-500 italic">No staff members found.</p>
+  <% end %>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const deleteLinks = document.querySelectorAll('.delete-link');
+
+  deleteLinks.forEach(link => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const message = link.dataset.confirmMessage;
+      const url = link.dataset.deleteUrl;
+
+      if (confirm(message)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = url;
+        form.style.display = 'none'; // Hide the form
+
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'authenticity_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'delete';
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  });
+});
+</script>

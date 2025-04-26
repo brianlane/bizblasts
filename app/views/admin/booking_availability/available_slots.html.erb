@@ -1,0 +1,78 @@
+<% content_for :title do %>
+  Available Slots - <%= @staff_member.name %> - <%= @service.name %>
+<% end %>
+
+<div class="panel">
+  <h3>Available Slots: <%= @staff_member.name %> for <%= @service.name %></h3>
+  
+  <div class="panel_contents">
+    <div class="attributes_table">
+      <table border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <th>Staff Member</th>
+          <td><%= link_to @staff_member.name, admin_staff_member_path(@staff_member) %></td>
+        </tr>
+        <tr>
+          <th>Service</th>
+          <td>
+            <%= @service.name %> 
+            (<%= @service.duration %> min, <%= number_to_currency(@service.price) %>)
+          </td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="date-navigator" style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+      <%= link_to "← Previous Week", 
+            available_slots_bookings_path(service_id: @service.id, staff_member_id: @staff_member.id, date: @start_date - 7.days), 
+            class: "button" %>
+            
+      <h5 style="margin: 0; font-size: 16px; font-weight: bold;">
+        <%= @start_date.strftime("%b %d") %> - <%= @end_date.strftime("%b %d, %Y") %>
+      </h5>
+      
+      <%= link_to "Next Week →", 
+            available_slots_bookings_path(service_id: @service.id, staff_member_id: @staff_member.id, date: @end_date + 1.day), 
+            class: "button" %>
+    </div>
+    
+    <div class="week-calendar" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+      <% (@start_date..@end_date).each do |date| %>
+        <div class="day-column" style="border: 1px solid #e6e6e6; min-height: 200px;">
+          <div class="day-header" style="text-align: center; padding: 8px; background-color: #f7f7f7; border-bottom: 1px solid #e6e6e6;">
+            <div style="font-size: 0.9em; font-weight: 500;"><%= date.strftime("%a") %></div>
+            <div style="font-size: 1.2em;"><%= date.strftime("%-d") %></div>
+          </div>
+          
+          <div class="day-slots" style="padding: 8px;">
+            <% if @calendar_data[date.to_s]&.any? %>
+              <% @calendar_data[date.to_s].each do |slot| %>
+                <div class="slot" style="background-color: #e6f2ff; padding: 8px; margin-bottom: 8px; border-radius: 4px;">
+                  <div style="font-weight: bold; font-size: 0.9em;">
+                    <%= slot[:start_time].strftime('%l:%M %p').strip %> - <%= slot[:end_time].strftime('%l:%M %p').strip %>
+                  </div>
+                  <div style="margin-top: 4px; font-size: 0.8em;">
+                    <%= link_to "Create Booking", new_admin_booking_from_slots_path(
+                      staff_member_id: @staff_member.id,
+                      service_id: @service.id,
+                      date: date.to_s,
+                      start_time: slot[:start_time].strftime('%H:%M')
+                    ), class: "member_link" %>
+                  </div>
+                </div>
+              <% end %>
+            <% else %>
+              <div class="empty-slots" style="font-size: 0.9em; color: #9a9a9a; padding: 10px; text-align: center;">
+                No available slots
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="actions" style="margin-top: 20px;">
+      <%= link_to "Back to Staff Member", admin_staff_member_path(@staff_member), class: "button" %>
+    </div>
+  </div>
+</div> 

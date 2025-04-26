@@ -19,49 +19,62 @@ ActiveAdmin.register StaffMember do
   permit_params :business_id, :user_id, :name, :email, :phone, :active, :notes,
                :position, :photo_url,
                # Simplify back to allowing any hash structure
-               availability: {}
+               availability: {}, 
+               # Permit service_ids for association
+               service_ids: []
 
   # Custom action for availability management
-  member_action :manage_availability, method: [:get, :post] do
-    @staff_member = StaffMember.find(params[:id])
+  member_action :manage_availability, method: [:get, :patch] do
+    @staff_member = resource
     
-    if request.post?
-      availability_param = params.dig(:staff_member, :availability)
-      parsed_availability = nil
-
-      if availability_param.is_a?(String) && availability_param.present?
-        begin
-          parsed_availability = JSON.parse(availability_param)
-        rescue JSON::ParserError => e
-          Rails.logger.error("Failed to parse availability JSON: #{e.message}")
-          redirect_back fallback_location: admin_staff_member_path(@staff_member), 
-                        flash: { error: "Invalid availability format submitted." } and return
-        end
-      elsif availability_param.is_a?(Hash)
-        parsed_availability = availability_param
-      else
-        parsed_availability = {} 
-      end
-
-      # Attempt update if we have a hash
-      if parsed_availability.is_a?(Hash) 
-        # Removed the explicit .to_json call here - let Rails handle hash assignment
-        if @staff_member.update(availability: parsed_availability)
+    if request.patch?
+      # Parse and validate availability JSON
+      begin
+        availability_data = params.dig(:staff_member, :availability)
+        
+        # Update the staff member with the availability data
+        if @staff_member.update(availability: availability_data)
           redirect_to admin_staff_member_path(@staff_member), notice: "Availability updated successfully"
         else
-          redirect_back fallback_location: admin_staff_member_path(@staff_member),
-                        flash: { error: "Failed to update availability: #{@staff_member.errors.full_messages.join(', ')}" }
+          redirect_to admin_staff_member_path(@staff_member), alert: "Failed to update availability: #{@staff_member.errors.full_messages.join(', ')}"
         end
-      else
-        # This case handles if parsing failed and resulted in non-hash (e.g., nil)
-        # or if the initial param was neither string nor hash.
-        redirect_back fallback_location: admin_staff_member_path(@staff_member),
-                      flash: { error: "Invalid or unprocessable availability data format." } # More specific error
+      rescue => e
+        redirect_to admin_staff_member_path(@staff_member), alert: "Error updating availability: #{e.message}"
       end
-
     else
-      # GET request: Redirect to the show page
-      redirect_to admin_staff_member_path(@staff_member), notice: "Manage availability via the show page."
+      # GET request - Prepare data for the availability view
+      @date = params[:date] ? Date.parse(params[:date]) : Date.today
+      @start_date = @date.beginning_of_week
+      @end_date = @date.end_of_week
+      
+      # Ensure staff member has a properly initialized availability hash
+      if @staff_member.availability.blank? || !@staff_member.availability.is_a?(Hash)
+        @staff_member.availability = {
+          'monday' => [],
+          'tuesday' => [],
+          'wednesday' => [],
+          'thursday' => [],
+          'friday' => [],
+          'saturday' => [],
+          'sunday' => [],
+          'exceptions' => {}
+        }
+        # Save the initialized structure
+        @staff_member.save(validate: false)
+      end
+      
+      # Get the calendar data for the entire week
+      @calendar_data = AvailabilityService.availability_calendar(
+        staff_member: @staff_member,
+        start_date: @start_date,
+        end_date: @end_date
+      )
+      
+      # Get services this staff member can provide
+      @services = @staff_member.services.active
+      
+      # Render the availability template
+      render 'admin/staff_members/availability'
     end
   end
   
@@ -147,6 +160,12 @@ ActiveAdmin.register StaffMember do
       f.input :photo_url
       f.input :active
       f.input :bio, as: :text
+    end
+    
+    # Add service selection checkboxes
+    f.inputs "Assigned Services" do
+      f.input :services, as: :check_boxes, collection: Service.order(:name)
+      # Consider filtering services by selected business if needed (requires JS)
     end
     
     f.para "Availability is managed separately using the 'Manage Availability' button on the show page after saving."

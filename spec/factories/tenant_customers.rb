@@ -2,20 +2,25 @@
 
 FactoryBot.define do
   factory :tenant_customer do
-    # Simple sequence to avoid validation complexity
-    sequence(:name) { |n| "Customer #{n}" }
-    sequence(:email) { |n| "customer#{n}@example.com" }
+    name { Faker::Name.name }
+    email { Faker::Internet.email }
+    phone { Faker::PhoneNumber.phone_number }
+    address { Faker::Address.full_address }
+    notes { Faker::Lorem.paragraph }
+    active { true }
+    association :business
     
-    # Static data to avoid computations
-    phone { "555-123-4567" }
-    notes { "Test customer" }
-    
-    # Association should be set correctly
-    association :business 
+    trait :inactive do
+      active { false }
+    end
     
     trait :with_bookings do
+      transient do
+        bookings_count { 2 }
+      end
+      
       after(:create) do |customer, evaluator|
-        create_list(:booking, 2, tenant_customer: customer, business: customer.business)
+        create_list(:booking, evaluator.bookings_count, tenant_customer: customer, business: customer.business)
       end
     end
   end
