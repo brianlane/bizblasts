@@ -67,11 +67,22 @@ class StaffController < ApplicationController
   
   # PATCH /staff/:id/update_availability
   def update_availability
-    # Get the availability data from params
-    availability_data = params.require(:staff_member).require(:availability).permit!.to_h
-    
-    # Update the staff member with the availability data
-    if @staff_member.update(availability: availability_data)
+    # Define the permitted structure for availability
+    permitted_availability = params.require(:staff_member).require(:availability).permit(
+      monday: [[:start, :end]],
+      tuesday: [[:start, :end]],
+      wednesday: [[:start, :end]],
+      thursday: [[:start, :end]],
+      friday: [[:start, :end]],
+      saturday: [[:start, :end]],
+      sunday: [[:start, :end]],
+      exceptions: {}
+      # If days map directly to simple arrays (e.g., ['09:00', '10:00']), use:
+      # monday: [], tuesday: [], ... sunday: []
+    ).to_h
+
+    # Update the staff member with the permitted availability data
+    if @staff_member.update(availability: permitted_availability)
       respond_to do |format|
         format.html { redirect_to availability_staff_path(@staff_member), notice: 'Availability was successfully updated.' }
         format.json { render json: { success: true, message: 'Availability was successfully updated.' }, status: :ok }

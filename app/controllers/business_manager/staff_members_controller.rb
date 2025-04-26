@@ -82,8 +82,17 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
         'exceptions' => {}
       }
       
-      # Extract availability parameters and permit them manually
-      availability_params = params.require(:staff_member).require(:availability).permit!.to_h
+      # Permit the expected nested structure from the form
+      availability_params = params.require(:staff_member).require(:availability).permit(
+        monday: permit_dynamic_slots,
+        tuesday: permit_dynamic_slots,
+        wednesday: permit_dynamic_slots,
+        thursday: permit_dynamic_slots,
+        friday: permit_dynamic_slots,
+        saturday: permit_dynamic_slots,
+        sunday: permit_dynamic_slots,
+        exceptions: {}
+      ).to_h
       Rails.logger.info "Permitted availability params: #{availability_params.inspect}"
       
       # Extract availability parameters
@@ -209,5 +218,11 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       :notes,
       service_ids: []
     )
+  end
+
+  # Helper to permit dynamic keys (slot indices) mapping to start/end times
+  def permit_dynamic_slots
+    # Allows any key (e.g., "0", "1") to contain a hash with "start" and "end"
+    Hash.new { |h, k| h[k] = [:start, :end] }
   end
 end 
