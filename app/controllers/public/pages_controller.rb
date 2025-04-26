@@ -28,7 +28,12 @@ module Public
       end
 
       # Determine the page slug from params or default to 'home'
-      @page_slug = params[:page].presence || 'home'
+      raw_slug = params[:page].presence || 'home'
+      # Sanitize the slug to prevent directory traversal and invalid characters
+      @page_slug = raw_slug.gsub(/[^a-zA-Z0-9_\-]+/, '')
+
+      # If sanitization resulted in an empty string, default back to 'home'
+      @page_slug = 'home' if @page_slug.blank?
 
       # Find the specific Page record for the current tenant and slug (if using DB pages)
       # @page = current_tenant.pages.find_by(slug: @page_slug, published: true)
@@ -43,13 +48,15 @@ module Public
         return
       end
       
-      # Simplistic approach: Render a view based on the slug
+      # Simplistic approach: Render a view based on the sanitized slug
       # Views should be located in app/views/public/pages/
+      template_path = File.join('public', 'pages', @page_slug)
+      
       if lookup_context.exists?(@page_slug, 'public/pages', false)
-        # Pass the template path directly to avoid Brakeman warning
-        render template: File.join('public', 'pages', @page_slug)
+        render template: template_path
       else
-        Rails.logger.warn "[Public::PagesController] Template for '#{@page_slug}' not found for tenant #{current_tenant.name}. Rendering home."
+        # Log the original requested slug and the sanitized version for debugging
+        Rails.logger.warn "[Public::PagesController] Template for raw slug '#{raw_slug}' (sanitized to '#{@page_slug}') not found for tenant #{current_tenant.name}. Rendering home."
         render template: 'public/pages/home'
       end
     end
