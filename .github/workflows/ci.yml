@@ -111,13 +111,13 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Setup Database
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
         run: |
-          # Your commands to setup the test DB
-          # Example:
-          # cp config/database.yml.ci config/database.yml
-          # bundle exec rails db:create RAILS_ENV=test
-          # bundle exec rails db:schema:load RAILS_ENV=test
-          echo "Database setup will be handled by ci:github_actions task."
+          # Create and prepare the test database
+          bundle exec rails db:create
+          bundle exec rails db:schema:load
 
       # ADDED: Node.js Setup
       - name: Set up Node.js
@@ -158,14 +158,12 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          # REDIS_URL: redis://localhost:6379/0
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Skip schema version check to ensure migrations run
           SKIP_SCHEMA_VERSION_CHECK: true
         run: |
-          bundle exec rails db:setup
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests
