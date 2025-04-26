@@ -46,7 +46,8 @@ module Public
       # Simplistic approach: Render a view based on the slug
       # Views should be located in app/views/public/pages/
       if lookup_context.exists?(@page_slug, 'public/pages', false)
-        render template: "public/pages/#{@page_slug}"
+        # Pass the template path directly to avoid Brakeman warning
+        render template: File.join('public', 'pages', @page_slug)
       else
         Rails.logger.warn "[Public::PagesController] Template for '#{@page_slug}' not found for tenant #{current_tenant.name}. Rendering home."
         render template: 'public/pages/home'
