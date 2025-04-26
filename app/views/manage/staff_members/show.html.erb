@@ -1,0 +1,66 @@
+<%# app/views/manage/staff_members/show.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">
+        Staff Member: <%= @staff_member.name || @staff_member.user&.email %>
+      </h3>
+      <div>
+        <%= link_to 'Edit', edit_business_manager_staff_member_path(@staff_member), class: "text-indigo-600 hover:text-indigo-900 mr-3" %>
+        <%= link_to 'Manage Availability', manage_availability_business_manager_staff_member_path(@staff_member), class: "bg-blue-500 hover:bg-blue-700 text-white py-1 px-3 rounded mr-3" %>
+        <%= link_to 'Back to Staff', business_manager_staff_members_path, class: "text-blue-600 hover:text-blue-800" %>
+      </div>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+      <dl class="sm:divide-y sm:divide-gray-200">
+        <% if @staff_member.photo_url.present? %>
+          <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Photo</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              <%= image_tag @staff_member.photo_url, class: "h-24 w-24 rounded-full object-cover" %>
+            </dd>
+          </div>
+        <% end %>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Name</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @staff_member.name %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Email</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @staff_member.user&.email %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Phone</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @staff_member.phone %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Position</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @staff_member.position %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Active</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= status_tag @staff_member.active %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Bio</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= simple_format(@staff_member.bio) %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Assigned Services</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <% if @staff_member.services.any? %>
+              <ul class="list-disc list-inside">
+                <% @staff_member.services.each do |service| %>
+                  <li><%= link_to service.name, manage_service_path(service), class: "text-blue-600 hover:text-blue-800" %></li>
+                <% end %>
+              </ul>
+            <% else %>
+              None assigned
+            <% end %>
+          </dd>
+        </div>
+        <%# Add availability details here if needed %>
+      </dl>
+    </div>
+  </div>
+</div>

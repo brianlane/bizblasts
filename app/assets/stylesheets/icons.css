@@ -1,0 +1,29 @@
+/* Standard icon sizes */
+
+/* Constrain all SVG icons in the booking views to reasonable sizes */
+.booking-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Constrain all large SVG icons that take up too much space */
+svg:not([class]) {
+  max-width: 24px;
+  max-height: 24px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Status icons in the booking views */
+.status-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Modal icons */
+.modal-icon {
+  width: 24px;
+  height: 24px;
+} 

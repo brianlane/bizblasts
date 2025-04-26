@@ -7,6 +7,8 @@ class Service < ApplicationRecord
   belongs_to :business
   has_many :staff_assignments, dependent: :destroy
   has_many :assigned_staff, through: :staff_assignments, source: :user
+  has_many :services_staff_members, dependent: :destroy
+  has_many :staff_members, through: :services_staff_members
   has_many :bookings, dependent: :restrict_with_error
   
   validates :name, presence: true
@@ -29,6 +31,6 @@ class Service < ApplicationRecord
   
   # Define ransackable associations for ActiveAdmin
   def self.ransackable_associations(auth_object = nil)
-    %w[business bookings staff_assignments assigned_staff]
+    %w[business bookings staff_assignments assigned_staff services_staff_members staff_members]
   end
 end 

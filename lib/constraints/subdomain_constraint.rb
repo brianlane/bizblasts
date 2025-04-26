@@ -10,11 +10,12 @@ class SubdomainConstraint
     # Ignore www and blank subdomains/hostnames
     return false if subdomain.blank? || subdomain == 'www'
 
-    # Check if a Business exists with the requested hostname
+    # Check if a Business exists with the requested hostname (case-insensitive)
     # Use unscoped to ensure we check across all tenants initially
     # This avoids issues if ActsAsTenant is already set incorrectly
     exists = ActsAsTenant.without_tenant do
-      Business.exists?(hostname: subdomain)
+      # Use LOWER() for case-insensitive comparison on hostname
+      Business.where("LOWER(hostname) = ?", subdomain.downcase).exists?
     end
     Rails.logger.debug "[SubdomainConstraint] Match result for hostname '#{subdomain}': #{exists}"
     exists

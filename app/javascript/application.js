@@ -1,1 +1,2 @@
-// Configure your import map in config/importmap.rb. Read more: https://github.com/rails/importmap-rails
+// Application JavaScript
+// Your custom JavaScript can be added here

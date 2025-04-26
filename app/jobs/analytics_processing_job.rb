@@ -14,7 +14,7 @@ class AnalyticsProcessingJob < ApplicationJob
     
     # Default date range if not provided
     options[:start_date] ||= 30.days.ago.to_date
-    options[:end_date] ||= Date.current
+    options[:end_date] ||= Date.today
     
     # Process the report and store result explicitly
     report_result = 

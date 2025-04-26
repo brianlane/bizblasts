@@ -41,7 +41,8 @@ module Users
         host = "#{resource.business.hostname}.lvh.me"
         port = request.port unless [80, 443].include?(request.port)
         port_str = port ? ":#{port}" : ""
-        url = "#{request.protocol}#{host}#{port_str}/dashboard"
+        # Redirect business user to the management dashboard
+        url = "#{request.protocol}#{host}#{port_str}/manage/dashboard"
         
         Rails.logger.debug "[Sessions::after_sign_in] Calculated redirect URL: #{url}"
         return url # Return the URL string, Devise will handle the actual redirect

@@ -1,0 +1,210 @@
+<% content_for :title do %>
+  Manage <%= @staff_member.name %>'s Availability
+<% end %>
+
+<div class="panel">
+  <h3>Manage <%= @staff_member.name %>'s Availability</h3>
+  
+  <div class="panel_contents">
+    <div class="tabs">
+      <ul>
+        <li><%= link_to "Details", admin_staff_member_path(@staff_member) %></li>
+        <li class="current"><%= link_to "Availability", manage_availability_admin_staff_member_path(@staff_member) %></li>
+      </ul>
+    </div>
+    
+    <div class="tab-content">
+      <div class="columns">
+        <div class="column left-column">
+          <!-- Weekly Schedule -->
+          <h4>Weekly Schedule</h4>
+          
+          <%= form_with model: @staff_member, url: manage_availability_admin_staff_member_path(@staff_member), method: :patch, local: true do |f| %>
+            <% days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday] %>
+            
+            <% days_of_week.each do |day| %>
+              <fieldset class="inputs">
+                <legend><span><%= day.capitalize %></span></legend>
+                
+                <div id="<%= day %>-slots" class="time-slots">
+                  <% @staff_member.availability&.dig(day)&.each_with_index do |slot, index| %>
+                    <div class="time-slot-row" style="display: flex; align-items: center; margin-bottom: 10px;">
+                      <%= f.hidden_field "availability[#{day}][#{index}][id]", value: index %>
+                      
+                      <%= f.time_field "availability[#{day}][#{index}][start]", 
+                          value: slot['start'], 
+                          class: "time-input" %>
+                          
+                      <span style="margin: 0 10px;">to</span>
+                      
+                      <%= f.time_field "availability[#{day}][#{index}][end]", 
+                          value: slot['end'], 
+                          class: "time-input" %>
+                          
+                      <button type="button" class="remove-slot-btn" style="margin-left: 10px; color: #d45f5f;">
+                        <span>✕</span>
+                      </button>
+                    </div>
+                  <% end %>
+                </div>
+                
+                <button type="button" class="add-slot-btn" data-day="<%= day %>" style="color: #5E6469; background: none; border: none; cursor: pointer; padding: 5px 0;">
+                  + Add Time Slot
+                </button>
+              </fieldset>
+            <% end %>
+            
+            <div class="actions" style="margin-top: 20px;">
+              <%= f.submit "Save Availability", class: "button" %>
+              <%= link_to "Cancel", admin_staff_member_path(@staff_member), class: "button" %>
+            </div>
+          <% end %>
+        </div>
+        
+        <div class="column right-column">
+          <!-- Calendar View -->
+          <div class="panel">
+            <h4>Calendar View</h4>
+            <div class="panel_contents">
+              <div class="date-navigator" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <%= link_to "← Previous Week", 
+                      manage_availability_admin_staff_member_path(@staff_member, date: @start_date - 7.days), 
+                      class: "button" %>
+                      
+                <h5 style="margin: 0;">
+                  <%= @start_date.strftime("%b %d") %> - <%= @end_date.strftime("%b %d, %Y") %>
+                </h5>
+                
+                <%= link_to "Next Week →", 
+                      manage_availability_admin_staff_member_path(@staff_member, date: @end_date + 1.day), 
+                      class: "button" %>
+              </div>
+              
+              <div class="week-calendar" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+                <% (@start_date..@end_date).each do |date| %>
+                  <div class="day-column" style="border: 1px solid #e6e6e6; min-height: 120px;">
+                    <div class="day-header" style="text-align: center; padding: 5px; background-color: #f7f7f7; border-bottom: 1px solid #e6e6e6;">
+                      <div style="font-size: 0.9em; font-weight: 500;"><%= date.strftime("%a") %></div>
+                      <div style="font-size: 1.2em;"><%= date.strftime("%-d") %></div>
+                    </div>
+                    
+                    <div class="day-slots" style="padding: 5px;">
+                      <% @calendar_data[date.to_s]&.each do |slot| %>
+                        <div class="slot" style="background-color: #e6f2ff; font-size: 0.8em; padding: 4px; margin-bottom: 4px; border-radius: 2px;">
+                          <%= slot[:start_time].strftime('%l:%M %p').strip %>
+                        </div>
+                      <% end %>
+                      
+                      <% if @calendar_data[date.to_s]&.empty? %>
+                        <div class="empty-slots" style="font-size: 0.8em; color: #9a9a9a; padding: 4px; text-align: center;">
+                          No slots
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Services Offered -->
+          <% if @services.any? %>
+            <div class="panel">
+              <h4>Services Offered</h4>
+              <div class="panel_contents">
+                <table class="index_table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Duration</th>
+                      <th>Price</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @services.each do |service| %>
+                      <tr>
+                        <td><%= service.name %></td>
+                        <td><%= service.duration %> min</td>
+                        <td><%= number_to_currency(service.price) %></td>
+                        <td>
+                          <%= link_to "Create Booking", 
+                                new_admin_booking_path(service_id: service.id, staff_member_id: @staff_member.id),
+                                class: "member_link" %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .columns {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .left-column {
+    flex: 1;
+    min-width: 300px;
+  }
+  
+  .right-column {
+    flex: 2;
+    min-width: 400px;
+  }
+  
+  .time-input {
+    padding: 5px;
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    width: 100px;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add time slot functionality
+    document.querySelectorAll('.add-slot-btn').forEach(function(button) {
+      button.addEventListener('click', function() {
+        const day = this.dataset.day;
+        const slotsContainer = document.getElementById(day + '-slots');
+        const index = slotsContainer.children.length;
+        
+        const slotHtml = `
+          <div class="time-slot-row" style="display: flex; align-items: center; margin-bottom: 10px;">
+            <input type="hidden" name="staff_member[availability][${day}][${index}][id]" value="${index}">
+            <input type="time" name="staff_member[availability][${day}][${index}][start]" class="time-input" value="09:00">
+            <span style="margin: 0 10px;">to</span>
+            <input type="time" name="staff_member[availability][${day}][${index}][end]" class="time-input" value="17:00">
+            <button type="button" class="remove-slot-btn" style="margin-left: 10px; color: #d45f5f;">
+              <span>✕</span>
+            </button>
+          </div>
+        `;
+        
+        slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
+        setupRemoveSlotButtons();
+      });
+    });
+    
+    // Remove time slot functionality
+    function setupRemoveSlotButtons() {
+      document.querySelectorAll('.remove-slot-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+          this.closest('.time-slot-row').remove();
+        });
+      });
+    }
+    
+    setupRemoveSlotButtons();
+  });
+</script>

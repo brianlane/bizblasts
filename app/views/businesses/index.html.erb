@@ -1,0 +1,67 @@
+<div class="container mx-auto px-4 py-8">
+  <%# Remove potential duplicate sign out link observed in screenshot %>
+  <%# <div class="flex justify-between items-center mb-6"> %>
+    <%# <h1 class="text-3xl font-bold">Businesses</h1> %>
+    <%# if user_signed_in? %>
+      <%# link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "text-purple-600 hover:underline" %>
+    <%# end %>
+  <%# </div> %>
+  <h1 class="text-3xl font-bold mb-6">Businesses</h1> <%# Keep the title %>
+
+  <%# Filter and Sort Controls %>
+  <%= form_with url: businesses_path, method: :get, local: true, data: { turbo_frame: "businesses_list", turbo_action: "advance" }, class: "mb-6 flex flex-wrap gap-4 items-center" do |form| %>
+    <div>
+      <%= form.label :industry, "Filter by Industry:", class: "block text-sm font-medium text-gray-700 mr-2" %>
+      <%= form.select :industry, options_for_select(@industries, params[:industry]), { include_blank: 'All Industries' }, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+    </div>
+
+    <div>
+      <%= form.label :sort, "Sort by:", class: "block text-sm font-medium text-gray-700 mr-2" %>
+      <%= form.select :sort, options_for_select([['Name', 'name'], ['Date Added', 'date']], params[:sort]), {}, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+    </div>
+    
+    <div>
+      <%= form.label :direction, "Direction:", class: "block text-sm font-medium text-gray-700 mr-2" %>
+      <%= form.select :direction, options_for_select([['Ascending', 'asc'], ['Descending', 'desc']], params[:direction]), {}, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+    </div>
+
+    <%= form.submit "Apply", class: "mt-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer" %>
+    <%= link_to "Reset", businesses_path, class: "mt-4 ml-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+  <% end %>
+
+  <%# Business Listing Area %>
+  <%= tag.div id: "businesses_list" do %>
+    <% if @businesses.any? %>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% @businesses.each do |business| %>
+          <div class="border rounded-lg p-4 shadow hover:shadow-md transition-shadow flex flex-col justify-between">
+            <div> <%# Top content section %>
+              <h2 class="text-xl font-semibold mb-2">
+                <%# Construct subdomain URL using helper %>
+                <% if (url = tenant_url(business)) %>
+                  <%= link_to business.name, url, class: "text-blue-600 hover:underline", target: "_blank" %>
+                <% else %>
+                  <%= business.name %> <%# Fallback if URL can't be generated %>
+                <% end %>
+              </h2>
+              <p class="text-gray-600 mb-1"><%= business.industry&.titleize %></p> <%# Titleize industry %>
+              <p class="text-gray-700 mb-3"><%= truncate(business.description, length: 120) %></p>
+            </div>
+            <div> <%# Bottom content section %>
+              <p class="text-sm text-gray-500">Added: <%= time_ago_in_words(business.created_at) %> ago</p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Pagination Links (Assuming Kaminari helper) %>
+      <div class="mt-8">
+        <%= paginate @businesses %>
+        <%# If using Pagy: %>
+        <%#== pagy_nav(@pagy) if @pagy %> 
+      </div>
+    <% else %>
+      <p>No businesses found matching your criteria.</p>
+    <% end %>
+  <% end %> <%# End turbo_frame %>
+</div> 

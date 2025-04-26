@@ -23,26 +23,94 @@
     <% end %>
     
     <% begin %>
-      <%= javascript_importmap_tags %>
+      <%= javascript_include_tag "application", defer: true %>
     <% rescue => e %>
       <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
-      <script src="/assets/application.js"></script>
+      <script src="/assets/application.js" defer></script>
     <% end %>
   </head>
 
   <body>
-    <%# Render flash messages %>
-    <% flash.each do |type, msg| %>
-      <div class="flash-message flash-<%= type %>">
-        <%= msg %>
+    <%# Navigation Header %>
+    <nav class="bg-gray-100 border-b border-gray-200 px-4 py-2 mb-4">
+      <div class="container mx-auto flex justify-between items-center">
+        <div>
+          <%# Link back to appropriate home %>
+          <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+            <%= link_to ActsAsTenant.current_tenant.name, tenant_root_path, class: "font-bold text-lg" %>
+          <% else %>
+            <%= link_to "BizBlasts Home", root_path, class: "font-bold text-lg" %>
+          <% end %>
+        </div>
+        <div>
+          <% if user_signed_in? %>
+            <span class="mr-4 text-gray-700">Welcome, <%= current_user.first_name %>!</span>
+            
+            <%# Conditional Dashboard Link %>
+            <% dashboard_text = "Dashboard" %>
+            <% dashboard_path = root_path # Default fallback %>
+            
+            <% if request.subdomain.present? && request.subdomain != 'www' %>
+              <%# On a Tenant Subdomain %>
+              <% if current_user.manager? || current_user.staff? %>
+                <%# Business user on tenant page - link to manager dashboard %>
+                <% dashboard_text = "Manage Business" %>
+                <% dashboard_path = business_manager_dashboard_path # Relative path within subdomain %>
+              <% else %>
+                <%# Client or other user on tenant page - link to main dashboard %>
+                <% dashboard_path = main_domain_url_for('/dashboard') %>
+              <% end %>
+            <% else %>
+              <%# On Main Domain %>
+              <% if current_user.client? %>
+                <%# Client on main page - link to client dashboard %>
+                <% dashboard_path = dashboard_path() # Use the named route for client dashboard %>
+              <% else %>
+                <%# Manager/Staff on main page - link to main root for now %>
+                <% dashboard_path = root_path %>
+              <% end %>
+            <% end %>
+            
+            <%= link_to dashboard_text, dashboard_path, class: "mr-4 text-blue-600 hover:underline" %>
+            <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "text-purple-600 hover:underline" %>
+          <% end %>
+        </div>
       </div>
-    <% end %>
+      
+      <% if user_signed_in? %>
+        <div class="container mx-auto mt-2">
+          <ul class="flex space-x-4">
+            <% if current_user.client? %>
+              <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+                <li><%= link_to "My Bookings", tenant_my_bookings_path, class: "text-blue-600 hover:underline" %></li>
+                <li><%= link_to "Book Appointment", tenant_calendar_path, class: "text-blue-600 hover:underline" %></li>
+                <li><%= link_to "View All Businesses", main_domain_url_for('/businesses'), class: "text-blue-600 hover:underline" %></li>
+              <% else %>
+                <li><%= link_to "My Bookings", client_bookings_path, class: "text-blue-600 hover:underline" %></li>
+                <li><%= link_to "Find Businesses", businesses_path, class: "text-blue-600 hover:underline" %></li>
+              <% end %>
+            <% else %>
+              <li><%= link_to "Staff", staff_members_path, class: "text-blue-600 hover:underline" %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </nav>
 
-    <%= yield %>
+    <%# Render flash messages %>
+    <div class="container mx-auto px-4">
+      <% flash.each do |type, msg| %>
+        <div class="flash-message flash-<%= type %> mb-4 p-3 rounded 
+                    <%= type == 'notice' ? 'bg-green-100 border border-green-400 text-green-700' : '' %> 
+                    <%= type == 'alert' ? 'bg-red-100 border border-red-400 text-red-700' : '' %>
+             role="alert">
+          <%= msg %>
+        </div>
+      <% end %>
+    </div>
 
-    <% if user_signed_in? %>
-      <%# Sign out link for regular Users (manager, staff, client) %>
-      <%= link_to "Sign out", destroy_user_session_path, method: :delete %>
-    <% end %>
+    <main class="container mx-auto px-4">
+      <%= yield %>
+    </main>
   </body>
 </html>

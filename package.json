@@ -9,5 +9,7 @@
   "devDependencies": {
     "@activeadmin/activeadmin": "^3.3.0",
     "sass": "^1.86.3"
+  },
+  "dependencies": {
   }
 }

@@ -1,0 +1,66 @@
+<div class="w-full bg-white rounded-lg shadow-md p-6 mb-6">
+  <h1 class="text-2xl font-bold mb-4">Available Slots</h1>
+  <div class="mb-4">
+    <h2 class="text-xl font-medium mb-2">Service: <%= @service.name %></h2>
+    <p class="text-gray-600">Duration: <%= @service.duration %> minutes</p>
+    <p class="text-gray-600">Price: <%= number_to_currency(@service.price) %></p>
+  </div>
+  
+  <div class="mb-6">
+    <h2 class="text-xl font-medium mb-2">Staff Member: <%= @staff_member.name %></h2>
+  </div>
+  
+  <div class="mb-6 flex justify-between items-center">
+    <%= link_to "← Previous Week", 
+          business_manager_available_slots_bookings_path(
+            service_id: @service.id, 
+            staff_member_id: @staff_member.id, 
+            date: @start_date - 7.days
+          ), 
+          class: "bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded" %>
+          
+    <h3 class="text-lg font-medium text-center">
+      <%= @start_date.strftime("%b %d") %> - <%= @end_date.strftime("%b %d, %Y") %>
+    </h3>
+    
+    <%= link_to "Next Week →", 
+          business_manager_available_slots_bookings_path(
+            service_id: @service.id, 
+            staff_member_id: @staff_member.id, 
+            date: @end_date + 1.day
+          ), 
+          class: "bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded" %>
+  </div>
+  
+  <div class="week-calendar grid grid-cols-7 gap-2">
+    <% (@start_date..@end_date).each do |date| %>
+      <div class="day-column border rounded min-h-[200px]">
+        <div class="day-header text-center py-2 bg-gray-100 border-b">
+          <div class="text-sm font-medium"><%= date.strftime("%A") %></div>
+          <div class="text-lg"><%= date.strftime("%b %-d") %></div>
+        </div>
+        
+        <div class="day-slots p-2">
+          <% if @calendar_data[date.to_s]&.any? %>
+            <% @calendar_data[date.to_s].each do |slot| %>
+              <div class="slot bg-blue-100 text-sm p-2 mb-2 rounded">
+                <%= slot[:start_time].strftime('%l:%M %p').strip %> - 
+                <%= slot[:end_time].strftime('%l:%M %p').strip %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="empty-slots text-sm text-gray-500 p-2 text-center">
+              No available slots
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+  
+  <div class="mt-6">
+    <%= link_to "Back to Staff Member", 
+          manage_availability_business_manager_staff_member_path(@staff_member), 
+          class: "bg-blue-500 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded" %>
+  </div>
+</div> 

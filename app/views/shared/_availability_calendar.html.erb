@@ -1,0 +1,120 @@
+<%
+# Shared partial for rendering staff availability calendar
+# Accepts the following parameters:
+# - service: The service being booked (optional)
+# - staff_member: The staff member to show availability for
+# - date: The date to show availability for
+# - available_slots: Array of available time slots for the selected date
+# - interval: Interval between slots in minutes (optional, defaults to 30)
+# - container_class: Additional CSS classes for the container (optional)
+# - selectable: Whether slots can be selected (to book or manage, default: true)
+# - url_options: Hash with additional URL options for slot selection (optional)
+# - booking_path: Path for creating new bookings (optional, defaults to new_booking_path)
+%>
+
+<% 
+  # Set defaults if not provided
+  local_assigns[:selectable] = true if local_assigns[:selectable].nil?
+  local_assigns[:container_class] ||= ""
+  local_assigns[:interval] ||= 30
+  local_assigns[:url_options] ||= {}
+  local_assigns[:booking_path] ||= defined?(new_booking_path) ? new_booking_path : url_for(controller: 'bookings', action: 'new')
+%>
+
+<div id="availability-calendar" class="<%= container_class %>">
+  <% if staff_member.present? %>
+    <div class="staff-info mb-4">
+      <h3 class="text-lg font-semibold"><%= staff_member.name %></h3>
+      <% if service.present? %>
+        <div class="text-sm text-gray-600">
+          <span><%= service.name %></span>
+          <span class="ml-2">(<%= service.duration %> min)</span>
+          <% if service.price.present? %>
+            <span class="ml-2"><%= number_to_currency(service.price) %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+  
+  <div class="date-display mb-4">
+    <h4 class="text-md font-medium"><%= date.strftime("%A, %B %d, %Y") %></h4>
+  </div>
+  
+  <% if available_slots.any? %>
+    <div class="slots-grid grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+      <% available_slots.each do |slot| %>
+        <% 
+          start_time = slot[:start_time]
+          end_time = slot[:end_time]
+          formatted_time = start_time.strftime('%l:%M %p').strip
+        %>
+        
+        <% if selectable %>
+          <%= button_to formatted_time, 
+                booking_path, 
+                method: :get,
+                params: { 
+                  service_id: service&.id, 
+                  staff_member_id: staff_member.id, 
+                  date: date.iso8601,
+                  start_time: start_time.strftime('%H:%M'),
+                  end_time: end_time.strftime('%H:%M')
+                }.merge(url_options),
+                class: "slot-button bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
+        <% else %>
+          <div class="slot-display bg-gray-200 py-2 px-4 rounded text-sm text-center">
+            <%= formatted_time %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-gray-500">No available slots found for this date.</p>
+  <% end %>
+  
+  <div class="date-navigator flex justify-between mt-6">
+    <%= link_to "← Previous Day", 
+          { date: date.yesterday.to_s }.merge(request.params.except(:date)), 
+          class: "text-blue-500 hover:text-blue-700" %>
+          
+    <%= link_to "Today", 
+          { date: Date.today.to_s }.merge(request.params.except(:date)), 
+          class: "text-blue-500 hover:text-blue-700" %>
+          
+    <%= link_to "Next Day →", 
+          { date: date.tomorrow.to_s }.merge(request.params.except(:date)), 
+          class: "text-blue-500 hover:text-blue-700" %>
+  </div>
+</div>
+
+<style>
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .slot-button {
+    width: 100%;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+  
+  .slot-button:hover {
+    transform: translateY(-2px);
+  }
+  
+  .slot-display {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .date-navigator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+  }
+</style> 

@@ -1,15 +1,20 @@
 class BusinessManager::ServicesController < BusinessManager::BaseController
   # Ensure user is authenticated and acting within their current business context
-  # BaseController likely handles authentication and setting @current_business
+  # BaseController handles authentication and setting @current_business
 
-  before_action :set_service, only: [:edit, :update, :destroy]
-  # Note: Removed :show from before_action
+  before_action :set_service, only: [:show, :edit, :update, :destroy]
 
   # GET /business_manager/services
   def index
     # TODO: Add filtering/sorting later
-    @services = @current_business.services.order(created_at: :desc).page(params[:page]).per(10) # Basic pagination
-    authorize @services # Add Pundit authorization later
+    @services = @current_business.services.order(:name).page(params[:page]).per(10) # Basic pagination
+    # authorize @services # Add Pundit authorization later
+  end
+
+  # GET /business_manager/services/1
+  def show
+    # @service is set by before_action
+    # authorize @service # Add Pundit authorization later
   end
 
   # GET /business_manager/services/new
@@ -24,9 +29,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     # authorize @service # Add Pundit authorization later
 
     if @service.save
-      # Handle staff assignments - update assigned_staff based on user_ids param
-      update_staff_assignments
-      redirect_to "/services", notice: 'Service was successfully created.'
+      redirect_to business_manager_services_path, notice: 'Service was successfully created.'
     else
       render :new, status: :unprocessable_entity
     end
@@ -44,9 +47,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     # authorize @service # Add Pundit authorization later
 
     if @service.update(service_params)
-      # Handle staff assignments - update assigned_staff based on user_ids param
-      update_staff_assignments
-      redirect_to "/services", notice: 'Service was successfully updated.'
+      redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
     end
@@ -58,16 +59,12 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     # authorize @service # Add Pundit authorization later
 
     if @service.destroy
-      redirect_to "/services", notice: 'Service was successfully deleted.'
+      redirect_to business_manager_services_path, notice: 'Service was successfully deleted.'
     else
       # Handle potential deletion restriction (e.g., due to existing bookings)
-      redirect_to "/services", alert: @service.errors.full_messages.join(', ')
+      redirect_to business_manager_services_path, alert: @service.errors.full_messages.join(', ')
     end
   end
-
-  # Removed show action
-  # def show
-  # end
 
   private
 
@@ -88,20 +85,8 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :availability_settings,
-      # user_ids: [] # Removed: Let update_staff_assignments handle this
+      staff_member_ids: [] # Allow staff assignment via new association
     )
-  end
-
-  # Helper method to update staff assignments based on submitted user_ids
-  def update_staff_assignments
-    # Ensure user_ids parameter exists and is an array before proceeding
-    submitted_user_ids = params.dig(:service, :user_ids)&.reject(&:blank?)&.map(&:to_i) || []
-
-    # Get the users belonging to the current business to ensure we only assign valid staff
-    valid_users = @current_business.users.where(id: submitted_user_ids)
-
-    # Update the service's assigned staff
-    @service.assigned_staff = valid_users
   end
 
 end

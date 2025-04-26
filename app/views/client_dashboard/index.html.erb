@@ -1,5 +1,36 @@
-<h1>Client Dashboard</h1>
+<h1 class="text-2xl font-bold mb-6">Client Dashboard</h1>
 
-<p>Welcome, <%= current_user.first_name %>!</p>
+<p class="text-gray-700 mb-8">Welcome, <%= current_user.full_name %>!</p>
 
-<!-- Add more client-specific dashboard content here --> 
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  <div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-lg font-semibold mb-4">My Bookings</h2>
+    <p class="mb-4">View or manage your appointment bookings.</p>
+    <%= link_to "View My Bookings", client_bookings_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block" %>
+  </div>
+  
+  <div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-lg font-semibold mb-4">Find Businesses</h2>
+    <p class="mb-4">Browse available businesses and book new appointments.</p>
+    <%= link_to "Browse Businesses", businesses_path, class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-block" %>
+  </div>
+</div>
+
+<% if current_user.businesses.any? %>
+  <div class="bg-white p-6 rounded-lg shadow mb-8">
+    <h2 class="text-xl font-semibold mb-4">Your Associated Businesses</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <% current_user.businesses.each do |business| %>
+        <div class="border rounded p-4 hover:bg-gray-50">
+          <h3 class="font-medium mb-2"><%= business.name %></h3>
+          <% if business.industry.present? %>
+            <p class="text-sm text-gray-600 mb-2"><%= business.industry %></p>
+          <% end %>
+          <% if business.hostname.present? %>
+            <%= link_to "Visit Website", "http://#{business.hostname}.#{request.domain}:#{request.port}", target: "_blank", class: "text-blue-600 hover:underline text-sm" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

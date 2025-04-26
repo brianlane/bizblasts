@@ -1,0 +1,39 @@
+<div class="max-w-3xl mx-auto p-4">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Available Time Slots</h1>
+    <%= link_to "← Back to Calendar", tenant_calendar_path(service_id: @service&.id), class: "text-blue-600 hover:underline" %>
+  </div>
+  
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">Available Slots for <%= @service&.name %> on <%= @date.strftime("%A, %B %d, %Y") %></h2>
+      <p class="text-gray-600"><%= @date.strftime("%A, %B %d, %Y") %></p>
+    </div>
+    
+    <%= render partial: 'shared/available_slots', locals: {
+      service: @service,
+      staff_member: @staff_member,
+      date: @date,
+      available_slots: @available_slots,
+      is_subdomain: true,
+      container_class: "bg-white",
+      selectable: true
+    } %>
+  </div>
+  
+  <div class="mt-6 bg-white rounded-lg shadow p-6">
+    <h3 class="font-semibold mb-4">Service Details</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <p class="mb-2"><strong>Name:</strong> <%= @service.name %></p>
+        <p class="mb-2"><strong>Duration:</strong> <%= @service.duration %> minutes</p>
+        <p><strong>Price:</strong> <%= number_to_currency(@service.price) %></p>
+      </div>
+      <div>
+        <% if @service.description.present? %>
+          <p class="mt-2 text-gray-700"><%= @service.description %></p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -75,47 +75,8 @@ class ApplicationController < ActionController::Base
   # Call the method to set up routes
   serve_admin_assets
 
-  private
-
-  # Redirects requests to /admin from a subdomain to the main domain
-  def redirect_admin_from_subdomain
-    # Check if it's an admin path and on a subdomain
-    if request.path.start_with?('/admin') && request.subdomain.present? && request.subdomain != 'www'
-      # Construct the main domain URL (keeping the port and protocol)
-      main_domain_host = "lvh.me" # Or your production domain logic
-      port = request.port unless [80, 443].include?(request.port)
-      port_str = port ? ":#{port}" : ""
-      main_domain_url = "#{request.protocol}#{main_domain_host}#{port_str}#{request.fullpath}"
-
-      Rails.logger.info "[Redirect Admin] Redirecting admin access from subdomain #{request.host} to #{main_domain_url}"
-      redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
-    end
-  end
-
-  def skip_user_authentication?
-    devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
-  end
-
-  def maintenance_mode?
-    # Use this to whitelist certain paths during database issues
-    maintenance_paths.include?(request.path)
-  end
-
-  def maintenance_paths
-    ['/healthcheck', '/up', '/maintenance', '/db-check']
-  end
-
-  def check_database_connection
-    # Skip in test/development environment or if path is whitelisted
-    return if maintenance_mode? || Rails.env.test? || Rails.env.development?
-    
-    begin
-      # Attempt a lightweight database query
-      ActiveRecord::Base.connection.execute("SELECT 1")
-    rescue ActiveRecord::ConnectionNotEstablished
-      database_connection_error
-    end
-  end
+  # Make tenant setting logic protected so subclasses can call it
+  protected 
 
   def set_tenant
     hostname = request.subdomain.presence
@@ -149,7 +110,7 @@ class ApplicationController < ActionController::Base
     if user_signed_in? && session[:signed_up_business_id].present?
       business = Business.find_by(id: session[:signed_up_business_id])
       if business
-        set_current_tenant(business)
+        Business.set_current_tenant(business) # Use the class method
         Rails.logger.info "Tenant set from session fallback: Business ##{business.id}"
         # Consider clearing session.delete(:signed_up_business_id)
       else
@@ -163,16 +124,8 @@ class ApplicationController < ActionController::Base
     clear_tenant_and_log("No specific tenant context found, clearing tenant.")
     # ActsAsTenant.current_tenant is already nil here
 
-    if user_signed_in?
-      case current_user.role
-      when 'manager'
-        ActsAsTenant.current_tenant = current_user.business
-      when 'client'
-        ActsAsTenant.current_tenant = nil
-      when 'admin'
-        return # Skip tenant setup for admins
-      end
-    end
+    # Removed logic that set tenant based on user role without subdomain context
+    # This ensures tenant is ONLY set via subdomain or session fallback
   end
 
   # Helper to clear tenant and log
@@ -180,8 +133,6 @@ class ApplicationController < ActionController::Base
     Rails.logger.warn(message)
     ActsAsTenant.current_tenant = nil
   end
-
-  protected
 
   def businesses_table_exists?
     # Check if either businesses table exists
@@ -219,5 +170,82 @@ class ApplicationController < ActionController::Base
     
     # Otherwise redirect to root path
     redirect_to root_path, allow_other_host: true and return # Explicit redirect, allow cross-host if necessary, and stop filter chain
+  end
+
+  # === DEVISE OVERRIDES ===
+  # Customize the redirect path after sign-in
+  def after_sign_in_path_for(resource)
+    # Check the type of resource signed in (User, AdminUser, etc.)
+    if resource.is_a?(AdminUser)
+      admin_root_path # Or your ActiveAdmin dashboard path
+    elsif resource.is_a?(User)
+      case resource.role
+      when 'manager', 'staff'
+        # Redirect manager/staff to their business-specific dashboard
+        if resource.business&.hostname
+          # Construct the URL manually as path helpers don't know the host/port here
+          port_string = request.port == 80 || request.port == 443 ? '' : ":#{request.port}"
+          host = "#{resource.business.hostname}.#{request.domain}#{port_string}"
+          # Use the named route for the business manager dashboard
+          business_manager_dashboard_url(host: host)
+        else
+          # Fallback if user has no business or hostname (should not happen for manager/staff)
+          Rails.logger.warn "[after_sign_in] Manager/Staff user ##{resource.id} has no associated business hostname."
+          root_path
+        end
+      when 'client'
+        # Redirect clients to the main client dashboard (on the main domain)
+        dashboard_path # Assumes this maps to client_dashboard#index
+      else
+        # Fallback for unknown roles
+        root_path 
+      end
+    else
+      # Default fallback for other resource types
+      super # Use Devise default or root_path
+    end
+  end
+
+  # Keep other methods private
+  private
+
+  def skip_user_authentication?
+    devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
+  end
+
+  def maintenance_mode?
+    # Use this to whitelist certain paths during database issues
+    maintenance_paths.include?(request.path)
+  end
+
+  def maintenance_paths
+    ['/healthcheck', '/up', '/maintenance', '/db-check']
+  end
+
+  def check_database_connection
+    # Skip in test/development environment or if path is whitelisted
+    return if maintenance_mode? || Rails.env.test? || Rails.env.development?
+    
+    begin
+      # Attempt a lightweight database query
+      ActiveRecord::Base.connection.execute("SELECT 1")
+    rescue ActiveRecord::ConnectionNotEstablished
+      database_connection_error
+    end
+  end
+
+  # Redirects requests to /admin from a subdomain to the main domain
+  def redirect_admin_from_subdomain
+    # Check if it's an admin path and on a subdomain
+    if request.path.start_with?('/admin') && request.subdomain.present? && request.subdomain != 'www'
+      # Construct the main domain URL (keeping the port and protocol)
+      main_domain_host = "lvh.me" # Or your production domain logic
+      port = request.port unless [80, 443].include?(request.port)
+      port_str = port ? ":#{port}" : ""
+      main_domain_url = "#{request.protocol}#{main_domain_host}#{port_str}#{request.fullpath}"
+
+      Rails.logger.info "[Redirect Admin] Redirecting admin access from subdomain #{request.host} to #{main_domain_url}"
+      redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
+    end
   end
 end

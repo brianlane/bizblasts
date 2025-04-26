@@ -97,6 +97,7 @@ Rails.application.configure do
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
   config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
   
   # Configure standard ActionCable
   config.action_cable.mount_path = '/cable'

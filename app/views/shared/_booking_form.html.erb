@@ -1,0 +1,75 @@
+<%
+  # Shared booking form partial
+  # Required parameters:
+  # - form: form builder object
+  # - booking: the booking object
+  # - services: collection of available services (default: Service.active if not provided)
+  # - staff_members: collection of available staff members (default: StaffMember.active if not provided)
+  # - submit_url: URL to submit the form to (default: bookings_path)
+  # - include_customer_fields: whether to include customer fields (default: true)
+  # - submit_text: text for submit button (default: "Book Appointment")
+  # - admin_mode: whether form is being used in admin mode (default: false)
+  
+  # Set default values
+  services ||= Service.active.order(:name)
+  staff_members ||= StaffMember.active.order(:name) 
+  submit_url ||= bookings_path
+  include_customer_fields = true if include_customer_fields.nil?
+  submit_text ||= "Book Appointment"
+  admin_mode ||= false
+
+  # Calculate date and time
+  date_value = booking.start_time ? booking.start_time.to_date.strftime("%Y-%m-%d") : Date.today.strftime("%Y-%m-%d")
+  time_value = booking.start_time ? booking.start_time.strftime("%H:%M") : nil
+%>
+
+<div class="booking-form-container" 
+     data-controller="booking-form"
+     data-booking-form-submit-url-value="<%= submit_url %>">
+  
+  <!-- Overlay container when used in popup/modal mode -->
+  <div class="booking-overlay hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+       data-booking-form-target="overlay">
+    <div class="booking-form-wrapper bg-white rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto p-6">
+      
+      <!-- Error container -->
+      <div class="error-container hidden bg-red-100 text-red-700 p-4 rounded mb-4"
+           data-booking-form-target="errorContainer"></div>
+      
+      <!-- Confirmation container (shown after successful booking) -->
+      <div class="confirmation-container hidden"
+           data-booking-form-target="confirmationContainer"></div>
+      
+      <%= render "shared/booking_form_fields", 
+                 form: form,
+                 booking: booking,
+                 services: services,
+                 staff_members: staff_members,
+                 include_customer_fields: include_customer_fields,
+                 submit_text: submit_text,
+                 admin_mode: admin_mode,
+                 date_value: date_value,
+                 time_value: time_value %>
+    </div>
+  </div>
+  
+  <!-- Direct form (not in overlay) -->
+  <div class="booking-form-direct"
+       data-booking-form-target="directForm">
+    
+    <!-- Error container for direct form -->
+    <div class="error-container hidden bg-red-100 text-red-700 p-4 rounded mb-4"
+         data-booking-form-target="directErrorContainer"></div>
+    
+    <%= render "shared/booking_form_fields", 
+               form: form,
+               booking: booking,
+               services: services,
+               staff_members: staff_members,
+               include_customer_fields: include_customer_fields,
+               submit_text: submit_text,
+               admin_mode: admin_mode,
+               date_value: date_value,
+               time_value: time_value %>
+  </div>
+</div> 

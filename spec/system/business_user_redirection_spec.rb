@@ -101,7 +101,7 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     # Use a broad regex to match potential dashboard variations
     expect(page).to have_content(/Dashboard|Welcome|#{business.name}/i)
     
-    # Optional: Verify user email is shown (confirming correct user session)
+    # Verify the business's contact email is displayed on the dashboard
     expect(page).to have_content(user.email)
   end
 end 

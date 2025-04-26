@@ -1,0 +1,136 @@
+<%
+  # Shared booking details partial
+  # Required parameter:
+  # - booking: The booking to display
+  # Optional parameters:
+  # - show_actions: Whether to show action buttons (default: false)
+  # - admin_mode: Whether details are shown in admin view (default: false)
+  # - show_customer: Whether to show customer details (default: true)
+  # - condensed: Whether to show a condensed version (default: false)
+  
+  # Set defaults
+  show_actions = false if show_actions.nil?
+  admin_mode = false if admin_mode.nil?
+  show_customer = true if show_customer.nil?
+  condensed = false if condensed.nil?
+  
+  # Helper to determine status color class
+  def status_color(status)
+    case status
+    when 'pending'
+      'text-yellow-600 bg-yellow-100'
+    when 'confirmed'
+      'text-green-600 bg-green-100'
+    when 'cancelled'
+      'text-red-600 bg-red-100'
+    when 'completed'
+      'text-blue-600 bg-blue-100'
+    when 'no_show'
+      'text-gray-600 bg-gray-100'
+    else
+      'text-gray-700'
+    end
+  end
+%>
+
+<div class="booking-details <%= condensed ? 'text-sm' : '' %>">
+  <div class="<%= condensed ? 'flex justify-between mb-2' : 'flex justify-between mb-4' %>">
+    <h2 class="<%= condensed ? 'text-lg font-semibold' : 'text-xl font-semibold' %>">
+      <%= booking.service_name %>
+    </h2>
+    <span class="px-3 py-1 rounded-full text-sm font-medium <%= status_color(booking.status) %>">
+      <%= booking.status.capitalize %>
+    </span>
+  </div>
+
+  <div class="<%= condensed ? 'space-y-1' : 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' %>">
+    <% unless condensed %>
+      <div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">Business</h3>
+        <p class="text-gray-900"><%= booking.business.name %></p>
+      </div>
+    <% end %>
+
+    <div>
+      <h3 class="text-sm font-medium text-gray-500 <%= condensed ? 'inline mr-1' : 'mb-1' %>">Staff Member:</h3>
+      <p class="<%= condensed ? 'inline text-gray-900' : 'text-gray-900' %>"><%= booking.staff_member_name %></p>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-medium text-gray-500 <%= condensed ? 'inline mr-1' : 'mb-1' %>">Date & Time:</h3>
+      <p class="<%= condensed ? 'inline text-gray-900' : 'text-gray-900' %>">
+        <% if condensed %>
+          <%= booking.start_time.strftime("%b %d, %Y at %I:%M %p") %>
+        <% else %>
+          <%= booking.start_time.strftime("%A, %B %d, %Y") %><br>
+          <%= booking.start_time.strftime("%I:%M %p") %> - <%= booking.end_time.strftime("%I:%M %p") %>
+        <% end %>
+      </p>
+    </div>
+
+    <% unless condensed %>
+      <div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">Duration</h3>
+        <p class="text-gray-900"><%= booking.duration.to_i %> minutes</p>
+      </div>
+    <% end %>
+
+    <% if booking.respond_to?(:amount) && booking.amount.present? && !condensed %>
+      <div>
+        <h3 class="text-sm font-medium text-gray-500 mb-1">Price</h3>
+        <p class="text-gray-900"><%= number_to_currency(booking.amount) %></p>
+      </div>
+    <% end %>
+    
+    <% if show_customer && booking.tenant_customer.present? %>
+      <% unless condensed %>
+        <div class="<%= admin_mode ? 'md:col-span-2' : '' %>">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Customer</h3>
+          <p class="text-gray-900">
+            <%= booking.customer_name %> 
+            <% if admin_mode %>
+              <br><%= mail_to booking.customer_email, booking.customer_email %>
+              <% if booking.tenant_customer.phone.present? %>
+                <br><%= booking.tenant_customer.phone %>
+              <% end %>
+            <% end %>
+          </p>
+        </div>
+      <% else %>
+        <div>
+          <h3 class="text-sm font-medium text-gray-500 inline mr-1">Customer:</h3>
+          <p class="inline text-gray-900"><%= booking.customer_name %></p>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if booking.notes.present? && !condensed %>
+    <div class="mt-4">
+      <h3 class="text-sm font-medium text-gray-500 mb-1">Notes</h3>
+      <p class="text-gray-900 whitespace-pre-line"><%= booking.notes %></p>
+    </div>
+  <% end %>
+
+  <% if show_actions && booking.can_cancel? %>
+    <div class="<%= condensed ? 'mt-2' : 'mt-6' %>">
+      <% if booking.status == 'pending' %>
+        <p class="text-yellow-700 text-sm mb-2">
+          This booking is pending confirmation.
+        </p>
+      <% end %>
+      
+      <div class="<%= condensed ? '' : 'flex justify-end' %>">
+        <% if admin_mode %>
+          <%= button_to "Cancel Booking", admin_cancel_booking_path(booking), method: :patch, 
+                      class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+                      data: { confirm: "Are you sure you want to cancel this booking?" } %>
+        <% else %>
+          <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch, 
+                      class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+                      data: { confirm: "Are you sure you want to cancel this booking?" } %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div> 

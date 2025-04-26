@@ -8,7 +8,32 @@
 
   <%# Link to your Tailwind CSS build %>
   <%= stylesheet_link_tag "application" %>
-  <%= javascript_importmap_tags %>
+  <%= javascript_include_tag "application", defer: true %>
+  
+  <style>
+    /* Force all SVGs to a reasonable size */
+    svg {
+      max-width: 24px !important;
+      max-height: 24px !important;
+      width: 24px !important;
+      height: 24px !important;
+    }
+    
+    /* Allow explicit sizing for SVGs with specific size classes */
+    svg.large-icon {
+      max-width: 48px !important;
+      max-height: 48px !important;
+      width: 48px !important;
+      height: 48px !important;
+    }
+    
+    svg.small-icon {
+      max-width: 16px !important;
+      max-height: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-100">

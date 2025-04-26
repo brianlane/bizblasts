@@ -2,25 +2,46 @@
 
 FactoryBot.define do
   factory :service do
-    # Simple sequence to avoid validation complexity
-    sequence(:name) { |n| "Service #{n}" }
-    description { "Test service" }
-    duration { 60 }
-    price { 50 }
+    name { Faker::Commerce.product_name }
+    description { Faker::Lorem.paragraph }
+    duration { [30, 60, 90, 120].sample }
+    price { Faker::Commerce.price(range: 20..200.0) }
     active { true }
+    featured { false }
+    association :business
     
-    # Remove skipping validations
-    # to_create { |instance| 
-    #   instance.save(validate: false) 
-    # }
+    availability_settings { {} }
     
-    # Association should ideally be set correctly now
-    association :business # strategy: :build might not be needed if parent sets correctly
+    trait :inactive do
+      active { false }
+    end
     
-    trait :with_staff_members do
+    trait :featured do
+      featured { true }
+    end
+    
+    trait :with_availability_settings do
+      availability_settings do
+        {
+          'advance_booking_max_days' => 30,
+          'advance_booking_min_hours' => 2,
+          'double_booking_allowed' => false,
+          'customer_cancelation_hours' => 24,
+          'availability_increment' => 30,
+          'priority_staff' => []
+        }
+      end
+    end
+    
+    factory :service_with_staff_members do
+      transient do
+        staff_members_count { 2 }
+      end
+      
       after(:create) do |service, evaluator|
-        # Only create what's absolutely necessary
-        service.staff_members << create(:staff_member, business: service.business)
+        create_list(:staff_member, evaluator.staff_members_count, business: service.business).each do |staff|
+          create(:services_staff_member, service: service, staff_member: staff)
+        end
       end
     end
   end

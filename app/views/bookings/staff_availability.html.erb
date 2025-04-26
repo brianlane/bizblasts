@@ -1,0 +1,81 @@
+<div class="staff-availability-page p-4">
+  <div class="page-header mb-6">
+    <h1 class="text-2xl font-bold">Staff Availability</h1>
+  </div>
+  
+  <% if flash[:alert].present? %>
+    <div class="alert alert-danger mb-4 p-4 bg-red-100 text-red-700 rounded">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+  
+  <div class="filter-controls mb-6">
+    <%= form_with url: staff_availability_bookings_path, method: :get, local: true, class: "flex flex-wrap items-end gap-4" do |f| %>
+      <div class="form-group">
+        <%= f.label :service_id, "Service", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :service_id, 
+            Service.active.order(:name).map { |s| [s.name, s.id] }, 
+            { include_blank: "Select a service", selected: params[:service_id] }, 
+            class: "form-select rounded border px-3 py-2" %>
+      </div>
+      
+      <div class="form-group">
+        <%= f.label :date, "Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :date, value: @date&.to_s, class: "form-input rounded border px-3 py-2" %>
+      </div>
+      
+      <div class="form-group">
+        <%= f.submit "Find Available Staff", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
+      </div>
+    <% end %>
+  </div>
+  
+  <% if @service && @date && @staff_members.present? %>
+    <div class="staff-list">
+      <h2 class="text-xl font-semibold mb-4">Staff for <%= @service.name %> on <%= @date.strftime("%A, %B %d, %Y") %></h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% @staff_members.each do |staff_member| %>
+          <div class="staff-card border rounded overflow-hidden shadow-sm">
+            <div class="staff-header bg-gray-100 p-3 border-b">
+              <h3 class="font-medium"><%= staff_member.name %></h3>
+              <% if staff_member.position.present? %>
+                <p class="text-sm text-gray-600"><%= staff_member.position %></p>
+              <% end %>
+            </div>
+            
+            <div class="staff-availability p-3">
+              <% if @staff_availability[staff_member.id].any? %>
+                <div class="text-sm mb-3">
+                  <strong><%= @staff_availability[staff_member.id].size %></strong> available slots
+                </div>
+                
+                <div class="slot-sample grid grid-cols-2 gap-2 mb-3">
+                  <% @staff_availability[staff_member.id].first(4).each do |slot| %>
+                    <div class="slot-time text-sm py-1 px-2 bg-blue-100 rounded text-center">
+                      <%= slot[:start_time].strftime('%l:%M %p').strip %>
+                    </div>
+                  <% end %>
+                </div>
+                
+                <%= link_to "View All Slots", 
+                      available_slots_bookings_path(staff_member_id: staff_member.id, service_id: @service.id, date: @date),
+                      class: "block w-full text-center py-2 bg-blue-500 hover:bg-blue-700 text-white font-bold rounded" %>
+              <% else %>
+                <p class="text-gray-500 py-4 text-center">No available slots for this date</p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% elsif @service && @date %>
+    <div class="empty-state p-6 text-center bg-gray-100 rounded">
+      <p class="text-gray-600">No staff members available for this service.</p>
+    </div>
+  <% else %>
+    <div class="empty-state p-6 text-center bg-gray-100 rounded">
+      <p class="text-gray-600">Select a service and date to view staff availability.</p>
+    </div>
+  <% end %>
+</div> 

@@ -1,0 +1,73 @@
+<%# View for public/booking#new %>
+<%# Accessed via tenant subdomain: e.g., http://mybiz.lvh.me:3000/book?service_id=1 %>
+
+<% @business = current_tenant %>
+
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-6">Book Service: <%= @service.name %></h1>
+  <p class="text-lg text-gray-700 mb-4">at <%= @business.name %></p>
+
+  <%= form_with(model: @booking, url: tenant_bookings_path, method: :post, local: true) do |form| %>
+    <%# Render errors if any %>
+    <% if @booking.errors.any? %>
+      <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <strong class="font-bold">Oops!</strong>
+        <span class="block sm:inline"><%= pluralize(@booking.errors.count, "error") %> prohibited this booking from being saved:</span>
+        <ul class="mt-2 list-disc list-inside">
+          <% @booking.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%# Hidden field for service_id %>
+    <%= form.hidden_field :service_id, value: @service.id %>
+
+    <%# TODO: Implement Date/Time selection based on service/staff availability %>
+    <%# This likely requires JavaScript integration (e.g., Flatpickr, calendar component) %>
+    <%# For now, a simple datetime select %>
+    <div class="mb-4">
+      <%= form.label :start_time, class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%# Adjust datetime select options as needed %>
+      <%= form.datetime_select :start_time, { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1 }, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    </div>
+
+    <%# TODO: Implement Staff Member selection (if applicable) %>
+    <%# Could be a dropdown populated based on service and availability %>
+    <% if @service.staff_members.any? %>
+      <div class="mb-4">
+        <%# Update label to indicate selection is now required %>
+        <%= form.label :staff_member_id, "Select Staff Member", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%# Remove include_blank to enforce selection %>
+        <%= form.collection_select :staff_member_id, @service.staff_members.active, :id, :name, {}, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+      </div>
+    <% else %>
+      <%# Service has no staff - booking will fail validation. Add message? %>
+      <p class="text-red-600 mb-4">Note: This service currently has no staff assigned and cannot be booked.</p>
+    <% end %>
+
+    <div class="mb-4">
+      <%= form.label :notes, "Notes (Optional)", class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.text_area :notes, rows: 4, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    </div>
+
+    <%# Display Price/Duration %>
+    <div class="mb-6 p-4 bg-gray-100 rounded">
+      <p><strong>Duration:</strong> <%= @service.duration %> minutes</p>
+      <p><strong>Price:</strong> <%= number_to_currency(@service.price) %></p>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <%# Only show submit button if staff members are available %>
+      <% if @service.staff_members.any? %>
+        <%= form.submit "Confirm Booking", class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
+      <% else %>
+        <%# Optionally add a disabled button or just hide it %>
+        <span class="text-gray-500">(Booking unavailable)</span>
+      <% end %>
+      <%= link_to 'Cancel', tenant_services_page_path, class: "inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" %>
+    </div>
+  <% end %>
+
+</div> 

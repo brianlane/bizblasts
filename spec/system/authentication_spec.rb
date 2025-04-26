@@ -28,7 +28,7 @@ RSpec.describe 'Authentication', type: :system do
       
       # Visit the business manager dashboard directly
       host = "#{test_business.hostname}.example.com"
-      visit "http://#{host}/dashboard"
+      visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
@@ -58,7 +58,7 @@ RSpec.describe 'Authentication', type: :system do
       
       # Visit the business manager dashboard directly
       host = "#{user.business.hostname}.example.com"
-      visit "http://#{host}/dashboard"
+      visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
@@ -116,7 +116,7 @@ RSpec.describe 'Authentication', type: :system do
       
       # Visit the business manager dashboard directly
       host = "#{user.business.hostname}.example.com"
-      visit "http://#{host}/dashboard"
+      visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
@@ -145,13 +145,13 @@ RSpec.describe 'Authentication', type: :system do
       
       # Visit the business manager dashboard directly
       host = "#{test_business.hostname}.example.com"
-      visit "http://#{host}/dashboard"
+      visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
       
       # Construct the expected URL
-      expected_url = "http://#{test_business.hostname}.example.com/dashboard"
+      expected_url = "http://#{test_business.hostname}.example.com/manage/dashboard"
       # Assert current_url
       expect(current_url).to match(/#{Regexp.escape(expected_url)}(\/?)$/)
       expect(page).to have_content("Welcome") # Check for dashboard content
@@ -168,7 +168,7 @@ RSpec.describe 'Authentication', type: :system do
       
       # Visit the business manager dashboard - construct URL manually
       host = "#{business.hostname}.example.com"
-      visit "http://#{host}/dashboard"
+      visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")

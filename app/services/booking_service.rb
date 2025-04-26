@@ -1,0 +1,148 @@
+# frozen_string_literal: true
+
+# Service for shared booking functionality across base domain and subdomains
+class BookingService
+  # Generate calendar data for a date range for a specific service (all staff)
+  #
+  # @param service [Service] the service being booked
+  # @param date [Date] the center date for the calendar
+  # @param tenant [Business, nil] the tenant/business context (optional)
+  # @return [Hash] calendar data with dates as keys and aggregated available slots as values
+  def self.generate_calendar_data(service:, date:, tenant: nil)
+    return {} unless service && date
+    
+    staff_members = service.staff_members.active
+    return {} if staff_members.empty?
+
+    # Get the start and end dates for the month
+    start_date = date.beginning_of_month
+    end_date = date.end_of_month
+    
+    calendar_data = {}
+    (start_date..end_date).each do |current_date|
+      daily_aggregated_slots = []
+      staff_members.each do |staff_member|
+        available_slots = AvailabilityService.available_slots(
+          staff_member, 
+          current_date, 
+          service
+        )
+        # Add staff info to each slot
+        enriched_slots = available_slots.map do |slot|
+          slot.merge(staff_member_id: staff_member.id, staff_member_name: staff_member.name)
+        end
+        daily_aggregated_slots.concat(enriched_slots)
+      end
+      
+      # Sort slots by start time for the day
+      calendar_data[current_date.to_s] = daily_aggregated_slots.sort_by { |slot| slot[:start_time] }
+    end
+    
+    calendar_data
+  end
+  
+  # Fetch available slots for a specific date for a service (all staff)
+  #
+  # @param service [Service] the service being booked
+  # @param date [Date] the date to check
+  # @param interval [Integer] the interval between slots in minutes
+  # @param tenant [Business, nil] the tenant/business context (optional)
+  # @return [Array<Hash>] array of available slot data including staff info
+  def self.fetch_available_slots(service:, date:, interval: 30, tenant: nil)
+    return [] unless service && date
+    
+    staff_members = service.staff_members.active
+    return [] if staff_members.empty?
+
+    all_available_slots = []
+    staff_members.each do |staff_member|
+      available_slots = AvailabilityService.available_slots(
+        staff_member, 
+        date, 
+        service, 
+        interval: interval
+      )
+      # Add staff info to each slot
+      enriched_slots = available_slots.map do |slot|
+        slot.merge(staff_member_id: staff_member.id, staff_member_name: staff_member.name)
+      end
+      all_available_slots.concat(enriched_slots)
+    end
+    
+    # Sort final list by start time
+    all_available_slots.sort_by { |slot| slot[:start_time] }
+  end
+  
+  # Fetch staff availability for a service on a specific date
+  #
+  # @param service [Service] the service
+  # @param date [Date] the date to check
+  # @param tenant [Business, nil] the tenant/business context (optional)
+  # @return [Hash] staff_id => available_slots mapping
+  def self.fetch_staff_availability(service:, date:, tenant: nil)
+    return {} unless service && date
+    
+    # Find available staff for this service on this date
+    staff_members = service.staff_members.active
+    
+    # Get availability calendar data for each staff member
+    staff_availability = {}
+    
+    staff_members.each do |staff_member|
+      staff_availability[staff_member.id] = AvailabilityService.available_slots(
+        staff_member,
+        date,
+        service
+      )
+    end
+    
+    staff_availability
+  end
+  
+  # Create a new booking with proper validation and error handling
+  #
+  # @param booking_params [Hash] parameters for creating the booking
+  # @param tenant [Business, nil] the tenant/business context (optional)
+  # @return [Array<Booking, Object>] the booking object and any errors
+  def self.create_booking(booking_params, tenant = nil)
+    # Use the existing BookingManager implementation
+    BookingManager.create_booking(booking_params, tenant)
+  end
+  
+  # Update an existing booking
+  #
+  # @param booking [Booking] the booking to update
+  # @param booking_params [Hash] parameters for updating the booking
+  # @return [Array<Booking, Object>] the updated booking and any errors
+  def self.update_booking(booking, booking_params)
+    # Use the existing BookingManager implementation
+    BookingManager.update_booking(booking, booking_params)
+  end
+  
+  # Cancel a booking
+  #
+  # @param booking [Booking] the booking to cancel
+  # @param reason [String, nil] reason for cancellation
+  # @param notify [Boolean] whether to notify affected parties
+  # @return [Boolean] true if successful, false otherwise
+  def self.cancel_booking(booking, reason = nil, notify = true)
+    # Use the existing BookingManager implementation
+    BookingManager.cancel_booking(booking, reason, notify)
+  end
+  
+  # Check if a booking slot is available
+  #
+  # @param staff_member [StaffMember] the staff member to check
+  # @param start_time [Time] the start time of the slot
+  # @param end_time [Time] the end time of the slot
+  # @param exclude_booking_id [Integer, nil] booking ID to exclude from conflict check
+  # @return [Boolean] true if the slot is available, false otherwise
+  def self.slot_available?(staff_member:, start_time:, end_time:, exclude_booking_id: nil)
+    AvailabilityService.is_available?(
+      staff_member: staff_member,
+      start_time: start_time,
+      end_time: end_time,
+      exclude_booking_id: exclude_booking_id
+    )
+  end
+end 

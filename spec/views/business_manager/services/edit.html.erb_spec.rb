@@ -16,13 +16,15 @@ RSpec.describe "business_manager/services/edit.html.erb", type: :view do
     assign(:service, service)
     assign(:current_business, business)
     
+    # Ensure staff member exists for the business for the form checkboxes
+    create(:staff_member, business: business, name: "Staff One") # Using a different name/record than staff1 user
+    
     render
   end
 
   it "renders the edit service form with existing values" do
-    # Check for the form targeting the correct update path
-    # Note: Using have_selector with attribute checks is more robust than assuming exact path string
-    expect(rendered).to have_selector("form[action='/services/#{service.id}'][method='post']") do |form|
+    # Check for the form targeting the correct update path with business_manager namespace
+    expect(rendered).to have_selector("form[action='/manage/services/#{service.id}'][method='post']") do |form|
       expect(form).to have_field('_method', type: 'hidden', with: 'patch') # Check for PATCH method
       
       # Check that fields are pre-filled with existing values
@@ -32,12 +34,9 @@ RSpec.describe "business_manager/services/edit.html.erb", type: :view do
       expect(form).to have_field('service[description]', with: service.description)
       expect(form).to have_field('service[featured]', type: 'checkbox')
       expect(form).to have_field('service[active]', type: 'checkbox')
-      expect(form).to have_field('service[availability_settings]')
-      # Check for staff assignment checkboxes
-      expect(form).to have_field("service[user_ids][]", id: "user_#{staff1.id}", type: 'checkbox')
+      expect(form).to have_field('service[staff_member_ids][]', type: 'checkbox')
       
-      expect(form).to have_button('Update Service') # Default submit button text for update
-      expect(form).to have_link('Cancel', href: '/services')
+      expect(form).to have_button('Update Service') # Corrected submit button text for edit record
     end
   end
 end

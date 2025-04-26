@@ -2,14 +2,68 @@ class BookingManager
   # This service handles operations related to bookings, including
   # creation, updates, and availability checking
 
-  def self.create_booking(booking_params)
+  # Create a new booking with comprehensive error checking
+  def self.create_booking(booking_params, business = nil)
     ActiveRecord::Base.transaction do
-      # Create the booking
-      booking = Booking.new(booking_params)
+      # Create the booking with the appropriate business scope
+      booking = business ? business.bookings.new : Booking.new
       
-      # Corrected: Check availability using staff_member
-      staff_member = StaffMember.find(booking.staff_member_id) if booking.staff_member_id
-      unless staff_member && AvailabilityService.is_available?(staff_member: staff_member, start_time: booking.start_time, end_time: booking.end_time)
+      # Process date and time parameters if provided
+      if booking_params[:date].present? && booking_params[:time].present?
+        booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time])
+      end
+      
+      # Filter and set the booking parameters
+      filtered_attributes = filtered_params(booking_params)
+      booking.assign_attributes(filtered_attributes)
+      
+      # Find or create customer if params include customer info but no tenant_customer_id
+      if !booking_params[:tenant_customer_id].present? && 
+          booking_params[:customer_name].present? && 
+          booking_params[:customer_email].present?
+        
+        customer = find_or_create_customer(
+          business: business || booking.business,
+          name: booking_params[:customer_name],
+          email: booking_params[:customer_email],
+          phone: booking_params[:customer_phone]
+        )
+        
+        if customer.nil?
+          booking.errors.add(:base, "Could not create customer record")
+          return [nil, booking.errors]
+        end
+        
+        booking.tenant_customer = customer
+      end
+      
+      # Calculate end_time based on service duration if not set
+      if booking.start_time && !booking.end_time && booking.service&.duration
+        booking.end_time = booking.start_time + booking.service.duration.minutes
+      end
+      
+      # Set default status if not specified
+      booking.status ||= :pending
+      
+      # Set initial price based on service if not specified
+      if booking.amount.nil? && booking.service&.price
+        booking.amount = booking.service.price
+        booking.original_amount = booking.service.price
+        booking.discount_amount ||= 0
+      end
+      
+      # Basic validation to avoid checking availability for invalid bookings
+      unless booking.valid?
+        return [nil, booking.errors]
+      end
+      
+      # Check availability for staff member
+      staff_member = booking.staff_member
+      unless staff_member && AvailabilityService.is_available?(
+        staff_member: staff_member, 
+        start_time: booking.start_time, 
+        end_time: booking.end_time
+      )
         booking.errors.add(:base, "The selected time is not available for this staff member")
         return [nil, booking.errors]
       end
@@ -19,14 +73,14 @@ class BookingManager
         return [nil, booking.errors]
       end
       
-      # Check flags from the params hash, not the booking object
+      # Handle confirmation emails
       if booking_params[:send_confirmation]
         # Placeholder for sending confirmation
         Rails.logger.info "[BookingManager] Send confirmation flag set for Booking ##{booking.id}"
         # BookingMailer.confirmation(booking).deliver_later
       end
       
-      # Check flags from the params hash
+      # Handle payment requirements
       if booking_params[:require_payment] && booking.amount.present? && booking.amount > 0
         # Use stripe_service to create a payment intent
         Rails.logger.info "[BookingManager] Require payment flag set for Booking ##{booking.id}"
@@ -36,57 +90,108 @@ class BookingManager
       # Schedule reminders
       schedule_reminders(booking)
       
-      [booking, nil]
+      [booking, nil] # Return the booking and nil for errors
     end
+  rescue => e
+    Rails.logger.error "[BookingManager] Error creating booking: #{e.message}\n#{e.backtrace.join("\n")}"
+    [nil, OpenStruct.new(full_messages: ["An unexpected error occurred: #{e.message}"])]
   end
   
+  # Update an existing booking with checks for availability
   def self.update_booking(booking, booking_params)
     ActiveRecord::Base.transaction do
-      # Corrected: Check availability using staff_member
-      staff_member = booking.staff_member
-      start_time = booking_params[:start_time] || booking.start_time
-      end_time = booking_params[:end_time] || booking.end_time
+      # Store original values for comparison after update
+      original_start_time = booking.start_time
+      original_end_time = booking.end_time
+      original_status = booking.status
       
-      if start_time != booking.start_time || end_time != booking.end_time
-        unless staff_member && AvailabilityService.is_available?(staff_member: staff_member, start_time: start_time, end_time: end_time)
+      # Process date and time parameters if provided
+      if booking_params[:date].present? && booking_params[:time].present?
+        booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time])
+      end
+      
+      # Calculate new end_time if start_time or service changed
+      if (booking_params[:start_time] && booking_params[:start_time] != original_start_time) || 
+         (booking_params[:service_id] && booking_params[:service_id] != booking.service_id)
+        
+        # Get the service - either updated or existing
+        service_id = booking_params[:service_id] || booking.service_id
+        service = Service.find_by(id: service_id)
+        
+        if service && service.duration
+          new_start_time = booking_params[:start_time] || booking.start_time
+          booking_params[:end_time] = new_start_time + service.duration.minutes
+        end
+      end
+      
+      # First try to update attributes without saving to validate the parameters
+      booking_copy = booking.dup
+      booking_copy.assign_attributes(filtered_params(booking_params))
+      
+      # Basic validation of the updated booking
+      unless booking_copy.valid?
+        return [nil, booking_copy.errors]
+      end
+      
+      # Check availability if time or staff changed
+      if booking_params[:start_time] || booking_params[:end_time] || booking_params[:staff_member_id]
+        start_time = booking_params[:start_time] || booking.start_time
+        end_time = booking_params[:end_time] || booking.end_time
+        staff_member_id = booking_params[:staff_member_id] || booking.staff_member_id
+        staff_member = StaffMember.find_by(id: staff_member_id)
+        
+        unless staff_member && AvailabilityService.is_available?(
+          staff_member: staff_member, 
+          start_time: start_time, 
+          end_time: end_time,
+          exclude_booking_id: booking.id # Exclude this booking from conflict check
+        )
           booking.errors.add(:base, "The selected time is not available for this staff member")
           return [nil, booking.errors]
         end
       end
       
       # Update the booking
-      return [nil, booking.errors] unless booking.update(booking_params)
+      return [nil, booking.errors] unless booking.update(filtered_params(booking_params))
       
-      # Reschedule reminders if time has changed
+      # Send notifications based on changes
+      if booking.saved_change_to_status?
+        # Notify customer of status change
+        Rails.logger.info "[BookingManager] Status changed from #{original_status} to #{booking.status} for Booking ##{booking.id}"
+        # BookingMailer.status_update(booking).deliver_later
+      end
+      
+      # Reschedule reminders if time changed
       if booking.saved_change_to_start_time?
         reschedule_reminders(booking)
       end
       
-      # Notify customer if needed
-      if booking.saved_change_to_status?
-        # Placeholder for sending notification
-        # BookingMailer.status_update(booking).deliver_later
-      end
-      
-      [booking, nil]
+      [booking, nil] # Return the booking and nil for errors
     end
+  rescue => e
+    Rails.logger.error "[BookingManager] Error updating booking: #{e.message}"
+    [nil, OpenStruct.new(full_messages: ["An unexpected error occurred: #{e.message}"])]
   end
   
-  def self.cancel_booking(booking, reason = nil)
+  # Cancel a booking with optional reason and handle related tasks
+  def self.cancel_booking(booking, reason = nil, notify = true)
     ActiveRecord::Base.transaction do
       # Update booking status
-      booking.update!(status: :cancelled) # Use update! to catch potential errors
+      booking.update!(status: :cancelled)
       
       # Record cancellation reason if provided
       booking.update!(cancellation_reason: reason) if reason.present?
       
-      # Notify customer (Placeholder)
-      # BookingMailer.cancellation(booking).deliver_later
+      if notify
+        # Notify customer
+        Rails.logger.info "[BookingManager] Booking ##{booking.id} cancelled with reason: #{reason || 'Not provided'}"
+        # BookingMailer.cancellation(booking).deliver_later
+      end
       
       # Find associated invoice
       invoice = booking.invoice
       
-      # Process refund if applicable (via Invoice)
+      # Process refund if applicable
       if invoice && invoice.payments.successful.exists?
         # Placeholder for refund processing
         Rails.logger.info "[BookingManager] Processing refund for cancelled Booking ##{booking.id} via Invoice ##{invoice.id}"
@@ -100,12 +205,75 @@ class BookingManager
   rescue ActiveRecord::RecordInvalid => e
     # Log error and return false if updates fail
     Rails.logger.error "[BookingManager] Failed to cancel Booking ##{booking.id}: #{e.message}"
-    false 
+    false
+  end
+  
+  # Check if a booking slot is available
+  def self.available?(staff_member:, start_time:, end_time:, exclude_booking_id: nil)
+    AvailabilityService.is_available?(
+      staff_member: staff_member,
+      start_time: start_time,
+      end_time: end_time,
+      exclude_booking_id: exclude_booking_id
+    )
   end
   
   private
   
+  # Process date and time strings into a DateTime object
+  def self.process_datetime_params(date_str, time_str)
+    return nil if date_str.blank? || time_str.blank?
+    
+    begin
+      date = Date.parse(date_str.to_s)
+      
+      # Handle different time string formats
+      if time_str.to_s.include?(':')
+        # Format like "10:00"
+        time_parts = time_str.to_s.split(':').map(&:to_i)
+        hour, minute = time_parts[0], time_parts[1]
+      else
+        # Try to handle integer time like 1000 (for 10:00)
+        time_int = time_str.to_i
+        hour = time_int / 100
+        minute = time_int % 100
+      end
+      
+      # Validate hour and minute ranges
+      hour = [[hour, 0].max, 23].min   # Clamp between 0-23
+      minute = [[minute, 0].max, 59].min # Clamp between 0-59
+      
+      Time.zone.local(date.year, date.month, date.day, hour, minute)
+    rescue ArgumentError, TypeError => e
+      Rails.logger.error "[BookingManager] Error parsing datetime: #{e.message} for date: #{date_str}, time: #{time_str}"
+      nil
+    end
+  end
+  
+  # Find an existing customer or create a new one
+  def self.find_or_create_customer(business:, name:, email:, phone: nil)
+    return nil unless business && name.present? && email.present?
+    
+    # Try to find an existing customer
+    customer = business.tenant_customers.find_by(email: email)
+    
+    # Create a new customer if none exists
+    unless customer
+      customer = business.tenant_customers.new(
+        name: name,
+        email: email,
+        phone: phone
+      )
+      
+      return nil unless customer.save
+    end
+    
+    customer
+  end
+  
+  # Schedule booking reminders
   def self.schedule_reminders(booking)
+    begin
     # Schedule reminder for 24 hours before booking
     reminder_time = booking.start_time - 24.hours
     BookingReminderJob.set(wait_until: reminder_time).perform_later(booking.id, '24h')
@@ -113,11 +281,55 @@ class BookingManager
     # Schedule reminder for 1 hour before booking
     reminder_time = booking.start_time - 1.hour
     BookingReminderJob.set(wait_until: reminder_time).perform_later(booking.id, '1h')
+      
+      Rails.logger.info "[BookingManager] Scheduled reminders for Booking ##{booking.id}"
+    rescue ActiveRecord::StatementInvalid => e
+      # Handle case where SolidQueue tables don't exist
+      if e.message.include?("solid_queue_jobs") && e.message.include?("does not exist")
+        Rails.logger.warn "[BookingManager] SolidQueue tables not available. Skipping reminder scheduling."
+        # Continue with booking creation - don't let missing reminders block the main flow
+      else
+        # For other database errors, re-raise to be handled by the caller
+        raise
+      end
+    rescue StandardError => e
+      # Log other errors but don't fail the entire booking process
+      Rails.logger.error "[BookingManager] Failed to schedule reminders: #{e.message}"
+    end
   end
   
+  # Reschedule reminders for a booking
   def self.reschedule_reminders(booking)
     # In a real implementation, you would cancel existing reminders and schedule new ones
     # This is a simplified version
     schedule_reminders(booking)
+  end
+  
+  # Filter params to only include allowed attributes
+  def self.filtered_params(params)
+    allowed_keys = %i[
+      service_id staff_member_id tenant_customer_id 
+      notes status amount original_amount discount_amount
+      start_time end_time
+    ]
+    
+    # Convert params to a hash we can work with
+    params_hash = params.is_a?(ActionController::Parameters) ? params.to_unsafe_h : params.to_h
+    
+    # Handle multi-parameter datetime attributes for start_time and end_time
+    datetime_keys = params_hash.keys.select do |key| 
+      key.to_s.start_with?('start_time(') || key.to_s.start_with?('end_time(')
+    end
+    
+    # Gather all permitted keys including datetime multi-params
+    filtered_hash = params_hash.slice(*allowed_keys)
+    datetime_keys.each { |key| filtered_hash[key] = params_hash[key] }
+    
+    # Clean up and convert to proper parameter object
+    if params.is_a?(ActionController::Parameters)
+      ActionController::Parameters.new(filtered_hash).permit!
+    else
+      filtered_hash.symbolize_keys
+    end
   end
 end

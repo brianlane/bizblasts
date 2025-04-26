@@ -7,7 +7,8 @@ class StaffMember < ApplicationRecord
   belongs_to :business
   belongs_to :user, optional: true
   has_many :bookings, dependent: :restrict_with_error
-  has_and_belongs_to_many :services
+  has_many :services_staff_members, dependent: :destroy
+  has_many :services, through: :services_staff_members
   
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :active, inclusion: { in: [true, false] }
@@ -18,6 +19,12 @@ class StaffMember < ApplicationRecord
   before_validation :process_availability
   
   scope :active, -> { where(active: true) }
+  
+  # Returns the staff member's name for display purposes
+  # This is an alias for the name attribute to maintain compatibility with views
+  def full_name
+    name
+  end
   
   def available_services
     services.where(active: true)
@@ -53,15 +60,37 @@ class StaffMember < ApplicationRecord
     availability_data = self.availability&.with_indifferent_access || {}
     exceptions = availability_data[:exceptions] || {}
     weekly_schedule = availability_data.except(:exceptions)
+    
+    # Debug
+    Rails.logger.debug("Checking availability at: #{datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    Rails.logger.debug("Time of day: #{time_to_check}, Date: #{date_str}, Day: #{day_name}")
+
+    # Add explicit debug when checking exceptions
+    if exceptions.key?(date_str)
+      Rails.logger.debug("Found exception for date: #{date_str}")
+      Rails.logger.debug("Exception intervals: #{exceptions[date_str].inspect}")
+    end
 
     intervals = find_intervals_for(date_str, day_name, exceptions, weekly_schedule)
 
-    intervals.any? do |interval|
-      start_time = parse_time_of_day(interval[:start])
-      end_time = parse_time_of_day(interval[:end])
-
-      start_time && end_time && time_to_check >= start_time && time_to_check < end_time
+    if intervals.empty?
+      Rails.logger.debug("No intervals found, returning not available")
+      return false
     end
+    
+    Rails.logger.debug("Found #{intervals.count} intervals for #{day_name}/#{date_str}: #{intervals.inspect}")
+
+    available = intervals.any? do |interval|
+      start_time = parse_time_of_day(interval[:start] || interval['start'])
+      end_time = parse_time_of_day(interval[:end] || interval['end'])
+      
+      result = start_time && end_time && time_to_check >= start_time && time_to_check < end_time
+      Rails.logger.debug("  - Interval #{interval[:start] || interval['start']} to #{interval[:end] || interval['end']}: #{result ? 'AVAILABLE' : 'NOT AVAILABLE'}")
+      result
+    end
+    
+    Rails.logger.debug("Final availability result: #{available}")
+    available
   end
   
   def self.ransackable_attributes(auth_object = nil)
@@ -69,7 +98,7 @@ class StaffMember < ApplicationRecord
   end
   
   def self.ransackable_associations(auth_object = nil)
-    %w[business bookings services user]
+    %w[business bookings services user services_staff_members]
   end
   
   private
