@@ -180,6 +180,12 @@ jobs:
           mkdir -p public/assets
           cp ./app/assets/builds/active_admin.css ./public/assets/
 
+      # ADDED: Build JS Assets
+      - name: Build JavaScript
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/*.* --bundle --outdir=app/assets/builds
+
       - name: Run tests
         env:
           RAILS_ENV: test

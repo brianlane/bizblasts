@@ -17,7 +17,7 @@ module ApplicationHelper
     content_tag(:span, text, class: css_class)
   end
 
-  # Helper to return Tailwind CSS color classes based on booking status
+  # Helper to return CSS color classes based on booking status
   def status_color(status)
     case status.to_s.downcase
     when 'pending'
