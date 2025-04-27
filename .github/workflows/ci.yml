@@ -184,7 +184,7 @@ jobs:
       - name: Build JavaScript
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/*.* --bundle --outdir=app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
 
       - name: Run tests
         env:
