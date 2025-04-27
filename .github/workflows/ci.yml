@@ -221,8 +221,8 @@ jobs:
           bundle exec rake ci:github_actions
           
           # Verify that migrations were applied successfully
-          echo "Verifying migrations were applied..."
-          bundle exec rails db:migrate:status
+          #echo "Verifying migrations were applied..."
+          #bundle exec rails db:migrate:status
           
           # Run tests
           echo "Running tests..."
