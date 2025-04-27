@@ -184,11 +184,8 @@ jobs:
       - name: Build JavaScript
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-
-          echo "Compiled assets:"
-          ls -la app/assets/builds
-
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          
       - name: Run tests
         env:
           RAILS_ENV: test
@@ -226,17 +223,10 @@ jobs:
           # Verify that migrations were applied successfully
           echo "Verifying migrations were applied..."
           bundle exec rails db:migrate:status
-                
-          echo "Asset load paths:"
-          bundle exec rails runner 'puts Rails.application.config.assets.paths'
-
+          
           # Run tests
           echo "Running tests..."
-          bundle exec rspec || (
-            echo "Tests failed. Outputting detailed error message and backtrace..."
-            bundle exec rails runner 'puts $!.message'
-            bundle exec rails runner 'puts $!.backtrace'
-          )
+          bundle exec rspec
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
