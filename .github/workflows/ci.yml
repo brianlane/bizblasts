@@ -165,7 +165,25 @@ jobs:
           # Skip schema version check to ensure migrations run
           SKIP_SCHEMA_VERSION_CHECK: true
         run: |
-          bundle exec rails db:setup
+          echo "Rails environment information:"
+          bundle exec rails -v
+          echo "Current directory: $(pwd)"
+          
+          # Direct database creation
+          echo "Creating test database directly with psql..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          
+          # Schema load
+          echo "Loading database schema..."
+          bundle exec rails db:schema:load
+          
+          # Verify migrations were applied
+          echo "Verifying database migrations..."
+          bundle exec rails db:migrate:status
+          
+          # Run tests
+          echo "Running tests..."
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests
