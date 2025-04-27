@@ -1,6 +1,9 @@
 require 'rails_helper'
+require 'active_support/testing/time_helpers'
 
 RSpec.describe Booking, type: :model do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:business) { create(:business) }
   let(:service) { create(:service, business: business) }
   let(:staff_member) { create(:staff_member, business: business) }
@@ -69,11 +72,17 @@ RSpec.describe Booking, type: :model do
   end
   
   describe "booking scopes" do
+    around(:each) do |example|
+      travel_to Time.zone.local(2000, 1, 1, 12) do
+        example.run
+      end
+    end
+
     before do
       # Create some bookings for testing scopes
       @past_booking = create(:booking, business: business, service: service, 
                             staff_member: staff_member, tenant_customer: customer,
-                            start_time: 2.days.ago, end_time: 2.days.ago + 1.hour,
+                            start_time: Time.current - 2.days, end_time: Time.current - 2.days + 1.hour,
                             status: :completed)
                             
       @today_booking = create(:booking, business: business, service: service, 
@@ -83,12 +92,12 @@ RSpec.describe Booking, type: :model do
                             
       @future_booking = create(:booking, business: business, service: service, 
                             staff_member: staff_member, tenant_customer: customer,
-                            start_time: 2.days.from_now, end_time: 2.days.from_now + 1.hour,
+                            start_time: Time.current + 2.days, end_time: Time.current + 2.days + 1.hour,
                             status: :pending)
                             
       @cancelled_booking = create(:booking, business: business, service: service, 
                                 staff_member: staff_member, tenant_customer: customer,
-                                start_time: 3.days.from_now, end_time: 3.days.from_now + 1.hour,
+                                start_time: Time.current + 3.days, end_time: Time.current + 3.days + 1.hour,
                                 status: :cancelled)
     end
     
