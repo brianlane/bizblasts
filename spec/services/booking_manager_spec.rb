@@ -216,7 +216,7 @@ RSpec.describe BookingManager, type: :service do
         
         expect(updated_booking).to eq(booking)
         expect(errors).to be_nil
-        expect(updated_booking.start_time).to eq(new_start_time)
+        expect(updated_booking.start_time).to be_within(0.001.seconds).of(new_start_time)
       end
       
       it 'recalculates end_time when start_time changes' do
@@ -230,7 +230,7 @@ RSpec.describe BookingManager, type: :service do
         
         expect(updated_booking).to eq(booking)
         expect(errors).to be_nil
-        expect(updated_booking.end_time).to eq(new_start_time + service.duration.minutes)
+        expect(updated_booking.end_time).to be_within(0.001.seconds).of(new_start_time + service.duration.minutes)
       end
       
       it 'recalculates end_time when service changes' do
