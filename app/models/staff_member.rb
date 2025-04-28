@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 class StaffMember < ApplicationRecord
-  include TenantScoped
+  # Removed TenantScoped to avoid default tenant scoping on staff members
   
-  acts_as_tenant(:business)
   belongs_to :business
   belongs_to :user, optional: true
   has_many :bookings, dependent: :restrict_with_error
@@ -12,8 +11,9 @@ class StaffMember < ApplicationRecord
   
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :active, inclusion: { in: [true, false] }
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
-  validates :phone, presence: true, format: { with: /\A(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\z/, message: "must be a valid phone number" }, allow_blank: true
+  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :phone, format: { with: /\A(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\z/, message: "must be a valid phone number" }, allow_blank: true
+  validates :business, presence: true
   
   validate :validate_availability_structure
   before_validation :process_availability

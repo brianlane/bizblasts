@@ -43,6 +43,9 @@ class Business < ApplicationRecord
   has_many :client_businesses
   has_many :clients, through: :client_businesses, source: :user
   
+  # New association
+  has_many :staff, through: :staff_members, source: :user
+  
   # Validations
   validates :name, presence: true
   validates :industry, presence: true, inclusion: { in: industries.keys }

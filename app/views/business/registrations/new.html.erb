@@ -86,7 +86,7 @@
       <%# TODO: Add descriptions for each tier %>
       <%= business_f.select :tier, Business.tiers.keys.map { |t| [t.humanize.titleize, t] }, { prompt: 'Select Tier' }, required: true, data: { action: "change->business-registration#toggleDomainFields" } %>
       <div id="tier-descriptions" style="font-size: 0.9em; color: #555; margin-top: 5px;">
-        <p data-tier="free" style="display: none;"><strong>Free:</strong> Basic features, BizBlasts subdomain required (your-name.bizblasts.com).</p>
+        <p data-tier="free" style="display: none;"><strong>Free:</strong> Basic features, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
         <p data-tier="standard" style="display: none;"><strong>Standard:</strong> More features, custom domain or subdomain optional.</p>
         <p data-tier="premium" style="display: none;"><strong>Premium:</strong> All features, custom domain or subdomain optional.</p>
       </div>
@@ -94,7 +94,7 @@
 
     <div class="field" id="hostname-field" style="display: none;"> <%# Initially hidden %>
       <%= business_f.label :hostname %><br />
-      <%= business_f.text_field :hostname, placeholder: "your-name.bizblasts.com or www.yourdomain.com" %>
+      <%= business_f.text_field :hostname, placeholder: "your-biz.bizblasts.com or www.yourdomain.com" %>
       <small id="hostname-help-text"></small>
     </div>
 
@@ -132,7 +132,7 @@
       if (selectedTier === 'free') {
         hostnameFieldDiv.style.display = 'block';
         hostnameInput.required = true;
-        hostnameInput.placeholder = 'your-name'; // Just the subdomain part
+        hostnameInput.placeholder = 'your-biz'; // Just the subdomain part
         hostnameHelpText.textContent = '.bizblasts.com (Required - lowercase letters, numbers, hyphens only)';
         const desc = tierDescriptionDiv.querySelector('p[data-tier="free"]');
         if (desc) desc.style.display = 'block';
