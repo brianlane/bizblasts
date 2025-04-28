@@ -11,7 +11,7 @@ class User < ApplicationRecord
   has_many :businesses, through: :client_businesses
   has_many :staff_assignments, dependent: :destroy
   has_many :assigned_services, through: :staff_assignments, source: :service
-  has_many :staff_memberships, class_name: 'StaffMember', foreign_key: 'user_id', dependent: :destroy
+  has_many :staff_memberships, class_name: 'StaffMember'
   has_many :staffed_businesses, through: :staff_memberships, source: :business
 
   # Allow creating business via user form during sign-up

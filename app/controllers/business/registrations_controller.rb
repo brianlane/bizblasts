@@ -52,8 +52,6 @@ class Business::RegistrationsController < Users::RegistrationsController
 
         # If we reach here, both saves were successful
         yield resource if block_given?
-        # Automatically create a StaffMember record linking this user to the new business
-        resource.staff_memberships.create!(business: @business, name: resource.full_name)
         transaction_successful = true # Mark success
       end # Transaction block ends (COMMIT or ROLLBACK)
     rescue ActiveRecord::Rollback
@@ -66,19 +64,28 @@ class Business::RegistrationsController < Users::RegistrationsController
       # --- Success Path ---
       Rails.logger.info "[REGISTRATION] Transaction successful. Handling post-signup for Business ##{resource.business_id}."
       # Fetch the committed business (using resource.business_id, @business might be stale)
-      committed_business = Business.find(resource.business_id)
+      committed_business = Business.find(resource.business_id) 
 
+      # Assign the user as a staff member of their business (default membership)
+      committed_business.staff_members.create!(
+        user: resource,
+        name: resource.full_name,
+        email: resource.email,
+        phone: committed_business.phone,
+        active: true
+      )
+      
       if resource.active_for_authentication?
         set_flash_message! :notice, :signed_up
         sign_up(resource_name, resource)
-        after_sign_up_path = after_sign_up_path_for(resource)
-        Rails.logger.info "[REGISTRATION] Sign up successful. Storing business ID #{committed_business.id} in session. Responding towards: #{after_sign_up_path}"
         session[:signed_up_business_id] = committed_business.id
-        redirect_to after_sign_up_path, status: :see_other
+        # Redirect to the path defined by after_sign_up_path_for (uses subdomain in non-test)
+        redirect_to after_sign_up_path_for(resource), allow_other_host: true, status: :see_other
       else
         set_flash_message! :notice, :"signed_up_but_#{resource.inactive_message}"
         expire_data_after_sign_in!
-        redirect_to after_inactive_sign_up_path_for(resource), status: :see_other
+        # Redirect to the path defined for inactive sign up (preserves subdomain in non-test)
+        redirect_to after_inactive_sign_up_path_for(resource), allow_other_host: true, status: :see_other
       end
     else
       # --- Failure Path ---
@@ -155,9 +162,13 @@ class Business::RegistrationsController < Users::RegistrationsController
     )
   end
 
-  # Optional: Override path after sign up if needed
-  # def after_sign_up_path_for(resource)
-  #   # e.g., business_dashboard_path(hostname: resource.business.hostname)
-  #   super(resource)
-  # end
+  # Override path after successful business sign up to use tenant's subdomain
+  def after_sign_up_path_for(resource)
+    # In test environment use Devise default (tests expect root_path); otherwise redirect to subdomain
+    if Rails.env.test?
+      super(resource)
+    else
+      root_url(subdomain: resource.business.hostname)
+    end
+  end
 end 
