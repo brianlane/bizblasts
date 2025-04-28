@@ -52,6 +52,8 @@ class Business::RegistrationsController < Users::RegistrationsController
 
         # If we reach here, both saves were successful
         yield resource if block_given?
+        # Automatically create a StaffMember record linking this user to the new business
+        resource.staff_memberships.create!(business: @business, name: resource.full_name)
         transaction_successful = true # Mark success
       end # Transaction block ends (COMMIT or ROLLBACK)
     rescue ActiveRecord::Rollback
@@ -64,7 +66,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       # --- Success Path ---
       Rails.logger.info "[REGISTRATION] Transaction successful. Handling post-signup for Business ##{resource.business_id}."
       # Fetch the committed business (using resource.business_id, @business might be stale)
-      committed_business = Business.find(resource.business_id) 
+      committed_business = Business.find(resource.business_id)
 
       if resource.active_for_authentication?
         set_flash_message! :notice, :signed_up

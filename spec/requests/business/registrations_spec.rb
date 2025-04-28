@@ -64,6 +64,8 @@ RSpec.describe "Business::Registrations", type: :request do
         expect(new_user.email).to eq(params[:user][:email])
         expect(new_user.manager?).to be true
         expect(new_user.business).to eq(new_business)
+        expect(new_user.staffed_businesses).to include(new_business)
+        expect(new_business.staff).to include(new_user)
 
         expect(new_business.name).to eq(params[:user][:business_attributes][:name])
         expect(new_business.tier).to eq(expected_tier)
@@ -106,20 +108,20 @@ RSpec.describe "Business::Registrations", type: :request do
     end
 
     context "with invalid parameters" do
-      it "does not create User or Business if user validation fails" do
+      it "does not create User, Business or StaffMember if user validation fails" do
         params = build_params(free_tier_attrs)
         params[:user][:email] = 'invalid' # Invalid user email
         expect {
           post business_registration_path, params: params
-        }.not_to change { [User.count, Business.count] }
+        }.not_to change { [User.count, Business.count, StaffMember.count] }
       end
 
-      it "does not create User or Business if business validation fails" do
+      it "does not create User, Business or StaffMember if business validation fails" do
         params = build_params(free_tier_attrs)
         params[:user][:business_attributes][:name] = '' # Invalid business name
         expect {
           post business_registration_path, params: params
-        }.not_to change { [User.count, Business.count] }
+        }.not_to change { [User.count, Business.count, StaffMember.count] }
       end
 
       it "re-renders the 'new' template with errors" do
