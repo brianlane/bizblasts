@@ -72,7 +72,7 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   # Testing framework
-  gem "shoulda-matchers", "~> 6.0"
+  gem "shoulda-matchers", "~> 6.5"
   gem "database_cleaner" # Main database_cleaner gem
   gem "database_cleaner-active_record" # For cleaning the database between tests
   
