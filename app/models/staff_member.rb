@@ -4,6 +4,9 @@ class StaffMember < ApplicationRecord
   belongs_to :business
   validates :business, presence: true
   belongs_to :user, optional: true
+  # Virtual attribute for selecting user role (staff or manager)
+  attr_accessor :user_role
+  accepts_nested_attributes_for :user, reject_if: :all_blank
   has_many :bookings, dependent: :restrict_with_error
   has_many :services_staff_members, dependent: :destroy
   has_many :services, through: :services_staff_members

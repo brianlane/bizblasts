@@ -19,6 +19,8 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   # GET /business_manager/staff_members/new
   def new
     @staff_member = @current_business.staff_members.new
+    # Prepare an empty nested user so fields_for :user will yield
+    @staff_member.build_user
     # authorize @staff_member # Add Pundit authorization later
   end
 
@@ -30,12 +32,30 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
 
   # POST /business_manager/staff_members
   def create
-    @staff_member = @current_business.staff_members.new(staff_member_params)
-    # authorize @staff_member # Add Pundit authorization later
+    # Always build a new staff User
+    user_attrs  = staff_member_params[:user_attributes] || {}
+    user_role   = staff_member_params[:user_role] || 'staff'
+    @user = User.new(user_attrs.merge(role: user_role, business_id: @current_business.id))
+    if @user.save
+      # Bypass Devise confirmation and send reset password instructions
+      @user.send_reset_password_instructions
+    else
+      # On user validation failure, rebuild staff_member and nested user for form
+      @staff_member = @current_business.staff_members.new(staff_member_params.except(:user_attributes))
+      @staff_member.build_user(user_attrs)
+      @staff_member.errors.add(:user, @user.errors.full_messages.to_sentence)
+      render :new, status: :unprocessable_entity and return
+    end
+
+    # Now build the StaffMember record linking the new user
+    @staff_member = @current_business.staff_members.new(staff_member_params.except(:user_attributes))
+    @staff_member.user = @user
 
     if @staff_member.save
       redirect_to business_manager_staff_member_path(@staff_member), notice: 'Staff member was successfully created.'
     else
+      # Preserve nested user data on failure so form can re-render the new-user fields
+      @staff_member.build_user(user_attrs)
       render :new, status: :unprocessable_entity
     end
   end
@@ -207,7 +227,6 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   # Only allow a list of trusted parameters through.
   def staff_member_params
     params.require(:staff_member).permit(
-      :user_id,
       :name,
       :email,
       :phone,
@@ -216,7 +235,9 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       :active,
       :bio,
       :notes,
-      service_ids: []
+      :user_role,
+      service_ids: [],
+      user_attributes: [:id, :first_name, :last_name, :email, :password, :password_confirmation]
     )
   end
 
