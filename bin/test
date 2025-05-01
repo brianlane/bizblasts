@@ -1,0 +1,377 @@
+#!/bin/bash
+set -e
+
+# This script provides a 10x faster approach to testing
+start_time=$(date +%s)
+
+# Initialize the SHOULD_FAIL variable to 0 (no failures)
+SHOULD_FAIL=0
+
+# Track database operations
+DB_CREATED=0
+DB_SKIPPED=0
+
+# Help function to explain options
+show_help() {
+  echo "Usage: ./bin/test [options] [test_files]"
+  echo ""
+  echo "Options:"
+  echo "  No arguments    : Run all tests (full suite) in parallel"
+  echo "  fast, optimized : Run only the optimized subset of tests (faster)"
+  echo "  spec            : Run all tests in parallel"
+  echo "  -r, --reset-db  : Force recreation of test databases"
+  echo "  -h, --help      : Show this help message"
+  echo ""
+  echo "Examples:"
+  echo "  ./bin/test                                # Run all tests"
+  echo "  ./bin/test fast                          # Run optimized subset"
+  echo "  ./bin/test spec/models/user_spec.rb      # Run specific test file"
+  echo "  ./bin/test spec/models spec/controllers  # Run multiple directories in parallel"
+  echo "  ./bin/test --reset-db                    # Force database recreation before running tests"
+  echo ""
+  exit 0
+}
+
+# Check for help arguments
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+  show_help
+fi
+
+# Check for force DB reset flag
+FORCE_DB_RESET=0
+if [ "$1" == "--reset-db" ] || [ "$1" == "-r" ]; then
+  FORCE_DB_RESET=1
+  # Remove the arg so it doesn't interfere with further argument processing
+  shift
+fi
+
+# Environment variables for speed and bypassing problematic features
+export RAILS_ENV=test
+# export RAILS_DISABLE_ASSET_COMPILATION=true # Removed for tests needing assets
+# export DISABLE_PROPSHAFT=true # Removed to allow default asset handling
+export DISABLE_SPRING=1
+export CI=false
+export PARALLEL_TEST_PROCESSORS=${PARALLEL_TEST_PROCESSORS:-4} # Ensure this is uncommented and defaults to 4
+# export SKIP_DB_CLEAN=true  # Re-enable DB Cleaning for reliability
+# export NOCOV=true          # Re-enable test coverage
+export DISABLE_DATABASE_ENVIRONMENT_CHECK=1
+
+# Add SimpleCov configuration for parallel tests
+export COVERAGE=true
+export SIMPLECOV_FORMATTER=simplecov-html
+# Use PARALLEL_TEST_FIRST_IS_1 so test is bizblasts_test and bizblasts_test2, etc.
+export PARALLEL_TEST_FIRST_IS_1=true
+# Tell parallel_tests not to recreate the databases, we do it explicitly
+export PARALLEL_TEST_RUNTIME_LOG=tmp/parallel_runtime.log
+# Keep the runtime log - parallel_tests should pick it up via ENV var
+rm -f "$PARALLEL_TEST_RUNTIME_LOG"
+
+# Create the coverage directory if it doesn't exist
+mkdir -p coverage
+mkdir -p coverage/assets/0.13.1/images
+mkdir -p coverage/assets/0.13.1/javascripts
+mkdir -p coverage/assets/0.13.1/stylesheets
+
+# Copy any missing SimpleCov assets if needed
+if [ ! -f coverage/.resultset.json ]; then
+  touch coverage/.resultset.json
+  echo "{}" > coverage/.resultset.json
+fi
+
+# Fix SimpleCov permissions for parallel tests
+chmod -R 777 coverage
+
+# File to store the command output
+OUTPUT_FILE="test.out"
+rm -f "$OUTPUT_FILE"
+
+# Log function to write to OUTPUT_FILE only
+log() {
+  echo "$@" >> "$OUTPUT_FILE"
+}
+
+# Set up test databases for parallel tests, but only if they don't exist
+log "==> Preparing test databases..."
+if [ $FORCE_DB_RESET -eq 1 ]; then
+  log "    Force database reset enabled"
+fi
+
+# Function to check if database exists and create it if it doesn't
+setup_db_if_needed() {
+  local db_name=$1
+  local env_num=$2
+  # Seed only needed when creating/resetting
+  local db_setup_cmd="db:create db:schema:load db:seed"
+  # Migrate command - REMOVED, we will use schema:load for consistency
+  # local db_migrate_cmd="db:migrate"
+
+  # Check if database exists using psql, or if force reset is enabled
+  if [ $FORCE_DB_RESET -eq 1 ]; then
+    log "Force resetting database $db_name and seeding..."
+    if [ -n "$env_num" ]; then
+      TEST_ENV_NUMBER=$env_num RAILS_ENV=test bundle exec rails db:drop $db_setup_cmd >> "$OUTPUT_FILE" 2>&1
+    else
+      RAILS_ENV=test bundle exec rails db:drop $db_setup_cmd >> "$OUTPUT_FILE" 2>&1
+    fi
+    DB_CREATED=$((DB_CREATED + 1))
+  elif ! psql -lqt | cut -d \| -f 1 | grep -qw "$db_name"; then
+    log "Database $db_name doesn't exist, creating, loading schema and seeding..."
+    if [ -n "$env_num" ]; then
+      TEST_ENV_NUMBER=$env_num RAILS_ENV=test bundle exec rails $db_setup_cmd >> "$OUTPUT_FILE" 2>&1
+    else
+      RAILS_ENV=test bundle exec rails $db_setup_cmd >> "$OUTPUT_FILE" 2>&1
+    fi
+    DB_CREATED=$((DB_CREATED + 1))
+  else
+    log "Database $db_name already exists, checking schema consistency..."
+    # Check if migrations are pending before running migrate
+    if [ -n "$env_num" ]; then
+      # If migrations are pending, it means schema.rb is likely ahead of the DB state.
+      # Force reset to ensure consistency instead of migrating.
+      if ! TEST_ENV_NUMBER=$env_num RAILS_ENV=test bundle exec rails db:abort_if_pending_migrations >> "$OUTPUT_FILE" 2>&1; then
+        log "Schema mismatch/pending migrations detected for $db_name. Resetting DB..."
+        TEST_ENV_NUMBER=$env_num RAILS_ENV=test bundle exec rails db:drop $db_setup_cmd >> "$OUTPUT_FILE" 2>&1
+        DB_CREATED=$((DB_CREATED + 1))
+      else
+        log "Schema matches for $db_name."
+        DB_SKIPPED=$((DB_SKIPPED + 1))
+      fi
+    else
+      # Check main test DB
+      if ! RAILS_ENV=test bundle exec rails db:abort_if_pending_migrations >> "$OUTPUT_FILE" 2>&1; then
+        log "Schema mismatch/pending migrations detected for main test db. Resetting DB..."
+        RAILS_ENV=test bundle exec rails db:drop $db_setup_cmd >> "$OUTPUT_FILE" 2>&1
+        DB_CREATED=$((DB_CREATED + 1))
+      else
+        log "Schema matches for main test db."
+        DB_SKIPPED=$((DB_SKIPPED + 1))
+      fi
+    fi
+    # DB_SKIPPED=$((DB_SKIPPED + 1)) # Moved inside the 'else' block above
+  fi
+}
+
+# Setup main test database
+setup_db_if_needed "bizblasts_test" ""
+
+# Setup test1 database for parallel tests with PARALLEL_TEST_FIRST_IS_1=true
+setup_db_if_needed "bizblasts_test1" "1"
+
+# Setup remaining test databases (Restore loop for 4 processors)
+for i in {2..4}; do
+  setup_db_if_needed "bizblasts_test$i" "$i"
+done
+
+# Faster garbage collection
+export RUBY_GC_MALLOC_LIMIT=4000100
+export RUBY_GC_HEAP_FREE_SLOTS=200000
+
+# Enable YJIT if available
+if ruby -e "exit(defined?(RubyVM::YJIT) != nil)" > /dev/null 2>&1; then
+  export RUBY_YJIT_ENABLE=1
+fi
+
+# Default spec file to run if no arguments are given
+# Example: DEFAULT_SPEC="spec/features/"
+# TODO: Refine this default set as the app grows
+DEFAULT_SPEC="spec/models/staff_member_spec.rb spec/services/availability_service_spec.rb"
+
+# Command to run for full test suite
+FULL_SPEC="spec"
+
+log "==> Running tests (Database Cleaning ENABLED)..."
+
+# Temporary file to store the RSpec results (or combined results from parallel)
+RESULT_FILE=$(mktemp)
+
+# Initialize command arrays
+CMD_BASE=()
+CMD_ARGS=()
+
+# Determine the command to run
+if [ $# -eq 0 ]; then
+  # Run the full test suite by default with parallel for speed
+  log "Running full test suite in parallel ($PARALLEL_TEST_PROCESSORS processes) using runtime log (implicit)..."
+  CMD_BASE=("bundle" "exec" "parallel_rspec")
+  # Remove -o flag, rely on PARALLEL_TEST_RUNTIME_LOG ENV var
+  CMD_ARGS+=($FULL_SPEC "-n" "$PARALLEL_TEST_PROCESSORS") 
+elif [ "$1" == "optimized" ] || [ "$1" == "fast" ]; then
+  # Run the optimized test subset when specifically requested (no parallel)
+  log "Running optimized test subset (no parallel)..."
+  CMD_BASE=("bundle" "exec" "rspec")
+  CMD_ARGS+=($DEFAULT_SPEC "--format" "progress" "--order" "random") # Keep format here
+else
+  # Run specified tests - use parallel_rspec if multiple files/dirs or 'spec' given
+  if [ "$1" == "spec" ] || [ $# -gt 1 ]; then
+      log "Running specified tests in parallel ($PARALLEL_TEST_PROCESSORS processes) using runtime log (implicit): $@"
+      CMD_BASE=("bundle" "exec" "parallel_rspec")
+      
+      # Collect only file/directory paths
+      SPEC_PATHS=()
+      for arg in "$@"; do
+        # Skip any arguments that start with - (options)
+        if [[ "$arg" != -* ]]; then
+          SPEC_PATHS+=("$arg")
+        fi
+      done
+      
+      # Remove -o flag, rely on PARALLEL_TEST_RUNTIME_LOG ENV var
+      CMD_ARGS+=("${SPEC_PATHS[@]}" "-n" "$PARALLEL_TEST_PROCESSORS")
+  else
+      # Run a single specified test file/directory (no parallel)
+      log "Running single specified test: $@"
+      CMD_BASE=("bundle" "exec" "rspec")
+      CMD_ARGS+=("$@" "--format" "progress" "--order" "random")
+  fi
+fi
+
+# Add timeout command wrapper
+TIMEOUT_CMD=("timeout" "180") # 180 seconds = 3 minutes
+
+# Execute the command, redirecting output, wrapped in timeout
+# Need to handle arrays carefully for execution
+log "Running: ${CMD_BASE[@]} ${CMD_ARGS[@]}"
+if ! "${TIMEOUT_CMD[@]}" "${CMD_BASE[@]}" "${CMD_ARGS[@]}" >> "$OUTPUT_FILE" 2>&1; then
+  EXIT_CODE=$?
+  # Print a brief failure message to the log
+  log "Tests Failed (with exit code $EXIT_CODE)"
+  # Set SHOULD_FAIL to 1
+  SHOULD_FAIL=1
+else
+  EXIT_CODE=0
+  # Print a brief success message to the log
+  log "Tests Passed"
+fi
+echo $EXIT_CODE > "$RESULT_FILE"
+
+# Read the final exit code
+FINAL_EXIT_CODE=$(cat "$RESULT_FILE")
+rm -f "$RESULT_FILE"
+
+# Calculate and show total time
+end_time=$(date +%s)
+duration=$((end_time - start_time))
+log "==> Tests completed in $duration seconds!"
+if [ $DB_CREATED -gt 0 ]; then
+  log "    Created/reset $DB_CREATED database(s)"
+fi
+if [ $DB_SKIPPED -gt 0 ]; then
+  log "    Reused $DB_SKIPPED existing database(s) - saved ~$((DB_SKIPPED * 3)) seconds"
+fi
+log ""
+
+# --- Parse Results --- 
+# parallel_rspec output is harder to parse reliably for a single summary line.
+# We will rely on the exit code for success/failure status.
+# We can grep for failure summaries if needed.
+
+# Extract Coverage from SimpleCov output
+COVERAGE_LINE=$(grep -E "^Line Coverage:" "$OUTPUT_FILE" | tail -1)
+COVERAGE_PERCENT="N/A"
+if [ -n "$COVERAGE_LINE" ]; then
+  COVERAGE_PERCENT=$(echo "$COVERAGE_LINE" | grep -oE '[0-9.]+%')
+fi
+
+# Check for parallel test process outputs
+PARALLEL_STATS=$(grep -E "^[0-9]+ (examples|tests|specs),.*$" "$OUTPUT_FILE" | grep -v "Randomized with seed")
+PARALLEL_TEST_COUNT=0
+PARALLEL_FAIL_COUNT=0
+
+if [ -n "$PARALLEL_STATS" ]; then
+  log "==> Individual process results:"
+  log "$PARALLEL_STATS"
+  log ""
+  
+  # Sum up examples and failures from parallel processes
+  while read -r line; do
+    if [[ $line =~ ^([0-9]+)[[:space:]]+(examples|tests|specs), ]]; then
+      examples="${BASH_REMATCH[1]}"
+      PARALLEL_TEST_COUNT=$((PARALLEL_TEST_COUNT + examples))
+      
+      if [[ $line =~ ([0-9]+)[[:space:]]+failures? ]]; then
+        failures="${BASH_REMATCH[1]}"
+        PARALLEL_FAIL_COUNT=$((PARALLEL_FAIL_COUNT + failures))
+      fi
+    fi
+  done <<< "$PARALLEL_STATS"
+fi
+
+# Extract failure count from the last summary line if available
+EXAMPLES_LINE=$(grep -E "[0-9]+ examples?, [0-9]+ failures?" "$OUTPUT_FILE" | tail -1)
+FAILURE_COUNT="0" # Default to 0 if not found
+TOTAL_TESTS="0" # Default to 0 if not found
+
+if [ -n "$EXAMPLES_LINE" ]; then
+  # Extract the total tests count
+  TOTAL_TESTS=$(echo "$EXAMPLES_LINE" | grep -oE "^[0-9]+ example" | grep -oE "[0-9]+")
+  
+  # Extract the failures from the summary line
+  FAILURES_PART=$(echo "$EXAMPLES_LINE" | grep -oE "[0-9]+ failures?" | grep -oE "[0-9]+")
+  if [ -n "$FAILURES_PART" ]; then
+    FAILURE_COUNT=$FAILURES_PART
+  fi
+fi
+
+# Use parallel counts if available and greater
+if [ "$PARALLEL_TEST_COUNT" -gt "$TOTAL_TESTS" ]; then
+  TOTAL_TESTS=$PARALLEL_TEST_COUNT
+fi
+
+if [ "$PARALLEL_FAIL_COUNT" -gt "$FAILURE_COUNT" ]; then
+  FAILURE_COUNT=$PARALLEL_FAIL_COUNT
+fi
+
+# Check for failure summaries
+FAILURE_SUMMARIES=$(grep -E "^ +[0-9]+\) " "$OUTPUT_FILE" | wc -l | tr -d ' ')
+
+# Force exit code 1 only if we detected actual failures
+if [ "$FAILURE_COUNT" -gt 0 ]; then
+  SHOULD_FAIL=1
+  FINAL_EXIT_CODE=1
+fi
+
+# Function to print to both log and console
+echo_both() {
+  echo "$@" | tee -a "$OUTPUT_FILE"
+}
+
+# Only output the final summary to console, keep details in log file
+echo_both "==> Tests completed in $duration seconds!"
+if [ $DB_SKIPPED -gt 0 ]; then
+  echo_both "    Reused $DB_SKIPPED existing database(s) - saved ~$((DB_SKIPPED * 3)) seconds"
+fi
+echo_both ""
+
+# Only output individual results if we have parallel stats
+if [ -n "$PARALLEL_STATS" ]; then
+  echo_both "==> Individual process results:"
+  # Echo each line separately to ensure it goes to console
+  while read -r line; do
+    echo "$line" | tee -a "$OUTPUT_FILE"
+  done <<< "$PARALLEL_STATS"
+  echo_both ""
+fi
+
+if [ $SHOULD_FAIL -eq 0 ]; then
+  # Success summary
+  echo_both "==> Test Summary: All tests passed! (Exit Code: $FINAL_EXIT_CODE)"
+  echo_both "    (Ran $TOTAL_TESTS tests, 0 failures)"
+  echo_both "    Overall Coverage: $COVERAGE_PERCENT"
+else 
+  # Failure summary
+  echo_both "==> Test Summary: Tests failed! (Exit Code: $FINAL_EXIT_CODE)"
+  echo_both "    (Ran $TOTAL_TESTS tests, $FAILURE_COUNT failures, $FAILURE_SUMMARIES failure summaries found in output)"
+  echo_both "    Overall Coverage: $COVERAGE_PERCENT"
+  
+  # Get failure text for both log and console
+  echo_both ""
+  echo_both "==> Failure details:"
+  FAILURE_TEXT=$(grep -A 10 "Failures:" "$OUTPUT_FILE" | head -n 20)
+  echo "$FAILURE_TEXT" | sed 's/^/    /' | tee -a "$OUTPUT_FILE"
+fi
+
+# Output is in test.out file
+echo_both ""
+echo_both "See $OUTPUT_FILE for detailed output"
+# Exit with the appropriate code
+exit $FINAL_EXIT_CODE 
