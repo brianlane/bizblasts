@@ -11,6 +11,7 @@ class Booking < ApplicationRecord
   belongs_to :service
   belongs_to :staff_member
   belongs_to :tenant_customer
+  accepts_nested_attributes_for :tenant_customer
   belongs_to :promotion, optional: true
   has_one :invoice, dependent: :nullify
   

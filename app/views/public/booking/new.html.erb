@@ -24,6 +24,52 @@
     <%# Hidden field for service_id %>
     <%= form.hidden_field :service_id, value: @service.id %>
 
+    <% if current_user.role == 'client' %>
+      <%# Client: submit staff_member_id and tenant_customer_id as hidden fields %>
+      <%= form.hidden_field :staff_member_id, value: @booking.staff_member_id %>
+      <%= form.hidden_field :tenant_customer_id, value: @booking.tenant_customer_id %>
+    <% else %>
+      <%# Staff/Manager: show staff and customer selection %>
+      <% if @service.staff_members.any? %>
+        <div class="mb-4">
+          <%= form.label :staff_member_id, "Select Staff Member", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= form.collection_select :staff_member_id, @service.staff_members.active, :id, :name, {}, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+        </div>
+      <% else %>
+        <p class="text-red-600 mb-4">Note: This service currently has no staff assigned and cannot be booked.</p>
+      <% end %>
+
+      <!-- Customer selection -->
+      <div class="mb-4">
+        <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= form.select :tenant_customer_id,
+              options_for_select(@business.tenant_customers.map { |c| [c.email.present? ? "#{c.name} (#{c.email})" : c.name, c.id] } + [["Create new customer", "new"]], @booking.tenant_customer_id),
+              { include_blank: "Select existing customer" },
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
+              id: "tenant_customer_id"
+        %>
+      </div>
+
+      <!-- New customer fields (hidden & disabled by default) -->
+      <div id="new-tenant-customer-fields" class="hidden mb-4">
+        <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
+        <%= form.fields_for :tenant_customer_attributes, @booking.tenant_customer do |cust_fields| %>
+          <div class="mb-4">
+            <%= cust_fields.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= cust_fields.text_field :name, disabled: true, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+          </div>
+          <div class="mb-4">
+            <%= cust_fields.label :email, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= cust_fields.email_field :email, disabled: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+          </div>
+          <div class="mb-4">
+            <%= cust_fields.label :phone, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= cust_fields.telephone_field :phone, disabled: true, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
     <%# TODO: Implement Date/Time selection based on service/staff availability %>
     <%# This likely requires JavaScript integration (e.g., Flatpickr, calendar component) %>
     <%# For now, a simple datetime select %>
@@ -32,20 +78,6 @@
       <%# Adjust datetime select options as needed %>
       <%= form.datetime_select :start_time, { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1 }, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
     </div>
-
-    <%# TODO: Implement Staff Member selection (if applicable) %>
-    <%# Could be a dropdown populated based on service and availability %>
-    <% if @service.staff_members.any? %>
-      <div class="mb-4">
-        <%# Update label to indicate selection is now required %>
-        <%= form.label :staff_member_id, "Select Staff Member", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%# Remove include_blank to enforce selection %>
-        <%= form.collection_select :staff_member_id, @service.staff_members.active, :id, :name, {}, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-      </div>
-    <% else %>
-      <%# Service has no staff - booking will fail validation. Add message? %>
-      <p class="text-red-600 mb-4">Note: This service currently has no staff assigned and cannot be booked.</p>
-    <% end %>
 
     <div class="mb-4">
       <%= form.label :notes, "Notes (Optional)", class: "block text-gray-700 text-sm font-bold mb-2" %>
@@ -70,4 +102,35 @@
     </div>
   <% end %>
 
-</div> 
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const customerSelect = document.getElementById('tenant_customer_id');
+    const newFieldsDiv = document.getElementById('new-tenant-customer-fields');
+    const nestedInputs = newFieldsDiv.querySelectorAll('input');
+    
+    function toggleCustomerFields() {
+      if (customerSelect && customerSelect.value === 'new') {
+        newFieldsDiv.classList.remove('hidden');
+        nestedInputs.forEach(input => {
+          input.disabled = false;
+          // only name and phone are required, email remains optional
+          if (input.type === 'email') {
+            input.required = false;
+          } else {
+            input.required = true;
+          }
+        });
+      } else {
+        newFieldsDiv.classList.add('hidden');
+        nestedInputs.forEach(input => { input.disabled = true; input.required = false; });
+      }
+    }
+
+    if (customerSelect) {
+      customerSelect.addEventListener('change', toggleCustomerFields);
+      toggleCustomerFields();
+    }
+  });
+</script> 

@@ -70,23 +70,41 @@
           </select>
         </div>
         
-        <!-- Customer information -->
+        <!-- Customer selection -->
         <div class="form-group mb-4">
-          <label for="booking_customer_name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-          <input type="text" id="booking_customer_name" name="booking[customer_name]" required
-                class="form-input rounded border px-3 py-2 w-full">
+          <label for="booking_customer_id" class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+          <select id="booking_customer_id" name="booking[customer_id]" 
+                  class="form-select rounded border px-3 py-2 w-full"
+                  data-new-customer-target="customerSelect">
+            <option value="">Select existing customer</option>
+            <% @booking.business.customers.each do |customer| %>
+              <option value="<%= customer.id %>"><%= customer.name %> (<%= customer.email %>)</option>
+            <% end %>
+            <option value="new">Create new customer</option>
+          </select>
         </div>
         
-        <div class="form-group mb-4">
-          <label for="booking_customer_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input type="email" id="booking_customer_email" name="booking[customer_email]" required
-                class="form-input rounded border px-3 py-2 w-full">
-        </div>
-        
-        <div class="form-group mb-4">
-          <label for="booking_customer_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input type="tel" id="booking_customer_phone" name="booking[customer_phone]" required
-                class="form-input rounded border px-3 py-2 w-full">
+        <!-- New customer fields (hidden by default) -->
+        <div id="new-customer-fields" class="hidden" data-new-customer-target="newCustomerFields">
+          <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
+          
+          <div class="form-group mb-4">
+            <label for="booking_customer_attributes_name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input type="text" id="booking_customer_attributes_name" name="booking[customer_attributes][name]"
+                   class="form-input rounded border px-3 py-2 w-full">
+          </div>
+
+          <div class="form-group mb-4">  
+            <label for="booking_customer_attributes_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" id="booking_customer_attributes_email" name="booking[customer_attributes][email]" 
+                   class="form-input rounded border px-3 py-2 w-full">
+          </div>
+
+          <div class="form-group mb-4">
+            <label for="booking_customer_attributes_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>  
+            <input type="tel" id="booking_customer_attributes_phone" name="booking[customer_attributes][phone]"
+                   class="form-input rounded border px-3 py-2 w-full">
+          </div>
         </div>
         
         <!-- Notes -->
@@ -148,6 +166,18 @@
       e.preventDefault();
       // Form submission logic here
       // You can use fetch API to submit the form data
+    });
+
+    // Toggle new customer fields
+    const customerSelect = document.getElementById('booking_customer_id');
+    const newCustomerFields = document.getElementById('new-customer-fields');
+
+    customerSelect.addEventListener('change', function() {
+      if (this.value === 'new') {
+        newCustomerFields.classList.remove('hidden');
+      } else {
+        newCustomerFields.classList.add('hidden');
+      }
     });
   });
 </script> 

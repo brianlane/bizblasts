@@ -65,7 +65,7 @@ RSpec.describe "Booking Flow", type: :system do
       click_button 'Confirm Booking'
       
       # Verify success message
-      expect(page).to have_content('Booking created successfully!')
+      expect(page).to have_content('Booking was successfully created.')
       
       # Visit my bookings page
       visit tenant_my_bookings_path
