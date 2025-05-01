@@ -1,7 +1,7 @@
 module Public
   class ClientBookingsController < ApplicationController
     before_action :authenticate_user!
-    before_action :ensure_client_user
+    before_action :ensure_authorized_user
     before_action :set_business
     before_action :set_booking, only: [:show, :cancel]
     
@@ -44,6 +44,33 @@ module Public
       end
     end
     
+    def create
+      @booking = @business.bookings.new(booking_params)
+
+      customer_id = params[:booking][:tenant_customer_id]
+      customer_attrs = params[:booking][:tenant_customer_attributes]
+
+      if customer_id.present? 
+        @booking.tenant_customer = TenantCustomer.find(customer_id)
+      elsif customer_attrs.present?
+        @booking.tenant_customer = @business.tenant_customers.create(customer_attrs)
+      end
+
+      if @booking.save
+        redirect_to tenant_my_booking_path(@booking), notice: 'Booking was successfully created.'
+      else
+        # TODO: Render booking form with errors
+        render :new
+      end
+    end
+    
+    def booking_params
+      params.require(:booking).permit(
+        :start_time, :end_time, :notes, :service_id, :staff_member_id, :tenant_customer_id,
+        tenant_customer_attributes: [:first_name, :last_name, :phone, :email]  
+      )
+    end
+    
     private
     
     def set_booking
@@ -81,9 +108,9 @@ module Public
       end
     end
     
-    def ensure_client_user
-      unless current_user && current_user.client?
-        redirect_to tenant_root_path, alert: "Only client users can access this area."
+    def ensure_authorized_user
+      unless current_user && (current_user.client? || (current_user.staff? && current_user.business == @business))
+        redirect_to tenant_root_path, alert: "You are not authorized to access this area."
       end
     end
   end

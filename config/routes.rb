@@ -63,6 +63,9 @@ Rails.application.routes.draw do
       
       # Add route for available slots in business manager context
       get '/available-slots', to: 'bookings#available_slots', as: :available_slots_bookings
+
+      # Allow staff/manager to create bookings under subdomain
+      resources :client_bookings, only: [:new, :create], path: 'my-bookings'
     end
 
     scope module: 'public' do
@@ -80,8 +83,8 @@ Rails.application.routes.draw do
       get '/booking/:id/confirmation', to: 'booking#confirmation', as: :tenant_booking_confirmation
 
       get '/my-bookings', to: 'client_bookings#index', as: :tenant_my_bookings
-      get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking
-      patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking
+      get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
+      patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
 
       resources :invoices, only: [:index, :show], as: :tenant_invoices
       resources :payments, only: [:index, :new, :create], as: :tenant_payments

@@ -26,65 +26,74 @@ module Public
       end
 
       @booking = current_tenant.bookings.new(service: @service)
-      # Pre-fill date/time and staff selection if provided via query params
+      # Always pre-fill staff member if provided via query params
+      @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
+      # If client user, set their own TenantCustomer; otherwise build nested for new customer
+      if current_user.role == 'client'
+        client_cust = current_tenant.tenant_customers.find_by(email: current_user.email)
+        @booking.tenant_customer = client_cust if client_cust
+      else
+        @booking.build_tenant_customer
+      end
+      # Pre-fill date/time if provided via query params
       if params[:date].present? && params[:start_time].present?
         dt = BookingManager.process_datetime_params(params[:date], params[:start_time])
         @booking.start_time = dt if dt
       end
-      @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
       # We might need to fetch available slots here or handle it via JS on the form.
       # For now, keep it simple.
     end
 
-    # POST /booking (booking_index_path - Note: route helper might be booking_path if singular)
+    # POST /booking for business staff/managers
     def create
       unless current_tenant
         Rails.logger.warn "[Public::BookingController#create] Tenant not set for request: #{request.host}"
-        render file: Rails.root.join('public/404.html'), layout: false, status: :not_found # Or redirect
-        return
+        render file: Rails.root.join('public/404.html'), layout: false, status: :not_found and return
       end
-      
+
       @service = current_tenant.services.find_by(id: booking_params[:service_id])
-      if @service.nil?
+      unless @service
         flash[:alert] = "Invalid service selected."
-        # Use specific helper for new booking page
-        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_entity
-        return
+        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_entity and return
       end
 
-      # Find or create tenant customer based on the current user
-      @tenant_customer = current_tenant.tenant_customers.find_or_create_by(
-        email: current_user.email
-      ) do |customer|
-        customer.name = current_user.full_name
-        customer.phone = current_user.phone if current_user.respond_to?(:phone)
+      # Only staff/managers and clients can create bookings here
+      unless current_user.staff? || current_user.manager? || current_user.client?
+        redirect_to tenant_root_path, alert: 'You are not authorized to create bookings.' and return
       end
-      
-      # Add the tenant_customer_id to the booking params
-      enhanced_params = booking_params.merge(
-        tenant_customer_id: @tenant_customer.id,
-        send_confirmation: false # Always send confirmation emails for public bookings
-      )
-      
-      # Use the BookingManager directly to create the booking
-      @booking, errors = BookingManager.create_booking(enhanced_params, current_tenant)
 
-      if @booking
-        flash[:notice] = "Booking created successfully!"
-        # Use specific helper for confirmation page
-        redirect_to tenant_booking_confirmation_path(@booking)
+      # For client users, always use (or create) their TenantCustomer by email
+      if current_user.client?
+        customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
+          c.name = current_user.email.split('@').first.titleize
+          c.phone = nil
+        end
       else
-        # Log detailed errors for debugging
-        error_message = errors&.full_messages&.join(', ') || "Unknown error"
-        Rails.logger.error "[Public::BookingController#create] Booking save failed: #{error_message}"
-        flash.now[:alert] = "Booking failed: #{error_message}"
-        
-        # Initialize instance variables before re-rendering new
-        @booking = current_tenant.bookings.new(booking_params)
-        @service = current_tenant.services.find(booking_params[:service_id])
-        @business = current_tenant
-        
-        # Re-render the form with errors  
+        # Build or find customer (treat 'new' as creating a new record)
+        if booking_params[:tenant_customer_id].present? && booking_params[:tenant_customer_id] != 'new'
+          customer = current_tenant.tenant_customers.find(booking_params[:tenant_customer_id])
+        else
+          nested = booking_params[:tenant_customer_attributes] || {}
+          customer = current_tenant.tenant_customers.create(
+            name: nested[:name],
+            phone: nested[:phone],
+            email: nested[:email].presence
+          )
+        end
+      end
+
+      # Mass-assign all permitted booking params (including multi-parameter start_time), except customer info
+      attrs = booking_params.except(:tenant_customer_id, :tenant_customer_attributes)
+      @booking = current_tenant.bookings.new(attrs)
+      @booking.tenant_customer = customer
+      # Auto-calculate end_time based on the service duration
+      @booking.end_time = @booking.start_time + @service.duration.minutes
+
+      if @booking.save
+        redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
+      else
+        flash.now[:alert] = @booking.errors.full_messages.to_sentence
+        # Don't reset @booking—render the invalid record with errors so client fields persist
         render :new, status: :unprocessable_entity
       end
     end
@@ -113,17 +122,19 @@ module Public
         :staff_member_id,
         :start_time,
         :"start_time(1i)",
-        :"start_time(2i)", 
+        :"start_time(2i)",
         :"start_time(3i)",
         :"start_time(4i)",
         :"start_time(5i)",
         :end_time,
         :"end_time(1i)",
-        :"end_time(2i)", 
+        :"end_time(2i)",
         :"end_time(3i)",
         :"end_time(4i)",
         :"end_time(5i)",
-        :notes
+        :notes,
+        :tenant_customer_id,
+        tenant_customer_attributes: [:name, :email, :phone]
       )
     end
 

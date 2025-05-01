@@ -99,6 +99,25 @@ RSpec.describe StaffMember, type: :model do
     end
 
     context 'with exceptions' do
+      before do
+        # Define tomorrow and today's exceptions in the complex member's availability
+        exceptions = complex_member.availability['exceptions'] || {}
+        
+        # Set today's date as an exception with specific hours (11:00-14:00)
+        exceptions[exception_date_today.iso8601] = [{ 'start' => '11:00', 'end' => '14:00' }]
+        
+        # Set tomorrow's date as a closed day (empty array means no available hours)
+        exceptions[exception_date_tomorrow.iso8601] = []
+        
+        # Update the complex member's availability
+        complex_member.availability['exceptions'] = exceptions
+        complex_member.save!
+        
+        # Verify the exceptions were set correctly
+        puts "Exception for today: #{complex_member.availability['exceptions'][exception_date_today.iso8601].inspect}"
+        puts "Exception for tomorrow: #{complex_member.availability['exceptions'][exception_date_tomorrow.iso8601].inspect}"
+      end
+      
       it 'uses exception hours when defined for a date (overrides weekly)' do
         expect(complex_member.available_at?(today_11_30am)).to be true
       end

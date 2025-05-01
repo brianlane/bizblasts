@@ -3,7 +3,7 @@
 module Public
   class TenantCalendarController < ApplicationController
     before_action :authenticate_user!
-    before_action :ensure_client_user
+    before_action :ensure_authorized_user
     before_action :set_business
     
     def index
@@ -121,9 +121,10 @@ module Public
       end
     end
     
-    def ensure_client_user
-      unless current_user && current_user.client?
-        redirect_to tenant_root_path, alert: "Only client users can access this area."
+    def ensure_authorized_user
+      unless current_user&.client? || current_user&.staff? || current_user&.manager? 
+        flash[:alert] = 'You must be logged in as a client, staff member, or manager to access this page.'
+        redirect_to tenant_root_path
       end
     end
   end
