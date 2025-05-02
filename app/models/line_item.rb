@@ -1,5 +1,6 @@
 class LineItem < ApplicationRecord
   belongs_to :lineable, polymorphic: true
+  validates :lineable, presence: true
   belongs_to :product_variant
 
   # Delegate business_id for validation purposes
@@ -17,8 +18,31 @@ class LineItem < ApplicationRecord
   # Set price from variant and calculate total before validation on creation
   before_validation :set_price_and_total, on: :create
   # Update total if quantity changes after creation
-  before_save       :update_total_amount,  if: :quantity_changed?
+  before_save       :update_total_amount,  if: :will_save_change_to_quantity?
   after_save        :update_parent_totals
+
+  scope :products, -> { where(lineable_type: 'ProductVariant') }
+  scope :services, -> { where(lineable_type: 'Service') }
+
+  def product?
+    # The line item belongs to a product if the lineable is an Order with order_type product or mixed
+    if lineable.is_a?(Order)
+      lineable.order_type_product? || lineable.order_type_mixed?
+    else
+      # Default to previous implementation
+      lineable_type == 'ProductVariant'
+    end
+  end
+
+  def service?
+    # The line item belongs to a service if the lineable is an Order with order_type service or mixed
+    if lineable.is_a?(Order)
+      lineable.order_type_service? || lineable.order_type_mixed?
+    else
+      # Default to previous implementation
+      lineable_type == 'Service'
+    end
+  end
 
   # --- Add Ransack methods --- 
   def self.ransackable_attributes(auth_object = nil)

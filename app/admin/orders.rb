@@ -6,7 +6,7 @@ ActiveAdmin.register Order do
   # Uncomment all parameters which should be permitted for assignment
   #
   permit_params :tenant_customer_id, :status, :shipping_method_id, :tax_rate_id, :business_id,
-                :shipping_address, :billing_address, :notes,
+                :shipping_address, :billing_address, :notes, :order_type,
                 line_items_attributes: [:id, :product_variant_id, :quantity, :price, :_destroy]
   # Note: total_amount, shipping_amount, tax_amount are usually calculated, not permitted directly
   # order_number is usually set automatically
@@ -14,7 +14,7 @@ ActiveAdmin.register Order do
   # or
   #
   # permit_params do
-  #   permitted = [:tenant_customer_id, :status, :shipping_method_id, :tax_rate_id, :business_id, :shipping_address, :billing_address, :notes]
+  #   permitted = [:tenant_customer_id, :status, :shipping_method_id, :tax_rate_id, :business_id, :shipping_address, :billing_address, :notes, :order_type]
   #   permitted << :other if params[:action] == 'create' && current_user.admin?
   #   permitted
   # end
@@ -26,6 +26,7 @@ ActiveAdmin.register Order do
   }
   filter :order_number
   filter :status, as: :select, collection: Order.statuses.keys
+  filter :order_type, as: :select, collection: Order.order_types.keys
   filter :total_amount
   filter :shipping_method, collection: -> {
     ShippingMethod.order(:name)
@@ -41,6 +42,7 @@ ActiveAdmin.register Order do
     column :order_number
     column :tenant_customer
     column :status
+    column :order_type
     column :total_amount do |order|
       number_to_currency order.total_amount
     end
@@ -57,6 +59,7 @@ ActiveAdmin.register Order do
       row :tenant_customer
       row :business
       row :status
+      row :order_type
       row :shipping_method
       row :tax_rate
       row :shipping_amount do |order| number_to_currency order.shipping_amount end
@@ -85,6 +88,7 @@ ActiveAdmin.register Order do
       # Scope of tenant_customer dropdown
       f.input :tenant_customer, collection: TenantCustomer.order(:name)
       f.input :status, as: :select, collection: Order.statuses.keys, include_blank: false
+      f.input :order_type, as: :select, collection: Order.order_types.keys, include_blank: false
       f.input :shipping_method, collection: ShippingMethod.where(active: true).order(:name)
       f.input :tax_rate, collection: TaxRate.order(:name)
       f.input :shipping_address

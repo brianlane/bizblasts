@@ -19,6 +19,7 @@ RSpec.describe ProductVariant, type: :model do
     it { should validate_presence_of(:stock_quantity) }
     it { should validate_numericality_of(:stock_quantity).only_integer.is_greater_than_or_equal_to(0) }
     it { should validate_numericality_of(:price_modifier).allow_nil }
+    it { should validate_numericality_of(:stock_quantity).is_greater_than_or_equal_to(0) }
   end
 
   describe 'stock management' do
@@ -55,7 +56,7 @@ RSpec.describe ProductVariant, type: :model do
       it 'returns false and adds error if insufficient stock' do
         expect(variant.decrement_stock!(11)).to be false
         expect(variant.stock_quantity).to eq(10) # Stock should not change
-        expect(variant.errors[:stock_quantity]).to include("is insufficient")
+        expect(variant.errors[:stock_quantity]).to include("is insufficient to decrement by 11")
       end
 
       it 'does not decrease stock below zero' do

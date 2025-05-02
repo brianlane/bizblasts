@@ -26,14 +26,16 @@ class ProductVariant < ApplicationRecord
   # Decrement stock level
   # Returns true if successful, false otherwise
   def decrement_stock!(quantity = 1)
-    # Consider using optimistic locking
-    if in_stock?(quantity)
+    raise "Cannot decrement below 0" if stock_quantity - quantity < 0
+    
+    with_lock do
       self.stock_quantity -= quantity
       save!
-    else
-      errors.add(:stock_quantity, "is insufficient")
-      false
     end
+    true
+  rescue
+    errors.add(:stock_quantity, "is insufficient to decrement by #{quantity}")
+    false  
   end
 
   # Calculate the final price for this variant
