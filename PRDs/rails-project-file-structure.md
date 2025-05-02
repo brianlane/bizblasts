@@ -25,7 +25,7 @@ bizblasts/
 │   │   │   └── v1/                     # API versioning
 │   │   ├── application_controller.rb   # Base controller
 │   │   ├── businesses_controller.rb    # Business management
-│   │   ├── dashboard_controller.rb     # Client dashboard 
+│   │   ├── dashboard_controller.rb     # Client dashboard
 │   │   ├── bookings_controller.rb      # Booking functionality
 │   │   ├── services_controller.rb      # Service management
 │   │   ├── staff_controller.rb         # Staff management

@@ -46,6 +46,7 @@ require 'parallel_tests/rspec/runtime_logger' # If using parallel_tests logging
 require 'capybara/rails'
 require 'fileutils' # Add FileUtils for directory creation
 require 'warden'
+require 'active_storage_validations/matchers'
 # require 'mock_asset_helpers' # REMOVED: Support files are loaded later by RSpec
 
 # Load all support files
@@ -97,6 +98,9 @@ RSpec.configure do |config|
   config.include Warden::Test::Helpers
   config.before(:suite) { Warden.test_mode! }
   config.after(:each) { Warden.test_reset! }
+
+  # Include Active Storage Validations matchers
+  config.include ActiveStorageValidations::Matchers, type: :model
 
   # == DatabaseCleaner Configuration for Parallel Tests ==
   config.before(:suite) do

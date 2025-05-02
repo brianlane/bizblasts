@@ -4,7 +4,10 @@ class Invoice < ApplicationRecord
   belongs_to :tenant_customer
   belongs_to :booking, optional: true
   belongs_to :promotion, optional: true
+  belongs_to :shipping_method, optional: true
+  belongs_to :tax_rate, optional: true
   has_many :payments, dependent: :destroy
+  has_many :line_items, as: :lineable, dependent: :destroy
   
   validates :amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
@@ -13,6 +16,7 @@ class Invoice < ApplicationRecord
   validates :invoice_number, presence: true, uniqueness: { scope: :business_id }
   validates :original_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :discount_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :booking_id, uniqueness: true, allow_nil: true
   
   enum :status, {
     draft: 0,
@@ -51,6 +55,6 @@ class Invoice < ApplicationRecord
   end
 
   def self.ransackable_associations(auth_object = nil)
-    super + %w[promotion]
+    super + %w[promotion shipping_method tax_rate]
   end
 end 
