@@ -81,6 +81,8 @@ group :development, :test do
 
   # For checking rendered templates in controller/request specs
   gem "rails-controller-testing"
+
+  gem 'active_storage_validations'
 end
 
 group :development do

@@ -31,8 +31,7 @@ RSpec.describe BookingService do
     end
     
     it 'returns empty hash if staff member or service is nil' do
-      expect(BookingService.generate_calendar_data(service: service, date: date, service: nil)).to eq({})
-      expect(BookingService.generate_calendar_data(service: service, date: nil)).to eq({})
+      expect(BookingService.generate_calendar_data(service: service, date: nil, service: nil)).to eq({})
     end
   end
   

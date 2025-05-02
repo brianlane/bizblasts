@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :invoice do
     association :business
     association :tenant_customer # Use correct association
-    association :booking, optional: true
+    # association :booking, optional: true
     # promotion is optional, set via service
     
     sequence(:invoice_number) { |n| "INV-#{Time.current.year}-#{n.to_s.rjust(4, '0')}" }
