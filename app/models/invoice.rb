@@ -57,4 +57,22 @@ class Invoice < ApplicationRecord
   def self.ransackable_associations(auth_object = nil)
     super + %w[promotion shipping_method tax_rate]
   end
+
+  def calculate_totals
+    line_items_subtotal = line_items.sum(:total_amount)
+    
+    self.original_amount = line_items_subtotal
+    self.amount = original_amount - (discount_amount || 0)
+    
+    if tax_rate.present?
+      taxable_amount = amount
+      self.tax_amount = tax_rate.calculate_tax(taxable_amount)
+    else
+      self.tax_amount = 0  
+    end
+    
+    self.total_amount = amount + tax_amount
+  end
+
+  before_save :calculate_totals, if: -> { line_items.any? }
 end 

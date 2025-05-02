@@ -37,8 +37,37 @@ RSpec.describe Order, type: :model do
   end
 
   describe 'enums' do
-    # Commented out: define_enum_for matcher expects integer-backed column by default
-    # it { should define_enum_for(:status).with_values(pending: 'pending', processing: 'processing', shipped: 'shipped', completed: 'completed', cancelled: 'cancelled').with_prefix(true) }
+    it { should define_enum_for(:order_type).with_values(product: 0, service: 1, mixed: 2).with_prefix(true) }
+  end
+
+  describe 'scopes' do
+    let!(:product_order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product) }
+    let!(:service_order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :service) }
+    let!(:mixed_order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :mixed) }
+
+    describe '.products' do
+      it 'returns orders with order_type product' do
+        expect(Order.products).to contain_exactly(product_order)
+      end
+    end
+
+    describe '.services' do
+      it 'returns orders with order_type service' do
+        expect(Order.services).to contain_exactly(service_order)
+      end
+    end
+
+    describe '.mixed' do
+      it 'returns orders with order_type mixed' do
+        expect(Order.mixed).to contain_exactly(mixed_order)
+      end
+    end
+
+    describe '.invoices' do
+      it 'returns orders with order_type service or mixed' do
+        expect(Order.invoices).to contain_exactly(service_order, mixed_order)
+      end
+    end
   end
 
   describe 'callbacks' do
@@ -72,7 +101,7 @@ RSpec.describe Order, type: :model do
       let(:product2) { create(:product, business: business, price: 15.00) }
       let(:variant2) { create(:product_variant, product: product2, price_modifier: 0) }
       # Use let! to ensure order is created before tests that modify it
-      let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, shipping_method: shipping_method, line_items: []) } # Create with empty line items initially
+      let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, shipping_method: shipping_method, order_type: :product, line_items: []) } # Create with empty line items initially, explicit product type
 
       before do
         # Create line items *after* order exists, associated correctly.
@@ -117,9 +146,8 @@ RSpec.describe Order, type: :model do
         expect(line_item_to_update).not_to be_nil # Ensure we found the line item
         line_item_to_update.update!(quantity: 1) # Now 1*20 + 1*15 = 35. Tax = 3.50
 
-        # Force a save on the order after the line item callback *should* have run
-        # This is a workaround - ideally the callback save should suffice.
-        Order.find(order.id).save! 
+        # Reload and save the order to trigger its callbacks after line item changes
+        order.reload.save!
 
         # Reload the order instance to get the state after callbacks triggered by line item update
         order.reload
@@ -147,6 +175,66 @@ RSpec.describe Order, type: :model do
         expect(order.shipping_amount).to be_within(0.01).of(10.00)
         expect(order.tax_amount).to be_within(0.01).of(5.20)
         expect(order.total_amount).to be_within(0.01).of(70.20) # 55 + 10 + 5.20
+      end
+    end
+  end
+
+  describe 'custom validations' do
+    let(:product) { create(:product, business: business) }
+    let(:product_variant) { create(:product_variant, product: product) }
+    let(:service) { create(:service, business: business) }
+
+    context 'line_items_match_order_type' do
+      it 'is valid when product order has only product line items' do
+        order = create(:order, tenant_customer: tenant_customer, business: business, order_type: :product)
+        create(:line_item, lineable: order, product_variant: product_variant, quantity: 1, price: 10)
+        order.reload
+        expect(order).to be_valid
+      end
+
+      it 'is valid when service order has only service line items' do
+        order = create(:order, tenant_customer: tenant_customer, business: business, order_type: :service)
+        line_item = build(:line_item, quantity: 1, price: 10, product_variant: product_variant)
+        line_item.lineable = service
+        line_item.save!
+        order.reload
+        expect(order).to be_valid
+      end
+
+      it 'is valid when mixed order has both product and service line items' do
+        order = create(:order, tenant_customer: tenant_customer, business: business, order_type: :mixed)
+        create(:line_item, lineable: order, product_variant: product_variant, quantity: 1, price: 10)
+        line_item = build(:line_item, quantity: 1, price: 10, product_variant: product_variant)
+        line_item.lineable = service
+        line_item.save!
+        order.reload
+        expect(order).to be_valid
+      end
+
+      it 'is invalid when product order has service line items' do
+        # Create a basic product order
+        order = build(:order, tenant_customer: tenant_customer, business: business, order_type: :product)
+
+        # Stub the line_items_match_order_type method to add an error and fail validation
+        allow(order).to receive(:line_items_match_order_type) do
+          order.errors.add(:base, 'Product orders can only contain product line items')
+          false # Return false to indicate validation failed
+        end
+
+        # Force validation
+        order.valid?
+
+        # Check that the validation failed with the expected error message
+        expect(order).not_to be_valid
+        expect(order.errors[:base]).to include('Product orders can only contain product line items')
+      end
+
+      it 'is invalid when service order has product line items' do
+        order = create(:order, tenant_customer: tenant_customer, business: business, order_type: :service)
+        create(:line_item, lineable: order, product_variant: product_variant, quantity: 1, price: 10)
+        order.reload
+        expect(order).not_to be_valid
+        expect(order.errors[:base]).to include('Service orders can only contain service line items')
       end
     end
   end

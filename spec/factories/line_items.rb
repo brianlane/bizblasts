@@ -3,7 +3,11 @@ FactoryBot.define do
     # Association with a lineable (Order or Invoice)
     # This needs to be set when creating the line item, typically within the lineable factory
     # Example: association :lineable, factory: :order
-    lineable { association(:order) } # Default to order, override as needed
+    transient do
+      lineable_factory { :order } # Default to order, can be overridden with :service
+    end
+
+    lineable { association(lineable_factory) }
 
     # Association with a product variant
     # Ensure the variant belongs to the same business as the lineable
