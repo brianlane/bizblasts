@@ -3,8 +3,8 @@
   "private": "true",
   "scripts": {
     "build:css:application": "sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
-    "build:css:active_admin": "sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules/@activeadmin/activeadmin/src/scss --load-path=node_modules",
-    "build:css": "yarn run build:css:application && yarn run build:css:active_admin"
+    "build:css:active_admin": "sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path=./.gems/ruby/3.4.0/gems/activeadmin-3.3.0/app/assets/stylesheets",
+    "build:css": "bun run build:css:application && bun run build:css:active_admin"
   },
   "devDependencies": {
     "@activeadmin/activeadmin": "^3.3.0",
