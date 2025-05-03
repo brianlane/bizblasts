@@ -35,6 +35,15 @@ end
 
 puts "Seeding database with sample data..."
 
+puts "--- DEBUG: Rails environment: #{Rails.env}"
+puts "--- DEBUG: Rails version: #{Rails.version}"
+puts "--- DEBUG: ActiveRecord version: #{ActiveRecord::VERSION::STRING}"
+puts "--- DEBUG: Business.industries: #{Business.industries.inspect}"
+puts "--- DEBUG: Business.tiers: #{Business.tiers.inspect}"
+puts "--- DEBUG: Business.host_types: #{Business.host_types.inspect}"
+puts "--- DEBUG: Business.column_names: #{Business.column_names.inspect}"
+puts "--- DEBUG: businesses table columns: #{ActiveRecord::Base.connection.columns(:businesses).map { |c| [c.name, c.sql_type] }.inspect}"
+
 # Keep the existing default business and admin
 puts "Creating default tenant..."
 default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
