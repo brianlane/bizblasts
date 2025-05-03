@@ -39,7 +39,7 @@ puts "Seeding database with sample data..."
 puts "Creating default tenant..."
 default_business = Business.find_or_initialize_by(hostname: 'default', host_type: 'subdomain')
 default_business.name = 'Default Business'
-default_business.industry = :other # Provide a default valid industry
+default_business.industry = "other"      # string, not symbol
 default_business.phone = '000-000-0000'
 default_business.email = 'default@example.com'
 default_business.address = '1 Default St'
@@ -47,7 +47,8 @@ default_business.city = 'Defaultown'
 default_business.state = 'DF'
 default_business.zip = '00000'
 default_business.description = 'The default business for system operations.'
-default_business.tier = :free # Free tier requires subdomain host_type
+default_business.tier = "free"           # string, not symbol
+default_business.host_type = "subdomain" # string, not symbol
 default_business.active = true
 default_business.save!
 
