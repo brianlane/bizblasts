@@ -29,9 +29,9 @@ $required-field-marker: $error-color !default;
 $form-label-color: $section-header-text-color !default;
 $page-header-text-color: #cdcdcd !default;
 
-// Use @use instead of @import for ActiveAdmin files
-@use "active_admin/mixins";
-@use "active_admin/base";
+// Revert to @import for ActiveAdmin files to resolve variable scope issues
+@import "active_admin/mixins";
+@import "active_admin/base";
 
 // Define our own basic styles in case imports fail
 body.active_admin {

@@ -30,6 +30,95 @@ echo "Precompiling assets..."
 # Ensure the public/assets directory exists
 mkdir -p public/assets
 
+# Handle ActiveAdmin assets explicitly to ensure they're properly compiled
+if [ -f "app/assets/stylesheets/active_admin.scss" ]; then
+  echo "Compiling ActiveAdmin assets manually..."
+  
+  # Install required node packages
+  yarn add sass
+
+  # Get ActiveAdmin gem path
+  AA_PATH=$(bundle show activeadmin)
+  echo "ActiveAdmin Path: $AA_PATH"
+  
+  # Compile SCSS to CSS with proper load paths
+  npx sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css \
+    --no-source-map \
+    --load-path=node_modules \
+    --load-path="$AA_PATH/app/assets/stylesheets" || \
+  echo "Warning: Failed to compile ActiveAdmin CSS manually, continuing with fallback"
+fi
+
+# Create a basic CSS file if it doesn't exist or is empty
+if [ ! -s "app/assets/builds/active_admin.css" ]; then
+  echo "Creating basic fallback ActiveAdmin CSS file..."
+  cat > app/assets/builds/active_admin.css << 'EOL'
+/* Fallback ActiveAdmin CSS */
+body.active_admin {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  font-size: 14px;
+  color: #333;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+#header {
+  background: #5E6469;
+  color: white;
+  padding: 10px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+#header h1 {
+  font-weight: normal;
+  margin: 0;
+}
+
+#header a, #header a:link, #header a:visited {
+  color: white;
+  text-decoration: none;
+}
+
+body.logged_out {
+  background: #f8f8f8;
+  padding-top: 50px;
+}
+
+#login {
+  max-width: 400px;
+  margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#login h2 {
+  margin-top: 0;
+  text-align: center;
+  color: #5E6469;
+}
+
+.flash {
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 3px;
+}
+
+.flash.notice {
+  background: #dff0d8;
+  color: #3c763d;
+}
+
+.flash.error {
+  background: #f2dede;
+  color: #a94442;
+}
+EOL
+fi
+
 # Compile the CSS
 bundle exec rails assets:precompile
 bundle exec rails assets:clean
