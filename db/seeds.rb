@@ -38,21 +38,31 @@ puts "Seeding database with sample data..."
 # Keep the existing default business and admin
 puts "Creating default tenant..."
 default_business = Business.find_or_initialize_by(hostname: 'default', host_type: 'subdomain')
-default_business.name = 'Default Business'
-default_business.industry = "other"      # string, not symbol
-default_business.phone = '000-000-0000'
-default_business.email = 'default@example.com'
-default_business.address = '1 Default St'
-default_business.city = 'Defaultown'
-default_business.state = 'DF'
-default_business.zip = '00000'
-default_business.description = 'The default business for system operations.'
-default_business.tier = "free"           # string, not symbol
-default_business.host_type = "subdomain" # string, not symbol
-default_business.active = true
-default_business.save!
-
-default_business.reload # Explicitly reload
+default_business.assign_attributes(
+  name: 'Default Business',
+  industry: "other",
+  phone: '000-000-0000',
+  email: 'default@example.com',
+  address: '1 Default St',
+  city: 'Defaultown',
+  state: 'DF',
+  zip: '00000',
+  description: 'The default business for system operations.',
+  tier: "free",
+  host_type: "subdomain",
+  active: true
+)
+begin
+  default_business.save!
+rescue ActiveRecord::RecordInvalid => e
+  puts "Failed to save default business: #{default_business.attributes.inspect}"
+  puts "Validation errors: #{default_business.errors.full_messages.join(', ')}"
+  # Optionally, destroy and recreate if it's safe:
+  # default_business.destroy
+  # retry
+  raise e
+end
+default_business.reload
 puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
 
 # Create an admin user in the default tenant (SKIP in production)
