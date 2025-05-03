@@ -15,7 +15,10 @@ return if defined?(SEEDS_LOADED)
 
 # This file creates sample data for development.
 # The code is idempotent so it can be run multiple times without creating duplicates.
-require 'faker'
+# Only require faker in development or test
+if Rails.env.development? || Rails.env.test?
+  require 'faker'
+end
 
 # Check if we're running in minimal seed mode (for faster tests)
 MINIMAL_SEED = ENV['MINIMAL_SEED'] == '1'
@@ -89,133 +92,135 @@ end
 # Add some sample data for default business
 puts "Creating sample data for Default Business..."
 
-# Create customers for Default Business
-customer_count = MINIMAL_SEED ? 1 : 3
-customer_count.times do |i|
-  customer = TenantCustomer.find_or_initialize_by(
-    email: "customer#{i+1}@example.com",
-    business: default_business
-  ) do |c|
-    c.name = Faker::Name.name
-    c.phone = "+1-#{rand(100..999)}-#{rand(100..999)}-#{rand(1000..9999)}"
-  end
-  
-  if customer.new_record?
-    customer.save!
-    puts "Created customer: #{customer.name}"
-  end
-end
-
-# Create services for Default Business
-services = [
-  { name: 'Basic Consultation', price: 75.00, duration: 60 },
-  { name: 'Website Setup', price: 199.99, duration: 120 },
-  { name: 'Monthly Support', price: 49.99, duration: 30 }
-]
-
-services.each do |service_attrs|
-  service = Service.find_or_initialize_by(
-    name: service_attrs[:name],
-    business: default_business
-  ) do |s|
-    s.price = service_attrs[:price]
-    s.duration = service_attrs[:duration]
-    s.description = Faker::Lorem.paragraph
-  end
-  
-  if service.new_record?
-    service.save!
-    puts "Created service: #{service.name}"
-  end
-end
-
-# Create staff members
-2.times do |i|
-  staff = StaffMember.find_or_initialize_by(
-    name: "Staff Member #{i+1}",
-    business: default_business
-  ) do |s|
-    s.email = "staff#{i+1}@example.com"
-    s.phone = "+1-#{rand(100..999)}-#{rand(100..999)}-#{rand(1000..9999)}"
-    s.active = true
-    s.bio = Faker::Lorem.paragraph
-  end
-  
-  if staff.new_record?
-    staff.save!
-    puts "Created staff member: #{staff.name}"
-  end
-end
-
-# Skip booking creation in minimal mode
-unless MINIMAL_SEED
-  # Create some bookings for default business
-  services = Service.where(business: default_business).to_a
-  customers = TenantCustomer.where(business: default_business).to_a
-  staff_members = StaffMember.where(business: default_business).to_a
-
-  if !services.empty? && !customers.empty? && !staff_members.empty?
-    # Assign specific days to specific staff to avoid conflicts
-    staff_days = {}
-    staff_members.each_with_index do |staff, index|
-      # Each staff gets different days of the week to avoid conflicts
-      staff_days[staff.id] = [(index * 2) % 5 + 1, (index * 2 + 1) % 5 + 1]
+if Rails.env.development? || Rails.env.test?
+  # Create customers for Default Business
+  customer_count = MINIMAL_SEED ? 1 : 3
+  customer_count.times do |i|
+    customer = TenantCustomer.find_or_initialize_by(
+      email: "customer#{i+1}@example.com",
+      business: default_business
+    ) do |c|
+      c.name = Faker::Name.name
+      c.phone = "+1-#{rand(100..999)}-#{rand(100..999)}-#{rand(1000..9999)}"
     end
     
-    # Each staff gets their own set of days to avoid conflicts
-    staff_members.each do |staff|
-      # Get the staff's assigned weekdays (1=Monday, 5=Friday)
-      weekdays = staff_days[staff.id]
+    if customer.new_record?
+      customer.save!
+      puts "Created customer: #{customer.name}"
+    end
+  end
+
+  # Create services for Default Business
+  services = [
+    { name: 'Basic Consultation', price: 75.00, duration: 60 },
+    { name: 'Website Setup', price: 199.99, duration: 120 },
+    { name: 'Monthly Support', price: 49.99, duration: 30 }
+  ]
+
+  services.each do |service_attrs|
+    service = Service.find_or_initialize_by(
+      name: service_attrs[:name],
+      business: default_business
+    ) do |s|
+      s.price = service_attrs[:price]
+      s.duration = service_attrs[:duration]
+      s.description = Faker::Lorem.paragraph
+    end
+    
+    if service.new_record?
+      service.save!
+      puts "Created service: #{service.name}"
+    end
+  end
+
+  # Create staff members
+  2.times do |i|
+    staff = StaffMember.find_or_initialize_by(
+      name: "Staff Member #{i+1}",
+      business: default_business
+    ) do |s|
+      s.email = "staff#{i+1}@example.com"
+      s.phone = "+1-#{rand(100..999)}-#{rand(100..999)}-#{rand(1000..9999)}"
+      s.active = true
+      s.bio = Faker::Lorem.paragraph
+    end
+    
+    if staff.new_record?
+      staff.save!
+      puts "Created staff member: #{staff.name}"
+    end
+  end
+
+  # Skip booking creation in minimal mode
+  unless MINIMAL_SEED
+    # Create some bookings for default business
+    services = Service.where(business: default_business).to_a
+    customers = TenantCustomer.where(business: default_business).to_a
+    staff_members = StaffMember.where(business: default_business).to_a
+
+    if !services.empty? && !customers.empty? && !staff_members.empty?
+      # Assign specific days to specific staff to avoid conflicts
+      staff_days = {}
+      staff_members.each_with_index do |staff, index|
+        # Each staff gets different days of the week to avoid conflicts
+        staff_days[staff.id] = [(index * 2) % 5 + 1, (index * 2 + 1) % 5 + 1]
+      end
       
-      # For each staff, try to create up to 3 bookings
-      3.times do |i|
-        # Use the staff's assigned weekday for this booking
-        weekday = weekdays[i % weekdays.length]
+      # Each staff gets their own set of days to avoid conflicts
+      staff_members.each do |staff|
+        # Get the staff's assigned weekdays (1=Monday, 5=Friday)
+        weekdays = staff_days[staff.id]
         
-        # Create a date in the future that falls on this weekday
-        future_date = Date.today + (rand(1..14).days)
-        while future_date.wday != weekday % 7
-          future_date += 1.day
-        end
-        
-        service = services.sample
-        customer = customers.sample
-        
-        # Use different hours for each booking to avoid conflicts
-        # Morning (9-11), Afternoon (12-2), Late Afternoon (3-4)
-        time_slots = [
-          { start_hour: 9, start_minute: 0 },
-          { start_hour: 12, start_minute: 0 },
-          { start_hour: 15, start_minute: 0 }
-        ]
-        
-        slot = time_slots[i % time_slots.length]
-        start_time = Time.zone.local(future_date.year, future_date.month, future_date.day, slot[:start_hour], slot[:start_minute])
-        end_time = start_time + service.duration.minutes
-        
-        # Skip if end time is after 5 PM
-        next if end_time.hour >= 17 || (end_time.hour == 17 && end_time.min > 0)
-        
-        # Using find_or_initialize_by with a unique combination to prevent duplicates
-        booking = Booking.find_or_initialize_by(
-          start_time: start_time,
-          service: service,
-          tenant_customer: customer,
-          business: default_business
-        ) do |b|
-          b.end_time = end_time
-          b.staff_member = staff
-          b.status = [:pending, :confirmed, :completed].sample
-          b.notes = Faker::Lorem.sentence
-        end
-        
-        begin
-          if booking.new_record?
-            booking.save!
-            puts "Created booking at #{booking.start_time.strftime('%Y-%m-%d %H:%M')} - #{booking.end_time.strftime('%H:%M')} for #{staff.name}"
+        # For each staff, try to create up to 3 bookings
+        3.times do |i|
+          # Use the staff's assigned weekday for this booking
+          weekday = weekdays[i % weekdays.length]
+          
+          # Create a date in the future that falls on this weekday
+          future_date = Date.today + (rand(1..14).days)
+          while future_date.wday != weekday % 7
+            future_date += 1.day
           end
-        rescue => e
-          puts "Failed to create booking: #{e.message}"
+          
+          service = services.sample
+          customer = customers.sample
+          
+          # Use different hours for each booking to avoid conflicts
+          # Morning (9-11), Afternoon (12-2), Late Afternoon (3-4)
+          time_slots = [
+            { start_hour: 9, start_minute: 0 },
+            { start_hour: 12, start_minute: 0 },
+            { start_hour: 15, start_minute: 0 }
+          ]
+          
+          slot = time_slots[i % time_slots.length]
+          start_time = Time.zone.local(future_date.year, future_date.month, future_date.day, slot[:start_hour], slot[:start_minute])
+          end_time = start_time + service.duration.minutes
+          
+          # Skip if end time is after 5 PM
+          next if end_time.hour >= 17 || (end_time.hour == 17 && end_time.min > 0)
+          
+          # Using find_or_initialize_by with a unique combination to prevent duplicates
+          booking = Booking.find_or_initialize_by(
+            start_time: start_time,
+            service: service,
+            tenant_customer: customer,
+            business: default_business
+          ) do |b|
+            b.end_time = end_time
+            b.staff_member = staff
+            b.status = [:pending, :confirmed, :completed].sample
+            b.notes = Faker::Lorem.sentence
+          end
+          
+          begin
+            if booking.new_record?
+              booking.save!
+              puts "Created booking at #{booking.start_time.strftime('%Y-%m-%d %H:%M')} - #{booking.end_time.strftime('%H:%M')} for #{staff.name}"
+            end
+          rescue => e
+            puts "Failed to create booking: #{e.message}"
+          end
         end
       end
     end
