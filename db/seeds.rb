@@ -37,34 +37,59 @@ puts "Seeding database with sample data..."
 
 # Keep the existing default business and admin
 puts "Creating default tenant..."
-default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
-  puts "Setting default business attributes..."
-  biz.name = 'Default Business'
-  puts "name: #{biz.name}"
-  biz.industry = :other # Provide a default valid industry
-  puts "industry: #{biz.industry}"
-  biz.phone = '555-123-4567' # Provide a valid phone number
-  puts "phone: #{biz.phone}"
-  biz.email = 'default@example.com'
-  puts "email: #{biz.email}"
-  biz.address = '123 Main St'
-  puts "address: #{biz.address}"
-  biz.city = 'Anytown'
-  puts "city: #{biz.city}"
-  biz.state = 'CA'
-  puts "state: #{biz.state}"
-  biz.zip = '12345'
-  puts "zip: #{biz.zip}"
-  biz.description = 'The default business for system operations.'
-  puts "description: #{biz.description}"
-  biz.tier = :free # Free tier requires subdomain host_type
-  puts "tier: #{biz.tier}"
-  biz.active = true
-  puts "Finished setting attributes, saving record..."
-end
+puts "Using updated seeds file - BIZBLASTS-RENDER-DEBUG-2023-05-03"
 
-default_business.reload # Explicitly reload
-puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
+default_business_attributes = {
+  hostname: 'default', 
+  host_type: 'subdomain',
+  name: 'Default Business',
+  industry: :other,
+  phone: '555-123-4567',
+  email: 'default@example.com',
+  address: '123 Main St',
+  city: 'Anytown',
+  state: 'CA',
+  zip: '12345',
+  description: 'The default business for system operations.',
+  tier: :free,
+  active: true
+}
+
+puts "Default business attributes: #{default_business_attributes.inspect}"
+
+begin
+  default_business = Business.find_or_create_by!(default_business_attributes) do |biz|
+    puts "Setting default business attributes..."
+    biz.name = default_business_attributes[:name]
+    puts "name: #{biz.name}"
+    biz.industry = default_business_attributes[:industry]
+    puts "industry: #{biz.industry}" 
+    biz.phone = default_business_attributes[:phone]
+    puts "phone: #{biz.phone}"
+    biz.email = default_business_attributes[:email]
+    puts "email: #{biz.email}"
+    biz.address = default_business_attributes[:address] 
+    puts "address: #{biz.address}"
+    biz.city = default_business_attributes[:city]
+    puts "city: #{biz.city}"
+    biz.state = default_business_attributes[:state]
+    puts "state: #{biz.state}" 
+    biz.zip = default_business_attributes[:zip]
+    puts "zip: #{biz.zip}"
+    biz.description = default_business_attributes[:description]
+    puts "description: #{biz.description}"
+    biz.tier = default_business_attributes[:tier]
+    puts "tier: #{biz.tier}"
+    biz.active = default_business_attributes[:active]
+    puts "Finished setting attributes, saving record..."
+  end
+
+  default_business.reload # Explicitly reload
+  puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
+rescue => e
+  puts "Error creating default business: #{e.message}"
+  puts e.backtrace.join("\n")
+end
 
 # Create an admin user in the default tenant (SKIP in production)
 if !Rails.env.production?
