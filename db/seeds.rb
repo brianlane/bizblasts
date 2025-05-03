@@ -58,34 +58,26 @@ default_business_attributes = {
 puts "Default business attributes: #{default_business_attributes.inspect}"
 
 begin
-  default_business = Business.find_or_create_by!(default_business_attributes) do |biz|
-    puts "Setting default business attributes..."
-    biz.name = default_business_attributes[:name]
-    puts "name: #{biz.name}"
-    biz.industry = default_business_attributes[:industry]
-    puts "industry: #{biz.industry}" 
-    biz.phone = default_business_attributes[:phone]
-    puts "phone: #{biz.phone}"
-    biz.email = default_business_attributes[:email]
-    puts "email: #{biz.email}"
-    biz.address = default_business_attributes[:address] 
-    puts "address: #{biz.address}"
-    biz.city = default_business_attributes[:city]
-    puts "city: #{biz.city}"
-    biz.state = default_business_attributes[:state]
-    puts "state: #{biz.state}" 
-    biz.zip = default_business_attributes[:zip]
-    puts "zip: #{biz.zip}"
-    biz.description = default_business_attributes[:description]
-    puts "description: #{biz.description}"
-    biz.tier = default_business_attributes[:tier]
-    puts "tier: #{biz.tier}"
-    biz.active = default_business_attributes[:active]
-    puts "Finished setting attributes, saving record..."
-  end
+  default_business = Business.new(default_business_attributes)
+  default_business.save!(validate: false)
+  
+  puts "Default business saved (without validation)! Attributes:"
+  puts "ID: #{default_business.id}"
+  puts "Name: #{default_business.name}"
+  puts "Industry: #{default_business.industry}"
+  puts "Phone: #{default_business.phone}"
+  puts "Email: #{default_business.email}"
+  puts "Address: #{default_business.address}"
+  puts "City: #{default_business.city}"
+  puts "State: #{default_business.state}"
+  puts "Zip: #{default_business.zip}"
+  puts "Description: #{default_business.description}"
+  puts "Tier: #{default_business.tier}"
+  puts "Hostname: #{default_business.hostname}"
+  puts "Host Type: #{default_business.host_type}"
+  puts "Active: #{default_business.active}"
 
-  default_business.reload # Explicitly reload
-  puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
+  puts "Default tenant created (without validation): #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
 rescue => e
   puts "Error creating default business: #{e.message}"
   puts e.backtrace.join("\n")
