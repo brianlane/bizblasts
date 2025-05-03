@@ -37,51 +37,22 @@ puts "Seeding database with sample data..."
 
 # Keep the existing default business and admin
 puts "Creating default tenant..."
-puts "Using updated seeds file - BIZBLASTS-RENDER-DEBUG-2023-05-03"
-
-default_business_attributes = {
-  hostname: 'default', 
-  host_type: 'subdomain',
-  name: 'Default Business',
-  industry: :other,
-  phone: '555-123-4567',
-  email: 'default@example.com',
-  address: '123 Main St',
-  city: 'Anytown',
-  state: 'CA',
-  zip: '12345',
-  description: 'The default business for system operations.',
-  tier: :free,
-  active: true
-}
-
-puts "Default business attributes: #{default_business_attributes.inspect}"
-
-begin
-  default_business = Business.new(default_business_attributes)
-  default_business.save!(validate: false)
-  
-  puts "Default business saved (without validation)! Attributes:"
-  puts "ID: #{default_business.id}"
-  puts "Name: #{default_business.name}"
-  puts "Industry: #{default_business.industry}"
-  puts "Phone: #{default_business.phone}"
-  puts "Email: #{default_business.email}"
-  puts "Address: #{default_business.address}"
-  puts "City: #{default_business.city}"
-  puts "State: #{default_business.state}"
-  puts "Zip: #{default_business.zip}"
-  puts "Description: #{default_business.description}"
-  puts "Tier: #{default_business.tier}"
-  puts "Hostname: #{default_business.hostname}"
-  puts "Host Type: #{default_business.host_type}"
-  puts "Active: #{default_business.active}"
-
-  puts "Default tenant created (without validation): #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
-rescue => e
-  puts "Error creating default business: #{e.message}"
-  puts e.backtrace.join("\n")
+default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
+  biz.name = 'Default Business'
+  biz.industry = :other # Provide a default valid industry
+  biz.phone = '555-123-4567' # Provide a valid phone number
+  biz.email = 'default@example.com'
+  biz.address = '123 Main St'
+  biz.city = 'Anytown' 
+  biz.state = 'CA'
+  biz.zip = '12345'
+  biz.description = 'The default business for system operations.'
+  biz.tier = :free # Free tier requires subdomain host_type
+  biz.active = true
 end
+
+default_business.reload # Explicitly reload
+puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
 
 # Create an admin user in the default tenant (SKIP in production)
 if !Rails.env.production?
