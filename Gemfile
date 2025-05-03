@@ -96,3 +96,4 @@ end
 gem 'tod'
 gem 'simple_calendar'
 gem 'parallel_tests', group: [:development, :test]
+gem 'ostruct'

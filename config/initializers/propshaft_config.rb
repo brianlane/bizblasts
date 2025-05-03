@@ -41,34 +41,31 @@ if defined?(Propshaft)
   
   # Register specific paths for ActiveAdmin CSS files
   # This ensures they're findable regardless of precompilation
-  Rails.application.config.after_initialize do
-    # Print asset paths to logs for debugging
-    Rails.logger.info "Propshaft asset paths: #{Rails.application.config.assets.paths.inspect}"
-    
-    # Special handling for ActiveAdmin assets in production
-    if Rails.env.production?
-      # Make a direct mapping for active_admin.css to active_admin.css in public/assets
-      # to bypass Propshaft lookups which might be failing
-      if Rails.application.respond_to?(:assets) && Rails.application.assets.respond_to?(:define_singleton_method)
-        begin
-          original_compute_path = Rails.application.assets.method(:compute_path)
-          Rails.application.assets.define_singleton_method(:compute_path) do |path, **options|
-            # Special case for active_admin.css
-            if path == "active_admin.css"
-              Rails.root.join('public', 'assets', 'active_admin.css').to_s
-            elsif path == "application.css"
-              Rails.root.join('public', 'assets', 'application.css').to_s
-            elsif path == "application.js"
-              Rails.root.join('public', 'assets', 'application.js').to_s
-            else
-              original_compute_path.call(path, **options)
-            end
-          end
-          Rails.logger.info "Added special handling for asset path computation"
-        rescue => e
-          Rails.logger.error "Failed to add special handling for assets: #{e.message}"
-        end
-      end
-    end
-  end
+  # The following block is removed because compute_path no longer exists in Propshaft and causes errors.
+  # Rails.application.config.after_initialize do
+  #   # Print asset paths to logs for debugging
+  #   Rails.logger.info "Propshaft asset paths: #{Rails.application.config.assets.paths.inspect}"
+  #   # Special handling for ActiveAdmin assets in production
+  #   if Rails.env.production?
+  #     if Rails.application.respond_to?(:assets) && Rails.application.assets.respond_to?(:define_singleton_method)
+  #       begin
+  #         original_compute_path = Rails.application.assets.method(:compute_path)
+  #         Rails.application.assets.define_singleton_method(:compute_path) do |path, **options|
+  #           if path == "active_admin.css"
+  #             Rails.root.join('public', 'assets', 'active_admin.css').to_s
+  #           elsif path == "application.css"
+  #             Rails.root.join('public', 'assets', 'application.css').to_s
+  #           elsif path == "application.js"
+  #             Rails.root.join('public', 'assets', 'application.js').to_s
+  #           else
+  #             original_compute_path.call(path, **options)
+  #           end
+  #         end
+  #         Rails.logger.info "Added special handling for asset path computation"
+  #       rescue => e
+  #         Rails.logger.error "Failed to add special handling for assets: #{e.message}"
+  #       end
+  #     end
+  #   end
+  # end
 end 
