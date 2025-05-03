@@ -224,11 +224,8 @@ else
 fi
 
 # Create default business if needed
-echo "Creating default business record..."
-bundle exec rails runner "
-  Business.find_or_create_by!(name: 'Default Business', subdomain: 'default')
-  puts \"Default business count: #{Business.count}\"
-"
+echo "Seeding database (default business)..."
+bundle exec rails db:seed
 
 # Create admin user from environment variables if configured
 if [[ -n "$ADMIN_EMAIL" && -n "$ADMIN_PASSWORD" ]]; then
