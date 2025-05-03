@@ -38,17 +38,29 @@ puts "Seeding database with sample data..."
 # Keep the existing default business and admin
 puts "Creating default tenant..."
 default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
+  puts "Setting default business attributes..."
   biz.name = 'Default Business'
+  puts "name: #{biz.name}"
   biz.industry = :other # Provide a default valid industry
+  puts "industry: #{biz.industry}"
   biz.phone = '555-123-4567' # Provide a valid phone number
+  puts "phone: #{biz.phone}"
   biz.email = 'default@example.com'
+  puts "email: #{biz.email}"
   biz.address = '123 Main St'
-  biz.city = 'Anytown' 
+  puts "address: #{biz.address}"
+  biz.city = 'Anytown'
+  puts "city: #{biz.city}"
   biz.state = 'CA'
+  puts "state: #{biz.state}"
   biz.zip = '12345'
+  puts "zip: #{biz.zip}"
   biz.description = 'The default business for system operations.'
+  puts "description: #{biz.description}"
   biz.tier = :free # Free tier requires subdomain host_type
+  puts "tier: #{biz.tier}"
   biz.active = true
+  puts "Finished setting attributes, saving record..."
 end
 
 default_business.reload # Explicitly reload
