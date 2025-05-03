@@ -37,19 +37,19 @@ puts "Seeding database with sample data..."
 
 # Keep the existing default business and admin
 puts "Creating default tenant..."
-default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
-  biz.name = 'Default Business'
-  biz.industry = :other # Provide a default valid industry
-  biz.phone = '000-000-0000'
-  biz.email = 'default@example.com'
-  biz.address = '1 Default St'
-  biz.city = 'Defaultown'
-  biz.state = 'DF'
-  biz.zip = '00000'
-  biz.description = 'The default business for system operations.'
-  biz.tier = :free # Free tier requires subdomain host_type
-  biz.active = true
-end
+default_business = Business.find_or_initialize_by(hostname: 'default', host_type: 'subdomain')
+default_business.name = 'Default Business'
+default_business.industry = :other # Provide a default valid industry
+default_business.phone = '000-000-0000'
+default_business.email = 'default@example.com'
+default_business.address = '1 Default St'
+default_business.city = 'Defaultown'
+default_business.state = 'DF'
+default_business.zip = '00000'
+default_business.description = 'The default business for system operations.'
+default_business.tier = :free # Free tier requires subdomain host_type
+default_business.active = true
+default_business.save!
 
 default_business.reload # Explicitly reload
 puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
