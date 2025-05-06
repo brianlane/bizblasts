@@ -26,6 +26,8 @@
         </div>
       </div>
       
+      <%= render 'shared/booking_details', booking: @booking, show_actions: false, admin_mode: true %>
+      
       <%= form_with url: cancel_business_manager_booking_path(@booking), method: :patch, local: true do |f| %>
         <div class="space-y-6">
           <!-- Booking Information -->

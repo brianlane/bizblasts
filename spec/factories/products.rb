@@ -7,6 +7,7 @@ FactoryBot.define do
     featured { false }
     association :category
     association :business # Assuming you have a business factory
+    product_type { :standard }
 
     trait :inactive do
       active { false }

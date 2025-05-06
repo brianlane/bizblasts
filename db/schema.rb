@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_05_180004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -53,6 +53,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
     t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
+    t.boolean "primary"
+    t.integer "position"
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
@@ -85,6 +87,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
+  end
+
+  create_table "booking_product_add_ons", force: :cascade do |t|
+    t.bigint "booking_id", null: false
+    t.bigint "product_variant_id", null: false
+    t.integer "quantity", default: 1, null: false
+    t.decimal "price", precision: 10, scale: 2, null: false
+    t.decimal "total_amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_booking_product_add_ons_on_booking_id"
+    t.index ["product_variant_id"], name: "index_booking_product_add_ons_on_product_variant_id"
   end
 
   create_table "bookings", force: :cascade do |t|
@@ -295,6 +309,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
     t.index ["business_id"], name: "index_pages_on_business_id"
   end
 
+  create_table "product_service_add_ons", force: :cascade do |t|
+    t.bigint "product_id"
+    t.bigint "service_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "product_variants", force: :cascade do |t|
     t.bigint "product_id", null: false
     t.string "name", null: false
@@ -302,6 +323,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
     t.integer "stock_quantity", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "reserved_quantity"
+    t.string "sku"
+    t.jsonb "options"
     t.index ["product_id"], name: "index_product_variants_on_product_id"
   end
 
@@ -315,6 +339,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "product_type"
+    t.integer "stock_quantity", default: 0, null: false
     t.index ["active"], name: "index_products_on_active"
     t.index ["business_id"], name: "index_products_on_business_id"
     t.index ["category_id"], name: "index_products_on_category_id"
@@ -1798,6 +1824,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
     t.index ["user_id"], name: "index_staff_members_on_user_id"
   end
 
+  create_table "stock_reservations", force: :cascade do |t|
+    t.bigint "product_variant_id"
+    t.bigint "order_id"
+    t.integer "quantity"
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "tax_rates", force: :cascade do |t|
     t.string "name", null: false
     t.decimal "rate", precision: 10, scale: 4, null: false
@@ -1856,6 +1891,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_01_194236) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "booking_product_add_ons", "bookings"
+  add_foreign_key "booking_product_add_ons", "product_variants"
   add_foreign_key "bookings", "businesses", on_delete: :cascade
   add_foreign_key "bookings", "promotions"
   add_foreign_key "bookings", "services"

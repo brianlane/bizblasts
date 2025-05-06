@@ -11,6 +11,10 @@ class Service < ApplicationRecord
   has_many :staff_members, through: :services_staff_members
   has_many :bookings, dependent: :restrict_with_error
   
+  # Add-on products association
+  has_many :product_service_add_ons, dependent: :destroy
+  has_many :add_on_products, through: :product_service_add_ons, source: :product
+  
   validates :name, presence: true
   validates :name, uniqueness: { scope: :business_id }
   validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
@@ -31,6 +35,10 @@ class Service < ApplicationRecord
   
   # Define ransackable associations for ActiveAdmin
   def self.ransackable_associations(auth_object = nil)
-    %w[business bookings staff_assignments assigned_staff services_staff_members staff_members]
+    %w[business bookings staff_assignments assigned_staff services_staff_members staff_members product_service_add_ons add_on_products]
+  end
+
+  def available_add_on_products
+    add_on_products.active.where(product_type: [:service, :mixed])
   end
 end 

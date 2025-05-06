@@ -52,6 +52,11 @@ class BookingManager
         booking.discount_amount ||= 0
       end
       
+      # Remove add-ons with quantity <= 0
+      if booking.booking_product_add_ons
+        booking.booking_product_add_ons = booking.booking_product_add_ons.reject { |a| a.quantity.to_i <= 0 }
+      end
+      
       # Basic validation to avoid checking availability for invalid bookings
       unless booking.valid?
         return [nil, booking.errors]
@@ -127,6 +132,11 @@ class BookingManager
       # First try to update attributes without saving to validate the parameters
       booking_copy = booking.dup
       booking_copy.assign_attributes(filtered_params(booking_params))
+      
+      # Remove add-ons with quantity <= 0
+      if booking_copy.booking_product_add_ons
+        booking_copy.booking_product_add_ons = booking_copy.booking_product_add_ons.reject { |a| a.quantity.to_i <= 0 }
+      end
       
       # Basic validation of the updated booking
       unless booking_copy.valid?
@@ -311,6 +321,7 @@ class BookingManager
       service_id staff_member_id tenant_customer_id 
       notes status amount original_amount discount_amount
       start_time end_time
+      booking_product_add_ons_attributes tenant_customer_attributes
     ]
     
     # Convert params to a hash we can work with

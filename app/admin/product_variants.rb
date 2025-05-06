@@ -23,8 +23,6 @@ ActiveAdmin.register ProductVariant do
   filter :name
   filter :stock_quantity
   filter :price_modifier
-  # Optional: Filter by business if super admin needs to see all
-  # filter :product_business_id_eq, label: 'Business', as: :select, collection: -> { Business.all.map { |b| [b.name, b.id] } }, if: proc { current_admin_user.super_admin? }
 
 
   index do

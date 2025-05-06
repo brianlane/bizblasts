@@ -1,0 +1,54 @@
+<%# Error messages if any %>
+<% if @order.errors.any? %>
+  <div class="flash-message flash-alert">
+    <ul>
+      <% @order.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<h1>Checkout</h1>
+<%= form_with model: @order, local: true do |f| %>
+  <div>
+    <%= f.label :tenant_customer_id, 'Customer' %>
+    <%= f.text_field :tenant_customer_id %>
+  </div>
+  <div>
+    <%= f.label :shipping_method_id, 'Shipping Method' %>
+    <%= f.collection_select :shipping_method_id, ShippingMethod.where(active: true), :id, :name, prompt: 'Select shipping' %>
+  </div>
+  <div>
+    <%= f.label :tax_rate_id, 'Tax Rate' %>
+    <%= f.collection_select :tax_rate_id, TaxRate.all, :id, :name, prompt: 'Select tax rate' %>
+  </div>
+  <div>
+    <%= f.label :notes, 'Order Notes' %>
+    <%= f.text_area :notes %>
+  </div>
+  <h3>Order Items</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Variant</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @order.line_items.each do |item| %>
+        <tr>
+          <td><%= item.product_variant.product.name %></td>
+          <td><%= item.product_variant.name %></td>
+          <td><%= item.quantity %></td>
+          <td><%= number_to_currency(item.price) %></td>
+          <td><%= number_to_currency(item.total_amount) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <%= f.submit 'Place Order', class: 'btn btn-primary' %>
+<% end %> 

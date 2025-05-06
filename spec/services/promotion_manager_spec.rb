@@ -267,8 +267,6 @@ RSpec.describe PromotionManager, type: :service do
         }.to change(PromotionRedemption, :count).by(1)
       end
     end
-    
-    # TODO: Remove handled TODOs
   end
   
   describe '.apply_promotion_to_invoice' do
@@ -428,8 +426,6 @@ RSpec.describe PromotionManager, type: :service do
         }.not_to change(PromotionRedemption, :count)
       end
     end
-
-    # All TODOs addressed for apply_promotion_to_invoice
   end
   
   describe '.generate_unique_code' do

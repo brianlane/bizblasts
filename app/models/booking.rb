@@ -14,6 +14,9 @@ class Booking < ApplicationRecord
   accepts_nested_attributes_for :tenant_customer
   belongs_to :promotion, optional: true
   has_one :invoice, dependent: :nullify
+  has_many :booking_product_add_ons, dependent: :destroy
+  has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant
+  accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true
   
   delegate :name, to: :service, prefix: true, allow_nil: true
   delegate :name, to: :staff_member, prefix: true, allow_nil: true

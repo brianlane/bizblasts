@@ -66,4 +66,69 @@ RSpec.describe Product, type: :model do
       expect(product.product_variants.find_by(name: 'Small').stock_quantity).to eq(10)
     end
   end
+
+  describe 'images' do
+    let(:product) { create(:product, business: business, category: category) }
+    let(:image1) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }
+    let(:image2) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }
+    let(:image3) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }
+
+    before do
+      product.images.attach(image1, image2, image3)
+    end
+
+    describe '#primary_image' do
+      it 'returns nil when no primary image is set' do
+        expect(product.primary_image).to be_nil
+      end
+
+      it 'returns the primary image when set' do
+        product.images.second.update(primary: true)
+        expect(product.primary_image).to eq(product.images.second)
+      end
+
+      it 'returns a single image when multiple are marked as primary' do
+        product.images.first.update(primary: true)
+        product.images.second.update(primary: true)
+        
+        expect(product.primary_image).to eq(product.images.first)
+      end
+    end
+
+    describe '#set_primary_image' do
+      it 'sets the given image as primary and unsets any previous primary' do
+        product.images.first.update(primary: true)
+        product.set_primary_image(product.images.last)
+        expect(product.images.first.reload.primary).to be false
+        expect(product.images.last.reload.primary).to be true
+      end
+
+      it 'ensures only one image remains as primary when multiple are initially set' do
+        product.images.first.update(primary: true)
+        product.images.second.update(primary: true)
+        
+        product.set_primary_image(product.images.last)
+        
+        expect(product.images.first.reload.primary).to be false
+        expect(product.images.second.reload.primary).to be false
+        expect(product.images.last.reload.primary).to be true
+      end
+    end
+
+    describe '#reorder_images' do
+      it 'updates the position of images based on the given order' do
+        product.reorder_images([product.images.last.id, product.images.second.id, product.images.first.id])
+        expect(product.images.ordered.map(&:id)).to eq([product.images.last.id, product.images.second.id, product.images.first.id])
+      end
+    end
+
+    describe '#images.ordered' do
+      it 'returns images ordered by position' do
+        product.images.each_with_index do |image, index|
+          image.update(position: index)
+        end
+        expect(product.images.ordered.map(&:id)).to eq(product.images.map(&:id))
+      end
+    end
+  end
 end 

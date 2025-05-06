@@ -1,68 +1,38 @@
-<h1>Order <%= @order.order_number %></h1>
+<h1>Order Confirmation</h1>
+<p>Order Number: <%= @order.order_number %></p>
+<p>Status: <%= @order.status %></p>
+<p>Shipping Method: <%= @order.shipping_method&.name %></p>
+<p>Tax Rate: <%= @order.tax_rate&.name %></p>
+<p>Notes: <%= @order.notes %></p>
 
-<p>
-  <strong>Customer:</strong>
-  <%= @order.tenant_customer.name %>
-</p>
-
-<p>
-  <strong>Status:</strong>
-  <%= @order.status %>
-</p>
-
-<% if @order.product? %>
-  <h2>Products</h2>
-<% elsif @order.service? %>
-  <h2>Services</h2>
-<% else %>
-  <h2>Products & Services</h2>
-<% end %>
-
+<h3>Order Items</h3>
 <table>
   <thead>
     <tr>
-      <th>Item</th>
+      <th>Product</th>
+      <th>Variant</th>
       <th>Quantity</th>
-      <th>Unit Price</th>
+      <th>Price</th>
       <th>Total</th>
     </tr>
   </thead>
-
   <tbody>
     <% @order.line_items.each do |item| %>
       <tr>
-        <td><%= item.lineable.name %></td>
+        <td><%= item.product_variant.product.name %></td>
+        <td><%= item.product_variant.name %></td>
         <td><%= item.quantity %></td>
-        <td><%= number_to_currency(item.unit_price) %></td>
+        <td><%= number_to_currency(item.price) %></td>
         <td><%= number_to_currency(item.total_amount) %></td>
       </tr>
     <% end %>
   </tbody>
 </table>
+<h3>Shipping: <%= number_to_currency(@order.shipping_amount) %></h3>
+<h3>Tax: <%= number_to_currency(@order.tax_amount) %></h3>
+<h2>Total: <%= number_to_currency(@order.total_amount) %></h2>
 
-<p>
-  <strong>Subtotal:</strong>
-  <%= number_to_currency(@order.line_items.sum(&:total_amount)) %>
-</p>
-
-<% if @order.shipping_method.present? %>
-  <p>
-    <strong>Shipping:</strong>
-    <%= number_to_currency(@order.shipping_amount) %> via <%= @order.shipping_method.name %>
-  </p>
+<% if user_signed_in? && (current_user.manager? || current_user.staff?) %>
+  <%= link_to 'Edit', edit_order_path(@order) %> |
 <% end %>
-
-<% if @order.tax_rate.present? %>
-  <p>
-    <strong>Tax:</strong>
-    <%= number_to_currency(@order.tax_amount) %> (<%= @order.tax_rate.rate %>%)
-  </p>
-<% end %>
-
-<p>
-  <strong>Total:</strong>
-  <%= number_to_currency(@order.total_amount) %>
-</p>
-
-<%= link_to 'Edit', edit_order_path(@order) %> |
 <%= link_to 'Back', orders_path %> 

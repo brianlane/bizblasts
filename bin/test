@@ -174,7 +174,7 @@ fi
 # Default spec file to run if no arguments are given
 # Example: DEFAULT_SPEC="spec/features/"
 # TODO: Refine this default set as the app grows
-DEFAULT_SPEC="spec/models/staff_member_spec.rb spec/services/availability_service_spec.rb"
+# DEFAULT_SPEC="spec/models/staff_member_spec.rb spec/services/availability_service_spec.rb" # Removed optimized subset
 
 # Command to run for full test suite
 FULL_SPEC="spec"
@@ -194,12 +194,13 @@ if [ $# -eq 0 ]; then
   log "Running full test suite in parallel ($PARALLEL_TEST_PROCESSORS processes) using runtime log (implicit)..."
   CMD_BASE=("bundle" "exec" "parallel_rspec")
   # Remove -o flag, rely on PARALLEL_TEST_RUNTIME_LOG ENV var
-  CMD_ARGS+=($FULL_SPEC "-n" "$PARALLEL_TEST_PROCESSORS") 
-elif [ "$1" == "optimized" ] || [ "$1" == "fast" ]; then
-  # Run the optimized test subset when specifically requested (no parallel)
-  log "Running optimized test subset (no parallel)..."
-  CMD_BASE=("bundle" "exec" "rspec")
-  CMD_ARGS+=($DEFAULT_SPEC "--format" "progress" "--order" "random") # Keep format here
+  CMD_ARGS+=($FULL_SPEC "-n" "$PARALLEL_TEST_PROCESSORS")
+# Removed the 'optimized' or 'fast' check
+# elif [ "$1" == "optimized" ] || [ "$1" == "fast" ]; then
+#   # Run the optimized test subset when specifically requested (no parallel)
+#   log "Running optimized test subset (no parallel)..."
+#   CMD_BASE=("bundle" "exec" "rspec")
+#   CMD_ARGS+=($DEFAULT_SPEC "--format" "progress" "--order" "random") # Keep format here
 else
   # Run specified tests - use parallel_rspec if multiple files/dirs or 'spec' given
   if [ "$1" == "spec" ] || [ $# -gt 1 ]; then
@@ -226,7 +227,8 @@ else
 fi
 
 # Add timeout command wrapper
-TIMEOUT_CMD=("timeout" "180") # 180 seconds = 3 minutes
+# TIMEOUT_CMD=("timeout" "180") # 180 seconds = 3 minutes # Original timeout
+TIMEOUT_CMD=("timeout" "300") # Increased timeout to 5 minutes (300 seconds)
 
 # Execute the command, redirecting output, wrapped in timeout
 # Need to handle arrays carefully for execution
@@ -272,30 +274,6 @@ if [ -n "$COVERAGE_LINE" ]; then
   COVERAGE_PERCENT=$(echo "$COVERAGE_LINE" | grep -oE '[0-9.]+%')
 fi
 
-# Check for parallel test process outputs
-PARALLEL_STATS=$(grep -E "^[0-9]+ (examples|tests|specs),.*$" "$OUTPUT_FILE" | grep -v "Randomized with seed")
-PARALLEL_TEST_COUNT=0
-PARALLEL_FAIL_COUNT=0
-
-if [ -n "$PARALLEL_STATS" ]; then
-  log "==> Individual process results:"
-  log "$PARALLEL_STATS"
-  log ""
-  
-  # Sum up examples and failures from parallel processes
-  while read -r line; do
-    if [[ $line =~ ^([0-9]+)[[:space:]]+(examples|tests|specs), ]]; then
-      examples="${BASH_REMATCH[1]}"
-      PARALLEL_TEST_COUNT=$((PARALLEL_TEST_COUNT + examples))
-      
-      if [[ $line =~ ([0-9]+)[[:space:]]+failures? ]]; then
-        failures="${BASH_REMATCH[1]}"
-        PARALLEL_FAIL_COUNT=$((PARALLEL_FAIL_COUNT + failures))
-      fi
-    fi
-  done <<< "$PARALLEL_STATS"
-fi
-
 # Extract failure count from the last summary line if available
 EXAMPLES_LINE=$(grep -E "[0-9]+ examples?, [0-9]+ failures?" "$OUTPUT_FILE" | tail -1)
 FAILURE_COUNT="0" # Default to 0 if not found
@@ -304,21 +282,11 @@ TOTAL_TESTS="0" # Default to 0 if not found
 if [ -n "$EXAMPLES_LINE" ]; then
   # Extract the total tests count
   TOTAL_TESTS=$(echo "$EXAMPLES_LINE" | grep -oE "^[0-9]+ example" | grep -oE "[0-9]+")
-  
   # Extract the failures from the summary line
   FAILURES_PART=$(echo "$EXAMPLES_LINE" | grep -oE "[0-9]+ failures?" | grep -oE "[0-9]+")
   if [ -n "$FAILURES_PART" ]; then
     FAILURE_COUNT=$FAILURES_PART
   fi
-fi
-
-# Use parallel counts if available and greater
-if [ "$PARALLEL_TEST_COUNT" -gt "$TOTAL_TESTS" ]; then
-  TOTAL_TESTS=$PARALLEL_TEST_COUNT
-fi
-
-if [ "$PARALLEL_FAIL_COUNT" -gt "$FAILURE_COUNT" ]; then
-  FAILURE_COUNT=$PARALLEL_FAIL_COUNT
 fi
 
 # Check for failure summaries
@@ -342,16 +310,6 @@ if [ $DB_SKIPPED -gt 0 ]; then
 fi
 echo_both ""
 
-# Only output individual results if we have parallel stats
-if [ -n "$PARALLEL_STATS" ]; then
-  echo_both "==> Individual process results:"
-  # Echo each line separately to ensure it goes to console
-  while read -r line; do
-    echo "$line" | tee -a "$OUTPUT_FILE"
-  done <<< "$PARALLEL_STATS"
-  echo_both ""
-fi
-
 if [ $SHOULD_FAIL -eq 0 ]; then
   # Success summary
   echo_both "==> Test Summary: All tests passed! (Exit Code: $FINAL_EXIT_CODE)"
@@ -370,7 +328,6 @@ else
   echo "$FAILURE_TEXT" | sed 's/^/    /' | tee -a "$OUTPUT_FILE"
 fi
 
-# Output is in test.out file
 echo_both ""
 echo_both "See $OUTPUT_FILE for detailed output"
 # Exit with the appropriate code

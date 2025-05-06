@@ -501,6 +501,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   jbuilder
+  kaminari (~> 1.2)
   ostruct
   parallel_tests
   pg (~> 1.1)

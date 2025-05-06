@@ -79,6 +79,7 @@ class ApplicationController < ActionController::Base
   protected 
 
   def set_tenant
+    return if ActsAsTenant.current_tenant.present?
     hostname = request.subdomain.presence
 
     # If a specific hostname is present (and not www)
@@ -140,7 +141,7 @@ class ApplicationController < ActionController::Base
   end
 
   def find_and_set_business_tenant(hostname)
-    tenant = Business.find_by(hostname: hostname)
+    tenant = Business.find_by(hostname: hostname) || Business.find_by(subdomain: hostname)
     if tenant
       Business.set_current_tenant(tenant)
       true

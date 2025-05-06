@@ -5,6 +5,7 @@ class Order < ApplicationRecord
   belongs_to :shipping_method, optional: true
   belongs_to :tax_rate, optional: true
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
+  has_many :stock_reservations
 
   enum :status, { pending: 'pending', processing: 'processing', shipped: 'shipped', completed: 'completed', cancelled: 'cancelled' }, prefix: true
   enum :order_type, { product: 0, service: 1, mixed: 2 }, prefix: true
@@ -18,7 +19,8 @@ class Order < ApplicationRecord
   validate :line_items_match_order_type
 
   before_validation :set_order_number, on: :create
-  before_save :calculate_totals
+  before_validation :calculate_totals
+  before_save :calculate_totals!
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
 
@@ -58,15 +60,26 @@ class Order < ApplicationRecord
   end
 
   def calculate_totals
-    line_items.reload # Ensure association is fresh
-    # Calculate actual value from database records
+    line_items.reload
     items_total = line_items.sum { |item| item.total_amount.to_f }
+    current_shipping_amount = shipping_method&.cost || 0
+    self.shipping_amount = current_shipping_amount if shipping_amount.nil?
+    current_tax_amount = 0
+    if tax_rate.present?
+      taxable_amount = items_total
+      taxable_amount += current_shipping_amount if tax_rate.applies_to_shipping?
+      current_tax_amount = tax_rate.calculate_tax(taxable_amount)
+    end
+    self.tax_amount = current_tax_amount if tax_amount.nil?
+    current_total_amount = items_total + current_shipping_amount + current_tax_amount
+    self.total_amount = current_total_amount if total_amount.nil?
+  end
 
-    # Set shipping amount
+  def calculate_totals!
+    line_items.reload
+    items_total = line_items.sum { |item| item.total_amount.to_f }
     current_shipping_amount = shipping_method&.cost || 0
     self.shipping_amount = current_shipping_amount
-    
-    # Calculate tax amount
     current_tax_amount = 0
     if tax_rate.present?
       taxable_amount = items_total
@@ -74,8 +87,6 @@ class Order < ApplicationRecord
       current_tax_amount = tax_rate.calculate_tax(taxable_amount)
     end
     self.tax_amount = current_tax_amount
-    
-    # Calculate total amount
     current_total_amount = items_total + current_shipping_amount + current_tax_amount
     self.total_amount = current_total_amount
   end

@@ -71,7 +71,7 @@
     <% end %>
 
     <%# TODO: Implement Date/Time selection based on service/staff availability %>
-    <%# This likely requires JavaScript integration (e.g., Flatpickr, calendar component) %>
+    <%# This likely requires JavaScript integration (e.g., calendar component) %>
     <%# For now, a simple datetime select %>
     <div class="mb-4">
       <%= form.label :start_time, class: "block text-gray-700 text-sm font-bold mb-2" %>
@@ -89,6 +89,43 @@
       <p><strong>Duration:</strong> <%= @service.duration %> minutes</p>
       <p><strong>Price:</strong> <%= number_to_currency(@service.price) %></p>
     </div>
+
+    <%# --- Add-on Products Section --- %>
+    <% if @service.available_add_on_products.any? %>
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2">Add Products to Your Booking (Optional)</h2>
+        <table class="min-w-full divide-y divide-gray-200 mb-4">
+          <thead>
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">In Stock</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @service.available_add_on_products.each do |product| %>
+              <% product.product_variants.each do |variant| %>
+                <tr>
+                  <td class="px-4 py-2 align-top"><%= product.name %></td>
+                  <td class="px-4 py-2 align-top"><%= variant.name %></td>
+                  <td class="px-4 py-2 align-top"><%= number_to_currency(variant.final_price) %></td>
+                  <td class="px-4 py-2 align-top"><%= variant.stock_quantity %></td>
+                  <td class="px-4 py-2 align-top">
+                    <% field_name = "booking[booking_product_add_ons_attributes][][quantity]" %>
+                    <% variant_id_field = "booking[booking_product_add_ons_attributes][][product_variant_id]" %>
+                    <input type="number" name="#{field_name}" min="0" max="#{variant.stock_quantity}" value="0" class="w-16 border rounded px-2 py-1" />
+                    <input type="hidden" name="#{variant_id_field}" value="<%= variant.id %>" />
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+        <p class="text-sm text-gray-500">Set quantity for any add-on product you wish to include. Leave at 0 to skip.</p>
+      </div>
+    <% end %>
 
     <div class="flex items-center justify-between">
       <%# Only show submit button if staff members are available %>

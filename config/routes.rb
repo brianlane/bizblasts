@@ -89,6 +89,11 @@ Rails.application.routes.draw do
       resources :invoices, only: [:index, :show], as: :tenant_invoices
       resources :payments, only: [:index, :new, :create], as: :tenant_payments
 
+      resources :products, only: [:index, :show]
+      resource :cart, only: [:show], controller: 'carts'
+      resources :line_items, only: [:create, :update, :destroy]
+      resources :orders, only: [:new, :create, :show, :index]
+      # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
     end
   end
@@ -227,4 +232,10 @@ Rails.application.routes.draw do
       [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
     end
   }
+
+  # Add public product/order/cart routes for testability and non-subdomain access
+  resources :products, only: [:index, :show]
+  resource :cart, only: [:show]
+  resources :line_items, only: [:create, :update, :destroy]
+  resources :orders, only: [:new, :create, :show, :index]
 end

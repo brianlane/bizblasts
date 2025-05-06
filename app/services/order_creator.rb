@@ -1,19 +1,13 @@
 class OrderCreator
     def self.create(order_params)
-      # Clone the params to avoid modifying the input
-      params = order_params.dup
-      
+      # Convert parameters to a plain Hash for mass assignment
+      params = order_params.respond_to?(:to_h) ? order_params.to_h : order_params.dup
       # Extract line items from params for separate handling
-      line_items_params = params.delete(:line_items_attributes) || []
+      line_items_params = params.delete('line_items_attributes') || params.delete(:line_items_attributes) || []
       
       # Build the order
       order = Order.new(params)
       order.business ||= TenantCustomer.find(params[:tenant_customer_id]).business if params[:tenant_customer_id].present?
-      
-      # Early return if basic order parameters are invalid
-      unless order.valid?
-        return order
-      end
       
       # Use a transaction for the entire process
       ActiveRecord::Base.transaction do
@@ -25,7 +19,7 @@ class OrderCreator
         # Now that the order has an ID, create line items
         line_items_params.each do |line_item_params|
           # Create line items directly rather than building and saving
-          line_item = order.line_items.create(line_item_params)
+          line_item = order.line_items.create(line_item_params.to_h)
           
           if !line_item.persisted?
             # If line item creation fails, add errors to order and roll back
@@ -35,13 +29,20 @@ class OrderCreator
             raise ActiveRecord::Rollback
           end
           
-          # Decrement stock after successful line item creation
-          variant = line_item.product_variant # Assuming product_variant is loaded/accessible
+          # Use reserve_stock! instead of decrement_stock!
+          variant = line_item.product_variant
           quantity = line_item.quantity
-          unless variant.decrement_stock!(quantity)
+          unless variant.reserve_stock!(quantity, order)
             order.errors.add(:base, "Insufficient stock for #{variant.name}")
-            raise ActiveRecord::Rollback # Rollback if stock update fails
+            raise ActiveRecord::Rollback
           end
+        end
+      end
+      
+      if order.errors.any?
+        # If there were any errors, clean up reservations
+        order.stock_reservations.each do |reservation|
+          reservation.product_variant.release_reservation!(reservation)
         end
       end
       
@@ -50,5 +51,34 @@ class OrderCreator
       
       # Return the order - will be persisted if successful
       order
+    end
+
+    def self.build_from_cart(cart)
+      order = Order.new
+      order.line_items.build(
+        cart.map do |variant, quantity|
+          {
+            product_variant: variant,
+            quantity: quantity,
+            price: variant.final_price,
+            total_amount: variant.final_price * quantity
+          }
+        end
+      )
+      order
+    end
+
+    def self.create_from_cart(cart, order_params)
+      params = order_params.dup
+      line_items_attributes = cart.map do |variant, quantity|
+        {
+          product_variant_id: variant.id,
+          quantity: quantity,
+          price: variant.final_price,
+          total_amount: variant.final_price * quantity
+        }
+      end
+      params[:line_items_attributes] = line_items_attributes
+      create(params)
     end
   end

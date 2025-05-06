@@ -1,0 +1,35 @@
+<h1>Your Cart</h1>
+<% if @cart.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Variant</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% total = 0 %>
+      <% @cart.each do |variant, quantity| %>
+        <tr>
+          <td><%= variant.product.name %></td>
+          <td><%= variant.name %></td>
+          <td><%= quantity %></td>
+          <td><%= number_to_currency(variant.final_price) %></td>
+          <td><%= number_to_currency(variant.final_price * quantity) %></td>
+          <td>
+            <%= button_to 'Remove', line_item_path(variant.id), method: :delete, remote: true %>
+          </td>
+        </tr>
+        <% total += variant.final_price * quantity %>
+      <% end %>
+    </tbody>
+  </table>
+  <h3>Subtotal: <%= number_to_currency(total) %></h3>
+  <%= link_to 'Checkout', new_order_path, class: 'btn btn-primary' %>
+<% else %>
+  <p>Your cart is empty.</p>
+<% end %> 
