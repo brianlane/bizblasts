@@ -1,0 +1,111 @@
+Setting up Propshaft asset paths for ActiveAdmin...
+Added ActiveAdmin asset paths: /Users/brianlane/.rvm/gems/ruby-3.4.2/gems/activeadmin-3.3.0
+Run options: include {focus: true}
+
+All examples were filtered out; ignoring {focus: true}
+
+Randomized with seed 57899
+.....................................................................................................................................................................................................DEBUG: @request.host = 
+lvh.me
+.DEBUG: @request.host = 
+lvh.me
+.................GLOBAL SYSTEM METRICS RESPONSE BODY EXCERPT:
+<div class="panel_contents">
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <thead>
+                        <tr>
+                          <th>Metric</th>
+                          <th>Count</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+...TENANT SCOPED BOOKING SUMMARY RESPONSE BODY EXCERPT:
+<h3>Booking Status Summary</h3>
+                  <div class="panel_contents">
+                    <h4>Tenant Context: Biz One</h4>
+                    <table border="0" cellspacing="0" cellpadding="0">
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>Count</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Pending</td>
+                          <td>1</td>
+                        </tr>
+                        <tr>
+                          <td>Confirmed</td>
+                          <td>1</td>
+                        </tr>
+                        <tr>
+                          <td>Completed</td>
+                          <td>0</td>
+                        </tr>
+                        <tr>
+                          <td>Cancelled</td>
+                          <td>0</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+.............................DEBUG: All Products in DB:
+  id=1, name=Test Product, business_id=1, active=true, product_type=standard
+....................................................................................................................................Exception for today: [{"start" => "11:00", "end" => "14:00"}]
+Exception for tomorrow: []
+.Exception for today: [{"start" => "11:00", "end" => "14:00"}]
+Exception for tomorrow: []
+.Exception for today: [{"start" => "11:00", "end" => "14:00"}]
+Exception for tomorrow: []
+Today's date: 2025-05-06
+Today 9am: 2025-05-06 09:00:00.000000000 UTC +00:00
+Complex member availability: {"monday" => [{"start" => "08:00", "end" => "12:00"}, {"start" => "13:00", "end" => "17:00"}], "tuesday" => [], "wednesday" => [{"start" => "09:00", "end" => "17:00"}], "thursday" => [{"start" => "09:00", "end" => "17:00"}], "friday" => [{"start" => "09:00", "end" => "17:00"}], "saturday" => [{"start" => "10:00", "end" => "15:00"}], "sunday" => [], "exceptions" => {"2025-05-06" => [{"start" => "11:00", "end" => "14:00"}], "2025-05-07" => []}}
+Date string being used for lookup: 2025-05-06
+Exceptions keys: ["2025-05-06", "2025-05-07"]
+Exception exists for today: true
+Intervals returned: [{"start" => "11:00", "end" => "14:00"}]
+Final result: false
+....................................Seeding database with sample data...
+--- DEBUG: Rails environment: test
+--- DEBUG: Rails version: 8.0.2
+--- DEBUG: ActiveRecord version: 8.0.2
+--- DEBUG: Business.industries: {"hair_salon" => "hair_salon", "beauty_spa" => "beauty_spa", "massage_therapy" => "massage_therapy", "fitness_studio" => "fitness_studio", "tutoring_service" => "tutoring_service", "cleaning_service" => "cleaning_service", "handyman_service" => "handyman_service", "pet_grooming" => "pet_grooming", "photography" => "photography", "consulting" => "consulting", "other" => "other"}
+--- DEBUG: Business.tiers: {"free" => "free", "standard" => "standard", "premium" => "premium"}
+--- DEBUG: Business.host_types: {"subdomain" => "subdomain", "custom_domain" => "custom_domain"}
+--- DEBUG: Business.column_names: ["id", "name", "industry", "phone", "email", "website", "address", "city", "state", "zip", "description", "time_zone", "active", "created_at", "updated_at", "service_template_id", "tier", "hostname", "host_type", "subdomain"]
+--- DEBUG: businesses table columns: [["id", "bigint"], ["name", "character varying"], ["industry", "character varying"], ["phone", "character varying"], ["email", "character varying"], ["website", "character varying"], ["address", "character varying"], ["city", "character varying"], ["state", "character varying"], ["zip", "character varying"], ["description", "text"], ["time_zone", "character varying"], ["active", "boolean"], ["created_at", "timestamp(6) without time zone"], ["updated_at", "timestamp(6) without time zone"], ["service_template_id", "bigint"], ["tier", "character varying"], ["hostname", "character varying"], ["host_type", "character varying"], ["subdomain", "character varying"]]
+Creating default tenant...
+Default tenant created/found: Default Business (default, type: subdomain) ID: 1
+Creating admin user (skipped in production)...
+Admin user created with email: admin@example.com and password: password123
+Creating sample data for Default Business...
+Created customer: Louise Jakubowski DO
+Created customer: Tyler Jacobi
+Created customer: Deborah Leannon
+Created service: Basic Consultation
+Created service: Website Setup
+Created service: Monthly Support
+Created staff member: Staff Member 1
+Created staff member: Staff Member 2
+Created booking at 2025-05-19 09:00 - 09:30 for Staff Member 1
+Created booking at 2025-05-20 12:00 - 12:30 for Staff Member 1
+Created booking at 2025-05-12 15:00 - 16:00 for Staff Member 1
+Created booking at 2025-05-14 09:00 - 11:00 for Staff Member 2
+Created booking at 2025-05-22 12:00 - 13:00 for Staff Member 2
+Seed data creation complete!
+Created admin user: bizblaststeam@gmail.com with password from ENV
+....................................................................................................................................................................................................................................................................................................................
+
+Top 0 slowest examples (0 seconds, 0.0% of total time):
+
+Finished in 5 minutes 9 seconds (files took 3.03 seconds to load)
+725 examples, 0 failures
+
+Randomized with seed 57899
+
+Coverage report generated for RSpec-1, RSpec-2, RSpec-3, RSpec-4, RSpec-main to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 68.36% (2958 / 4327)
+Branch Coverage: 49.17% (560 / 1139)

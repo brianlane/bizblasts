@@ -64,71 +64,7 @@
     </div>
     
     <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        <!-- Customer Information -->
-        <div>
-          <h3 class="text-lg font-medium text-gray-900 mb-3">Customer Information</h3>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-sm font-medium text-gray-900"><%= @booking.tenant_customer.name %></p>
-            <p class="text-sm text-gray-600"><%= @booking.tenant_customer.email %></p>
-            <% if @booking.tenant_customer.phone.present? %>
-              <p class="text-sm text-gray-600"><%= @booking.tenant_customer.phone %></p>
-            <% end %>
-          </div>
-        </div>
-        
-        <!-- Booking Details -->
-        <div>
-          <h3 class="text-lg font-medium text-gray-900 mb-3">Booking Details</h3>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <p class="text-xs font-medium text-gray-500">Service</p>
-                <p class="text-sm text-gray-900"><%= @booking.service.name %></p>
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500">Duration</p>
-                <p class="text-sm text-gray-900"><%= @booking.service.duration %> minutes</p>
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500">Staff Member</p>
-                <p class="text-sm text-gray-900"><%= @booking.staff_member.name %></p>
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500">Price</p>
-                <p class="text-sm text-gray-900"><%= number_to_currency(@booking.amount) %></p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Date & Time -->
-        <div>
-          <h3 class="text-lg font-medium text-gray-900 mb-3">Date & Time</h3>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-sm">
-              <span class="font-medium">Date: </span>
-              <%= @booking.start_time.strftime("%A, %B %d, %Y") %>
-            </p>
-            <p class="text-sm">
-              <span class="font-medium">Time: </span>
-              <%= @booking.start_time.strftime("%I:%M %p") %> - <%= @booking.end_time.strftime("%I:%M %p") %>
-            </p>
-          </div>
-        </div>
-        
-        <!-- Notes -->
-        <div>
-          <h3 class="text-lg font-medium text-gray-900 mb-3">Notes</h3>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <% if @booking.notes.present? %>
-              <p class="text-sm text-gray-900 whitespace-pre-line"><%= @booking.notes %></p>
-            <% else %>
-              <p class="text-sm text-gray-500 italic">No notes for this booking</p>
-            <% end %>
-          </div>
-        </div>
-      </div>
+      <%= render 'shared/booking_details', booking: @booking, show_actions: true, admin_mode: false %>
       
       <!-- Action Buttons -->
       <div class="mt-8 flex flex-wrap gap-3">

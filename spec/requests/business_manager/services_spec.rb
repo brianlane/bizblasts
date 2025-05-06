@@ -25,6 +25,8 @@ RSpec.describe "/manage/services", type: :request do
     sign_in manager
     # Set default host for URL generation within the spec context
     Rails.application.routes.default_url_options[:host] = host_params[:host]
+    # Manually set the current tenant for ActsAsTenant in this request spec context
+    ActsAsTenant.current_tenant = business
   end
 
   after do

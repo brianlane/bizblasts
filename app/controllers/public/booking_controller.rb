@@ -89,6 +89,8 @@ module Public
       # Auto-calculate end_time based on the service duration
       @booking.end_time = @booking.start_time + @service.duration.minutes
 
+      @booking.booking_product_add_ons = @booking.booking_product_add_ons.reject { |a| a.quantity.to_i <= 0 }
+
       if @booking.save
         redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
       else
@@ -121,19 +123,20 @@ module Public
         :service_id,
         :staff_member_id,
         :start_time,
-        :"start_time(1i)",
-        :"start_time(2i)",
-        :"start_time(3i)",
-        :"start_time(4i)",
-        :"start_time(5i)",
+        :'start_time(1i)',
+        :'start_time(2i)',
+        :'start_time(3i)',
+        :'start_time(4i)',
+        :'start_time(5i)',
         :end_time,
-        :"end_time(1i)",
-        :"end_time(2i)",
-        :"end_time(3i)",
-        :"end_time(4i)",
-        :"end_time(5i)",
+        :'end_time(1i)',
+        :'end_time(2i)',
+        :'end_time(3i)',
+        :'end_time(4i)',
+        :'end_time(5i)',
         :notes,
         :tenant_customer_id,
+        booking_product_add_ons_attributes: [:product_variant_id, :quantity],
         tenant_customer_attributes: [:name, :email, :phone]
       )
     end

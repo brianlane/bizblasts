@@ -5,8 +5,7 @@ ActiveAdmin.register Product do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :active, :featured, :category_id, :business_id,
-                images: [], product_variants_attributes: [:id, :name, :price_modifier, :stock_quantity, :_destroy]
+  permit_params :name, :description, :price, :active, :featured, :category_id, :product_type, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
   #
   # or
   #
@@ -16,8 +15,6 @@ ActiveAdmin.register Product do
   #   permitted
   # end
 
-  # Optional: Filter by business if super admin needs to see all
-  # filter :business, if: proc { current_admin_user.super_admin? }
   filter :name
   filter :category, collection: -> {
     Category.order(:name)
@@ -25,6 +22,7 @@ ActiveAdmin.register Product do
   filter :active
   filter :featured
   filter :price
+  filter :product_type, as: :select, collection: Product.product_types.keys
   filter :created_at
 
   index do
@@ -33,6 +31,7 @@ ActiveAdmin.register Product do
     column :name
     column :category
     column :price
+    column :product_type
     column :active
     column :featured
     column :business
@@ -51,13 +50,21 @@ ActiveAdmin.register Product do
       row :business
       row :created_at
       row :updated_at
-      row :images do |product|
-        if product.images.attached?
-          ul do
-            product.images.each do |img|
-              li do
-                image_tag url_for(img.representation(resize_to_limit: [100, 100]))
-              end
+    end
+
+    panel "Images" do
+      if product.images.attached?
+        ul do
+          if product.primary_image.present?
+            li "Primary Image:"
+            li do
+              image_tag url_for(product.primary_image.representation(resize_to_limit: [200, 200]))
+            end
+          end
+          product.images.order(:position).each do |img|
+            next if img == product.primary_image
+            li do 
+              image_tag url_for(img.representation(resize_to_limit: [100, 100]))
             end
           end
         end
@@ -73,8 +80,7 @@ ActiveAdmin.register Product do
         end
         column :stock_quantity
         column :actions do |variant|
-          # Link to edit variant - might need custom route or link to variant admin
-          # link_to "Edit", edit_admin_product_variant_path(variant) 
+          link_to "Edit", edit_admin_product_variant_path(product, variant)
         end
       end
     end
@@ -88,19 +94,43 @@ ActiveAdmin.register Product do
       f.input :name
       f.input :description
       f.input :price
+      f.input :product_type, as: :select, collection: Product.product_types.keys
       f.input :active
       f.input :featured
       f.input :images, as: :file, input_html: { multiple: true }
+      f.input :add_on_services, as: :check_boxes, collection: Service.all
     end
 
     f.inputs 'Variants' do
       f.has_many :product_variants, heading: 'Product Variants', allow_destroy: true, new_record: 'Add Variant' do |vf|
         vf.input :name
+        vf.input :sku
         vf.input :price_modifier, label: 'Price Modifier (+/-)'
         vf.input :stock_quantity
+        vf.input :options
       end
     end
 
     f.actions
+  end
+
+  controller do
+    # Override update to handle image attribute errors without rendering the form
+    def update
+      product = resource
+      # Extract and remove images_attributes from params
+      attrs = permitted_params[:product].dup
+      image_params = attrs.delete(:images_attributes) || attrs.delete('images_attributes')
+      # Assign remaining attributes
+      product.assign_attributes(attrs)
+      # Apply nested image changes if provided
+      product.images_attributes = image_params if image_params.present?
+      # Attempt save; capture any errors from images_attributes setter or validations
+      if product.errors.any? || !product.save
+        render plain: product.errors.full_messages.join(', '), status: :unprocessable_entity
+      else
+        redirect_to resource_path, notice: "Product was successfully updated."
+      end
+    end
   end
 end

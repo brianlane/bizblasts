@@ -16,7 +16,7 @@ ActiveAdmin.register Service do
   # end
   
   # Permit relevant parameters including the association
-  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :availability_settings, staff_member_ids: []
+  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :availability_settings, staff_member_ids: [], add_on_product_ids: []
 
   # Define index block to correctly display business link
   index do
@@ -45,6 +45,12 @@ ActiveAdmin.register Service do
     actions
   end
 
+  filter :name
+  filter :price
+  filter :duration
+  filter :active
+  filter :featured
+
   # Form definition
   form do |f|
     f.inputs "Service Details" do
@@ -63,6 +69,7 @@ ActiveAdmin.register Service do
       f.input :staff_members, as: :check_boxes, collection: StaffMember.order(:name)
       # Add availability settings field if needed (JSON editor?)
       # f.input :availability_settings, as: :text, input_html: { rows: 5 } 
+      f.input :add_on_products, as: :check_boxes, collection: Product.where(product_type: [:service, :mixed])
     end
     f.actions
   end

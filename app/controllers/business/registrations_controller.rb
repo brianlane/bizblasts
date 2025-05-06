@@ -168,7 +168,7 @@ class Business::RegistrationsController < Users::RegistrationsController
     if Rails.env.test?
       super(resource)
     else
-      root_url(subdomain: resource.business.hostname)
+      main_app.root_url(subdomain: resource.business.hostname)
     end
   end
 end 

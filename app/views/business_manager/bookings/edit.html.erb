@@ -48,70 +48,7 @@
           </div>
         <% end %>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
-          <!-- Customer Information - Read Only -->
-          <div>
-            <h3 class="text-lg font-medium text-gray-900 mb-3">Customer Information</h3>
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-sm font-medium text-gray-900"><%= @booking.tenant_customer.name %></p>
-              <p class="text-sm text-gray-600"><%= @booking.tenant_customer.email %></p>
-              <% if @booking.tenant_customer.phone.present? %>
-                <p class="text-sm text-gray-600"><%= @booking.tenant_customer.phone %></p>
-              <% end %>
-            </div>
-          </div>
-          
-          <!-- Staff Member - Editable -->
-          <div>
-            <h3 class="text-lg font-medium text-gray-900 mb-3">Staff Member</h3>
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <%= f.label :staff_member_id, class: "block text-sm font-medium text-gray-700" %>
-              <%= f.collection_select :staff_member_id, 
-                                     current_tenant.staff_members.order(:name), 
-                                     :id, 
-                                     :name, 
-                                     {}, 
-                                     { class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" } %>
-            </div>
-          </div>
-          
-          <!-- Date & Time - Read Only -->
-          <div>
-            <h3 class="text-lg font-medium text-gray-900 mb-3">Date & Time</h3>
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-sm">
-                <span class="font-medium">Date: </span>
-                <%= @booking.start_time.strftime("%A, %B %d, %Y") %>
-              </p>
-              <p class="text-sm">
-                <span class="font-medium">Time: </span>
-                <%= @booking.start_time.strftime("%I:%M %p") %> - <%= @booking.end_time.strftime("%I:%M %p") %>
-              </p>
-              <p class="text-xs text-gray-500 mt-2">
-                To change date/time, use the "Reschedule" option from the booking details page.
-              </p>
-            </div>
-          </div>
-          
-          <!-- Service Information - Read Only -->
-          <div>
-            <h3 class="text-lg font-medium text-gray-900 mb-3">Service</h3>
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-sm">
-                <span class="font-medium">Service: </span>
-                <%= @booking.service.name %>
-              </p>
-              <p class="text-sm">
-                <span class="font-medium">Duration: </span>
-                <%= @booking.service.duration %> minutes
-              </p>
-              <p class="text-sm">
-                <span class="font-medium">Price: </span>
-                <%= number_to_currency(@booking.amount) %>
-              </p>
-            </div>
-          </div>
-        </div>
+        <%= render 'shared/booking_details', booking: @booking, show_actions: false, admin_mode: true %>
         
         <!-- Notes Field - Editable -->
         <div class="mb-6">

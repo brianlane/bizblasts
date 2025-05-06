@@ -1,29 +1,25 @@
 class OrdersController < ApplicationController
+  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  skip_before_action :authenticate_user!
+
   def index
-    @orders = current_business.orders
+    @orders = current_tenant.orders
   end
 
   def show
-    @order = current_business.orders.find(params[:id])
+    @order = current_tenant.orders.find(params[:id])
   end
 
   def new
-    @order = current_business.orders.new
+    cart = CartManager.new(session).retrieve
+    @order = OrderCreator.build_from_cart(cart)
   end
 
   def create
-    @order = current_business.orders.new(order_params)
-    
-    # Set order type based on line items
-    if @order.line_items.all? { |item| item.product? }
-      @order.product!
-    elsif @order.line_items.all? { |item| item.service? }
-      @order.service!  
-    else
-      @order.mixed!
-    end
-
-    if @order.save
+    cart = CartManager.new(session).retrieve
+    @order = OrderCreator.create_from_cart(cart, order_params)
+    if @order.persisted? && @order.errors.empty?
+      session[:cart] = {} # Clear cart
       redirect_to @order, notice: 'Order was successfully created.'
     else
       render :new

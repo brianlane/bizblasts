@@ -3,7 +3,7 @@ FactoryBot.define do
     association :product
     name { ["Small", "Medium", "Large", "Red", "Blue", "Green"].sample + " #{SecureRandom.hex(2)}" }
     price_modifier { [nil, -5.0, 0, 10.0, 2.5].sample }
-    stock_quantity { rand(0..100) }
+    stock_quantity { 100 }
 
     # Ensure business consistency via product
     # No direct business association needed here if delegated correctly

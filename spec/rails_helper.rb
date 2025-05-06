@@ -47,6 +47,7 @@ require 'capybara/rails'
 require 'fileutils' # Add FileUtils for directory creation
 require 'warden'
 require 'active_storage_validations/matchers'
+require 'support/kaminari'
 # require 'mock_asset_helpers' # REMOVED: Support files are loaded later by RSpec
 
 # Load all support files

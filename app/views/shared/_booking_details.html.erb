@@ -112,6 +112,34 @@
     </div>
   <% end %>
 
+  <% if booking.booking_product_add_ons.any? %>
+    <div class="mt-4">
+      <h3 class="text-lg font-semibold mb-2">Product Add-ons</h3>
+      <table class="min-w-full divide-y divide-gray-200 mb-4">
+        <thead>
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% booking.booking_product_add_ons.each do |add_on| %>
+            <tr>
+              <td class="px-4 py-2 align-top"><%= add_on.product_variant.product.name %></td>
+              <td class="px-4 py-2 align-top"><%= add_on.product_variant.name %></td>
+              <td class="px-4 py-2 align-top"><%= add_on.quantity %></td>
+              <td class="px-4 py-2 align-top"><%= number_to_currency(add_on.price) %></td>
+              <td class="px-4 py-2 align-top"><%= number_to_currency(add_on.total_amount) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
   <% if show_actions && booking.can_cancel? %>
     <div class="<%= condensed ? 'mt-2' : 'mt-6' %>">
       <% if booking.status == 'pending' %>

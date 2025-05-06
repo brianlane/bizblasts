@@ -2,6 +2,8 @@
 class ProductVariant < ApplicationRecord
   belongs_to :product
   has_many :line_items, dependent: :destroy
+  has_many :stock_reservations
+  has_many :booking_product_add_ons, dependent: :destroy
 
   # Ensure variant is scoped to the same business as the product
   # This relies on the product association being present and valid
@@ -10,6 +12,9 @@ class ProductVariant < ApplicationRecord
   validates :name, presence: true # E.g., "Large, Red"
   validates :stock_quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :price_modifier, numericality: true, allow_nil: true # Can be positive or negative
+
+  # Add reserved_quantity field
+  attribute :reserved_quantity, :integer, default: 0
 
   # Basic stock check
   def in_stock?(requested_quantity = 1)
@@ -56,4 +61,33 @@ class ProductVariant < ApplicationRecord
     %w[product line_items]
   end
   # --- End Ransack methods ---
+
+  def reserve_stock!(quantity, order)
+    # Check available stock
+    if stock_quantity - reserved_quantity >= quantity
+      # Create reservation
+      stock_reservations.create!(
+        order: order, 
+        quantity: quantity,
+        expires_at: 15.minutes.from_now
+      )
+      
+      # Update stock and reservation quantities
+      decrement!(:stock_quantity, quantity) 
+      increment!(:reserved_quantity, quantity)
+      
+      true
+    else
+      false
+    end
+  end
+  
+  def release_reservation!(reservation)
+    # Update stock and reservation quantities
+    increment!(:stock_quantity, reservation.quantity)
+    decrement!(:reserved_quantity, reservation.quantity) 
+    
+    # Delete reservation
+    reservation.destroy!
+  end
 end 

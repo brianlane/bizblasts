@@ -1,0 +1,26 @@
+require 'rails_helper'
+
+RSpec.describe CartsController, type: :controller do
+  let!(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant') }
+
+  before do
+    business.save! unless business.persisted?
+    ActsAsTenant.current_tenant = business
+    set_tenant(business)
+  end
+
+  describe 'GET #show' do
+    it 'returns success' do
+      @request.host = 'lvh.me'
+      puts "DEBUG: @request.host = ", @request.host
+      get :show
+      expect(response).to be_successful
+    end
+    it 'assigns @cart' do
+      @request.host = 'lvh.me'
+      puts "DEBUG: @request.host = ", @request.host
+      get :show
+      expect(assigns(:cart)).to be_a(Hash)
+    end
+  end
+end 

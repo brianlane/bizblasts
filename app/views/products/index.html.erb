@@ -1,0 +1,50 @@
+<% @business = current_tenant %>
+<div style="background: #fee; color: #900; padding: 1em; margin-bottom: 1em;">
+  <strong>DEBUG:</strong><br>
+  All Products in DB: <%= Product.all.map { |p| "
+    [id=p.id, name=p.name, business_id=p.business_id, active=p.active, product_type=p.product_type]" }.join('<br>') %><br>
+  @products: <%= @products.map { |p| "[id=p.id, name=p.name]" }.join(', ') %>
+</div>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-6">Our Products at <%= @business.name %></h1>
+  <%= form_with url: products_path, method: :get, local: true do |f| %>
+    <%= f.label :q, 'Search Products:' %>
+    <%= f.text_field :q, value: params[:q], class: 'border rounded px-2 py-1' %>
+    <%= f.submit 'Search', class: 'ml-2 px-4 py-1 bg-blue-600 text-white rounded' %>
+  <% end %>
+
+  <% if @products.any? %>
+    <div class="space-y-4">
+      <% @products.order(:name).each do |product| %>
+        <div class="border rounded-lg p-4 shadow-sm">
+          <h2 class="text-xl font-semibold"><%= link_to product.name, product_path(product) %></h2>
+          <p class="text-gray-700 mt-1"><%= product.description %></p>
+          <p class="text-gray-900 font-medium mt-2">
+            Price: <%= number_to_currency(product.price) %>
+          </p>
+          <div class="mt-4">
+            <%= link_to "View Product", product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p>We currently don't have any products listed. Please check back later!</p>
+  <% end %>
+</div>
+
+<style>
+.product-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+.product-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1rem;
+  width: 220px;
+  text-align: center;
+  background: #fafafa;
+}
+</style> 

@@ -9,20 +9,7 @@
     <h1 class="text-3xl font-bold mb-4 text-green-600">Booking Confirmed!</h1>
     <p class="text-lg mb-6">Your booking at <strong><%= @business.name %></strong> has been successfully submitted.</p>
 
-    <div class="border rounded-lg p-6 bg-gray-50 shadow-sm">
-      <h2 class="text-xl font-semibold mb-4">Booking Details:</h2>
-      <p><strong>Service:</strong> <%= @booking.service_name %></p>
-      <p><strong>Date & Time:</strong> <%= @booking.start_time.strftime("%A, %B %d, %Y at %I:%M %p") %></p>
-      <p><strong>Duration:</strong> <%= @booking.service.duration %> minutes</p>
-      <% if @booking.staff_member %>
-        <p><strong>Staff Member:</strong> <%= @booking.staff_member_name %></p>
-      <% end %>
-      <p><strong>Status:</strong> <span class="capitalize font-medium <%= status_color(@booking.status) %>"><%= @booking.status %></span></p>
-      <% if @booking.notes.present? %>
-        <p><strong>Notes:</strong> <%= @booking.notes %></p>
-      <% end %>
-      <p><strong>Amount:</strong> <%= number_to_currency(@booking.amount) %></p>
-    </div>
+    <%= render 'shared/booking_details', booking: @booking, show_actions: false, admin_mode: false %>
 
     <div class="mt-8">
       <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline" %>

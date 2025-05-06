@@ -19,8 +19,6 @@ ActiveAdmin.register Order do
   #   permitted
   # end
 
-  # Optional: Filter by business if super admin needs to see all
-  # filter :business, if: proc { current_admin_user.super_admin? }
   filter :tenant_customer, collection: -> {
     TenantCustomer.order(:name)
   }
