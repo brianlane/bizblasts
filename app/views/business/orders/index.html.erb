@@ -13,8 +13,7 @@
       <%= f.select :status_eq, Order.statuses.keys.map { |s| [s.titleize, s] }, include_blank: true %>
     </div>
     <div class="actions"><%= f.submit "Search" %></div>
-  <% end %>
-%>
+<%# <% end %> %>
 
 <% if @orders.any? %>
   <table>
