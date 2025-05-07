@@ -26,8 +26,8 @@ Rails.application.routes.draw do
     get '/client/sign_up', to: 'client/registrations#new', as: :new_client_registration
     post '/client', to: 'client/registrations#create', as: :client_registration
 
-    get '/business/sign_up', to: 'business_portal/registrations#new', as: :new_business_registration
-    post '/business', to: 'business_portal/registrations#create', as: :business_registration
+    get '/business/sign_up', to: 'business/registrations#new', as: :new_business_registration
+    post '/business', to: 'business/registrations#create', as: :business_registration
 
     get '/users/edit', to: 'users/registrations#edit', as: :edit_user_registration
     patch '/users', to: 'users/registrations#update', as: :user_registration

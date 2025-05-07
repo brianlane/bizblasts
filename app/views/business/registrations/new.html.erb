@@ -87,8 +87,8 @@
       <%= business_f.select :tier, Business.tiers.keys.map { |t| [t.humanize.titleize, t] }, { prompt: 'Select Tier' }, required: true, data: { action: "change->business-registration#toggleDomainFields" } %>
       <div id="tier-descriptions" style="font-size: 0.9em; color: #555; margin-top: 5px;">
         <p data-tier="free" style="display: none;"><strong>Free:</strong> Basic features, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
-        <p data-tier="standard" style="display: none;"><strong>Standard:</strong> More features, custom domain or subdomain optional.</p>
-        <p data-tier="premium" style="display: none;"><strong>Premium:</strong> All features, custom domain or subdomain optional.</p>
+        <p data-tier="standard" style="display: none;"><strong>Standard:</strong> More features, customizable pages, and much more, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
+        <p data-tier="premium" style="display: none;"><strong>Premium:</strong> All features, SEO, lower fees, and much more, plus your own custom domain!</p>
       </div>
     </div>
 
@@ -129,18 +129,18 @@
       // Clear help text
       hostnameHelpText.textContent = '';
 
-      if (selectedTier === 'free') {
+      if (selectedTier === 'standard' || selectedTier === 'free') {
         hostnameFieldDiv.style.display = 'block';
         hostnameInput.required = true;
         hostnameInput.placeholder = 'your-biz'; // Just the subdomain part
         hostnameHelpText.textContent = '.bizblasts.com (Required - lowercase letters, numbers, hyphens only)';
-        const desc = tierDescriptionDiv.querySelector('p[data-tier="free"]');
+        const desc = tierDescriptionDiv.querySelector(`p[data-tier="${selectedTier}"]`);
         if (desc) desc.style.display = 'block';
-      } else if (selectedTier === 'standard' || selectedTier === 'premium') {
+      } else if (selectedTier === 'premium') {
         hostnameFieldDiv.style.display = 'block';
         hostnameInput.required = false; // Optional for paid tiers
-        hostnameInput.placeholder = 'your-subdomain.bizblasts.com OR www.yourdomain.com';
-        hostnameHelpText.textContent = 'Enter your desired subdomain OR your existing custom domain.';
+        hostnameInput.placeholder = 'yourdomain';
+        hostnameHelpText.textContent = 'Enter your desired custom domain. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. And we will contact you to verify ownership of the domain.';
         const desc = tierDescriptionDiv.querySelector(`p[data-tier="${selectedTier}"]`);
         if (desc) desc.style.display = 'block';
       } else {
