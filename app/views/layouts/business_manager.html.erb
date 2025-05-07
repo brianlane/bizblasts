@@ -49,7 +49,7 @@
             <%= link_to "Bookings", business_manager_bookings_path, class: "block py-2 px-4 rounded hover:bg-gray-700" %>
           </li>
           <li class="mb-2">
-            <span class="block py-2 px-4 text-gray-500">Website</span>
+            <%= link_to "Website", tenant_url(@current_business), class: "block py-2 px-4 rounded hover:bg-gray-700" %>
             <ul class="ml-4">
               <li><%= link_to "Pages", "#", class: "block py-1 px-2 rounded hover:bg-gray-700 text-sm" %></li> <%# Placeholder %>
               <li><%= link_to "Theme", "#", class: "block py-1 px-2 rounded hover:bg-gray-700 text-sm" %></li> <%# Placeholder %>
@@ -59,10 +59,19 @@
             <%= link_to "Staff", business_manager_staff_members_path, class: "block py-2 px-4 rounded hover:bg-gray-700" %>
           </li>
           <li class="mb-2">
-            <%= link_to "Services", business_manager_services_path, class: "block py-2 px-4 rounded hover:bg-gray-700" %>
+            <%= link_to business_manager_services_path, class: 'block px-4 py-2 hover:bg-gray-700 rounded' do %>
+              <i class="fas fa-concierge-bell mr-2"></i> Services
+            <% end %>
           </li>
-          <li class="mb-2">
-            <%= link_to "Settings", "#", class: "block py-2 px-4 rounded hover:bg-gray-700" %> <%# Placeholder %>
+          <li>
+            <%= link_to business_manager_products_path, class: 'block px-4 py-2 hover:bg-gray-700 rounded' do %>
+              <i class="fas fa-box mr-2"></i> Products
+            <% end %>
+          </li>
+          <li>
+            <%= link_to '#', class: 'block px-4 py-2 hover:bg-gray-700 rounded' do %>
+              <i class="fas fa-cog mr-2"></i> Settings
+            <% end %>
           </li>
           <%# Add more links as features are built %>
         </ul>

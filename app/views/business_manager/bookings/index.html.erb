@@ -112,7 +112,7 @@
                     <% if !%w[cancelled completed].include?(booking.status) %>
                       <%= link_to "Cancel", "#", 
                             class: "text-red-600 hover:text-red-900 cancel-booking-link mr-3", 
-                            data: { booking_id: booking.id } %>
+                            data: { confirm_message: "Are you sure you want to cancel this booking?", cancel_url: cancel_business_manager_booking_path(booking) } %>
                     <% end %>
                     
                     <% if !%w[cancelled completed].include?(booking.status) %>
@@ -134,73 +134,48 @@
   </div>
 </div>
 
-<!-- Cancel Booking Modal -->
-<div id="cancel-booking-modal" class="fixed inset-0 z-10 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-      <%= form_with url: "#", id: "cancel-booking-form", method: :patch do |f| %>
-        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
-            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-              <svg class="h-6 w-6 text-red-600 modal-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                Cancel Booking
-              </h3>
-              <div class="mt-2">
-                <p class="text-sm text-gray-500">
-                  Are you sure you want to cancel this booking? This action cannot be undone.
-                </p>
-                <div class="mt-4">
-                  <%= f.label :cancellation_reason, "Reason for cancellation:", class: "block text-sm font-medium text-gray-700" %>
-                  <%= f.text_area :cancellation_reason, rows: 3, class: "mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm", placeholder: "Provide a reason for cancellation..." %>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-          <%= f.submit "Cancel Booking", class: "w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm" %>
-          <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" id="cancel-modal-close">
-            Close
-          </button>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
-
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('cancel-booking-modal');
     const form = document.getElementById('cancel-booking-form');
     const closeBtn = document.getElementById('cancel-modal-close');
     
-    // Open modal when cancel link is clicked
+    // Handle direct cancel booking links
     document.querySelectorAll('.cancel-booking-link').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const bookingId = this.dataset.bookingId;
-        form.action = `/manage/bookings/${bookingId}/cancel`;
-        modal.classList.remove('hidden');
+      link.addEventListener('click', function(event) {
+        event.preventDefault();
+        const message = this.dataset.confirmMessage;
+        const cancelUrl = this.dataset.cancelUrl;
+        
+        if (confirm(message)) {
+          const form = document.createElement('form');
+          form.method = 'post';
+          form.action = cancelUrl;
+          form.style.display = 'none';
+          
+          const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'authenticity_token';
+          csrfInput.value = csrfToken;
+          form.appendChild(csrfInput);
+          
+          const methodInput = document.createElement('input');
+          methodInput.type = 'hidden';
+          methodInput.name = '_method';
+          methodInput.value = 'patch';
+          form.appendChild(methodInput);
+          
+          const reasonInput = document.createElement('input');
+          reasonInput.type = 'hidden';
+          reasonInput.name = 'cancellation_reason';
+          reasonInput.value = 'Cancelled by business';
+          form.appendChild(reasonInput);
+          
+          document.body.appendChild(form);
+          form.submit();
+        }
       });
-    });
-    
-    // Close modal when close button is clicked
-    closeBtn.addEventListener('click', function() {
-      modal.classList.add('hidden');
-    });
-    
-    // Close modal when clicking outside of it
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) {
-        modal.classList.add('hidden');
-      }
     });
     
     // Confirm booking form handling

@@ -59,20 +59,27 @@ class Invoice < ApplicationRecord
   end
 
   def calculate_totals
-    line_items_subtotal = line_items.sum(:total_amount)
-    
-    self.original_amount = line_items_subtotal
-    self.amount = original_amount - (discount_amount || 0)
-    
-    if tax_rate.present?
-      taxable_amount = amount
-      self.tax_amount = tax_rate.calculate_tax(taxable_amount)
+    items_subtotal = 0
+    if booking.present?
+      items_subtotal = booking.total_charge
     else
-      self.tax_amount = 0  
+      items_subtotal = line_items.sum(&:total_amount)
     end
     
-    self.total_amount = amount + tax_amount
+    self.original_amount = items_subtotal
+    calculated_discount = self.promotion&.calculate_discount(original_amount) || self.discount_amount || 0
+    self.discount_amount = calculated_discount
+    self.amount = original_amount - calculated_discount
+    
+    current_tax_amount = 0
+    if tax_rate.present?
+      taxable_base = self.amount
+      current_tax_amount = tax_rate.calculate_tax(taxable_base)
+    end
+    self.tax_amount = current_tax_amount
+    
+    self.total_amount = self.amount + self.tax_amount
   end
 
-  before_save :calculate_totals, if: -> { line_items.any? }
+  before_save :calculate_totals
 end 

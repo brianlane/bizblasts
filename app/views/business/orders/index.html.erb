@@ -1,0 +1,53 @@
+<%# app/views/business/orders/index.html.erb %>
+<h1>Business Orders</h1>
+
+<%# Add search/filter controls here if you implement Ransack or similar %>
+<%# Example:
+  <%= search_form_for @q, url: business_orders_path do |f| %>
+    <div class="field">
+      <%= f.label :order_number_cont, "Order Number" %>
+      <%= f.search_field :order_number_cont %>
+    </div>
+    <div class="field">
+      <%= f.label :status_eq, "Status" %>
+      <%= f.select :status_eq, Order.statuses.keys.map { |s| [s.titleize, s] }, include_blank: true %>
+    </div>
+    <div class="actions"><%= f.submit "Search" %></div>
+  <% end %>
+%>
+
+<% if @orders.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Order Number</th>
+        <th>Date</th>
+        <th>Customer</th>
+        <th>Status</th>
+        <th>Type</th>
+        <th>Total</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @orders.each do |order| %>
+        <tr>
+          <td><%= link_to order.order_number, business_order_path(order) %></td>
+          <td><%= l order.created_at, format: :short %></td>
+          <td><%= order.tenant_customer&.name || 'N/A' %></td>
+          <td><%= order.status.titleize %></td>
+          <td><%= order.order_type.titleize %></td>
+          <td><%= number_to_currency order.total_amount %></td>
+          <td><%= link_to 'View Details', business_order_path(order) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <%# Add pagination links here if using Kaminari or similar %>
+  <%# Example: <%= paginate @orders %> %>
+<% else %>
+  <p>No orders found for this business.</p>
+<% end %>
+
+<%# Link to other business management areas %>
+<%# Example: <%= link_to 'Back to Business Dashboard', business_dashboard_path %> %> 

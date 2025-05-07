@@ -7,20 +7,56 @@
 
   <% if @booking %>
     <h1 class="text-3xl font-bold mb-4 text-green-600">Booking Confirmed!</h1>
-    <p class="text-lg mb-6">Your booking at <strong><%= @business.name %></strong> has been successfully submitted.</p>
+    <p class="text-lg mb-6">Thank you for your booking. Here are the details:</p>
+    <p><strong>Service:</strong> <%= @booking.service.name %></p>
+    <p><strong>Business:</strong> <%= @booking.business.name %></p>
+    <p><strong>Date & Time:</strong> <%= l @booking.start_time, format: :long %> (until <%= l @booking.end_time, format: :short_time %>)</p>
+    <p><strong>Staff:</strong> <%= @booking.staff_member&.name || 'Any available' %></p>
+    <p><strong>Your Name:</strong> <%= @booking.tenant_customer.name %></p>
+    <p><strong>Your Email:</strong> <%= @booking.tenant_customer.email %></p>
+    <% if @booking.notes.present? %>
+      <p><strong>Notes:</strong> <%= @booking.notes %></p>
+    <% end %>
 
-    <%= render 'shared/booking_details', booking: @booking, show_actions: false, admin_mode: false %>
+    <% if @booking.booking_product_add_ons.any? %>
+      <h2 class="text-2xl font-bold mb-4">Products Added:</h2>
+      <ul class="list-disc pl-8">
+        <% @booking.booking_product_add_ons.each do |add_on| %>
+          <li>
+            <%= add_on.product_variant.product.name %> - <%= add_on.product_variant.name %> (x<%= add_on.quantity %>) at <%= number_to_currency add_on.price %> each.
+            Total: <%= number_to_currency add_on.total_amount %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
 
-    <div class="mt-8">
-      <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline" %>
-      <%# TODO: Add link to client dashboard/bookings list %>
-      <%# link_to "View My Bookings", client_bookings_path, class: "ml-4 text-blue-600 hover:underline" %>
-    </div>
+    <% if @booking.invoice %>
+      <h2 class="text-2xl font-bold mb-4">Invoice Summary:</h2>
+      <p><strong>Service Cost:</strong> <%= number_to_currency @booking.service.price %></p>
+      <% if @booking.booking_product_add_ons.any? %>
+        <p><strong>Products Subtotal:</strong> <%= number_to_currency @booking.booking_product_add_ons.sum(&:total_amount) %></p>
+      <% end %>
+      <p><strong>Total before Tax:</strong> <%= number_to_currency @booking.invoice.amount %></p>
+      <% if @booking.invoice.tax_amount&.positive? %>
+        <p><strong>Tax:</strong> <%= number_to_currency @booking.invoice.tax_amount %></p>
+      <% end %>
+      <p><strong>Grand Total:</strong> <%= number_to_currency @booking.invoice.total_amount %></p>
+      <p>Invoice Number: <%= @booking.invoice.invoice_number %></p>
+      <%# Link to full invoice if client invoice views are implemented %>
+      <%# if defined?(invoice_path) %>
+        <%#= link_to "View Full Invoice", invoice_path(@booking.invoice) %>
+      <%# end %>
+    <% end %>
+
+    <p>We look forward to seeing you!</p>
+    <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline" %>
+    <%# TODO: Add link to client dashboard/bookings list %>
+    <%# link_to "View My Bookings", client_bookings_path, class: "ml-4 text-blue-600 hover:underline" %>
 
   <% else %>
     <%# This part should ideally not be reached due to controller redirect %>
     <h1 class="text-3xl font-bold mb-4 text-red-600">Booking Not Found</h1>
-    <p>We could not find the details for this booking.</p>
+    <p>There was an issue confirming your booking details. Please contact us.</p>
     <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline mt-4 inline-block" %>
   <% end %>
 

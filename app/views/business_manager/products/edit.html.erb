@@ -1,0 +1,7 @@
+<%# app/views/business_manager/products/edit.html.erb %>
+<h1>Editing Product: <%= @product.name %></h1>
+
+<%= render 'form', product: @product %>
+ 
+<%= link_to 'Show Product', business_manager_product_path(@product) %> |
+<%= link_to 'Back to Products', business_manager_products_path %> 

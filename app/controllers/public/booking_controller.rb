@@ -28,20 +28,31 @@ module Public
       @booking = current_tenant.bookings.new(service: @service)
       # Always pre-fill staff member if provided via query params
       @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
+      
       # If client user, set their own TenantCustomer; otherwise build nested for new customer
-      if current_user.role == 'client'
+      if current_user && current_user.role == 'client' # Check current_user exists
         client_cust = current_tenant.tenant_customers.find_by(email: current_user.email)
         @booking.tenant_customer = client_cust if client_cust
-      else
-        @booking.build_tenant_customer
       end
+      # If still no tenant_customer (e.g. user not logged in, or not a client, or no record found)
+      # The form might need fields for new customer details, handled by tenant_customer_attributes
+      @booking.build_tenant_customer unless @booking.tenant_customer
+
       # Pre-fill date/time if provided via query params
       if params[:date].present? && params[:start_time].present?
+        # Ensure BookingManager.process_datetime_params is robust
         dt = BookingManager.process_datetime_params(params[:date], params[:start_time])
         @booking.start_time = dt if dt
       end
-      # We might need to fetch available slots here or handle it via JS on the form.
-      # For now, keep it simple.
+      
+      # Fetch active products and their variants for the current tenant to offer as add-ons
+      @available_products = current_tenant.products.active.includes(:product_variants)
+                                      .where.not(product_variants: { id: nil }) # Only products with variants
+                                      .order(:name)
+      
+      # Build one initial booking_product_add_on for the form fields_for helper, if needed by your form structure.
+      # Or, handle dynamically with JavaScript.
+      # @booking.booking_product_add_ons.build 
     end
 
     # POST /booking for business staff/managers
@@ -89,9 +100,9 @@ module Public
       # Auto-calculate end_time based on the service duration
       @booking.end_time = @booking.start_time + @service.duration.minutes
 
-      @booking.booking_product_add_ons = @booking.booking_product_add_ons.reject { |a| a.quantity.to_i <= 0 }
-
       if @booking.save
+        # Ensure invoice is created/updated after booking and its add-ons are saved.
+        generate_or_update_invoice_for_booking(@booking)
         redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
       else
         flash.now[:alert] = @booking.errors.full_messages.to_sentence
@@ -128,17 +139,26 @@ module Public
         :'start_time(3i)',
         :'start_time(4i)',
         :'start_time(5i)',
-        :end_time,
-        :'end_time(1i)',
-        :'end_time(2i)',
-        :'end_time(3i)',
-        :'end_time(4i)',
-        :'end_time(5i)',
         :notes,
         :tenant_customer_id,
-        booking_product_add_ons_attributes: [:product_variant_id, :quantity],
+        booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy],
         tenant_customer_attributes: [:name, :email, :phone]
       )
+    end
+
+    def generate_or_update_invoice_for_booking(booking)
+      invoice = booking.invoice || booking.build_invoice
+      invoice.assign_attributes(
+        tenant_customer: booking.tenant_customer,
+        business: booking.business,
+        # Set other invoice attributes like due_date, status etc.
+        # For now, ensure amounts are calculated based on booking and its add-ons
+        due_date: booking.start_time.to_date, # Example due date
+        status: :pending # Example status
+        # invoice_number will be set by Invoice model callback if it has one
+      )
+      # The Invoice model's calculate_totals should sum service and booking_product_add_ons
+      invoice.save # This will trigger calculate_totals on the invoice
     end
 
     def current_tenant

@@ -26,8 +26,8 @@ Rails.application.routes.draw do
     get '/client/sign_up', to: 'client/registrations#new', as: :new_client_registration
     post '/client', to: 'client/registrations#create', as: :client_registration
 
-    get '/business/sign_up', to: 'business/registrations#new', as: :new_business_registration
-    post '/business', to: 'business/registrations#create', as: :business_registration
+    get '/business/sign_up', to: 'business_portal/registrations#new', as: :new_business_registration
+    post '/business', to: 'business_portal/registrations#create', as: :business_registration
 
     get '/users/edit', to: 'users/registrations#edit', as: :edit_user_registration
     patch '/users', to: 'users/registrations#update', as: :user_registration
@@ -41,6 +41,7 @@ Rails.application.routes.draw do
     namespace :business_manager, path: '/manage' do
       get '/dashboard', to: 'dashboard#index', as: :dashboard
       resources :services
+      resources :products
       resources :staff_members do
         member do
           get 'manage_availability'
@@ -238,4 +239,11 @@ Rails.application.routes.draw do
   resource :cart, only: [:show]
   resources :line_items, only: [:create, :update, :destroy]
   resources :orders, only: [:new, :create, :show, :index]
+
+  namespace :business_portal do
+    # Add other business-specific resources here
+    # For example: resource :dashboard, only: [:show]
+    resources :orders, only: [:index, :show] # Add :edit, :update if business users can modify orders
+    # ... other business resources
+  end
 end

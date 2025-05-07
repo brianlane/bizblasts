@@ -40,6 +40,7 @@ class Business < ApplicationRecord
   has_many :loyalty_programs
   has_many :products, dependent: :destroy
   has_many :orders, dependent: :destroy
+  has_many :categories, dependent: :destroy
   
   # For Client relationships (many-to-many with User)
   has_many :client_businesses

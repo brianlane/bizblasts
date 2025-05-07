@@ -1,0 +1,97 @@
+<%# app/views/invoices/show.html.erb %>
+<h1>Invoice Details: <%= @invoice.invoice_number %></h1>
+
+<p>
+  <strong>Invoice Number:</strong> <%= @invoice.invoice_number %><br>
+  <strong>Status:</strong> <%= @invoice.status.titleize %><br>
+  <strong>Date Created:</strong> <%= l @invoice.created_at, format: :long %><br>
+  <strong>Due Date:</strong> <%= l @invoice.due_date, format: :long if @invoice.due_date %><br>
+  <strong>Business:</strong> <%= @invoice.business.name %><br>
+  <% if @invoice.tenant_customer %>
+    <strong>Customer Name:</strong> <%= @invoice.tenant_customer.name %><br>
+    <strong>Customer Email:</strong> <%= @invoice.tenant_customer.email %><br>
+  <% end %>
+</p>
+
+<% if @invoice.booking %>
+  <h2>Details from Booking: <%= link_to @invoice.booking.service.name, client_booking_path(@invoice.booking) %></h2>
+  <p>
+    <strong>Service:</strong> <%= @invoice.booking.service.name %><br>
+    <strong>Scheduled:</strong> <%= l @invoice.booking.start_time, format: :long %><br>
+    <strong>Staff:</strong> <%= @invoice.booking.staff_member&.name || 'Any Staff' %><br>
+  </p>
+  <% if @invoice.booking.booking_product_add_ons.any? %>
+    <h3>Products Added to Booking:</h3>
+    <ul>
+      <% @invoice.booking.booking_product_add_ons.each do |add_on| %>
+        <li>
+          <%= add_on.product_variant.product.name %> - <%= add_on.product_variant.name %> (x<%= add_on.quantity %>)
+          at <%= number_to_currency add_on.price %> each.
+          Total: <%= number_to_currency add_on.total_amount %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+<% elsif @invoice.line_items.any? %>
+  <%# This section is for invoices generated from Orders that have their own line items %>
+  <h2>Line Items:</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product/Service</th>
+        <th>Variant/Description</th>
+        <th>Quantity</th>
+        <th>Unit Price</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @invoice.line_items.each do |item| %>
+        <tr>
+          <td><%= item.product_variant.product.name %></td>
+          <td><%= item.product_variant.name %></td>
+          <td><%= item.quantity %></td>
+          <td><%= number_to_currency item.price %></td>
+          <td><%= number_to_currency item.total_amount %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>This invoice has no specific line items directly attached (details may be in associated booking/order).</p>
+<% end %>
+
+<h2>Financial Summary:</h2>
+<p>
+  <strong>Original Amount (Subtotal):</strong> <%= number_to_currency @invoice.original_amount %><br>
+  <% if @invoice.discount_amount&.positive? %>
+    <strong>Discount Applied:</strong> <%= number_to_currency @invoice.discount_amount %><br>
+    <strong>Net Amount (after discount):</strong> <%= number_to_currency @invoice.amount %><br>
+  <% else %>
+    <strong>Net Amount:</strong> <%= number_to_currency @invoice.amount %><br>
+  <% end %>
+  <% if @invoice.shipping_method || @invoice.shipping_amount&.positive? %>
+    <%# Note: Shipping is typically not on booking-related invoices per our logic, but might be on others %>
+    <strong>Shipping Method:</strong> <%= @invoice.shipping_method&.name || 'N/A' %><br>
+    <strong>Shipping Cost:</strong> <%= number_to_currency @invoice.shipping_amount %><br>
+  <% end %>
+  <% if @invoice.tax_rate || @invoice.tax_amount&.positive? %>
+    <strong>Tax (<%= @invoice.tax_rate&.name || 'Default' %> - <%= number_to_percentage(@invoice.tax_rate&.rate.to_f * 100, precision: 2) %>):</strong> <%= number_to_currency @invoice.tax_amount %><br>
+  <% end %>
+  <strong>Total Amount Due:</strong> <%= number_to_currency @invoice.total_amount %>
+</p>
+
+<% if @invoice.payments.any? %>
+  <h2>Payments Made:</h2>
+  <ul>
+    <% @invoice.payments.successful.each do |payment| %>
+      <li><%= number_to_currency payment.amount %> on <%= l payment.created_at, format: :short %> (ID: <%= payment.id %>)</li>
+    <% end %>
+  </ul>
+  <p><strong>Total Paid:</strong> <%= number_to_currency @invoice.total_paid %></p>
+  <p><strong>Balance Due:</strong> <%= number_to_currency @invoice.balance_due %></p>
+<% else %>
+  <p>No payments recorded for this invoice yet.</p>
+<% end %>
+
+<%= link_to 'Back to My Invoices', invoices_path %> 

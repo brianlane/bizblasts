@@ -29,6 +29,9 @@
 
 en:
   hello: "Hello world"
+  time:
+    formats:
+      short_time: "%H:%M"
   activerecord:
     errors:
       models:
