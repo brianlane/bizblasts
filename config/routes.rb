@@ -73,6 +73,7 @@ Rails.application.routes.draw do
       get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
       get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
       get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
+      get '/products', to: 'pages#show', page: 'products', as: :tenant_products_page
       get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
 
       get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar

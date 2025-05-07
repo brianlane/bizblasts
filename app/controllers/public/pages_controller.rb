@@ -50,12 +50,38 @@ module Public
       
       # Render only known static pages via explicit templates
       slug = params[:page].to_s.downcase
+      @business = current_tenant # Ensure @business is available for the views
+
       case slug
-      when 'services'
-        render template: 'public/pages/services'
-      else
-        # Default to home for 'home' and any other slug
+      when 'home', 'root', '' # Added root and empty string to explicitly map to home
+        # @services are loaded in home.html.erb directly
+        # @products are loaded in home.html.erb directly
         render template: 'public/pages/home'
+      when 'services'
+        @services = @business.services.active.order(:name)
+        render template: 'public/pages/services'
+      when 'products'
+        @products = @business.products.active.where(product_type: [:standard, :mixed])
+        @products = @products.where('name ILIKE ?', "%#{params[:q]}%") if params[:q].present?
+        @products = @products.order(:name)
+        render template: 'public/pages/products'
+      when 'about'
+        render template: 'public/pages/about' # Assuming you have an about.html.erb
+      when 'contact'
+        render template: 'public/pages/contact' # Assuming you have a contact.html.erb
+      else
+        # Attempt to render a page with the given slug if a template exists
+        # This handles other dynamic pages if you add templates for them
+        # e.g. /my-custom-page renders public/pages/my_custom_page.html.erb
+        if template_exists?("public/pages/#{slug}")
+          render template: "public/pages/#{slug}"
+        else
+          # Fallback to home if no specific template is found for the slug, 
+          # or render 404 if you prefer stricter page definitions.
+          # For now, let's redirect to root, or render home to avoid 404 for unknown slugs.
+          # render_not_found
+          render template: 'public/pages/home' 
+        end
       end
     end
 
