@@ -16,11 +16,18 @@ class Booking < ApplicationRecord
   has_one :invoice, dependent: :nullify
   has_many :booking_product_add_ons, dependent: :destroy
   has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant
-  accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true
+  accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true,
+                                reject_if: proc { |attributes| attributes['quantity'].to_i <= 0 || attributes['product_variant_id'].blank? }
   
   delegate :name, to: :service, prefix: true, allow_nil: true
   delegate :name, to: :staff_member, prefix: true, allow_nil: true
   delegate :name, :email, to: :tenant_customer, prefix: :customer, allow_nil: true
+  
+  def total_charge
+    service_cost = self.service&.price || 0
+    addons_cost = self.booking_product_add_ons.sum(&:total_amount)
+    service_cost + addons_cost
+  end
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)

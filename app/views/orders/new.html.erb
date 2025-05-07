@@ -11,10 +11,12 @@
 
 <h1>Checkout</h1>
 <%= form_with model: @order, local: true do |f| %>
+  <%# Customer information is determined by the current user, so no need for this field
   <div>
     <%= f.label :tenant_customer_id, 'Customer' %>
     <%= f.text_field :tenant_customer_id %>
   </div>
+  %>
   <div>
     <%= f.label :shipping_method_id, 'Shipping Method' %>
     <%= f.collection_select :shipping_method_id, ShippingMethod.where(active: true), :id, :name, prompt: 'Select shipping' %>

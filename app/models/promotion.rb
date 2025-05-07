@@ -31,6 +31,19 @@ class Promotion < ApplicationRecord
     usage_limit.present? && current_usage >= usage_limit
   end
 
+  # Calculate the discount amount based on promotion type and original amount
+  def calculate_discount(original_amount)
+    return 0 unless active && original_amount.to_f > 0
+    
+    if percentage?
+      (original_amount * (discount_value / 100.0)).round(2)
+    elsif fixed_amount?
+      [discount_value, original_amount].min # Don't discount more than the original amount
+    else
+      0
+    end
+  end
+
   # Allow searching/filtering on these attributes in ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
     %w[id name code description discount_type discount_value start_date end_date usage_limit current_usage active business_id created_at updated_at]

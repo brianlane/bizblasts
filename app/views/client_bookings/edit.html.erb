@@ -1,0 +1,77 @@
+<%# app/views/client_bookings/edit.html.erb %>
+<h1>Edit Booking for <%= @booking.service.name %></h1>
+<p>Scheduled for: <%= l @booking.start_time, format: :long %> with <%= @booking.staff_member&.name || 'Any Staff' %></p>
+
+<%= form_with(model: @booking, url: client_booking_path(@booking), method: :patch, local: true) do |form| %>
+  <% if @booking.errors.any? %>
+    <div style="color: red;">
+      <h2><%= pluralize(@booking.errors.count, "error") %> prohibited this booking from being saved:</h2>
+      <ul>
+        <% @booking.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%# Fields client can edit: notes and product add-ons %>
+  <div>
+    <%= form.label :notes %>
+    <%= form.text_area :notes %>
+  </div>
+
+  <%# Product Add-ons Section %>
+  <% if @available_products.any? %>
+    <h2>Modify Optional Products:</h2>
+    <div id="product-add-ons">
+      <%= form.fields_for :booking_product_add_ons do |addOnFields| %>
+        <%# This will render fields for existing add_ons because @booking.booking_product_add_ons are pre-populated %>
+        <% variant = addOnFields.object.product_variant %>
+        <div class="product-variant-selection" style="margin-bottom: 10px; padding: 5px; border: 1px solid #eee;">
+          <strong><%= variant.product.name %> - <%= variant.name %></strong> (<%= number_to_currency variant.final_price %>)
+          <%= addOnFields.hidden_field :product_variant_id %> <%# Keeps association %>
+          <%= addOnFields.hidden_field :id %> <%# Important for updating existing records %>
+          <div>
+            <%= addOnFields.label :quantity, "Quantity:" %>
+            <%# Calculate current stock correctly for editing an existing item %>
+            <% current_item_stock = variant.stock_quantity + addOnFields.object.quantity_was.to_i %>
+            <%= addOnFields.number_field :quantity, min: 0, in: 0..current_item_stock, value: addOnFields.object.quantity %>
+            <small>(Available: <%= current_item_stock %>)</small>
+          </div>
+          <div>
+            <%= addOnFields.check_box :_destroy %>
+            <%= addOnFields.label :_destroy, "Remove this product" %>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Offer new products that are not yet part of the booking %>
+      <h3>Add new products:</h3>
+      <% @available_products.flat_map(&:product_variants).each do |variant| %>
+        <% unless @booking.booking_product_add_ons.any? { |existing_addon| existing_addon.product_variant_id == variant.id } %> 
+          <%= form.fields_for :booking_product_add_ons, @booking.booking_product_add_ons.build(product_variant: variant, quantity: 0), child_index: "new_#{variant.id}" do |newAddOnFields| %>
+            <div class="product-variant-selection" style="margin-bottom: 10px; padding: 5px; border: 1px solid #eee;">
+              <strong><%= variant.product.name %> - <%= variant.name %></strong> (<%= number_to_currency variant.final_price %>)
+              <%= newAddOnFields.hidden_field :product_variant_id, value: variant.id %>
+              <div>
+                <%= newAddOnFields.label :quantity, "Quantity:" %>
+                <%= newAddOnFields.number_field :quantity, min: 0, in: 0..variant.stock_quantity, value: 0 %>
+                <small>(Available: <%= variant.stock_quantity %>)</small>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+    <p><small>Products with quantity 0 will not be added or will be removed if previously added.</small></p>
+  <% else %>
+    <p>No optional products available for this service type or business.</p>
+  <% end %>
+
+  <div>
+    <%= form.submit "Update Booking" %>
+  </div>
+<% end %>
+
+<%= link_to 'Back to Booking Details', client_booking_path(@booking) %> |
+<%= link_to 'Back to My Bookings', client_bookings_path %> 

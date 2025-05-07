@@ -85,32 +85,50 @@ class PromotionManager
     end
     
     # Calculate the discount
-    original_amount = invoice.amount || 0
-    discount_amount = calculate_discount(original_amount, promotion)
+    current_invoice_amount = invoice.amount || 0
     
-    # Apply the discount to the invoice
-    discounted_amount = [original_amount - discount_amount, 0].max
+    # If the current invoice amount is already 0, no discount to apply
+    if current_invoice_amount <= 0
+      discount_amount = 0
+      discounted_amount = 0
+    else  
+      # Use original_amount from the invoice if available, otherwise use the current amount for calculation base
+      calculation_base_amount = invoice.original_amount || current_invoice_amount
+      discount_amount = calculate_discount(calculation_base_amount, promotion)
+      # Apply the discount to the invoice
+      discounted_amount = [current_invoice_amount - discount_amount, 0].max
+    end
     
     # Update invoice and redemption in a transaction
     ApplicationRecord.transaction do
-      invoice.update!(
-        promotion_id: promotion.id,
-        original_amount: original_amount,
-        discount_amount: discount_amount,
-        amount: discounted_amount
-      )
-      
-      # Record the redemption & increment usage count
+      # Record the redemption & increment usage count BEFORE potentially updating invoice amounts
       booking = invoice.respond_to?(:booking) ? invoice.booking : nil
-      create_redemption(promotion, invoice.tenant_customer, booking)
+      redemption = create_redemption(promotion, invoice.tenant_customer, booking)
+
+      # Only update invoice attributes if the current amount was > 0
+      if current_invoice_amount > 0
+        invoice.update!(
+          promotion_id: promotion.id,
+          original_amount: calculation_base_amount,
+          discount_amount: discount_amount,
+          amount: discounted_amount
+        )
+      else
+        # If amount is already 0, just associate the promotion without changing amounts.
+        # Use assign_attributes and save to avoid triggering potential amount recalculations on update! if they exist.
+        invoice.assign_attributes(promotion_id: promotion.id, discount_amount: 0.00, amount: 0.00)
+        invoice.save!(validate: false) # Save without validation
+        # Explicitly reset amounts to 0 after save if the original amount was 0, in case callbacks modified them.
+        invoice.update_columns(discount_amount: 0.00, amount: 0.00, total_amount: 0.00)
+      end
     end
     
     { 
       valid: true, 
       promotion: promotion, 
-      original_amount: original_amount,
-      discount_amount: discount_amount,
-      final_amount: discounted_amount
+      original_amount: calculation_base_amount, # Report the base amount used for potential calculation
+      discount_amount: discount_amount, # Report the discount amount calculated (will be 0 for zero-amount invoice)
+      final_amount: discounted_amount # Report the final amount (will be 0 for zero-amount invoice)
     }
   rescue ActiveRecord::RecordInvalid => e
     { valid: false, error: e.message }

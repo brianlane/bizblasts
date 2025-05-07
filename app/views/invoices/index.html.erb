@@ -1,0 +1,43 @@
+<%# app/views/invoices/index.html.erb %>
+<h1>My Invoices</h1>
+
+<% if @invoices.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Invoice Number</th>
+        <th>Date Created</th>
+        <th>Due Date</th>
+        <th>Status</th>
+        <th>Associated Booking/Order</th>
+        <th>Total Amount</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @invoices.each do |invoice| %>
+        <tr>
+          <td><%= link_to invoice.invoice_number, invoice_path(invoice) %></td>
+          <td><%= l invoice.created_at, format: :short %></td>
+          <td><%= l invoice.due_date, format: :short if invoice.due_date %></td>
+          <td><%= invoice.status.titleize %></td>
+          <td>
+            <% if invoice.booking %>
+              Booking: <%= link_to invoice.booking.service.name, client_booking_path(invoice.booking) %> on <%= l invoice.booking.start_time, format: :short %>
+            <% elsif invoice.lineable_type == 'Order' && invoice.lineable %>
+              Order: <%= link_to invoice.lineable.order_number, order_path(invoice.lineable) %>
+            <% else %>
+              N/A
+            <% end %>
+          </td>
+          <td><%= number_to_currency invoice.total_amount %></td>
+          <td><%= link_to 'View Details', invoice_path(invoice) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>You have no invoices with this business.</p>
+<% end %>
+
+<%= link_to 'Back to Dashboard', root_path %> <%# Adjust link as needed %> 

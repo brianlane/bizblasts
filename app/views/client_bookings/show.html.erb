@@ -24,14 +24,13 @@
 
         <div>
           <h3 class="text-sm font-medium text-gray-500 mb-1">Staff Member</h3>
-          <p class="text-gray-900"><%= @booking.staff_member.name %></p>
+          <p class="text-gray-900"><%= @booking.staff_member&.name || 'Any available' %></p>
         </div>
 
         <div>
           <h3 class="text-sm font-medium text-gray-500 mb-1">Date & Time</h3>
           <p class="text-gray-900">
-            <%= @booking.start_time.strftime("%A, %B %d, %Y") %><br>
-            <%= @booking.start_time.strftime("%I:%M %p") %> - <%= @booking.end_time.strftime("%I:%M %p") %>
+            <%= l @booking.start_time, format: :long %> (until <%= l @booking.end_time, format: :short_time %>)
           </p>
         </div>
 
@@ -51,7 +50,40 @@
       <% if @booking.respond_to?(:notes) && @booking.notes.present? %>
         <div class="mt-6">
           <h3 class="text-sm font-medium text-gray-500 mb-1">Notes</h3>
-          <p class="text-gray-900 whitespace-pre-line"><%= @booking.notes %></p>
+          <p class="text-gray-900 whitespace-pre-line"><%= simple_format @booking.notes %></p>
+        </div>
+      <% end %>
+
+      <% if @booking.booking_product_add_ons.any? %>
+        <div class="mt-6">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Products Added:</h3>
+          <ul class="list-disc pl-6">
+            <% @booking.booking_product_add_ons.each do |add_on| %>
+              <li>
+                <%= add_on.product_variant.product.name %> - <%= add_on.product_variant.name %> (x<%= add_on.quantity %>)
+                at <%= number_to_currency add_on.price %> each.
+                Total: <%= number_to_currency add_on.total_amount %>
+              </li>
+            <% end %>
+          </ul>
+          <p><strong>Total for Products:</strong> <%= number_to_currency @booking.booking_product_add_ons.sum(&:total_amount) %></p>
+        </div>
+      <% end %>
+
+      <% if @booking.invoice %>
+        <div class="mt-6">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Invoice Summary:</h3>
+          <p><strong>Service Cost:</strong> <%= number_to_currency @booking.service.price %></p>
+          <p><strong>Total Items (Service + Products):</strong> <%= number_to_currency @booking.invoice.original_amount %></p>
+          <% if @booking.invoice.discount_amount&.positive? %>
+            <p><strong>Discount Applied:</strong> <%= number_to_currency @booking.invoice.discount_amount %></p>
+            <p><strong>Net Amount (after discount):</strong> <%= number_to_currency @booking.invoice.amount %></p>
+          <% end %>
+          <% if @booking.invoice.tax_amount&.positive? %>
+            <p><strong>Tax:</strong> <%= number_to_currency @booking.invoice.tax_amount %></p>
+          <% end %>
+          <p><strong>Grand Total:</strong> <%= number_to_currency @booking.invoice.total_amount %></p>
+          <p>Invoice Number: <%= @booking.invoice.invoice_number %> (<%= @booking.invoice.status.titleize %>)</p>
         </div>
       <% end %>
     </div>

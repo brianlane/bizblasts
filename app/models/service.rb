@@ -39,6 +39,9 @@ class Service < ApplicationRecord
   end
 
   def available_add_on_products
-    add_on_products.active.where(product_type: [:service, :mixed])
+    # Include standard products as add-ons as well
+    add_on_products.active.where(product_type: [:standard, :service, :mixed])
+                       .includes(:product_variants) # Eager load variants for the form
+                       .where.not(product_variants: { id: nil }) # Ensure they have variants
   end
 end 

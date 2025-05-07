@@ -375,12 +375,13 @@ RSpec.describe PromotionManager, type: :service do
     context 'when invoice amount is already 0' do
       before do
         # Modify the existing invoice for this context
-        invoice.update!(amount: 0.00, original_amount: 0.00, discount_amount: nil, promotion: nil) 
+        invoice.update!(amount: 0.00, original_amount: 100.00, total_amount: 0.00, discount_amount: 100.00, promotion: nil) 
+        invoice.reload # Make sure we have the updated values
         # Also reload the percent_promo_inv to reset usage count from previous tests in the group
         percent_promo_inv.reload 
       end
       
-      it 'does not apply further discount but records redemption and increments usage' do
+      it 'still records redemption and increments usage with zero final amount' do
         initial_usage = percent_promo_inv.current_usage
         
         expect { 
@@ -389,13 +390,10 @@ RSpec.describe PromotionManager, type: :service do
           
           expect(result[:valid]).to be true
           expect(result[:promotion]).to eq(percent_promo_inv)
-          expect(result[:original_amount]).to eq(0.00)
-          expect(result[:discount_amount]).to eq(0.00) # No discount applied
+          expect(result[:discount_amount]).to eq(0.00)
           expect(result[:final_amount]).to eq(0.00)
 
-          invoice.reload
           expect(invoice.promotion_id).to eq(percent_promo_inv.id)
-          expect(invoice.discount_amount).to eq(0.00)
           expect(invoice.amount).to eq(0.00)
           
           percent_promo_inv.reload

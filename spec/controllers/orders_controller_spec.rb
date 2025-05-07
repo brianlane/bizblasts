@@ -6,7 +6,8 @@ RSpec.describe OrdersController, type: :controller do
   let!(:variant) { create(:product_variant, product: product) }
   let!(:shipping_method) { create(:shipping_method, business: business) }
   let!(:tax_rate) { create(:tax_rate, business: business) }
-  let!(:tenant_customer) { create(:tenant_customer, business: business) }
+  let!(:user) { create(:user, email: 'test@example.com') }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email) }
 
   before do
     business.save! unless business.persisted?
@@ -14,6 +15,8 @@ RSpec.describe OrdersController, type: :controller do
     set_tenant(business)
     @request.host = 'testtenant.lvh.me'
     session[:cart] = { variant.id.to_s => 2 }
+    # Sign in the user to handle authentication
+    sign_in user
   end
 
   describe 'GET #new' do
@@ -26,7 +29,7 @@ RSpec.describe OrdersController, type: :controller do
 
   describe 'POST #create' do
     it 'creates order and clears cart' do
-      post :create, params: { order: { tenant_customer_id: tenant_customer.id, shipping_method_id: shipping_method.id, tax_rate_id: tax_rate.id } }
+      post :create, params: { order: { shipping_method_id: shipping_method.id, tax_rate_id: tax_rate.id } }
       expect(response).to redirect_to(assigns(:order))
       expect(session[:cart]).to eq({})
     end

@@ -25,15 +25,128 @@ module BusinessManager
     
     # GET /manage/bookings/:id/edit
     def edit
+      # Load all available products for this business that have variants
+      @available_products = current_business.products.active.includes(:product_variants)
+                                  .where.not(product_variants: { id: nil })
+                                  .order(:name)
     end
     
     # PATCH /manage/bookings/:id
     def update
-      if @booking.update(booking_params)
+      # Debug logging
+      Rails.logger.debug("=" * 50)
+      Rails.logger.debug("Booking update params: #{params.inspect}")
+      Rails.logger.debug("=" * 50)
+      
+      # Process booking_product_add_ons and set price and total amount
+      # This runs before the actual update to ensure all nested attributes have proper values
+      if params[:booking][:booking_product_add_ons_attributes].present?
+        Rails.logger.debug("Processing product add-ons: #{params[:booking][:booking_product_add_ons_attributes].inspect}")
+        
+        params[:booking][:booking_product_add_ons_attributes].each do |key, add_on_params|
+          # Skip if marked for destruction or quantity is 0
+          if add_on_params[:_destroy] == '1' || add_on_params[:quantity].to_i <= 0
+            Rails.logger.debug("Skipping add-on #{key}: destroy=#{add_on_params[:_destroy]}, quantity=#{add_on_params[:quantity]}")
+            next
+          end
+          
+          # Set price if this is a new add-on (no ID) or being updated
+          if add_on_params[:id].blank?
+            # Find the product variant to get its price
+            product_variant = ProductVariant.find_by(id: add_on_params[:product_variant_id])
+            Rails.logger.debug("Found product variant: #{product_variant.inspect}")
+            
+            if product_variant
+              # Create a temporary add-on to calculate prices
+              temp_add_on = BookingProductAddOn.new(
+                product_variant: product_variant,
+                quantity: add_on_params[:quantity]
+              )
+              # Don't need to save, just need the price and total amount
+              temp_add_on.send(:set_price_and_total)
+              
+              # Add these values to the parameters that will be used for update
+              add_on_params[:price] = temp_add_on.price
+              add_on_params[:total_amount] = temp_add_on.total_amount
+              
+              Rails.logger.debug("Set price: #{add_on_params[:price]}, total: #{add_on_params[:total_amount]}")
+            else
+              Rails.logger.error("Product variant not found: #{add_on_params[:product_variant_id]}")
+            end
+          end
+        end
+      else
+        Rails.logger.debug("No product add-ons found in params")
+      end
+      
+      # For debugging, let's try a manual approach to adding product add-ons
+      if params[:booking][:booking_product_add_ons_attributes].present?
+        # Get basic booking attributes
+        @booking.notes = params[:booking][:notes] if params[:booking][:notes].present?
+        
+        # Process each add-on manually
+        params[:booking][:booking_product_add_ons_attributes].each do |key, add_on_params|
+          Rails.logger.debug("Processing add-on: #{key} => #{add_on_params.inspect}")
+          
+          next if add_on_params[:_destroy] == '1' || add_on_params[:quantity].to_i <= 0
+          
+          product_variant_id = add_on_params[:product_variant_id]
+          quantity = add_on_params[:quantity].to_i
+          
+          # Skip if no product variant or quantity is invalid
+          next if product_variant_id.blank? || quantity <= 0
+          
+          # Find or initialize the add-on
+          add_on = if add_on_params[:id].present?
+            @booking.booking_product_add_ons.find_by(id: add_on_params[:id])
+          else
+            @booking.booking_product_add_ons.new(product_variant_id: product_variant_id)
+          end
+          
+          # Skip if product add-on wasn't found
+          next if add_on.nil?
+          
+          # Set attributes
+          add_on.quantity = quantity
+          
+          # Calculate price if not set
+          if add_on.new_record? || add_on.price.nil?
+            temp_add_on = BookingProductAddOn.new(
+              product_variant_id: product_variant_id,
+              quantity: quantity
+            )
+            temp_add_on.send(:set_price_and_total)
+            
+            add_on.price = temp_add_on.price
+            add_on.total_amount = temp_add_on.total_amount
+          end
+          
+          # Save the add-on
+          add_on.save
+          Rails.logger.debug("Saved add-on: #{add_on.inspect}")
+        end
+        
+        # Update the booking status to reflect we saved it
+        @booking.save
+        flash[:notice] = "Booking was successfully updated."
+        redirect_to business_manager_booking_path(@booking) and return
+      end
+      
+      result = @booking.update(booking_params)
+      Rails.logger.debug("Update result: #{result}")
+      Rails.logger.debug("Booking errors: #{@booking.errors.full_messages}") unless result
+      
+      if result
         flash[:notice] = "Booking was successfully updated."
         redirect_to business_manager_booking_path(@booking)
       else
         flash.now[:alert] = "There was a problem updating the booking."
+        
+        # Reload available products for the form
+        @available_products = current_business.products.active.includes(:product_variants)
+                                  .where.not(product_variants: { id: nil })
+                                  .order(:name)
+        
         render :edit
       end
     end
@@ -166,14 +279,21 @@ module BusinessManager
     end
     
     def set_booking
-      @booking = current_business.bookings.find(params[:id])
+      @booking = current_business.bookings.includes(booking_product_add_ons: {product_variant: :product})
+                                .find(params[:id])
     rescue ActiveRecord::RecordNotFound
       flash[:alert] = "Booking not found."
       redirect_to business_manager_bookings_path
     end
     
     def booking_params
-      params.require(:booking).permit(:notes, :staff_member_id)
+      # For complex nested attributes like this, we need to build the permitted parameters
+      # differently to handle dynamic keys
+      params.require(:booking).permit(
+        :notes, 
+        :staff_member_id,
+        booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy, :price, :total_amount]
+      )
     end
     
     # Helper method to generate time slots from basic staff availability

@@ -1,10 +1,33 @@
 class InvoicesController < ApplicationController
+  before_action :authenticate_user!
+  before_action :set_current_tenant
+  before_action :set_tenant_customer
+
   def index
-    # Placeholder for invoices index
+    if @tenant_customer
+      @invoices = @current_tenant.invoices.where(tenant_customer: @tenant_customer)
+                                    .includes(booking: [:service, :booking_product_add_ons])
+                                    .order(created_at: :desc)
+    else
+      @invoices = Invoice.none
+    end
   end
   
   def show
-    # Placeholder for showing an invoice
+    if @tenant_customer
+      @invoice = @current_tenant.invoices.where(tenant_customer: @tenant_customer)
+                                   .includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
+                                             line_items: {product_variant: :product},
+                                             shipping_method: {}, tax_rate: {})
+                                   .find_by(id: params[:id])
+      unless @invoice
+        flash[:alert] = "Invoice not found or does not belong to you for this business."
+        redirect_to invoices_path and return
+      end
+    else
+      flash[:alert] = "Could not identify you as a customer for this business."
+      redirect_to root_path and return
+    end
   end
   
   def new
@@ -25,5 +48,20 @@ class InvoicesController < ApplicationController
   
   def destroy
     # Placeholder for deleting an invoice
+  end
+
+  private
+
+  def set_current_tenant
+    @current_tenant = Business.first 
+    unless @current_tenant
+        Rails.logger.warn "WARN: @current_tenant is not set in InvoicesController."
+    end
+  end
+
+  def set_tenant_customer
+    if @current_tenant && current_user
+      @tenant_customer = TenantCustomer.find_by(business_id: @current_tenant.id, email: current_user.email)
+    end
   end
 end

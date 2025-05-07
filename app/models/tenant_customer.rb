@@ -7,6 +7,7 @@ class TenantCustomer < ApplicationRecord
   belongs_to :business
   has_many :bookings, dependent: :destroy
   has_many :invoices, dependent: :destroy
+  has_many :orders, dependent: :destroy
   
   # Base validations
   validates :name, presence: true
@@ -39,7 +40,7 @@ class TenantCustomer < ApplicationRecord
   
   # Define ransackable associations for ActiveAdmin
   def self.ransackable_associations(auth_object = nil)
-    %w[business bookings invoices]
+    %w[business bookings invoices orders]
   end
   
   # Index for faster lookup during uniqueness validation

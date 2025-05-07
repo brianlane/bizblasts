@@ -1,0 +1,63 @@
+<%# app/views/business_manager/products/show.html.erb %>
+<h1><%= @product.name %></h1>
+
+<p>
+  <strong>Description:</strong> <%= simple_format @product.description %><br>
+  <strong>Category:</strong> <%= @product.category&.name || 'N/A' %><br>
+  <strong>Base Price:</strong> <%= number_to_currency @product.price %><br>
+  <strong>Type:</strong> <%= @product.product_type&.titleize || 'N/A' %><br>
+  <strong>Active:</strong> <%= @product.active ? 'Yes' : 'No' %><br>
+  <strong>Featured:</strong> <%= @product.featured ? 'Yes' : 'No' %><br>
+  <% unless @product.has_variants? %>
+    <strong>Stock:</strong> <%= @product.stock_quantity %><br>
+  <% end %>
+</p>
+
+<h2>Images</h2>
+<% if @product.images.attached? %>
+  <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+    <% @product.images.each do |img| %>
+      <div style="text-align: center;">
+        <%= image_tag img.representation(resize_to_limit: [150, 150]) %><br>
+        <%# Optional: Add primary flag/position info %>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <p>No images attached.</p>
+<% end %>
+
+<h2>Variants</h2>
+<% if @product.product_variants.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>SKU</th>
+        <th>Price Modifier</th>
+        <th>Final Price</th>
+        <th>Stock</th>
+        <th>Options</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @product.product_variants.order(:name).each do |variant| %>
+        <tr>
+          <td><%= variant.name %></td>
+          <td><%= variant.sku || '-' %></td>
+          <td><%= number_to_currency variant.price_modifier %></td>
+          <td><%= number_to_currency variant.final_price %></td>
+          <td><%= variant.stock_quantity %></td>
+          <td><%= variant.options.presence || '-' %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>No variants defined for this product. Base price and stock apply.</p>
+<% end %>
+
+<hr style="margin: 20px 0;">
+
+<%= link_to 'Edit Product', edit_business_manager_product_path(@product) %> |
+<%= link_to 'Back to Products List', business_manager_products_path %> 

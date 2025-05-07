@@ -33,7 +33,7 @@
       <% if @service.staff_members.any? %>
         <div class="mb-4">
           <%= form.label :staff_member_id, "Select Staff Member", class: "block text-gray-700 text-sm font-bold mb-2" %>
-          <%= form.collection_select :staff_member_id, @service.staff_members.active, :id, :name, {}, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+          <%= form.collection_select :staff_member_id, @service.staff_members.active.order(:name), :id, :name, { include_blank: 'Any Staff' }, { required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" } %>
         </div>
       <% else %>
         <p class="text-red-600 mb-4">Note: This service currently has no staff assigned and cannot be booked.</p>
@@ -107,18 +107,26 @@
           <tbody>
             <% @service.available_add_on_products.each do |product| %>
               <% product.product_variants.each do |variant| %>
-                <tr>
-                  <td class="px-4 py-2 align-top"><%= product.name %></td>
-                  <td class="px-4 py-2 align-top"><%= variant.name %></td>
-                  <td class="px-4 py-2 align-top"><%= number_to_currency(variant.final_price) %></td>
-                  <td class="px-4 py-2 align-top"><%= variant.stock_quantity %></td>
-                  <td class="px-4 py-2 align-top">
-                    <% field_name = "booking[booking_product_add_ons_attributes][][quantity]" %>
-                    <% variant_id_field = "booking[booking_product_add_ons_attributes][][product_variant_id]" %>
-                    <input type="number" name="#{field_name}" min="0" max="#{variant.stock_quantity}" value="0" class="w-16 border rounded px-2 py-1" />
-                    <input type="hidden" name="#{variant_id_field}" value="<%= variant.id %>" />
-                  </td>
-                </tr>
+                <%# Find existing add-on for this variant if form is re-rendered with errors %>
+                <% existing_add_on = @booking.booking_product_add_ons.find { |addon| addon.product_variant_id == variant.id } %>
+                <% add_on_object = existing_add_on || @booking.booking_product_add_ons.build(product_variant: variant, quantity: 0) %> 
+                <%# Use a unique child_index for each potential new record %>
+                <%= form.fields_for :booking_product_add_ons, add_on_object, child_index: variant.id do |addOnFields| %> 
+                  <tr>
+                    <td class="px-4 py-2 align-top"><%= product.name %></td>
+                    <td class="px-4 py-2 align-top"><%= variant.name %></td>
+                    <td class="px-4 py-2 align-top"><%= number_to_currency(variant.final_price) %></td>
+                    <td class="px-4 py-2 align-top"><%= variant.stock_quantity %></td>
+                    <td class="px-4 py-2 align-top">
+                      <%= addOnFields.hidden_field :product_variant_id, value: variant.id %>
+                      <div>
+                        <%= addOnFields.label :quantity, "Quantity:" %>
+                        <%= addOnFields.number_field :quantity, min: 0, in: 0..(variant.stock_quantity + (existing_add_on&.quantity || 0) ), value: addOnFields.object.quantity || 0 %>
+                        <small>(Available: <%= variant.stock_quantity + (existing_add_on&.quantity || 0) %>)</small>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
               <% end %>
             <% end %>
           </tbody>

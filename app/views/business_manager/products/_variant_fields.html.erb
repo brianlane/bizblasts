@@ -1,0 +1,29 @@
+<%# app/views/business_manager/products/_variant_fields.html.erb %>
+<div class="nested-fields product-variant-fields" style="border: 1px dashed #ccc; padding: 10px; margin-bottom: 10px;">
+  <div>
+    <%= form.label :name, 'Variant Name' %> (e.g., Large, Red)
+    <%= form.text_field :name, required: true %>
+  </div>
+  <div>
+    <%= form.label :sku, 'SKU' %>
+    <%= form.text_field :sku %>
+  </div>
+  <div>
+    <%= form.label :price_modifier, 'Price Modifier (+/-)' %>
+    <%= form.number_field :price_modifier, step: 0.01 %>
+  </div>
+  <div>
+    <%= form.label :stock_quantity %>
+    <%= form.number_field :stock_quantity, required: true %>
+  </div>
+  <div>
+    <%= form.label :options, 'Options (JSON)' %>
+    <%= form.text_area :options, rows: 2, placeholder: 'e.g., {"size": "Large", "color": "Red"}' %>
+    <small>Enter as valid JSON</small>
+  </div>
+  
+  <%# Link to remove fields dynamically (requires JS) %>
+  <%# Example: link_to_remove_association "Remove Variant", form %>
+  <%= form.hidden_field :_destroy %>
+  <a href="#" class="remove-variant-link">Remove Variant</a> <%# Basic link for JS hook %>
+</div> 

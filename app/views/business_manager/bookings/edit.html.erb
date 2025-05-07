@@ -59,6 +59,87 @@
           </p>
         </div>
         
+        <!-- Product Add-ons Section -->
+        <div class="mb-6">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Product Add-ons</h2>
+          
+          <% if @available_products.present? && @available_products.any? %>
+            <div id="product-add-ons" class="space-y-4">
+              <!-- Existing add-ons -->
+              <% if @booking.booking_product_add_ons.any? %>
+                <h3 class="text-md font-medium text-gray-700 mb-2">Current Products</h3>
+                <div class="space-y-3">
+                  <%= f.fields_for :booking_product_add_ons do |addon_form| %>
+                    <% variant = addon_form.object.product_variant %>
+                    <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                      <div class="flex justify-between">
+                        <div>
+                          <p class="font-medium"><%= variant.product.name %> - <%= variant.name %></p>
+                          <p class="text-sm text-gray-500">Price: <%= number_to_currency(variant.final_price) %></p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                          <%= addon_form.hidden_field :product_variant_id %>
+                          <%= addon_form.hidden_field :id %>
+                          
+                          <div class="flex items-center">
+                            <%= addon_form.label :quantity, "Quantity:", class: "mr-2 text-sm text-gray-700" %>
+                            <% current_item_stock = variant.stock_quantity + addon_form.object.quantity.to_i %>
+                            <%= addon_form.number_field :quantity, 
+                                  min: 0, 
+                                  max: current_item_stock, 
+                                  class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 w-16 sm:text-sm border-gray-300 rounded-md" %>
+                            <span class="text-xs text-gray-500 ml-2">(Available: <%= current_item_stock %>)</span>
+                          </div>
+                          
+                          <div class="flex items-center">
+                            <%= addon_form.check_box :_destroy, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                            <%= addon_form.label :_destroy, "Remove", class: "ml-2 text-sm text-gray-700" %>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+              
+              <!-- Add new products -->
+              <h3 class="text-md font-medium text-gray-700 mt-4 mb-2">Add New Products</h3>
+              <div class="space-y-3">
+                <% @available_products.flat_map(&:product_variants).each do |variant| %>
+                  <% unless @booking.booking_product_add_ons.any? { |addon| addon.product_variant_id == variant.id } %>
+                    <%= f.fields_for :booking_product_add_ons, @booking.booking_product_add_ons.build(product_variant: variant, quantity: 0), child_index: "new_#{variant.id}" do |new_addon_form| %>
+                      <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <div class="flex justify-between">
+                          <div>
+                            <p class="font-medium"><%= variant.product.name %> - <%= variant.name %></p>
+                            <p class="text-sm text-gray-500">Price: <%= number_to_currency(variant.final_price) %></p>
+                          </div>
+                          <div class="flex items-center">
+                            <%= new_addon_form.hidden_field :product_variant_id, value: variant.id %>
+                            
+                            <div class="flex items-center">
+                              <%= new_addon_form.label :quantity, "Quantity:", class: "mr-2 text-sm text-gray-700" %>
+                              <%= new_addon_form.number_field :quantity, 
+                                    min: 0, 
+                                    max: variant.stock_quantity, 
+                                    value: 0,
+                                    class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 w-16 sm:text-sm border-gray-300 rounded-md" %>
+                              <span class="text-xs text-gray-500 ml-2">(Available: <%= variant.stock_quantity %>)</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+                  <% end %>
+                <% end %>
+              </div>
+              <p class="text-sm text-gray-500 mt-2">Products with quantity 0 will not be added or will be removed if previously added.</p>
+            </div>
+          <% else %>
+            <p class="text-gray-500">No products available to add to this booking.</p>
+          <% end %>
+        </div>
+        
         <div class="flex justify-end space-x-3">
           <%= link_to "Cancel", business_manager_booking_path(@booking), class: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
           

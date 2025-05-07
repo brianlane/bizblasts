@@ -1,12 +1,18 @@
+<%# app/views/business/orders/show.html.erb %>
 <h1>Order Details: <%= @order.order_number %></h1>
 
 <p>
+  <strong>Business:</strong> <%= @order.business.name %><br>
+  <strong>Order Number:</strong> <%= @order.order_number %><br>
   <strong>Status:</strong> <%= @order.status.titleize %><br>
   <strong>Type:</strong> <%= @order.order_type.titleize %><br>
   <strong>Date:</strong> <%= l @order.created_at, format: :long %><br>
   <% if @order.tenant_customer %>
     <strong>Customer Name:</strong> <%= @order.tenant_customer.name %><br>
     <strong>Customer Email:</strong> <%= @order.tenant_customer.email %><br>
+    <strong>Customer Phone:</strong> <%= @order.tenant_customer.phone %><br>
+  <% else %>
+    <strong>Customer:</strong> Information not available
   <% end %>
 </p>
 
@@ -17,6 +23,7 @@
       <tr>
         <th>Product</th>
         <th>Variant</th>
+        <th>SKU</th>
         <th>Quantity</th>
         <th>Unit Price</th>
         <th>Total</th>
@@ -27,6 +34,7 @@
         <tr>
           <td><%= item.product_variant.product.name %></td>
           <td><%= item.product_variant.name %></td>
+          <td><%= item.product_variant.sku || 'N/A' %></td>
           <td><%= item.quantity %></td>
           <td><%= number_to_currency item.price %></td>
           <td><%= number_to_currency item.total_amount %></td>
@@ -38,17 +46,17 @@
   <p>This order has no items.</p>
 <% end %>
 
-<h2>Summary:</h2>
+<h2>Financial Summary:</h2>
 <p>
   <strong>Subtotal (Items):</strong> <%= number_to_currency @order.line_items.sum(&:total_amount) %><br>
-  <% if @order.shipping_method %>
-    <strong>Shipping Method:</strong> <%= @order.shipping_method.name %><br>
+  <% if @order.shipping_method || @order.shipping_amount&.positive? %>
+    <strong>Shipping Method:</strong> <%= @order.shipping_method&.name || 'N/A' %><br>
     <strong>Shipping Cost:</strong> <%= number_to_currency @order.shipping_amount %><br>
   <% else %>
-    <strong>Shipping:</strong> Not applicable or not selected<br>
+    <strong>Shipping:</strong> Not applicable or Free<br>
   <% end %>
-  <% if @order.tax_rate %>
-    <strong>Tax (<%= @order.tax_rate.name %> - <%= number_to_percentage(@order.tax_rate.rate * 100, precision: 2) %>):</strong> <%= number_to_currency @order.tax_amount %><br>
+  <% if @order.tax_rate || @order.tax_amount&.positive? %>
+    <strong>Tax (<%= @order.tax_rate&.name || 'Default' %> - <%= number_to_percentage(@order.tax_rate&.rate.to_f * 100, precision: 2) %>):</strong> <%= number_to_currency @order.tax_amount %><br>
   <% else %>
     <strong>Tax:</strong> Not applicable or not calculated<br>
   <% end %>
@@ -70,8 +78,9 @@
 <% end %>
 
 <% if @order.notes.present? %>
-  <h2>Notes:</h2>
-  <p><%= @order.notes %></p>
+  <h2>Order Notes:</h2>
+  <p><%= simple_format @order.notes %></p>
 <% end %>
 
-<%= link_to 'Back to My Orders', orders_path %> 
+<%= link_to 'Back to Business Orders', business_orders_path %>
+<%# Add links for actions like 'Mark as Shipped', 'Cancel Order', 'Print Invoice' if applicable %> 

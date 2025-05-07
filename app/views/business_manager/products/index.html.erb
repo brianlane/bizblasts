@@ -1,0 +1,83 @@
+<%# app/views/business_manager/products/index.html.erb %>
+<h1>Products</h1>
+
+<%= link_to 'New Product', new_business_manager_product_path %>
+
+<% if @products.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Type</th>
+        <th>Active</th>
+        <th>Featured</th>
+        <th>Variants</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @products.each do |product| %>
+        <tr>
+          <td><%= link_to product.name, business_manager_product_path(product) %></td>
+          <td><%= product.category&.name || '-' %></td>
+          <td><%= number_to_currency product.price %></td>
+          <td><%= product.product_type&.titleize || '-' %></td>
+          <td><%= product.active ? 'Yes' : 'No' %></td>
+          <td><%= product.featured ? 'Yes' : 'No' %></td>
+          <td><%= product.product_variants.count %></td>
+          <td>
+            <%= link_to 'Show', business_manager_product_path(product) %> |
+            <%= link_to 'Edit', edit_business_manager_product_path(product) %> |
+            <% if policy(product).destroy? %>
+              <%= link_to 'Delete', 
+                            "#", 
+                            class: "text-red-600 hover:text-red-900 delete-link", 
+                            data: { confirm_message: "Are you sure you want to delete the product '#{product.name}'?", delete_url: business_manager_product_path(product) } %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>You haven't added any products yet.</p>
+<% end %> 
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const deleteLinks = document.querySelectorAll('.delete-link');
+
+  deleteLinks.forEach(link => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const message = link.dataset.confirmMessage;
+      const url = link.dataset.deleteUrl;
+
+      if (confirm(message)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = url;
+        form.style.display = 'none'; // Hide the form
+
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'authenticity_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'delete';
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  });
+});
+</script>
