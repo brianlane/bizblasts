@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Handles business sign-ups (creates User with manager role and associated Business).
-class BusinessPortal::RegistrationsController < Users::RegistrationsController
+class Business::RegistrationsController < Users::RegistrationsController
   before_action :configure_sign_up_params, only: [:create]
 
   # GET /resource/sign_up

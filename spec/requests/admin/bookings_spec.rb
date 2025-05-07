@@ -33,7 +33,7 @@ RSpec.describe "Admin Bookings", type: :request, admin: true do
     it "lists all bookings" do
       get "/admin/bookings"
       expect(response).to be_successful
-      expect(response.body).to include(tenant_customer.name)
+      expect(response.body).to include(ERB::Util.html_escape(tenant_customer.name))
       expect(response.body).to include(service.name)
     end
 
