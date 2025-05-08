@@ -48,6 +48,8 @@ require 'fileutils' # Add FileUtils for directory creation
 require 'warden'
 require 'active_storage_validations/matchers'
 require 'support/kaminari'
+require 'rails-controller-testing'
+Rails::Controller::Testing.install
 # require 'mock_asset_helpers' # REMOVED: Support files are loaded later by RSpec
 
 # Load all support files
@@ -102,6 +104,11 @@ RSpec.configure do |config|
 
   # Include Active Storage Validations matchers
   config.include ActiveStorageValidations::Matchers, type: :model
+
+  # Include rails-controller-testing helpers for assigns and render_template
+  config.include Rails::Controller::Testing::TestProcess, type: :controller
+  config.include Rails::Controller::Testing::TemplateAssertions, type: :controller
+  config.include Rails::Controller::Testing::Integration, type: :request
 
   # == DatabaseCleaner Configuration for Parallel Tests ==
   config.before(:suite) do
