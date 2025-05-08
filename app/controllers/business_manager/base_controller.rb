@@ -18,6 +18,10 @@ class BusinessManager::BaseController < ApplicationController
   private
 
   def authorize_access_to_business_manager
+    # Redirect to login if no user is signed in
+    unless current_user
+      redirect_to new_user_session_path and return
+    end
     # Ensure we actually have a business context before authorizing
     unless current_business
       Rails.logger.warn "[BusinessManager Auth] No current_business found. Redirecting to root."

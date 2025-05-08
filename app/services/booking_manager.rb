@@ -210,7 +210,8 @@ class BookingManager
         # end
       end
       
-      true # Return true on success
+      # Return true on successful cancellation
+      true
     end
   rescue ActiveRecord::RecordInvalid => e
     # Log error and return false if updates fail
