@@ -1,0 +1,15 @@
+// Show a confirmation message
+const flash = document.createElement('div');
+flash.className = 'flash-message flash-notice mb-4 p-3 rounded bg-green-100 border border-green-400 text-green-700';
+flash.innerHTML = 'Item added to cart. <a href="/cart" class="text-blue-600 underline">View Cart</a>';
+flash.style.position = 'fixed';
+flash.style.top = '10px';
+flash.style.right = '10px';
+flash.style.zIndex = '1000';
+
+document.body.appendChild(flash);
+
+// Auto remove after 3 seconds
+setTimeout(() => {
+  flash.remove();
+}, 3000); 

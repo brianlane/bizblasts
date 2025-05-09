@@ -1,77 +1,116 @@
-<h1>Order Details: <%= @order.order_number %></h1>
+<div class="bg-white p-6 rounded-lg shadow mb-4">
+  <h1 class="text-2xl font-bold mb-4">Order Details: <%= @order.order_number %></h1>
 
-<p>
-  <strong>Status:</strong> <%= @order.status.titleize %><br>
-  <strong>Type:</strong> <%= @order.order_type.titleize %><br>
-  <strong>Date:</strong> <%= l @order.created_at, format: :long %><br>
-  <% if @order.tenant_customer %>
-    <strong>Customer Name:</strong> <%= @order.tenant_customer.name %><br>
-    <strong>Customer Email:</strong> <%= @order.tenant_customer.email %><br>
-  <% end %>
-</p>
-
-<h2>Items:</h2>
-<% if @order.line_items.any? %>
-  <table>
-    <thead>
-      <tr>
-        <th>Product</th>
-        <th>Variant</th>
-        <th>Quantity</th>
-        <th>Unit Price</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @order.line_items.each do |item| %>
-        <tr>
-          <td><%= item.product_variant.product.name %></td>
-          <td><%= item.product_variant.name %></td>
-          <td><%= item.quantity %></td>
-          <td><%= number_to_currency item.price %></td>
-          <td><%= number_to_currency item.total_amount %></td>
-        </tr>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div>
+      <div class="mb-4">
+        <span class="font-semibold">Status:</span> 
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+          <%= @order.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' %>
+          <%= @order.status == 'processing' ? 'bg-blue-100 text-blue-800' : '' %>
+          <%= @order.status == 'shipped' ? 'bg-green-100 text-green-800' : '' %>
+          <%= @order.status == 'cancelled' ? 'bg-red-100 text-red-800' : '' %>
+          <%= @order.status == 'completed' ? 'bg-green-100 text-green-800' : '' %>
+        ">
+          <%= @order.status.titleize %>
+        </span>
+      </div>
+      <p class="mb-2"><span class="font-semibold">Type:</span> <%= @order.order_type.titleize %></p>
+      <p class="mb-2"><span class="font-semibold">Date:</span> <%= l @order.created_at, format: :long %></p>
+      <% if @order.tenant_customer %>
+        <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @order.tenant_customer.name %></p>
+        <p class="mb-2"><span class="font-semibold">Customer Email:</span> <%= @order.tenant_customer.email %></p>
       <% end %>
-    </tbody>
-  </table>
-<% else %>
-  <p>This order has no items.</p>
-<% end %>
+    </div>
 
-<h2>Summary:</h2>
-<p>
-  <strong>Subtotal (Items):</strong> <%= number_to_currency @order.line_items.sum(&:total_amount) %><br>
-  <% if @order.shipping_method %>
-    <strong>Shipping Method:</strong> <%= @order.shipping_method.name %><br>
-    <strong>Shipping Cost:</strong> <%= number_to_currency @order.shipping_amount %><br>
+    <% if !request.subdomain.present? || request.subdomain == 'www' %>
+      <% if @order.business %>
+        <div>
+          <h3 class="text-lg font-semibold mb-2">Business Information</h3>
+          <p class="mb-2"><span class="font-semibold">Business Name:</span> <%= @order.business.name %></p>
+          <% if @order.business.industry.present? %>
+            <p class="mb-2"><span class="font-semibold">Industry:</span> <%= @order.business.industry %></p>
+          <% end %>
+          <% if @order.business.hostname.present? %>
+            <p class="mb-2">
+              <%= link_to "Visit Business Website", "http://#{@order.business.hostname}.#{request.domain}:#{request.port}", 
+                  class: "text-blue-600 hover:underline", target: "_blank" %>
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-4">Items</h2>
+  <% if @order.line_items.any? %>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variant</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% @order.line_items.each do |item| %>
+            <tr>
+              <td class="px-6 py-4 whitespace-nowrap"><%= item.product_variant.product.name %></td>
+              <td class="px-6 py-4 whitespace-nowrap"><%= item.product_variant.name %></td>
+              <td class="px-6 py-4 whitespace-nowrap"><%= item.quantity %></td>
+              <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency item.price %></td>
+              <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency item.total_amount %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% else %>
-    <strong>Shipping:</strong> Not applicable or not selected<br>
+    <p class="text-gray-700">This order has no items.</p>
   <% end %>
-  <% if @order.tax_rate %>
-    <strong>Tax (<%= @order.tax_rate.name %> - <%= number_to_percentage(@order.tax_rate.rate * 100, precision: 2) %>):</strong> <%= number_to_currency @order.tax_amount %><br>
-  <% else %>
-    <strong>Tax:</strong> Not applicable or not calculated<br>
+
+  <h2 class="text-xl font-semibold mt-6 mb-4">Summary</h2>
+  <div class="bg-gray-50 p-4 rounded">
+    <p class="mb-2"><span class="font-semibold">Subtotal (Items):</span> <%= number_to_currency @order.line_items.sum(&:total_amount) %></p>
+    <% if @order.shipping_method %>
+      <p class="mb-2"><span class="font-semibold">Shipping Method:</span> <%= @order.shipping_method.name %></p>
+      <p class="mb-2"><span class="font-semibold">Shipping Cost:</span> <%= number_to_currency @order.shipping_amount %></p>
+    <% else %>
+      <p class="mb-2"><span class="font-semibold">Shipping:</span> Not applicable or not selected</p>
+    <% end %>
+    <% if @order.tax_rate %>
+      <p class="mb-2"><span class="font-semibold">Tax (<%= @order.tax_rate.name %> - <%= number_to_percentage(@order.tax_rate.rate * 100, precision: 2) %>):</span> <%= number_to_currency @order.tax_amount %></p>
+    <% else %>
+      <p class="mb-2"><span class="font-semibold">Tax:</span> Not applicable or not calculated</p>
+    <% end %>
+    <p class="text-lg font-bold"><span>Total Amount:</span> <%= number_to_currency @order.total_amount %></p>
+  </div>
+
+  <% if @order.shipping_address.present? %>
+    <h2 class="text-xl font-semibold mt-6 mb-2">Shipping Address</h2>
+    <div class="bg-gray-50 p-4 rounded mb-4">
+      <%= simple_format @order.shipping_address %>
+    </div>
   <% end %>
-  <strong>Total Amount:</strong> <%= number_to_currency @order.total_amount %>
-</p>
 
-<% if @order.shipping_address.present? %>
-  <h2>Shipping Address:</h2>
-  <address>
-    <%= simple_format @order.shipping_address %>
-  </address>
-<% end %>
+  <% if @order.billing_address.present? %>
+    <h2 class="text-xl font-semibold mb-2">Billing Address</h2>
+    <div class="bg-gray-50 p-4 rounded mb-4">
+      <%= simple_format @order.billing_address %>
+    </div>
+  <% end %>
 
-<% if @order.billing_address.present? %>
-  <h2>Billing Address:</h2>
-  <address>
-    <%= simple_format @order.billing_address %>
-  </address>
-<% end %>
+  <% if @order.notes.present? %>
+    <h2 class="text-xl font-semibold mb-2">Notes</h2>
+    <div class="bg-gray-50 p-4 rounded mb-4">
+      <%= @order.notes %>
+    </div>
+  <% end %>
 
-<% if @order.notes.present? %>
-  <h2>Notes:</h2>
-  <p><%= @order.notes %></p>
-<% end %>
-
-<%= link_to 'Back to My Orders', orders_path %> 
+  <div class="mt-6">
+    <%= link_to 'Back to My Orders', orders_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
+  </div>
+</div> 

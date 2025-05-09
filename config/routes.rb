@@ -42,6 +42,8 @@ Rails.application.routes.draw do
       get '/dashboard', to: 'dashboard#index', as: :dashboard
       resources :services
       resources :products
+      resources :shipping_methods
+      resources :tax_rates
       resources :staff_members do
         member do
           get 'manage_availability'
@@ -94,7 +96,7 @@ Rails.application.routes.draw do
       resources :products, only: [:index, :show]
       resource :cart, only: [:show], controller: 'carts'
       resources :line_items, only: [:create, :update, :destroy]
-      resources :orders, only: [:new, :create, :show, :index]
+      resources :orders, only: [:new, :create, :show, :index], as: :tenant_orders
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
     end

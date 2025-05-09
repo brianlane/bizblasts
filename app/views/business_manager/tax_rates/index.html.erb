@@ -1,0 +1,57 @@
+<div class="container mx-auto mt-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Tax Rates</h1>
+    <%= link_to 'Add Tax Rate', new_business_manager_tax_rate_path, class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+  </div>
+
+  <% if notice %>
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+      <%= notice %>
+    </div>
+  <% end %>
+
+  <div class="bg-white shadow-md rounded my-6">
+    <table class="min-w-full bg-white">
+      <thead>
+        <tr class="border-b">
+          <th class="text-left py-3 px-4">Name</th>
+          <th class="text-left py-3 px-4">Rate</th>
+          <th class="text-left py-3 px-4">Region</th>
+          <th class="text-left py-3 px-4">Applies to Shipping</th>
+          <th class="text-left py-3 px-4">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @tax_rates.any? %>
+          <% @tax_rates.each do |tax_rate| %>
+            <tr class="border-b hover:bg-gray-100">
+              <td class="py-3 px-4"><%= tax_rate.name %></td>
+              <td class="py-3 px-4"><%= number_to_percentage(tax_rate.rate * 100, precision: 2) %></td>
+              <td class="py-3 px-4"><%= tax_rate.region || 'N/A' %></td>
+              <td class="py-3 px-4"><%= tax_rate.applies_to_shipping? ? 'Yes' : 'No' %></td>
+              <td class="py-3 px-4">
+                <%= link_to 'Edit', edit_business_manager_tax_rate_path(tax_rate), class: 'text-blue-500 hover:text-blue-700 mr-2' %>
+                <%= link_to 'Delete', business_manager_tax_rate_path(tax_rate), 
+                      data: { turbo_method: :delete, turbo_confirm: 'Are you sure? This cannot be undone.' },
+                      class: 'text-red-500 hover:text-red-700' %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="5" class="py-4 px-4 text-center text-gray-500">No tax rates found. Add one to get started.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="mt-8">
+    <h2 class="text-xl font-bold mb-4">Tax Rates and Customer Checkout</h2>
+    <div class="bg-blue-50 p-4 rounded">
+      <p class="mb-2">Tax rates are automatically applied to orders based on your business settings.</p>
+      <p>The first tax rate in this list is used as the default.</p>
+      <p class="mt-2 text-gray-600 text-sm">Customers do not need to select a tax rate during checkout.</p>
+    </div>
+  </div>
+</div> 

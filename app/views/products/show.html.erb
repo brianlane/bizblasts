@@ -15,7 +15,7 @@
         Price: <%= number_to_currency(@product.price) %>
       </p>
       <% if @product.product_variants.any? %>
-        <%= form_with url: line_items_path, method: :post, local: true do |f| %>
+        <%= form_with url: "/line_items", method: :post do |f| %>
           <div>
             <label for="variant">Choose a variant:</label>
             <select name="product_variant_id" id="variant">

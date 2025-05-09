@@ -1,0 +1,40 @@
+<%= form_with(model: [:business_manager, shipping_method], local: true, class: "space-y-4") do |form| %>
+  <% if shipping_method.errors.any? %>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      <h2 class="text-lg font-bold mb-2"><%= pluralize(shipping_method.errors.count, "error") %> prohibited this shipping method from being saved:</h2>
+      <ul class="list-disc ml-5">
+        <% shipping_method.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%= form.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
+    <p class="text-gray-600 text-xs italic mt-1">Example: Standard Shipping, Express Delivery, etc.</p>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :cost, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <div class="relative">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-600">$</span>
+      <%= form.number_field :cost, step: '0.01', min: 0, class: "shadow appearance-none border rounded w-full py-2 px-3 pl-7 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
+    </div>
+    <p class="text-gray-600 text-xs italic mt-1">The shipping cost that will be added to customer orders.</p>
+  </div>
+
+  <div class="mb-4">
+    <div class="flex items-center">
+      <%= form.check_box :active, class: "mr-2" %>
+      <%= form.label :active, "Active (visible to customers)", class: "text-gray-700 text-sm font-bold" %>
+    </div>
+    <p class="text-gray-600 text-xs italic mt-1">Only active shipping methods will be shown to customers during checkout.</p>
+  </div>
+
+  <div class="flex items-center justify-between mt-8">
+    <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+    <%= link_to 'Cancel', business_manager_shipping_methods_path, class: "text-blue-500 hover:text-blue-800" %>
+  </div>
+<% end %> 

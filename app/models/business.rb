@@ -41,6 +41,8 @@ class Business < ApplicationRecord
   has_many :products, dependent: :destroy
   has_many :orders, dependent: :destroy
   has_many :categories, dependent: :destroy
+  has_many :shipping_methods, dependent: :destroy
+  has_many :tax_rates, dependent: :destroy
   
   # For Client relationships (many-to-many with User)
   has_many :client_businesses
@@ -120,6 +122,11 @@ class Business < ApplicationRecord
   
   def today_bookings
     bookings.today
+  end
+  
+  # Get the default tax rate for this business
+  def default_tax_rate
+    tax_rates.first
   end
   
   # Define which attributes are allowed to be searched with Ransack

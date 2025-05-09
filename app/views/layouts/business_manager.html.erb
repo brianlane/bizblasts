@@ -63,10 +63,25 @@
               <i class="fas fa-concierge-bell mr-2"></i> Services
             <% end %>
           </li>
-          <li>
+          <li class="mb-2">
             <%= link_to business_manager_products_path, class: 'block px-4 py-2 hover:bg-gray-700 rounded' do %>
               <i class="fas fa-box mr-2"></i> Products
             <% end %>
+          </li>
+          <li class="mb-2">
+            <span class="block px-4 py-2 text-gray-400">Store Settings</span>
+            <ul class="ml-4">
+              <li>
+                <%= link_to business_manager_shipping_methods_path, class: 'block py-1 px-2 rounded hover:bg-gray-700 text-sm' do %>
+                  <i class="fas fa-truck mr-1"></i> Shipping Methods
+                <% end %>
+              </li>
+              <li>
+                <%= link_to business_manager_tax_rates_path, class: 'block py-1 px-2 rounded hover:bg-gray-700 text-sm' do %>
+                  <i class="fas fa-percent mr-1"></i> Tax Rates
+                <% end %>
+              </li>
+            </ul>
           </li>
           <li>
             <%= link_to '#', class: 'block px-4 py-2 hover:bg-gray-700 rounded' do %>
