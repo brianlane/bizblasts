@@ -4,16 +4,40 @@ class LineItemsController < ApplicationController
 
   def create
     CartManager.new(session).add(params[:product_variant_id], params[:quantity].to_i)
-    head :ok
+    
+    respond_to do |format|
+      format.html { 
+        flash[:notice] = "Item added to cart."
+        redirect_to cart_path 
+      }
+      format.json { head :ok }
+      format.js { head :ok }
+    end
   end
 
   def update
     CartManager.new(session).update(params[:id], params[:quantity].to_i)
-    head :ok
+    
+    respond_to do |format|
+      format.html { 
+        flash[:notice] = "Quantity updated."
+        redirect_to cart_path 
+      }
+      format.json { head :ok }
+      format.js { head :ok }
+    end
   end
 
   def destroy
     CartManager.new(session).remove(params[:id])
-    head :ok
+    
+    respond_to do |format|
+      format.html { 
+        flash[:notice] = "Item removed from cart."
+        redirect_to cart_path 
+      }
+      format.json { head :ok }
+      format.js { head :ok }
+    end
   end
 end 

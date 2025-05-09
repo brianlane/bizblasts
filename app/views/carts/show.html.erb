@@ -17,7 +17,12 @@
         <tr>
           <td><%= variant.product.name %></td>
           <td><%= variant.name %></td>
-          <td><%= quantity %></td>
+          <td>
+            <%= form_with(url: line_item_path(variant.id), method: :patch, class: 'quantity-form', data: { remote: true }) do |f| %>
+              <%= f.number_field :quantity, value: quantity, min: 1, class: 'quantity-input' %>
+              <%= f.submit 'Update', class: 'update-btn' %>
+            <% end %>
+          </td>
           <td><%= number_to_currency(variant.final_price) %></td>
           <td><%= number_to_currency(variant.final_price * quantity) %></td>
           <td>
@@ -29,7 +34,7 @@
     </tbody>
   </table>
   <h3>Subtotal: <%= number_to_currency(total) %></h3>
-  <%= link_to 'Checkout', new_order_path, class: 'btn btn-primary' %>
+  <%= link_to 'Checkout', new_tenant_order_path, class: 'btn btn-primary' %>
 <% else %>
   <p>Your cart is empty.</p>
 <% end %> 

@@ -11,24 +11,19 @@
 
 <h1>Checkout</h1>
 <%= form_with model: @order, local: true do |f| %>
-  <%# Customer information is determined by the current user, so no need for this field
-  <div>
-    <%= f.label :tenant_customer_id, 'Customer' %>
-    <%= f.text_field :tenant_customer_id %>
-  </div>
-  %>
   <div>
     <%= f.label :shipping_method_id, 'Shipping Method' %>
     <%= f.collection_select :shipping_method_id, ShippingMethod.where(active: true), :id, :name, prompt: 'Select shipping' %>
   </div>
+  
+  <%# Hidden fields for automatic assignment %>
+  <%= f.hidden_field :tax_rate_id %>
+  
   <div>
-    <%= f.label :tax_rate_id, 'Tax Rate' %>
-    <%= f.collection_select :tax_rate_id, TaxRate.all, :id, :name, prompt: 'Select tax rate' %>
+    <%= f.label :notes, 'Order Notes (Optional)' %>
+    <%= f.text_area :notes, placeholder: 'Add any special instructions for this order' %>
   </div>
-  <div>
-    <%= f.label :notes, 'Order Notes' %>
-    <%= f.text_area :notes %>
-  </div>
+  
   <h3>Order Items</h3>
   <table>
     <thead>

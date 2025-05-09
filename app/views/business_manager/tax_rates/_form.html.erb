@@ -1,0 +1,46 @@
+<%= form_with(model: [:business_manager, tax_rate], local: true, class: "space-y-4") do |form| %>
+  <% if tax_rate.errors.any? %>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      <h2 class="text-lg font-bold mb-2"><%= pluralize(tax_rate.errors.count, "error") %> prohibited this tax rate from being saved:</h2>
+      <ul class="list-disc ml-5">
+        <% tax_rate.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%= form.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
+    <p class="text-gray-600 text-xs italic mt-1">Example: Standard Tax, Local Sales Tax, etc.</p>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :rate, "Rate (%)", class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <div class="relative">
+      <%= form.number_field :rate, step: '0.001', min: 0, max: 1, value: (tax_rate.rate ? tax_rate.rate * 100 : nil), class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
+      <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600">%</span>
+    </div>
+    <p class="text-gray-600 text-xs italic mt-1">Enter as a percentage (e.g., 8 for 8%).</p>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :region, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :region, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    <p class="text-gray-600 text-xs italic mt-1">Optional. The region this tax applies to (e.g., State, County, etc.)</p>
+  </div>
+
+  <div class="mb-4">
+    <div class="flex items-center">
+      <%= form.check_box :applies_to_shipping, class: "mr-2" %>
+      <%= form.label :applies_to_shipping, "Apply tax to shipping costs", class: "text-gray-700 text-sm font-bold" %>
+    </div>
+    <p class="text-gray-600 text-xs italic mt-1">If checked, this tax will be applied to shipping charges as well as product prices.</p>
+  </div>
+
+  <div class="flex items-center justify-between mt-8">
+    <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+    <%= link_to 'Cancel', business_manager_tax_rates_path, class: "text-blue-500 hover:text-blue-800" %>
+  </div>
+<% end %> 

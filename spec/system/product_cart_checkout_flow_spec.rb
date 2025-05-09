@@ -37,11 +37,10 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       click_button 'Add to Cart'
       visit cart_path
       expect(page).to have_content('Test Product')
-      expect(page).to have_content('2')
+      expect(page).to have_field(class: 'quantity-input', with: '2', type: 'number')
       click_link 'Checkout'
       # No need to fill in customer ID since it's determined by the current_user
       select 'Standard', from: 'Shipping Method'
-      select 'Sales Tax', from: 'Tax Rate'
       click_button 'Place Order'
       
       # Check for order details instead of "Order Confirmation" heading
@@ -71,7 +70,6 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       click_link 'Checkout'
       # No need to fill in customer ID
       select 'Standard', from: 'Shipping Method'
-      select 'Sales Tax', from: 'Tax Rate'
       click_button 'Place Order'
       expect(page).to have_content('Insufficient stock')
     end

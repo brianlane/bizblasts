@@ -15,7 +15,7 @@ RSpec.describe LineItemsController, type: :controller do
   describe 'POST #create' do
     it 'adds item to cart and returns success' do
       post :create, params: { product_variant_id: variant.id, quantity: 2 }
-      expect(response).to be_successful
+      expect(response).to redirect_to(cart_path)
       expect(session[:cart][variant.id.to_s]).to eq(2)
     end
   end
@@ -24,12 +24,12 @@ RSpec.describe LineItemsController, type: :controller do
     before { session[:cart] = { variant.id.to_s => 2 } }
     it 'updates item quantity in cart' do
       patch :update, params: { id: variant.id, quantity: 5 }
-      expect(response).to be_successful
+      expect(response).to redirect_to(cart_path)
       expect(session[:cart][variant.id.to_s]).to eq(5)
     end
     it 'removes item if quantity is zero' do
       patch :update, params: { id: variant.id, quantity: 0 }
-      expect(response).to be_successful
+      expect(response).to redirect_to(cart_path)
       expect(session[:cart][variant.id.to_s]).to be_nil
     end
   end
@@ -38,7 +38,7 @@ RSpec.describe LineItemsController, type: :controller do
     before { session[:cart] = { variant.id.to_s => 2 } }
     it 'removes item from cart' do
       delete :destroy, params: { id: variant.id }
-      expect(response).to be_successful
+      expect(response).to redirect_to(cart_path)
       expect(session[:cart][variant.id.to_s]).to be_nil
     end
   end

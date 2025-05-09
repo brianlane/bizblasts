@@ -1,0 +1,58 @@
+<div class="container mx-auto mt-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Shipping Methods</h1>
+    <%= link_to 'Add Shipping Method', new_business_manager_shipping_method_path, class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+  </div>
+
+  <% if notice %>
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+      <%= notice %>
+    </div>
+  <% end %>
+
+  <div class="bg-white shadow-md rounded my-6">
+    <table class="min-w-full bg-white">
+      <thead>
+        <tr class="border-b">
+          <th class="text-left py-3 px-4">Name</th>
+          <th class="text-left py-3 px-4">Cost</th>
+          <th class="text-left py-3 px-4">Status</th>
+          <th class="text-left py-3 px-4">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @shipping_methods.any? %>
+          <% @shipping_methods.each do |shipping_method| %>
+            <tr class="border-b hover:bg-gray-100">
+              <td class="py-3 px-4"><%= shipping_method.name %></td>
+              <td class="py-3 px-4"><%= number_to_currency(shipping_method.cost) %></td>
+              <td class="py-3 px-4">
+                <span class="<%= shipping_method.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %> py-1 px-2 rounded-full text-xs">
+                  <%= shipping_method.active? ? 'Active' : 'Inactive' %>
+                </span>
+              </td>
+              <td class="py-3 px-4">
+                <%= link_to 'Edit', edit_business_manager_shipping_method_path(shipping_method), class: 'text-blue-500 hover:text-blue-700 mr-2' %>
+                <%= link_to 'Delete', business_manager_shipping_method_path(shipping_method), 
+                      data: { turbo_method: :delete, turbo_confirm: 'Are you sure? This cannot be undone.' },
+                      class: 'text-red-500 hover:text-red-700' %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="4" class="py-4 px-4 text-center text-gray-500">No shipping methods found. Add one to get started.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="mt-8">
+    <h2 class="text-xl font-bold mb-4">Shipping Methods and Customer Checkout</h2>
+    <div class="bg-blue-50 p-4 rounded">
+      <p class="mb-2">Customers will only see active shipping methods during checkout.</p>
+      <p>The first method in the list is automatically selected as the default option.</p>
+    </div>
+  </div>
+</div> 
