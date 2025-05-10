@@ -3,11 +3,22 @@ class Business::OrdersController < Business::BaseController # Assuming you have 
   # The :set_current_business before_action should be in BusinessPortal::BaseController and set @current_business
 
   def index
-    @orders = @current_business.orders.order(created_at: :desc).includes(:tenant_customer, :line_items)
-    # Add any filtering/pagination if needed, e.g., using Ransack or Kaminari
-    # Example with Ransack if you set it up for business users:
-    # @q = @current_business.orders.ransack(params[:q])
-    # @orders = @q.result.order(created_at: :desc).includes(:tenant_customer, :line_items)
+    @orders = @current_business.orders.includes(:tenant_customer, :line_items)
+    
+    # Handle status filter
+    if params[:status].present?
+      @status_filter = params[:status]
+      @orders = @orders.where(status: @status_filter)
+    end
+    
+    # Handle type filter
+    if params[:type].present? && Order.order_types.key?(params[:type])
+      @type_filter = params[:type]
+      @orders = @orders.where(order_type: Order.order_types[@type_filter])
+    end
+    
+    # Sort by most recent
+    @orders = @orders.order(created_at: :desc)
   end
 
   def show

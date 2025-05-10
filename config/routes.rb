@@ -69,6 +69,14 @@ Rails.application.routes.draw do
 
       # Allow staff/manager to create bookings under subdomain
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
+      
+      # Business orders management
+      resources :orders, only: [:index, :show]
+    end
+
+    # Business-specific routes for business owners
+    namespace :business do
+      resources :orders, only: [:index, :show]
     end
 
     scope module: 'public' do
