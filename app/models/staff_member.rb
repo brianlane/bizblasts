@@ -102,6 +102,33 @@ class StaffMember < ApplicationRecord
     %w[business bookings services user services_staff_members]
   end
   
+  def hours_booked_this_month
+    start_of_month = Time.current.beginning_of_month
+    end_of_month = Time.current.end_of_month
+    bookings_in_month = bookings.where(start_time: start_of_month..end_of_month)
+                              .where(status: [:confirmed, :completed])
+    bookings_in_month.sum do |booking|
+      if booking.start_time && booking.end_time
+        ((booking.end_time - booking.start_time) / 1.hour).to_f
+      else
+        0.0
+      end
+    end
+  end
+
+  def hours_completed_this_month
+    start_of_month = Time.current.beginning_of_month
+    end_of_month = Time.current.end_of_month
+    completed_bookings = bookings.where(start_time: start_of_month..end_of_month, status: :completed)
+    completed_bookings.sum do |booking|
+      if booking.start_time && booking.end_time
+        ((booking.end_time - booking.start_time) / 1.hour).to_f
+      else
+        0.0
+      end
+    end
+  end
+  
   private
   
   def process_availability

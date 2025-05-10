@@ -14,6 +14,8 @@
           <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Position</th>
           <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
           <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Services</th>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Booked Hours (This Month)</th>
+          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Completed Hours (This Month)</th>
           <th class="px-6 py-3 border-b border-gray-200"></th>
         </tr>
       </thead>
@@ -25,6 +27,8 @@
             <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.position %></td>
             <td class="px-6 py-4 whitespace-nowrap"><%= boolean_status_tag staff_member.active %></td>
             <td class="px-6 py-4"><%= staff_member.services.map(&:name).join(", ").presence || "-" %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.hours_booked_this_month.round(2) %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.hours_completed_this_month.round(2) %></td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <% if policy(staff_member).edit? %>
                 <%= link_to 'Edit', edit_business_manager_staff_member_path(staff_member), class: "text-indigo-600 hover:text-indigo-900 mr-3" %>
