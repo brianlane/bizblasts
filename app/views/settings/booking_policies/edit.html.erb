@@ -1,0 +1,84 @@
+<%# frozen_string_literal: true %>
+<div class="container mx-auto px-4 py-8">
+  <%= link_to "← Back to Settings", business_manager_settings_path, class: "text-blue-600 hover:underline mb-4 inline-block" %>
+
+  <h1 class="text-2xl font-semibold text-gray-800 mb-6">Edit Booking Policies</h1>
+
+  <%= form_with(model: [:settings, @booking_policy], url: settings_booking_policy_path, method: :patch, class: "space-y-8 divide-y divide-gray-200") do |form| %>
+    <div class="space-y-8 divide-y divide-gray-200 sm:space-y-5">
+      <div>
+        <div>
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Booking Rules</h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            Define rules for cancellations, buffer times, and booking windows.
+          </p>
+        </div>
+
+        <div class="mt-6 sm:mt-5 space-y-6 sm:space-y-5">
+          <%# Cancellation Window %>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+            <%= form.label :cancellation_window_mins, "Cancellation Window (Minutes)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
+            <div class="mt-1 sm:mt-0 sm:col-span-2">
+              <%= form.number_field :cancellation_window_mins, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 1440 (for 24 hours)" %>
+              <p class="mt-2 text-sm text-gray-500">Minimum time before booking start that a cancellation is allowed (in minutes). Leave blank for no restriction.</p>
+            </div>
+          </div>
+
+          <%# Buffer Time %>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+            <%= form.label :buffer_time_mins, "Buffer Time (Minutes)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
+            <div class="mt-1 sm:mt-0 sm:col-span-2">
+              <%= form.number_field :buffer_time_mins, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 15" %>
+              <p class="mt-2 text-sm text-gray-500">Time buffer automatically added after each booking (in minutes). Leave blank for no buffer.</p>
+            </div>
+          </div>
+
+          <%# Max Daily Bookings %>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+            <%= form.label :max_daily_bookings, "Max Daily Bookings", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
+            <div class="mt-1 sm:mt-0 sm:col-span-2">
+              <%= form.number_field :max_daily_bookings, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 10" %>
+              <p class="mt-2 text-sm text-gray-500">Maximum number of bookings allowed per day (per staff member?). Leave blank for unlimited.</p> <%# TODO: Clarify scope - per staff or total? %>
+            </div>
+          </div>
+
+          <%# Max Advance Days %>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+            <%= form.label :max_advance_days, "Max Advance Booking (Days)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
+            <div class="mt-1 sm:mt-0 sm:col-span-2">
+              <%= form.number_field :max_advance_days, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 90" %>
+              <p class="mt-2 text-sm text-gray-500">How far in advance customers can book (in days). Leave blank for no limit.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-8 space-y-6 sm:pt-10 sm:space-y-5">
+        <div>
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Intake Fields</h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            Define custom fields to collect information during booking (using JSON format).
+          </p>
+        </div>
+        <div class="space-y-6 sm:space-y-5">
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+            <%= form.label :intake_fields, "Custom Fields (JSON)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
+            <div class="mt-1 sm:mt-0 sm:col-span-2">
+              <%# Convert JSON object back to string for text area %>
+              <% intake_fields_json_string = @booking_policy.intake_fields.present? ? JSON.pretty_generate(@booking_policy.intake_fields) : '[\n  {\n    "name": "special_requests",\n    "label": "Special Requests",\n    "type": "textarea",\n    "required": false\n  }\n]' %>
+              <%= form.text_area :intake_fields, value: intake_fields_json_string, rows: 10, class: "max-w-lg shadow-sm block w-full focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border border-gray-300 rounded-md font-mono", placeholder: 'Enter JSON array defining intake fields' %>
+              <p class="mt-2 text-sm text-gray-500">Define fields as a JSON array of objects. Each object should have `name`, `label`, `type` (e.g., 'text', 'textarea', 'checkbox', 'select'), and optionally `required` (boolean) and `options` (array for select).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-5">
+      <div class="flex justify-end">
+        <%= link_to "Cancel", settings_booking_policy_path, class: "bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        <%= form.submit "Save Policies", class: "ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" %>
+      </div>
+    </div>
+  <% end %>
+</div> 

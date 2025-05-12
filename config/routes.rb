@@ -78,6 +78,7 @@ Rails.application.routes.draw do
         resource :profile, only: [:edit, :update]
         resource :business, only: [:edit, :update], controller: 'business'
         resources :teams, only: [:index, :new, :create, :destroy]
+        resource :booking_policy, only: [:show, :edit, :update]
       end
     end
 
