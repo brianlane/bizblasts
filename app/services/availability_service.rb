@@ -25,6 +25,43 @@ class AvailabilityService
       return []
     end
     
+    # Check booking policy duration constraints
+    business = staff_member.business
+    policy = business&.booking_policy
+    if policy
+      # Adjust duration to meet minimum duration requirement if necessary
+      if policy.min_duration_mins.present? && duration < policy.min_duration_mins
+        Rails.logger.debug("Adjusting slot duration from #{duration} to policy minimum of #{policy.min_duration_mins} minutes")
+        duration = policy.min_duration_mins
+      end
+      
+      # If duration exceeds maximum, we can't create any slots
+      if policy.max_duration_mins.present? && duration > policy.max_duration_mins
+        Rails.logger.debug("BLOCKING FACTOR: Requested duration (#{duration}m) exceeds policy maximum (#{policy.max_duration_mins}m)")
+        return []
+      end
+      
+      # Check for max daily bookings policy
+      if policy.max_daily_bookings.present? && policy.max_daily_bookings > 0
+        current_bookings = check_daily_booking_limit(staff_member, date, nil)
+        
+        if current_bookings >= policy.max_daily_bookings
+          Rails.logger.debug("BLOCKING FACTOR: Maximum daily bookings (#{policy.max_daily_bookings}) reached for date #{date}")
+          return [] # No slots available if max bookings reached
+        end
+      end
+      
+      # Check for max advance days policy
+      if policy.max_advance_days.present? && policy.max_advance_days > 0
+        max_future_date = Time.current.to_date + policy.max_advance_days.days
+        
+        if date > max_future_date
+          Rails.logger.debug("BLOCKING FACTOR: Date #{date} exceeds maximum advance days (#{policy.max_advance_days})")
+          return [] # No slots available for dates beyond max_advance_days
+        end
+      end
+    end
+    
     # Get the day's availability intervals from staff member's schedule
     day_name = date.strftime('%A').downcase
     availability_data = staff_member.availability&.with_indifferent_access || {}
@@ -120,6 +157,36 @@ class AvailabilityService
       return false
     end
     
+    # Check booking policy duration constraints
+    business = staff_member.business
+    policy = business&.booking_policy
+    if policy
+      duration_minutes = ((end_time - start_time) / 60.0).round
+      
+      # Check minimum duration
+      if policy.min_duration_mins.present? && duration_minutes < policy.min_duration_mins
+        Rails.logger.debug("FAILED: Booking duration (#{duration_minutes}m) less than policy minimum (#{policy.min_duration_mins}m)")
+        return false
+      end
+      
+      # Check maximum duration
+      if policy.max_duration_mins.present? && duration_minutes > policy.max_duration_mins
+        Rails.logger.debug("FAILED: Booking duration (#{duration_minutes}m) exceeds policy maximum (#{policy.max_duration_mins}m)")
+        return false
+      end
+      
+      # Check max daily bookings policy
+      if policy.max_daily_bookings.present? && policy.max_daily_bookings > 0
+        booking_date = start_time.to_date
+        daily_bookings = check_daily_booking_limit(staff_member, booking_date, exclude_booking_id)
+        
+        if daily_bookings >= policy.max_daily_bookings
+          Rails.logger.debug("FAILED: Max daily bookings (#{policy.max_daily_bookings}) reached for date #{booking_date}")
+          return false
+        end
+      end
+    end
+    
     # Use the detailed check_full_availability method
     return false unless check_full_availability(staff_member, start_time, end_time)
     
@@ -136,6 +203,25 @@ class AvailabilityService
   # @return [Hash] a hash with dates as keys and available slots as values
   def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30)
     return {} unless staff_member.active?
+    
+    # Check for max advance days policy
+    business = staff_member.business
+    policy = business&.booking_policy
+    if policy&.max_advance_days.present? && policy.max_advance_days > 0
+      max_future_date = Time.current.to_date + policy.max_advance_days.days
+      
+      # Limit end_date to the max_advance_days
+      if end_date > max_future_date
+        Rails.logger.debug("Limiting end date from #{end_date} to #{max_future_date} due to max_advance_days policy")
+        end_date = max_future_date
+      end
+      
+      # If start_date is already beyond max_advance_days, return empty hash
+      if start_date > max_future_date
+        Rails.logger.debug("Start date #{start_date} exceeds maximum advance days (#{policy.max_advance_days})")
+        return {}
+      end
+    end
     
     date_range = (start_date..end_date).to_a
     calendar_data = {}
@@ -210,33 +296,39 @@ class AvailabilityService
 
   # Filter out time slots that overlap with existing bookings
   def self.filter_booked_slots(slots, staff_member, date, duration)
-    # Fetch bookings for the staff member that overlap the given date
-    # Ensure start/end of day for query are also in the correct Time.zone
+    # Fetch policy and buffer time
+    business = staff_member.business
+    policy = business&.booking_policy
+    buffer_minutes = policy&.buffer_time_mins || 0
+    buffer_duration = buffer_minutes.minutes
+
+    # Fetch bookings for the staff member that *might* conflict on the given date
+    # Note: fetch_conflicting_bookings already considers buffer in its query range
     start_of_day_for_query = Time.zone.local(date.year, date.month, date.day).beginning_of_day
     end_of_day_for_query = Time.zone.local(date.year, date.month, date.day).end_of_day
     
+    # Use the already modified fetch_conflicting_bookings for initial filtering
     existing_bookings = fetch_conflicting_bookings(staff_member, start_of_day_for_query, end_of_day_for_query)
     
     # Enhanced logging
-    Rails.logger.debug("Checking #{slots.count} slots for conflicts with #{existing_bookings.count} existing bookings")
+    Rails.logger.debug("Checking #{slots.count} slots for conflicts with #{existing_bookings.count} existing bookings (buffer: #{buffer_minutes} mins)")
     
     if existing_bookings.any?
-      Rails.logger.debug("Existing bookings for #{date}:")
+      Rails.logger.debug("Existing bookings for #{date} (potential conflicts):")
       existing_bookings.each do |booking|
-        Rails.logger.debug("  - #{booking.id}: #{booking.start_time.strftime('%H:%M')} - #{booking.end_time.strftime('%H:%M')} (#{booking.status})")
+        Rails.logger.debug("  - ID: #{booking.id}, Time: #{booking.start_time.strftime('%H:%M')} - #{booking.end_time.strftime('%H:%M')}, Status: #{booking.status}, BufferEnd: #{(booking.end_time + buffer_duration).strftime('%H:%M')}")
       end
     end
     
     return slots if existing_bookings.empty?
 
     filtered_slots = slots.reject do |slot|
-      # Check if any booking conflicts with this slot
+      # Check if *any* fetched booking actually conflicts with this specific slot, including buffer time
       conflicts = existing_bookings.any? do |booking|
-        # A conflict exists if the booking overlaps with the slot
-        # (booking starts before slot ends) AND (booking ends after slot starts)
-        conflict = booking.start_time < slot[:end_time] && booking.end_time > slot[:start_time]
+        # Conflict check: (Booking starts before slot ends) AND (Booking ends + buffer > slot starts)
+        conflict = booking.start_time < slot[:end_time] && (booking.end_time + buffer_duration) > slot[:start_time]
         if conflict
-          Rails.logger.debug("CONFLICT: Slot #{slot[:start_time].strftime('%H:%M')}-#{slot[:end_time].strftime('%H:%M')} conflicts with booking #{booking.id}")
+          Rails.logger.debug("CONFLICT: Slot #{slot[:start_time].strftime('%H:%M')}-#{slot[:end_time].strftime('%H:%M')} conflicts with booking #{booking.id} (incl. buffer)")
         end
         conflict
       end
@@ -260,19 +352,49 @@ class AvailabilityService
     existing_bookings.any?
   end
   
-  # Fetch bookings that would conflict with the given time range
+  # Helper to fetch bookings that potentially conflict with a given time range
+  # Includes buffer time from BookingPolicy
   def self.fetch_conflicting_bookings(staff_member, start_time, end_time, exclude_booking_id = nil)
+    business = staff_member.business
+    policy = business&.booking_policy
+    buffer_minutes = policy&.buffer_time_mins || 0
+    buffer_duration = buffer_minutes.minutes # ActiveSupport::Duration for clarity
+
+    # Find bookings for the staff member that are not cancelled and overlap the potential slot + buffer
     query = Booking.where(
       staff_member_id: staff_member.id
-    ).where.not(
-      status: [:cancelled, :rejected]
-    ).where(
-      "bookings.start_time < ? AND bookings.end_time > ?", end_time, start_time
+    ).where.not(status: :cancelled)
+
+    # Exclude a specific booking if requested (e.g., when updating)
+    query = query.where.not(id: exclude_booking_id) if exclude_booking_id
+
+    # Overlap condition:
+    # Existing booking starts before the potential slot ends
+    # AND
+    # Existing booking ends (plus buffer) after the potential slot starts
+    # Uses native interval arithmetic for database efficiency
+    query = query.where(
+      "bookings.start_time < :end_time AND (bookings.end_time + make_interval(mins := :buffer)) > :start_time",
+      {
+        end_time: end_time,
+        buffer: buffer_minutes,
+        start_time: start_time
+      }
     )
+
+    query.to_a # Execute and return as array
+  end
+
+  # Check the number of bookings for a staff member on a given date
+  def self.check_daily_booking_limit(staff_member, date, exclude_booking_id = nil)
+    query = Booking.where(
+      staff_member_id: staff_member.id,
+      start_time: date.beginning_of_day..date.end_of_day
+    ).where.not(status: :cancelled)
     
-    # Exclude a specific booking if requested (useful for editing a booking)
-    query = query.where.not(id: exclude_booking_id) if exclude_booking_id.present?
+    # Exclude specific booking if requested (for updates)
+    query = query.where.not(id: exclude_booking_id) if exclude_booking_id
     
-    query
+    query.count
   end
 end

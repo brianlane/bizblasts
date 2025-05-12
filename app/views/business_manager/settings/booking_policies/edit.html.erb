@@ -4,7 +4,7 @@
 
   <h1 class="text-2xl font-semibold text-gray-800 mb-6">Edit Booking Policies</h1>
 
-  <%= form_with(model: [:settings, @booking_policy], url: settings_booking_policy_path, method: :patch, class: "space-y-8 divide-y divide-gray-200") do |form| %>
+  <%= form_with(model: [:settings, @booking_policy], url: business_manager_settings_booking_policy_path, method: :patch, class: "space-y-8 divide-y divide-gray-200") do |form| %>
     <div class="space-y-8 divide-y divide-gray-200 sm:space-y-5">
       <div>
         <div>
@@ -52,31 +52,11 @@
           </div>
         </div>
       </div>
-
-      <div class="pt-8 space-y-6 sm:pt-10 sm:space-y-5">
-        <div>
-          <h3 class="text-lg leading-6 font-medium text-gray-900">Intake Fields</h3>
-          <p class="mt-1 max-w-2xl text-sm text-gray-500">
-            Define custom fields to collect information during booking (using JSON format).
-          </p>
-        </div>
-        <div class="space-y-6 sm:space-y-5">
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
-            <%= form.label :intake_fields, "Custom Fields (JSON)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
-            <div class="mt-1 sm:mt-0 sm:col-span-2">
-              <%# Convert JSON object back to string for text area %>
-              <% intake_fields_json_string = @booking_policy.intake_fields.present? ? JSON.pretty_generate(@booking_policy.intake_fields) : '[\n  {\n    "name": "special_requests",\n    "label": "Special Requests",\n    "type": "textarea",\n    "required": false\n  }\n]' %>
-              <%= form.text_area :intake_fields, value: intake_fields_json_string, rows: 10, class: "max-w-lg shadow-sm block w-full focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border border-gray-300 rounded-md font-mono", placeholder: 'Enter JSON array defining intake fields' %>
-              <p class="mt-2 text-sm text-gray-500">Define fields as a JSON array of objects. Each object should have `name`, `label`, `type` (e.g., 'text', 'textarea', 'checkbox', 'select'), and optionally `required` (boolean) and `options` (array for select).</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div class="pt-5">
       <div class="flex justify-end">
-        <%= link_to "Cancel", settings_booking_policy_path, class: "bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        <%= link_to "Cancel", business_manager_settings_booking_policy_path, class: "bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
         <%= form.submit "Save Policies", class: "ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" %>
       </div>
     </div>

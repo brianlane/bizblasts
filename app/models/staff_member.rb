@@ -27,6 +27,11 @@ class StaffMember < ApplicationRecord
     name
   end
   
+  # Check if the associated user is a manager
+  def manager?
+    user&.manager?
+  end
+  
   def available_services
     services.where(active: true)
   end

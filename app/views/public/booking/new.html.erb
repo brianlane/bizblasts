@@ -2,6 +2,7 @@
 <%# Accessed via tenant subdomain: e.g., http://mybiz.lvh.me:3000/book?service_id=1 %>
 
 <% @business = current_tenant %>
+<% policy = @business.booking_policy %>
 
 <div class="container mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold mb-6">Book Service: <%= @service.name %></h1>
@@ -74,9 +75,21 @@
     <%# This likely requires JavaScript integration (e.g., calendar component) %>
     <%# For now, a simple datetime select %>
     <div class="mb-4">
-      <%= form.label :start_time, class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%# Adjust datetime select options as needed %>
-      <%= form.datetime_select :start_time, { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1 }, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+      <%= form.label :start_time, class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.datetime_select :start_time,
+            { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1 },
+            class: "form-input rounded border px-3 py-2 w-full" %>
+    </div>
+
+    <%# Booking policy date & duration inputs always displayed early in the form %>
+    <div class="mb-4">
+      <label for="booking_date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+      <input type="date" id="booking_date" name="booking[date]" class="form-input rounded border px-3 py-2 w-full"<% if policy&.max_advance_days %> max="<%= (Date.current + policy.max_advance_days.days).strftime('%Y-%m-%d') %>"<% end %> />
+    </div>
+
+    <div class="mb-4">
+      <label for="booking_duration" class="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+      <input type="number" id="booking_duration" name="booking[duration]" class="form-input rounded border px-3 py-2 w-full" value="<%= @service.duration %>"<% if policy&.min_duration_mins %> min="<%= policy.min_duration_mins %>"<% end %><% if policy&.max_duration_mins %> max="<%= policy.max_duration_mins %>"<% end %> />
     </div>
 
     <div class="mb-4">
@@ -136,11 +149,10 @@
     <% end %>
 
     <div class="flex items-center justify-between">
-      <%# Only show submit button if staff members are available %>
-      <% if @service.staff_members.any? %>
+      <%# Show submit button if user is client or staff members are available %>
+      <% if current_user.role == 'client' || @service.staff_members.any? %>
         <%= form.submit "Confirm Booking", class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
       <% else %>
-        <%# Optionally add a disabled button or just hide it %>
         <span class="text-gray-500">(Booking unavailable)</span>
       <% end %>
       <%= link_to 'Cancel', tenant_services_page_path, class: "inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" %>
@@ -176,6 +188,41 @@
     if (customerSelect) {
       customerSelect.addEventListener('change', toggleCustomerFields);
       toggleCustomerFields();
+    }
+
+    const dateInput = document.getElementById('booking_date');
+    if (dateInput && dateInput.max) {
+      const clampDate = () => {
+        if (dateInput.value > dateInput.max) {
+          dateInput.value = dateInput.max;
+        }
+      };
+      dateInput.addEventListener('change', clampDate);
+      dateInput.addEventListener('blur', clampDate);
+      dateInput.addEventListener('input', clampDate);
+    }
+
+    const durInput = document.getElementById('booking_duration');
+    if (durInput) {
+      durInput.addEventListener('change', () => {
+        // Clamp and show error message
+        const min = durInput.min ? parseInt(durInput.min, 10) : null;
+        const max = durInput.max ? parseInt(durInput.max, 10) : null;
+        let msg;
+        if (min !== null && parseInt(durInput.value, 10) < min) {
+          durInput.value = min;
+          msg = document.createElement('p');
+          msg.className = 'text-red-600';
+          msg.textContent = `Minimum booking duration is ${min} minutes.`;
+          durInput.parentNode.appendChild(msg);
+        } else if (max !== null && parseInt(durInput.value, 10) > max) {
+          durInput.value = max;
+          msg = document.createElement('p');
+          msg.className = 'text-red-600';
+          msg.textContent = `Maximum booking duration is ${max} minutes.`;
+          durInput.parentNode.appendChild(msg);
+        }
+      });
     }
   });
 </script> 

@@ -39,7 +39,25 @@ class BookingManager
       
       # Calculate end_time based on service duration if not set
       if booking.start_time && !booking.end_time && booking.service&.duration
-        booking.end_time = booking.start_time + booking.service.duration.minutes
+        # Check booking policy duration constraints for min/max
+        policy = (business || booking.business)&.booking_policy
+        duration_mins = booking.service.duration
+        
+        if policy.present?
+          # Enforce minimum duration if needed
+          if policy.min_duration_mins.present? && duration_mins < policy.min_duration_mins
+            duration_mins = policy.min_duration_mins
+            Rails.logger.info "[BookingManager] Adjusted duration to minimum policy value: #{duration_mins} minutes"
+          end
+          
+          # Check max duration
+          if policy.max_duration_mins.present? && duration_mins > policy.max_duration_mins
+            booking.errors.add(:base, "Booking duration (#{duration_mins} minutes) exceeds the maximum allowed (#{policy.max_duration_mins} minutes)")
+            return [nil, booking.errors]
+          end
+        end
+        
+        booking.end_time = booking.start_time + duration_mins.minutes
       end
       
       # Set default status if not specified
@@ -125,7 +143,27 @@ class BookingManager
         
         if service && service.duration
           new_start_time = booking_params[:start_time] || booking.start_time
-          booking_params[:end_time] = new_start_time + service.duration.minutes
+          duration_mins = service.duration
+          
+          # Check booking policy duration constraints
+          business = booking.business
+          policy = business&.booking_policy
+          
+          if policy.present?
+            # Enforce minimum duration if needed
+            if policy.min_duration_mins.present? && duration_mins < policy.min_duration_mins
+              duration_mins = policy.min_duration_mins
+              Rails.logger.info "[BookingManager] Adjusted duration to minimum policy value: #{duration_mins} minutes"
+            end
+            
+            # Check max duration
+            if policy.max_duration_mins.present? && duration_mins > policy.max_duration_mins
+              booking.errors.add(:base, "Booking duration (#{duration_mins} minutes) exceeds the maximum allowed (#{policy.max_duration_mins} minutes)")
+              return [nil, booking.errors]
+            end
+          end
+          
+          booking_params[:end_time] = new_start_time + duration_mins.minutes
         end
       end
       
@@ -185,6 +223,20 @@ class BookingManager
   
   # Cancel a booking with optional reason and handle related tasks
   def self.cancel_booking(booking, reason = nil, notify = true)
+    # Check cancellation policy
+    business = booking.business
+    policy = business&.booking_policy
+    cancellation_window_minutes = policy&.cancellation_window_mins
+
+    if cancellation_window_minutes.present? && cancellation_window_minutes > 0
+      cancellation_deadline = booking.start_time - cancellation_window_minutes.minutes
+      if Time.current > cancellation_deadline
+        booking.errors.add(:base, "Cannot cancel booking within #{cancellation_window_minutes} minutes of the start time.")
+        Rails.logger.warn "[BookingManager] Attempted to cancel Booking ##{booking.id} within cancellation window."
+        return false # Indicate cancellation failed due to policy
+      end
+    end
+
     ActiveRecord::Base.transaction do
       # Update booking status
       booking.update!(status: :cancelled)

@@ -161,7 +161,97 @@ RSpec.describe Booking, type: :model do
                                 end_time: booking.end_time + 30.minutes)
                                 
       expect(overlapping_booking).not_to be_valid
-      expect(overlapping_booking.errors[:base]).to include("Booking conflicts with another existing booking for this staff member")
+      expect(overlapping_booking.errors[:base]).to include("Booking conflicts with another existing booking for this staff member, considering buffer time")
+    end
+    
+    context "minimum duration validation" do
+      let!(:policy) { create(:booking_policy, business: business, min_duration_mins: 45) }
+      
+      it "is invalid when booking duration is less than minimum" do
+        booking = build(:booking, 
+                       business: business, 
+                       service: service,
+                       staff_member: staff_member,
+                       tenant_customer: customer,
+                       start_time: Time.zone.now + 1.day,
+                       end_time: Time.zone.now + 1.day + 30.minutes)
+        
+        expect(booking).not_to be_valid
+        expect(booking.errors[:base]).to include("Booking duration (30 minutes) cannot be less than the minimum required duration (45 minutes)")
+      end
+      
+      it "is valid when booking duration equals minimum" do
+        booking = build(:booking, 
+                       business: business, 
+                       service: service,
+                       staff_member: staff_member,
+                       tenant_customer: customer,
+                       start_time: Time.zone.now + 1.day,
+                       end_time: Time.zone.now + 1.day + 45.minutes)
+        
+        # Only checking the min_duration validation, not other validations
+        booking.valid?
+        expect(booking.errors[:base]).not_to include(/minimum required duration/)
+      end
+      
+      it "is valid when booking duration exceeds minimum" do
+        booking = build(:booking, 
+                       business: business, 
+                       service: service,
+                       staff_member: staff_member,
+                       tenant_customer: customer,
+                       start_time: Time.zone.now + 1.day,
+                       end_time: Time.zone.now + 1.day + 60.minutes)
+        
+        # Only checking the min_duration validation, not other validations
+        booking.valid?
+        expect(booking.errors[:base]).not_to include(/minimum required duration/)
+      end
+    end
+    
+    context "maximum duration validation" do
+      let!(:policy) { create(:booking_policy, business: business, max_duration_mins: 120) }
+      
+      it "is invalid when booking duration exceeds maximum" do
+        booking = build(:booking, 
+                       business: business, 
+                       service: service,
+                       staff_member: staff_member,
+                       tenant_customer: customer,
+                       start_time: Time.zone.now + 1.day,
+                       end_time: Time.zone.now + 1.day + 150.minutes)
+        
+        expect(booking).not_to be_valid
+        expect(booking.errors[:base]).to include("Booking duration (150 minutes) cannot exceed the maximum allowed duration (120 minutes)")
+      end
+      
+      it "is valid when booking duration equals maximum" do
+        booking = build(:booking, 
+                       business: business, 
+                       service: service,
+                       staff_member: staff_member,
+                       tenant_customer: customer,
+                       start_time: Time.zone.now + 1.day,
+                       end_time: Time.zone.now + 1.day + 120.minutes)
+        
+        # Only checking the max_duration validation, not other validations
+        booking.valid?
+        expect(booking.errors[:base]).not_to include(/maximum allowed duration/)
+      end
+      
+      it "is valid when booking duration is less than maximum" do
+        booking = build(:booking, 
+                       business: business, 
+                       service: service,
+                       staff_member: staff_member,
+                       tenant_customer: customer,
+                       start_time: Time.zone.now + 1.day,
+                       end_time: Time.zone.now + 1.day + 90.minutes)
+        
+        # Only checking the max_duration validation, not other validations
+        booking.valid?
+        expect(booking.errors[:base]).not_to include(/maximum allowed duration/)
+      end
     end
   end
 end

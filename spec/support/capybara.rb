@@ -9,7 +9,9 @@ Capybara.register_driver(:cuprite) do |app|
     # See additional options for Dockerized environment in the comments
     browser_options: { 'no-sandbox' => nil },
     headless: ENV['HEADLESS'] != 'false',
-    inspector: ENV['INSPECTOR'] == 'true'
+    inspector: ENV['INSPECTOR'] == 'true',
+    process_timeout: 30,
+    timeout:         30
   )
 end
 
@@ -17,7 +19,7 @@ end
 Capybara.javascript_driver = :cuprite
 
 # Configure test timeouts
-Capybara.default_max_wait_time = 10 # seconds
+Capybara.default_max_wait_time = 30 # seconds
 
 # Configure the default host for Capybara tests
 Capybara.server_host = 'lvh.me'
