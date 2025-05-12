@@ -1,0 +1,108 @@
+<div class="container">
+  <% if flash[:notice] %>
+    <div class="notice">
+      <p><%= flash[:notice] %></p>
+    </div>
+  <% end %>
+
+  <% if flash[:alert] %>
+    <div class="alert">
+      <p><%= flash[:alert] %></p>
+    </div>
+  <% end %>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h1>Edit Profile</h1>
+      <div class="panel-actions">
+        <%= link_to business_manager_settings_path do %>
+          ← Back to Settings
+        <% end %>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <%= form_with model: @user, url: business_manager_settings_profile_path, method: :patch, local: true do |f|
+        %>
+        <% if @user.errors.any? %>
+          <div id="error_explanation">
+            <h2><%= pluralize(@user.errors.count, "error") %> prohibited this user from being saved:</h2>
+            <ul>
+              <% @user.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="field">
+          <%= f.label :first_name %>
+          <%= f.text_field :first_name %>
+        </div>
+
+        <div class="field">
+          <%= f.label :last_name %>
+          <%= f.text_field :last_name %>
+        </div>
+
+        <div class="field">
+          <%= f.label :email %>
+          <%= f.text_field :email, type: 'email', required: true %> 
+        </div>
+
+        <div class="field">
+          <%= f.label :phone %>
+          <%= f.text_field :phone, type: 'tel' %>
+        </div>
+
+        <div class="field">
+          <%= f.label :notification_preferences %><br>
+          <%# Example checkboxes for notification preferences %>
+          <%= f.check_box :notification_preferences, { multiple: true }, 'email', nil %> Email
+          <%= f.check_box :notification_preferences, { multiple: true }, 'sms', nil %> SMS
+          <%# Add other preference options here %>
+        </div>
+
+        <div class="field">
+          <%= f.label :password %>
+          <%= f.password_field :password, autocomplete: "new-password" %>
+          <small>Leave blank if you don't want to change it</small>
+          <small>Minimum <%= Devise.password_length.min %> characters (if changing)</small>
+        </div>
+
+        <div class="field">
+          <%= f.label :password_confirmation %>
+          <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+        </div>
+
+        <div class="actions">
+          <%= f.submit "Update Profile" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <style>
+    /* Basic styling from orders index */
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .notice { background: #e8f4f8; border: 1px solid #b8e0ed; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+    .alert { background: #f8e8e8; border: 1px solid #edb8b8; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+    .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; }
+    .panel-header h1 { font-size: 24px; margin: 0; }
+    .panel-actions a { color: #0066cc; text-decoration: none; }
+    .panel-actions a:hover { text-decoration: underline; }
+    .panel-body { padding: 20px; }
+
+    /* Basic Form Styling - Adjust as needed to match orders index form feel */
+    .field { margin-bottom: 15px; }
+    .field label { display: block; font-weight: bold; margin-bottom: 5px; }
+    .field input[type="text"], .field input[type="email"], .field input[type="password"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .field small { color: #666; font-size: 0.9em; }
+    .actions input[type="submit"] { background-color: #0066cc; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    .actions input[type="submit"]:hover { background-color: #0056b3; }
+    #error_explanation { color: red; margin-bottom: 20px; }
+    #error_explanation h2 { font-size: 1.2em; color: red; }
+    #error_explanation ul { padding-left: 20px; }
+  </style>
+</div> 

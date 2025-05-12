@@ -72,6 +72,11 @@ Rails.application.routes.draw do
       
       # Business orders management
       resources :orders, only: [:index, :show]
+      get '/settings', to: 'settings#index', as: :settings
+
+      namespace :settings do
+        resource :profile, only: [:edit, :update]
+      end
     end
 
     # Business-specific routes for business owners
