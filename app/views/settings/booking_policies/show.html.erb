@@ -1,0 +1,65 @@
+<%# frozen_string_literal: true %>
+<div class="container mx-auto px-4 py-8">
+  <%= link_to "← Back to Settings", business_manager_settings_path, class: "text-blue-600 hover:underline mb-4 inline-block" %>
+
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-semibold text-gray-800">Booking Policies</h1>
+    <%= link_to "Edit Policies", edit_settings_booking_policy_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
+  </div>
+
+  <% if @booking_policy.persisted? %>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+          Policy Details
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+          Current booking rules and requirements.
+        </p>
+      </div>
+      <div class="border-t border-gray-200">
+        <dl>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Cancellation Window</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.cancellation_window_mins.present? ? "#{pluralize(@booking_policy.cancellation_window_mins, 'minute')} prior" : "Not set" %></dd>
+          </div>
+          <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Buffer Time Between Bookings</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.buffer_time_mins.present? ? pluralize(@booking_policy.buffer_time_mins, 'minute') : "None" %></dd>
+          </div>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Maximum Daily Bookings (per Staff)</dt> <%# Clarify if per staff or total %>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.max_daily_bookings.present? ? @booking_policy.max_daily_bookings : "Unlimited" %></dd>
+          </div>
+          <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Maximum Advance Booking</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.max_advance_days.present? ? "#{pluralize(@booking_policy.max_advance_days, 'day')} in advance" : "Not set" %></dd>
+          </div>
+          <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Intake Fields (JSON)</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              <pre class="bg-gray-100 p-2 rounded overflow-auto"><%= @booking_policy.intake_fields.present? ? JSON.pretty_generate(@booking_policy.intake_fields) : "No custom fields defined" %></pre>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <!-- Heroicon name: solid/exclamation -->
+          <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-yellow-700">
+            No booking policies have been configured yet.
+            <%= link_to "Configure Policies", edit_settings_booking_policy_path, class: "font-medium underline text-yellow-700 hover:text-yellow-600" %>
+          </p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div> 
