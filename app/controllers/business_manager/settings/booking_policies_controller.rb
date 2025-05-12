@@ -3,24 +3,24 @@
 # Assuming a base controller like BusinessManager::BaseController exists
 # and provides `current_business` and Pundit authorization.
 
-class Settings::BookingPoliciesController < BusinessManager::BaseController # Adjust if base controller name differs
+class BusinessManager::Settings::BookingPoliciesController < BusinessManager::BaseController # Adjust if base controller name differs
   before_action :set_booking_policy, only: [:show, :edit, :update]
   after_action :verify_authorized
 
   def show
-    authorize @booking_policy
+    authorize @booking_policy, policy_class: BusinessManager::Settings::BookingPolicyPolicy
     # Render view
   end
 
   def edit
-    authorize @booking_policy
+    authorize @booking_policy, policy_class: BusinessManager::Settings::BookingPolicyPolicy
     # Render view
   end
 
   def update
-    authorize @booking_policy
+    authorize @booking_policy, policy_class: BusinessManager::Settings::BookingPolicyPolicy
     if @booking_policy.update(booking_policy_params)
-      redirect_to settings_booking_policy_path, notice: 'Booking policies updated successfully.'
+      redirect_to business_manager_settings_booking_policy_path, notice: 'Booking policies updated successfully.'
     else
       flash.now[:alert] = 'Error updating booking policies.'
       render :edit, status: :unprocessable_entity
@@ -40,8 +40,8 @@ class Settings::BookingPoliciesController < BusinessManager::BaseController # Ad
       :buffer_time_mins,
       :max_daily_bookings,
       :max_advance_days,
-      :intake_fields # Keep as string for textarea initially
-      # If intake_fields needs structured data, parse/process here or use JSON parsing in model
+      :min_duration_mins,
+      :max_duration_mins
     )
   end
 end 

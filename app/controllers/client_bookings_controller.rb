@@ -62,10 +62,19 @@ class ClientBookingsController < ApplicationController
       return
     end
     
-    if @booking.update(status: :cancelled, cancellation_reason: "Cancelled by client")
+    # Use BookingManager to handle cancellation with policy checks
+    cancellation_reason = "Cancelled by client"
+    result = BookingManager.cancel_booking(@booking, cancellation_reason)
+    
+    if result
       redirect_to client_booking_path(@booking), notice: "Your booking has been successfully cancelled."
     else
-      redirect_to client_booking_path(@booking), alert: "Unable to cancel this booking. Please try again."
+      # Handle policy-based cancellation restrictions
+      if @booking.errors[:base].any?
+        redirect_to client_booking_path(@booking), alert: @booking.errors[:base].first
+      else
+        redirect_to client_booking_path(@booking), alert: "Unable to cancel this booking. Please try again."
+      end
     end
   end
   

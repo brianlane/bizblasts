@@ -105,6 +105,11 @@ class User < ApplicationRecord
     roles_to_check.any? { |role_sym| self.role == role_sym.to_s }
   end
 
+  # Find the StaffMember record for a specific business
+  def staff_member_for(business)
+    staff_memberships.find_by(business: business)
+  end
+
   private # Ensure private keyword exists or add it if needed
 
   # Helper method for conditional password validation (mimics Devise behavior)

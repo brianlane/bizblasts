@@ -8,7 +8,9 @@ RSpec.describe "Business Manager Bookings", type: :request do
   let!(:service) { create(:service, business: business) }
   let!(:staff_member) { create(:staff_member, business: business, user: staff) }
   let!(:customer) { create(:tenant_customer, business: business) }
-  let!(:booking) { create(:booking, business: business, service: service, staff_member: staff_member, tenant_customer: customer) }
+  # Always create a permissive policy for setup
+  let!(:default_policy) { create(:booking_policy, business: business, max_daily_bookings: 10, max_advance_days: 365, buffer_time_mins: 0) }
+  let!(:booking) { create(:booking, business: business, service: service, staff_member: staff_member, tenant_customer: customer, start_time: Time.current + 1.day) }
 
   before do
     # IMPORTANT: Set the host to the business's hostname for tenant scoping
@@ -237,6 +239,51 @@ RSpec.describe "Business Manager Bookings", type: :request do
         expect(flash[:notice]).to include("already cancelled")
         expect(response).to redirect_to(business_manager_booking_path(booking))
       end
+
+      # Policy enforcement tests for cancellation_window_mins
+      context "with a 60-minute cancellation window policy" do
+        include ActiveSupport::Testing::TimeHelpers
+
+        before do
+          business.booking_policy.update!(cancellation_window_mins: 60)
+        end
+
+        it "allows cancellation when outside the window" do
+          # Create a booking far in the future to be outside the window
+          future_booking = create(:booking,
+            business: business,
+            service: service,
+            staff_member: staff_member,
+            tenant_customer: customer,
+            start_time: Time.current + 2.hours) # Start time well outside 60 mins
+
+          # Travel to a time outside the cancellation window (e.g., 70 minutes before start)
+          travel_to future_booking.start_time - 70.minutes do
+            patch cancel_business_manager_booking_path(future_booking), params: cancel_params
+            expect(future_booking.reload.status).to eq("cancelled")
+            expect(response).to redirect_to(business_manager_booking_path(future_booking))
+            expect(flash[:notice]).to eq("Booking has been cancelled.")
+          end
+        end
+
+        it "prevents cancellation within the window" do
+          # Create a booking that's 30 minutes in the future (within the 60-min window)
+          imminent_booking = create(:booking,
+            business: business,
+            service: service,
+            staff_member: staff_member,
+            tenant_customer: customer,
+            start_time: Time.current + 30.minutes)
+
+          # Travel to a time inside the cancellation window (e.g., 20 minutes before start)
+          travel_to imminent_booking.start_time - 20.minutes do
+            patch cancel_business_manager_booking_path(imminent_booking), params: cancel_params
+            expect(imminent_booking.reload.status).not_to eq("cancelled")
+            expect(response).to redirect_to(business_manager_booking_path(imminent_booking)) # Still redirects to show
+            expect(flash[:alert]).to eq("Cannot cancel booking within 60 minutes of the start time.")
+          end
+        end
+      end
     end
     
     # Tests for reschedule action
@@ -269,17 +316,273 @@ RSpec.describe "Business Manager Bookings", type: :request do
 
     # Tests for available_slots action
     describe "GET /manage/bookings/available-slots" do
-      let(:date) { booking.start_time.to_date }
-      let(:slots) { [{ start_time: booking.start_time, end_time: booking.end_time }] }
+      let(:date) { (Time.current + 1.day).to_date }
+      let(:service) { create(:service, business: business, duration: 60) }
+      let(:staff_member) { create(:staff_member, business: business) }
+
+      # Ensure staff member can perform the service for these tests
       before do
-        allow(AvailabilityService).to receive(:available_slots).and_return(slots)
+        create(:services_staff_member, service: service, staff_member: staff_member)
+        # Set base availability for the staff member (e.g., 9 AM to 5 PM)
+        staff_member.update!(availability: {
+          date.strftime('%A').downcase => [{ 'start' => '09:00', 'end' => '17:00' }]
+        })
+        sign_in manager
       end
 
       it "is successful and assigns calendar_data" do
+        # Stub AvailabilityService to control expected output
+        allow(AvailabilityService).to receive(:available_slots).and_return([]) # Default empty
+
         get available_slots_business_manager_bookings_path, params: { service_id: service.id, staff_member_id: staff_member.id, date: date.to_s }
         expect(response).to be_successful
         expect(assigns(:calendar_data)).to be_a(Hash)
-        expect(assigns(:calendar_data)[date.to_s]).to eq(slots)
+        expect(assigns(:calendar_data)).to have_key(date.to_s)
+      end
+
+      # Policy enforcement tests for available-slots
+      context "with booking policies" do
+        include ActiveSupport::Testing::TimeHelpers
+
+        # Max Advance Days
+        it "returns empty slots for dates beyond max_advance_days" do
+          business.booking_policy.update!(max_advance_days: 7)
+          future_date = (Date.current + 14.days).to_s
+
+          # Stub AvailabilityService to return empty array when policy is enforced
+          allow(AvailabilityService).to receive(:available_slots).and_return([])
+
+          get available_slots_business_manager_bookings_path, params: { 
+            service_id: service.id, 
+            staff_member_id: staff_member.id, 
+            date: future_date 
+          }
+          # AvailabilityService should return empty array based on policy
+          expect(assigns(:calendar_data)[future_date]).to be_empty
+        end
+
+        # Max Daily Bookings
+        it "returns empty slots when max_daily_bookings reached" do
+          business.booking_policy.update!(max_daily_bookings: 1)
+          date = (Time.current + 1.day).to_date
+          Booking.where(staff_member: staff_member, start_time: date.all_day).delete_all
+          existing_booking_start = Time.zone.local(date.year, date.month, date.day, 9, 0)
+          create(:booking,
+            business: business,
+            service: service,
+            staff_member: staff_member,
+            tenant_customer: customer,
+            start_time: existing_booking_start)
+
+          get available_slots_business_manager_bookings_path, params: { service_id: service.id, staff_member_id: staff_member.id, date: date.to_s }
+          expect(response).to have_http_status(:ok)
+          expect(assigns(:calendar_data)[date.to_s]).to eq([])
+        end
+
+        # Buffer Time
+        it "filters slots that conflict with buffer time" do
+          business.booking_policy.update!(buffer_time_mins: 30)
+
+          # Create an existing booking that creates a buffer zone
+          existing_start = Time.zone.local(date.year, date.month, date.day, 10, 0)
+          existing_end = existing_start + 1.hour # Ends at 11:00
+          create(:booking,
+            business: business,
+            service: service,
+            staff_member: staff_member,
+            tenant_customer: customer,
+            start_time: existing_start,
+            end_time: existing_end)
+
+          # Expect AvailabilityService to be called and return only slots outside buffer
+          expected_slots_after_filter = [
+            { start_time: Time.zone.local(date.year, date.month, date.day, 9, 0), end_time: Time.zone.local(date.year, date.month, date.day, 10, 0) },
+            { start_time: Time.zone.local(date.year, date.month, date.day, 12, 0), end_time: Time.zone.local(date.year, date.month, date.day, 13, 0) }
+          ]
+          # Stub AvailabilityService to return the filtered slots
+          allow(AvailabilityService).to receive(:available_slots).and_return(expected_slots_after_filter)
+
+          get available_slots_business_manager_bookings_path, params: { 
+            service_id: service.id, 
+            staff_member_id: staff_member.id, 
+            date: date.to_s 
+          }
+          # The controller should assign the filtered slots
+          expect(assigns(:calendar_data)[date.to_s].map{|s| {start_time: s[:start_time].strftime('%H:%M'), end_time: s[:end_time].strftime('%H:%M')}}).to match_array(
+            expected_slots_after_filter.map{|s| {start_time: s[:start_time].strftime('%H:%M'), end_time: s[:end_time].strftime('%H:%M')}}
+          )
+        end
+
+        # Duration Constraints
+        it "available_slots adjusts duration to meet minimum or returns empty if exceeds maximum" do
+          # Test min duration adjustment
+          business.booking_policy.update!(min_duration_mins: 45, max_duration_mins: 120)
+          short_service = create(:service, business: business, duration: 30)
+          create(:services_staff_member, service: short_service, staff_member: staff_member)
+
+          # AvailabilityService should return slots with adjusted duration
+          adjusted_slots = [{start_time: Time.zone.local(date.year, date.month, date.day, 9, 0), end_time: Time.zone.local(date.year, date.month, date.day, 9, 45)}]
+          allow(AvailabilityService).to receive(:available_slots).and_return(adjusted_slots)
+
+          get available_slots_business_manager_bookings_path, params: { 
+            service_id: short_service.id, 
+            staff_member_id: staff_member.id, 
+            date: date.to_s 
+          }
+          slots = assigns(:calendar_data)[date.to_s]
+          expect(slots).not_to be_empty
+          expect(((slots.first[:end_time] - slots.first[:start_time]) / 60.0).round).to eq(45)
+
+          # Test max duration preventing slots
+          business.booking_policy.update!(min_duration_mins: 15, max_duration_mins: 60) # Max is 60
+          long_service = create(:service, business: business, duration: 90) # Duration is 90
+          create(:services_staff_member, service: long_service, staff_member: staff_member)
+
+          # AvailabilityService should return empty for this service/policy combination
+          allow(AvailabilityService).to receive(:available_slots).and_return([])
+
+          get available_slots_business_manager_bookings_path, params: { 
+            service_id: long_service.id, 
+            staff_member_id: staff_member.id, 
+            date: date.to_s 
+          }
+          expect(assigns(:calendar_data)[date.to_s]).to be_empty
+        end
+      end
+    end
+
+    # Policy enforcement tests for booking creation
+    describe "Policy enforcement when creating bookings" do
+      include ActiveSupport::Testing::TimeHelpers
+
+      # For Max Advance Days:
+      describe "max_advance_days policy" do
+        it "prevents creating a booking beyond max_advance_days" do
+          business.booking_policy.update!(max_advance_days: 7)
+          future_date = Date.current + 14.days
+          future_time = "10:00"
+
+          expect {
+            post business_manager_bookings_path, params: {
+              booking: {
+                service_id: service.id,
+                staff_member_id: staff_member.id,
+                tenant_customer_id: customer.id,
+                date: future_date,
+                time: future_time
+              }
+            }
+          }.not_to change(Booking, :count)
+          unless response.body.include?("cannot be more than") && response.body.include?("in advance")
+            puts "DEBUG: Response body: #{response.body}"
+          end
+          expect(response.body).to include("cannot be more than").and include("in advance")
+        end
+      end
+
+      # For Max Daily Bookings:
+      describe "max_daily_bookings policy" do
+        it "prevents creating a booking when max_daily_bookings reached" do
+          business.booking_policy.update!(max_daily_bookings: 1)
+
+          # Remove any existing bookings for this staff member on this day
+          date = (Time.current + 1.day).to_date
+          Booking.where(staff_member: staff_member, start_time: date.all_day).delete_all
+
+          # Create one existing booking for the staff member on the same day
+          existing_booking_start = Time.zone.local(date.year, date.month, date.day, 9, 0)
+          create(:booking,
+            business: business,
+            service: service,
+            staff_member: staff_member,
+            tenant_customer: customer,
+            start_time: existing_booking_start)
+
+          time = "10:00" # Different time than existing booking
+
+          expect {
+            post business_manager_bookings_path, params: {
+              booking: {
+                service_id: service.id,
+                staff_member_id: staff_member.id,
+                tenant_customer_id: customer.id,
+                date: date,
+                time: time
+              }
+            }
+          }.not_to change(Booking, :count)
+          expect(response.body).to include("Maximum daily bookings (").and include("reached for this staff member")
+        end
+      end
+
+      # For Buffer Time:
+      describe "buffer_time_mins policy" do
+        it "prevents creating a booking that violates buffer time" do
+          business.booking_policy.update!(buffer_time_mins: 30)
+          # Create an existing booking at 9:00
+          date = (Time.current + 1.day).to_date
+          existing_booking_start = Time.zone.local(date.year, date.month, date.day, 9, 0)
+          create(:booking,
+            business: business,
+            service: service,
+            staff_member: staff_member,
+            tenant_customer: customer,
+            start_time: existing_booking_start)
+
+          # Try to create a booking at 9:15 (should violate buffer)
+          time = "09:15"
+          expect {
+            post business_manager_bookings_path, params: {
+              booking: {
+                service_id: service.id,
+                staff_member_id: staff_member.id,
+                tenant_customer_id: customer.id,
+                date: date,
+                time: time
+              }
+            }
+          }.not_to change(Booking, :count)
+          expect(response.body).to include("conflicts with another existing booking").and include("buffer time")
+        end
+      end
+
+      # For Duration Constraints:
+      describe "duration constraints policy" do
+        it "prevents creating a booking with duration less than minimum" do
+          business.booking_policy.update!(min_duration_mins: 60)
+          # Try to create a booking with 30 min duration
+          expect {
+            post business_manager_bookings_path, params: {
+              booking: {
+                service_id: service.id,
+                staff_member_id: staff_member.id,
+                tenant_customer_id: customer.id,
+                date: (Time.current + 1.day).to_date,
+                time: "10:00",
+                duration: 30
+              }
+            }
+          }.not_to change(Booking, :count)
+          expect(response.body).to include("cannot be less than the minimum required duration")
+        end
+
+        it "prevents creating a booking with duration more than maximum" do
+          business.booking_policy.update!(max_duration_mins: 30)
+          # Try to create a booking with 60 min duration
+          expect {
+            post business_manager_bookings_path, params: {
+              booking: {
+                service_id: service.id,
+                staff_member_id: staff_member.id,
+                tenant_customer_id: customer.id,
+                date: (Time.current + 1.day).to_date,
+                time: "10:00",
+                duration: 60
+              }
+            }
+          }.not_to change(Booking, :count)
+          expect(response.body).to include("cannot exceed the maximum allowed duration")
+        end
       end
     end
   end

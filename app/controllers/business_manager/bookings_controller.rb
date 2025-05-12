@@ -172,10 +172,15 @@ module BusinessManager
       
       if @booking.status == 'cancelled'
         flash[:notice] = "This booking was already cancelled."
-      elsif BookingService.cancel_booking(@booking, cancellation_reason)
+      elsif BookingManager.cancel_booking(@booking, cancellation_reason)
         flash[:notice] = "Booking has been cancelled."
       else
-        flash[:alert] = "There was a problem cancelling the booking."
+        # Handle policy-based cancellation restrictions
+        if @booking.errors[:base].any?
+          flash[:alert] = @booking.errors[:base].first
+        else
+          flash[:alert] = "There was a problem cancelling the booking."
+        end
       end
       
       redirect_to business_manager_booking_path(@booking)
@@ -265,6 +270,78 @@ module BusinessManager
           date,
           @service
         )
+      end
+    end
+    
+    # POST /manage/bookings
+    def create
+      @booking = current_business.bookings.new(booking_params)
+
+      # Set foreign keys explicitly before calculating times
+      @booking.service_id = params[:booking][:service_id] if params[:booking][:service_id].present?
+      @booking.staff_member_id = params[:booking][:staff_member_id] if params[:booking][:staff_member_id].present?
+      @booking.tenant_customer_id = params[:booking][:tenant_customer_id] if params[:booking][:tenant_customer_id].present?
+
+      # Set start_time and end_time from date, time, and duration params if present
+      date = params[:booking][:date]
+      time = params[:booking][:time]
+      duration = params[:booking][:duration].presence || @booking.service&.duration
+      if date.present? && time.present? && duration.present?
+        start_time = Time.zone.parse("#{date} #{time}")
+        @booking.start_time = start_time
+        @booking.end_time = start_time + duration.to_i.minutes
+      end
+
+      # Enforce booking policy validations
+      policy = current_business.booking_policy
+
+      # Max advance days policy
+      if policy.max_advance_days.present? && (@booking.start_time.to_date - Date.current).to_i > policy.max_advance_days
+        @booking.errors.add(:base, "Booking cannot be more than #{policy.max_advance_days} days in advance")
+      end
+
+      # Max daily bookings policy
+      if policy.max_daily_bookings.present? && @booking.staff_member_id.present?
+        day = @booking.start_time.to_date
+        existing_count = current_business.bookings.where(staff_member_id: @booking.staff_member_id, start_time: day.all_day).count
+        if existing_count >= policy.max_daily_bookings
+          @booking.errors.add(:base, "Maximum daily bookings (#{policy.max_daily_bookings}) reached for this staff member")
+        end
+      end
+
+      # Buffer time policy
+      if policy.buffer_time_mins.present? && policy.buffer_time_mins > 0 && @booking.staff_member_id.present?
+        buffer = policy.buffer_time_mins
+        day = @booking.start_time.to_date
+        current_business.bookings.where(staff_member_id: @booking.staff_member_id, start_time: day.all_day).each do |existing|
+          if @booking.start_time < existing.end_time + buffer.minutes && @booking.end_time > existing.start_time - buffer.minutes
+            @booking.errors.add(:base, "Booking conflicts with another existing booking due to buffer time")
+          end
+        end
+      end
+
+      # Duration constraints policy
+      if policy.min_duration_mins.present? && duration.to_i < policy.min_duration_mins
+        @booking.errors.add(:base, "Booking cannot be less than the minimum required duration")
+      end
+
+      if policy.max_duration_mins.present? && duration.to_i > policy.max_duration_mins
+        @booking.errors.add(:base, "Booking cannot exceed the maximum allowed duration")
+      end
+
+      # Render form with errors if any policy violations
+      if @booking.errors.any?
+        flash.now[:alert] = @booking.errors.full_messages.join(', ')
+        return render :new, status: :unprocessable_entity
+      end
+
+      if @booking.save
+        flash[:notice] = "Booking was successfully created."
+        redirect_to business_manager_booking_path(@booking)
+      else
+        raise "DEBUG: Booking errors: #{@booking.errors.full_messages.inspect}"
+        flash.now[:alert] = @booking.errors.full_messages.join(', ')
+        render :new, status: :unprocessable_entity
       end
     end
     

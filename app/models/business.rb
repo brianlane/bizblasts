@@ -51,6 +51,9 @@ class Business < ApplicationRecord
   # New association
   has_many :staff, through: :staff_members, source: :user
   
+  # New association for BookingPolicy
+  has_one :booking_policy, dependent: :destroy
+  
   # Validations
   validates :name, presence: true
   validates :industry, presence: true, inclusion: { in: industries.keys }
