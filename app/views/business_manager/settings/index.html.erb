@@ -1,0 +1,52 @@
+<div class="container">
+  <% if flash[:notice] %>
+    <div class="notice">
+      <p><%= flash[:notice] %></p>
+    </div>
+  <% end %>
+
+  <% if flash[:alert] %>
+    <div class="alert">
+      <p><%= flash[:alert] %></p>
+    </div>
+  <% end %>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h1>Settings</h1>
+      <div class="panel-actions">
+        <%= link_to business_manager_dashboard_path do %>
+          ← Back to Dashboard
+        <% end %>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <div class="settings-list">
+        <ul>
+          <li><%= link_to "My Profile", edit_business_manager_settings_profile_path %></li>
+          <%# Add links to other settings sections as they are built %>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Basic styling from orders index */
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .notice { background: #e8f4f8; border: 1px solid #b8e0ed; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+    .alert { background: #f8e8e8; border: 1px solid #edb8b8; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+    .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; }
+    .panel-header h1 { font-size: 24px; margin: 0; }
+    .panel-actions a { color: #0066cc; text-decoration: none; }
+    .panel-actions a:hover { text-decoration: underline; }
+    .panel-body { padding: 20px; }
+
+    /* Specific settings list styling */
+    .settings-list ul { list-style: none; padding: 0; margin: 0; }
+    .settings-list li { margin-bottom: 10px; }
+    .settings-list li a { color: #0066cc; text-decoration: none; font-size: 18px; }
+    .settings-list li a:hover { text-decoration: underline; }
+  </style>
+</div> 
