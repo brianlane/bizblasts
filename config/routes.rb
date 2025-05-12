@@ -76,6 +76,8 @@ Rails.application.routes.draw do
 
       namespace :settings do
         resource :profile, only: [:edit, :update]
+        resource :business, only: [:edit, :update], controller: 'business'
+        resources :teams, only: [:index, :new, :create, :destroy]
       end
     end
 

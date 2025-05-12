@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_11_231514) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_12_001041) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -146,6 +146,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_11_231514) do
     t.string "hostname"
     t.string "host_type"
     t.string "subdomain"
+    t.jsonb "hours"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"

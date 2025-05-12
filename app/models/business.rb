@@ -139,6 +139,8 @@ class Business < ApplicationRecord
     %w[staff_members services bookings tenant_customers users clients client_businesses]
   end
   
+  has_one_attached :logo
+  
   private
   
   def normalize_hostname
