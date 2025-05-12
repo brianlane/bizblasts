@@ -1,0 +1,92 @@
+<div class="container">
+  <% if flash[:notice] %>
+    <div class="notice"><p><%= flash[:notice] %></p></div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="alert"><p><%= flash[:alert] %></p></div>
+  <% end %>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h1>Invite Team Member</h1>
+      <div class="panel-actions">
+        <%= link_to "← Back to Settings", business_manager_settings_path %>
+        <%= link_to "← Team & Access Control", business_manager_settings_teams_path, class: "button" %>
+      </div>
+    </div>
+    <div class="panel-body">
+      <%= form_with model: @staff_member, url: business_manager_settings_teams_path, local: true do |f| %>
+        <% if @staff_member.errors.any? %>
+          <div id="error_explanation">
+            <h2><%= pluralize(@staff_member.errors.count, "error") %> prohibited this invitation from being sent:</h2>
+            <ul>
+              <% @staff_member.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="field">
+          <%= f.label :name %>
+          <%= f.text_field :name, required: true %>
+        </div>
+
+        <div class="field">
+          <%= f.label :position %>
+          <%= f.text_field :position %>
+        </div>
+
+        <div class="field">
+          <%= f.label :phone %>
+          <%= f.telephone_field :phone %>
+        </div>
+
+        <fieldset>
+          <legend>User Details</legend>
+          <%= f.fields_for :user do |u| %>
+            <div class="field">
+              <%= u.label :first_name %>
+              <%= u.text_field :first_name, required: true %>
+            </div>
+            <div class="field">
+              <%= u.label :last_name %>
+              <%= u.text_field :last_name, required: true %>
+            </div>
+            <div class="field">
+              <%= u.label :email %>
+              <%= u.email_field :email, required: true %>
+            </div>
+          <% end %>
+        </fieldset>
+
+        <div class="actions">
+          <%= f.submit "Invite", class: "button" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .notice { background: #e8f4f8; border: 1px solid #b8e0ed; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+  .alert { background: #f8e8e8; border: 1px solid #edb8b8; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+  .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; }
+  .panel-header h1 { font-size: 24px; margin: 0; }
+  .panel-actions a, .panel-actions .button { color: #0066cc; text-decoration: none; margin-left: 10px; }
+  .panel-actions a:hover, .panel-actions .button:hover { text-decoration: underline; }
+  .panel-body { padding: 20px; }
+
+  .field { margin-bottom: 15px; }
+  .field label { display: block; font-weight: bold; margin-bottom: 5px; }
+  .field input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  fieldset { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; padding: 10px; }
+  legend { font-weight: bold; }
+  .actions .button { background-color: #0066cc; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+  .actions .button:hover { background-color: #0056b3; }
+  #error_explanation { color: red; margin-bottom: 20px; }
+  #error_explanation h2 { font-size: 1.2em; color: red; }
+  #error_explanation ul { padding-left: 20px; }
+</style> 
