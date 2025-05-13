@@ -5,6 +5,9 @@ services:
     buildCommand: "./bin/render-build.sh"
     startCommand: "bundle exec puma -C config/puma.rb"
     healthCheckPath: /healthcheck
+    domains:
+      - bizblasts.com
+      - "*.bizblasts.com"  # Add this for subdomain support
     envVars:
       - key: PORT
         value: 10000
