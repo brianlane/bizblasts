@@ -62,6 +62,9 @@
         <!-- Product Add-ons Section -->
         <div class="mb-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">Product Add-ons</h2>
+          <p class="text-sm text-gray-600 mb-3">
+            Only service and mixed type products can be added to bookings. Standard product types are not shown.
+          </p>
           
           <% if @available_products.present? && @available_products.any? %>
             <div id="product-add-ons" class="space-y-4">

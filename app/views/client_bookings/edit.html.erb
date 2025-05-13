@@ -21,8 +21,12 @@
   </div>
 
   <%# Product Add-ons Section %>
+  <h2>Modify Optional Products:</h2>
+  <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
+    Only service and mixed type products can be added to bookings. Standard product types are not shown.
+  </p>
+  
   <% if @available_products.any? %>
-    <h2>Modify Optional Products:</h2>
     <div id="product-add-ons">
       <%= form.fields_for :booking_product_add_ons do |addOnFields| %>
         <%# This will render fields for existing add_ons because @booking.booking_product_add_ons are pre-populated %>

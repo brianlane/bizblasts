@@ -26,7 +26,9 @@ module BusinessManager
     # GET /manage/bookings/:id/edit
     def edit
       # Load all available products for this business that have variants
+      # Only include service or mixed product types
       @available_products = current_business.products.active.includes(:product_variants)
+                                  .where(product_type: [:service, :mixed])
                                   .where.not(product_variants: { id: nil })
                                   .order(:name)
     end
@@ -144,6 +146,7 @@ module BusinessManager
         
         # Reload available products for the form
         @available_products = current_business.products.active.includes(:product_variants)
+                                  .where(product_type: [:service, :mixed])
                                   .where.not(product_variants: { id: nil })
                                   .order(:name)
         

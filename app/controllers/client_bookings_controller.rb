@@ -22,7 +22,9 @@ class ClientBookingsController < ApplicationController
     # @booking is set by before_action
     # Similar to Public::BookingController#new, fetch available products
     @service = @booking.service # Assuming booking always has a service
+    # Fetch active products of type service or mixed for the current business to offer as add-ons
     @available_products = current_business_for_booking.products.active.includes(:product_variants)
+                                      .where(product_type: [:service, :mixed])
                                       .where.not(product_variants: { id: nil })
                                       .order(:name)
     # The view will use @booking.booking_product_add_ons to populate existing selections
@@ -39,6 +41,7 @@ class ClientBookingsController < ApplicationController
       # If update fails, re-render edit form. Need @available_products and @service again.
       @service = @booking.service
       @available_products = current_business_for_booking.products.active.includes(:product_variants)
+                                        .where(product_type: [:service, :mixed])
                                         .where.not(product_variants: { id: nil })
                                         .order(:name)
       flash.now[:alert] = @booking.errors.full_messages.to_sentence
@@ -82,11 +85,9 @@ class ClientBookingsController < ApplicationController
   
   def set_booking
     # Ensure booking is scoped to the current_user's tenant_customer records across all their businesses
-    # Or, if ClientBookingsController is always under a specific business context (e.g. via subdomain routing for client portal)
-    # then scope to that current_tenant. For now, assuming it can be across businesses.
-    tenant_customer_ids = current_user.tenant_customers.pluck(:id)
-    @booking = Booking.where(tenant_customer_id: tenant_customer_ids)
-                      .includes(:service, :staff_member, :business, :tenant_customer, booking_product_add_ons: {product_variant: :product} )
+    @booking = Booking.joins(:tenant_customer)
+                      .where(tenant_customers: { email: current_user.email })
+                      .includes(:service, :staff_member, :business, :tenant_customer, booking_product_add_ons: { product_variant: :product })
                       .find_by(id: params[:id])
     
     redirect_to client_bookings_path, alert: "Booking not found." unless @booking
@@ -117,7 +118,7 @@ class ClientBookingsController < ApplicationController
       # For simplicity, let's assume clients can mainly change notes and product add-ons.
       # If they can change time/staff, more logic from Public::BookingController#create would be needed.
       :notes,
-      booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy]
+      booking_product_add_ons_attributes: {}
     )
   end
 

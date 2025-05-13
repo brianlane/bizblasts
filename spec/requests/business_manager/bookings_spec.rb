@@ -138,9 +138,10 @@ RSpec.describe "Business Manager Bookings", type: :request do
       end
       
       it "assigns available products" do
-         product = create(:product, business: business, variants_count: 1)
-         get edit_business_manager_booking_path(booking)
-         expect(assigns(:available_products)).to include(product)
+        # Ensure product is of type service or mixed to be available as an add-on
+        product = create(:product, business: business, product_type: :service, variants_count: 1)
+        get edit_business_manager_booking_path(booking)
+        expect(assigns(:available_products)).to include(product)
       end
     end
 

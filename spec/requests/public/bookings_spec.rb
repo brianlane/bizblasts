@@ -101,7 +101,7 @@ RSpec.describe 'Bookings', type: :system do
 
       it "limits date selection based on max_advance_days" do
         # Check that the date input has the correct max attribute
-        date_input = find('input[type="date"]')
+        date_input = find('input#booking_date', visible: :hidden)
 
         # Calculate expected max date (format YYYY-MM-DD)
         max_date = (Date.current + 14.days).strftime('%Y-%m-%d')
@@ -111,10 +111,10 @@ RSpec.describe 'Bookings', type: :system do
       end
 
       it "enforces duration constraints" do
-        # Assuming there is a duration selection element on the page
+        # Assuming there is a hidden duration input field on the page with ID 'booking_duration'
         # This test will depend heavily on the actual UI implementation
         # For now, let's assume a duration input field with ID 'booking_duration'
-        duration_input = find('#booking_duration') # Replace with actual selector
+        duration_input = find('#booking_duration', visible: :hidden)
 
         # Check min and max attributes on the duration input
         expect(duration_input['min']).to eq('30')

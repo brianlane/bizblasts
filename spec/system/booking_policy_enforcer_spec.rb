@@ -38,8 +38,9 @@ RSpec.describe "BookingPolicyEnforcer", type: :system, js: true do
 
     # Test that max_advance_days policy restricts the date input
     it "restricts date selection beyond max_advance_days" do
-      # Check that the date input exists and has a max attribute set by JS
-      date_input = find('input[type="date"]')
+      # Check that the hidden date input exists and has the correct max attribute set by JS
+      date_input = find('input#booking_date', visible: :hidden)
+
       # Ensure the max attribute is present and correctly set
       # (removed first assertion; we directly test the max attribute value)
 
@@ -51,12 +52,10 @@ RSpec.describe "BookingPolicyEnforcer", type: :system, js: true do
     end
 
     # Test that min_duration_mins and max_duration_mins policies enforce duration constraints
-    # This test assumes there is a visible duration input field on the page with ID 'booking_duration'.
-    # If the UI uses a different element or a different interaction model for duration, this test needs adjustment.
+    # This test assumes there is a hidden duration input field on the page with ID 'booking_duration'.
     it "enforces duration constraints on the duration input field" do
-      # Find the duration input field, ensuring it is visible
-      # Adjust the selector '#booking_duration' if your application uses a different ID or element.
-      duration_input = find('#booking_duration', visible: true) 
+      # Find the hidden duration input field
+      duration_input = find('#booking_duration', visible: :hidden)
 
       # Check that min and max attributes are set correctly by the JavaScript
       expect(duration_input['min']).to eq('30')
