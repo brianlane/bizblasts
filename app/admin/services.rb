@@ -69,7 +69,17 @@ ActiveAdmin.register Service do
       f.input :staff_members, as: :check_boxes, collection: StaffMember.order(:name)
       # Add availability settings field if needed (JSON editor?)
       # f.input :availability_settings, as: :text, input_html: { rows: 5 } 
-      f.input :add_on_products, as: :check_boxes, collection: Product.where(product_type: [:service, :mixed])
+      
+      # Only show service and mixed products from the selected business
+      f.input :add_on_products, as: :check_boxes, 
+        collection: -> {
+          business_id = f.object.business_id
+          if business_id.present?
+            Product.where(business_id: business_id, product_type: [:service, :mixed]).order(:name)
+          else
+            Product.where(product_type: [:service, :mixed]).order(:name)
+          end
+        }
     end
     f.actions
   end

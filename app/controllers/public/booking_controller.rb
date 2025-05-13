@@ -7,6 +7,7 @@ module Public
     before_action :set_tenant
     # Ensure user is logged in to book (or handle guest booking flow)
     before_action :authenticate_user!, only: [:create] # Require login only for creating
+    before_action :set_form_data, only: [:new, :create]
     # Potentially allow viewing the form without login?
 
     # GET /book (new_booking_path)
@@ -14,14 +15,6 @@ module Public
       unless current_tenant
         Rails.logger.warn "[Public::BookingController#new] Tenant not set for request: #{request.host}"
         # tenant_not_found is likely called by set_tenant if it fails.
-        return
-      end
-
-      @service = current_tenant.services.find_by(id: params[:service_id])
-      if @service.nil?
-        flash[:alert] = "Selected service not found or is not available."
-        # Use specific helper for services page
-        redirect_to tenant_services_page_path
         return
       end
 
@@ -44,15 +37,6 @@ module Public
         dt = BookingManager.process_datetime_params(params[:date], params[:start_time])
         @booking.start_time = dt if dt
       end
-      
-      # Fetch active products and their variants for the current tenant to offer as add-ons
-      @available_products = current_tenant.products.active.includes(:product_variants)
-                                      .where.not(product_variants: { id: nil }) # Only products with variants
-                                      .order(:name)
-      
-      # Build one initial booking_product_add_on for the form fields_for helper, if needed by your form structure.
-      # Or, handle dynamically with JavaScript.
-      # @booking.booking_product_add_ons.build 
     end
 
     # POST /booking for business staff/managers
@@ -62,7 +46,6 @@ module Public
         render file: Rails.root.join('public/404.html'), layout: false, status: :not_found and return
       end
 
-      @service = current_tenant.services.find_by(id: booking_params[:service_id])
       unless @service
         flash[:alert] = "Invalid service selected."
         redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_entity and return
@@ -100,6 +83,33 @@ module Public
       # Auto-calculate end_time based on the service duration
       @booking.end_time = @booking.start_time + @service.duration.minutes
 
+      # Validate that a customer is associated for non-client users
+      unless @booking.tenant_customer.present? || current_user.client?
+        @booking.errors.add(:base, "You need to select or create a customer.")
+      end
+
+      if @booking.errors.any?
+        flash.now[:alert] = @booking.errors.full_messages.to_sentence
+        # Need to re-fetch available products and staff for rendering the form - Handled by before_action
+
+        # Ensure available products are set for the view
+        if @service.present?
+          available_products_for_view = current_tenant.products.active.includes(:product_variants)
+                                                        .where(product_type: [:service, :mixed])
+                                                        .where.not(product_variants: { id: nil }) # Only products with variants
+                                                        .order(:name)
+        else
+          available_products_for_view = []
+        end
+
+        # Set instance variables for the view
+        @service = current_tenant.services.find_by(id: params[:booking][:service_id]) # Re-fetch service
+        @available_products = available_products_for_view # Use the fetched products
+
+        render :new, status: :unprocessable_entity
+        return
+      end
+
       if @booking.save
         # Ensure invoice is created/updated after booking and its add-ons are saved.
         generate_or_update_invoice_for_booking(@booking)
@@ -128,6 +138,22 @@ module Public
     end
 
     private
+
+    def set_form_data
+      # Try to get service_id from top-level params (GET new) or nested booking params (POST create error)
+      service_id = params[:service_id] || params[:booking].try(:[], :service_id)
+      @service = current_tenant.services.find_by(id: service_id)
+
+      # Ensure @available_products is always set, even if @service is nil
+      @available_products = if @service.present?
+        current_tenant.products.active.includes(:product_variants)
+                                 .where(product_type: [:service, :mixed])
+                                 .where.not(product_variants: { id: nil }) # Only products with variants
+                                 .order(:name)
+      else
+        [] # Return an empty array if service is not found
+      end
+    end
 
     def booking_params
       params.require(:booking).permit(

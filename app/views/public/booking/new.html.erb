@@ -45,7 +45,7 @@
         <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= form.select :tenant_customer_id,
               options_for_select(@business.tenant_customers.map { |c| [c.email.present? ? "#{c.name} (#{c.email})" : c.name, c.id] } + [["Create new customer", "new"]], @booking.tenant_customer_id),
-              { include_blank: "Select existing customer" },
+              { prompt: "Select existing customer" },
               class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
               id: "tenant_customer_id"
         %>
@@ -78,16 +78,18 @@
       <%= form.label :start_time, class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.datetime_select :start_time,
             { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1 },
-            class: "form-input rounded border px-3 py-2 w-full" %>
+            class: "form-input rounded border px-3 py-2 w-full",
+            id: 'booking_start_time' %> <%# Add an ID for easier JS selection %>
     </div>
 
     <%# Booking policy date & duration inputs always displayed early in the form %>
-    <div class="mb-4">
+    <%# These are kept hidden but their values are synced for JS policy enforcement %>
+    <div class="mb-4" style="display: none;">
       <label for="booking_date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
       <input type="date" id="booking_date" name="booking[date]" class="form-input rounded border px-3 py-2 w-full"<% if policy&.max_advance_days %> max="<%= (Date.current + policy.max_advance_days.days).strftime('%Y-%m-%d') %>"<% end %> />
     </div>
 
-    <div class="mb-4">
+    <div class="mb-4" style="display: none;">
       <label for="booking_duration" class="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
       <input type="number" id="booking_duration" name="booking[duration]" class="form-input rounded border px-3 py-2 w-full" value="<%= @service.duration %>"<% if policy&.min_duration_mins %> min="<%= policy.min_duration_mins %>"<% end %><% if policy&.max_duration_mins %> max="<%= policy.max_duration_mins %>"<% end %> />
     </div>
@@ -104,9 +106,10 @@
     </div>
 
     <%# --- Add-on Products Section --- %>
-    <% if @service.available_add_on_products.any? %>
+    <% if @available_products.present? && @available_products.any? %>
       <div class="mb-8">
         <h2 class="text-xl font-semibold mb-2">Add Products to Your Booking (Optional)</h2>
+        <p class="text-sm text-gray-500 mb-3">Only service and mixed type products can be added to bookings.</p>
         <table class="min-w-full divide-y divide-gray-200 mb-4">
           <thead>
             <tr>
@@ -118,7 +121,7 @@
             </tr>
           </thead>
           <tbody>
-            <% @service.available_add_on_products.each do |product| %>
+            <% @available_products.each do |product| %>
               <% product.product_variants.each do |variant| %>
                 <%# Find existing add-on for this variant if form is re-rendered with errors %>
                 <% existing_add_on = @booking.booking_product_add_ons.find { |addon| addon.product_variant_id == variant.id } %>
@@ -191,38 +194,110 @@
     }
 
     const dateInput = document.getElementById('booking_date');
+    const durInput = document.getElementById('booking_duration');
+    const startTimeSelects = document.querySelectorAll('#booking_start_time select');
+    
+    // Function to sync start_time select values to the hidden booking_date input
+    function syncDateInput() {
+      const year = startTimeSelects[0].value;
+      const month = startTimeSelects[1].value;
+      const day = startTimeSelects[2].value;
+      
+      if (year && month && day) {
+        // Note: Date month is 0-indexed in JS, but select values are 1-indexed
+        const selectedDate = new Date(year, month - 1, day);
+        const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        dateInput.value = formattedDate;
+        // Trigger input/change events manually to ensure policy JS runs
+        dateInput.dispatchEvent(new Event('input'));
+        dateInput.dispatchEvent(new Event('change'));
+      } else {
+        dateInput.value = '';
+      }
+    }
+    
+    // Sync initial value
+    syncDateInput();
+
+    // Listen for changes on start_time selects to sync date
+    startTimeSelects.forEach(select => {
+      select.addEventListener('change', syncDateInput);
+    });
+
+    // Set the hidden duration input value from the service duration
+    if (durInput && <%= @service.duration.present? %>) { <%# Check if service duration is present %>
+      durInput.value = <%= @service.duration %>;
+      // Trigger input/change events manually to ensure policy JS runs
+      durInput.dispatchEvent(new Event('input'));
+      durInput.dispatchEvent(new Event('change'));
+    }
+
+    // Existing date clamping logic (now acts on the hidden input)
     if (dateInput && dateInput.max) {
       const clampDate = () => {
         if (dateInput.value > dateInput.max) {
-          dateInput.value = dateInput.max;
+          // Instead of just clamping, also update the start_time selects if date is clamped
+          const [year, month, day] = dateInput.max.split('-');
+          startTimeSelects[0].value = year;
+          startTimeSelects[1].value = parseInt(month, 10).toString(); // Convert back to 1-indexed string
+          startTimeSelects[2].value = parseInt(day, 10).toString();
+          
+          // Optionally show a message to the user
+          // alert('You can only book up to ' + (<%= policy&.max_advance_days %> || 'the maximum') + ' days in advance.');
         }
       };
+      dateInput.addEventListener('input', clampDate);
       dateInput.addEventListener('change', clampDate);
       dateInput.addEventListener('blur', clampDate);
-      dateInput.addEventListener('input', clampDate);
     }
 
-    const durInput = document.getElementById('booking_duration');
+    // Existing duration clamping logic (now acts on the hidden input)
     if (durInput) {
-      durInput.addEventListener('change', () => {
+      const clampDuration = () => {
         // Clamp and show error message
         const min = durInput.min ? parseInt(durInput.min, 10) : null;
         const max = durInput.max ? parseInt(durInput.max, 10) : null;
-        let msg;
-        if (min !== null && parseInt(durInput.value, 10) < min) {
-          durInput.value = min;
-          msg = document.createElement('p');
-          msg.className = 'text-red-600';
-          msg.textContent = `Minimum booking duration is ${min} minutes.`;
-          durInput.parentNode.appendChild(msg);
-        } else if (max !== null && parseInt(durInput.value, 10) > max) {
-          durInput.value = max;
-          msg = document.createElement('p');
-          msg.className = 'text-red-600';
-          msg.textContent = `Maximum booking duration is ${max} minutes.`;
-          durInput.parentNode.appendChild(msg);
+        const currentValue = parseInt(durInput.value, 10);
+        let clampedValue = currentValue;
+        let msgElement = durInput.parentNode.querySelector('p.text-red-600');
+
+        if (min !== null && currentValue < min) {
+          clampedValue = min;
+          if (!msgElement) {
+            msgElement = document.createElement('p');
+            msgElement.className = 'text-red-600';
+            durInput.parentNode.appendChild(msgElement);
+          }
+          msgElement.textContent = `Minimum booking duration is ${min} minutes.`;
+        } else if (max !== null && currentValue > max) {
+          clampedValue = max;
+          if (!msgElement) {
+            msgElement = document.createElement('p');
+            msgElement.className = 'text-red-600';
+            durInput.parentNode.appendChild(msgElement);
+          }
+          msgElement.textContent = `Maximum booking duration is ${max} minutes.`;
+        } else if (msgElement) {
+           // If value is valid, remove the error message
+           msgElement.remove();
         }
-      });
+        
+        // Only update if clamping occurred to avoid infinite loops with event listeners
+        if (currentValue !== clampedValue) {
+           durInput.value = clampedValue;
+           // Trigger events after updating the value
+           durInput.dispatchEvent(new Event('input'));
+           durInput.dispatchEvent(new Event('change'));
+        }
+      };
+      
+      // Initial sync and clamping of duration
+      clampDuration();
+
+      // Listen for changes on the duration input to clamp
+      durInput.addEventListener('input', clampDuration); // Use input for real-time clamping
+      durInput.addEventListener('change', clampDuration);
+      durInput.addEventListener('blur', clampDuration);
     }
   });
 </script> 

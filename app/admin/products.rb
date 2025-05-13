@@ -98,7 +98,17 @@ ActiveAdmin.register Product do
       f.input :active
       f.input :featured
       f.input :images, as: :file, input_html: { multiple: true }
-      f.input :add_on_services, as: :check_boxes, collection: Service.all
+      
+      # Filter add_on_services by the selected business
+      f.input :add_on_services, as: :check_boxes, 
+        collection: -> {
+          business_id = f.object.business_id
+          if business_id.present?
+            Service.where(business_id: business_id).order(:name)
+          else
+            Service.all.order(:name)
+          end
+        }
     end
 
     f.inputs 'Variants' do
