@@ -141,7 +141,11 @@ Rails.application.configure do
   config.hosts = [
     "bizblasts.onrender.com",
     "bizblasts.com",
-    "www.bizblasts.com"
+    "www.bizblasts.com",
+    "*.bizblasts.com",
+    "*.bizblasts.onrender.com",
+    ".bizblasts.com",
+    ".*\.bizblasts\.com$/"
   ]
   
   # Skip DNS rebinding protection for the default health check endpoint.
