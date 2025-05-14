@@ -6,7 +6,7 @@ ActiveAdmin.register_page "Websites" do
   menu priority: 2, label: "Websites"
 
   content title: "Websites" do
-    panel "All Client Websites" do
+    panel "All Business Webpages" do
       # Retrieve all businesses ordered by name
       table_for Business.order(:name) do
         column :id

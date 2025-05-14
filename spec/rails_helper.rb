@@ -199,8 +199,8 @@ RSpec.configure do |config|
       window_size: [1200, 800],
       browser_options: { 'disable-gpu' => true },
       js_errors: true,
-      process_timeout: 30,
-      timeout: 30,
+      process_timeout: 60,  # Increased to 60 seconds for CI stability
+      timeout:         60,  # Increased to 60 seconds for longer startup
       headless: true,
       dialog_handler: ->(page, dialog) { dialog.accept },
       # Important: This option makes Cuprite auto-accept all JavaScript confirmation dialogs

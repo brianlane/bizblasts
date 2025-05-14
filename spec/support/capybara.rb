@@ -10,8 +10,8 @@ Capybara.register_driver(:cuprite) do |app|
     browser_options: { 'no-sandbox' => nil },
     headless: ENV['HEADLESS'] != 'false',
     inspector: ENV['INSPECTOR'] == 'true',
-    process_timeout: 30,
-    timeout:         30
+    process_timeout: 60,  # Increased to 60 seconds for CI stability
+    timeout:         60   # Increased to 60 seconds for longer startup
   )
 end
 

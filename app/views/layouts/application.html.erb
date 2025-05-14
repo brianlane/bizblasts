@@ -64,9 +64,26 @@
               <%# On Main Domain %>
               <% if current_user.client? %>
                 <%# Client on main page - link to client dashboard %>
-                <% dashboard_path = dashboard_path() # Use the named route for client dashboard %>
+                <% dashboard_path = dashboard_path() %>
+              <% elsif current_user.manager? || current_user.staff? %>
+                <%# Business user on main page - link to their tenant's management dashboard %>
+                <% business = current_user.business %>
+                <% dashboard_text = "Manage Business" %>
+                <% if Rails.env.development? || Rails.env.test? %>
+                  <% if business.host_type_subdomain? %>
+                    <% dashboard_path = "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard" %>
+                  <% else %>
+                    <% dashboard_path = "http://#{business.hostname}:#{request.port}/manage/dashboard" %>
+                  <% end %>
+                <% else %>
+                  <% if business.host_type_custom_domain? %>
+                    <% dashboard_path = "#{request.protocol}#{business.hostname}/manage/dashboard" %>
+                  <% else %>
+                    <% dashboard_path = "#{request.protocol}#{business.hostname}.bizblasts.com/manage/dashboard" %>
+                  <% end %>
+                <% end %>
               <% else %>
-                <%# Manager/Staff on main page - link to main root for now %>
+                <%# Other user with no business - fallback %>
                 <% dashboard_path = root_path %>
               <% end %>
             <% end %>
