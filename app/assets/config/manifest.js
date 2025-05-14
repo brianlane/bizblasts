@@ -13,3 +13,12 @@
 //= link application.css
 //= link_tree ../../javascript .js
 //= link_tree ../../../vendor/javascript .js
+
+// Include any vendor JavaScript libraries
+//= link_tree ../../../vendor/javascript .js
+
+// Precompile ActiveAdmin JavaScript
+//= link active_admin.js
+
+// Include all compiled CSS assets (Propshaft output)
+//= link_tree ../builds
