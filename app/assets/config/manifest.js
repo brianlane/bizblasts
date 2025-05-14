@@ -1,6 +1,12 @@
 
+
 //= link_tree ../images
 //= link_directory ../javascripts .js
+
+// DO NOT link stylesheets directory - causes circular dependency with ActiveAdmin
+// //= link_tree ../stylesheets .css
+
+// Link individual CSS files instead
 //= link application.css
 //= link active_admin.css
 

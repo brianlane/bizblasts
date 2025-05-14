@@ -3,9 +3,6 @@
 require "active_support/core_ext/integer/time"
 require "securerandom"
 
-# Set a default secret key base if not provided by environment
-# Rails.application.config.secret_key_base = ENV["SECRET_KEY_BASE"]
-
 # Debug output for database configuration
 puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
 puts "DATABASE_HOST environment variable: #{ENV['DATABASE_HOST'] || 'NOT SET'}"
@@ -35,29 +32,22 @@ Rails.application.configure do
   # Ensure public file server is enabled
   config.public_file_server.enabled = true
   
-  # Add public/assets to asset paths
-  config.assets.paths ||= []
-  config.assets.paths << Rails.root.join('public', 'assets').to_s
-  config.assets.paths << Rails.root.join('app', 'assets', 'builds').to_s
-  
-  # Ensure ActiveAdmin assets are properly handled
-  config.assets.precompile += %w(active_admin.css active_admin.js application.css application.js)
-  
+  # Propshaft assest config
   # Disable asset fingerprinting in production - we'll handle it manually -- trying to fix the asset pipeline
   config.assets.digest = true
   
   # Allow serving of static assets directly from public/assets
   config.assets.compile = false
   
-  # Set up static file serving directly
-  config.public_file_server.enabled = true
-  config.public_file_server.headers = {
-    'Cache-Control' => 'public, max-age=31536000',
-    'Expires' => 1.year.from_now.to_formatted_s(:rfc822)
-  }
+  # # Set up static file serving directly
+  # config.public_file_server.enabled = true
+  # config.public_file_server.headers = {
+  #   'Cache-Control' => 'public, max-age=31536000',
+  #   'Expires' => 1.year.from_now.to_formatted_s(:rfc822)
+  # }
 
-  # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  # config.asset_host = "http://assets.example.com"
+  # # Enable serving of images, stylesheets, and JavaScripts from an asset server.
+  # # config.asset_host = "http://assets.example.com"
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
@@ -70,9 +60,6 @@ Rails.application.configure do
 
   # Devise
   config.action_mailer.default_url_options = { host: "bizblasts.com" }
-
-  # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT by default
   config.logger = ActiveSupport::Logger.new(STDOUT)
