@@ -8,6 +8,7 @@ FactoryBot.define do
     price { Faker::Commerce.price(range: 20..200.0) }
     active { true }
     featured { false }
+    service_type { :standard }
     association :business
     
     availability_settings { {} }

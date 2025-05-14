@@ -15,7 +15,7 @@
         Price: <%= number_to_currency(@product.price) %>
       </p>
       <% if @product.product_variants.any? %>
-        <%= form_with url: "/line_items", method: :post do |f| %>
+        <%= form_tag line_items_path, method: :post do %>
           <div>
             <label for="variant">Choose a variant:</label>
             <select name="product_variant_id" id="variant">
@@ -30,7 +30,7 @@
             <label for="quantity">Quantity:</label>
             <input type="number" name="quantity" id="quantity" value="1" min="1">
           </div>
-          <%= f.submit 'Add to Cart', class: 'mt-2 px-4 py-1 bg-green-600 text-white rounded' %>
+          <%= submit_tag 'Add to Cart', class: 'mt-2 px-4 py-1 bg-green-600 text-white rounded' %>
         <% end %>
       <% end %>
       <% if @product.product_type == 'service' || @product.product_type == 'mixed' %>

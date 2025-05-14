@@ -14,8 +14,10 @@ class SubdomainConstraint
     # Use unscoped to ensure we check across all tenants initially
     # This avoids issues if ActsAsTenant is already set incorrectly
     exists = ActsAsTenant.without_tenant do
-      # Use LOWER() for case-insensitive comparison on hostname
-      Business.where("LOWER(hostname) = ?", subdomain.downcase).exists?
+      # Use LOWER() for case-insensitive comparison on hostname or subdomain column
+      Business.where(host_type: 'subdomain')
+             .where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", subdomain.downcase, subdomain.downcase)
+             .exists?
     end
     Rails.logger.debug "[SubdomainConstraint] Match result for hostname '#{subdomain}': #{exists}"
     exists

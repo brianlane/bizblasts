@@ -370,9 +370,15 @@ module BusinessManager
       # For complex nested attributes like this, we need to build the permitted parameters
       # differently to handle dynamic keys
       params.require(:booking).permit(
-        :notes, 
-        :staff_member_id,
-        booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy, :price, :total_amount]
+        :service_id, :staff_member_id, :tenant_customer_id,
+        :start_time, :end_time, :status, :notes,
+        :amount, :original_amount, :discount_amount, # Allow setting amounts manually if needed
+        :cancellation_reason,
+        :quantity, # Permit quantity
+        # Nested attributes for product add-ons
+        booking_product_add_ons_attributes: [
+          :id, :product_variant_id, :quantity, :_destroy
+        ]
       )
     end
     

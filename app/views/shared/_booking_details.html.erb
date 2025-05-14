@@ -45,6 +45,20 @@
     </span>
   </div>
 
+  <%# Display Service Image if available %>
+  <% if booking.service.present? && booking.service.primary_image&.attached? %>
+    <div class="mb-4">
+      <%= image_tag booking.service.primary_image.representation(resize_to_limit: [150, 150]), class: "rounded shadow-md" %>
+    </div>
+  <% end %>
+
+  <% if booking.respond_to?(:quantity) && booking.quantity.to_i > 1 %>
+    <div class="<%= condensed ? '' : 'mb-4' %>">
+      <h3 class="text-sm font-medium text-gray-500 <%= condensed ? 'inline mr-1' : 'mb-1' %>">Quantity:</h3>
+      <p class="<%= condensed ? 'inline text-gray-900' : 'text-gray-900' %>"><%= booking.quantity %></p>
+    </div>
+  <% end %>
+
   <div class="<%= condensed ? 'space-y-1' : 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' %>">
     <% unless condensed %>
       <div>

@@ -131,6 +131,7 @@ Strategies to diversify and enhance revenue beyond basic subscriptions:
 - **Future Advanced Features**: Advanced inventory, variants, automated shipping/tax could become add-ons or Premium features.
 
 #### Add-on Service Revenue
+- Experience service bookings with configurable quantity and spots for 'Experience' services to drive higher per-transaction revenue.
 - A la carte feature add-ons
 - Additional SMS packages
 - Enhanced analytics packages

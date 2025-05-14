@@ -15,9 +15,20 @@
   <% end %>
 
   <%# Fields client can edit: notes and product add-ons %>
+  <% if @booking.service.experience? %>
+    <div class="mb-4">
+      <%= form.label :quantity, "Number of Attendees", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.number_field :quantity, min: 1, max: @booking.service.max_bookings, class: "form-input rounded border px-3 py-2 w-full", id: 'booking_quantity' %>
+      <p class="text-sm text-gray-500">Min: <%= @booking.service.min_bookings %>, Max: <%= @booking.service.max_bookings %>, Spots Remaining: <%= @booking.service.spots %></p>
+    </div>
+  <% else %>
+     <%# For standard services, quantity is always 1, submit as hidden field %>
+     <%= form.hidden_field :quantity, value: 1, id: 'booking_quantity' %>
+  <% end %>
+
   <div>
     <%= form.label :notes %>
-    <%= form.text_area :notes %>
+    <%= form.text_area :notes, id: 'booking_notes' %>
   </div>
 
   <%# Product Add-ons Section %>
@@ -59,7 +70,7 @@
               <%= newAddOnFields.hidden_field :product_variant_id, value: variant.id %>
               <div>
                 <%= newAddOnFields.label :quantity, "Quantity:" %>
-                <%= newAddOnFields.number_field :quantity, min: 0, in: 0..variant.stock_quantity, value: 0 %>
+                <%= newAddOnFields.number_field :quantity, min: 0, in: 0..variant.stock_quantity, value: 0, class: 'addon-quantity-input' %>
                 <small>(Available: <%= variant.stock_quantity %>)</small>
               </div>
             </div>
@@ -72,10 +83,68 @@
     <p>No optional products available for this service type or business.</p>
   <% end %>
 
+  <%# Display Total Price %>
+  <div class="mb-6 p-4 bg-gray-100 rounded">
+    <p><strong>Total Price:</strong> <span id="total-booking-price"><%= number_to_currency(@booking.total_charge) %></span></p>
+  </div>
+
   <div>
     <%= form.submit "Update Booking" %>
   </div>
 <% end %>
 
 <%= link_to 'Back to Booking Details', client_booking_path(@booking) %> |
-<%= link_to 'Back to My Bookings', client_bookings_path %> 
+<%= link_to 'Back to My Bookings', client_bookings_path %>
+
+<%# Add JavaScript for dynamic price update %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('booking_quantity');
+    const totalPriceSpan = document.getElementById('total-booking-price');
+    const baseServicePrice = <%= @booking.service.price || 0 %>;
+    const addonQuantityInputs = document.querySelectorAll('.addon-quantity-input');
+    const addonPrices = {}; // Store add-on prices by product variant ID
+
+    // Populate addonPrices object
+    <% @available_products.flat_map(&:product_variants).each do |variant| %>
+      addonPrices[<%= variant.id %>] = <%= variant.final_price || 0 %>;
+    <% end %>
+    <% @booking.booking_product_add_ons.each do |addon| %>
+      addonPrices[<%= addon.product_variant_id %>] = <%= addon.price || 0 %>; // Use booked price for existing
+    <% end %>
+
+    function updateTotalPrice() {
+      const serviceQuantity = <%= @booking.service.experience? ? 'parseInt(quantityInput.value, 10) || 1' : '1' %>;
+      let addonsTotal = 0;
+
+      addonQuantityInputs.forEach(input => {
+        const variantId = input.closest('.product-variant-selection').querySelector('input[type="hidden"]').value;
+        const quantity = parseInt(input.value, 10) || 0;
+        const price = addonPrices[variantId] || 0;
+        addonsTotal += quantity * price;
+      });
+
+      const newTotalPrice = (baseServicePrice * serviceQuantity) + addonsTotal;
+
+      // Format the price (simplified)
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      });
+      totalPriceSpan.textContent = formatter.format(newTotalPrice);
+    }
+
+    if (quantityInput) {
+      quantityInput.addEventListener('input', updateTotalPrice);
+      quantityInput.addEventListener('change', updateTotalPrice);
+    }
+
+    addonQuantityInputs.forEach(input => {
+      input.addEventListener('input', updateTotalPrice);
+      input.addEventListener('change', updateTotalPrice);
+    });
+
+    // Initial update on load
+    updateTotalPrice();
+  });
+</script> 

@@ -8,6 +8,12 @@ class BookingManager
       # Create the booking with the appropriate business scope
       booking = business ? business.bookings.new : Booking.new
       
+      # Ensure staff_member_id param is provided
+      unless booking_params[:staff_member_id].present?
+        booking.errors.add(:staff_member, "can't be blank")
+        return [nil, booking.errors]
+      end
+      
       # Process date and time parameters if provided
       if booking_params[:date].present? && booking_params[:time].present?
         booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time])
@@ -75,19 +81,36 @@ class BookingManager
         booking.booking_product_add_ons = booking.booking_product_add_ons.reject { |a| a.quantity.to_i <= 0 }
       end
       
-      # Basic validation to avoid checking availability for invalid bookings
-      unless booking.valid?
+      # Ensure staff member is present
+      if booking.staff_member.nil?
+        booking.errors.add(:staff_member, "can't be blank")
         return [nil, booking.errors]
       end
-      
+
       # Check availability for staff member
       staff_member = booking.staff_member
-      unless staff_member && AvailabilityService.is_available?(
-        staff_member: staff_member, 
-        start_time: booking.start_time, 
+      unless AvailabilityService.is_available?(
+        staff_member: staff_member,
+        start_time: booking.start_time,
         end_time: booking.end_time
       )
         booking.errors.add(:base, "The selected time is not available for this staff member")
+        return [nil, booking.errors]
+      end
+      
+      # Check spots availability for experience services
+      service = booking.service
+      if service&.experience?
+        requested = booking.quantity.to_i
+        available = service.spots.to_i
+        if available < requested
+          booking.errors.add(:base, "Not enough spots available for this experience. Requested: #{requested}, Available: #{available}.")
+          return [nil, booking.errors]
+        end
+      end
+      
+      # Validate booking (including quantity per-booking constraints)
+      unless booking.valid?
         return [nil, booking.errors]
       end
       
@@ -95,6 +118,13 @@ class BookingManager
       unless booking.save
         return [nil, booking.errors]
       end
+      
+      # --- Decrement spots for Experience services after successful booking ---
+      if service&.experience?
+        service.decrement!(:spots, booking.quantity.to_i)
+        # Note: No need to explicitly save service here, decrement! handles it.
+      end
+      # --- End decrement logic ---
       
       # Handle confirmation emails
       if booking_params[:send_confirmation]
@@ -127,6 +157,7 @@ class BookingManager
       original_start_time = booking.start_time
       original_end_time = booking.end_time
       original_status = booking.status
+      original_quantity = booking.quantity # Store original quantity
       
       # Process date and time parameters if provided
       if booking_params[:date].present? && booking_params[:time].present?
@@ -176,11 +207,6 @@ class BookingManager
         booking_copy.booking_product_add_ons = booking_copy.booking_product_add_ons.reject { |a| a.quantity.to_i <= 0 }
       end
       
-      # Basic validation of the updated booking
-      unless booking_copy.valid?
-        return [nil, booking_copy.errors]
-      end
-      
       # Check availability if time or staff changed
       if booking_params[:start_time] || booking_params[:end_time] || booking_params[:staff_member_id]
         start_time = booking_params[:start_time] || booking.start_time
@@ -200,7 +226,29 @@ class BookingManager
       end
       
       # Update the booking
-      return [nil, booking.errors] unless booking.update(filtered_params(booking_params))
+      unless booking.update(filtered_params(booking_params))
+        return [nil, booking.errors]
+      end
+      
+      # --- Adjust spots for Experience services after successful update ---
+      service = booking.service
+      if service&.experience?
+        quantity_change = booking.quantity.to_i - original_quantity.to_i
+
+        if quantity_change > 0
+          # If quantity increased, check if enough spots are available before decrementing
+          if service.spots.nil? || service.spots < quantity_change
+             # Rollback the booking update if not enough spots
+            raise ActiveRecord::Rollback, "Not enough spots available to increase booking quantity."
+          end
+          service.decrement!(:spots, quantity_change)
+        elsif quantity_change < 0
+          # If quantity decreased, increment spots by the difference
+          service.increment!(:spots, quantity_change.abs)
+        end
+        # Note: No need to explicitly save service here, increment!/decrement! handle it.
+      end
+      # --- End adjust spots logic ---
       
       # Send notifications based on changes
       if booking.saved_change_to_status?
@@ -261,6 +309,14 @@ class BookingManager
         #   StripeService.refund_payment(payment)
         # end
       end
+      
+      # --- Increment spots for Experience services upon cancellation ---
+      service = booking.service
+      if service&.experience?
+        service.increment!(:spots, booking.quantity.to_i)
+        # Note: No need to explicitly save service here, increment! handles it.
+      end
+      # --- End increment spots logic ---
       
       # Return true on successful cancellation
       true
@@ -371,9 +427,9 @@ class BookingManager
   # Filter params to only include allowed attributes
   def self.filtered_params(params)
     allowed_keys = %i[
-      service_id staff_member_id tenant_customer_id 
+      service_id staff_member_id tenant_customer_id
       notes status amount original_amount discount_amount
-      start_time end_time
+      start_time end_time quantity
       booking_product_add_ons_attributes tenant_customer_attributes
     ]
     

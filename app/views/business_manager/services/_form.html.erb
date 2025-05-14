@@ -52,9 +52,171 @@
     end %>
   </div>
 
+  <%# Service Type fields %>
+   <div class="mb-4">
+     <%= form.label :service_type, class: "block text-gray-700 text-sm font-bold mb-2" %>
+     <%= form.select :service_type, options_for_select(Service.service_types.keys.map { |k| [k.humanize, k] }, service.service_type), {}, { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", id: 'service_type_select' } %>
+   </div>
+
+   <div id="experience_fields" class="<%= service.experience? ? '' : 'hidden' %>">
+     <div class="mb-4">
+       <%= form.label :min_bookings, class: "block text-gray-700 text-sm font-bold mb-2" %>
+       <%= form.number_field :min_bookings, min: 1, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+     </div>
+     <div class="mb-4">
+       <%= form.label :max_bookings, class: "block text-gray-700 text-sm font-bold mb-2" %>
+       <%= form.number_field :max_bookings, min: (service.min_bookings || 1), class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+     </div>
+     <%# Spots is calculated, not user-editable here %>
+     <% if service.persisted? && service.experience? %>
+       <div class="mb-4">
+         <span class="block text-gray-700 text-sm font-bold mb-2">Current Spots:</span>
+         <p class="text-gray-900 text-sm"><%= service.spots %></p>
+       </div>
+     <% end %>
+   </div>
+
+  <%# Add-on Products %>
+  <div class="mb-4">
+    <h3 class="text-lg font-semibold mb-2">Add-on Products</h3>
+    <%= form.collection_check_boxes :add_on_product_ids, @current_business.products.where(product_type: [:service, :mixed]).order(:name), :id, :name do |b|
+      b.label(class: "inline-flex items-center mr-4 mb-2") do
+        b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
+        content_tag(:span, b.text, class: "ml-2")
+      end
+    end %>
+  </div>
+
+  <%# Image Upload and Management Section %>
+  <div class="mb-6">
+    <h3 class="text-lg font-semibold mb-2">Service Images</h3>
+
+    <% if service.persisted? && service.images.attached? %>
+      <div id="existing-images" class="mb-4">
+        <h4 class="text-md font-medium mb-2">Existing Images:</h4>
+        <%# Use fields_for to manage existing attachments via nested attributes %>
+        <%= form.fields_for :images, service.images.ordered, builder: ImageAttachmentsFieldsBuilder do |image_fields| %>
+           <%# The ImageAttachmentsFieldsBuilder will render each image management block %>
+           <%= image_fields.hidden_field :id %>
+           <%= image_fields.hidden_field :_destroy, value: 0, class: 'destroy-image' %>
+           <%= image_fields.hidden_field :position, class: 'image-position' %><%# Add position field %>
+           
+           <div class="flex items-center mb-2 border p-2 rounded image-management-item" data-image-id="<%= image_fields.object.id %>">
+             <div class="flex-shrink-0 mr-4">
+               <% if image_fields.object.variable? %>
+                 <%= image_tag image_fields.object.representation(resize_to_limit: [100, 100]), class: "rounded" %>
+               <% else %>
+                 <%# Handle non-image files if necessary, though validation should prevent %>
+                 <span class="text-gray-500 text-sm">Attachment</span>
+               <% end %>
+             </div>
+             <div class="flex-grow">
+                <p class="text-sm font-medium text-gray-700"><%= image_fields.object.filename %></p>
+                <div class="flex items-center mt-1">
+                  <%= image_fields.check_box :primary, class: "form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox" %>
+                  <%= image_fields.label :primary, "Primary", class: "ml-1 mr-4 text-sm text-gray-700" %>
+                  
+                  <button type="button" class="text-red-600 hover:text-red-800 text-sm delete-image-button">Remove</button>
+                </div>
+             </div>
+           </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="mb-4">
+      <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.file_field :images, multiple: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+      <p class="mt-1 text-sm text-gray-500">Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.</p>
+    </div>
+
+  </div>
+
   <%# TODO: Add input for availability_settings if needed %>
 
   <div class="actions">
     <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
   </div>
-<% end %> 
+<% end %>
+
+<%# Add JavaScript for dynamic behavior (optional but recommended) %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Toggle Experience specific fields
+    const serviceTypeSelect = document.getElementById('service_type_select');
+    const experienceFields = document.getElementById('experience_fields');
+
+    if (serviceTypeSelect && experienceFields) {
+      serviceTypeSelect.addEventListener('change', function() {
+        if (this.value === 'experience') {
+          experienceFields.classList.remove('hidden');
+        } else {
+          experienceFields.classList.add('hidden');
+        }
+      });
+    }
+
+    // Image deletion logic
+    const existingImagesDiv = document.getElementById('existing-images');
+    if (existingImagesDiv) {
+      existingImagesDiv.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-image-button')) {
+          const item = event.target.closest('.image-management-item');
+          if (item) {
+            // Find the hidden _destroy field and set its value to 1
+            const destroyField = item.querySelector('.destroy-image');
+            if (destroyField) {
+              destroyField.value = 1;
+              // Hide the element visually
+              item.style.display = 'none';
+            }
+          }
+        }
+      });
+
+      // Handle primary image radio-like behavior for checkboxes
+      existingImagesDiv.addEventListener('change', function(event) {
+        if (event.target.classList.contains('primary-image-checkbox')) {
+          if (event.target.checked) {
+            // Uncheck all other primary checkboxes
+            existingImagesDiv.querySelectorAll('.primary-image-checkbox').forEach(checkbox => {
+              if (checkbox !== event.target) {
+                checkbox.checked = false;
+              }
+            });
+          }
+          // Note: If unchecked, no other checkbox is automatically checked.
+          // The user would need to manually select a new primary image.
+        }
+      });
+    }
+
+    // Basic Image Ordering (Optional - requires UI like drag-and-drop)
+    // This is a placeholder. A real implementation needs a library.
+    // For now, rely on the backend position if set, otherwise arbitrary order.
+    // If implementing drag and drop, update the hidden .image-position fields here.
+    // Then trigger a form change event if needed.
+
+  });
+</script>
+
+<%# Helper to render image management fields (optional - can inline if simple) %>
+<%# This is not actually used by fields_for directly, but shows the structure %>
+<%# needed if you were to manually render fields for nested attributes. %>
+<%# For fields_for with a block, the block content is rendered for each item. %>
+<%# If using a custom builder, define it in an initializer or similar. %>
+
+<%# Example custom form builder for image attachments (define elsewhere) %>
+<%# module ImageAttachmentsFieldsBuilder
+#   class Builder < ActionView::Helpers::FormBuilder
+#     def primary_image
+#       @template.check_box(@object_name, :primary, objectify_options(@options)) +
+#       @template.label(@object_name, :primary, 'Primary')
+#     end
+#     
+#     def delete_image
+#        # This would link to a delete action or set a hidden _destroy field
+#     end
+#   end
+# end
+%> 

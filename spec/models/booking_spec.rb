@@ -254,4 +254,35 @@ RSpec.describe Booking, type: :model do
       end
     end
   end
+
+  describe 'quantity validations' do
+    let(:service_exp) { create(:service, business: business, service_type: :experience, min_bookings: 2, max_bookings: 5) }
+    let(:service_std) { create(:service, business: business, service_type: :standard) }
+
+    context 'for experience services' do
+      it 'is invalid when quantity is less than min_bookings' do
+        booking = build(:booking, business: business, service: service_exp, staff_member: staff_member, tenant_customer: customer, start_time: Time.current + 1.hour, end_time: Time.current + 2.hours, quantity: 1)
+        expect(booking).not_to be_valid
+        expect(booking.errors[:quantity]).to include("must be greater than or equal to #{service_exp.min_bookings}")
+      end
+
+      it 'is invalid when quantity is greater than max_bookings' do
+        booking = build(:booking, business: business, service: service_exp, staff_member: staff_member, tenant_customer: customer, start_time: Time.current + 1.hour, end_time: Time.current + 2.hours, quantity: service_exp.max_bookings + 1)
+        expect(booking).not_to be_valid
+        expect(booking.errors[:quantity]).to include("must be less than or equal to #{service_exp.max_bookings}")
+      end
+
+      it 'is valid when quantity is within range' do
+        booking = build(:booking, business: business, service: service_exp, staff_member: staff_member, tenant_customer: customer, start_time: Time.current + 1.hour, end_time: Time.current + 2.hours, quantity: 3)
+        expect(booking).to be_valid
+      end
+    end
+
+    context 'for standard services' do
+      it 'allows any quantity >= 1' do
+        booking = build(:booking, business: business, service: service_std, staff_member: staff_member, tenant_customer: customer, start_time: Time.current + 1.hour, end_time: Time.current + 2.hours, quantity: 5)
+        expect(booking).to be_valid
+      end
+    end
+  end
 end

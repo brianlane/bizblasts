@@ -1,0 +1,63 @@
+<%# app/views/public/services/show.html.erb %>
+
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-4"><%= @service.name %></h1>
+
+  <%# Display Service Images (Gallery or single primary) %>
+  <% if @service.images.attached? %>
+    <div class="mb-6">
+      <h3 class="text-xl font-semibold mb-2">Images</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <% if @service.primary_image.present? %>
+          <div class="md:col-span-2">
+            <%= image_tag @service.primary_image.representation(resize_to_limit: [600, 400]), class: "w-full rounded-lg shadow-md object-cover" %>
+          </div>
+        <% end %>
+        <% @service.images.ordered.each do |img|
+             next if @service.primary_image.present? && img.id == @service.primary_image.id %>
+           <div>
+             <%= image_tag img.representation(resize_to_limit: [300, 200]), class: "w-full rounded-lg shadow-md object-cover" %>
+           </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="mb-6">
+    <h3 class="text-xl font-semibold mb-2">Details</h3>
+    <p class="text-gray-700 mb-4"><%= simple_format(@service.description) %></p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <p class="text-gray-900 font-medium">Duration: <%= @service.duration %> minutes</p>
+        <p class="text-gray-900 font-medium">Price: <%= number_to_currency(@service.price) %></p>
+      </div>
+      <div>
+         <% if @service.experience? %>
+           <p class="text-gray-900 font-medium">Type: Experience</p>
+           <p class="text-gray-900 font-medium">Minimum Bookings: <%= @service.min_bookings %></p>
+           <p class="text-gray-900 font-medium">Maximum Bookings: <%= @service.max_bookings %></p>
+           <p class="text-gray-900 font-medium">Spots Available: <%= @service.spots %></p>
+         <% else %>
+           <p class="text-gray-900 font-medium">Type: Standard</p>
+         <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# Prominent Booking Link %>
+  <div class="mt-8 text-center">
+    <% first_active_staff = @service.staff_members.active.first %>
+    <% if first_active_staff.present? || @service.standard? %><%# Allow booking standard services even without assigned staff if applicable %><%# TODO: Refine booking logic for standard services without staff %>
+      <%= link_to "Book Now", 
+          tenant_calendar_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
+          class: "inline-block bg-green-600 text-white text-xl font-bold px-8 py-4 rounded-full hover:bg-green-700 transition duration-300" %>
+    <% else %>
+       <p class="text-red-600 text-lg">Booking currently unavailable for this service (no active staff).</p>
+    <% end %>
+  </div>
+
+  <div class="mt-8">
+    <%= link_to '← Back to Services', tenant_services_page_path, class: "text-blue-600 hover:underline" %>
+  </div>
+</div> 

@@ -87,11 +87,18 @@ Rails.application.routes.draw do
       resources :orders, only: [:index, :show]
     end
 
+    # Add cart resource within the subdomain constraint
+    resource :cart, only: [:show]
+    resources :line_items, only: [:create, :update, :destroy]
+    resources :orders, only: [:new, :create, :index, :show]
+
     scope module: 'public' do
       get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
       get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
       get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
-      get '/products', to: 'pages#show', page: 'products', as: :tenant_products_page
+      get '/services/:id', to: 'services#show', as: :tenant_service
+      # Product listings under subdomain go through Public::ProductsController
+      resources :products, only: [:index, :show]
       get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
 
       get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
@@ -109,16 +116,18 @@ Rails.application.routes.draw do
       resources :invoices, only: [:index, :show], as: :tenant_invoices
       resources :payments, only: [:index, :new, :create], as: :tenant_payments
 
-      resources :products, only: [:index, :show]
-      resource :cart, only: [:show], controller: 'carts'
-      resources :line_items, only: [:create, :update, :destroy]
-      resources :orders, only: [:new, :create, :show, :index], as: :tenant_orders
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
     end
   end
 
   resources :businesses, only: [:index]
+  # Keep the global cart resource to maintain compatibility 
+  resource :cart, only: [:show]
+  resources :line_items, only: [:create, :update, :destroy]
+  resources :orders, only: [:new, :create, :index, :show]
+  # Add back the global products routes for controller specs
+  resources :products, only: [:index, :show]
   root "home#index"
 
   get "up" => "rails/health#show", as: :rails_health_check
@@ -252,12 +261,6 @@ Rails.application.routes.draw do
       [404, {"Content-Type" => "text/plain"}, ["ActiveAdmin CSS not found"]]
     end
   }
-
-  # Add public product/order/cart routes for testability and non-subdomain access
-  resources :products, only: [:index, :show]
-  resource :cart, only: [:show]
-  resources :line_items, only: [:create, :update, :destroy]
-  resources :orders, only: [:new, :create, :show, :index]
 
   namespace :business_portal do
     # Add other business-specific resources here

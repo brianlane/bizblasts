@@ -34,7 +34,7 @@
     </tbody>
   </table>
   <h3>Subtotal: <%= number_to_currency(total) %></h3>
-  <%= link_to 'Checkout', new_tenant_order_path, class: 'btn btn-primary' %>
+  <%= link_to 'Checkout', new_order_path, class: 'btn btn-primary' %>
 <% else %>
   <p>Your cart is empty.</p>
 <% end %> 

@@ -185,6 +185,33 @@ RSpec.describe BookingManager, type: :service do
         expect(errors.full_messages).to include(/Staff member can't be blank/)
       end
     end
+
+    context 'when quantity is within available spots for experience services' do
+      let!(:experience_service) { create(:service, business: tenant, service_type: :experience, min_bookings: 2, max_bookings: 5) }
+      let(:params) { valid_params.merge(service_id: experience_service.id, quantity: 3) }
+
+      it 'creates a new booking and decrements spots' do
+        expect {
+          booking, errors = BookingManager.create_booking(params, tenant)
+          expect(booking).to be_persisted
+          expect(errors).to be_nil
+          expect(booking.quantity).to eq(3)
+        }.to change { experience_service.reload.spots }.by(-3)
+      end
+    end
+
+    context 'when requested quantity exceeds available spots for experience services' do
+      let!(:experience_service) { create(:service, business: tenant, service_type: :experience, min_bookings: 1, max_bookings: 4) }
+      let(:params) { valid_params.merge(service_id: experience_service.id, quantity: 10) }
+
+      it 'returns an error and does not create the booking' do
+        expect {
+          booking, errors = BookingManager.create_booking(params, tenant)
+          expect(booking).to be_nil
+          expect(errors.full_messages).to include("Not enough spots available for this experience. Requested: 10, Available: #{experience_service.spots}.")
+        }.not_to change(Booking, :count)
+      end
+    end
   end
   
   describe '.update_booking' do

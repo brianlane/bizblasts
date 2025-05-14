@@ -54,6 +54,8 @@ Additional debt categories for the enhanced feature set:
 | **Forms System** | Debt in conditional form logic | Medium-High | Limited condition types, inefficient rendering, validation inconsistencies |
 | **Document System** | Document management limitations | Medium | Unoptimized storage, basic verification workflow, limited document type handling |
 | **Resource Management** | Resource allocation limitations | Medium-Low | Simple allocation rules, limited conflict resolution, basic resource types |
+| **Booking Quantity** | Debt related to supporting multiple-spot bookings for 'Experience' services | Medium | Basic quantity validations, simple spots decrement logic |
+| **Service Images** | Debt related to image upload and management for services | Medium-Low | No image optimization, limited ordering and primary image selection |
 
 ### Enhanced Debt Tracking System
 
