@@ -144,22 +144,31 @@ class Business < ApplicationRecord
   
   # Method to get the full URL for this business
   def full_url(path = nil)
+    # Determine host based on environment and host_type
     host = if Rails.env.development?
-      # Development: use hostname which contains the subdomain part
+      # Development: use lvh.me with subdomain
       "#{hostname}.lvh.me"
     elsif host_type_custom_domain?
-      # Custom domain: hostname contains the full domain
+      # Custom domain: use full hostname
       hostname
     else
-      # Subdomain: hostname contains just the subdomain part
+      # Subdomain in other envs: append main domain
       "#{hostname}.bizblasts.com"
     end
-    
+
+    # Determine protocol
     protocol = Rails.env.development? ? 'http://' : 'https://'
-    port = Rails.env.development? && Rails.application.config.port ? ":#{Rails.application.config.port}" : ""
-    
+
+    # Determine port in development from action_mailer default_url_options
+    port = ''
+    if Rails.env.development?
+      default_opts = Rails.application.config.action_mailer.default_url_options rescue {}
+      port = ":#{default_opts[:port]}" if default_opts[:port].present?
+    end
+
+    # Build URL
     url = "#{protocol}#{host}#{port}"
-    url += path if path.present?
+    url += path.to_s if path.present?
     url
   end
 

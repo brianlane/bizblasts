@@ -266,7 +266,7 @@ ActiveAdmin.setup do |config|
   config.namespace :admin do |admin|
     admin.build_menu :default do |menu|
       menu.add label: "Dashboard", url: "/admin/dashboard", priority: 1
-      menu.add label: "Client Websites", url: "/admin/client_websites", priority: 2
+      menu.add label: "Websites", url: "/admin/websites", priority: 2
     end
   end
 
