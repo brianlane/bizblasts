@@ -43,8 +43,8 @@ Rails.application.configure do
   # Ensure ActiveAdmin assets are properly handled
   config.assets.precompile += %w(active_admin.css active_admin.js application.css application.js)
   
-  # Disable asset fingerprinting in production - we'll handle it manually
-  config.assets.digest = false
+  # Disable asset fingerprinting in production - we'll handle it manually -- trying to fix the asset pipeline
+  config.assets.digest = true
   
   # Allow serving of static assets directly from public/assets
   config.assets.compile = false
