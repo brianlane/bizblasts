@@ -83,7 +83,7 @@
             <% if current_user.client? %>
               <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
                 <li><%= link_to "My Bookings", tenant_my_bookings_path, class: "text-blue-600 hover:underline" %></li>
-                <li><%= link_to "My Orders", tenant_orders_path, class: "text-blue-600 hover:underline" %></li>
+                <li><%= link_to "My Orders", orders_path, class: "text-blue-600 hover:underline" %></li>
                 <li><%= link_to "Book Appointment", tenant_calendar_path, class: "text-blue-600 hover:underline" %></li>
                 <li><%= link_to "View All Businesses", main_domain_url_for('/businesses'), class: "text-blue-600 hover:underline" %></li>
                 <li><%= link_to "Cart", cart_path, class: "text-blue-600 hover:underline" %></li>

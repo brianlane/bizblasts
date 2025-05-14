@@ -8,7 +8,7 @@ ActiveAdmin.register Booking do
   permit_params :business_id, :service_id, :staff_member_id, :tenant_customer_id, 
                 :start_time, :end_time, :status, :price, :notes, :metadata, 
                 :stripe_payment_intent_id, :stripe_customer_id, :paid, 
-                :cancelled_at, :cancellation_reason
+                :cancelled_at, :cancellation_reason, :quantity
   
   scope :all
   scope :upcoming
@@ -45,6 +45,7 @@ ActiveAdmin.register Booking do
     column :amount do |booking|
       number_to_currency(booking.amount) if booking.amount
     end
+    column :quantity
     column :promotion
     actions
   end
@@ -68,6 +69,7 @@ ActiveAdmin.register Booking do
       row :amount do |booking|
         number_to_currency(booking.amount) if booking.amount
       end
+      row :quantity
       row :notes
       row :metadata
       row :stripe_payment_intent_id
@@ -103,6 +105,7 @@ ActiveAdmin.register Booking do
       f.input :tenant_customer, collection: tenant_customers
       f.input :staff_member, collection: staff_members, selected: f.object.staff_member_id
       f.input :service, collection: services, selected: f.object.service_id
+      f.input :quantity
       f.input :start_time
       f.input :end_time
       f.input :status, as: :select, collection: Booking.statuses.keys.map { |s| [s.titleize, s] }

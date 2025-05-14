@@ -12,13 +12,12 @@ class ApplicationController < ActionController::Base
   # Redirect admin access attempts from subdomains to the main domain
   before_action :redirect_admin_from_subdomain
 
-  # Set current tenant based on subdomain
-  # set_current_tenant_through_filter # Removed - Relying solely on custom :set_tenant filter
-  # Ensure set_tenant runs for the debug page to correctly identify tenant context
-  # before_action :set_tenant, unless: -> { maintenance_mode? } # REMOVED global tenant filter
+  # Set current tenant based on subdomain/custom domain
+  # This filter should be skipped in specific controllers where tenant context is handled differently
+  before_action :set_tenant, unless: -> { maintenance_mode? }
   before_action :check_database_connection
 
-  # Authentication (now runs before tenant is set in specific controllers)
+  # Authentication (now runs after tenant is set)
   before_action :authenticate_user!, unless: :skip_user_authentication?
 
   # Error handling for tenant not found
@@ -75,75 +74,111 @@ class ApplicationController < ActionController::Base
   # Call the method to set up routes
   serve_admin_assets
 
+  # Expose current tenant to controllers and views
+  helper_method :current_tenant
+
+  # Return the current ActsAsTenant tenant
+  def current_tenant
+    ActsAsTenant.current_tenant
+  end
+
   # Make tenant setting logic protected so subclasses can call it
   protected 
 
+  # Enhanced tenant setting method that handles both subdomains and custom domains
+  # This method now uses ActsAsTenant for consistent tenant handling
   def set_tenant
+    # Don't override if tenant is already set
     return if ActsAsTenant.current_tenant.present?
-    hostname = request.subdomain.presence
-
-    # If a specific hostname is present (and not www)
-    if hostname.present? && hostname != "www"
-      # Check table exists first to avoid errors
-      unless businesses_table_exists?
-        Rails.logger.error("Businesses table does not exist - skipping tenant setup for hostname: #{hostname}")
-        # Decide how to handle this - clear tenant and proceed, or show an error?
-        # For now, let's clear and proceed to avoid blocking non-tenant pages.
-        clear_tenant_and_log("Businesses table missing, clearing tenant.")
-        return
-      end
-      
-      # Attempt to find and set the tenant by hostname
-      if find_and_set_business_tenant(hostname)
-        Rails.logger.info "[SetTenant] Tenant set from hostname: #{hostname} to Business: #{ActsAsTenant.current_tenant&.name}"
-        return # Tenant found and set, done.
-      else
-        # Hostname provided but no matching tenant found
-        Rails.logger.warn "Tenant not found for hostname: #{hostname}"
-        tenant_not_found # Render the specific error page
-        return # Stop further processing
-      end
+    
+    # Try to find business by custom domain first
+    business = find_business_by_custom_domain
+    
+    # If no custom domain match, try subdomain
+    if business.nil?
+      hostname = extract_hostname_for_tenant
+      business = find_business_by_subdomain(hostname) if hostname.present?
     end
-
-    # --- No specific hostname or it was 'www' ---
-
-    # Session fallback logic (unchanged)
+    
+    # Set the tenant using ActsAsTenant if found
+    if business
+      ActsAsTenant.current_tenant = business
+      Rails.logger.info "[SetTenant] Tenant set: Business ##{business.id} (#{business.hostname})"
+      return
+    end
+    
+    # Handle case where hostname/domain provided but no business found
+    if request.subdomain.present? && request.subdomain != 'www'
+      Rails.logger.warn "Tenant not found for hostname: #{request.subdomain}"
+      tenant_not_found
+      return
+    end
+    
+    # Session fallback logic for users who just signed up
     if user_signed_in? && session[:signed_up_business_id].present?
-      business = Business.find_by(id: session[:signed_up_business_id])
-      if business
-        Business.set_current_tenant(business) # Use the class method
-        Rails.logger.info "Tenant set from session fallback: Business ##{business.id}"
-        # Consider clearing session.delete(:signed_up_business_id)
+      fallback_business = Business.find_by(id: session[:signed_up_business_id])
+      if fallback_business
+        Business.set_current_tenant(fallback_business) # Use the Business model's method
+        Rails.logger.info "Tenant set from session fallback: Business ##{fallback_business.id}"
+        # Consider clearing session after successful tenant switch
       else
         clear_tenant_and_log("Session fallback business ID not found: #{session[:signed_up_business_id]}")
         session.delete(:signed_up_business_id)
       end
-      return # Tenant set (or cleared) based on session
+      return
     end
-
-    # Default case: No specific tenant context found (no valid hostname, no session fallback)
+    
+    # Default case: No tenant context found
     clear_tenant_and_log("No specific tenant context found, clearing tenant.")
-    # ActsAsTenant.current_tenant is already nil here
-
-    # Removed logic that set tenant based on user role without subdomain context
-    # This ensures tenant is ONLY set via subdomain or session fallback
+    ActsAsTenant.current_tenant = nil
   end
 
-  # Helper to clear tenant and log
+  # Helper to clear tenant and log - now uses ActsAsTenant
   def clear_tenant_and_log(message)
     Rails.logger.warn(message)
     ActsAsTenant.current_tenant = nil
   end
 
+  # Check if businesses table exists (for handling migration scenarios)
   def businesses_table_exists?
-    # Check if either businesses table exists
     ActiveRecord::Base.connection.table_exists?('businesses')
   end
 
+  # Find business by custom domain (exact hostname match)
+  def find_business_by_custom_domain
+    return nil unless businesses_table_exists?
+    Business.find_by(host_type: 'custom_domain', hostname: request.host)
+  end
+
+  # Extract hostname/subdomain for tenant lookup
+  def extract_hostname_for_tenant
+    if Rails.env.development? || Rails.env.test?
+      # Development: Use Rails' subdomain helper for lvh.me
+      request.subdomain
+    else
+      # Production: Extract subdomain from bizblasts.com requests
+      host_parts = request.host.split('.')
+      if host_parts.length >= 3 && host_parts.last(2).join('.') == 'bizblasts.com'
+        first_part = host_parts.first
+        first_part unless first_part == 'www'
+      end
+    end
+  end
+
+  # Find business by subdomain
+  def find_business_by_subdomain(hostname)
+    return nil unless hostname.present? && businesses_table_exists?
+    # Search for tenant businesses matching either hostname or subdomain (case-insensitive)
+    Business.where(host_type: 'subdomain')
+            .where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
+            .first
+  end
+
+  # Legacy method - kept for compatibility but now uses ActsAsTenant directly
   def find_and_set_business_tenant(hostname)
     tenant = Business.find_by(hostname: hostname) || Business.find_by(subdomain: hostname)
     if tenant
-      Business.set_current_tenant(tenant)
+      Business.set_current_tenant(tenant) # Use the Business model's method
       true
     else
       false
@@ -151,7 +186,7 @@ class ApplicationController < ActionController::Base
   end
 
   def tenant_not_found
-    @subdomain = request.subdomain
+    @subdomain = request.subdomain || request.host
     render template: "errors/tenant_not_found", status: :not_found
   end
 
@@ -170,40 +205,61 @@ class ApplicationController < ActionController::Base
     end
     
     # Otherwise redirect to root path
-    redirect_to root_path, allow_other_host: true and return # Explicit redirect, allow cross-host if necessary, and stop filter chain
+    redirect_to root_path, allow_other_host: true and return
   end
 
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in
+  # This method now properly handles both subdomain and custom domain scenarios
   def after_sign_in_path_for(resource)
     # Check the type of resource signed in (User, AdminUser, etc.)
     if resource.is_a?(AdminUser)
-      admin_root_path # Or your ActiveAdmin dashboard path
+      admin_root_path
     elsif resource.is_a?(User)
       case resource.role
       when 'manager', 'staff'
         # Redirect manager/staff to their business-specific dashboard
-        if resource.business&.hostname
-          # Construct the URL manually as path helpers don't know the host/port here
-          port_string = request.port == 80 || request.port == 443 ? '' : ":#{request.port}"
-          host = "#{resource.business.hostname}.#{request.domain}#{port_string}"
-          # Use the named route for the business manager dashboard
-          business_manager_dashboard_url(host: host)
+        # This logic handles both subdomain and custom domain cases
+        if resource.business.present?
+          redirect_url = generate_business_dashboard_url(resource.business)
+          Rails.logger.debug "[after_sign_in] Manager/Staff redirecting to: #{redirect_url}"
+          redirect_url
         else
-          # Fallback if user has no business or hostname (should not happen for manager/staff)
-          Rails.logger.warn "[after_sign_in] Manager/Staff user ##{resource.id} has no associated business hostname."
+          # Fallback if user has no business (should not happen for manager/staff)
+          Rails.logger.warn "[after_sign_in] Manager/Staff user ##{resource.id} has no associated business."
           root_path
         end
       when 'client'
         # Redirect clients to the main client dashboard (on the main domain)
-        dashboard_path # Assumes this maps to client_dashboard#index
+        dashboard_path
       else
         # Fallback for unknown roles
         root_path 
       end
     else
       # Default fallback for other resource types
-      super # Use Devise default or root_path
+      super
+    end
+  end
+
+  # Generate the correct dashboard URL for a business (subdomain or custom domain)
+  def generate_business_dashboard_url(business)
+    if Rails.env.development? || Rails.env.test?
+      # Development: Always use subdomain with lvh.me
+      if business.host_type_subdomain?
+        "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard"
+      else
+        # For testing custom domains in development
+        "http://#{business.hostname}:#{request.port}/manage/dashboard"
+      end
+    else
+      # Production: Handle both subdomain and custom domain
+      protocol = request.ssl? ? 'https://' : 'http://'
+      if business.host_type_custom_domain?
+        "#{protocol}#{business.hostname}/manage/dashboard"
+      else
+        "#{protocol}#{business.hostname}.bizblasts.com/manage/dashboard"
+      end
     end
   end
 
@@ -236,17 +292,49 @@ class ApplicationController < ActionController::Base
   end
 
   # Redirects requests to /admin from a subdomain to the main domain
+  # Now handles both subdomain and custom domain scenarios
   def redirect_admin_from_subdomain
-    # Check if it's an admin path and on a subdomain
-    if request.path.start_with?('/admin') && request.subdomain.present? && request.subdomain != 'www'
-      # Construct the main domain URL (keeping the port and protocol)
-      main_domain_host = "lvh.me" # Or your production domain logic
-      port = request.port unless [80, 443].include?(request.port)
-      port_str = port ? ":#{port}" : ""
-      main_domain_url = "#{request.protocol}#{main_domain_host}#{port_str}#{request.fullpath}"
-
-      Rails.logger.info "[Redirect Admin] Redirecting admin access from subdomain #{request.host} to #{main_domain_url}"
+    # Check if it's an admin path and not on the main domain
+    if request.path.start_with?('/admin')
+      # Skip if already on main domain
+      return if main_domain_request?
+      
+      # Construct the main domain URL
+      main_domain_url = construct_main_domain_url
+      
+      Rails.logger.info "[Redirect Admin] Redirecting admin access from #{request.host} to #{main_domain_url}"
       redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
     end
+  end
+  
+  # Check if the current request is on the main domain
+  def main_domain_request?
+    if Rails.env.development? || Rails.env.test?
+      # Development: Check if on lvh.me without subdomain
+      request.host == 'lvh.me' || (request.subdomain.blank? || request.subdomain == 'www')
+    else
+      # Production: Check if on bizblasts.com without subdomain or with www
+      host_parts = request.host.split('.')
+      if host_parts.last(2).join('.') == 'bizblasts.com'
+        # On bizblasts.com - check if it's the main domain or www
+        host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
+      else
+        # On custom domain - never redirect admin (they may have their own admin setup)
+        true
+      end
+    end
+  end
+  
+  # Construct URL for the main domain preserving the current path
+  def construct_main_domain_url
+    if Rails.env.development? || Rails.env.test?
+      main_domain_host = 'lvh.me'
+    else
+      main_domain_host = 'bizblasts.com'
+    end
+    
+    port = request.port unless [80, 443].include?(request.port)
+    port_str = port ? ":#{port}" : ""
+    "#{request.protocol}#{main_domain_host}#{port_str}#{request.fullpath}"
   end
 end

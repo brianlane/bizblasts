@@ -97,7 +97,7 @@ This document outlines the operational approach for building and scaling BizBlas
 - Implement CSS for responsive design
 - Build theme customization system
 - Create subdomain management interface
-- Set up file upload capability with ActiveStorage
+- Set up file upload capability with ActiveStorage for service images (has_many_attached :images for Service).
 - Implement Hotwire (Turbo and Stimulus) for interactive elements
 - Develop location management interface
 - Create form builder interface with conditional logic
@@ -107,14 +107,17 @@ This document outlines the operational approach for building and scaling BizBlas
 - Develop core booking system architecture
 - Implement staff management with location assignment
 - Create service catalog with location availability
+- Implement service types (Standard/Experience) with configurable min_bookings, max_bookings, and spots management.
 - Build customer database with profile management
 - Develop online booking interface with location selection
+- Add 'quantity' input for 'Experience' services to booking forms and update booking logic.
 - Create scheduling system with calendar views
 - Set up Twilio for SMS reminders
 - Implement advanced form builder with conditional logic
 - Develop form field types and validation rules
 - Create form submission handling and storage
 - Build document upload and verification system
+- Implement service image upload and management in admin and display in public service pages.
 - Implement document type management
 - Create document requirement rules by service
 - Develop resource management and allocation system

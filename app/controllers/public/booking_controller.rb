@@ -166,6 +166,7 @@ module Public
         :'start_time(4i)',
         :'start_time(5i)',
         :notes,
+        :quantity,
         :tenant_customer_id,
         booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy],
         tenant_customer_attributes: [:name, :email, :phone]

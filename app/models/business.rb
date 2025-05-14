@@ -142,6 +142,28 @@ class Business < ApplicationRecord
     %w[staff_members services bookings tenant_customers users clients client_businesses]
   end
   
+  # Method to get the full URL for this business
+  def full_url(path = nil)
+    host = if Rails.env.development?
+      # Development: use hostname which contains the subdomain part
+      "#{hostname}.lvh.me"
+    elsif host_type_custom_domain?
+      # Custom domain: hostname contains the full domain
+      hostname
+    else
+      # Subdomain: hostname contains just the subdomain part
+      "#{hostname}.bizblasts.com"
+    end
+    
+    protocol = Rails.env.development? ? 'http://' : 'https://'
+    port = Rails.env.development? && Rails.application.config.port ? ":#{Rails.application.config.port}" : ""
+    
+    url = "#{protocol}#{host}#{port}"
+    url += path if path.present?
+    url
+  end
+
+  
   has_one_attached :logo
   
   private

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_12_160458) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -421,6 +421,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_12_160458) do
     t.datetime "updated_at", null: false
     t.boolean "featured"
     t.jsonb "availability_settings"
+    t.integer "service_type"
+    t.integer "min_bookings"
+    t.integer "max_bookings"
+    t.integer "spots"
     t.index ["business_id"], name: "index_services_on_business_id"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
   end

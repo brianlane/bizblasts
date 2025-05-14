@@ -34,10 +34,15 @@
 - [  ] Create general service business template
 - [  ] Set up asset pipeline for optimal performance
 - [  ] Implement custom domain configuration
+- [  ] Add ActiveStorage image upload support for Service model in ActiveAdmin (has_many_attached :images)
+- [  ] Add service type (Standard/Experience) fields and booking parameters (min_bookings, max_bookings) in ActiveAdmin service forms
 - [  ] Create business analytics dashboard
 
 ## Week 2-3: Enhanced Booking System Development
 - [  ] Create service management system
+- [  ] Add 'quantity' attribute to Booking model and implement booking quantity input in public and admin forms
+- [  ] Integrate service types (Standard/Experience) with min_bookings, max_bookings, and spots management in Service model
+- [  ] Add ActiveStorage image uploads and management for services (has_many_attached :images)
 - [  ] Implement staff/employee management
 - [  ] Build availability calendar system
 - [  ] Develop online booking interface

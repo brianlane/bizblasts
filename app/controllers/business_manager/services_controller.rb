@@ -85,7 +85,9 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :availability_settings,
-      staff_member_ids: [] # Allow staff assignment via new association
+      staff_member_ids: [], # Allow staff assignment via new association
+      images: [], # Allow new image uploads
+      images_attributes: [:id, :primary, :position, :_destroy] # Allow managing existing images
     )
   end
 

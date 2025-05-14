@@ -4,6 +4,9 @@ require_relative "boot"
 
 require "rails/all"
 
+# Remove the Rails initializer that sets autoload_paths to avoid frozen array modification
+#Rails::Engine.initializers.delete_if { |init| init.name.to_s == "set_autoload_paths" }
+
 # Explicitly require acts_as_tenant early
 # require "acts_as_tenant"
 

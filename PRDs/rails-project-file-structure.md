@@ -26,14 +26,16 @@ bizblasts/
 │   │   ├── application_controller.rb   # Base controller
 │   │   ├── businesses_controller.rb    # Business management
 │   │   ├── dashboard_controller.rb     # Client dashboard
-│   │   ├── bookings_controller.rb      # Booking functionality
-│   │   ├── services_controller.rb      # Service management
+│   │   ├── bookings_controller.rb      # Booking functionality, **updated to handle booking quantity and service spots.**
+│   │   ├── services_controller.rb      # Service management, **updated to handle image uploads.**
 │   │   ├── staff_controller.rb         # Staff management
 │   │   ├── customers_controller.rb     # Customer management
 │   │   ├── invoices_controller.rb      # Invoice functionality
 │   │   ├── marketing_controller.rb     # Marketing features
 │   │   ├── promotions_controller.rb    # Promotional functionality
-│   │   └── public_controller.rb        # Public-facing pages
+│   │   ├── public_controller.rb        # Public-facing pages (e.g., homepage)
+│   │   └── public/                     # Public-facing controllers
+│   │       └── services_controller.rb  # Controller for public service detail pages.
 │   │
 │   ├── models/                         # ActiveRecord models
 │   │   ├── concerns/                   # Shared model concerns
@@ -43,8 +45,8 @@ bizblasts/
 │   │   ├── admin_user.rb               # Admin user model
 │   │   ├── business.rb                 # Business model
 │   │   ├── template.rb                 # Website template model
-│   │   ├── booking.rb                  # Booking/scheduling model
-│   │   ├── service.rb                  # Service offering model
+│   │   ├── booking.rb                  # Booking/scheduling model, **now includes 'quantity' attribute for multiple spots.**
+│   │   ├── service.rb                  # Service offering model, **now includes 'type', 'min_bookings', 'max_bookings', 'spots' attributes, and has_many_attached :images.**
 │   │   ├── staff_member.rb             # Staff/employee model
 │   │   ├── customer.rb                 # Customer model
 │   │   ├── invoice.rb                  # Invoice model
@@ -61,12 +63,12 @@ bizblasts/
 │   │   │   ├── admin.html.erb          # Admin interface layout
 │   │   │   ├── client.html.erb         # Client dashboard layout
 │   │   │   └── tenant.html.erb         # Tenant website layout
-│   │   ├── shared/                     # Shared partials
+│   │   ├── shared/                     # Shared partials, **including updated _booking_details.html.erb to display quantity and service image.**
 │   │   ├── admin/                      # Admin view templates
 │   │   ├── dashboard/                  # Client dashboard views
 │   │   ├── businesses/                 # Business management views
-│   │   ├── bookings/                   # Booking system views
-│   │   ├── services/                   # Service management views
+│   │   ├── bookings/                   # Booking system views, **includes updates for quantity input in forms and display in index/show.**
+│   │   ├── services/                   # Service management views, **includes updates for image management in forms and display in show.**
 │   │   ├── staff/                      # Staff management views
 │   │   ├── customers/                  # Customer management views
 │   │   ├── invoices/                   # Invoice system views
@@ -110,8 +112,8 @@ bizblasts/
 │       ├── dashboard.rb                # Admin dashboard
 │       ├── business.rb                 # Business admin
 │       ├── user.rb                     # User admin
-│       ├── booking.rb                  # Booking admin
-│       ├── service.rb                  # Service admin
+│       ├── booking.rb                  # Booking admin, **updated to permit and display quantity.**
+│       ├── service.rb                  # Service admin, **updated to include type-specific fields and image uploads.**
 │       ├── staff_member.rb             # Staff admin
 │       ├── marketing_campaign.rb       # Marketing admin
 │       └── promotion.rb                # Promotion admin
@@ -228,6 +230,8 @@ class Booking < ApplicationRecord
   has_one :invoice, dependent: :nullify
   
   validates :start_time, :end_time, presence: true
+  validates :quantity, presence: true, numericality: { greater_than: 0 }
+  validates :quantity, numericality: { greater_than_or_equal_to: :min_bookings, less_than_or_equal_to: :max_bookings }, if: -> { service.present? && service.experience? }, delegate: false
   
   scope :upcoming, -> { where('start_time > ?', Time.current) }
   scope :past, -> { where('end_time < ?', Time.current) }
@@ -237,8 +241,20 @@ class Booking < ApplicationRecord
   after_update :send_update_notification, if: :saved_change_to_start_time?
   before_destroy :send_cancellation_notification
   
+  def min_bookings
+    service&.min_bookings || 1 # Default to 1 for standard services if service is nil
+  end
+  
+  def max_bookings
+    service&.max_bookings || 1 # Default to 1 for standard services if service is nil
+  end
+  
   def duration
     (end_time - start_time) / 60 # in minutes
+  end
+  
+  def total_charge
+    service.price * quantity + add_ons_charge # Assuming add_ons_charge is implemented elsewhere
   end
   
   def send_sms_reminder

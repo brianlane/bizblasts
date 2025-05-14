@@ -102,6 +102,8 @@ Based on simplybook.me analysis, highlighting advanced booking capabilities:
 - Showcase advanced intake forms with conditional logic
 - Display resource management capabilities
 - Present document collection and verification
+- Showcase service image gallery and management on service detail pages
+- Demonstrate 'Experience' service bookings with quantity selection and spots tracking
 
 #### Product & E-commerce Demonstration
 

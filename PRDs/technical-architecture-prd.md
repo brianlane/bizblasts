@@ -141,7 +141,7 @@ Based on simplybook.me analysis, implementing a more robust booking system:
 - Staff performance metrics
 
 #### Appointment Types
-- Custom appointment type definitions
+- Custom appointment type definitions, including support for 'Standard' and 'Experience' service types with configurable minimum and maximum bookings, and managing available spots for 'Experience' services.
 - Duration and buffer time settings
 - Capacity settings (group bookings)
 - Resource requirements tracking
@@ -151,6 +151,7 @@ Based on simplybook.me analysis, implementing a more robust booking system:
 - Booking history and management
 - Favorite providers selection
 - Rebooking from history
+- Ability to specify booking quantity for 'Experience' services.
 
 #### Notification System
 - SMS appointment reminders
@@ -224,7 +225,6 @@ businesses
 ├── updated_at
 
 client_businesses -- Purpose needs review/clarification
-// ... existing code ...
 ```
 
 #### Tenant Schema Tables (Key Examples - Per Client)
@@ -239,6 +239,10 @@ services
 ├── price
 ├── duration
 ├── featured
+├── type (enum: 'standard', 'experience')
+├── min_bookings (integer)
+├── max_bookings (integer)
+├── spots (integer)
 
 staff_members
 ├── id
@@ -267,6 +271,7 @@ bookings
 ├── end_time
 ├── status
 ├── notes
+├── quantity (integer)
 
 customers
 ├── id

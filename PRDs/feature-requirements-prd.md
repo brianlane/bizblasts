@@ -22,7 +22,7 @@
 | Feature | Priority | Description |
 |---------|----------|-------------|
 | Responsive Design | High | Mobile-friendly website layouts |
-| Service Showcase | High | Display services, pricing, and business information |
+| Service Showcase | High | Display services, pricing, and business information, now includes displaying service type, type-specific booking details (min/max bookings, spots) for 'Experience' services, and the primary service image. Each service listing links to a dedicated service detail page. |
 | Contact Forms | High | Allow potential customers to reach the business |
 | Photo Gallery | High | Display work samples and business images |
 | Testimonials Section | Medium | Showcase client reviews and feedback |
@@ -33,13 +33,14 @@
 | Local Business Schema | High | Structured data for local businesses |
 | Client Login Area | Medium | Customer account access |
 | Review Collection | Medium | Tools to gather and display customer reviews |
+| Service Detail Pages | High | Dedicated public pages for individual services displaying full details, images, and a booking link. |
 
 ### 3. Enhanced Booking System
 | Feature | Priority | Description |
 |---------|----------|-------------|
-| Service Catalog | High | Define available services and durations |
+| Service Catalog | High | Define available services and durations, now includes support for different service types ('Standard' and 'Experience') with type-specific booking parameters (min_bookings, max_bookings, and spots for 'Experience' services). |
 | Multiple Staff Support | High | Staff profiles, availability and assignment |
-| Online Booking | High | Customer self-service appointment booking |
+| Online Booking | High | Customer self-service appointment booking, includes support for booking quantity for 'Experience' services. |
 | Calendar View | High | Visual calendar of all appointments |
 | Booking Confirmation | High | Automated emails for booking confirmations |
 | SMS Reminders | High | Text message reminders for appointments |
@@ -55,6 +56,7 @@
 | Document Collection | Low | Allow file uploads for required documentation |
 | Custom Notification Content | Medium | Personalized message templates for communications |
 | Service Packages | Medium | Bundled services with special pricing |
+| Service Image Support | High | Allow businesses to upload and manage images for services, including setting a primary image. |
 
 ### 4. Marketing Tools
 | Feature | Priority | Description |

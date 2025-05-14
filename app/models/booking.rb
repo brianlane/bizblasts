@@ -19,14 +19,37 @@ class Booking < ApplicationRecord
   accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true,
                                 reject_if: proc { |attributes| attributes['quantity'].to_i <= 0 || attributes['product_variant_id'].blank? }
   
+  # Add quantity for multi-client bookings
+  attribute :quantity, :integer, default: 1
+
+  # Validations
+  validates :quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
+  validates :quantity, numericality: { less_than_or_equal_to: :service_max_bookings }, if: :experience_service?
+  validates :quantity, numericality: { greater_than_or_equal_to: :service_min_bookings }, if: :experience_service?
+
   delegate :name, to: :service, prefix: true, allow_nil: true
   delegate :name, to: :staff_member, prefix: true, allow_nil: true
   delegate :name, :email, to: :tenant_customer, prefix: :customer, allow_nil: true
   
   def total_charge
-    service_cost = self.service&.price || 0
-    addons_cost = self.booking_product_add_ons.sum(&:total_amount)
+    service_cost = (self.service&.price || 0) * self.quantity.to_i
+    # Use database sum to safely handle nil values
+    addons_cost = self.booking_product_add_ons.sum(:total_amount) || 0
     service_cost + addons_cost
+  end
+  
+  private
+
+  def experience_service?
+    self.service&.experience?
+  end
+
+  def service_min_bookings
+    self.service&.min_bookings || 1 # Default to 1 if not set on service
+  end
+
+  def service_max_bookings
+    self.service&.max_bookings || Float::INFINITY # Default to infinity if not set on service
   end
   
   # Define ransackable attributes for ActiveAdmin

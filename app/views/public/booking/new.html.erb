@@ -82,6 +82,18 @@
             id: 'booking_start_time' %> <%# Add an ID for easier JS selection %>
     </div>
 
+    <%# Add quantity input field - Potentially make this conditional based on service type %>
+    <% if @service.experience? %>
+      <div class="mb-4">
+        <%= form.label :quantity, "Number of Attendees", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.number_field :quantity, min: 1, max: @service.max_bookings, class: "form-input rounded border px-3 py-2 w-full", id: 'booking_quantity' %>
+        <p class="text-sm text-gray-500">Min: <%= @service.min_bookings %>, Max: <%= @service.max_bookings %>, Spots Remaining: <%= @service.spots %></p>
+      </div>
+    <% else %>
+       <%# For standard services, quantity is always 1, submit as hidden field %>
+       <%= form.hidden_field :quantity, value: 1, id: 'booking_quantity' %>
+    <% end %>
+
     <%# Booking policy date & duration inputs always displayed early in the form %>
     <%# These are kept hidden but their values are synced for JS policy enforcement %>
     <div class="mb-4" style="display: none;">
@@ -102,7 +114,7 @@
     <%# Display Price/Duration %>
     <div class="mb-6 p-4 bg-gray-100 rounded">
       <p><strong>Duration:</strong> <%= @service.duration %> minutes</p>
-      <p><strong>Price:</strong> <%= number_to_currency(@service.price) %></p>
+      <p><strong>Price:</strong> <span id="total-booking-price"><%= number_to_currency(@booking.total_charge) %></span></p>
     </div>
 
     <%# --- Add-on Products Section --- %>
@@ -300,4 +312,38 @@
       durInput.addEventListener('blur', clampDuration);
     }
   });
-</script> 
+</script>
+
+<%# Add JavaScript for dynamic price update based on quantity for Experience services %>
+<% if @service.experience? %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('booking_quantity');
+    const totalPriceSpan = document.getElementById('total-booking-price');
+    const baseServicePrice = <%= @service.price || 0 %>;
+
+    function updateTotalPrice() {
+      const quantity = parseInt(quantityInput.value, 10) || 1;
+      // Note: This calculation currently only includes the service price * quantity.
+      // It does NOT include add-on product prices.
+      // Full dynamic calculation including add-ons would require more complex JS.
+      const newTotalPrice = baseServicePrice * quantity;
+      
+      // Format the price (simplified) - a proper currency formatting library is recommended
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      });
+      totalPriceSpan.textContent = formatter.format(newTotalPrice);
+    }
+
+    if (quantityInput && totalPriceSpan) {
+      quantityInput.addEventListener('input', updateTotalPrice);
+      // Also update on change, just in case
+      quantityInput.addEventListener('change', updateTotalPrice);
+      // Initial update on load
+      updateTotalPrice();
+    }
+  });
+</script>
+<% end %> 

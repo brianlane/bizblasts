@@ -66,6 +66,7 @@
                 <th class="px-6 py-3">Service</th>
                 <th class="px-6 py-3">Staff</th>
                 <th class="px-6 py-3">Date & Time</th>
+                <th class="px-6 py-3">Quantity</th>
                 <th class="px-6 py-3">Status</th>
                 <th class="px-6 py-3">Actions</th>
               </tr>
@@ -87,6 +88,7 @@
                     <div><%= booking.start_time.strftime("%b %d, %Y") %></div>
                     <div><%= booking.start_time.strftime("%I:%M %p") %> - <%= booking.end_time.strftime("%I:%M %p") %></div>
                   </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= booking.quantity %></td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <% status_colors = {
                       'pending' => 'bg-yellow-100 text-yellow-800',
