@@ -89,6 +89,14 @@ Rails.application.routes.draw do
           end
         end
         resources :locations
+
+        # Subscription & Billing (Module 7)
+        get 'subscription', to: 'subscriptions#show', as: :subscription
+        post 'subscription/checkout', to: 'subscriptions#create_checkout_session', as: :subscription_checkout
+        post 'subscription/portal', to: 'subscriptions#customer_portal_session', as: :subscription_portal
+        # Stripe webhook endpoint - scoped under /manage/settings/stripe_events
+        post 'stripe_events', to: 'subscriptions#webhook'
+
       end
     end
 
