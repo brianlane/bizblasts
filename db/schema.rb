@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_15_212622) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_16_195402) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -161,10 +161,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_15_212622) do
     t.string "host_type"
     t.string "subdomain"
     t.jsonb "hours"
+    t.string "stripe_customer_id"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
+    t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
   end
 
   create_table "campaign_recipients", force: :cascade do |t|
@@ -664,6 +666,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_15_212622) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "subscriptions", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "plan_name", null: false
+    t.string "stripe_subscription_id", null: false
+    t.string "status", null: false
+    t.datetime "current_period_end", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_subscriptions_on_business_id", unique: true
+    t.index ["stripe_subscription_id"], name: "index_subscriptions_on_stripe_subscription_id", unique: true
+  end
+
   create_table "tax_rates", force: :cascade do |t|
     t.string "name", null: false
     t.decimal "rate", precision: 10, scale: 4, null: false
@@ -783,6 +797,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_15_212622) do
   add_foreign_key "staff_members", "users"
   add_foreign_key "stock_reservations", "orders"
   add_foreign_key "stock_reservations", "product_variants"
+  add_foreign_key "subscriptions", "businesses"
   add_foreign_key "tax_rates", "businesses"
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
   add_foreign_key "users", "businesses", on_delete: :cascade

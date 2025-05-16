@@ -58,6 +58,7 @@ class Business < ApplicationRecord
   has_many :notification_templates, dependent: :destroy
   has_many :integration_credentials, dependent: :destroy
   has_many :locations, dependent: :destroy
+  has_one :subscription, dependent: :destroy # Added for Module 7
   
   # Validations
   validates :name, presence: true
@@ -146,12 +147,12 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id]
   end
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
-    %w[staff_members services bookings tenant_customers users clients client_businesses]
+    %w[staff_members services bookings tenant_customers users clients client_businesses subscription]
   end
   
   # Method to get the full URL for this business
