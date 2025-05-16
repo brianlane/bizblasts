@@ -1,0 +1,60 @@
+<div class="container">
+  <p>
+    <%= link_to "← Back to Settings", business_manager_settings_path %>
+  </p>
+
+  <% if flash[:notice] %>
+    <div class="notice"><p><%= flash[:notice] %></p></div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="alert"><p><%= flash[:alert] %></p></div>
+  <% end %>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h1>Subscription & Billing</h1>
+    </div>
+
+    <div class="panel-body">
+      <% if @subscription && @subscription.persisted? %>
+        <div class="subscription-details">
+          <p><strong>Current Plan:</strong> <%= @subscription.plan_name.titleize %></p>
+          <p><strong>Status:</strong> <%= @subscription.status.titleize %></p>
+          <p><strong>Current Period End:</strong> <%= l @subscription.current_period_end, format: :long %></p>
+          <p><strong>Business Tier:</strong> <%= @business.tier.titleize %></p>
+
+          <%# Button to manage subscription via Stripe Customer Portal %>
+          <%= button_to "Manage Subscription", business_manager_settings_subscription_portal_path, method: :post, class: "btn btn-primary" %>
+
+          <%# TODO: Add options to change plan if applicable directly here, or link to a plan selection page %>
+          <%# Example: link_to "Change Plan", new_business_manager_settings_subscription_path, class: "btn btn-secondary" %>
+        </div>
+      <% else %>
+        <p>You do not have an active paid subscription.</p>
+        <p><strong>Current Business Tier:</strong> <%= @business.tier.titleize %></p>
+        <%# TODO: Offer different plans. For now, a generic button %>
+        <%# This could link to a page where user selects a plan/price_id %>
+        <%= button_to "Choose a Plan", business_manager_settings_subscription_checkout_path, 
+              params: { price_id: 'YOUR_BASIC_PLAN_PRICE_ID' }, method: :post, class: "btn btn-primary" %> 
+        <p><small>You will be redirected to Stripe to complete your subscription.</small></p>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container { max-width: 960px; margin: 20px auto; padding: 0 15px; }
+  .panel { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 20px; }
+  .panel-header { background: #f5f5f5; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
+  .panel-header h1 { font-size: 20px; margin: 0; }
+  .panel-body { padding: 20px; }
+  .subscription-details p { margin-bottom: 10px; font-size: 16px; }
+  .btn { display: inline-block; padding: 10px 15px; font-size: 16px; border-radius: 4px; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background-color: #007bff; color: white; }
+  .btn-primary:hover { background-color: #0056b3; }
+  .btn-secondary { background-color: #6c757d; color: white; margin-left: 10px; }
+  .btn-secondary:hover { background-color: #545b62; }
+  .notice, .alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; }
+  .notice { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
+  .alert { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+</style> 

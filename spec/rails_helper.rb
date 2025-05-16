@@ -39,6 +39,7 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 # RSpec configurations and support
 require 'rspec/rails'
 # Add additional requires below this line. Rails is not loaded until this point!
+require 'stripe' # Added for Stripe API mocking
 require 'factory_bot_rails'
 require 'shoulda/matchers'
 require 'database_cleaner/active_record'
