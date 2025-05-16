@@ -20,11 +20,12 @@
         <td><%= template.channel %></td>
         <td><%= template.subject %></td>
         <td>
-        <%= link_to 'Edit', edit_business_manager_settings_notification_path(template) %>
-        <%= link_to 'Delete', 
-          "#", 
-          class: "text-red-600 hover:text-red-900 delete-link", 
-          data: { confirm_message: "Are you sure you want to delete the Notification Template '#{template.subject}'?", delete_url: business_manager_settings_notification_path(template) } %>
+          <%= link_to 'Edit', edit_business_manager_settings_notification_path(template) %>
+          <%= button_to 'Delete',
+                        business_manager_settings_notification_path(template),
+                        method: :delete,
+                        data: { confirm: %Q[Are you sure you want to delete the Notification Template '#{template.subject}'?] },
+                        class: 'text-red-600 hover:text-red-900' %>
         </td>
       </tr>
     <% end %>
@@ -54,41 +55,4 @@
       </tr>
     <% end %>
   </tbody>
-</table> 
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const deleteLinks = document.querySelectorAll('.delete-link');
-
-  deleteLinks.forEach(link => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      const message = link.dataset.confirmMessage;
-      const url = link.dataset.deleteUrl;
-
-      if (confirm(message)) {
-        const form = document.createElement('form');
-        form.method = 'post';
-        form.action = url;
-        form.style.display = 'none'; // Hide the form
-
-        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'authenticity_token';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
-
-        const methodInput = document.createElement('input');
-        methodInput.type = 'hidden';
-        methodInput.name = '_method';
-        methodInput.value = 'delete';
-        form.appendChild(methodInput);
-
-        document.body.appendChild(form);
-        form.submit();
-      }
-    });
-  });
-});
-</script>
+</table>

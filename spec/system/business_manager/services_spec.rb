@@ -84,7 +84,7 @@ RSpec.describe "BusinessManager::Services", type: :system do
       expect(updated_service.staff_members).not_to include(staff_member)
       # Delete - verify the delete link exists (UI verification)
       within("#service_#{updated_service.id}") do
-      expect(page).to have_link('Delete')
+        expect(page).to have_button('Delete')
       end
     end
     # Add this special test for delete functionality
@@ -139,7 +139,7 @@ RSpec.describe "BusinessManager::Services", type: :system do
       expect(page).not_to have_link('New Service')
       within("tbody") do # Check within the table body to avoid matching header/other text
         expect(page).not_to have_link('Edit')
-        expect(page).not_to have_link('Delete')
+        expect(page).not_to have_button('Delete')
       end
     end
   end
