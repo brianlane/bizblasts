@@ -132,7 +132,6 @@ bizblasts/
 │   ├── storage.yml                     # ActiveStorage configuration
 │   └── tailwind.config.js              # TailwindCSS configuration (used by cssbundling)
 │
-├── app/overrides/                    # Solidus view customizations (Deface overrides)
 │
 ├── db/                                 # Database configurations
 │   ├── migrate/                        # Database migrations (YYYYMMDDHHMMSS_*.rb)
@@ -142,7 +141,6 @@ bizblasts/
 │   │   ├── ...                       # Migration for line_items table
 │   │   ├── ...                       # Migration for product_variants table (optional)
 │   │   ├── ...                       # Migration for categories table (optional)
-│   │   └── ...                       # Solidus core migrations (e.g., yyyyMMddhhmmss_create_spree_tables.rb)
 │   ├── schema.rb                       # Current database schema
 │   └── seeds.rb                        # Seed data script
 │

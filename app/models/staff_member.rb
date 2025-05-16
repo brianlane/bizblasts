@@ -100,7 +100,7 @@ class StaffMember < ApplicationRecord
   end
   
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name email phone bio active business_id user_id position created_at updated_at photo_url]
+    %w[id name email phone bio active business_id user_id position created_at updated_at photo_url status specialties timezone color]
   end
   
   def self.ransackable_associations(auth_object = nil)

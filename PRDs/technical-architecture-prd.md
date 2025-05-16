@@ -31,8 +31,6 @@ BizBlasts will implement a Ruby on Rails monolithic application with multi-tenan
 
 ### Integrations (Planned/Current)
 - **Payments**: Stripe Connect (Placeholder implementation via `StripeService`, needs build-out for Products/Orders/Invoices)
-- **E-commerce Platform**: Solidus (Handles products, cart, checkout, orders, inventory, shipping, taxes for Goods feature)
-- **Payments (via Solidus)**: Solidus integrates with payment gateways like Stripe (`solidus_stripe`) for processing payments related to Goods orders and Service bookings including Goods.
 - **Email**: ActionMailer with Render SMTP or SendGrid
 - **SMS Notifications**: Twilio (Planned - Not Yet Implemented)
 - **DNS**: Render managed DNS
@@ -66,9 +64,6 @@ BizBlasts will utilize the acts_as_tenant gem for schema-based multi-tenancy:
 - Subdomain recognition and tenant switching via middleware (`app/middleware/tenant_middleware.rb`)
 - Fallback to marketing site for unknown subdomains
 
-#### Solidus Store Configuration
-- Solidus needs configuration to handle multiple frontends (one per tenant/business subdomain).
-- The default Solidus `Spree::Store` model may need adjustments or replacement to align with the `Business` tenant model.
 
 #### Tenant Context Management
 - Automatic tenant switching based on subdomain/domain
@@ -76,19 +71,9 @@ BizBlasts will utilize the acts_as_tenant gem for schema-based multi-tenancy:
 - API endpoints include tenant context in requests (if applicable)
 - Development tools for testing across tenants
 
-### Solidus Multi-Tenant Integration Strategy
 
-Integrating Solidus into the existing `acts_as_tenant` architecture requires careful planning:
 
-1.  **Tenant-Aware Models**: Most Solidus models (Products, Orders, Variants, Stock Locations, etc.) need to be scoped by the `Business` tenant. This might involve:
-    *   Patching Solidus models to include `business_id` and default scopes.
     *   Using extensions or custom decorators.
-    *   Potentially forking core Solidus components if direct modification is needed (use with caution).
-2.  **Shared vs. Tenant Data**: Identify which Solidus models can remain global (e.g., Countries, Zones, Tax Categories - if applicable universally) and which must be tenant-specific.
-3.  **Current Tenant Handling**: Ensure Solidus controllers, services, and background jobs correctly identify and use the `Current.business` set by `acts_as_tenant` middleware.
-4.  **Database Schema**: Tenant schemas will include Solidus tables. The public schema might hold shared Solidus configuration.
-5.  **Admin Integration**: The Solidus admin interface needs to be integrated or adapted into ActiveAdmin, respecting the tenant context for Admin users managing specific businesses.
-6.  **Data Isolation**: Rigorous testing is required to ensure no data leakage between tenants within Solidus operations.
 
 ### Admin Dashboard
 
