@@ -1,0 +1,86 @@
+<div class="container">
+  <% if flash[:notice] %>
+    <div class="notice"><p><%= flash[:notice] %></p></div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="alert"><p><%= flash[:alert] %></p></div>
+  <% end %>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h1>Locations</h1>
+      <div class="panel-actions">
+        <%= link_to "← Back to Settings", business_manager_settings_path, class: "link-back" %>
+        <%= link_to 'Add New Location', new_business_manager_settings_location_path, class: "button primary" %>
+      </div>
+    </div>
+    <div class="panel-body">
+      <% if @locations.any? %>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Zip</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @locations.each do |location| %>
+                <tr>
+                  <td><%= location.name %></td>
+                  <td><%= location.address %></td>
+                  <td><%= location.city %></td>
+                  <td><%= location.state %></td>
+                  <td><%= location.zip %></td>
+                  <td>
+                    <div class="action-buttons">
+                      <%= button_to 'Edit', edit_business_manager_settings_location_path(location), method: :get, class: "button small" %>
+                      <%= button_to 'Delete', business_manager_settings_location_path(location), method: :delete, data: { confirm: 'Are you sure?' }, class: "button small danger" %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="empty-state"><p>No locations yet.</p></div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Basic styling from orders index */
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .notice { background: #e8f4f8; border: 1px solid #b8e0ed; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+  .alert { background: #f8e8e8; border: 1px solid #edb8b8; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+  .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; }
+  .panel-header h1 { font-size: 24px; margin: 0; }
+  .panel-actions { display: flex; gap: 10px; }
+  .panel-actions .link-back { color: #0066cc; text-decoration: none; background: none; border: none; padding: 0; font-size: 16px; align-self: center; }
+  .panel-actions .link-back:hover { text-decoration: underline; }
+  .panel-actions .button { margin-left: 0; }
+  .panel-actions .button.primary { background-color: #0066cc; color: white; }
+  .panel-actions .button.primary:hover { background-color: #0056b3; }
+  .panel-body { padding: 20px; }
+
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th, .data-table td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+  .data-table th { background: #f5f5f5; font-weight: bold; }
+  .data-table tr:hover { background: #f9f9f9; }
+
+  .empty-state { text-align: center; padding: 40px 0; color: #666; }
+  .table-responsive { overflow-x: auto; }
+  .button { background-color: #0066cc; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; display: inline-block; }
+  .button:hover { background-color: #0056b3; }
+  .button.small { font-size: 13px; padding: 6px 10px; margin-right: 6px; }
+  .button.danger { background-color: #e74c3c; }
+  .button.danger:hover { background-color: #c0392b; }
+  .action-buttons { display: flex; gap: 6px; }
+</style> 

@@ -75,6 +75,9 @@ class Business::RegistrationsController < Users::RegistrationsController
         active: true
       )
       
+      # Create a default location for the business using the business address
+      create_default_location(committed_business)
+      
       if resource.active_for_authentication?
         set_flash_message! :notice, :signed_up
         sign_up(resource_name, resource)
@@ -160,6 +163,35 @@ class Business::RegistrationsController < Users::RegistrationsController
       :name, :industry, :phone, :email, :address, :city, :state, :zip,
       :description, :tier, :hostname 
     )
+  end
+  
+  # Creates a default location for the business using its address information
+  def create_default_location(business)
+    # Default business hours (9am-5pm Monday-Friday, 10am-2pm Saturday, closed Sunday)
+    default_hours = {
+      "monday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "tuesday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "wednesday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "thursday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "friday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "saturday" => { "open" => "10:00", "close" => "14:00", "closed" => false },
+      "sunday" => { "open" => "00:00", "close" => "00:00", "closed" => true }
+    }
+    
+    # Create the location
+    business.locations.create!(
+      name: "Main Location",
+      address: business.address,
+      city: business.city,
+      state: business.state,
+      zip: business.zip,
+      hours: default_hours
+    )
+    
+    Rails.logger.info "[REGISTRATION] Created default location for Business ##{business.id}"
+  rescue => e
+    # Log error but don't fail the registration if location creation fails
+    Rails.logger.error "[REGISTRATION] Failed to create default location: #{e.message}"
   end
 
   # Override path after successful business sign up to use tenant's subdomain

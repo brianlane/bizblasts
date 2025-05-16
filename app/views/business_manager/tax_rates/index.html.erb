@@ -31,9 +31,10 @@
               <td class="py-3 px-4"><%= tax_rate.applies_to_shipping? ? 'Yes' : 'No' %></td>
               <td class="py-3 px-4">
                 <%= link_to 'Edit', edit_business_manager_tax_rate_path(tax_rate), class: 'text-blue-500 hover:text-blue-700 mr-2' %>
-                <%= link_to 'Delete', business_manager_tax_rate_path(tax_rate), 
-                      data: { turbo_method: :delete, turbo_confirm: 'Are you sure? This cannot be undone.' },
-                      class: 'text-red-500 hover:text-red-700' %>
+                <%= link_to 'Delete',
+                            "#",
+                            class: "text-red-600 hover:text-red-900 delete-link",
+                            data: { confirm_message: "Are you sure you want to delete the tax rate '#{tax_rate.name}'?", delete_url: business_manager_tax_rate_path(tax_rate) } %>
               </td>
             </tr>
           <% end %>
@@ -55,3 +56,40 @@
     </div>
   </div>
 </div> 
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const deleteLinks = document.querySelectorAll('.delete-link');
+
+  deleteLinks.forEach(link => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const message = link.dataset.confirmMessage;
+      const url = link.dataset.deleteUrl;
+
+      if (confirm(message)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = url;
+        form.style.display = 'none'; // Hide the form
+
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'authenticity_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'delete';
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  });
+});
+</script>

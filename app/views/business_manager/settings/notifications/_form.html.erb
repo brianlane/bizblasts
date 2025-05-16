@@ -1,0 +1,37 @@
+<%= form_with model: [:business_manager, :settings, notification_template] do |form| %>
+  <% if notification_template.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(notification_template.errors.count, "error") %> prohibited this notification_template from being saved:</h2>
+
+      <ul>
+        <% notification_template.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :event_type %>
+    <%= form.text_field :event_type %>
+  </div>
+
+  <div class="field">
+    <%= form.label :channel %>
+    <%= form.select :channel, NotificationTemplate.channels.keys.map { |key| [key.humanize, key] } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :subject %>
+    <%= form.text_field :subject %>
+  </div>
+
+  <div class="field">
+    <%= form.label :body %>
+    <%= form.text_area :body %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %> 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_15_212622) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -212,6 +212,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
     t.index ["sluggable_type"], name: "index_friendly_id_slugs_on_sluggable_type"
   end
 
+  create_table "integration_credentials", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.integer "provider"
+    t.jsonb "config"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_integration_credentials_on_business_id"
+  end
+
   create_table "invoices", force: :cascade do |t|
     t.string "invoice_number", null: false
     t.datetime "due_date"
@@ -252,6 +261,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
     t.index ["product_variant_id"], name: "index_line_items_on_product_variant_id"
   end
 
+  create_table "locations", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "name"
+    t.string "address"
+    t.string "city"
+    t.string "state"
+    t.string "zip"
+    t.jsonb "hours"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_locations_on_business_id"
+  end
+
   create_table "marketing_campaigns", force: :cascade do |t|
     t.string "name", null: false
     t.text "description"
@@ -272,6 +294,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
     t.index ["business_id"], name: "index_marketing_campaigns_on_business_id"
     t.index ["name", "business_id"], name: "index_marketing_campaigns_on_name_and_business_id", unique: true
     t.index ["promotion_id"], name: "index_marketing_campaigns_on_promotion_id"
+  end
+
+  create_table "notification_templates", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "event_type"
+    t.integer "channel"
+    t.string "subject"
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_notification_templates_on_business_id"
   end
 
   create_table "orders", force: :cascade do |t|
@@ -1926,6 +1959,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
   add_foreign_key "categories", "businesses"
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
+  add_foreign_key "integration_credentials", "businesses"
   add_foreign_key "invoices", "bookings"
   add_foreign_key "invoices", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "promotions"
@@ -1933,8 +1967,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_14_152101) do
   add_foreign_key "invoices", "tax_rates"
   add_foreign_key "invoices", "tenant_customers"
   add_foreign_key "line_items", "product_variants"
+  add_foreign_key "locations", "businesses"
   add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
+  add_foreign_key "notification_templates", "businesses"
   add_foreign_key "orders", "businesses"
   add_foreign_key "orders", "shipping_methods"
   add_foreign_key "orders", "tax_rates"

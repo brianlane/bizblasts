@@ -30,6 +30,7 @@ RSpec.describe BookingService do
       expect(result.keys.count).to eq((end_date - start_date).to_i + 1)
     end
     
+    #remove service: service
     it 'returns empty hash if staff member or service is nil' do
       expect(BookingService.generate_calendar_data(service: service, date: nil, service: nil)).to eq({})
     end
