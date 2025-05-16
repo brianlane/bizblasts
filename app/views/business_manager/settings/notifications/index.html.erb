@@ -1,0 +1,94 @@
+<h1>Notification Templates & Integration Credentials</h1>
+
+<h2>Notification Templates</h2>
+
+<%= link_to 'New Notification Template', new_business_manager_settings_notification_path %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Event Type</th>
+      <th>Channel</th>
+      <th>Subject</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @notification_templates.each do |template| %>
+      <tr>
+        <td><%= template.event_type %></td>
+        <td><%= template.channel %></td>
+        <td><%= template.subject %></td>
+        <td>
+        <%= link_to 'Edit', edit_business_manager_settings_notification_path(template) %>
+        <%= link_to 'Delete', 
+          "#", 
+          class: "text-red-600 hover:text-red-900 delete-link", 
+          data: { confirm_message: "Are you sure you want to delete the Notification Template '#{template.subject}'?", delete_url: business_manager_settings_notification_path(template) } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h2>Integration Credentials</h2>
+
+<%= link_to 'Edit Integration Credentials', edit_credentials_business_manager_settings_integration_credentials_path %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Provider</th>
+      <th>Config</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @integration_credentials.each do |credential| %>
+      <tr>
+        <td><%= credential.provider.humanize %></td>
+        <td><%= credential.config.to_json %></td>
+        <td>
+          <%# Link to edit individual credential if needed, or handle in edit_credentials page %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table> 
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const deleteLinks = document.querySelectorAll('.delete-link');
+
+  deleteLinks.forEach(link => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const message = link.dataset.confirmMessage;
+      const url = link.dataset.deleteUrl;
+
+      if (confirm(message)) {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = url;
+        form.style.display = 'none'; // Hide the form
+
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'authenticity_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'delete';
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  });
+});
+</script>

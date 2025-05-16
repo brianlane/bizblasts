@@ -16,8 +16,18 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
   def update
     # NOTE: The redirect path helper might need to change if it was based on the old controller name/module.
     # edit_settings_business_path should still work due to how routes are defined.
+    
+    # Log the sync_location parameter to help diagnose issues
+    Rails.logger.info "[BUSINESS_SETTINGS] sync_location parameter: #{params[:sync_location].inspect}"
+    
     if @business.update(business_params)
-      redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+      # Check if the sync_location parameter is present with a value of '1'
+      if params[:sync_location] == '1'
+        sync_with_default_location
+        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated and synced with main location.'
+      else
+        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+      end
     else
       render :edit, status: :unprocessable_entity
     end
@@ -71,5 +81,45 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
 
   def days_of_week
     %w[mon tue wed thu fri sat sun]
+  end
+  
+  # Sync business data with the default location
+  def sync_with_default_location
+    default_location = @business.default_location
+    
+    if default_location.present?
+      # Process hours data to ensure it's in the correct format
+      hours_data = @business.hours
+      if hours_data.is_a?(String)
+        begin
+          hours_data = JSON.parse(hours_data)
+        rescue JSON::ParserError => e
+          Rails.logger.error "[BUSINESS_SETTINGS] Error parsing hours JSON: #{e.message}"
+        end
+      end
+      
+      # Update the default location with the business address and hours
+      default_location.update(
+        address: @business.address,
+        city: @business.city,
+        state: @business.state,
+        zip: @business.zip,
+        hours: hours_data
+      )
+      
+      Rails.logger.info "[BUSINESS_SETTINGS] Synced business info to default location ##{default_location.id}"
+    else
+      # Create a default location if one doesn't exist
+      new_location = @business.locations.create!(
+        name: "Main Location",
+        address: @business.address,
+        city: @business.city,
+        state: @business.state,
+        zip: @business.zip,
+        hours: @business.hours || {}
+      )
+      
+      Rails.logger.info "[BUSINESS_SETTINGS] Created new default location ##{new_location.id} for business ##{@business.id}"
+    end
   end
 end 

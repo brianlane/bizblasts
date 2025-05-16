@@ -54,6 +54,11 @@ class Business < ApplicationRecord
   # New association for BookingPolicy
   has_one :booking_policy, dependent: :destroy
   
+  # New associations for Modules 5 and 6
+  has_many :notification_templates, dependent: :destroy
+  has_many :integration_credentials, dependent: :destroy
+  has_many :locations, dependent: :destroy
+  
   # Validations
   validates :name, presence: true
   validates :industry, presence: true, inclusion: { in: industries.keys }
@@ -96,6 +101,8 @@ class Business < ApplicationRecord
   scope :active, -> { where(active: true) }
   
   before_validation :normalize_hostname
+  before_validation :ensure_hours_is_hash
+  after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   
   # Find the current tenant
   def self.current
@@ -130,6 +137,11 @@ class Business < ApplicationRecord
   # Get the default tax rate for this business
   def default_tax_rate
     tax_rates.first
+  end
+  
+  # Get the default location for this business
+  def default_location
+    locations.first
   end
   
   # Define which attributes are allowed to be searched with Ransack
@@ -188,5 +200,32 @@ class Business < ApplicationRecord
     unless host_type_subdomain?
       errors.add(:host_type, "must be 'subdomain' for the Free tier")
     end
+  end
+  
+  # Sync business hours with the default location
+  def sync_hours_with_default_location
+    return unless default_location.present?
+    
+    # If the business saved with updated hours, update the default location's hours
+    if hours.present?
+      default_location.update_columns(hours: hours)
+      Rails.logger.info "[BUSINESS] Synced hours from business to default location ##{default_location.id}"
+    end
+  end
+  
+  # Ensure hours is stored as a hash
+  def ensure_hours_is_hash
+    if self.hours.is_a?(String)
+      begin
+        self.hours = JSON.parse(self.hours)
+      rescue JSON::ParserError => e
+        Rails.logger.error "[BUSINESS] Error parsing hours JSON: #{e.message}"
+        # Default to empty hash if parsing fails
+        self.hours = {} unless self.hours.is_a?(Hash)
+      end
+    end
+    
+    # Ensure hours is a hash
+    self.hours = {} unless self.hours.is_a?(Hash)
   end
 end 
