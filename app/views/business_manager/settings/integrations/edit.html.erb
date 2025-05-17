@@ -1,0 +1,10 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-semibold text-gray-800">Edit Integration: <%= @integration.kind.humanize.titleize if @integration.kind? %></h1>
+    <%= link_to "← Back to Integrations", business_manager_settings_integrations_path, class: "text-indigo-600 hover:text-indigo-800" %>
+  </div>
+
+  <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
+    <%= render 'form', integration: @integration %>
+  </div>
+</div> 
