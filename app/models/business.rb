@@ -59,6 +59,7 @@ class Business < ApplicationRecord
   has_many :integration_credentials, dependent: :destroy
   has_many :locations, dependent: :destroy
   has_one :subscription, dependent: :destroy # Added for Module 7
+  has_many :integrations, dependent: :destroy # Added for Module 9
   
   # Validations
   validates :name, presence: true
@@ -152,7 +153,7 @@ class Business < ApplicationRecord
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
-    %w[staff_members services bookings tenant_customers users clients client_businesses subscription]
+    %w[staff_members services bookings tenant_customers users clients client_businesses subscription integrations]
   end
   
   # Method to get the full URL for this business

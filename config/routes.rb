@@ -97,6 +97,9 @@ Rails.application.routes.draw do
         # Stripe webhook endpoint - scoped under /manage/settings/stripe_events
         post 'stripe_events', to: 'subscriptions#webhook'
 
+        # Integrations (Module 9)
+        resources :integrations, controller: 'integrations'
+
       end
     end
 

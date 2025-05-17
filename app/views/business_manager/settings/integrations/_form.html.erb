@@ -1,0 +1,29 @@
+<%= form_with model: [:business_manager, :settings, integration] do |form| %>
+  <% if integration.errors.any? %>
+    <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <strong class="font-bold"><%= pluralize(integration.errors.count, "error") %> prohibited this integration from being saved:</strong>
+      <ul class="list-disc ml-5 mt-2">
+        <% integration.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%= form.label :kind, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.select :kind, Integration.kinds.keys.map { |k| [k.humanize.titleize, k] }, { prompt: 'Select an integration type' }, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :config, "Configuration (JSON)", class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_area :config, value: integration.config.to_json, rows: 10, class: "mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" %>
+    <p class="mt-2 text-sm text-gray-500">Enter the configuration for this integration as a JSON object.</p>
+    <p class="mt-1 text-sm text-gray-500">Example for Webhook: <code>{"url": "https://example.com/webhook", "event_types": ["booking_created", "booking_cancelled"]}</code></p>
+  </div>
+
+  <div class="flex items-center justify-end space-x-2">
+    <%= link_to "Cancel", business_manager_settings_integrations_path, class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+    <%= form.submit class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+  </div>
+<% end %> 
