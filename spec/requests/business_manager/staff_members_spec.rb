@@ -5,15 +5,16 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff_user) { create(:user, :staff, business: business) }
   let!(:staff_member) { create(:staff_member, business: business, user: staff_user) }
-  #remove any apostrophes from the staff_member name
-  staff_member.name = staff_member.name.gsub("'", "")
-  staff_member.save!
+
 
   let(:host_params) { { host: "#{business.hostname}.lvh.me" } }
 
   before do
     sign_in manager
     host! host_params[:host]
+    #remove any apostrophes from the staff_member name
+    staff_member.name = staff_member.name.gsub("'", "")
+    staff_member.save!
     ActsAsTenant.current_tenant = business
   end
 
