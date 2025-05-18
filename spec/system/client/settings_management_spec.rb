@@ -7,22 +7,30 @@ RSpec.describe "Client Settings Management", type: :system do
 
   before do
     driven_by(:rack_test) # Use rack_test driver which doesn't need a real server
-    # Create a default business if navigation or views depend on it.
-    # create(:business)
+    
+    # Configure Capybara for main domain (not subdomain)
+    Capybara.app_host = "http://www.example.com"
+    
+    # Make sure we're on the main domain, not a subdomain
+    ActsAsTenant.current_tenant = nil
+    
+    # Sign in the client user
     sign_in client_user
+    
+    # Visit the client settings path
     visit client_settings_path
   end
 
   it "allows a client to view their settings page" do
     expect(page).to have_content("My Settings")
-    expect(page).to have_field("user_first_name", with: client_user.first_name)
-    expect(page).to have_field("user_email", with: client_user.email)
+    expect(page).to have_field("user[first_name]", with: client_user.first_name)
+    expect(page).to have_field("user[email]", with: client_user.email)
   end
 
   it "allows a client to update their profile information" do
-    fill_in "First name", with: "UpdatedFirst"
-    fill_in "Last name", with: "UpdatedLast"
-    fill_in "Phone", with: "0987654321"
+    fill_in "user[first_name]", with: "UpdatedFirst"
+    fill_in "user[last_name]", with: "UpdatedLast"
+    fill_in "user[phone]", with: "0987654321"
     click_button "Save Settings"
 
     expect(page).to have_content("Profile settings updated successfully.")
@@ -36,9 +44,9 @@ RSpec.describe "Client Settings Management", type: :system do
   # Those would be better suited for a test with a real browser if needed
 
   it "shows errors for invalid password change (e.g., wrong current password)" do
-    fill_in "Current password", with: "wrongpassword"
-    fill_in "New Password", with: "newsecurepassword"
-    fill_in "Confirm New Password", with: "newsecurepassword"
+    fill_in "user[current_password]", with: "wrongpassword"
+    fill_in "user[password]", with: "newsecurepassword"
+    fill_in "user[password_confirmation]", with: "newsecurepassword"
     click_button "Save Settings"
 
     expect(page).to have_content("Failed to update password")
@@ -46,9 +54,9 @@ RSpec.describe "Client Settings Management", type: :system do
   end
   
   it "shows errors for mismatched new passwords" do
-    fill_in "Current password", with: "password123"
-    fill_in "New Password", with: "newsecurepassword"
-    fill_in "Confirm New Password", with: "mismatchpassword"
+    fill_in "user[current_password]", with: "password123"
+    fill_in "user[password]", with: "newsecurepassword"
+    fill_in "user[password_confirmation]", with: "mismatchpassword"
     click_button "Save Settings"
 
     expect(page).to have_content("Failed to update password")
@@ -56,12 +64,13 @@ RSpec.describe "Client Settings Management", type: :system do
   end
 
   it "allows a client to update their notification preferences" do
-    check "Email Booking Confirmations"
-    uncheck "SMS Booking Reminders"
-    check "Email Order Updates (for products)"
-    uncheck "SMS Order Updates (for products)"
-    check "Email Promotional Offers & News"
-    uncheck "SMS Promotional Offers"
+    # Use more reliable name-based selectors for checkboxes
+    check "user[notification_preferences][email_booking_confirmation]"
+    uncheck "user[notification_preferences][sms_booking_reminder]"
+    check "user[notification_preferences][email_order_updates]"
+    uncheck "user[notification_preferences][sms_order_updates]"
+    check "user[notification_preferences][email_promotions]"
+    uncheck "user[notification_preferences][sms_promotions]"
 
     click_button "Save Settings"
 
