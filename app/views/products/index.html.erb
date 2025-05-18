@@ -1,10 +1,4 @@
 <% @business = current_tenant %>
-<div style="background: #fee; color: #900; padding: 1em; margin-bottom: 1em;">
-  <strong>DEBUG:</strong><br>
-  All Products in DB: <%= Product.all.map { |p| "
-    [id=p.id, name=p.name, business_id=p.business_id, active=p.active, product_type=p.product_type]" }.join('<br>') %><br>
-  @products: <%= @products.map { |p| "[id=p.id, name=p.name]" }.join(', ') %>
-</div>
 <div class="container mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold mb-6">Our Products at <%= @business.name %></h1>
   <%= form_with url: products_path, method: :get, local: true do |f| %>
