@@ -41,7 +41,7 @@
       </div>
       
       <div class="calendar-container">
-        <%= month_calendar(start_date: @date.beginning_of_month, end_date: @date.end_of_month, today: @date) do |date| %>
+        <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @date) do |date| %>
           <div class="calendar-day" 
                data-calendar-target="day" 
                data-date="<%= date.to_s %>"
@@ -340,6 +340,14 @@
   .calendar-container .simple-calendar nav span {
     font-weight: 600;
     font-size: 1.1rem;
+  }
+  
+  /* Grey out past days */
+  .calendar-container td.past-day .calendar-day {
+    opacity: 0.5;
+  }
+  .calendar-container td.past-day .available-slots-count {
+    background-color: #cccccc !important;
   }
 </style>
 

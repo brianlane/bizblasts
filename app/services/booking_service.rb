@@ -7,19 +7,21 @@ class BookingService
   # @param service [Service] the service being booked
   # @param date [Date] the center date for the calendar
   # @param tenant [Business, nil] the tenant/business context (optional)
+  # @param start_date [Date, nil] the start date of the range (optional)
+  # @param end_date [Date, nil] the end date of the range (optional)
   # @return [Hash] calendar data with dates as keys and aggregated available slots as values
-  def self.generate_calendar_data(service:, date:, tenant: nil)
+  def self.generate_calendar_data(service:, date:, tenant: nil, start_date: nil, end_date: nil)
     return {} unless service && date
     
     staff_members = service.staff_members.active
     return {} if staff_members.empty?
 
-    # Get the start and end dates for the month
-    start_date = date.beginning_of_month
-    end_date = date.end_of_month
+    # Determine the date range for the calendar
+    range_start = start_date || date.beginning_of_month
+    range_end   = end_date   || date.end_of_month
     
     calendar_data = {}
-    (start_date..end_date).each do |current_date|
+    (range_start..range_end).each do |current_date|
       daily_aggregated_slots = []
       staff_members.each do |staff_member|
         available_slots = AvailabilityService.available_slots(
