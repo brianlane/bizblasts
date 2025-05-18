@@ -113,6 +113,16 @@ Rails.application.routes.draw do
     resources :line_items, only: [:create, :update, :destroy]
     resources :orders, only: [:new, :create, :index, :show]
 
+    # Add a redirect for /settings under subdomain to the main domain
+    get '/settings', to: redirect { |params, request| 
+      # Extract the protocol and port
+      protocol = request.protocol
+      port = request.port != 80 ? ":#{request.port}" : ""
+      
+      # Redirect to main domain's settings page
+      "#{protocol}#{request.domain}#{port}/settings"
+    }
+
     scope module: 'public' do
       get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
       get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
@@ -168,6 +178,11 @@ Rails.application.routes.draw do
       member do
         patch 'cancel'
       end
+    end
+
+    # Client Settings
+    namespace :client, path: '' do # path: '' to avoid /client/client/settings
+      resource :settings, only: [:show, :update], controller: 'settings'
     end
   end
 
