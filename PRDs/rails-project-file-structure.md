@@ -11,7 +11,7 @@ bizblasts/
 │   │   │   ├── components/             # Component-specific styles
 │   │   │   └── themes/                 # Theme-specific styles
 │   │   └── javascript/                 # JavaScript files
-│   │       ├── controllers/            # Stimulus controllers
+│   │       ├── controllers/            # controllers
 │   │       │   ├── booking/            # Booking-related controllers
 │   │       │   ├── calendar/           # Calendar display controllers
 │   │       │   ├── marketing/          # Marketing feature controllers

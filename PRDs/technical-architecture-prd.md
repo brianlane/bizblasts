@@ -17,9 +17,9 @@ BizBlasts will implement a Ruby on Rails monolithic application with multi-tenan
 - **Hosting**: Render Web Service ($7/month)
 
 ### Frontend
-- **View Layer**: Rails View templates with Hotwire (Turbo + Stimulus)
+- **View Layer**: Rails View templates
 - **CSS**: CSS managed via `cssbundling-rails`
-- **JavaScript**: Stimulus.js for interactive elements (via `importmap-rails`)
+- **JavaScript**: js for interactive elements
 - **Responsive Design**: Mobile-first approach with CSS
 - **Asset Pipeline**: Propshaft for efficient asset handling
 
@@ -154,7 +154,7 @@ The application will utilize a component-based approach with Rails:
 - Organized by business domain
 - Reusable across different tenant websites
 - Template inheritance for common layouts
-- Stimulus controllers for interactive elements
+- Controllers for interactive elements
 
 #### Shared Components
 - Header/footer/navigation components

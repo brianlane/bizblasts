@@ -107,13 +107,13 @@
 
 <%= render "devise/shared/links" %>
 
-<%# Basic Stimulus controller for toggling fields %>
+<%# Basic controller for toggling fields %>
 <div data-controller="business-registration">
   <%# Controller target is implicitly the form fields_for :business %>
 </div>
 
 <script type="text/javascript">
-  // Simple inline script if Stimulus setup is not ready
+  // Simple inline script if setup is not ready
   document.addEventListener('DOMContentLoaded', function() {
     const tierSelect = document.getElementById('user_business_attributes_tier');
     const hostnameFieldDiv = document.getElementById('hostname-field');

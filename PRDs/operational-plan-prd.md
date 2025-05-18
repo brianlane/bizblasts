@@ -94,7 +94,6 @@ This document outlines the operational approach for building and scaling BizBlas
 - Build theme customization system
 - Create subdomain management interface
 - Set up file upload capability with ActiveStorage for service images (has_many_attached :images for Service).
-- Implement Hotwire (Turbo and Stimulus) for interactive elements
 - Develop location management interface
 - Create form builder interface with conditional logic
 - Build document management basic structure
