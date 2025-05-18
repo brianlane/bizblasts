@@ -87,6 +87,10 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   # GET/PATCH /business_manager/staff_members/1/manage_availability
   def manage_availability
     # @staff_member is set by before_action
+    # Set date context for form and exceptions
+    @date = params[:date] ? Date.parse(params[:date]) : Date.today
+    @start_date = @date.beginning_of_week
+    @end_date = @date.end_of_week
     
     if request.patch?
       # Handle updating availability
@@ -155,20 +159,32 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       # Log the final data we're about to save
       Rails.logger.info "Saving availability data: #{availability_data.inspect}"
       
-      # Update the staff member with the processed availability data
-      if @staff_member.update(availability: availability_data)
-        # Log the saved data for debugging
+      # Compute final availability based on only_current_week flag
+      final_availability = if params.dig(:staff_member, :only_current_week) == '1'
+        old_avail = @staff_member.availability || {}
+        exceptions = old_avail['exceptions'] || {}
+        days_of_week.each_with_index do |day, idx|
+          date_key = (@start_date + idx.days).iso8601
+          exceptions[date_key] = availability_data[day]
+        end
+        old_avail.merge('exceptions' => exceptions)
+      else
+        availability_data
+      end
+      
+      # Update staff_member availability
+      if @staff_member.update(availability: final_availability)
         Rails.logger.info "Successfully saved availability: #{@staff_member.reload.availability.inspect}"
-        flash[:notice] = "#{@staff_member.name}'s availability was successfully updated."
-        redirect_to manage_availability_business_manager_staff_member_path(@staff_member)
+        flash[:notice] = if params.dig(:staff_member, :only_current_week) == '1'
+          "#{@staff_member.name}'s availability for this week was successfully updated."
+        else
+          "#{@staff_member.name}'s availability was successfully updated."
+        end
+        redirect_to manage_availability_business_manager_staff_member_path(@staff_member, date: @date)
       else
         error_message = "Failed to save availability: #{@staff_member.errors.full_messages.join(', ')}"
         Rails.logger.error error_message
         flash.now[:alert] = error_message
-        
-        @date = params[:date] ? Date.parse(params[:date]) : Date.today
-        @start_date = @date.beginning_of_week
-        @end_date = @date.end_of_week
         
         @calendar_data = AvailabilityService.availability_calendar(
           staff_member: @staff_member,
@@ -181,9 +197,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       end
     else
       # GET request
-      @date = params[:date] ? Date.parse(params[:date]) : Date.today
-      @start_date = @date.beginning_of_week
-      @end_date = @date.end_of_week
+      # @date, @start_date, and @end_date are already set above
       
       # Ensure staff member has a properly initialized availability hash
       if @staff_member.availability.blank? || !@staff_member.availability.is_a?(Hash)
