@@ -33,6 +33,25 @@ RSpec.describe BookingService do
     it 'returns empty hash if staff member or service is nil' do
       expect(BookingService.generate_calendar_data(service: service, date: nil, tenant: nil)).to eq({})
     end
+    
+    it 'returns calendar data for explicit date range' do
+      # Mock AvailabilityService to return no slots for simplicity
+      allow(AvailabilityService).to receive(:available_slots).and_return([])
+      service.staff_members << staff_member
+      start_date = date.beginning_of_week(:monday)
+      end_date   = start_date + 34.days
+
+      result = BookingService.generate_calendar_data(
+        service:     service,
+        date:        date,
+        tenant:      tenant,
+        start_date:  start_date,
+        end_date:    end_date
+      )
+
+      expect(result.keys).to eq((start_date..end_date).map(&:to_s))
+      expect(result.keys.count).to eq(35)
+    end
   end
   
   describe '.fetch_available_slots' do

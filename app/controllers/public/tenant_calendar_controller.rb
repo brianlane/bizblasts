@@ -15,10 +15,15 @@ module Public
       
       # If service is selected, fetch initial data for the month using BookingService
       if @service.present?
+        # Build a 5-week calendar starting on Monday of the current week
+        @calendar_start_date = @date.beginning_of_week(:monday)
+        @calendar_end_date   = @calendar_start_date + 34.days
         @calendar_data = BookingService.generate_calendar_data(
-          date: @date,
-          service: @service,
-          tenant: @business
+          service:    @service,
+          date:       @date,
+          tenant:     @business,
+          start_date: @calendar_start_date,
+          end_date:   @calendar_end_date
         )
       else
         @calendar_data = {} # Initialize empty if no service selected
@@ -42,9 +47,11 @@ module Public
         
         # Get availability data for the date range for the service (all staff)
         @calendar_data = BookingService.generate_calendar_data(
-          service: @service,
-          date: start_date, # Use start_date to determine the month range internally if needed
-          tenant: @business
+          service:    @service,
+          date:       start_date,
+          tenant:     @business,
+          start_date: start_date,
+          end_date:   end_date
         )
         
         respond_to do |format|
