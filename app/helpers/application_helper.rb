@@ -47,5 +47,18 @@ module ApplicationHelper
     "#{request.protocol}#{base_domain}#{port_string}#{path}"
   end
 
+  # Add this method to the ApplicationHelper module
+  def settings_url_for_client
+    # If we're on a subdomain, generate a URL to the main domain's settings page
+    if current_tenant.present?
+      protocol = request.protocol
+      port = request.port != 80 ? ":#{request.port}" : ""
+      "#{protocol}#{request.domain}#{port}/settings"
+    else
+      # We're already on the main domain
+      client_settings_path
+    end
+  end
+
   # ... existing helper methods ...
 end

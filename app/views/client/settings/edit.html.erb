@@ -1,0 +1,88 @@
+<h1>My Settings</h1>
+
+<%= form_with model: @user, url: client_settings_path, method: :patch, local: true do |form| %>
+  <% if @user.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(@user.errors.count, "error") %> prohibited this user from being saved:</h2>
+      <ul>
+        <% @user.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :first_name %><br>
+    <%= form.text_field :first_name %>
+  </div>
+
+  <div>
+    <%= form.label :last_name %><br>
+    <%= form.text_field :last_name %>
+  </div>
+
+  <div>
+    <%= form.label :email %><br>
+    <%= form.email_field :email %>
+  </div>
+
+  <div>
+    <%= form.label :phone %><br>
+    <%= form.text_field :phone %>
+  </div>
+
+  <hr>
+  <h3>Change Password</h3>
+  <p>Leave blank if you don't want to change it.</p>
+
+  <div>
+    <%= form.label :current_password %> <i>(we need your current password to confirm your changes)</i><br>
+    <%= form.password_field :current_password, autocomplete: "current-password" %>
+  </div>
+
+  <div>
+    <%= form.label :password, "New Password" %><br>
+    <%= form.password_field :password, autocomplete: "new-password" %>
+  </div>
+
+  <div>
+    <%= form.label :password_confirmation, "Confirm New Password" %><br>
+    <%= form.password_field :password_confirmation, autocomplete: "new-password" %>
+  </div>
+
+  <hr>
+  <h3>Notification Preferences</h3>
+  <%= form.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
+    <p class="text-sm text-gray-600 mb-2">Manage your email and SMS notifications.</p>
+    
+    <div class="mb-2">
+      <%= prefs_fields.check_box :email_booking_confirmation, class: "form-checkbox h-5 w-5 text-blue-600" %>
+      <%= prefs_fields.label :email_booking_confirmation, "Email Booking Confirmations", class: "ml-2 text-gray-700" %>
+    </div>
+    <div class="mb-2">
+      <%= prefs_fields.check_box :sms_booking_reminder, class: "form-checkbox h-5 w-5 text-blue-600" %>
+      <%= prefs_fields.label :sms_booking_reminder, "SMS Booking Reminders", class: "ml-2 text-gray-700" %>
+    </div>
+    <div class="mb-2">
+      <%= prefs_fields.check_box :email_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+      <%= prefs_fields.label :email_order_updates, "Email Order Updates (for products)", class: "ml-2 text-gray-700" %>
+    </div>
+    <div class="mb-2">
+      <%= prefs_fields.check_box :sms_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+      <%= prefs_fields.label :sms_order_updates, "SMS Order Updates (for products)", class: "ml-2 text-gray-700" %>
+    </div>
+    <div class="mb-2">
+      <%= prefs_fields.check_box :email_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
+      <%= prefs_fields.label :email_promotions, "Email Promotional Offers & News", class: "ml-2 text-gray-700" %>
+    </div>
+    <div class="mb-4">
+      <%= prefs_fields.check_box :sms_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
+      <%= prefs_fields.label :sms_promotions, "SMS Promotional Offers", class: "ml-2 text-gray-700" %>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.submit "Save Settings" %>
+  </div>
+<% end %> 
