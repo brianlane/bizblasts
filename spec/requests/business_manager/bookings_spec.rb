@@ -181,11 +181,12 @@ RSpec.describe "Business Manager Bookings", type: :request do
       
       it "adds product add-ons via nested attributes" do
         product = create(:product, business: business, variants_count: 1)
-        variant = product.product_variants.first
+        # Select a non-default variant (explicitly created) to avoid stock-zero default variant
+        variant = product.product_variants.find { |v| v.name != 'Default' }
         patch business_manager_booking_path(booking), params: {
           booking: {
             booking_product_add_ons_attributes: {
-              "0" => { product_variant_id: variant.id, quantity: 2 }
+              "1" => { product_variant_id: variant.id, quantity: 2 }
             }
           }
         }

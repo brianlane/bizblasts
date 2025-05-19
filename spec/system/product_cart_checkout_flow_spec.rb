@@ -32,7 +32,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       expect(page).to have_content('Test Product')
       click_link 'Test Product'
       expect(page).to have_content('Default')
-      select 'Default', from: 'variant'
+      find('#variant').find("option[value='#{variant.id}']").select_option
       fill_in 'quantity', with: 2
       click_button 'Add to Cart'
       visit cart_path
@@ -63,7 +63,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       
       visit products_path
       click_link 'Test Product'
-      select 'Default', from: 'variant'
+      find('#variant').find("option[value='#{variant.id}']").select_option
       fill_in 'quantity', with: 3
       click_button 'Add to Cart'
       visit cart_path
@@ -79,14 +79,14 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
     with_subdomain('testtenant') do
       visit products_path
       click_link 'Test Product'
-      select 'Default', from: 'variant'
+      find('#variant').find("option[value='#{variant.id}']").select_option
       fill_in 'quantity', with: 2
       click_button 'Add to Cart'
       visit cart_path
       click_link 'Checkout'
       fill_in 'First Name', with: 'Guest'
       fill_in 'Last Name', with: 'User'
-      fill_in 'Email (Optional)', with: 'guest@example.com'
+      fill_in 'Email', with: 'guest@example.com'
       fill_in 'Phone', with: '555-5555'
       select 'Standard', from: 'Shipping Method'
       click_button 'Place Order'
@@ -101,14 +101,14 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
     with_subdomain('testtenant') do
       visit products_path
       click_link 'Test Product'
-      select 'Default', from: 'variant'
+      find('#variant').find("option[value='#{variant.id}']").select_option
       fill_in 'quantity', with: 1
       click_button 'Add to Cart'
       visit cart_path
       click_link 'Checkout'
       fill_in 'First Name', with: 'John'
       fill_in 'Last Name', with: 'Doe'
-      fill_in 'Email (Optional)', with: 'john.doe@example.com'
+      fill_in 'Email', with: 'john.doe@example.com'
       fill_in 'Phone', with: '123-4567'
       check 'Create an account with these details?'
       fill_in 'Password', with: 'securepass'

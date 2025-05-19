@@ -21,7 +21,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       # Fill in guest details
       fill_in 'First Name', with: 'Guest'
       fill_in 'Last Name', with: 'User'
-      fill_in 'Email (Optional)', with: 'guest@example.com'
+      fill_in 'Email', with: 'guest@example.com'
       fill_in 'Phone', with: '555-5555'
 
       # Select booking date and time
@@ -48,7 +48,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
 
       fill_in 'First Name', with: 'Jane'
       fill_in 'Last Name', with: 'Doe'
-      fill_in 'Email (Optional)', with: 'jane.doe@example.com'
+      fill_in 'Email', with: 'jane.doe@example.com'
       fill_in 'Phone', with: '1234567890'
       check 'Create an account with these details?'
       fill_in 'Password', with: 'password123'

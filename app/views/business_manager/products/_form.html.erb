@@ -37,11 +37,13 @@
     <%= form.select :product_type, Product.product_types.keys.map { |pt| [pt.titleize, pt] }, include_blank: 'Select Type' %>
   </div>
 
-  <div>
-    <%= form.label :stock_quantity, "Stock (if no variants)" %>
-    <%= form.number_field :stock_quantity %>
-    <small>Only applies if the product has no variants defined below.</small>
-  </div>
+  <% unless @product.has_variants? %>
+    <div>
+      <%= form.label :stock_quantity, "Stock (if no variants)" %>
+      <%= form.number_field :stock_quantity %>
+      <small>Only applies if the product has no variants defined below.</small>
+    </div>
+  <% end %>
 
   <div>
     <%= form.check_box :active %>
@@ -92,7 +94,7 @@
   <hr style="margin: 20px 0;">
 
   <div>
-    <%= link_to 'Create Product', '#', id: 'create-product-link', class: 'btn btn-primary' %>
+    <%= link_to (@product.new_record? ? 'Create Product' : 'Update Product'), '#', id: 'create-product-link', class: 'btn btn-primary' %>
   </div>
 <% end %>
 
