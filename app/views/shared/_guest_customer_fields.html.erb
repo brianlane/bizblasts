@@ -10,8 +10,8 @@
       <%= f.text_field :last_name, name: "#{f.object_name}[tenant_customer_attributes][last_name]", required: true, class: 'form-input mt-1 block w-full' %>
     </div>
     <div>
-      <%= f.label :email, 'Email (Optional)', class: 'block text-gray-700' %>
-      <%= f.email_field :email, name: "#{f.object_name}[tenant_customer_attributes][email]", class: 'form-input mt-1 block w-full' %>
+      <%= f.label :email, 'Email', class: 'block text-gray-700' %>
+      <%= f.email_field :email, { required: true }, name: "#{f.object_name}[tenant_customer_attributes][email]", class: 'form-input mt-1 block w-full' %>
     </div>
     <div>
       <%= f.label :phone, 'Phone', class: 'block text-gray-700' %>

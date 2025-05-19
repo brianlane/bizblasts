@@ -40,6 +40,9 @@ class Product < ApplicationRecord
   # Allows creating variants directly when creating/updating a product
   accepts_nested_attributes_for :product_variants, allow_destroy: true
 
+  # Ensure products without explicit variants have a default variant for cart operations
+  after_create :create_default_variant
+
   # --- Add Ransack methods --- 
   def self.ransackable_attributes(auth_object = nil)
     # Allowlist attributes for searching/filtering in ActiveAdmin
@@ -151,5 +154,18 @@ class Product < ApplicationRecord
       changes[:position] = h[:position] if h.key?(:position)
       attachment.update(changes) if changes.any?
     end
+  end
+
+  private
+
+  def create_default_variant
+    return if product_variants.exists?
+    # Use the product's stock_quantity for the default variant stock
+    product_variants.create!(
+      name:  'Default',
+      sku:   "default-#{id}",
+      price_modifier: 0,
+      stock_quantity: stock_quantity || 0
+    )
   end
 end 

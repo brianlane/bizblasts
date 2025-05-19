@@ -110,7 +110,9 @@
     </div>
   <% end %>
 
-  <div class="mt-6">
-    <%= link_to 'Back to My Orders', orders_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
-  </div>
+  <% if user_signed_in? %>
+    <div class="mt-6">
+      <%= link_to 'Back to My Orders', orders_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
+    </div>
+  <% end %>
 </div> 
