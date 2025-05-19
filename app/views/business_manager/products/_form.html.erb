@@ -78,10 +78,15 @@
       <%= render 'variant_fields', form: variant_form %>
     <% end %>
     <div class="links">
-      <%# Link to add fields dynamically (requires JS) %>
-      <%# Example: link_to_add_association 'Add Variant', form, :product_variants, partial: 'variant_fields' %>
-      <p>(Use JavaScript to add/remove variant fields dynamically)</p>
+      <%= link_to 'Add Variant', '#', id: 'add-variant', class: 'btn btn-primary' %>
     </div>
+  </div>
+
+  <!-- Template for new variant fields (hidden) -->
+  <div id="variant-template" style="display: none;">
+    <%= form.fields_for :product_variants, Product.new.product_variants.build, child_index: 'NEW_RECORD' do |variant_form| %>
+      <%= render 'variant_fields', form: variant_form %>
+    <% end %>
   </div>
 
   <hr style="margin: 20px 0;">
@@ -89,4 +94,59 @@
   <div>
     <%= form.submit %>
   </div>
-<% end %> 
+<% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle Add Variant button click
+    document.getElementById('add-variant').addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Get the template HTML
+      let template = document.getElementById('variant-template').innerHTML;
+      
+      // Replace placeholder index with timestamp to ensure uniqueness
+      const timestamp = new Date().getTime();
+      template = template.replace(/NEW_RECORD/g, timestamp);
+      
+      // Insert the new variant fields
+      const variantsContainer = document.getElementById('product-variants');
+      const linksDiv = variantsContainer.querySelector('.links');
+      
+      // Create a temporary div to hold the new content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = template;
+      
+      // Insert the new fields before the links div
+      variantsContainer.insertBefore(tempDiv.firstElementChild, linksDiv);
+    });
+    
+    // Handle Remove Variant links (with event delegation)
+    document.addEventListener('click', function(e) {
+      if (e.target.matches('.remove-variant')) {
+        e.preventDefault();
+        const variantFields = e.target.closest('.nested-fields');
+        
+        // Add a hidden _destroy field for existing records
+        if (variantFields.querySelector('input[name*="[id]"]')) {
+          const id = variantFields.querySelector('input[name*="[id]"]').value;
+          if (id) { 
+            // Create hidden field for _destroy
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = variantFields.querySelector('input[name*="[id]"]').name.replace('[id]', '[_destroy]');
+            input.value = '1';
+            variantFields.appendChild(input);
+            
+            // Hide instead of remove for existing records
+            variantFields.style.display = 'none';
+            return;
+          }
+        }
+        
+        // For new records, just remove from DOM
+        variantFields.remove();
+      }
+    });
+  });
+</script> 

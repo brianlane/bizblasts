@@ -1,0 +1,50 @@
+<div class="mb-6 p-4 bg-gray-50 rounded shadow">
+  <h2 class="text-xl font-semibold mb-2">Your Details</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <%= f.label :first_name, 'First Name', class: 'block text-gray-700' %>
+      <%= f.text_field :first_name, name: "#{f.object_name}[tenant_customer_attributes][first_name]", required: true, class: 'form-input mt-1 block w-full' %>
+    </div>
+    <div>
+      <%= f.label :last_name, 'Last Name', class: 'block text-gray-700' %>
+      <%= f.text_field :last_name, name: "#{f.object_name}[tenant_customer_attributes][last_name]", required: true, class: 'form-input mt-1 block w-full' %>
+    </div>
+    <div>
+      <%= f.label :email, 'Email (Optional)', class: 'block text-gray-700' %>
+      <%= f.email_field :email, name: "#{f.object_name}[tenant_customer_attributes][email]", class: 'form-input mt-1 block w-full' %>
+    </div>
+    <div>
+      <%= f.label :phone, 'Phone', class: 'block text-gray-700' %>
+      <%= f.telephone_field :phone, name: "#{f.object_name}[tenant_customer_attributes][phone]", class: 'form-input mt-1 block w-full' %>
+    </div>
+  </div>
+  <div class="mt-4">
+    <%= f.check_box :create_account, { id: 'create_account_checkbox' }, '1', '0' %>
+    <%= f.label :create_account, 'Create an account with these details?', { for: 'create_account_checkbox', class: 'inline-block ml-2 text-gray-700' } %>
+  </div>
+  <div id="account_password_fields" class="mt-4">
+    <div>
+      <%= f.label :password, 'Password', class: 'block text-gray-700' %>
+      <%= f.password_field :password, class: 'form-input mt-1 block w-full' %>
+    </div>
+    <div class="mt-4">
+      <%= f.label :password_confirmation, 'Confirm Password', class: 'block text-gray-700' %>
+      <%= f.password_field :password_confirmation, class: 'form-input mt-1 block w-full' %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var checkbox = document.getElementById('create_account_checkbox');
+    var passwordFields = document.getElementById('account_password_fields');
+    if (!checkbox) return;
+    checkbox.addEventListener('change', function() {
+      if (checkbox.checked) {
+        passwordFields.classList.remove('hidden');
+      } else {
+        passwordFields.classList.add('hidden');
+      }
+    });
+  });
+</script> 

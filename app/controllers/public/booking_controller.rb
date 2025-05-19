@@ -6,7 +6,7 @@ module Public
     # Ensure tenant is set based on subdomain
     before_action :set_tenant
     # Ensure user is logged in to book (or handle guest booking flow)
-    before_action :authenticate_user!, only: [:create] # Require login only for creating
+    skip_before_action :authenticate_user!, only: [:new, :create, :confirmation]
     before_action :set_form_data, only: [:new, :create]
     # Potentially allow viewing the form without login?
 
@@ -39,84 +39,92 @@ module Public
       end
     end
 
-    # POST /booking for business staff/managers
+    # POST /booking for guests, clients, and staff/managers
     def create
+      # Ensure tenant context
       unless current_tenant
         Rails.logger.warn "[Public::BookingController#create] Tenant not set for request: #{request.host}"
         render file: Rails.root.join('public/404.html'), layout: false, status: :not_found and return
       end
 
+      # Validate service presence
       unless @service
         flash[:alert] = "Invalid service selected."
         redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_entity and return
       end
 
-      # Only staff/managers and clients can create bookings here
-      unless current_user.staff? || current_user.manager? || current_user.client?
-        redirect_to tenant_root_path, alert: 'You are not authorized to create bookings.' and return
-      end
-
-      # For client users, always use (or create) their TenantCustomer by email
-      if current_user.client?
+      # Determine customer based on user state
+      if current_user&.client?
+        # Logged-in client: find or create their TenantCustomer by email
         customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-          c.name = current_user.email.split('@').first.titleize
-          c.phone = nil
+          c.name  = current_user.full_name
+          c.phone = current_user.phone
         end
-      else
-        # Build or find customer (treat 'new' as creating a new record)
+      elsif current_user.present? && (current_user.staff? || current_user.manager?)
+        # Staff or manager: select or create tenant customer based on form inputs
         if booking_params[:tenant_customer_id].present? && booking_params[:tenant_customer_id] != 'new'
           customer = current_tenant.tenant_customers.find(booking_params[:tenant_customer_id])
         else
-          nested = booking_params[:tenant_customer_attributes] || {}
-          customer = current_tenant.tenant_customers.create(
-            name: nested[:name],
+          nested   = booking_params[:tenant_customer_attributes] || {}
+          full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
+          customer  = current_tenant.tenant_customers.create!(
+            name:  full_name,
             phone: nested[:phone],
             email: nested[:email].presence
           )
         end
+      else
+        # Guest user: build a new TenantCustomer and optional account
+        nested   = booking_params[:tenant_customer_attributes] || {}
+        full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
+        customer  = current_tenant.tenant_customers.create!(
+          name:  full_name,
+          phone: nested[:phone],
+          email: nested[:email].presence
+        )
+
+        # Optionally create an account if requested
+        if booking_params[:create_account] == '1' && booking_params[:password].present?
+          user = User.new(
+            email:                 nested[:email],
+            first_name:            nested[:first_name],
+            last_name:             nested[:last_name],
+            phone:                 nested[:phone],
+            password:              booking_params[:password],
+            password_confirmation: booking_params[:password_confirmation],
+            role:                  :client
+          )
+          if user.save
+            ClientBusiness.create!(user: user, business: current_tenant)
+            sign_in(user)
+          else
+            # Propagate user errors to booking
+            user.errors.full_messages.each { |msg| (defined?(@booking) ? @booking : (@booking = current_tenant.bookings.new)).errors.add(:base, msg) }
+          end
+        end
       end
 
-      # Mass-assign all permitted booking params (including multi-parameter start_time), except customer info
-      attrs = booking_params.except(:tenant_customer_id, :tenant_customer_attributes)
+      # Build the booking with permitted attributes
+      attrs     = booking_params.except(
+                    :tenant_customer_id, :tenant_customer_attributes,
+                    :create_account, :password, :password_confirmation,
+                    :date, :duration
+                 )
       @booking = current_tenant.bookings.new(attrs)
       @booking.tenant_customer = customer
-      # Auto-calculate end_time based on the service duration
-      @booking.end_time = @booking.start_time + @service.duration.minutes
+      @booking.end_time        = @booking.start_time + @service.duration.minutes
 
-      # Validate that a customer is associated for non-client users
-      unless @booking.tenant_customer.present? || current_user.client?
-        @booking.errors.add(:base, "You need to select or create a customer.")
-      end
-
+      # Early validation for account creation errors
       if @booking.errors.any?
         flash.now[:alert] = @booking.errors.full_messages.to_sentence
-        # Need to re-fetch available products and staff for rendering the form - Handled by before_action
-
-        # Ensure available products are set for the view
-        if @service.present?
-          available_products_for_view = current_tenant.products.active.includes(:product_variants)
-                                                        .where(product_type: [:service, :mixed])
-                                                        .where.not(product_variants: { id: nil }) # Only products with variants
-                                                        .order(:name)
-        else
-          available_products_for_view = []
-        end
-
-        # Set instance variables for the view
-        @service = current_tenant.services.find_by(id: params[:booking][:service_id]) # Re-fetch service
-        @available_products = available_products_for_view # Use the fetched products
-
-        render :new, status: :unprocessable_entity
-        return
+        render :new, status: :unprocessable_entity and return
       end
 
       if @booking.save
-        # Ensure invoice is created/updated after booking and its add-ons are saved.
         generate_or_update_invoice_for_booking(@booking)
         redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
       else
         flash.now[:alert] = @booking.errors.full_messages.to_sentence
-        # Don't reset @booking—render the invalid record with errors so client fields persist
         render :new, status: :unprocessable_entity
       end
     end
@@ -157,19 +165,13 @@ module Public
 
     def booking_params
       params.require(:booking).permit(
-        :service_id,
-        :staff_member_id,
-        :start_time,
-        :'start_time(1i)',
-        :'start_time(2i)',
-        :'start_time(3i)',
-        :'start_time(4i)',
-        :'start_time(5i)',
-        :notes,
-        :quantity,
-        :tenant_customer_id,
+        :service_id, :staff_member_id, :start_time,
+        :'start_time(1i)', :'start_time(2i)', :'start_time(3i)',
+        :'start_time(4i)', :'start_time(5i)', :quantity,
+        :notes, :tenant_customer_id, :date, :duration,
+        :create_account, :password, :password_confirmation,
         booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy],
-        tenant_customer_attributes: [:name, :email, :phone]
+        tenant_customer_attributes: [:first_name, :last_name, :email, :phone]
       )
     end
 
