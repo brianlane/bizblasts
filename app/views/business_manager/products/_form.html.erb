@@ -92,7 +92,7 @@
   <hr style="margin: 20px 0;">
 
   <div>
-    <%= form.submit %>
+    <%= link_to 'Create Product', '#', id: 'create-product-link', class: 'btn btn-primary' %>
   </div>
 <% end %>
 
@@ -148,5 +148,14 @@
         variantFields.remove();
       }
     });
+
+    // Handle Create Product link
+    var createLink = document.getElementById('create-product-link');
+    if (createLink) {
+      createLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        this.closest('form').submit();
+      });
+    }
   });
 </script> 

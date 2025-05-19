@@ -11,7 +11,7 @@ class TenantCustomer < ApplicationRecord
   
   # Base validations
   validates :name, presence: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { scope: :business_id, message: "must be unique within this business" }, allow_blank: true
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { scope: :business_id, message: "must be unique within this business" }
   # Make phone optional for now to fix booking flow
   validates :phone, presence: true, allow_blank: true
   

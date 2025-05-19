@@ -17,8 +17,7 @@ module BusinessManager
     # GET /manage/products/new
     def new
       @product = @current_business.products.new
-      # Build at least one variant for the nested form if products require variants
-      @product.product_variants.build if @product.product_variants.empty?
+      # No automatic variant build; variants are opt-in via Add Variant link
     end
 
     # POST /manage/products
@@ -36,8 +35,7 @@ module BusinessManager
     # GET /manage/products/:id/edit
     def edit
       # @product set by before_action
-      # Ensure variants are built if none exist for the form
-      @product.product_variants.build if @product.product_variants.empty?
+      # No automatic variant build; variants are opt-in via Add Variant link
     end
 
     # PATCH/PUT /manage/products/:id
