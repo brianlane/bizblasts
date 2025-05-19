@@ -111,7 +111,8 @@ Rails.application.routes.draw do
     # Add cart resource within the subdomain constraint
     resource :cart, only: [:show]
     resources :line_items, only: [:create, :update, :destroy]
-    resources :orders, only: [:new, :create, :index, :show]
+    # Subdomain checkout uses Public::OrdersController for guest flows
+    resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders'
 
     # Add a redirect for /settings under subdomain to the main domain
     get '/settings', to: redirect { |params, request| 
@@ -152,11 +153,13 @@ Rails.application.routes.draw do
     end
   end
 
+  # Fallback routes for base OrdersController new/create
+  resources :orders, only: [:new, :create]
+
   resources :businesses, only: [:index]
   # Keep the global cart resource to maintain compatibility 
   resource :cart, only: [:show]
   resources :line_items, only: [:create, :update, :destroy]
-  resources :orders, only: [:new, :create, :index, :show]
   # Add back the global products routes for controller specs
   resources :products, only: [:index, :show]
   root "home#index"

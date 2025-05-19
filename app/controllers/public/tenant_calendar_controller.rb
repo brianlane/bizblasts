@@ -2,8 +2,7 @@
 
 module Public
   class TenantCalendarController < ApplicationController
-    before_action :authenticate_user!
-    before_action :ensure_authorized_user
+    skip_before_action :authenticate_user!
     before_action :set_business
     
     def index
@@ -125,13 +124,6 @@ module Public
           redirect_to redirect_url, allow_other_host: true, alert: "Unable to find business information."
           return false
         end
-      end
-    end
-    
-    def ensure_authorized_user
-      unless current_user&.client? || current_user&.staff? || current_user&.manager? 
-        flash[:alert] = 'You must be logged in as a client, staff member, or manager to access this page.'
-        redirect_to tenant_root_path
       end
     end
   end

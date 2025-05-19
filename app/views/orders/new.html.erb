@@ -11,6 +11,10 @@
 
 <h1>Checkout</h1>
 <%= form_with model: @order, local: true do |f| %>
+  <%# Render guest info for unauthenticated users %>
+  <% if current_user.nil? %>
+    <%= render 'shared/guest_customer_fields', f: f %>
+  <% end %>
   <div>
     <%= f.label :shipping_method_id, 'Shipping Method' %>
     <%= f.collection_select :shipping_method_id, ShippingMethod.where(active: true), :id, :name, prompt: 'Select shipping' %>
