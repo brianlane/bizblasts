@@ -62,7 +62,8 @@ RSpec.describe Product, type: :model do
         })
       }.to change(ProductVariant, :count).by(2)
       product.reload
-      expect(product.product_variants.count).to eq(2)
+      # Account for the default variant created on product creation
+      expect(product.product_variants.count).to eq(3)
       expect(product.product_variants.find_by(name: 'Small').stock_quantity).to eq(10)
     end
   end

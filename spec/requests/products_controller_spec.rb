@@ -11,6 +11,8 @@ RSpec.describe ProductsController, type: :request do
   let!(:product2) { create(:product, business: business, category: category2, name: 'Product 2', description: 'Description 2') }
   let!(:variant1) { create(:product_variant, product: product1) }
   let!(:variant2) { create(:product_variant, product: product1) }
+  # Default variant created by Product model when no variants are present
+  let(:default_variant) { product1.product_variants.first }
 
   before do
     # Explicitly set the request host for the request spec
@@ -99,7 +101,7 @@ RSpec.describe ProductsController, type: :request do
 
     it "selects the first variant by default" do
       get product_path(product1)
-      expect(assigns(:variant)).to eq(variant1)
+      expect(assigns(:variant)).to eq(default_variant)
     end
 
     it "assigns the product images" do
