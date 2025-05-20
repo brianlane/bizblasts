@@ -15,10 +15,13 @@
   <% if current_user.nil? %>
     <%= render 'shared/guest_customer_fields', f: f %>
   <% end %>
-  <div>
-    <%= f.label :shipping_method_id, 'Shipping Method' %>
-    <%= f.collection_select :shipping_method_id, ShippingMethod.where(active: true), :id, :name, prompt: 'Select shipping' %>
-  </div>
+  <% shipping_methods = ShippingMethod.where(active: true, business_id: @order.business_id) %>
+  <% if shipping_methods.any? %>
+    <div>
+      <%= f.label :shipping_method_id, 'Shipping Method' %>
+      <%= f.collection_select :shipping_method_id, shipping_methods, :id, :name, prompt: 'Select shipping' %>
+    </div>
+  <% end %>
   
   <%# Hidden fields for automatic assignment %>
   <%= f.hidden_field :tax_rate_id %>
