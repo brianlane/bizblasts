@@ -43,12 +43,12 @@
 
   <!-- Website Visitor Statistics (Placeholder) -->
   <div id="website-stats-widget" class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-xl font-semibold mb-4">Website Visitor Statistics</h2>
+    <h2 class="text-xl font-semibold mb-4">Website Visitor Statistics (Coming Soon to Standard Membership)</h2>
     <div class="space-y-3">
       <p><strong>Total Visitors (Last 30d):</strong> <span class="text-blue-600">---</span></p>
       <p><strong>Page Views (Last 30d):</strong> <span class="text-green-600">---</span></p>
       <p><strong>Bounce Rate:</strong> <span class="text-indigo-600">---</span></p>
-      <p class="text-sm text-gray-500 italic">Analytics coming soon!</p>
+      <p class="text-sm text-gray-500 italic">Analytics coming soon to standard users!</p>
     </div>
     <%= link_to "View Full Analytics", "#", class: "text-blue-600 hover:underline mt-4 inline-block" %> <%# Placeholder link %>
   </div>
@@ -62,11 +62,8 @@
       <%= link_to "Manage Products", business_manager_products_path, class: "block text-blue-600 hover:underline" %>
       <%= link_to "Manage Staff", business_manager_staff_members_path, class: "block text-blue-600 hover:underline" %>
       <%= link_to "View Orders", business_manager_orders_path, class: "block text-blue-600 hover:underline" %>
-      <%= link_to "Manage Invoices", "#", class: "block text-blue-600 hover:underline" %> <%# Placeholder %>
-      <%= link_to "Edit Website Pages", "#", class: "block text-blue-600 hover:underline" %> <%# Placeholder %>
+      <%= link_to "Edit Website Pages", edit_business_manager_settings_website_pages_path, class: "block text-blue-600 hover:underline" %>
     </div>
   </div>
-
-  <%# Removed old placeholder widgets %>
 
 </div> 

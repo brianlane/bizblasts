@@ -1,0 +1,44 @@
+<% @business = current_tenant %>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-4">Estimate</h1>
+  <p class="mb-6">Fill out the form and we will get back to you if we service your needs once accepted.</p>
+  <%= form_with url: tenant_estimate_request_path, method: :post, local: true do |f| %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :first_name, 'First Name', class: 'block text-sm font-medium' %>
+        <%= f.text_field :first_name, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div>
+        <%= f.label :last_name, 'Last Name', class: 'block text-sm font-medium' %>
+        <%= f.text_field :last_name, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div class="md:col-span-2">
+        <%= f.label :email, 'Email Address', class: 'block text-sm font-medium' %>
+        <%= f.email_field :email, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div class="md:col-span-2">
+        <%= f.label :phone, 'Phone', class: 'block text-sm font-medium' %>
+        <%= f.telephone_field :phone, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div class="md:col-span-2">
+        <%= f.label :address, 'Street Address', class: 'block text-sm font-medium' %>
+        <%= f.text_field :address, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div>
+        <%= f.label :city, 'City', class: 'block text-sm font-medium' %>
+        <%= f.text_field :city, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div>
+        <%= f.label :zip, 'Zip Code', class: 'block text-sm font-medium' %>
+        <%= f.text_field :zip, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+      <div class="md:col-span-2">
+        <%= f.label :service_needs, 'Service(s) Needed', class: 'block text-sm font-medium' %>
+        <%= f.text_area :service_needs, rows: 4, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+      </div>
+    </div>
+    <div class="mt-6">
+      <%= f.submit 'Submit', class: 'px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700' %>
+    </div>
+  <% end %>
+</div> 
