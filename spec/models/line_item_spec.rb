@@ -21,7 +21,7 @@ RSpec.describe LineItem, type: :model do
   describe 'validations' do
     subject { build(:line_item, lineable: order, product_variant: variant) }
 
-    it { should validate_presence_of(:product_variant).if(:product?) }
+    it { should validate_presence_of(:product_variant) }
     it { should validate_presence_of(:quantity) }
     it { should validate_numericality_of(:quantity).only_integer.is_greater_than(0) }
     # Price and Total Amount presence/numericality are effectively handled by the
