@@ -52,6 +52,10 @@
         </div>
       </div>
       
+      <div class="actions" style="text-align: right; margin-bottom: 20px;">
+        <%= link_to 'Generate New Order', new_business_manager_order_path, class: 'btn btn-primary' %>
+      </div>
+      
       <!-- Orders List -->
       <% if @orders.any? %>
         <div class="table-responsive">
@@ -97,7 +101,8 @@
                   </td>
                   <td><%= number_to_currency order.total_amount %></td>
                   <td>
-                    <%= link_to 'View Details', business_manager_order_path(order), class: "action-link" %>
+                    <%= link_to 'View', business_manager_order_path(order), class: "action-link" %>
+                    <%= link_to 'Edit', edit_business_manager_order_path(order), class: 'action-link ml-2' %>
                   </td>
                 </tr>
               <% end %>

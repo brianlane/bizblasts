@@ -23,6 +23,7 @@ class Order < ApplicationRecord
   before_save :calculate_totals!
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
+  accepts_nested_attributes_for :tenant_customer
 
   scope :products, -> { where(order_type: order_types[:product]) }
   scope :services, -> { where(order_type: order_types[:service]) }
@@ -60,8 +61,9 @@ class Order < ApplicationRecord
   end
 
   def calculate_totals
-    line_items.reload
-    items_total = line_items.sum { |item| item.total_amount.to_f }
+    # Sum totals on in-memory line_items, including nested ones, excluding those marked for destruction
+    items = line_items.reject(&:marked_for_destruction?)
+    items_total = items.sum { |item| item.total_amount.to_f }
     current_shipping_amount = shipping_method&.cost || 0
     self.shipping_amount = current_shipping_amount if shipping_amount.nil?
     current_tax_amount = 0
@@ -76,8 +78,9 @@ class Order < ApplicationRecord
   end
 
   def calculate_totals!
-    line_items.reload
-    items_total = line_items.sum { |item| item.total_amount.to_f }
+    # Sum totals on in-memory line_items, excluding those marked for destruction
+    items = line_items.reject(&:marked_for_destruction?)
+    items_total = items.sum { |item| item.total_amount.to_f }
     current_shipping_amount = shipping_method&.cost || 0
     self.shipping_amount = current_shipping_amount
     current_tax_amount = 0
@@ -92,23 +95,22 @@ class Order < ApplicationRecord
   end
 
   def line_items_match_order_type
-    return true if line_items.empty? # Skip validation if no line items yet
+    return true if new_record?
+    # Filter out any line items marked for destruction
+    items = line_items.reject(&:marked_for_destruction?)
+    return true if items.empty?
 
     case order_type
     when 'product'
-      # For product orders, all line items must be directly linked to this order
-      # Check if any line item has a service lineable_type
-      has_service_line_items = ActiveRecord::Base.connection.execute(
-        "SELECT COUNT(*) FROM line_items WHERE lineable_id = #{id} AND lineable_type = 'Service'"
-      ).first["count"].to_i > 0
-      
-      errors.add(:base, 'Product orders can only contain product line items') if has_service_line_items
-    when 'service'  
-      # For service orders, all line items must be service line items
-      # Check if any line item has an Order lineable_type
-      has_order_line_items = line_items.where("lineable_type != 'Service'").exists?
-      
-      errors.add(:base, 'Service orders can only contain service line items') if has_order_line_items
+      # Ensure no service items are present
+      if items.any?(&:service?)
+        errors.add(:base, 'Product orders can only contain product line items')
+      end
+    when 'service'
+      # Ensure no product items are present
+      if items.any?(&:product?)
+        errors.add(:base, 'Service orders can only contain service line items')
+      end
     when 'mixed'
       # Mixed orders can contain both, no validation needed
     end

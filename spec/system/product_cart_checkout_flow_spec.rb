@@ -71,7 +71,8 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       # No need to fill in customer ID
       select 'Standard', from: 'Shipping Method'
       click_button 'Place Order'
-      expect(page).to have_content('Insufficient stock')
+      # Expect the line item stock validation message
+      expect(page).to have_content('Quantity for Default is not sufficient')
     end
   end
 
