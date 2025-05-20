@@ -1,0 +1,429 @@
+<%= form_with model: [:business_manager, @order], local: true do |f| %>
+  <%= f.hidden_field :order_type, value: 'product' %>
+
+  <!-- Customer Selection -->
+  <div class="mb-4">
+    <%= f.label :tenant_customer_id, 'Customer', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+    <select name="order[tenant_customer_id]" id="order_tenant_customer_id" class="form-select rounded border px-3 py-2 w-full">
+      <option value="">Select existing customer</option>
+      <% @customers.each do |c| %>
+        <option value="<%= c.id %>" <%= 'selected' if @order.tenant_customer_id == c.id %>><%= c.name %> (<%= c.email %>)</option>
+      <% end %>
+      <option value="new">Create new customer</option>
+    </select>
+  </div>
+  <div id="new-customer-fields" class="hidden mb-4">
+    <h3 class="text-lg font-medium mb-2">New Customer Details</h3>
+    <div class="mb-4">
+      <%= f.fields_for :tenant_customer do |cf| %>
+        <%= cf.label :name, 'Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+        <%= cf.text_field :name, placeholder: 'Customer Name', class: 'form-input rounded border px-3 py-2 w-full' %>
+      <% end %>
+    </div>
+    <div class="mb-4">
+      <%= f.fields_for :tenant_customer do |cf| %>
+        <%= cf.label :email, 'Email', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+        <%= cf.email_field :email, placeholder: 'Customer Email', class: 'form-input rounded border px-3 py-2 w-full' %>
+      <% end %>
+    </div>
+    <div class="mb-4">
+      <%= f.fields_for :tenant_customer do |cf| %>
+        <%= cf.label :phone, 'Phone', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+        <%= cf.telephone_field :phone, placeholder: 'Customer Phone', class: 'form-input rounded border px-3 py-2 w-full' %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Shipping and Tax -->
+  <div class="grid grid-cols-2 gap-4 mb-4">
+    <div>
+      <%= f.label :shipping_method_id, 'Shipping Method', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+      <%= f.collection_select :shipping_method_id, @shipping_methods, :id, :name, { prompt: 'Select shipping' }, class: 'form-select rounded border px-3 py-2 w-full' %>
+    </div>
+    <div>
+      <%= f.label :tax_rate_id, 'Tax Rate', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+      <%= f.collection_select :tax_rate_id, @tax_rates, :id, :name, { prompt: 'Select tax rate' }, class: 'form-select rounded border px-3 py-2 w-full' %>
+    </div>
+  </div>
+
+  <!-- Addresses and Notes -->
+  <div class="mb-4">
+    <%= f.label :shipping_address, 'Shipping Address', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+    <%= f.text_area :shipping_address, rows: 3, class: 'form-textarea rounded border px-3 py-2 w-full' %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :billing_address, 'Billing Address', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+    <%= f.text_area :billing_address, rows: 3, class: 'form-textarea rounded border px-3 py-2 w-full' %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :notes, 'Notes', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+    <%= f.text_area :notes, rows: 3, placeholder: 'Add any special instructions', class: 'form-textarea rounded border px-3 py-2 w-full' %>
+  </div>
+
+  <!-- Product Line Items -->
+  <h3 class="text-lg font-bold mb-2">Products</h3>
+  <button type="button" id="add-product-btn" class="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+    Add Product
+  </button>
+  <table class="min-w-full mb-4" id="line-items-table">
+    <thead>
+      <tr>
+        <th class="border px-4 py-2">Product Variant</th>
+        <th class="border px-4 py-2">Quantity</th>
+        <th class="border px-4 py-2">Price</th>
+        <th class="border px-4 py-2">Total</th>
+        <th class="border px-4 py-2">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @order.line_items.reject(&:marked_for_destruction?).select(&:product?).each_with_index do |item, index| %>
+        <tr data-index="<%= index %>">
+          <td class="border px-4 py-2">
+            <select name="order[line_items_attributes][<%= index %>][product_variant_id]" class="form-select rounded border px-3 py-2 w-full product-select" data-price="<%= item.price %>">
+              <option value="">Select Variant</option>
+              <% @product_variants.each do |variant| %>
+                <option value="<%= variant.id %>" data-price="<%= variant.final_price %>" <%= 'selected' if item.product_variant_id == variant.id %>>
+                  <%= variant.product.name %> - <%= variant.name %>
+                </option>
+              <% end %>
+            </select>
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][id]" value="<%= item.id %>" />
+          </td>
+          <td class="border px-4 py-2">
+            <input type="number" name="order[line_items_attributes][<%= index %>][quantity]" value="<%= item.quantity %>" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
+          </td>
+          <td class="border px-4 py-2">
+            <span class="price-display"><%= number_to_currency(item.price) %></span>
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][price]" class="price-input" value="<%= item.price %>" />
+          </td>
+          <td class="border px-4 py-2">
+            <span class="total-display"><%= number_to_currency(item.total_amount) %></span>
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][total_amount]" class="total-input" value="<%= item.total_amount %>" />
+          </td>
+          <td class="border px-4 py-2">
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][_destroy]" class="destroy-input" value="false" />
+            <button type="button" class="remove-product-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <!-- Service Line Items -->
+  <% product_count = @order.line_items.reject(&:marked_for_destruction?).select(&:product?).size %>
+  <h3 class="text-lg font-bold mb-2">Services</h3>
+  <button type="button" id="add-service-btn" class="mb-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+    Add Service
+  </button>
+  <table class="min-w-full mb-4" id="service-line-items-table">
+    <thead>
+      <tr>
+        <th class="border px-4 py-2">Service</th>
+        <th class="border px-4 py-2">Staff Member</th>
+        <th class="border px-4 py-2">Quantity</th>
+        <th class="border px-4 py-2">Price</th>
+        <th class="border px-4 py-2">Total</th>
+        <th class="border px-4 py-2">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @order.line_items.reject(&:marked_for_destruction?).select(&:service?).each_with_index do |item, idx| %>
+        <% index = idx + product_count %>
+        <tr data-index="<%= index %>">
+          <td class="border px-4 py-2">
+            <select name="order[line_items_attributes][<%= index %>][service_id]" class="form-select rounded border px-3 py-2 w-full service-select" data-price="<%= item.price %>">
+              <option value="">Select Service</option>
+              <% @services.each do |service| %>
+                <option value="<%= service.id %>" data-price="<%= service.price %>" <%= 'selected' if item.service_id == service.id %>><%= service.name %> (<%= service.duration %>m)</option>
+              <% end %>
+            </select>
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][id]" value="<%= item.id %>" />
+          </td>
+          <td class="border px-4 py-2">
+            <select name="order[line_items_attributes][<%= index %>][staff_member_id]" class="form-select rounded border px-3 py-2 w-full staff-select">
+              <option value="">Select Staff</option>
+              <% @staff_members.each do |sm| %>
+                <option value="<%= sm.id %>" <%= 'selected' if item.staff_member_id == sm.id %>><%= sm.name %></option>
+              <% end %>
+            </select>
+          </td>
+          <td class="border px-4 py-2">
+            <input type="number" name="order[line_items_attributes][<%= index %>][quantity]" value="<%= item.quantity %>" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
+          </td>
+          <td class="border px-4 py-2">
+            <span class="price-display"><%= number_to_currency(item.price) %></span>
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][price]" class="price-input" value="<%= item.price %>" />
+          </td>
+          <td class="border px-4 py-2">
+            <span class="total-display"><%= number_to_currency(item.total_amount) %></span>
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][total_amount]" class="total-input" value="<%= item.total_amount %>" />
+          </td>
+          <td class="border px-4 py-2">
+            <input type="hidden" name="order[line_items_attributes][<%= index %>][_destroy]" class="destroy-input" value="false" />
+            <button type="button" class="remove-service-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+          </td>
+        </tr>
+      <% end %>
+          <tfoot>
+      <tr>
+        <td colspan="3" class="text-right font-bold px-4 py-2">Order Total:</td>
+        <td class="font-bold px-4 py-2"><span id="order-total"><%= number_to_currency(@order.total_amount || 0) %></span></td>
+        <td></td>
+      </tr>
+    </tfoot>
+    </tbody>
+
+  </table>
+
+  <%= f.submit (@order.new_record? ? 'Create Order' : 'Update Order'), class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded' %>
+<% end %>
+
+<template id="line-item-template">
+  <tr data-index="NEW_INDEX">
+    <td class="border px-4 py-2">
+      <select name="order[line_items_attributes][NEW_INDEX][product_variant_id]" class="form-select rounded border px-3 py-2 w-full product-select">
+        <option value="">Select Variant</option>
+        <% @product_variants.each do |variant| %>
+          <option value="<%= variant.id %>" data-price="<%= variant.final_price %>">
+            <%= variant.product.name %> - <%= variant.name %>
+          </option>
+        <% end %>
+      </select>
+    </td>
+    <td class="border px-4 py-2">
+      <input type="number" name="order[line_items_attributes][NEW_INDEX][quantity]" value="1" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
+    </td>
+    <td class="border px-4 py-2">
+      <span class="price-display">$0.00</span>
+      <input type="hidden" name="order[line_items_attributes][NEW_INDEX][price]" class="price-input" value="0.00" />
+    </td>
+    <td class="border px-4 py-2">
+      <span class="total-display">$0.00</span>
+      <input type="hidden" name="order[line_items_attributes][NEW_INDEX][total_amount]" class="total-input" value="0.00" />
+    </td>
+    <td class="border px-4 py-2">
+      <input type="hidden" name="order[line_items_attributes][NEW_INDEX][_destroy]" class="destroy-input" value="false" />
+      <button type="button" class="remove-product-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+    </td>
+  </tr>
+</template>
+
+<template id="service-line-item-template">
+  <tr data-index="NEW_INDEX">
+    <td class="border px-4 py-2">
+      <select name="order[line_items_attributes][NEW_INDEX][service_id]" class="form-select rounded border px-3 py-2 w-full service-select">
+        <option value="">Select Service</option>
+        <% @services.each do |service| %>
+          <option value="<%= service.id %>" data-price="<%= service.price %>">
+            <%= service.name %> (<%= service.duration %>m)
+          </option>
+        <% end %>
+      </select>
+    </td>
+    <td class="border px-4 py-2">
+      <select name="order[line_items_attributes][NEW_INDEX][staff_member_id]" class="form-select rounded border px-3 py-2 w-full staff-select">
+        <option value="">Select Staff</option>
+        <% @staff_members.each do |sm| %>
+          <option value="<%= sm.id %>"><%= sm.name %></option>
+        <% end %>
+      </select>
+    </td>
+    <td class="border px-4 py-2">
+      <input type="number" name="order[line_items_attributes][NEW_INDEX][quantity]" value="1" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
+    </td>
+    <td class="border px-4 py-2">
+      <span class="price-display">$0.00</span>
+      <input type="hidden" name="order[line_items_attributes][NEW_INDEX][price]" class="price-input" value="0.00" />
+    </td>
+    <td class="border px-4 py-2">
+      <span class="total-display">$0.00</span>
+      <input type="hidden" name="order[line_items_attributes][NEW_INDEX][total_amount]" class="total-input" value="0.00" />
+    </td>
+    <td class="border px-4 py-2">
+      <input type="hidden" name="order[line_items_attributes][NEW_INDEX][_destroy]" class="destroy-input" value="false" />
+      <button type="button" class="remove-service-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+    </td>
+  </tr>
+</template>
+
+<script>
+// Dynamic order form behavior
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    const customerSelect = document.getElementById('order_tenant_customer_id');
+    const newCustomerFields = document.getElementById('new-customer-fields');
+    if (customerSelect && newCustomerFields) {
+      // Initialize visibility: show only if 'new' selected
+      newCustomerFields.style.display = (customerSelect.value === 'new') ? '' : 'none';
+      customerSelect.addEventListener('change', function() {
+        newCustomerFields.style.display = (this.value === 'new') ? '' : 'none';
+      });
+    }
+
+    // Line-items dynamic behavior
+    const addBtn = document.getElementById('add-product-btn');
+    const tableBody = document.querySelector('#line-items-table tbody');
+    const template = document.getElementById('line-item-template');
+    const orderTotalDisplay = document.getElementById('order-total');
+    // Initialize next rowIndex to avoid collision with service rows
+    let rowIndex = document.querySelectorAll('#line-items-table tbody tr, #service-line-items-table tbody tr').length;
+
+    // Recalculate overall order total
+    function recalcOrderTotal() {
+      let total = 0;
+      // Sum totals from both product and service line-item tables
+      document.querySelectorAll('#line-items-table tbody tr, #service-line-items-table tbody tr').forEach(function(row) {
+        const destroyInput = row.querySelector('.destroy-input');
+        if (destroyInput && destroyInput.value === 'true') return;
+        const totalInput = row.querySelector('.total-input');
+        total += parseFloat(totalInput.value) || 0;
+      });
+      if (orderTotalDisplay) {
+        orderTotalDisplay.textContent = '$' + total.toFixed(2);
+      }
+      // Show/hide product table header
+      const prodHead = document.querySelector('#line-items-table thead');
+      const prodRows = Array.from(document.querySelectorAll('#line-items-table tbody tr')).filter(row => {
+        const d = row.querySelector('.destroy-input');
+        return !d || d.value !== 'true';
+      });
+      if (prodHead) prodHead.style.display = prodRows.length > 0 ? '' : 'none';
+
+      // Show/hide service table header
+      const svcHead = document.querySelector('#service-line-items-table thead');
+      const svcRows = Array.from(document.querySelectorAll('#service-line-items-table tbody tr')).filter(row => {
+        const d = row.querySelector('.destroy-input');
+        return !d || d.value !== 'true';
+      });
+      if (svcHead) svcHead.style.display = svcRows.length > 0 ? '' : 'none';
+    }
+    // Expose globally so service script can call it
+    window.recalcOrderTotal = recalcOrderTotal;
+
+    // Bind events for price/quantity change and removal
+    function bindRowEvents(row) {
+      const productSelect = row.querySelector('.product-select');
+      const qtyInput = row.querySelector('.qty-input');
+      const removeBtn = row.querySelector('.remove-product-btn');
+
+      function updateRow() {
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const price = parseFloat(selectedOption.dataset.price) || 0;
+        const priceInput = row.querySelector('.price-input');
+        const priceDisplay = row.querySelector('.price-display');
+        priceInput.value = price.toFixed(2);
+        priceDisplay.textContent = '$' + price.toFixed(2);
+
+        const quantity = parseInt(qtyInput.value) || 0;
+        const total = price * quantity;
+        const totalInput = row.querySelector('.total-input');
+        const totalDisplay = row.querySelector('.total-display');
+        totalInput.value = total.toFixed(2);
+        totalDisplay.textContent = '$' + total.toFixed(2);
+
+        recalcOrderTotal();
+      }
+
+      if (productSelect) productSelect.addEventListener('change', updateRow);
+      if (qtyInput) qtyInput.addEventListener('input', updateRow);
+      if (removeBtn) {
+        removeBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const destroyInput = row.querySelector('.destroy-input');
+          if (destroyInput) destroyInput.value = 'true';
+          row.style.display = 'none';
+          recalcOrderTotal();
+        });
+      }
+    }
+
+    // Initialize existing rows
+    if (tableBody) {
+      tableBody.querySelectorAll('tr').forEach(bindRowEvents);
+    }
+
+    // Handle adding new rows
+    if (addBtn && tableBody && template) {
+      addBtn.addEventListener('click', function() {
+        const clone = document.importNode(template.content, true);
+        let html = clone.firstElementChild.outerHTML.replace(/NEW_INDEX/g, rowIndex);
+        const temp = document.createElement('tbody');
+        temp.innerHTML = html;
+        const newRow = temp.firstElementChild;
+        tableBody.appendChild(newRow);
+        bindRowEvents(newRow);
+        rowIndex++;
+        // After adding a product row, recalc and toggle headers
+        recalcOrderTotal();
+      });
+    }
+
+    // Initial total calculation
+    recalcOrderTotal();
+  });
+})();
+
+// Extend dynamic form behavior to service rows
+document.addEventListener('DOMContentLoaded', () => {
+  const addSvcBtn = document.getElementById('add-service-btn');
+  const svcTable = document.getElementById('service-line-items-table');
+  const svcBody = svcTable.querySelector('tbody');
+  const svcTpl = document.getElementById('service-line-item-template');
+
+  if (!addSvcBtn || !svcBody || !svcTpl) return;
+
+  addSvcBtn.addEventListener('click', () => {
+    const clone = document.importNode(svcTpl.content, true);
+    // Calculate next index based on existing product and service rows
+    const currentIndex = document.querySelectorAll('#line-items-table tbody tr, #service-line-items-table tbody tr').length;
+    let html = clone.firstElementChild.outerHTML.replace(/NEW_INDEX/g, currentIndex);
+    const temp = document.createElement('tbody');
+    temp.innerHTML = html;
+    const newRow = temp.firstElementChild;
+    svcBody.appendChild(newRow);
+    bindSvcRow(newRow);
+    // After adding a service row, recalc and toggle headers
+    window.recalcOrderTotal();
+  });
+
+  // Bind events for each service row
+  function bindSvcRow(row) {
+    const svcSelect = row.querySelector('.service-select');
+    const staffSelect = row.querySelector('.staff-select');
+    const qtyInput = row.querySelector('.qty-input');
+    const removeBtn = row.querySelector('.remove-service-btn');
+
+    function updateSvcRow() {
+      const opt = svcSelect.options[svcSelect.selectedIndex];
+      const price = parseFloat(opt.dataset.price) || 0;
+      const priceInput = row.querySelector('.price-input');
+      const priceDisplay = row.querySelector('.price-display');
+      priceInput.value = price.toFixed(2);
+      priceDisplay.textContent = '$' + price.toFixed(2);
+
+      const qty = parseInt(qtyInput.value) || 0;
+      const total = price * qty;
+      const totalInput = row.querySelector('.total-input');
+      const totalDisplay = row.querySelector('.total-display');
+      totalInput.value = total.toFixed(2);
+      totalDisplay.textContent = '$' + total.toFixed(2);
+
+      // Update the shared order total
+      recalcOrderTotal();
+    }
+
+    if (svcSelect) svcSelect.addEventListener('change', updateSvcRow);
+    if (qtyInput) qtyInput.addEventListener('input', updateSvcRow);
+    if (removeBtn) removeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const dest = row.querySelector('.destroy-input');
+      dest.value = 'true';
+      row.style.display = 'none';
+      recalcOrderTotal();
+    });
+  }
+
+  // Initialize existing service rows
+  svcBody.querySelectorAll('tr').forEach(bindSvcRow);
+});
+</script> 

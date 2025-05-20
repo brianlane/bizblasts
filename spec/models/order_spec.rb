@@ -15,6 +15,7 @@ RSpec.describe Order, type: :model do
     it { should belong_to(:tax_rate).optional }
     it { should have_many(:line_items).dependent(:destroy).with_foreign_key(:lineable_id) }
     it { should accept_nested_attributes_for(:line_items).allow_destroy(true) }
+    it { should accept_nested_attributes_for(:tenant_customer) }
   end
 
   describe 'validations' do

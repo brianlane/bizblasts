@@ -59,7 +59,7 @@ RSpec.describe OrderCreator do
         order = OrderCreator.create(order_params)
         expect(order).to be_a(Order)
         expect(order).not_to be_persisted
-        expect(order.errors[:base]).to include("Insufficient stock for #{variant1.name}")
+        expect(order.errors[:base]).to include("Line item error: Quantity for #{variant1.name} is not sufficient. Only #{variant1.stock_quantity} available.")
       end
     end
 

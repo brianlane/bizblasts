@@ -23,7 +23,11 @@
 </p>
 
 <h2>Items:</h2>
-<% if @order.line_items.any? %>
+<% products = @order.line_items.select(&:product?) %>
+<% services = @order.line_items.select(&:service?) %>
+
+<% if products.any? %>
+  <h3>Products</h3>
   <table>
     <thead>
       <tr>
@@ -36,19 +40,47 @@
       </tr>
     </thead>
     <tbody>
-      <% @order.line_items.each do |item| %>
+      <% products.each do |item| %>
         <tr>
           <td><%= item.product_variant.product.name %></td>
           <td><%= item.product_variant.name %></td>
           <td><%= item.product_variant.sku || 'N/A' %></td>
           <td><%= item.quantity %></td>
-          <td><%= number_to_currency item.price %></td>
-          <td><%= number_to_currency item.total_amount %></td>
+          <td><%= number_to_currency(item.price) %></td>
+          <td><%= number_to_currency(item.total_amount) %></td>
         </tr>
       <% end %>
     </tbody>
   </table>
-<% else %>
+<% end %>
+
+<% if services.any? %>
+  <h3>Services</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Staff Member</th>
+        <th>Quantity</th>
+        <th>Unit Price</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% services.each do |item| %>
+        <tr>
+          <td><%= item.service.name %></td>
+          <td><%= item.staff_member&.name || 'N/A' %></td>
+          <td><%= item.quantity %></td>
+          <td><%= number_to_currency(item.price) %></td>
+          <td><%= number_to_currency(item.total_amount) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<% if products.empty? && services.empty? %>
   <p>This order has no items.</p>
 <% end %>
 

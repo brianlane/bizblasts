@@ -46,7 +46,7 @@ FactoryBot.define do
         evaluator.line_items_count.times do |i|
           # Create a product and variant belonging to the order's business
           product = create(:product, business: order.business, variants_count: 1)
-          variant = product.product_variants.first
+          variant = product.product_variants.last
           # variant = evaluator.variants_for_items[i] || create(:product_variant, product: create(:product, business: order.business))
           order.line_items << build(:line_item, lineable: order, product_variant: variant)
         end

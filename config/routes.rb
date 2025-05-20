@@ -71,7 +71,7 @@ Rails.application.routes.draw do
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
       
       # Business orders management
-      resources :orders, only: [:index, :show]
+      resources :orders, only: [:index, :show, :new, :create, :edit, :update]
       get '/settings', to: 'settings#index', as: :settings
 
       namespace :settings do

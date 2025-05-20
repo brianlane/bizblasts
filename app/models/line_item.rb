@@ -1,19 +1,30 @@
 class LineItem < ApplicationRecord
-  belongs_to :lineable, polymorphic: true
-  validates :lineable, presence: true
-  belongs_to :product_variant
+  # Allow nested creation of line items without requiring parent until persist
+  belongs_to :lineable, polymorphic: true, optional: true
+  # Ensure lineable exists on update (after creation)
+  validates :lineable, presence: true, on: :update
+
+  # New associations for service line items
+  belongs_to :service, optional: true
+  belongs_to :staff_member, optional: true
+
+  # Validate that each line item references exactly one of product_variant or service
+  validate :product_or_service_presence
+
+  belongs_to :product_variant, optional: true
 
   # Delegate business_id for validation purposes
   # Ensure lineable is set before validation runs
   delegate :business_id, to: :lineable, allow_nil: true
 
-  validates :product_variant, presence: true
+  validates :product_variant, presence: true, if: :product?
   validates :quantity, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   # Security Validation: Ensure product belongs to the same business as the order/invoice
   validate :business_consistency
+  validate :stock_sufficiency, if: :product?
 
   # Set price from variant and calculate total before validation on creation
   before_validation :set_price_and_total, on: :create
@@ -25,23 +36,13 @@ class LineItem < ApplicationRecord
   scope :services, -> { where(lineable_type: 'Service') }
 
   def product?
-    # The line item belongs to a product if the lineable is an Order with order_type product or mixed
-    if lineable.is_a?(Order)
-      lineable.order_type_product? || lineable.order_type_mixed?
-    else
-      # Default to previous implementation
-      lineable_type == 'ProductVariant'
-    end
+    # A line item is a product if it has no service_id
+    service_id.blank?
   end
 
   def service?
-    # The line item belongs to a service if the lineable is an Order with order_type service or mixed
-    if lineable.is_a?(Order)
-      lineable.order_type_service? || lineable.order_type_mixed?
-    else
-      # Default to previous implementation
-      lineable_type == 'Service'
-    end
+    # A line item is a service if it has a service_id
+    service_id.present?
   end
 
   # --- Add Ransack methods --- 
@@ -57,9 +58,16 @@ class LineItem < ApplicationRecord
   private
 
   def set_price_and_total
-    return unless product_variant.present? && quantity.present?
-    self.price        ||= product_variant.final_price
-    self.total_amount = (price * quantity).round(2)
+    # Auto-set price and total for products and services
+    return unless quantity.present?
+    if product_variant.present?
+      self.price        ||= product_variant.final_price
+      self.total_amount = (price * quantity).round(2)
+    elsif service.present?
+      # Use service price for service line items
+      self.price        ||= service.price
+      self.total_amount = (price * quantity).round(2)
+    end
   end
 
   def update_total_amount
@@ -83,6 +91,25 @@ class LineItem < ApplicationRecord
 
     if product_business_id != lineable_business_id
       errors.add(:product_variant, "must belong to the same business as the #{lineable_type.downcase}")
+    end
+  end
+
+  def product_or_service_presence
+    if product_variant_id.blank? && service_id.blank?
+      errors.add(:base, 'Line items must have either a product or a service selected')
+    elsif product_variant_id.present? && service_id.present?
+      errors.add(:base, 'Line items cannot have both product and service selected')
+    elsif service_id.present? && staff_member_id.blank?
+      errors.add(:staff_member, 'must be selected for service line items')
+    end
+  end
+
+  # Validate that product line items do not exceed available stock
+  def stock_sufficiency
+    return unless quantity.present? && product_variant.present?
+
+    unless product_variant.in_stock?(quantity)
+      errors.add(:quantity, "for #{product_variant.name} is not sufficient. Only #{product_variant.stock_quantity} available.")
     end
   end
 end 

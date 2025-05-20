@@ -272,14 +272,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
   create_table "line_items", force: :cascade do |t|
     t.string "lineable_type", null: false
     t.bigint "lineable_id", null: false
-    t.bigint "product_variant_id", null: false
+    t.bigint "product_variant_id"
     t.integer "quantity", null: false
     t.decimal "price", precision: 10, scale: 2, null: false
     t.decimal "total_amount", precision: 10, scale: 2, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "service_id"
+    t.bigint "staff_member_id"
     t.index ["lineable_type", "lineable_id"], name: "index_line_items_on_lineable"
     t.index ["product_variant_id"], name: "index_line_items_on_product_variant_id"
+    t.index ["service_id"], name: "index_line_items_on_service_id"
+    t.index ["staff_member_id"], name: "index_line_items_on_staff_member_id"
   end
 
   create_table "locations", force: :cascade do |t|
@@ -780,6 +784,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
   add_foreign_key "invoices", "tax_rates"
   add_foreign_key "invoices", "tenant_customers"
   add_foreign_key "line_items", "product_variants"
+  add_foreign_key "line_items", "services"
+  add_foreign_key "line_items", "staff_members"
   add_foreign_key "locations", "businesses"
   add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
