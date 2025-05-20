@@ -1,0 +1,9 @@
+<% @business = current_tenant %>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-4">About Us</h1>
+  <% if @business.description.present? %>
+    <p class="text-gray-700 mb-4"><%= @business.description %></p>
+  <% else %>
+    <p class="text-gray-700 mb-4">No description provided.</p>
+  <% end %>
+</div> 

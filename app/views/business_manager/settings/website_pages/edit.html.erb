@@ -1,0 +1,63 @@
+<div class="container mx-auto p-6">
+  <div class="panel">
+    <div class="panel-header flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Website Pages Settings</h1>
+      <%= link_to '← Back to Settings', business_manager_settings_path, class: 'text-blue-600 hover:underline' %>
+    </div>
+    <div class="panel-body mt-4">
+      <%= form_with model: @business, url: business_manager_settings_website_pages_path, method: :patch, local: true do |f| %>
+        <fieldset>
+          <legend class="font-semibold">Sections</legend>
+          <div class="mt-2">
+            <%= f.check_box :show_services_section %>
+            <%= f.label :show_services_section, 'Show Services Section' %>
+          </div>
+          <div class="mt-2">
+            <%= f.check_box :show_products_section %>
+            <%= f.label :show_products_section, 'Show Products Section' %>
+          </div>
+          <div class="mt-2">
+            <%= f.check_box :show_estimate_page %>
+            <%= f.label :show_estimate_page, 'Enable Estimate Page' %>
+          </div>
+        </fieldset>
+
+        <fieldset class="mt-6">
+          <legend class="font-semibold">Social Links</legend>
+          <div class="mt-2">
+            <%= f.label :facebook_url, 'Facebook URL' %>
+            <%= f.url_field :facebook_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+          <div class="mt-2">
+            <%= f.label :twitter_url, 'Twitter URL' %>
+            <%= f.url_field :twitter_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+          <div class="mt-2">
+            <%= f.label :instagram_url, 'Instagram URL' %>
+            <%= f.url_field :instagram_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+          <div class="mt-2">
+            <%= f.label :pinterest_url, 'Pinterest URL' %>
+            <%= f.url_field :pinterest_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+          <div class="mt-2">
+            <%= f.label :linkedin_url, 'LinkedIn URL' %>
+            <%= f.url_field :linkedin_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+          <div class="mt-2">
+            <%= f.label :tiktok_url, 'TikTok URL' %>
+            <%= f.url_field :tiktok_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+          <div class="mt-2">
+            <%= f.label :youtube_url, 'YouTube URL' %>
+            <%= f.url_field :youtube_url, class: 'block w-full border rounded px-2 py-1' %>
+          </div>
+        </fieldset>
+
+        <div class="mt-6">
+          <%= f.submit 'Save Changes', class: 'px-4 py-2 bg-blue-600 text-white rounded' %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 

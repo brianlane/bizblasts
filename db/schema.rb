@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_17_151218) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -162,6 +162,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_17_151218) do
     t.string "subdomain"
     t.jsonb "hours"
     t.string "stripe_customer_id"
+    t.boolean "show_services_section", default: true, null: false
+    t.boolean "show_products_section", default: true, null: false
+    t.boolean "show_estimate_page", default: true, null: false
+    t.string "facebook_url"
+    t.string "twitter_url"
+    t.string "instagram_url"
+    t.string "pinterest_url"
+    t.string "linkedin_url"
+    t.string "tiktok_url"
+    t.string "youtube_url"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"

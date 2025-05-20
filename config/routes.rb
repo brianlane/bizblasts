@@ -99,6 +99,7 @@ Rails.application.routes.draw do
 
         # Integrations (Module 9)
         resources :integrations, controller: 'integrations'
+        resource :website_pages, only: [:edit, :update]
 
       end
     end
@@ -132,6 +133,10 @@ Rails.application.routes.draw do
       # Product listings under subdomain go through Public::ProductsController
       resources :products, only: [:index, :show]
       get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
+
+      # Estimate page and form submission
+      get '/estimate', to: 'pages#show', page: 'estimate', as: :tenant_estimate_page
+      post '/estimate', to: 'requests#create', as: :tenant_estimate_request
 
       get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
       get '/available-slots', to: 'tenant_calendar#available_slots', as: :tenant_available_slots

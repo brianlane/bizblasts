@@ -1,0 +1,15 @@
+<% @business = current_tenant %>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-4">Contact Us</h1>
+  <div class="text-gray-700 space-y-2">
+    <% if @business.address.present? %>
+      <p><strong>Address:</strong> <%= @business.address %></p>
+    <% end %>
+    <% if @business.phone.present? %>
+      <p><strong>Phone:</strong> <%= @business.phone %></p>
+    <% end %>
+    <% if @business.email.present? %>
+      <p><strong>Email:</strong> <%= mail_to @business.email %></p>
+    <% end %>
+  </div>
+</div> 

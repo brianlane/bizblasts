@@ -69,6 +69,8 @@ module Public
         render template: 'public/pages/about' # Assuming you have an about.html.erb
       when 'contact'
         render template: 'public/pages/contact' # Assuming you have a contact.html.erb
+      when 'estimate'
+        render template: 'public/pages/estimate'
       else
         # Attempt to render a page with the given slug if a template exists
         # This handles other dynamic pages if you add templates for them
