@@ -39,7 +39,7 @@ bin/rails tailwindcss:build
 
 # Add a JavaScript bundling step here
 echo "Bundling JavaScript..."
-bun run build:js # Replace with your actual JS build command if different
+bun run build:js
 
 # Precompile assets using Rails/Propshaft
 
