@@ -81,4 +81,7 @@ Rails.application.configure do
   config.hosts << /.*\.127\.0\.0\.1\.xip\.io/
 
   config.session_store :cookie_store, key: '_bizblasts_session', domain: :all
+
+  # Add app/assets/stylesheets to the asset load path
+  config.assets.paths << Rails.root.join("app/assets/stylesheets")
 end
