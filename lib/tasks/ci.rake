@@ -152,7 +152,7 @@ namespace :ci do
     business = Business.find_or_create_by!(subdomain: 'consultllc') do |b|
       b.name = 'Consult LLC Performance Test'
       b.hostname = 'consultllc.lvh.me'
-      b.status = 'active'
+      b.active = true
       b.account_status = 'active'
       # Add any other required business attributes
     end
