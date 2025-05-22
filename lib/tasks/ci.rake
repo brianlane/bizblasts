@@ -164,6 +164,7 @@ namespace :ci do
       b.tier = 'standard'
       b.host_type = 'subdomain'
       b.time_zone = 'UTC'
+      b.hostname = 'consultllc'
     end
     
     # If business needs a specific hostname format, update it after creation
