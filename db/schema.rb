@@ -12,6 +12,7 @@
 
 ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
 
   create_table "action_mailbox_inbound_emails", force: :cascade do |t|
@@ -135,6 +136,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
     t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
     t.index ["staff_member_id"], name: "index_bookings_on_staff_member_id"
+    t.index ["start_time", "end_time"], name: "index_bookings_on_start_time_and_end_time", using: :gist
     t.index ["start_time"], name: "index_bookings_on_start_time"
     t.index ["status"], name: "index_bookings_on_status"
     t.index ["tenant_customer_id"], name: "index_bookings_on_tenant_customer_id"

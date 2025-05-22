@@ -21,42 +21,42 @@
 
 ## Week 1-2: Admin Dashboard & Templates
 - [ X ] Add ActiveAdmin gem for admin interface
-- [  ] Set up admin user authentication and authorization
-- [  ] Create business management admin panels
+- [ X ] Set up admin user authentication and authorization
+- [ X ] Create business management admin panels
 - [  ] Build template management system
-- [  ] Set up multi-tenant architecture
-- [  ] Create subdomain routing with acts_as_tenant gem
-- [  ] Implement site scaffolding for client websites
-- [  ] Add CSS for responsive design
-- [  ] Build core layouts and components
+- [ X ] Set up multi-tenant architecture
+- [ X ] Create subdomain routing with acts_as_tenant gem
+- [ X ] Implement site scaffolding for client websites
+- [ X ] Add CSS for responsive design
+- [ X ] Build core layouts and components
 - [  ] Create Phoenix-focused landscaping template
 - [  ] Create Phoenix-focused pool service template
 - [  ] Create general service business template
 - [  ] Set up asset pipeline for optimal performance
 - [  ] Implement custom domain configuration
 - [  ] Add ActiveStorage image upload support for Service model in ActiveAdmin (has_many_attached :images)
-- [  ] Add service type (Standard/Experience) fields and booking parameters (min_bookings, max_bookings) in ActiveAdmin service forms
+- [ X ] Add service type (Standard/Experience) fields and booking parameters (min_bookings, max_bookings) in ActiveAdmin service forms
 - [  ] Create business analytics dashboard
 
 ## Week 2-3: Enhanced Booking System Development
-- [  ] Create service management system
-- [  ] Add 'quantity' attribute to Booking model and implement booking quantity input in public and admin forms
-- [  ] Integrate service types (Standard/Experience) with min_bookings, max_bookings, and spots management in Service model
+- [ X ] Create service management system
+- [ X ] Add 'quantity' attribute to Booking model and implement booking quantity input in public and admin forms
+- [ X ] Integrate service types (Standard/Experience) with min_bookings, max_bookings, and spots management in Service model
 - [  ] Add ActiveStorage image uploads and management for services (has_many_attached :images)
-- [  ] Implement staff/employee management
-- [  ] Build availability calendar system
-- [  ] Develop online booking interface
-- [  ] Create appointment management system
+- [ X ] Implement staff/employee management
+- [ X ] Build availability calendar system
+- [ X ] Develop online booking interface
+- [ X ] Create appointment management system
 - [  ] Implement SMS appointment reminders
 - [  ] Build calendar synchronization (Google, iCal)
-- [  ] Create customer database and profiles
+- [ X ] Create customer database and profiles
 - [  ] Implement booking confirmation emails
 - [  ] Develop booking analytics dashboard
-- [  ] Create custom booking fields capability
+- [ X ] Create custom booking fields capability
 - [  ] Implement recurring appointment options
 - [  ] Build group booking functionality
 - [  ] Develop resource allocation system
-- [  ] Create multi-location architecture
+- [ X ] Create multi-location architecture
 - [  ] Implement advanced intake forms with conditional logic
 - [  ] Build document upload and verification system
 - [  ] Develop location-specific service configuration
@@ -64,23 +64,23 @@
 
 ## Week 3: Marketing and Payment Features
 - [  ] Add Stripe gem for payment processing
-- [  ] Design and create `Product`, `Order`, `LineItem` models and migrations.
-- [  ] Build `ProductsController` and views for product display.
-- [  ] Implement basic cart logic (session or DB based) for standalone orders and booking add-ons.
-- [  ] Build `OrdersController` for standalone order creation/viewing.
-- [  ] Integrate product selection into Booking flow to add `LineItem`s to `Invoice`.
-- [  ] Create ActiveAdmin interface for `Product` and `Order` management (mirroring `Service`).
-- [  ] Implement manual shipping/tax input fields for businesses.
+- [ X ] Design and create `Product`, `Order`, `LineItem` models and migrations.
+- [ X ] Build `ProductsController` and views for product display.
+- [ X ] Implement basic cart logic (session or DB based) for standalone orders and booking add-ons.
+- [ X ] Build `OrdersController` for standalone order creation/viewing.
+- [ X ] Integrate product selection into Booking flow to add `LineItem`s to `Invoice`.
+- [ X ] Create ActiveAdmin interface for `Product` and `Order` management (mirroring `Service`).
+- [ X ] Implement manual shipping/tax input fields for businesses.
 - [  ] Create promotional coupon system
 - [  ] Implement customer loyalty tracking
 - [  ] Build referral program functionality
 
 ## Week 4: Testing, Optimization & Launch
-- [  ] Write model, controller, and integration tests
-- [  ] Include testing for custom Product, Order, Cart, and Invoice logic.
-- [  ] Set up RSpec and FactoryBot for testing
-- [  ] Implement system tests with Capybara
-- [  ] Create test tenants for multi-tenant testing
+- [ X ] Write model, controller, and integration tests
+- [ X ] Include testing for custom Product, Order, Cart, and Invoice logic.
+- [ X ] Set up RSpec and FactoryBot for testing
+- [ X ] Implement system tests with Capybara
+- [ X ] Create test tenants for multi-tenant testing
 - [  ] Set up performance monitoring
 - [  ] Optimize database queries and indexing
 - [  ] Implement caching strategies
@@ -90,7 +90,7 @@
 - [  ] Build demonstration sites for sales
 - [  ] Prepare Phoenix-focused sales materials
 - [  ] Test subdomain and custom domain setup
-- [  ] Configure production environment
+- [ X ] Configure production environment
 - [  ] Launch platform with initial demo sites
 - [  ] Test SMS delivery and reliability
 - [  ] Verify mobile responsiveness across devices

@@ -17,6 +17,11 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
+  #
+  # The connection pool size is crucial for performance under concurrent load.
+  # The default is often too small for production environments.
+  # It's recommended to set RAILS_MAX_THREADS based on your web server's thread count
+  # and monitor database connection usage to find an optimal size.
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
