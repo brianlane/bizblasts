@@ -150,6 +150,7 @@ namespace :ci do
   task create_performance_test_data: :environment do
     puts "Creating performance test business..."
     
+    # Set hostname explicitly to match validation requirements
     business = Business.find_or_create_by!(subdomain: 'consultllc') do |b|
       b.name = 'Consult LLC Performance Test'
       b.active = true
@@ -164,25 +165,30 @@ namespace :ci do
       b.tier = 'standard'
       b.host_type = 'subdomain'
       b.time_zone = 'UTC'
+      # Set hostname to match subdomain - just lowercase letters, no dots or special chars
       b.hostname = 'consultllc'
-    end
-    
-    # If business needs a specific hostname format, update it after creation
-    if business.host_type == 'subdomain' && business.hostname != 'consultllc'
-      business.update_columns(hostname: 'consultllc') # Skip validations if needed
     end
     
     puts "Created/found business: #{business.name} (ID: #{business.id}, hostname: #{business.hostname})"
     
     puts "Creating performance test staff member..."
     staff = StaffMember.find_or_create_by!(business: business, email: 'perf_staff@example.com') do |s|
-      s.first_name = 'Perf'
-      s.last_name = 'Staff'
-      s.status = 'active'
-      s.user_id = nil # Staff member doesn't need a user account for this test data
-      # The factory shows 'name' field, but you're using first_name/last_name
-      # Let's also set name if it exists
-      s.name = 'Perf Staff' if s.respond_to?(:name=)
+      s.name = 'Perf Staff'
+      s.phone = '+1 (555) 555-5556'
+      s.bio = 'Performance test staff member'
+      s.active = true
+      s.position = 'Test Position'
+      # Set availability (required based on factory)
+      s.availability = {
+        'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'saturday' => [],
+        'sunday' => [],
+        'exceptions' => {}
+      }
     end
     
     puts "Creating performance test service..."
@@ -193,39 +199,28 @@ namespace :ci do
     ) do |s|
       s.description = 'Service for performance testing'
       s.duration = 60 # minutes
-      s.interval = 30 # minutes
       s.price = 100.0
-      s.status = 'active'
-      s.active = true # Based on factory, ensure active is set
+      s.active = true
+      s.featured = false
+      s.service_type = :standard
+      # Based on factory, interval might be a property
+      s.interval = 30 if s.respond_to?(:interval=)
     end
     
     puts "Created/found service: #{service.name} (ID: #{service.id})"
     
     # Ensure the staff member is associated with the service
     unless staff.services.include?(service)
-      staff.services << service
+      # Create the association through the join table
+      ServicesStaffMember.find_or_create_by!(service: service, staff_member: staff)
       puts "Associated staff member #{staff.id} with service #{service.id}."
     end
     
     puts "Setting performance test staff availability..."
-    # Set availability for a range of dates around 2025-01-01
-    availability_data = {
-      'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
-      'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
-      'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
-      'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
-      'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
-      'saturday' => [],
-      'sunday' => [],
-      'exceptions' => {}
-    }
-    
-    # Apply general weekly availability
-    staff.availability = availability_data
-    staff.save!
-    puts "Set weekly availability for staff member #{staff.id}."
+    # The availability was already set during creation, but we can update if needed
+    puts "Staff member #{staff.id} already has weekly availability set."
     
     puts "Performance test data created successfully!"
-    puts "Test URL will be: http://#{business.hostname}.lvh.me:3000/calendar?service_id=#{service.id}&commit=View+Availability"
+    puts "Test URL will be: http://consultllc.lvh.me:3000/calendar?service_id=#{service.id}&commit=View+Availability"
   end
 end
