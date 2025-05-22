@@ -116,3 +116,94 @@ Tests are automatically run on GitHub Actions:
 2. When code is pushed to the main branch
 
 The CI workflow is defined in `.github/workflows/ci.yml`.
+
+## Styling with Tailwind CSS
+
+This application uses the `tailwindcss-rails` gem to power its main styles, alongside a separate build for ActiveAdmin.
+
+### Installation and Setup
+
+1. Ensure the gem is in your Gemfile:
+
+```ruby
+gem "tailwindcss-rails"
+```
+
+2. Install and bootstrap Tailwind:
+
+```bash
+bundle exec rails tailwindcss:install
+```
+
+This generates:
+- `app/assets/tailwind/application.css` – the Tailwind entrypoint
+- `tailwind.config.js` – Tailwind configuration file
+- Updates to `app/assets/config/manifest.js` and `app/views/layouts/application.html.erb`
+
+### Development Workflow
+
+To start Rails together with live Tailwind* and ActiveAdmin CSS rebuilding:
+
+```bash
+bin/dev
+```
+
+Or separately via Procfile.dev:
+
+```bash
+foreman start -f Procfile.dev
+```
+
+This runs:
+- `web`: `bin/rails server`
+- `css`: `bin/rails tailwindcss:watch`
+
+### Layouts
+
+- **Main application** layout (`app/views/layouts/application.html.erb`) now includes:
+  ```erb
+  <%= stylesheet_link_tag "tailwind", data: { "turbo-track" => "reload" } %>
+  <%= stylesheet_link_tag "application" %> <!-- your custom SASS overrides -->
+  ```
+
+- **ActiveAdmin** continues to load `active_admin.css` separately in its own layout.
+
+### Production Builds (Render)
+
+Your `bin/render-build.sh` script is updated to:
+
+1. Install Ruby and JS dependencies
+2. Build *ActiveAdmin* CSS via `bin/sass-build-activeadmin.sh`
+3. Run `bundle exec rails assets:precompile` which now also runs the Tailwind build
+
+Ensure your `render.yaml` calls `./bin/render-build.sh` as the `buildCommand` so that both CSS bundles are generated and precompiled.
+
+---
+
+*The tailwindcss gem uses `tailwindcss-ruby` under the hood for blazing-fast compilation in development and production.
+
+### Brand & Functional Colors
+
+This project extends Tailwind's default palette with custom brand and functional colors. You can use these in your utilities:
+
+Core Brand Colors:
+- `primary` (#1A5F7A)
+- `secondary` (#57C5B6)
+- `accent` (#FF8C42)
+- `dark` (#333333)
+- `light` (#F8F9FA)
+
+Functional Colors:
+- `success` (#28A745)
+- `warning` (#FFC107)
+- `error` (#DC3545)
+- `info` (#17A2B8)
+
+Example usage:
+```html
+<button class="bg-primary text-white py-2 px-4 rounded">
+  Primary Button
+</button>
+<div class="text-error font-bold">Error occurred</div>
+<p class="bg-light p-3">Subtle background</p>
+```

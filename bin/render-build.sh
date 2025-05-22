@@ -26,107 +26,16 @@ fi
 echo "Installing dependencies..."
 bundle install
 
+# Install JS dependencies
 yarn install
-#Build CSS/JS assets
-echo "Building CSS and JS assets..."
-#Buld application CSS
-yarn run build:css:application
-#Build ActiveAdmin CSS
-yarn run build:css:active_admin
 
+# Build ActiveAdmin CSS
+echo "Building ActiveAdmin CSS..."
+bin/sass-build-activeadmin.sh
 
-# echo "Precompiling assets..."
-# # Ensure the public/assets directory exists
-# mkdir -p public/assets
-
-# # Handle ActiveAdmin assets explicitly to ensure they're properly compiled
-# if [ -f "app/assets/stylesheets/active_admin.scss" ]; then
-#   echo "Compiling ActiveAdmin assets manually..."
-  
-#   # Install required node packages
-#   yarn add sass
-
-#   # Get ActiveAdmin gem path
-#   AA_PATH=$(bundle show activeadmin)
-#   echo "ActiveAdmin Path: $AA_PATH"
-  
-#   # Compile SCSS to CSS with proper load paths
-#   npx sass app/assets/stylesheets/active_admin.scss:app/assets/builds/active_admin.css \
-#     --no-source-map \
-#     --load-path=node_modules \
-#     --load-path="$AA_PATH/app/assets/stylesheets" || \
-#   echo "Warning: Failed to compile ActiveAdmin CSS manually, continuing with fallback"
-# fi
-
-# # Create a basic CSS file if it doesn't exist or is empty
-# if [ ! -s "app/assets/builds/active_admin.css" ]; then
-#   echo "Creating basic fallback ActiveAdmin CSS file..."
-#   cat > app/assets/builds/active_admin.css << 'EOL'
-# /* Fallback ActiveAdmin CSS */
-# body.active_admin {
-#   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-#   line-height: 1.5;
-#   font-size: 14px;
-#   color: #333;
-#   background: #f4f4f4;
-#   margin: 0;
-#   padding: 0;
-# }
-
-# #header {
-#   background: #5E6469;
-#   color: white;
-#   padding: 10px 20px;
-#   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-# }
-
-# #header h1 {
-#   font-weight: normal;
-#   margin: 0;
-# }
-
-# #header a, #header a:link, #header a:visited {
-#   color: white;
-#   text-decoration: none;
-# }
-
-# body.logged_out {
-#   background: #f8f8f8;
-#   padding-top: 50px;
-# }
-
-# #login {
-#   max-width: 400px;
-#   margin: 0 auto;
-#   background: white;
-#   padding: 30px;
-#   border-radius: 5px;
-#   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-# }
-
-# #login h2 {
-#   margin-top: 0;
-#   text-align: center;
-#   color: #5E6469;
-# }
-
-# .flash {
-#   padding: 10px 15px;
-#   margin-bottom: 20px;
-#   border-radius: 3px;
-# }
-
-# .flash.notice {
-#   background: #dff0d8;
-#   color: #3c763d;
-# }
-
-# .flash.error {
-#   background: #f2dede;
-#   color: #a94442;
-# }
-# EOL
-# fi
+# Build Tailwind CSS
+echo "Building Tailwind CSS..."
+bin/rails tailwindcss:build
 
 # Precompile assets using Rails/Propshaft
 
@@ -135,62 +44,6 @@ echo "Precompiling assets with Propshaft..."
 # Compile the CSS
 bundle exec rails assets:precompile
 # bundle exec rails assets:clean
-
-# # Force ActiveAdmin CSS to public/assets 
-# echo "Ensuring assets are available in public/assets..."
-# mkdir -p public/assets
-
-# # Copy ActiveAdmin CSS
-# cp app/assets/builds/active_admin.css public/assets/
-
-# # Generate MD5 hash for ActiveAdmin CSS
-# if command -v md5sum > /dev/null; then
-#   # Linux
-#   AA_MD5=$(md5sum "app/assets/builds/active_admin.css" | cut -d' ' -f1)
-# else
-#   # macOS
-#   AA_MD5=$(md5 -q "app/assets/builds/active_admin.css")
-# fi
-
-# # Create a digested version for cache busting
-# cp app/assets/builds/active_admin.css "public/assets/active_admin-${AA_MD5}.css"
-# echo "ActiveAdmin assets copied successfully ✓"
-
-# # Ensure application.css exists
-# if [ ! -f "app/assets/builds/application.css" ] || [ ! -s "app/assets/builds/application.css" ]; then
-#   echo "Creating basic application.css file..."
-#   echo "/* Basic application styles */" > app/assets/builds/application.css
-# fi
-
-# # Copy application CSS and generate digested version
-# cp app/assets/builds/application.css public/assets/
-# if command -v md5sum > /dev/null; then
-#   # Linux
-#   APP_CSS_MD5=$(md5sum "app/assets/builds/application.css" | cut -d' ' -f1)
-# else
-#   # macOS
-#   APP_CSS_MD5=$(md5 -q "app/assets/builds/application.css")
-# fi
-# cp app/assets/builds/application.css "public/assets/application-${APP_CSS_MD5}.css"
-# echo "Application CSS copied successfully ✓"
-
-# # Ensure application.js exists
-# if [ ! -f "app/assets/builds/application.js" ]; then
-#   echo "Creating basic application.js file..."
-#   echo "/* Basic application JavaScript */" > app/assets/builds/application.js
-# fi
-
-# # Copy application JS and generate digested version
-# cp app/assets/builds/application.js public/assets/
-# if command -v md5sum > /dev/null; then
-#   # Linux
-#   APP_JS_MD5=$(md5sum "app/assets/builds/application.js" | cut -d' ' -f1)
-# else
-#   # macOS
-#   APP_JS_MD5=$(md5 -q "app/assets/builds/application.js")
-# fi
-# cp app/assets/builds/application.js "public/assets/application-${APP_JS_MD5}.js"
-# echo "Application JS copied successfully ✓"
 
 # Print environment information
 echo "Rails environment: $RAILS_ENV"

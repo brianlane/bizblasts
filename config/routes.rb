@@ -159,7 +159,7 @@ Rails.application.routes.draw do
   end
 
   # Fallback routes for base OrdersController new/create
-  resources :orders, only: [:new, :create]
+  resources :orders, only: [:new, :create, :index, :show]
 
   resources :businesses, only: [:index]
   # Keep the global cart resource to maintain compatibility 

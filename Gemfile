@@ -58,6 +58,7 @@ gem "stripe", "~> 15.1"
 
 # Use node based css bundling
 gem "cssbundling-rails"
+gem "tailwindcss-rails"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

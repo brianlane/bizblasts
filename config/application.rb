@@ -42,5 +42,8 @@ module Bizblasts
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Add app/assets/stylesheets to the asset load path
+    config.assets.paths << Rails.root.join("app/assets/stylesheets")
   end
 end
