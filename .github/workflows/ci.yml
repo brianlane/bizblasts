@@ -16,7 +16,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4.2'
+          ruby-version: '3.4.3'
           bundler-cache: true
 
       - name: Debug directory structure
@@ -142,15 +142,6 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
-      - name: Setup Database
-        run: |
-          # Your commands to setup the test DB
-          # Example:
-          # cp config/database.yml.ci config/database.yml
-          # bundle exec rails db:create RAILS_ENV=test
-          # bundle exec rails db:schema:load RAILS_ENV=test
-          echo "Database setup will be handled by ci:github_actions task."
-
       # ADDED: Node.js Setup
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -194,37 +185,52 @@ jobs:
       - name: Make performance script executable
         run: chmod +x script/performance_test.rb
 
-      # Add steps to start Rails server for performance testing
+      # FIRST: Set up the database and seed test data
+      - name: Setup test database with seed data
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+          DISABLE_PROPSHAFT: true
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: |
+          echo "Setting up database for performance test..."
+          # Create database with SQL directly to avoid Rails startup issues
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          
+          # Run comprehensive setup for GitHub Actions (handles all db setup and migrations)
+          echo "Running comprehensive GitHub Actions setup..."
+          bundle exec rake ci:github_actions
+          
+          # Get the service ID that was created
+          SERVICE_ID=$(bundle exec rails runner "puts Service.find_by(name: 'Performance Test Service')&.id")
+          echo "Performance test service ID: $SERVICE_ID"
+          echo "SERVICE_ID=$SERVICE_ID" >> $GITHUB_ENV
+
+      # SECOND: Start Rails server AFTER database is set up
       - name: Start Rails server for performance test
         run: |
           bundle exec rails server -p 3000 &
           echo $! > tmp/server.pid
+          # Give the server more time to fully initialize
+          sleep 10
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          # REDIS_URL: redis://localhost:6379/0
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
-        # Run this step in the background
-        # is_background: true # Cannot use is_background with `&`
 
-      # Wait for the server to be ready
-      - name: Wait for Rails server to start
-        run: |
-          echo "Waiting for Rails server to start..."
-          sleep 5 # Give the server a few seconds to boot up
-
-      # Add the performance test run step
+      # THIRD: Run the performance test
       - name: Run Performance Test
         run: |
-          # Replace with a specific endpoint URL and desired parameters for performance testing
-          # Example uses a placeholder URL - update with a real one targeting your test data/service/staff
-          ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=3&commit=View+Availability" -n 100 -c 10
+          echo "Using service ID: $SERVICE_ID"
+          # Run the performance test with the correct service ID
+          ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=${SERVICE_ID}&commit=View+Availability" -n 100 -c 10
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          # REDIS_URL: redis://localhost:6379/0
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -234,49 +240,24 @@ jobs:
         if: always()
         run: |
           if [ -f tmp/server.pid ]; then
-            kill $(cat tmp/server.pid)
+            kill $(cat tmp/server.pid) || true
             rm tmp/server.pid
           fi
 
+      # FOURTH: Run the actual tests (database is already set up)
       - name: Run tests
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          # REDIS_URL: redis://localhost:6379/0
           DISABLE_PROPSHAFT: true
           RAILS_DISABLE_ASSET_COMPILATION: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
-          # Skip schema version check to ensure migrations run
-          SKIP_SCHEMA_VERSION_CHECK: true
         run: |
           echo "Rails environment information:"
           bundle exec rails -v
-          echo "Current directory: $(pwd)"
-          echo "Database configuration:"
-          cat config/database.yml
           
-          # Verify environment variables
-          echo "Environment variables:"
-          echo "DISABLE_PROPSHAFT=${DISABLE_PROPSHAFT}"
-          echo "RAILS_DISABLE_ASSET_COMPILATION=${RAILS_DISABLE_ASSET_COMPILATION}"
-          
-          # Debug gem versions
-          echo "Propshaft gem version:"
-          bundle info propshaft || echo "Propshaft not found"
-          
-          # Create database with SQL directly to avoid Rails startup issues
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
-          
-          # Run comprehensive setup for GitHub Actions (handles all db setup and migrations)
-          echo "Running comprehensive GitHub Actions setup..."
-          bundle exec rake ci:github_actions
-          
-          # Verify that migrations were applied successfully
-          #echo "Verifying migrations were applied..."
-          #bundle exec rails db:migrate:status
-          
-          # Run tests
+          # The database is already set up from the performance test setup
+          # so we can just run the tests
           echo "Running tests..."
           bundle exec rspec
 
