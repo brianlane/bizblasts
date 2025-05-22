@@ -227,7 +227,7 @@ jobs:
         run: |
           echo "Using service ID: $SERVICE_ID"
           # Run the performance test with the correct service ID
-          ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=${SERVICE_ID}&commit=View+Availability" -n 100 -c 10
+          ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=${SERVICE_ID}&commit=View+Availability" -n 200 -c 20
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
