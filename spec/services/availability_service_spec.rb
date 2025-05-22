@@ -2,6 +2,7 @@ require 'rails_helper'
 require 'tod' # Make sure Tod is available
 
 RSpec.describe AvailabilityService, type: :service do
+  before(:each) { Rails.cache.clear }
   # Use let! for tenant so it exists for all contexts
   let!(:business) { create(:business) }
   # Use let (lazy) for service - only created when needed
@@ -221,6 +222,31 @@ RSpec.describe AvailabilityService, type: :service do
     end
 
     # TODO: Add tests for non-standard availability, exceptions, etc.
+  end
+
+  context 'caching behavior' do
+    before do
+      Rails.cache.clear
+      allow(Rails.env).to receive(:test?).and_return(false)
+    end
+
+    it 'caches results on subsequent calls with same parameters' do
+      # Spy on compute method to ensure it is only called once
+      expect(AvailabilityService).to receive(:compute_available_slots).once.and_call_original
+
+      first = described_class.available_slots(staff_member, date, service, interval: 30)
+      second = described_class.available_slots(staff_member, date, service, interval: 30)
+      expect(second).to eq(first)
+    end
+
+    it 'expiring cache causes recompute after cache clear' do
+      # Ensure cache is primed
+      described_class.available_slots(staff_member, date, service, interval: 30)
+      Rails.cache.clear
+
+      expect(AvailabilityService).to receive(:compute_available_slots).once.and_call_original
+      described_class.available_slots(staff_member, date, service, interval: 30)
+    end
   end
 
   describe '.is_available?' do

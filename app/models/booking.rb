@@ -62,4 +62,18 @@ class Booking < ApplicationRecord
   def self.ransackable_associations(auth_object = nil)
     %w[business service staff_member tenant_customer invoice promotion]
   end
+  
+  # --- Database Indexes Recommendation ---
+  # To improve performance for availability checks and conflict detection,
+  # it is highly recommended to add database indexes on columns used in queries
+  # within the AvailabilityService, especially in fetch_conflicting_bookings.
+  # Consider adding indexes on:
+  # - staff_member_id
+  # - start_time
+  # - end_time
+  # A composite index on staff_member_id and start_time or a GIST index for time ranges
+  # might be particularly beneficial depending on query patterns.
+  # Example migration: create_index :bookings, :staff_member_id
+  # Example migration: add_index :bookings, [:start_time, :end_time], using: :gist
+  # --- End Database Indexes Recommendation ---
 end

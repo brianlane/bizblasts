@@ -190,6 +190,56 @@ jobs:
       - name: Build Tailwind CSS
         run: bundle exec rails tailwindcss:build
 
+      # Add a step to make the performance script executable
+      - name: Make performance script executable
+        run: chmod +x script/performance_test.rb
+
+      # Add steps to start Rails server for performance testing
+      - name: Start Rails server for performance test
+        run: |
+          bundle exec rails server -p 3000 &
+          echo $! > tmp/server.pid
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+          # REDIS_URL: redis://localhost:6379/0
+          DISABLE_PROPSHAFT: true
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        # Run this step in the background
+        # is_background: true # Cannot use is_background with `&`
+
+      # Wait for the server to be ready (using netcat or similar if available, or simple curl)
+      - name: Wait for Rails server to start
+        run: |
+          timeout 60 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:3000)" != "404" ]]; do sleep 1; done'
+        # Use the public tenant root URL for health check as / is handled by pages#show
+        # The /debug/available-slots route might require auth or params.
+        # We expect a 404 or similar non-application response during boot, as long as the server is responding.
+
+      # Add the performance test run step
+      - name: Run Performance Test
+        run: |
+          # Replace with a specific endpoint URL and desired parameters for performance testing
+          # Example uses a placeholder URL - update with a real one targeting your test data/service/staff
+          ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=3&commit=View+Availability" -n 100 -c 10
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+          # REDIS_URL: redis://localhost:6379/0
+          DISABLE_PROPSHAFT: true
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+      # Kill the Rails server process after the test
+      - name: Stop Rails server
+        if: always()
+        run: |
+          if [ -f tmp/server.pid ]; then
+            kill $(cat tmp/server.pid)
+            rm tmp/server.pid
+          fi
+
       - name: Run tests
         env:
           RAILS_ENV: test

@@ -80,7 +80,7 @@ class StaffMember < ApplicationRecord
     intervals = find_intervals_for(date_str, day_name, exceptions, weekly_schedule)
 
     if intervals.empty?
-      Rails.logger.debug("No intervals found, returning not available")
+      Rails.logger.debug("No intervals found for #{date_str}/#{day_name}, returning not available")
       return false
     end
     
@@ -90,12 +90,17 @@ class StaffMember < ApplicationRecord
       start_time = parse_time_of_day(interval[:start] || interval['start'])
       end_time = parse_time_of_day(interval[:end] || interval['end'])
       
-      result = start_time && end_time && time_to_check >= start_time && time_to_check < end_time
-      Rails.logger.debug("  - Interval #{interval[:start] || interval['start']} to #{interval[:end] || interval['end']}: #{result ? 'AVAILABLE' : 'NOT AVAILABLE'}")
-      result
+      if start_time && end_time
+        result = time_to_check >= start_time && time_to_check < end_time
+        Rails.logger.debug("  - Comparing #{time_to_check} with interval #{interval[:start] || interval['start']} to #{interval[:end] || interval['end']}: #{result ? 'AVAILABLE' : 'NOT AVAILABLE'}")
+        result
+      else
+        Rails.logger.debug("  - Skipping invalid interval: #{interval.inspect}")
+        false # Skip invalid intervals
+      end
     end
     
-    Rails.logger.debug("Final availability result: #{available}")
+    Rails.logger.debug("Final availability result for #{datetime.strftime('%Y-%m-%d %H:%M:%S')}: #{available}")
     available
   end
   
@@ -161,8 +166,10 @@ class StaffMember < ApplicationRecord
 
   def find_intervals_for(date_str, day_name, exceptions, weekly_schedule)
     if exceptions.key?(date_str)
+      Rails.logger.debug("find_intervals_for: Using exception for #{date_str}")
       exceptions[date_str] || []
     else
+      Rails.logger.debug("find_intervals_for: Using weekly schedule for #{day_name}")
       weekly_schedule[day_name] || []
     end
   end
