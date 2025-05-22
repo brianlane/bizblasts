@@ -153,7 +153,6 @@ namespace :ci do
       b.name = 'Consult LLC Performance Test'
       b.hostname = 'consultllc.lvh.me'
       b.active = true
-      b.account_status = 'active'
       # Add any other required business attributes
     end
     
