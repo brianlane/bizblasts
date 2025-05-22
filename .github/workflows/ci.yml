@@ -212,10 +212,10 @@ jobs:
       # Wait for the server to be ready (using netcat or similar if available, or simple curl)
       - name: Wait for Rails server to start
         run: |
-          timeout 60 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:3000)" != "404" ]]; do sleep 1; done'
-        # Use the public tenant root URL for health check as / is handled by pages#show
-        # The /debug/available-slots route might require auth or params.
-        # We expect a 404 or similar non-application response during boot, as long as the server is responding.
+          echo "Waiting for Rails server to start on http://0.0.0.0:3000..."
+          timeout 60 bash -c 'while [[ "$(curl -o /dev/null -w ''%{http_code}'' http://0.0.0.0:3000/)" != "200" ]]; do sleep 1; done'
+        # Wait for a 200 OK response from the root path as a health check.
+        # This ensures the application has booted and can serve basic requests.
 
       # Add the performance test run step
       - name: Run Performance Test
