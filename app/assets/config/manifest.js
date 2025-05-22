@@ -1,5 +1,3 @@
-
-
 //= link_tree ../images
 //= link_directory ../javascripts .js
 
@@ -7,8 +5,9 @@
 // //= link_tree ../stylesheets .css
 
 // Link individual CSS files instead
-//= link application.css
+//= link tailwind.css
 //= link active_admin.css
+//= link custom.css
 
 // Old manifest.js
 // = link_tree ../images
@@ -25,4 +24,6 @@
 // = link ../builds/active_admin.css
 // = link application.css
 // = link_tree ../../javascript .js
-// = link_tree ../../../vendor/javascript .js
+// = link_tree ../../../vendor/javascript .js//= link_tree ../builds
+
+//= link_tree ../builds
