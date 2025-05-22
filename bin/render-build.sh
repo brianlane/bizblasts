@@ -37,6 +37,10 @@ bin/sass-build-activeadmin.sh
 echo "Building Tailwind CSS..."
 bin/rails tailwindcss:build
 
+# Add a JavaScript bundling step here
+echo "Bundling JavaScript..."
+bun run build:js # Replace with your actual JS build command if different
+
 # Precompile assets using Rails/Propshaft
 
 echo "Precompiling assets with Propshaft..."
