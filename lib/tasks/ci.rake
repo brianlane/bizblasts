@@ -153,6 +153,17 @@ namespace :ci do
       b.name = 'Consult LLC Performance Test'
       b.hostname = 'consultllc.lvh.me'
       b.active = true
+      b.industry = 'consulting'
+      b.phone = '+1 (555) 555-5555'
+      b.email = 'perf.business@example.com'
+      b.address = '123 Test St'
+      b.city = 'Testville'
+      b.state = 'CA'
+      b.zip = '90210'
+      b.description = 'A test business for performance profiling.'
+      b.tier = 'standard'
+      b.host_type = 'subdomain'
+      b.time_zone = 'UTC'
       # Add any other required business attributes
     end
     
