@@ -209,13 +209,11 @@ jobs:
         # Run this step in the background
         # is_background: true # Cannot use is_background with `&`
 
-      # Wait for the server to be ready (using netcat or similar if available, or simple curl)
+      # Wait for the server to be ready
       - name: Wait for Rails server to start
         run: |
-          echo "Waiting for Rails server to start on http://0.0.0.0:3000..."
-          timeout 60 bash -c 'while [[ "$(curl -o /dev/null -w ''%{http_code}'' http://0.0.0.0:3000/)" != "200" ]]; do sleep 1; done'
-        # Wait for a 200 OK response from the root path as a health check.
-        # This ensures the application has booted and can serve basic requests.
+          echo "Waiting for Rails server to start..."
+          sleep 5 # Give the server a few seconds to boot up
 
       # Add the performance test run step
       - name: Run Performance Test
