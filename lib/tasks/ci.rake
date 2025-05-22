@@ -149,9 +149,9 @@ namespace :ci do
   desc "Create performance test data (business, staff, service, availability)"
   task create_performance_test_data: :environment do
     puts "Creating performance test business..."
+    
     business = Business.find_or_create_by!(subdomain: 'consultllc') do |b|
       b.name = 'Consult LLC Performance Test'
-      b.hostname = 'consultllc.lvh.me'
       b.active = true
       b.industry = 'consulting'
       b.phone = '+1 (555) 555-5555'
@@ -164,8 +164,14 @@ namespace :ci do
       b.tier = 'standard'
       b.host_type = 'subdomain'
       b.time_zone = 'UTC'
-      # Add any other required business attributes
     end
+    
+    # If business needs a specific hostname format, update it after creation
+    if business.host_type == 'subdomain' && business.hostname != 'consultllc'
+      business.update_columns(hostname: 'consultllc') # Skip validations if needed
+    end
+    
+    puts "Created/found business: #{business.name} (ID: #{business.id}, hostname: #{business.hostname})"
     
     puts "Creating performance test staff member..."
     staff = StaffMember.find_or_create_by!(business: business, email: 'perf_staff@example.com') do |s|
@@ -173,45 +179,26 @@ namespace :ci do
       s.last_name = 'Staff'
       s.status = 'active'
       s.user_id = nil # Staff member doesn't need a user account for this test data
-      # Add any other required staff attributes
+      # The factory shows 'name' field, but you're using first_name/last_name
+      # Let's also set name if it exists
+      s.name = 'Perf Staff' if s.respond_to?(:name=)
     end
     
-    puts "Creating performance test service (ID 3)..."
-    # Try to create with ID 3, but let DB handle auto-increment if ID is taken
-    service = Service.find_by(id: 3) # Check if ID 3 already exists
-    if service.nil?
-      service = Service.create!(
-        id: 3, # Attempt to use ID 3
-        business: business,
-        name: 'Performance Test Service',
-        description: 'Service for performance testing',
-        duration: 60, # minutes
-        interval: 30, # minutes
-        price: 100.0,
-        status: 'active'
-        # Add any other required service attributes
-      )
-    elsif service.business != business || service.name != 'Performance Test Service'
-      # If ID 3 exists but belongs to a different business or is not our test service, find or create a different one
-      puts "Service with ID 3 exists and is not the performance test service. Creating a new one."
-      service = Service.find_or_create_by!(business: business, name: 'Performance Test Service') do |s|
-        s.description = 'Service for performance testing'
-        s.duration = 60
-        s.interval = 30
-        s.price = 100.0
-        s.status = 'active'
-      end
-    else
-      puts "Service with ID 3 already exists and belongs to performance test business."
-      # Update attributes if necessary
-      service.update!(
-        description: 'Service for performance testing',
-        duration: 60,
-        interval: 30,
-        price: 100.0,
-        status: 'active'
-      )
+    puts "Creating performance test service..."
+    # Don't force ID 3 - let database handle auto-increment
+    service = Service.find_or_create_by!(
+      business: business,
+      name: 'Performance Test Service'
+    ) do |s|
+      s.description = 'Service for performance testing'
+      s.duration = 60 # minutes
+      s.interval = 30 # minutes
+      s.price = 100.0
+      s.status = 'active'
+      s.active = true # Based on factory, ensure active is set
     end
+    
+    puts "Created/found service: #{service.name} (ID: #{service.id})"
     
     # Ensure the staff member is associated with the service
     unless staff.services.include?(service)
@@ -221,8 +208,6 @@ namespace :ci do
     
     puts "Setting performance test staff availability..."
     # Set availability for a range of dates around 2025-01-01
-    availability_start_date = Date.parse('2024-12-29')
-    availability_end_date = Date.parse('2025-01-05')
     availability_data = {
       'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
       'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
@@ -230,7 +215,8 @@ namespace :ci do
       'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
       'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
       'saturday' => [],
-      'sunday' => []
+      'sunday' => [],
+      'exceptions' => {}
     }
     
     # Apply general weekly availability
@@ -238,10 +224,7 @@ namespace :ci do
     staff.save!
     puts "Set weekly availability for staff member #{staff.id}."
     
-    # Optionally, add exceptions for specific dates if needed
-    # Example: add an exception for 2025-01-01 if it's a holiday
-    # staff.availability['exceptions'] ||= {}
-    # staff.availability['exceptions']['2025-01-01'] = [] # No availability on Jan 1st
-    # staff.save!
+    puts "Performance test data created successfully!"
+    puts "Test URL will be: http://#{business.hostname}.lvh.me:3000/calendar?service_id=#{service.id}&commit=View+Availability"
   end
 end
