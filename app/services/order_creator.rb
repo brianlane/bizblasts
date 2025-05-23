@@ -55,17 +55,31 @@ class OrderCreator
 
     def self.build_from_cart(cart)
       order = Order.new
+      # Build line items in memory
       order.line_items.build(
         cart.map do |variant, quantity|
           {
             product_variant: variant,
-            quantity: quantity,
-            # Remove price and total_amount here, let the callback set them
-            # price: variant.final_price,
-            # total_amount: variant.final_price * quantity
+            quantity: quantity
+            # Price and total_amount will be set by the callback logic below
           }
         end
       )
+
+      # Manually trigger the price and total amount calculation for the built line items
+      order.line_items.each do |line_item|
+        # Accessing product_variant or service and quantity will allow the callback logic to work if present,
+        # or we can explicitly set them here based on the variant/service data available in the cart context.
+        # Given the LineItem#set_price_and_total callback relies on associated objects, it's safer to replicate the logic.
+        if line_item.product_variant.present?
+          line_item.price = line_item.product_variant.final_price
+          line_item.total_amount = (line_item.price * line_item.quantity).round(2)
+        elsif line_item.service.present?
+          line_item.price = line_item.service.price
+          line_item.total_amount = (line_item.price * line_item.quantity).round(2)
+        end
+      end
+
       order
     end
 
