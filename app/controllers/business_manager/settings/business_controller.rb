@@ -16,8 +16,8 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
       # Generate onboarding link
       link = StripeService.create_onboarding_link(
         @business,
-        refresh_url: refresh_stripe_business_manager_settings_business_path,
-        return_url: edit_business_manager_settings_business_path
+        refresh_url: refresh_stripe_business_manager_settings_business_url(host: request.host, protocol: request.protocol),
+        return_url: edit_business_manager_settings_business_url(host: request.host, protocol: request.protocol)
       )
       redirect_to link.url, allow_other_host: true
     rescue Stripe::StripeError => e
@@ -30,8 +30,8 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
   def stripe_onboarding
     link = StripeService.create_onboarding_link(
       @business,
-      refresh_url: refresh_stripe_business_manager_settings_business_path,
-      return_url: edit_business_manager_settings_business_path
+      refresh_url: refresh_stripe_business_manager_settings_business_url(host: request.host, protocol: request.protocol),
+      return_url: edit_business_manager_settings_business_url(host: request.host, protocol: request.protocol)
     )
     redirect_to link.url, allow_other_host: true
   end
