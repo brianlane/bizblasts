@@ -60,8 +60,9 @@ class OrderCreator
           {
             product_variant: variant,
             quantity: quantity,
-            price: variant.final_price,
-            total_amount: variant.final_price * quantity
+            # Remove price and total_amount here, let the callback set them
+            # price: variant.final_price,
+            # total_amount: variant.final_price * quantity
           }
         end
       )
@@ -74,8 +75,9 @@ class OrderCreator
         {
           product_variant_id: variant.id,
           quantity: quantity,
-          price: variant.final_price,
-          total_amount: variant.final_price * quantity
+          # Remove price and total_amount here, let the callback set them
+          # price: variant.final_price,
+          # total_amount: variant.final_price * quantity
         }
       end
       params[:line_items_attributes] = line_items_attributes
