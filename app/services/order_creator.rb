@@ -40,6 +40,11 @@ class OrderCreator
             raise ActiveRecord::Rollback
           end
         end
+
+        # Recalculate and save order totals after line items and stock reservations are created
+        order.calculate_totals!
+        order.save!
+
       end
       
       if order.errors.any?
@@ -50,7 +55,8 @@ class OrderCreator
       end
       
       # Reload to ensure we have updated state
-      order.reload if order.persisted?
+      # Removed redundant reload here, as save! within the transaction updates the object.
+      # order.reload if order.persisted?
       
       # Return the order - will be persisted if successful
       order
@@ -66,26 +72,12 @@ class OrderCreator
         cart.map do |variant, quantity|
           {
             product_variant: variant,
-            quantity: quantity
-            # Price and total_amount will be set by the callback logic below
+            quantity: quantity,
+            price: variant.final_price,
+            total_amount: variant.final_price * quantity
           }
         end
       )
-
-      # Manually trigger the price and total amount calculation for the built line items
-      order.line_items.each do |line_item|
-        # Accessing product_variant or service and quantity will allow the callback logic to work if present,
-        # or we can explicitly set them here based on the variant/service data available in the cart context.
-        # Given the LineItem#set_price_and_total callback relies on associated objects, it's safer to replicate the logic.
-        if line_item.product_variant.present?
-          line_item.price = line_item.product_variant.final_price
-          line_item.total_amount = (line_item.price * line_item.quantity).round(2)
-        elsif line_item.service.present?
-          line_item.price = line_item.service.price
-          line_item.total_amount = (line_item.price * line_item.quantity).round(2)
-        end
-      end
-
       order
     end
 

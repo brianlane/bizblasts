@@ -50,8 +50,6 @@ class Order < ApplicationRecord
   end
   # --- End Ransack methods ---
 
-  private
-
   def set_order_number
     return if order_number.present?
     
