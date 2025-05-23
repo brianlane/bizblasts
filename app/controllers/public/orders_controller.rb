@@ -59,34 +59,23 @@ module Public
 
            # Now, proceed with optional user account creation if requested
            if order_params[:create_account] == '1' && order_params[:password].present?
-             # Find or build the user associated with this tenant customer and business
-             user = customer.users.find_or_initialize_by(business: current_tenant)
-
-             # If the user is new or doesn't have the client role yet
-             if user.new_record? || !user.client?
-                user.assign_attributes(
-                 email: email,
-                 first_name:            nested[:first_name],
-                 last_name:             nested[:last_name],
-                 phone:                 nested[:phone],
-                 password:              order_params[:password],
-                 password_confirmation: order_params[:password_confirmation],
-                 role:                  :client
-               )
-
-               if user.save
-                 # Ensure ClientBusiness association exists
-                 ClientBusiness.find_or_create_by!(user: user, business: current_tenant)
-                 sign_in(user) # Log in the newly created client user
-               else
-                 # If user creation fails, add errors to the order
-                 user.errors.full_messages.each { |msg| (@order || Order.new).errors.add(:base, "Account creation error: #{msg}") }
-                 # Continue to order creation, the user errors will be added to order errors
-               end
+             # Create or update the User account for this guest
+             user = User.find_or_initialize_by(email: email)
+             user.assign_attributes(
+               email:                 email,
+               first_name:            nested[:first_name],
+               last_name:             nested[:last_name],
+               phone:                 nested[:phone],
+               password:              order_params[:password],
+               password_confirmation: order_params[:password_confirmation],
+               role:                  :client
+             )
+             if user.save
+               # Link the user to the business as a client
+               ClientBusiness.find_or_create_by!(user: user, business: current_tenant)
+               sign_in(user)
              else
-                # If user exists and is already a client for this business, but they tried to create a new account
-                (@order || Order.new).errors.add(:base, "An account with this email already exists for this business.")
-                # Continue to order creation, this error will be added to order errors
+               user.errors.full_messages.each { |msg| (@order || Order.new).errors.add(:base, "Account creation error: #{msg}") }
              end
            end
 
@@ -109,6 +98,11 @@ module Public
         end # End of customer.save if/else
 
       end # End of guest user else block
+
+      # Ensure creation_params is defined for client and staff users
+      creation_params ||= order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
+      creation_params[:tenant_customer_id] = customer.id
+      creation_params[:business_id]        = current_tenant.id
 
       # Order creation happens here, outside the customer save conditional
       @order = OrderCreator.create_from_cart(@cart, creation_params)

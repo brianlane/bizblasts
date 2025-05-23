@@ -10,6 +10,9 @@ class TenantCustomer < ApplicationRecord
   has_many :orders, dependent: :destroy
   has_many :payments, dependent: :destroy
   
+  # Allow access to User accounts associated with this customer's business
+  has_many :users, through: :business, source: :clients
+  
   # Base validations
   validates :name, presence: true
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { scope: :business_id, message: "must be unique within this business" }
