@@ -10,15 +10,20 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
 
   # POST /manage/settings/business/connect_stripe
   def connect_stripe
-    # Create Connect account if not existing
-    StripeService.create_connect_account(@business) unless @business.stripe_account_id.present?
-    # Generate onboarding link
-    link = StripeService.create_onboarding_link(
-      @business,
-      refresh_url: refresh_stripe_business_manager_settings_business_path,
-      return_url: edit_business_manager_settings_business_path
-    )
-    redirect_to link.url, allow_other_host: true
+    begin
+      # Create Connect account if not existing
+      StripeService.create_connect_account(@business) unless @business.stripe_account_id.present?
+      # Generate onboarding link
+      link = StripeService.create_onboarding_link(
+        @business,
+        refresh_url: refresh_stripe_business_manager_settings_business_path,
+        return_url: edit_business_manager_settings_business_path
+      )
+      redirect_to link.url, allow_other_host: true
+    rescue Stripe::StripeError => e
+      flash[:alert] = "Could not connect to Stripe: #{e.message}"
+      redirect_to edit_business_manager_settings_business_path
+    end
   end
 
   # GET /manage/settings/business/stripe_onboarding
