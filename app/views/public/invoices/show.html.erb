@@ -1,0 +1,3 @@
+<h1>Invoice Details: <%= @invoice.invoice_number %></h1>
+<p>Status: <%= @invoice.status.titleize %></p>
+<p>Total Amount: <%= number_to_currency(@invoice.total_amount) %></p> 

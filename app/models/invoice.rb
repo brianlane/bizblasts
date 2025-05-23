@@ -3,6 +3,7 @@ class Invoice < ApplicationRecord
   
   belongs_to :tenant_customer
   belongs_to :booking, optional: true
+  belongs_to :order, optional: true
   belongs_to :promotion, optional: true
   belongs_to :shipping_method, optional: true
   belongs_to :tax_rate, optional: true

@@ -249,8 +249,8 @@ Leveraging Rails for efficient payment processing:
 | Tier | Transaction Fee | Strategy |
 |------|----------------|----------|
 | Free | 5% + Stripe fees | Higher rate to incentivize upgrades |
-| Standard | 3% + Stripe fees | Balanced for value and margin |
-| Premium | 1% + Stripe fees | Lower rate as premium benefit |
+| Standard | 5% + Stripe fees | Balanced for value and margin |
+| Premium | 3% + Stripe fees | Lower rate as premium benefit |
 
 #### Rails-Enhanced Payment Features
 - Seamless Stripe integration via official Rails gem

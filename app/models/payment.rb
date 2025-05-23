@@ -1,8 +1,10 @@
 class Payment < ApplicationRecord
   include TenantScoped
   
-  belongs_to :booking
-  belongs_to :customer
+  belongs_to :business
+  belongs_to :invoice
+  belongs_to :order, optional: true
+  belongs_to :tenant_customer
   
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :payment_method, presence: true

@@ -4,6 +4,7 @@ class Order < ApplicationRecord
   belongs_to :tenant_customer
   belongs_to :shipping_method, optional: true
   belongs_to :tax_rate, optional: true
+  belongs_to :booking, optional: true
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
 
