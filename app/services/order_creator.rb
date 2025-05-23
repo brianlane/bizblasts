@@ -82,16 +82,24 @@ class OrderCreator
     end
 
     def self.create_from_cart(cart, order_params)
-      params = order_params.dup
-      line_items_attributes = cart.map do |variant, quantity|
+      # Ensure we have a mutable Hash for parameters
+      base_params = if order_params.respond_to?(:to_h)
+                      order_params.to_h
+                    elsif order_params.nil?
+                      {}
+                    else
+                      order_params.dup
+                    end
+      # Build line_items_attributes from cart
+      line_items = cart.map do |variant, quantity|
         {
           product_variant_id: variant.id,
-          quantity: quantity,
-          price: variant.final_price,
-          total_amount: variant.final_price * quantity
+          quantity:          quantity,
+          price:             variant.final_price,
+          total_amount:      variant.final_price * quantity
         }
       end
-      params[:line_items_attributes] = line_items_attributes
-      create(params)
+      base_params['line_items_attributes'] = line_items
+      create(base_params)
     end
   end
