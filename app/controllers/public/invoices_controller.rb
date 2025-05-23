@@ -5,6 +5,7 @@ module Public
     # Set tenant and require user authentication
     before_action :set_tenant
     before_action :authenticate_user!
+    before_action :set_tenant_customer, only: [:show]
 
     # GET /invoices
     def index
@@ -14,14 +15,19 @@ module Public
 
     # GET /invoices/:id
     def show
-      # Placeholder: Fetch specific invoice
-      # @invoice = current_tenant.invoices.find_by(id: params[:id], tenant_customer: current_tenant_customer)
+      # Fetch specific invoice for this user
+      @tenant_customer = current_tenant.tenant_customers.find_by!(email: current_user.email)
+      @invoice = current_tenant.invoices.find_by!(id: params[:id], tenant_customer: @tenant_customer)
     end
 
     private
 
     def current_tenant
       ActsAsTenant.current_tenant
+    end
+
+    def set_tenant_customer
+      @tenant_customer = current_tenant.tenant_customers.find_by!(email: current_user.email)
     end
 
     # Helper to find the TenantCustomer record for the current user in this tenant

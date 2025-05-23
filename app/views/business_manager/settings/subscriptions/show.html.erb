@@ -32,10 +32,22 @@
       <% else %>
         <p>You do not have an active paid subscription.</p>
         <p><strong>Current Business Tier:</strong> <%= @business.tier.titleize %></p>
-        <%# TODO: Offer different plans. For now, a generic button %>
-        <%# This could link to a page where user selects a plan/price_id %>
-        <%= button_to "Choose a Plan", business_manager_settings_subscription_checkout_path, 
-              params: { price_id: 'YOUR_BASIC_PLAN_PRICE_ID' }, method: :post, class: "btn btn-primary" %> 
+        <div class="subscription-plans">
+          <div class="subscription-plan">
+            <h3>Standard Plan</h3>
+            <div class="price">$49/month</div>
+            <%= button_to "Upgrade to Standard", 
+                  business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_STANDARD_PRICE_ID']), 
+                  method: :post, class: "btn btn-primary" %>
+          </div>
+          <div class="subscription-plan">
+            <h3>Premium Plan</h3>
+            <div class="price">$99/month</div>
+            <%= button_to "Upgrade to Premium", 
+                  business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_PREMIUM_PRICE_ID']), 
+                  method: :post, class: "btn btn-primary" %>
+          </div>
+        </div>
         <p><small>You will be redirected to Stripe to complete your subscription.</small></p>
       <% end %>
     </div>

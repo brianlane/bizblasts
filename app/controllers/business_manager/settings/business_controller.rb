@@ -8,6 +8,39 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
 
   layout 'business_manager' # As per global conventions
 
+  # POST /manage/settings/business/connect_stripe
+  def connect_stripe
+    # Create Connect account if not existing
+    StripeService.create_connect_account(@business) unless @business.stripe_account_id.present?
+    # Generate onboarding link
+    link = StripeService.create_onboarding_link(
+      @business,
+      refresh_url: refresh_stripe_business_manager_settings_business_path,
+      return_url: edit_business_manager_settings_business_path
+    )
+    redirect_to link.url, allow_other_host: true
+  end
+
+  # GET /manage/settings/business/stripe_onboarding
+  def stripe_onboarding
+    link = StripeService.create_onboarding_link(
+      @business,
+      refresh_url: refresh_stripe_business_manager_settings_business_path,
+      return_url: edit_business_manager_settings_business_path
+    )
+    redirect_to link.url, allow_other_host: true
+  end
+
+  # POST /manage/settings/business/refresh_stripe
+  def refresh_stripe
+    if StripeService.check_onboarding_status(@business)
+      flash[:notice] = 'Stripe onboarding complete!'
+    else
+      flash[:alert] = 'Stripe onboarding not yet completed.'
+    end
+    redirect_to edit_business_manager_settings_business_path
+  end
+
   def edit
     # @business is set by set_business
     # The view will use @business to populate the form

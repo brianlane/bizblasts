@@ -8,6 +8,7 @@ class TenantCustomer < ApplicationRecord
   has_many :bookings, dependent: :destroy
   has_many :invoices, dependent: :destroy
   has_many :orders, dependent: :destroy
+  has_many :payments, dependent: :destroy
   
   # Base validations
   validates :name, presence: true

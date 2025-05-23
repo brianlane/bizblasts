@@ -4,6 +4,18 @@
 
 <h1 class="text-3xl font-bold mb-8">Business Information</h1>
 
+<div class="p-6 bg-white shadow-lg rounded-lg ring-1 ring-gray-200 mb-6">
+  <h2 class="text-xl font-semibold mb-4 text-gray-800">Stripe Connect</h2>
+  <% if @business.stripe_account_id.blank? %>
+    <%= button_to 'Connect Stripe Account', connect_stripe_business_manager_settings_business_path, method: :post, class: 'btn btn-primary' %>
+  <% elsif StripeService.check_onboarding_status(@business) %>
+    <span class="text-green-600 font-medium">Stripe account connected</span>
+  <% else %>
+    <%= button_to 'Complete Stripe Onboarding', stripe_onboarding_business_manager_settings_business_path, method: :get, class: 'btn btn-primary' %>
+    <%= button_to 'Refresh Status', refresh_stripe_business_manager_settings_business_path, method: :post, class: 'btn btn-secondary ml-4' %>
+  <% end %>
+</div>
+
 <%# The form_with model and url helpers need to reflect the controller's namespacing %>
 <%= form_with(model: [:business_manager, :settings, @business], url: business_manager_settings_business_path, method: :patch, local: true, html: { class: "space-y-10" }) do |form| %>
   <% if @business.errors.any? %>

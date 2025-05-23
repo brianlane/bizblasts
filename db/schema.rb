@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_23_222000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -174,10 +174,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
     t.string "linkedin_url"
     t.string "tiktok_url"
     t.string "youtube_url"
+    t.string "stripe_account_id"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
+    t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
   end
 
@@ -261,9 +263,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
     t.decimal "discount_amount", precision: 10, scale: 2
     t.bigint "shipping_method_id"
     t.bigint "tax_rate_id"
+    t.bigint "order_id"
     t.index ["booking_id"], name: "index_invoices_on_booking_id"
     t.index ["business_id"], name: "index_invoices_on_business_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
+    t.index ["order_id"], name: "index_invoices_on_order_id"
     t.index ["promotion_id"], name: "index_invoices_on_promotion_id"
     t.index ["shipping_method_id"], name: "index_invoices_on_shipping_method_id"
     t.index ["status"], name: "index_invoices_on_status"
@@ -350,6 +354,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "order_type", default: 0
+    t.bigint "booking_id"
+    t.index ["booking_id"], name: "index_orders_on_booking_id"
     t.index ["business_id"], name: "index_orders_on_business_id"
     t.index ["order_number"], name: "index_orders_on_order_number", unique: true
     t.index ["shipping_method_id"], name: "index_orders_on_shipping_method_id"
@@ -382,6 +388,37 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["business_id"], name: "index_pages_on_business_id"
+  end
+
+  create_table "payments", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "invoice_id", null: false
+    t.bigint "order_id"
+    t.bigint "tenant_customer_id", null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.decimal "platform_fee_amount", precision: 10, scale: 2, null: false
+    t.decimal "stripe_fee_amount", precision: 10, scale: 2, null: false
+    t.decimal "business_amount", precision: 10, scale: 2, null: false
+    t.string "stripe_payment_intent_id", null: false
+    t.string "stripe_charge_id"
+    t.string "stripe_customer_id"
+    t.string "stripe_transfer_id"
+    t.string "payment_method", default: "card"
+    t.integer "status", default: 0
+    t.datetime "paid_at"
+    t.text "failure_reason"
+    t.decimal "refunded_amount", precision: 10, scale: 2, default: "0.0"
+    t.text "refund_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id", "paid_at"], name: "index_payments_on_business_id_and_paid_at"
+    t.index ["business_id", "status"], name: "index_payments_on_business_id_and_status"
+    t.index ["business_id"], name: "index_payments_on_business_id"
+    t.index ["invoice_id"], name: "index_payments_on_invoice_id"
+    t.index ["order_id"], name: "index_payments_on_order_id"
+    t.index ["stripe_charge_id"], name: "index_payments_on_stripe_charge_id"
+    t.index ["stripe_payment_intent_id"], name: "index_payments_on_stripe_payment_intent_id", unique: true
+    t.index ["tenant_customer_id"], name: "index_payments_on_tenant_customer_id"
   end
 
   create_table "product_service_add_ons", force: :cascade do |t|
@@ -726,8 +763,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "stripe_customer_id"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
+    t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
   end
 
   create_table "test_models", force: :cascade do |t|
@@ -781,6 +820,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
   add_foreign_key "integrations", "businesses"
   add_foreign_key "invoices", "bookings"
   add_foreign_key "invoices", "businesses", on_delete: :cascade
+  add_foreign_key "invoices", "orders"
   add_foreign_key "invoices", "promotions"
   add_foreign_key "invoices", "shipping_methods"
   add_foreign_key "invoices", "tax_rates"
@@ -792,12 +832,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_000000) do
   add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
   add_foreign_key "notification_templates", "businesses"
+  add_foreign_key "orders", "bookings"
   add_foreign_key "orders", "businesses"
   add_foreign_key "orders", "shipping_methods"
   add_foreign_key "orders", "tax_rates"
   add_foreign_key "orders", "tenant_customers"
   add_foreign_key "page_sections", "pages"
   add_foreign_key "pages", "businesses", on_delete: :cascade
+  add_foreign_key "payments", "businesses", on_delete: :cascade
+  add_foreign_key "payments", "invoices"
+  add_foreign_key "payments", "orders"
+  add_foreign_key "payments", "tenant_customers"
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses"
   add_foreign_key "products", "categories"

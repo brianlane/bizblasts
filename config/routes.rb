@@ -3,6 +3,7 @@
 require Rails.root.join('lib/constraints/subdomain_constraint')
 
 Rails.application.routes.draw do
+  post '/webhooks/stripe', to: 'stripe_webhooks#create'
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -76,7 +77,11 @@ Rails.application.routes.draw do
 
       namespace :settings do
         resource :profile, only: [:edit, :update]
-        resource :business, only: [:edit, :update], controller: 'business'
+        resource :business, only: [:edit, :update], controller: 'business' do
+          post :connect_stripe
+          get :stripe_onboarding
+          post :refresh_stripe
+        end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
         resources :notifications

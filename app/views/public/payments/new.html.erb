@@ -1,0 +1,28 @@
+<script src="https://js.stripe.com/v3/"></script>
+<form id="payment-form">
+  <div id="card-element"></div>
+  <button id="submit">Pay $<%= @invoice.total_amount %></button>
+</form>
+<script>
+  const stripe = Stripe('<%= @stripe_publishable_key %>');
+  const elements = stripe.elements();
+  const card = elements.create('card');
+  card.mount('#card-element');
+
+  const form = document.getElementById('payment-form');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const { paymentMethod, error } = await stripe.createPaymentMethod('card', card);
+    if (error) {
+      alert(error.message);
+    } else {
+      // Attach to form and submit
+      const hiddenInput = document.createElement('input');
+      hiddenInput.setAttribute('type', 'hidden');
+      hiddenInput.setAttribute('name', 'payment_method_id');
+      hiddenInput.setAttribute('value', paymentMethod.id);
+      form.appendChild(hiddenInput);
+      form.submit();
+    }
+  });
+</script>
