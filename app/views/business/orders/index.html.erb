@@ -75,11 +75,12 @@
                   <td><%= order.tenant_customer&.name || 'N/A' %></td>
                   <td>
                     <% status_classes = {
-                      'pending' => 'status-pending',
-                      'processing' => 'status-processing',
-                      'shipped' => 'status-shipped',
-                      'completed' => 'status-completed',
-                      'cancelled' => 'status-cancelled'
+                      'pending_payment' => 'status-pending',
+                      'paid'            => 'status-paid',
+                      'processing'      => 'status-processing',
+                      'shipped'         => 'status-shipped',
+                      'cancelled'       => 'status-cancelled',
+                      'refunded'        => 'status-refunded'
                     } %>
                     <span class="status-badge <%= status_classes[order.status] %>">
                       <%= order.status.titleize %>
@@ -139,10 +140,11 @@
     .status-badge, .type-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
     
     .status-pending { background: #fff3cd; color: #856404; }
+    .status-paid { background: #d4edda; color: #155724; }
     .status-processing { background: #cce5ff; color: #004085; }
     .status-shipped { background: #d4edda; color: #155724; }
-    .status-completed { background: #c3e6cb; color: #155724; }
     .status-cancelled { background: #f8d7da; color: #721c24; }
+    .status-refunded { background: #e2e3e5; color: #383d41; }
     
     .type-product { background: #e2f0d9; color: #345b27; }
     .type-service { background: #deebf7; color: #1a456b; }

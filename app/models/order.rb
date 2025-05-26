@@ -7,8 +7,24 @@ class Order < ApplicationRecord
   belongs_to :booking, optional: true
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
+  has_one :invoice
 
-  enum :status, { pending: 'pending', processing: 'processing', shipped: 'shipped', completed: 'completed', cancelled: 'cancelled' }, prefix: true
+  # Statuses:
+  #   pending_payment → Customer must pay (initial state)
+  #   paid            → Payment completed, ready for fulfillment
+  #   cancelled       → Payment timeout or manual cancellation
+  #   shipped         → Product sent to customer
+  #   refunded        → Order funds sent back to customer
+  #   processing      → Paid, but service not yet completed
+  enum :status, {
+    pending_payment: 'pending_payment',
+    paid:            'paid',
+    cancelled:       'cancelled',
+    shipped:         'shipped',
+    refunded:        'refunded',
+    processing:      'processing'
+  }, prefix: true
+
   enum :order_type, { product: 0, service: 1, mixed: 2 }, prefix: true
 
   validates :tenant_customer, presence: true
@@ -48,7 +64,38 @@ class Order < ApplicationRecord
   ransacker :order_type, formatter: proc { |v| order_types[v] } do |parent|
     parent.table[:order_type]
   end
-  # --- End Ransack methods ---
+
+  # Determine if payment is required for this order
+  def payment_required?
+    # Products always require payment
+    # Mixed orders follow service rules UNLESS they contain experience services
+    order_type_product? || has_experience_services?
+  end
+
+  # Check if any line items are experience-type services
+  def has_experience_services?
+    line_items.any? do |item|
+      service = item.service rescue nil
+      service&.experience?
+    end
+  end
+
+  # Check if order contains both products and services
+  def is_mixed_order?
+    has_products = line_items.any?(&:product?)
+    has_services = line_items.any?(&:service?)
+    has_products && has_services
+  end
+
+  # Get product line items only
+  def product_line_items
+    line_items.select(&:product?)
+  end
+
+  # Get service line items only  
+  def service_line_items
+    line_items.select(&:service?)
+  end
 
   def set_order_number
     return if order_number.present?

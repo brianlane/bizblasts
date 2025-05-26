@@ -48,6 +48,18 @@
       <%# end %>
     <% end %>
 
+    <% if @booking.invoice&.pending? %>
+      <div class="mt-6 mb-6">
+        <% if @booking.service.experience? %>
+          <p class="mb-2 text-red-600">This experience booking requires immediate payment to confirm.</p>
+          <%= link_to 'Pay Now', new_tenant_payment_path(invoice_id: @booking.invoice.id), class: 'btn btn-primary' %>
+        <% else %>
+          <p class="mb-2">You can complete payment now to confirm your booking.</p>
+          <%= link_to 'Pay Now', new_tenant_payment_path(invoice_id: @booking.invoice.id), class: 'btn btn-primary' %>
+        <% end %>
+      </div>
+    <% end %>
+
     <p>We look forward to seeing you!</p>
     <%= link_to "Back to #{@business.name} Home", tenant_root_path, class: "text-blue-600 hover:underline" %>
     <%# TODO: Add link to client dashboard/bookings list %>
