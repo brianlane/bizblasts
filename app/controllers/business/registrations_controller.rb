@@ -45,6 +45,12 @@ class Business::RegistrationsController < Users::RegistrationsController
     user_valid = resource.valid?
     business_valid = @business.valid?
     
+    # Debug logging
+    Rails.logger.info "[REGISTRATION DEBUG] User valid: #{user_valid}, Business valid: #{business_valid}"
+    Rails.logger.info "[REGISTRATION DEBUG] User errors: #{resource.errors.full_messages.join(', ')}"
+    Rails.logger.info "[REGISTRATION DEBUG] Business errors: #{@business.errors.full_messages.join(', ')}"
+    Rails.logger.info "[REGISTRATION DEBUG] Business attributes: #{@business.attributes.inspect}"
+    
     # Restore the original requires_business? method
     resource.singleton_class.remove_method(:requires_business?)
     
@@ -52,12 +58,17 @@ class Business::RegistrationsController < Users::RegistrationsController
       # Validation failed - render form with errors
       Rails.logger.info "[REGISTRATION] Validation failed. User errors: #{resource.errors.full_messages.join(', ')}. Business errors: #{@business.errors.full_messages.join(', ')}"
       
+      # Merge business errors into user errors for display
+      @business.errors.each do |error|
+        resource.errors.add(:business, error.full_message)
+      end
+      
       # Set the business association for the form builder (but don't validate it)
       resource.business = @business
       
       clean_up_passwords resource
       set_minimum_password_length
-      respond_with resource
+      render :new, status: :unprocessable_entity
       return
     end
 
@@ -247,14 +258,18 @@ class Business::RegistrationsController < Users::RegistrationsController
       Rails.logger.info "[REGISTRATION] Transaction failed. Rendering form with errors."
       
       # Merge errors from business if they were captured
-      resource.errors.merge!(business_errors) if business_errors.present?
+      if business_errors.present?
+        business_errors.each do |error|
+          resource.errors.add(:business, error.full_message)
+        end
+      end
       
       # Ensure the @business object is associated for the form builder
       resource.business = @business
       
       clean_up_passwords resource
       set_minimum_password_length
-      respond_with resource
+      render :new, status: :unprocessable_entity
     end
   end
 
