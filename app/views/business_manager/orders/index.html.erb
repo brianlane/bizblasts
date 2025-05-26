@@ -32,7 +32,7 @@
                   class: "filter-option #{@status_filter.nil? ? 'active' : ''}" %>
                   
             <% Order.statuses.keys.each do |status_name| %>
-              <%= link_to status_name.capitalize, business_manager_orders_path(status: status_name, type: @type_filter), 
+              <%= link_to status_name.titleize, business_manager_orders_path(status: status_name, type: @type_filter), 
                     class: "filter-option #{@status_filter == status_name ? 'active' : ''}" %>
             <% end %>
           </div>
@@ -45,7 +45,7 @@
                   class: "filter-option #{@type_filter.nil? ? 'active' : ''}" %>
                   
             <% Order.order_types.keys.each do |type_name| %>
-              <%= link_to type_name.capitalize, business_manager_orders_path(type: type_name, status: @status_filter), 
+              <%= link_to type_name.titleize, business_manager_orders_path(type: type_name, status: @status_filter), 
                     class: "filter-option #{@type_filter == type_name ? 'active' : ''}" %>
             <% end %>
           </div>

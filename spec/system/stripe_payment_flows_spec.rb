@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   include StripeWebhookHelpers
   
-  let!(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', host_type: 'subdomain', tier: 'standard') }
+  let!(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', host_type: 'subdomain', tier: 'standard', stripe_account_id: 'acct_test123') }
   
   before do
     ActsAsTenant.current_tenant = business
@@ -28,7 +28,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     end
   end
 
-  context 'Client user books a service and pays' do
+  context 'Client user books a service and redirects to Stripe' do
     let!(:service) { create(:service, business: business, name: 'Haircut', price: 50.00, duration: 30) }
     let!(:staff_member) { create(:staff_member, business: business, name: 'John Stylist') }
     let!(:user) { create(:user, :client, email: 'client@example.com', password: 'password123') }
@@ -36,9 +36,13 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
+      # Mock Stripe checkout session creation
+      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_booking_123')
+      })
     end
 
-    it 'allows booking and optional payment' do
+    it 'redirects directly to Stripe Checkout after booking' do
       with_subdomain('testbiz') do
         # Sign in
         visit new_user_session_path
@@ -59,67 +63,38 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         
         click_button 'Confirm Booking'
         
-        # Should see confirmation with Pay Now option
-        expect(page).to have_content('Booking Confirmed!')
-        expect(page).to have_content('Haircut')
+        # Should redirect to Stripe (mocked)
+        expect(current_url).to eq('https://checkout.stripe.com/pay/cs_booking_123')
         
-        # Debug: Check if invoice exists
+        # Verify booking was created
         booking = Booking.last
+        expect(booking).to be_present
+        expect(booking.tenant_customer).to eq(tenant_customer)
+        expect(booking.invoice).to be_present
         
-        expect(page).to have_link('Pay Now')
-        
-        # Click Pay Now
-        click_link 'Pay Now'
-        
-        # Mock payment form submission
-        expect(page).to have_css('#payment-form')
-        
-        # Inject hidden payment_method_id and submit
-        page.execute_script("
-          const form = document.getElementById('payment-form');
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'payment_method_id';
-          input.value = 'pm_test123';
-          form.appendChild(input);
-        ")
-        
-        # Click the submit button
-        click_button 'Pay'
-        
-        # Should see success message
-        expect(page).to have_content('Payment submitted successfully.')
-        
-        # Simulate webhook to mark as paid
-        booking = Booking.last
-        payment = Payment.last
-        # Process webhook synchronously in test
-        StripeService.handle_successful_payment({
-          'id' => payment.stripe_payment_intent_id,
-          'charges' => {
-            'data' => [{
-              'payment_method_details' => {
-                'type' => 'card'
-              }
-            }]
-          }
-        })
-        
-        # Verify invoice is paid
-        expect(booking.invoice.reload.status).to eq('paid')
+        # Verify Stripe service was called with correct parameters
+        expect(StripeService).to have_received(:create_payment_checkout_session).with(
+          invoice: booking.invoice,
+          success_url: "/booking/#{booking.id}/confirmation?payment_success=true",
+          cancel_url: "/booking/#{booking.id}/confirmation?payment_cancelled=true"
+        )
       end
     end
   end
 
-  context 'Tenant customer books a service and pays' do
+  context 'Guest customer books a service and redirects to Stripe' do
     let!(:service) { create(:service, business: business, name: 'Massage', price: 80.00, duration: 60) }
     let!(:staff_member) { create(:staff_member, business: business, name: 'Jane Therapist') }
     
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
+      # Mock Stripe checkout session creation
+      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_guest_booking_456')
+      })
     end
 
-    it 'allows guest booking with optional payment' do
+    it 'redirects guest booking directly to Stripe Checkout' do
       with_subdomain('testbiz') do
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
         
@@ -139,25 +114,33 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         
         click_button 'Confirm Booking'
         
-        # Should see confirmation
-        expect(page).to have_content('Booking Confirmed!')
-        expect(page).to have_content('Massage')
-        expect(page).to have_link('Pay Now')
+        # Should redirect to Stripe (mocked)
+        expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_booking_456')
         
-        # Guest can choose to pay later - just verify the option exists
-        expect(page).to have_content('You can complete payment now')
+        # Verify booking was created
+        booking = Booking.last
+        expect(booking).to be_present
+        expect(booking.tenant_customer.email).to eq('guest@example.com')
+        expect(booking.invoice).to be_present
       end
     end
   end
 
-  context 'Client user purchases product and must pay immediately' do
+  context 'Client user purchases product and redirects to Stripe' do
     let!(:product) { create(:product, business: business, name: 'Shampoo', price: 25.00, active: true) }
     let!(:variant) { create(:product_variant, product: product, name: 'Large', stock_quantity: 10) }
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Standard', cost: 5.00) }
     let!(:user) { create(:user, :client, email: 'shopper@example.com', password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
 
-    it 'requires immediate payment for product orders' do
+    before do
+      # Mock Stripe checkout session creation for product orders
+      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_product_order_789')
+      })
+    end
+
+    it 'redirects directly to Stripe Checkout for product orders' do
       with_subdomain('testbiz') do
         # Sign in
         visit new_user_session_path
@@ -178,52 +161,31 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         select 'Standard', from: 'Shipping Method'
         click_button 'Place Order'
         
-        # Should be redirected directly to payment page
-        expect(page).to have_content('Please complete payment to confirm your order')
-        expect(page).to have_css('#payment-form')
+        # Should redirect to Stripe (mocked)
+        expect(current_url).to eq('https://checkout.stripe.com/pay/cs_product_order_789')
         
-        # Mock payment
-        page.execute_script("
-          const form = document.getElementById('payment-form');
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'payment_method_id';
-          input.value = 'pm_test456';
-          form.appendChild(input);
-        ")
-        
-        # Click the submit button
-        click_button 'Pay'
-        
-        expect(page).to have_content('Payment submitted successfully.')
-        
-        # Simulate webhook
+        # Verify order was created
         order = Order.last
-        payment = Payment.last
-        # Process webhook synchronously in test
-        StripeService.handle_successful_payment({
-          'id' => payment.stripe_payment_intent_id,
-          'charges' => {
-            'data' => [{
-              'payment_method_details' => {
-                'type' => 'card'
-              }
-            }]
-          }
-        })
-        
-        # Verify order is paid
-        expect(order.reload.status).to eq('paid')
+        expect(order).to be_present
+        expect(order.tenant_customer).to eq(tenant_customer)
+        expect(order.invoice).to be_present
       end
     end
   end
 
-  context 'Tenant customer purchases product and must pay immediately' do
+  context 'Guest customer purchases product and redirects to Stripe' do
     let!(:product) { create(:product, business: business, name: 'Conditioner', price: 20.00, active: true) }
     let!(:variant) { create(:product_variant, product: product, name: 'Regular', stock_quantity: 5) }
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Express', cost: 10.00) }
 
-    it 'requires immediate payment for guest product orders' do
+    before do
+      # Mock Stripe checkout session creation for guest product orders
+      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_guest_order_999')
+      })
+    end
+
+    it 'redirects guest product orders directly to Stripe Checkout' do
       with_subdomain('testbiz') do
         # Add to cart as guest
         visit products_path
@@ -244,14 +206,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         select 'Express', from: 'Shipping Method'
         click_button 'Place Order'
         
-        # Should redirect to payment
-        expect(page).to have_content('Please complete payment to confirm your order')
-        expect(page).to have_css('#payment-form')
+        # Should redirect to Stripe (mocked)
+        expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_order_999')
         
-        # Verify order is pending_payment
+        # Verify order was created
         order = Order.last
-        expect(order.status).to eq('pending_payment')
-        expect(order.stock_reservations.count).to eq(1)
+        expect(order).to be_present
+        expect(order.tenant_customer.email).to eq('buyer@example.com')
+        expect(order.invoice).to be_present
       end
     end
   end

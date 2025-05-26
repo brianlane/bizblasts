@@ -13,9 +13,14 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
     business.save! unless business.persisted?
     ActsAsTenant.current_tenant = business
     set_tenant(business)
+    
+    # Mock Stripe checkout session creation for all tests
+    allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+      session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_test_123')
+    })
   end
 
-  it 'allows a user to browse, add to cart, checkout, and confirm order' do
+  it 'allows a user to browse, add to cart, checkout, and redirects to Stripe' do
     puts "DEBUG: All Products in DB:"
     Product.all.each do |p|
       puts "  id=#{p.id}, name=#{p.name}, business_id=#{p.business_id}, active=#{p.active}, product_type=#{p.product_type}"
@@ -43,13 +48,14 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       select 'Standard', from: 'Shipping Method'
       click_button 'Place Order'
       
-      # Check for order details instead of "Order Confirmation" heading
-      expect(page).to have_content('Order Details:')
-      expect(page).to have_content('Test Product')
-      expect(page).to have_content('Default')
-      expect(page).to have_content('2') # quantity
-      expect(page).to have_content('Standard') # shipping method
-      expect(page).to have_content('Sales Tax') # tax rate
+      # Should redirect to Stripe (mocked)
+      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_test_123')
+      
+      # Verify order was created
+      order = Order.last
+      expect(order).to be_present
+      expect(order.tenant_customer).to eq(tenant_customer)
+      expect(order.invoice).to be_present
     end
   end
 
@@ -76,7 +82,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
     end
   end
 
-  it 'allows a guest to browse, add to cart, checkout, and confirm order without an account' do
+  it 'allows a guest to browse, add to cart, checkout, and redirects to Stripe' do
     with_subdomain('testtenant') do
       visit products_path
       click_link 'Test Product'
@@ -91,10 +97,14 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       fill_in 'Phone', with: '555-5555'
       select 'Standard', from: 'Shipping Method'
       click_button 'Place Order'
-      expect(page).to have_content('Order Details:')
-      expect(page).to have_content('Test Product')
-      expect(page).to have_content('Default')
-      expect(page).to have_content('2')
+      
+      # Should redirect to Stripe (mocked)
+      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_test_123')
+      
+      # Verify order was created
+      order = Order.last
+      expect(order).to be_present
+      expect(order.tenant_customer.email).to eq('guest@example.com')
     end
   end
 
@@ -116,8 +126,16 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       fill_in 'Confirm Password', with: 'securepass'
       select 'Standard', from: 'Shipping Method'
       click_button 'Place Order'
+      
+      # Should redirect to Stripe (mocked)
+      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_test_123')
+      
+      # Verify user account was created
       expect(User.find_by(email: 'john.doe@example.com')).to be_present
-      expect(page).to have_content('Order Details:')
+      
+      # Verify order was created
+      order = Order.last
+      expect(order).to be_present
     end
   end
 end 

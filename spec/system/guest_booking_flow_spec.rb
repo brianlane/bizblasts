@@ -10,6 +10,11 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
     create(:services_staff_member, service: service, staff_member: staff_member)
     ActsAsTenant.current_tenant = business
     set_tenant(business)
+    
+    # Mock Stripe checkout session creation for all tests
+    allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+      session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_guest_booking_123')
+    })
   end
 
   let(:date) { Date.today.next_day }
@@ -34,11 +39,13 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       fill_in 'Notes', with: 'Guest booking test'
       click_button 'Confirm Booking'
 
-      # Verify booking confirmation
-      expect(page).to have_content('Booking was successfully created.')
+      # Should redirect to Stripe (mocked)
+      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_booking_123')
+      
       # Ensure record persisted
       booking = Booking.find_by(service: service, staff_member: staff_member, notes: 'Guest booking test')
       expect(booking).not_to be_nil
+      expect(booking.invoice).to be_present
     end
   end
 
@@ -63,9 +70,16 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       fill_in 'Notes', with: 'Booking with account'
       click_button 'Confirm Booking'
 
-      expect(page).to have_content('Booking was successfully created.')
+      # Should redirect to Stripe (mocked)
+      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_booking_123')
+      
       # Ensure user is created and signed in
       expect(User.find_by(email: 'jane.doe@example.com')).to be_present
+      
+      # Verify booking was created
+      booking = Booking.last
+      expect(booking).to be_present
+      expect(booking.invoice).to be_present
     end
   end
 end 

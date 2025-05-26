@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe OrdersController, type: :controller do
+RSpec.describe Public::OrdersController, type: :controller do
   let!(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant') }
   let!(:product) { create(:product, business: business) }
   let!(:variant) { create(:product_variant, product: product) }
@@ -28,10 +28,47 @@ RSpec.describe OrdersController, type: :controller do
   end
 
   describe 'POST #create' do
-    it 'creates order and clears cart' do
+    before do
+      # Mock the checkout session creation for the redirect
+      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_test_123')
+      })
+    end
+
+    it 'creates order and redirects to Stripe Checkout' do
       post :create, params: { order: { shipping_method_id: shipping_method.id, tax_rate_id: tax_rate.id } }
-      expect(response).to redirect_to(assigns(:order))
+      
+      # Should redirect to Stripe instead of the order page
+      expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
       expect(session[:cart]).to eq({})
+      
+      # Verify order was created
+      order = Order.last
+      expect(order).to be_present
+      expect(order.tenant_customer).to eq(tenant_customer)
+      expect(order.invoice).to be_present
+      
+      # Verify Stripe service was called with correct parameters
+      expect(StripeService).to have_received(:create_payment_checkout_session).with(
+        invoice: order.invoice,
+        success_url: order_url(order, payment_success: true),
+        cancel_url: order_url(order, payment_cancelled: true)
+      )
+    end
+
+    context 'when Stripe error occurs' do
+      before do
+        allow(StripeService).to receive(:create_payment_checkout_session)
+          .and_raise(Stripe::StripeError.new('Stripe connection error'))
+      end
+
+      it 'redirects to order with error message' do
+        post :create, params: { order: { shipping_method_id: shipping_method.id, tax_rate_id: tax_rate.id } }
+        
+        order = Order.last
+        expect(response).to redirect_to(order_path(order))
+        expect(flash[:alert]).to include('Could not connect to Stripe')
+      end
     end
   end
 end 

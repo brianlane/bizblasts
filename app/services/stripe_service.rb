@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class StripeService
   # This service handles integration with the Stripe payment gateway
   
@@ -60,6 +62,74 @@ class StripeService
     record&.update!(status: 'suspended')
   end
 
+  # Create a Stripe Checkout session for invoice payment
+  def self.create_payment_checkout_session(invoice:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = invoice.business
+    customer = ensure_stripe_customer_for_tenant(invoice.tenant_customer)
+
+    total_amount = invoice.total_amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if total_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{total_amount}"
+    end
+    
+    amount_cents = (total_amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    # Create the checkout session
+    session = Stripe::Checkout::Session.create(
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: "Invoice #{invoice.invoice_number}",
+            description: "Payment for #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: success_url,
+      cancel_url: cancel_url,
+      customer: customer.id,
+      payment_intent_data: {
+        application_fee_amount: platform_fee_cents,
+        transfer_data: { destination: business.stripe_account_id },
+        metadata: { 
+          business_id: business.id, 
+          invoice_id: invoice.id,
+          tenant_customer_id: invoice.tenant_customer.id
+        }
+      },
+      metadata: { 
+        business_id: business.id, 
+        invoice_id: invoice.id,
+        tenant_customer_id: invoice.tenant_customer.id
+      }
+    )
+
+    # Create a payment record to track this
+    payment = Payment.create!(
+      business: business,
+      invoice: invoice,
+      order: invoice.order,
+      tenant_customer: invoice.tenant_customer,
+      amount: total_amount,
+      stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
+      platform_fee_amount: platform_fee_cents / 100.0,
+      business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - platform_fee_cents / 100.0).round(2),
+      stripe_payment_intent_id: session.payment_intent,
+      stripe_customer_id: customer.id,
+      status: :pending
+    )
+
+    { session: session, payment: payment }
+  end
+
   # Create a payment intent for an invoice or order
   def self.create_payment_intent(invoice:, order: nil, payment_method_id: nil)
     configure_stripe_api_key
@@ -119,6 +189,8 @@ class StripeService
       handle_refund(event['data']['object'])
     when 'account.updated'
       handle_account_updated(event['data']['object'])
+    when 'checkout.session.completed'
+      handle_checkout_session_completed(event['data']['object'])
     when 'customer.subscription.deleted', 'customer.subscription.updated', 'customer.subscription.created'
       handle_subscription_event(event['data']['object'])
     else
@@ -179,6 +251,26 @@ class StripeService
     customer = Stripe::Customer.create(email: business.email, name: business.name, metadata: { business_id: business.id })
     business.update!(stripe_customer_id: customer.id)
     customer
+  end
+
+  # Handle successful checkout session completion for payments
+  def self.handle_checkout_session_completed(session)
+    # Check if this is a payment (not subscription) by looking for invoice_id in metadata
+    invoice_id = session.dig('metadata', 'invoice_id')
+    return unless invoice_id
+
+    payment = Payment.find_by(stripe_payment_intent_id: session['payment_intent'])
+    return unless payment
+
+    # Mark payment as completed
+    payment.update!(status: :completed, paid_at: Time.current, payment_method: :credit_card)
+    payment.invoice.mark_as_paid! if payment.invoice&.pending?
+    
+    # Update order status if applicable
+    if (order = payment.order)
+      new_status = order.payment_required? ? :paid : :processing
+      order.update!(status: new_status)
+    end
   end
 
   def self.handle_successful_payment(pi)

@@ -9,8 +9,8 @@ RSpec.describe "business_manager/orders/index.html.erb", type: :view do
     assign(:current_business, business)
     
     # Create some test orders with different types, ensure order number is present
-    product_order = create(:order, business: business, tenant_customer: tenant_customer, order_type: :product, status: 'pending', order_number: 'P123')
-    service_order = create(:order, business: business, tenant_customer: tenant_customer, order_type: :service, status: 'completed', order_number: 'S456')
+    product_order = create(:order, business: business, tenant_customer: tenant_customer, order_type: :product, status: 'pending_payment', order_number: 'P123')
+    service_order = create(:order, business: business, tenant_customer: tenant_customer, order_type: :service, status: 'paid', order_number: 'S456')
     
     # Assign for the view
     assign(:orders, [product_order, service_order])
@@ -76,13 +76,13 @@ RSpec.describe "business_manager/orders/index.html.erb", type: :view do
     # Status filters 
     expect(rendered).to have_link('All', href: business_manager_orders_path(type: nil, status: nil))
     Order.statuses.keys.each do |status|
-      expect(rendered).to have_link(status.capitalize)
+      expect(rendered).to have_link(status.titleize)
     end
     
     # Type filters
     expect(rendered).to have_link('All', href: business_manager_orders_path(type: nil, status: nil))
     Order.order_types.keys.each do |type|
-      expect(rendered).to have_link(type.capitalize)
+      expect(rendered).to have_link(type.titleize)
     end
   end
 

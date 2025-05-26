@@ -7,7 +7,7 @@ class Payment < ApplicationRecord
   belongs_to :tenant_customer
   
   validates :amount, presence: true, numericality: { greater_than: 0 }
-  validates :payment_method, presence: true, if: :completed?
+  validates :payment_method, presence: true
   validates :status, presence: true
   
   enum :payment_method, {

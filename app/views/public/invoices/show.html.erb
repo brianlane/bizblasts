@@ -1,3 +1,85 @@
-<h1>Invoice Details: <%= @invoice.invoice_number %></h1>
-<p>Status: <%= @invoice.status.titleize %></p>
-<p>Total Amount: <%= number_to_currency(@invoice.total_amount) %></p> 
+<div class="container">
+  <% if params[:payment_success] %>
+    <div class="notice">
+      <p><strong>Payment Successful!</strong> Your payment has been processed successfully. Thank you!</p>
+    </div>
+  <% elsif params[:payment_cancelled] %>
+    <div class="alert">
+      <p><strong>Payment Cancelled</strong> Your payment was cancelled. You can try again below.</p>
+    </div>
+  <% end %>
+
+  <% if flash[:notice] %>
+    <div class="notice"><p><%= flash[:notice] %></p></div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="alert"><p><%= flash[:alert] %></p></div>
+  <% end %>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h1>Invoice <%= @invoice.invoice_number %></h1>
+    </div>
+
+    <div class="panel-body">
+      <div class="invoice-details">
+        <p><strong>Business:</strong> <%= @invoice.business.name %></p>
+        <p><strong>Invoice Number:</strong> <%= @invoice.invoice_number %></p>
+        <p><strong>Status:</strong> <%= @invoice.status.titleize %></p>
+        <p><strong>Due Date:</strong> <%= l @invoice.due_date, format: :long %></p>
+        <p><strong>Total Amount:</strong> <%= number_to_currency(@invoice.total_amount) %></p>
+        
+        <% if @invoice.payments.successful.any? %>
+          <p><strong>Amount Paid:</strong> <%= number_to_currency(@invoice.total_paid) %></p>
+          <p><strong>Balance Due:</strong> <%= number_to_currency(@invoice.balance_due) %></p>
+        <% end %>
+      </div>
+
+      <% if @invoice.status != 'paid' && @invoice.balance_due > 0 %>
+        <div class="payment-action">
+          <%= link_to "Pay #{number_to_currency(@invoice.balance_due)}", 
+                new_tenant_payment_path(invoice_id: @invoice.id), 
+                class: "btn btn-primary" %>
+          <p><small>Secure payment powered by Stripe</small></p>
+        </div>
+      <% elsif @invoice.status == 'paid' %>
+        <div class="payment-status">
+          <p class="paid-status">✓ This invoice has been paid in full</p>
+        </div>
+      <% end %>
+
+      <% if @invoice.payments.successful.any? %>
+        <div class="payment-history">
+          <h3>Payment History</h3>
+          <% @invoice.payments.successful.each do |payment| %>
+            <div class="payment-record">
+              <p><strong>Payment:</strong> <%= number_to_currency(payment.amount) %> on <%= l payment.paid_at, format: :short %></p>
+              <p><strong>Method:</strong> <%= payment.payment_method.humanize %></p>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container { max-width: 960px; margin: 20px auto; padding: 0 15px; }
+  .panel { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 20px; }
+  .panel-header { background: #f5f5f5; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
+  .panel-header h1 { font-size: 20px; margin: 0; }
+  .panel-body { padding: 20px; }
+  .invoice-details p { margin-bottom: 10px; font-size: 16px; }
+  .payment-action { margin-top: 30px; text-align: center; }
+  .payment-status { margin-top: 30px; text-align: center; }
+  .paid-status { color: #28a745; font-size: 18px; font-weight: bold; }
+  .payment-history { margin-top: 30px; }
+  .payment-history h3 { margin-bottom: 15px; }
+  .payment-record { background: #f8f9fa; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+  .btn { display: inline-block; padding: 12px 24px; font-size: 16px; border-radius: 4px; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background-color: #007bff; color: white; }
+  .btn-primary:hover { background-color: #0056b3; }
+  .notice, .alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; }
+  .notice { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
+  .alert { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+</style> 

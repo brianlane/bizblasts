@@ -11,7 +11,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       business: business, 
       tenant_customer: tenant_customer, 
       order_type: :product, 
-      status: 'pending',
+              status: 'pending_payment',
       line_items_count: 2,
       total_amount: 49.99
     )
@@ -22,7 +22,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       business: business, 
       tenant_customer: tenant_customer, 
       order_type: :service, 
-      status: 'completed',
+      status: 'paid',
       line_items_count: 1,
       total_amount: 75.00
     )
@@ -79,8 +79,8 @@ RSpec.describe "Business Manager Orders", type: :system do
       expect(page).to have_content(mixed_order.order_number)
       
       # Verify status badges
-      expect(page).to have_css(".status-badge", text: "Pending")
-      expect(page).to have_css(".status-badge", text: "Completed")
+      expect(page).to have_css(".status-badge", text: "Pending Payment")
+      expect(page).to have_css(".status-badge", text: "Paid")
       expect(page).to have_css(".status-badge", text: "Shipped")
       
       # Verify type badges
@@ -112,12 +112,12 @@ RSpec.describe "Business Manager Orders", type: :system do
     end
 
     it "filters orders by status" do
-      # Click on the Pending filter
+      # Click on the Pending Payment filter
       within ".filter-group", text: "Filter by Status" do
-        click_link "Pending"
+        click_link "Pending Payment"
       end
       
-      # Verify only pending orders are shown
+      # Verify only pending payment orders are shown
       expect(page).to have_content(product_order.order_number)
       expect(page).not_to have_content(service_order.order_number)
       expect(page).not_to have_content(mixed_order.order_number)
@@ -126,7 +126,7 @@ RSpec.describe "Business Manager Orders", type: :system do
     it "combines status and type filters" do
       # Apply status filter first
       within ".filter-group", text: "Filter by Status" do
-        click_link "Pending"
+        click_link "Pending Payment"
       end
       
       # Then apply type filter
@@ -142,7 +142,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       # The URL should include both filters
       uri = URI.parse(current_url)
       params = CGI.parse(uri.query || "")
-      expect(params["status"]).to eq(["pending"])
+      expect(params["status"]).to eq(["pending_payment"])
       expect(params["type"]).to eq(["product"])
     end
     
@@ -170,7 +170,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       # Check basic order information
       expect(page).to have_content(product_order.order_number)
       expect(page).to have_content("Product") # order type
-      expect(page).to have_content("Pending") # status
+      expect(page).to have_content("Pending Payment") # status
       expect(page).to have_content(tenant_customer.name)
       
       # Check line items
