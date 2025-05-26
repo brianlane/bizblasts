@@ -184,13 +184,20 @@ jobs:
           mkdir -p app/assets/builds
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
 
-      # ADDED: Build Tailwind CSS
-      - name: Build Tailwind CSS
-        run: bundle exec rails tailwindcss:build
+      # Add a step to make scripts executable
+      - name: Make scripts executable
+        run: |
+          chmod +x script/performance_test.rb
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
 
-      # Add a step to make the performance script executable
-      - name: Make performance script executable
-        run: chmod +x script/performance_test.rb
+      # Test Tailwind build without database (early test)
+      - name: Test Tailwind build without database
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
 
       # FIRST: Set up the database and seed test data
       - name: Setup test database with seed data
@@ -214,6 +221,14 @@ jobs:
           SERVICE_ID=$(bundle exec rails runner "puts Service.find_by(name: 'Performance Test Service')&.id")
           echo "Performance test service ID: $SERVICE_ID"
           echo "SERVICE_ID=$SERVICE_ID" >> $GITHUB_ENV
+
+      # Build Tailwind CSS after database is ready
+      - name: Build Tailwind CSS
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       # SECOND: Start Rails server AFTER database is set up
       - name: Start Rails server for performance test
