@@ -54,12 +54,21 @@ Rails.application.configure do
   config.active_record.verbose_query_logs = false
   config.allow_concurrency = false
   
-  # Completely disable asset handling in test environment
-  config.assets.enabled = false
-  config.assets.compile = false
-  config.assets.debug = false
-  config.assets.digest = false
-  config.assets.prefix = '/null-assets'
+  # Conditionally disable asset handling in test environment
+  # Allow asset compilation when explicitly building assets
+  if ENV['RAILS_DISABLE_ASSET_COMPILATION'] == 'true'
+    config.assets.enabled = false
+    config.assets.compile = false
+    config.assets.debug = false
+    config.assets.digest = false
+    config.assets.prefix = '/null-assets'
+  else
+    # Allow minimal asset handling for builds
+    config.assets.enabled = true
+    config.assets.compile = false
+    config.assets.debug = false
+    config.assets.digest = false
+  end
   
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false
