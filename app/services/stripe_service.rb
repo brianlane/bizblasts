@@ -112,23 +112,9 @@ class StripeService
       }
     )
 
-    # Create a payment record to track this
-    payment = Payment.create!(
-      business: business,
-      invoice: invoice,
-      order: invoice.order,
-      tenant_customer: invoice.tenant_customer,
-      amount: total_amount,
-      stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
-      platform_fee_amount: platform_fee_cents / 100.0,
-      business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - platform_fee_cents / 100.0).round(2),
-      stripe_payment_intent_id: session.payment_intent,
-      stripe_customer_id: customer.id,
-      payment_method: :credit_card, # Default for Stripe Checkout, will be updated by webhook
-      status: :pending
-    )
-
-    { session: session, payment: payment }
+    # Don't create payment record here - it will be created by the webhook
+    # when the payment is actually processed by Stripe
+    { session: session, payment: nil }
   end
 
   # Create a payment intent for an invoice or order
@@ -267,12 +253,43 @@ class StripeService
     invoice_id = session.dig('metadata', 'invoice_id')
     return unless invoice_id
 
-    payment = Payment.find_by(stripe_payment_intent_id: session['payment_intent'])
-    return unless payment
+    # Find the invoice and related records
+    invoice = Invoice.find_by(id: invoice_id)
+    return unless invoice
 
-    # Mark payment as completed
-    payment.update!(status: :completed, paid_at: Time.current, payment_method: :credit_card)
-    payment.invoice.mark_as_paid! if payment.invoice&.pending?
+    business = invoice.business
+    tenant_customer = invoice.tenant_customer
+    
+    # Check if payment record already exists
+    payment = Payment.find_by(stripe_payment_intent_id: session['payment_intent'])
+    
+    if payment.nil?
+      # Create the payment record now that we have the payment_intent_id
+      total_amount = invoice.total_amount.to_f
+      amount_cents = (total_amount * 100).to_i
+      
+      payment = Payment.create!(
+        business: business,
+        invoice: invoice,
+        order: invoice.order,
+        tenant_customer: tenant_customer,
+        amount: total_amount,
+        stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
+        platform_fee_amount: calculate_platform_fee_cents(amount_cents, business) / 100.0,
+        business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - calculate_platform_fee_cents(amount_cents, business) / 100.0).round(2),
+        stripe_payment_intent_id: session['payment_intent'],
+        stripe_customer_id: session['customer'],
+        payment_method: :credit_card,
+        status: :completed,
+        paid_at: Time.current
+      )
+    else
+      # Update existing payment record
+      payment.update!(status: :completed, paid_at: Time.current, payment_method: :credit_card)
+    end
+
+    # Mark invoice as paid
+    invoice.mark_as_paid! if invoice.pending?
     
     # Update order status if applicable
     if (order = payment.order)
