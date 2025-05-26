@@ -87,11 +87,11 @@ class Business::RegistrationsController < Users::RegistrationsController
         session[:signed_up_business_id] = committed_business.id
         
         # For paid tiers, redirect to Stripe checkout instead of the business dashboard
-        # But in test environment, use the standard redirect path
-        if committed_business.tier.in?(['standard', 'premium']) && !Rails.env.test?
+        # But in request tests (not system tests), use the standard redirect path
+        if committed_business.tier.in?(['standard', 'premium']) && !request_test_environment?
           redirect_to_stripe_subscription_checkout(committed_business)
         else
-          # For free tier or test environment, redirect to the business dashboard
+          # For free tier or request test environment, redirect to the business dashboard
           redirect_to after_sign_up_path_for(resource), allow_other_host: true, status: :see_other
         end
       else
@@ -283,5 +283,19 @@ class Business::RegistrationsController < Users::RegistrationsController
     else
       main_app.root_url(subdomain: resource.business.hostname)
     end
+  end
+
+  private
+
+  # Check if we're in a request test environment (not system tests)
+  def request_test_environment?
+    Rails.env.test? && !system_test_environment?
+  end
+
+  # Check if we're in a system test environment
+  def system_test_environment?
+    # System tests typically use a different host pattern or user agent
+    # Capybara system tests use a specific port range (9887+)
+    request.host.include?('lvh.me') && request.port.to_s.match?(/988\d/)
   end
 end 
