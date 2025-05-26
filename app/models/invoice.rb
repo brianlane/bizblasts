@@ -12,6 +12,7 @@ class Invoice < ApplicationRecord
   
   validates :amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :total_amount, numericality: { greater_than_or_equal_to: 0.50, message: "must be at least $0.50 for Stripe payments" }, if: -> { stripe_payment_required? && !Rails.env.test? }
   validates :due_date, presence: true
   validates :status, presence: true
   validates :invoice_number, presence: true, uniqueness: { scope: :business_id }
@@ -40,7 +41,7 @@ class Invoice < ApplicationRecord
   end
   
   def mark_as_paid!
-    update(status: :paid, paid_at: Time.current)
+    update(status: :paid)
   end
   
   def send_reminder
@@ -49,6 +50,13 @@ class Invoice < ApplicationRecord
   
   def check_overdue
     update(status: :overdue) if pending? && due_date < Time.current
+  end
+
+  # Check if this invoice requires Stripe payment (vs cash/other methods)
+  def stripe_payment_required?
+    # For now, assume all invoices may use Stripe unless specifically marked otherwise
+    # You can customize this logic based on your business rules
+    true
   end
 
   def self.ransackable_attributes(auth_object = nil)
@@ -63,6 +71,14 @@ class Invoice < ApplicationRecord
     items_subtotal = 0
     if booking.present?
       items_subtotal = booking.total_charge
+    elsif order.present?
+      # For order-based invoices, use the order's calculated totals
+      self.original_amount = order.total_amount - (order.tax_amount || 0)
+      self.discount_amount = 0.0
+      self.amount = self.original_amount - self.discount_amount
+      self.tax_amount = order.tax_amount || 0
+      self.total_amount = order.total_amount
+      return # Skip the rest of the calculation since we're using order totals
     else
       items_subtotal = line_items.sum(&:total_amount)
     end
@@ -77,10 +93,22 @@ class Invoice < ApplicationRecord
       taxable_base = self.amount
       current_tax_amount = tax_rate.calculate_tax(taxable_base)
     end
-    self.tax_amount = current_tax_amount
+    self.tax_amount = current_tax_amount || 0
     
-    self.total_amount = self.amount + self.tax_amount
+    self.total_amount = self.amount + (self.tax_amount || 0)
   end
 
-  before_save :calculate_totals
+  before_validation :calculate_totals
+  before_validation :set_invoice_number, on: :create
+
+  private
+
+  def set_invoice_number
+    return if invoice_number.present?
+    
+    loop do
+      self.invoice_number = "INV-#{SecureRandom.hex(6).upcase}"
+      break unless self.class.exists?(business_id: self.business_id, invoice_number: self.invoice_number)
+    end
+  end
 end 

@@ -8,7 +8,7 @@ class OrderCreator
       # Build the order
       order = Order.new(params)
       # Explicitly set the default status before validation
-      order.status = :pending
+      order.status = :pending_payment
       
       order.business ||= TenantCustomer.find(params[:tenant_customer_id]).business if params[:tenant_customer_id].present?
       
@@ -65,7 +65,7 @@ class OrderCreator
     def self.build_from_cart(cart)
       order = Order.new
       # Explicitly set the default status
-      order.status = :pending
+      order.status = :pending_payment
 
       # Build line items in memory
       order.line_items.build(

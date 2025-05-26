@@ -1,8 +1,9 @@
 <script src="https://js.stripe.com/v3/"></script>
-<form id="payment-form">
+<%= form_with url: tenant_payments_path, method: :post, id: "payment-form", local: true do |form| %>
+  <%= hidden_field_tag :invoice_id, @invoice.id %>
   <div id="card-element"></div>
   <button id="submit">Pay $<%= @invoice.total_amount %></button>
-</form>
+<% end %>
 <script>
   const stripe = Stripe('<%= @stripe_publishable_key %>');
   const elements = stripe.elements();
@@ -22,6 +23,9 @@
       hiddenInput.setAttribute('name', 'payment_method_id');
       hiddenInput.setAttribute('value', paymentMethod.id);
       form.appendChild(hiddenInput);
+      // Remove event listener to prevent infinite loop
+      form.removeEventListener('submit', arguments.callee);
+      // Submit the form
       form.submit();
     }
   });

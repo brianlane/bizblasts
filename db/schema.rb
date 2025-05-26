@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_23_223000) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_25_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -341,7 +341,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_223000) do
   create_table "orders", force: :cascade do |t|
     t.bigint "tenant_customer_id", null: false
     t.string "order_number", null: false
-    t.string "status", default: "pending", null: false
+    t.string "status", default: "pending_payment", null: false
     t.decimal "total_amount", precision: 10, scale: 2, null: false
     t.decimal "shipping_amount", precision: 10, scale: 2, default: "0.0"
     t.decimal "tax_amount", precision: 10, scale: 2, default: "0.0"
@@ -362,6 +362,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_223000) do
     t.index ["status"], name: "index_orders_on_status"
     t.index ["tax_rate_id"], name: "index_orders_on_tax_rate_id"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|

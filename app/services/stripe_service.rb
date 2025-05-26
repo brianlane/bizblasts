@@ -68,6 +68,12 @@ class StripeService
     customer = ensure_stripe_customer_for_tenant(invoice.tenant_customer)
 
     total_amount = invoice.total_amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if total_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{total_amount}"
+    end
+    
     amount_cents = (total_amount * 100).to_i
     stripe_fee_cents = calculate_stripe_fee_cents(amount_cents)
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
@@ -178,8 +184,23 @@ class StripeService
   def self.handle_successful_payment(pi)
     payment = Payment.find_by(stripe_payment_intent_id: pi['id'])
     return unless payment
-    payment.update!(status: :completed, paid_at: Time.current)
+    
+    # Determine payment method from Stripe data
+    payment_method = case pi.dig('charges', 'data', 0, 'payment_method_details', 'type')
+                    when 'card' then :credit_card
+                    when 'us_bank_account' then :bank_transfer
+                    when 'paypal' then :paypal
+                    else :other
+                    end
+    
+    payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
     payment.invoice.mark_as_paid! if payment.invoice&.pending?
+    # Update order status if applicable
+    if (order = payment.order)
+      # For product or experience orders, mark as paid; for services, mark as processing
+      new_status = order.payment_required? ? :paid : :processing
+      order.update!(status: new_status)
+    end
   end
 
   def self.handle_failed_payment(pi)

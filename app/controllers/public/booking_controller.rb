@@ -122,7 +122,12 @@ module Public
 
       if @booking.save
         generate_or_update_invoice_for_booking(@booking)
-        redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
+        # Redirect to payment for experience services, otherwise to confirmation
+        if @service.experience?
+          redirect_to new_tenant_payment_path(invoice_id: @booking.invoice.id), notice: 'Booking was successfully created. Please complete payment to confirm your experience booking.'
+        else
+          redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
+        end
       else
         flash.now[:alert] = @booking.errors.full_messages.to_sentence
         render :new, status: :unprocessable_entity
@@ -187,7 +192,7 @@ module Public
         # invoice_number will be set by Invoice model callback if it has one
       )
       # The Invoice model's calculate_totals should sum service and booking_product_add_ons
-      invoice.save # This will trigger calculate_totals on the invoice
+      invoice.save! # This will trigger calculate_totals on the invoice
     end
 
     def current_tenant

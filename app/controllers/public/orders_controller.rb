@@ -108,7 +108,16 @@ module Public
       @order = OrderCreator.create_from_cart(@cart, creation_params)
       if @order.persisted? && @order.errors.empty?
         session[:cart] = {}
-        redirect_to order_path(@order), notice: 'Order was successfully created.'
+        # Create an invoice immediately
+        invoice = @order.build_invoice(
+          tenant_customer: @order.tenant_customer,
+          business:       @order.business,
+          due_date:       Date.today,
+          status:         :pending
+        )
+        invoice.save!
+        # Redirect to payment page
+        redirect_to new_tenant_payment_path(invoice_id: invoice.id), notice: 'Order was successfully created. Please complete payment to confirm your order.'
       else
         # If order creation failed, add order errors (which might include user/customer errors added above)
         flash.now[:alert] = @order.errors.full_messages.to_sentence if @order.errors.any?
