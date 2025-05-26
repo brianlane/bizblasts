@@ -12,111 +12,65 @@ class Business::RegistrationsController < Users::RegistrationsController
     respond_with resource
   end
 
+  # GET /business/registration/success
+  # Success page after Stripe payment completion
+  def registration_success
+    render 'registration_success'
+  end
+
+  # GET /business/registration/cancelled  
+  # Handle cancelled Stripe payment
+  def registration_cancelled
+    flash[:alert] = "Registration was cancelled. You can try again anytime."
+    redirect_to new_business_registration_path
+  end
+
   # POST /resource
   def create
     user_params = sign_up_params.except(:business_attributes)
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
     
-    # Build objects separately first
+    # Build objects for validation only - DO NOT SAVE YET
     build_resource(user_params) 
     resource.role = :manager
     @business = Business.new(processed_business_params)
-    # DO NOT assign resource.business = @business here initially
-
-    transaction_successful = false
-    business_errors = nil
-    resource_errors = nil
-
-    begin
-      ActiveRecord::Base.transaction do
-        # 1. Save Business
-        unless @business.save
-          business_errors = @business.errors # Capture errors
-          Rails.logger.error "Business Registration Transaction Failed - Business Errors: #{business_errors.full_messages.join(', ')}"
-          raise ActiveRecord::Rollback # Rollback transaction
-        end
-
-        # --- Business Saved Successfully ---
-        
-        # 2. Assign Saved Business ID and Save User
-        resource.business_id = @business.id 
-        # resource.business = nil # No longer needed as we didn't assign it
-
-        unless resource.save
-          resource_errors = resource.errors # Capture errors
-          Rails.logger.error "Business Registration Transaction Failed - User Errors: #{resource_errors.full_messages.join(', ')}"
-          Rails.logger.info "Business (will be rolled back): #{@business.attributes.inspect}" # Log state of business that succeeded but will be rolled back
-          raise ActiveRecord::Rollback # Rollback transaction
-        end
-
-        # If we reach here, both saves were successful
-        yield resource if block_given?
-        transaction_successful = true # Mark success
-      end # Transaction block ends (COMMIT or ROLLBACK)
-    rescue ActiveRecord::Rollback
-      # Transaction rolled back, failure path will be handled below
-      Rails.logger.info "[REGISTRATION] Transaction rolled back."
-    end
-
-    # Handle success or failure AFTER transaction attempt
-    if transaction_successful && resource.persisted?
-      # --- Success Path ---
-      Rails.logger.info "[REGISTRATION] Transaction successful. Handling post-signup for Business ##{resource.business_id}."
-      # Fetch the committed business (using resource.business_id, @business might be stale)
-      committed_business = Business.find(resource.business_id) 
-
-      # Assign the user as a staff member of their business (default membership)
-      committed_business.staff_members.create!(
-        user: resource,
-        name: resource.full_name,
-        email: resource.email,
-        phone: committed_business.phone,
-        active: true
-      )
+    
+    # Temporarily skip business validation for initial validation
+    # We'll validate business presence during the transaction
+    resource.define_singleton_method(:requires_business?) { false }
+    
+    # Validate both objects without setting the association
+    # (since business_id validation requires a persisted business)
+    user_valid = resource.valid?
+    business_valid = @business.valid?
+    
+    # Restore the original requires_business? method
+    resource.singleton_class.remove_method(:requires_business?)
+    
+    unless user_valid && business_valid
+      # Validation failed - render form with errors
+      Rails.logger.info "[REGISTRATION] Validation failed. User errors: #{resource.errors.full_messages.join(', ')}. Business errors: #{@business.errors.full_messages.join(', ')}"
       
-      # Create a default location for the business using the business address
-      create_default_location(committed_business)
-      
-      # Setup Stripe integration for paid tiers
-      setup_stripe_integration(committed_business)
-      
-      if resource.active_for_authentication?
-        set_flash_message! :notice, :signed_up
-        sign_up(resource_name, resource)
-        session[:signed_up_business_id] = committed_business.id
-        
-        # For paid tiers, redirect to Stripe checkout instead of the business dashboard
-        # But in request tests (not system tests), use the standard redirect path
-        if committed_business.tier.in?(['standard', 'premium']) && !request_test_environment?
-          redirect_to_stripe_subscription_checkout(committed_business)
-        else
-          # For free tier or request test environment, redirect to the business dashboard
-          redirect_to after_sign_up_path_for(resource), allow_other_host: true, status: :see_other
-        end
-      else
-        set_flash_message! :notice, :"signed_up_but_#{resource.inactive_message}"
-        expire_data_after_sign_in!
-        # Redirect to the path defined for inactive sign up (preserves subdomain in non-test)
-        redirect_to after_inactive_sign_up_path_for(resource), allow_other_host: true, status: :see_other
-      end
-    else
-      # --- Failure Path ---
-      Rails.logger.info "[REGISTRATION] Transaction failed or rolled back. Resource not persisted. Preparing to render 'new'."
-      
-      # Merge errors from business or resource if they were captured
-      resource.errors.merge!(business_errors) if business_errors.present?
-      # resource_errors are already on resource if resource.save failed
-      
-      Rails.logger.info "[REGISTRATION] Final Resource errors: #{resource.errors.full_messages.join(', ')}"
-      
-      # Ensure the @business object (with submitted params/potential errors) 
-      # is associated for the form builder (`fields_for`)
-      resource.business = @business 
+      # Set the business association for the form builder (but don't validate it)
+      resource.business = @business
       
       clean_up_passwords resource
       set_minimum_password_length
-      respond_with resource # Let Devise/Responders render :new with errors
+      respond_with resource
+      return
+    end
+
+    # Validation passed - now determine flow based on tier
+    if @business.tier == 'free'
+      # Free tier: Create business and user immediately
+      create_business_immediately(user_params, processed_business_params)
+    elsif @business.tier.in?(['standard', 'premium']) && !request_test_environment?
+      # Paid tiers in production: Store data in Stripe session and redirect to payment
+      redirect_to_stripe_with_registration_data(user_params, processed_business_params)
+    else
+      # Paid tiers in test environment: Create immediately for test compatibility
+      create_business_immediately(user_params, processed_business_params)
     end
   end
 
@@ -137,7 +91,14 @@ class Business::RegistrationsController < Users::RegistrationsController
   
   # Revised: Process raw params to determine hostname and host_type based on presence first.
   def process_business_host_params(raw_params)
-    processed_params = raw_params.except(:hostname).permit! # Permit all *except* hostname initially
+    # Handle both ActionController::Parameters and regular Hash
+    if raw_params.respond_to?(:permit!)
+      processed_params = raw_params.except(:hostname).permit! # Permit all *except* hostname initially
+    else
+      # For regular Hash (like in tests), just duplicate and remove hostname
+      processed_params = raw_params.except(:hostname).dup
+    end
+    
     tier = raw_params[:tier]
     # Note: Form now submits :hostname directly, not :subdomain/:domain
     hostname_input = raw_params[:hostname].presence 
@@ -155,9 +116,9 @@ class Business::RegistrationsController < Users::RegistrationsController
     else
       # Neither provided, let model handle blank hostname
       processed_params[:hostname] = nil 
-      # If hostname is nil, host_type doesn't strictly matter for validation yet,
-      # but maybe default based on tier? Let's keep it nil for now. Model validates presence.
-      processed_params[:host_type] = nil 
+      # For free tier, default to subdomain host_type even if hostname is blank
+      # This allows the model validation to show the correct error message
+      processed_params[:host_type] = tier == 'free' ? 'subdomain' : nil
     end
 
     # Let the Business model validations handle tier/host_type mismatches 
@@ -235,21 +196,87 @@ class Business::RegistrationsController < Users::RegistrationsController
     end
   end
 
-  # Redirect to Stripe subscription checkout for paid tiers
-  def redirect_to_stripe_subscription_checkout(business)
+  # Create business and user immediately (for free tier or test environment)
+  def create_business_immediately(user_params, business_params)
+    transaction_successful = false
+    business_errors = nil
+    resource_errors = nil
+
+    begin
+      ActiveRecord::Base.transaction do
+        # 1. Save Business (use the already validated @business object)
+        unless @business.save
+          business_errors = @business.errors
+          Rails.logger.error "Business Registration Transaction Failed - Business Errors: #{business_errors.full_messages.join(', ')}"
+          raise ActiveRecord::Rollback
+        end
+
+        # 2. Save User with business association
+        resource.business_id = @business.id
+        unless resource.save
+          resource_errors = resource.errors
+          Rails.logger.error "Business Registration Transaction Failed - User Errors: #{resource_errors.full_messages.join(', ')}"
+          raise ActiveRecord::Rollback
+        end
+
+        # 3. Set up business defaults
+        setup_business_defaults(@business, resource)
+        
+        transaction_successful = true
+      end
+    rescue ActiveRecord::Rollback
+      Rails.logger.info "[REGISTRATION] Transaction rolled back."
+    end
+
+    if transaction_successful && resource.persisted?
+      # Success path
+      Rails.logger.info "[REGISTRATION] Transaction successful. Business ##{resource.business_id} created immediately."
+      
+      if resource.active_for_authentication?
+        set_flash_message! :notice, :signed_up
+        sign_up(resource_name, resource)
+        session[:signed_up_business_id] = resource.business_id
+        redirect_to after_sign_up_path_for(resource), allow_other_host: true, status: :see_other
+      else
+        set_flash_message! :notice, :"signed_up_but_#{resource.inactive_message}"
+        expire_data_after_sign_in!
+        redirect_to after_inactive_sign_up_path_for(resource), allow_other_host: true, status: :see_other
+      end
+    else
+      # Failure path
+      Rails.logger.info "[REGISTRATION] Transaction failed. Rendering form with errors."
+      
+      # Merge errors from business if they were captured
+      resource.errors.merge!(business_errors) if business_errors.present?
+      
+      # Ensure the @business object is associated for the form builder
+      resource.business = @business
+      
+      clean_up_passwords resource
+      set_minimum_password_length
+      respond_with resource
+    end
+  end
+
+  # Redirect to Stripe with registration data stored in session metadata
+  def redirect_to_stripe_with_registration_data(user_params, business_params)
     begin
       # Configure Stripe API key
       stripe_credentials = Rails.application.credentials.stripe || {}
       Stripe.api_key = stripe_credentials[:secret_key] || ENV['STRIPE_SECRET_KEY']
       
       # Determine the price ID based on the business tier
-      price_id = StripeService.get_stripe_price_id(business.tier)
+      price_id = StripeService.get_stripe_price_id(business_params[:tier])
       
       unless price_id
-        raise ArgumentError, "No Stripe price ID configured for tier: #{business.tier}"
+        raise ArgumentError, "No Stripe price ID configured for tier: #{business_params[:tier]}"
       end
 
-      # Create Stripe checkout session
+      # Create success and cancel URLs
+      success_url = main_app.root_url + 'business/registration/success'
+      cancel_url = new_business_registration_url
+
+      # Create Stripe checkout session with registration data in metadata
       session = Stripe::Checkout::Session.create({
         payment_method_types: ['card'],
         line_items: [{
@@ -257,22 +284,47 @@ class Business::RegistrationsController < Users::RegistrationsController
           quantity: 1,
         }],
         mode: 'subscription',
-        success_url: main_app.root_url(subdomain: business.hostname) + '?subscription_success=true',
-        cancel_url: main_app.root_url(subdomain: business.hostname) + '?subscription_cancelled=true',
-        customer: business.stripe_customer_id,
-        client_reference_id: business.id
+        success_url: success_url,
+        cancel_url: cancel_url,
+        metadata: {
+          registration_type: 'business',
+          user_data: user_params.to_json,
+          business_data: business_params.to_json
+        }
       })
       
+      Rails.logger.info "[REGISTRATION] Created Stripe checkout session #{session.id} for business registration"
       redirect_to session.url, allow_other_host: true
+      
     rescue Stripe::StripeError => e
-      Rails.logger.error "[REGISTRATION] Stripe checkout creation failed for Business ##{business.id}: #{e.message}"
+      Rails.logger.error "[REGISTRATION] Stripe checkout creation failed: #{e.message}"
       flash[:alert] = "Could not connect to Stripe for subscription setup: #{e.message}"
-      redirect_to after_sign_up_path_for(current_user), allow_other_host: true, status: :see_other
+      redirect_to new_business_registration_path
     rescue => e
-      Rails.logger.error "[REGISTRATION] Unexpected error during Stripe checkout for Business ##{business.id}: #{e.message}"
+      Rails.logger.error "[REGISTRATION] Unexpected error during Stripe checkout: #{e.message}"
       flash[:alert] = "An error occurred during subscription setup. Please contact support."
-      redirect_to after_sign_up_path_for(current_user), allow_other_host: true, status: :see_other
+      redirect_to new_business_registration_path
     end
+  end
+
+  # Set up all the default records for a new business
+  def setup_business_defaults(business, user)
+    # Create staff member for the business owner
+    business.staff_members.create!(
+      user: user,
+      name: user.full_name,
+      email: user.email,
+      phone: business.phone,
+      active: true
+    )
+    
+    # Create default location
+    create_default_location(business)
+    
+    # Setup Stripe integration for paid tiers
+    setup_stripe_integration(business) if business.tier.in?(['standard', 'premium'])
+    
+    Rails.logger.info "[REGISTRATION] Set up defaults for Business ##{business.id}"
   end
 
   # Override path after successful business sign up to use tenant's subdomain

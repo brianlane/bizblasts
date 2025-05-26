@@ -208,31 +208,22 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_field("user_business_attributes_hostname", visible: true)
       fill_in "user_business_attributes_hostname", with: "standardbiz"
       
+      # For paid tiers, business and user should NOT be created immediately
+      # They will be created after successful Stripe payment via webhook
       expect {
         click_button "Create Business Account"
-      }.to change(Business, :count).by(1).and change(User, :count).by(1)
+      }.to change(Business, :count).by(0).and change(User, :count).by(0)
       
       # Should redirect to Stripe checkout for paid tiers
       expect(current_url).to eq("https://checkout.stripe.com/pay/cs_subscription_123")
       
-      # Verify business was created with correct attributes and Stripe integration
-      business = Business.last
-      expect(business.tier).to eq("standard")
-      expect(business.hostname).to eq("standardbiz")
-      expect(business.host_type).to eq("subdomain")
-      expect(business.stripe_account_id).to be_present
-      expect(business.stripe_customer_id).to be_present
-      
-      # Verify Stripe services were called
-      expect(StripeService).to have_received(:create_connect_account).with(business)
-      expect(StripeService).to have_received(:ensure_stripe_customer_for_business).with(business)
-      
-      # Verify Stripe checkout session was created
+      # Verify Stripe checkout session was created with registration data in metadata
       expect(Stripe::Checkout::Session).to have_received(:create).with(
         hash_including(
           mode: 'subscription',
-          customer: business.stripe_customer_id,
-          client_reference_id: business.id
+          metadata: hash_including(
+            registration_type: 'business'
+          )
         )
       )
     end
@@ -280,19 +271,25 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_field("user_business_attributes_hostname", visible: true)
       fill_in "user_business_attributes_hostname", with: "testbiz"
       
+      # For paid tiers, business and user should NOT be created immediately
+      # Stripe Connect errors don't affect the initial registration flow since
+      # business creation happens after successful payment via webhook
       expect {
         click_button "Create Business Account"
-      }.to change(Business, :count).by(1).and change(User, :count).by(1)
+      }.to change(Business, :count).by(0).and change(User, :count).by(0)
       
-      # Should still redirect to Stripe checkout even with Connect account error
+      # Should still redirect to Stripe checkout
       expect(current_url).to eq("https://checkout.stripe.com/pay/cs_subscription_123")
       
-      # Business should be created but without Stripe Connect account
-      business = Business.last
-      expect(business.tier).to eq("premium")
-      expect(business.stripe_account_id).to be_nil
-      # Customer creation might also fail if Connect account creation fails
-      # but the business should still be created and redirect to Stripe checkout
+      # Verify Stripe checkout session was created with registration data
+      expect(Stripe::Checkout::Session).to have_received(:create).with(
+        hash_including(
+          mode: 'subscription',
+          metadata: hash_including(
+            registration_type: 'business'
+          )
+        )
+      )
     end
     
     it "handles Stripe checkout errors gracefully for paid tiers", js: true do
@@ -326,17 +323,14 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_field("user_business_attributes_hostname", visible: true)
       fill_in "user_business_attributes_hostname", with: "testbiz2"
       
+      # When Stripe checkout fails, no business or user should be created
       expect {
         click_button "Create Business Account"
-      }.to change(Business, :count).by(1).and change(User, :count).by(1)
+      }.to change(Business, :count).by(0).and change(User, :count).by(0)
       
-      # Should redirect to root path with error message when Stripe checkout fails
-      expect(page).to have_current_path(root_path)
+      # Should redirect back to registration form with error message when Stripe checkout fails
+      expect(page).to have_current_path(new_business_registration_path)
       expect(page).to have_content("Could not connect to Stripe for subscription setup")
-      
-      # Business should still be created
-      business = Business.last
-      expect(business.tier).to eq("premium")
     end
   end
 end 

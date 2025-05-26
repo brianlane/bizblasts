@@ -29,6 +29,8 @@ Rails.application.routes.draw do
 
     get '/business/sign_up', to: 'business/registrations#new', as: :new_business_registration
     post '/business', to: 'business/registrations#create', as: :business_registration
+    get '/business/registration/success', to: 'business/registrations#registration_success', as: :business_registration_success
+    get '/business/registration/cancelled', to: 'business/registrations#registration_cancelled', as: :business_registration_cancelled
 
     get '/users/edit', to: 'users/registrations#edit', as: :edit_user_registration
     patch '/users', to: 'users/registrations#update', as: :user_registration

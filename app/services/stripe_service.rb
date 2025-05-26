@@ -253,8 +253,14 @@ class StripeService
     customer
   end
 
-  # Handle successful checkout session completion for payments
+  # Handle successful checkout session completion for payments and registrations
   def self.handle_checkout_session_completed(session)
+    # Check if this is a business registration
+    if session.dig('metadata', 'registration_type') == 'business'
+      handle_business_registration_completion(session)
+      return
+    end
+
     # Check if this is a payment (not subscription) by looking for invoice_id in metadata
     invoice_id = session.dig('metadata', 'invoice_id')
     return unless invoice_id
@@ -316,6 +322,151 @@ class StripeService
       record = Subscription.find_by(stripe_subscription_id: sub['id'])
       return unless record
       record.update!(status: sub['status'], current_period_end: Time.at(sub['current_period_end']).to_datetime)
+    end
+  end
+
+  # Handle business registration completion after successful Stripe payment
+  def self.handle_business_registration_completion(session)
+    Rails.logger.info "[REGISTRATION] Processing business registration completion for session #{session['id']}"
+    
+    begin
+      # Extract registration data from session metadata
+      user_data = JSON.parse(session.dig('metadata', 'user_data'))
+      business_data = JSON.parse(session.dig('metadata', 'business_data'))
+      
+      Rails.logger.info "[REGISTRATION] Creating business: #{business_data['name']} (#{business_data['tier']})"
+      
+      ActiveRecord::Base.transaction do
+        # Create business first
+        business = Business.create!(business_data)
+        Rails.logger.info "[REGISTRATION] Created business ##{business.id}"
+        
+        # Create user with business association
+        user = User.create!(user_data.merge(
+          business_id: business.id,
+          role: :manager
+        ))
+        Rails.logger.info "[REGISTRATION] Created user ##{user.id} for business ##{business.id}"
+        
+        # Update business with Stripe customer ID from the session
+        if session['customer']
+          business.update!(stripe_customer_id: session['customer'])
+        end
+        
+        # Create subscription record if this was a paid tier registration
+        if session['subscription'] && business.tier.in?(['standard', 'premium'])
+          create_subscription_record(business, session['subscription'])
+        end
+        
+        # Set up all the default records for the business
+        setup_business_defaults_from_webhook(business, user)
+        
+        Rails.logger.info "[REGISTRATION] Successfully completed business registration for #{business.name} (ID: #{business.id})"
+      end
+      
+    rescue JSON::ParserError => e
+      Rails.logger.error "[REGISTRATION] Failed to parse registration data from session #{session['id']}: #{e.message}"
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "[REGISTRATION] Database validation failed for session #{session['id']}: #{e.message}"
+    rescue => e
+      Rails.logger.error "[REGISTRATION] Unexpected error processing registration for session #{session['id']}: #{e.message}"
+      # Re-raise to ensure webhook fails and can be retried
+      raise e
+    end
+  end
+
+  # Set up default records for a newly created business (called from webhook)
+  def self.setup_business_defaults_from_webhook(business, user)
+    # Create staff member for the business owner
+    business.staff_members.create!(
+      user: user,
+      name: user.full_name,
+      email: user.email,
+      phone: business.phone,
+      active: true
+    )
+    Rails.logger.info "[REGISTRATION] Created staff member for user ##{user.id}"
+    
+    # Create default location using business address
+    create_default_location_from_webhook(business)
+    
+    # Set up Stripe Connect account for paid tiers
+    if business.tier.in?(['standard', 'premium'])
+      begin
+        create_connect_account(business)
+        Rails.logger.info "[REGISTRATION] Created Stripe Connect account for business ##{business.id}"
+      rescue Stripe::StripeError => e
+        Rails.logger.error "[REGISTRATION] Failed to create Stripe Connect account for business ##{business.id}: #{e.message}"
+        # Don't fail the whole registration for this
+      end
+    end
+    
+    Rails.logger.info "[REGISTRATION] Completed setup for business ##{business.id}"
+  end
+
+  # Create default location for business (called from webhook)
+  def self.create_default_location_from_webhook(business)
+    # Default business hours (9am-5pm Monday-Friday, 10am-2pm Saturday, closed Sunday)
+    default_hours = {
+      "monday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "tuesday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "wednesday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "thursday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "friday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
+      "saturday" => { "open" => "10:00", "close" => "14:00", "closed" => false },
+      "sunday" => { "open" => "00:00", "close" => "00:00", "closed" => true }
+    }
+    
+    business.locations.create!(
+      name: "Main Location",
+      address: business.address,
+      city: business.city,
+      state: business.state,
+      zip: business.zip,
+      hours: default_hours
+    )
+    
+    Rails.logger.info "[REGISTRATION] Created default location for business ##{business.id}"
+  rescue => e
+    Rails.logger.error "[REGISTRATION] Failed to create default location for business ##{business.id}: #{e.message}"
+    # Don't fail the whole registration for this
+  end
+
+  # Create subscription record for the business
+  def self.create_subscription_record(business, stripe_subscription_id)
+    begin
+      # Retrieve subscription details from Stripe
+      stripe_sub = Stripe::Subscription.retrieve(stripe_subscription_id)
+      
+      # Determine plan name from tier
+      plan_name = case business.tier
+                  when 'standard' then 'Standard Plan'
+                  when 'premium' then 'Premium Plan'
+                  else business.tier.titleize
+                  end
+      
+      # Create subscription record
+      subscription = business.subscriptions.create!(
+        plan_name: plan_name,
+        stripe_subscription_id: stripe_subscription_id,
+        status: stripe_sub.status,
+        current_period_end: Time.at(stripe_sub.current_period_end).to_datetime
+      )
+      
+      Rails.logger.info "[REGISTRATION] Created subscription record ##{subscription.id} for business ##{business.id}"
+      subscription
+      
+    rescue Stripe::StripeError => e
+      Rails.logger.error "[REGISTRATION] Failed to retrieve Stripe subscription #{stripe_subscription_id}: #{e.message}"
+      # Create a basic subscription record without Stripe details
+      business.subscriptions.create!(
+        plan_name: business.tier.titleize,
+        stripe_subscription_id: stripe_subscription_id,
+        status: 'active'
+      )
+    rescue => e
+      Rails.logger.error "[REGISTRATION] Failed to create subscription record for business ##{business.id}: #{e.message}"
+      # Don't fail the whole registration for this
     end
   end
 
