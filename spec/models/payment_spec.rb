@@ -11,6 +11,6 @@ RSpec.describe Payment, type: :model do
   it { should validate_presence_of(:payment_method) }
   it { should validate_presence_of(:status) }
 
-  it { should define_enum_for(:payment_method).with_values({ credit_card: 0, cash: 1, bank_transfer: 2, paypal: 3, other: 4 }).backed_by_column_of_type(:string) }
+  it { should define_enum_for(:payment_method).with_values({ credit_card: 'credit_card', cash: 'cash', bank_transfer: 'bank_transfer', paypal: 'paypal', other: 'other' }).backed_by_column_of_type(:string) }
   it { should define_enum_for(:status).with_values({ pending: 0, completed: 1, failed: 2, refunded: 3 }) }
 end 

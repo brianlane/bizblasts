@@ -11,11 +11,11 @@ class Payment < ApplicationRecord
   validates :status, presence: true
   
   enum :payment_method, {
-    credit_card: 0,
-    cash: 1,
-    bank_transfer: 2,
-    paypal: 3,
-    other: 4
+    credit_card: 'credit_card',
+    cash: 'cash',
+    bank_transfer: 'bank_transfer',
+    paypal: 'paypal',
+    other: 'other'
   }
   
   enum :status, {
