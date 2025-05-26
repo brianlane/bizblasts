@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_25_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_26_200402) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -175,10 +175,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_25_120000) do
     t.string "tiktok_url"
     t.string "youtube_url"
     t.string "stripe_account_id"
+    t.string "status", default: "pending", null: false
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
+    t.index ["status"], name: "index_businesses_on_status"
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
   end
@@ -400,7 +402,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_25_120000) do
     t.decimal "platform_fee_amount", precision: 10, scale: 2, null: false
     t.decimal "stripe_fee_amount", precision: 10, scale: 2, null: false
     t.decimal "business_amount", precision: 10, scale: 2, null: false
-    t.string "stripe_payment_intent_id", null: false
+    t.string "stripe_payment_intent_id"
     t.string "stripe_charge_id"
     t.string "stripe_customer_id"
     t.string "stripe_transfer_id"
@@ -418,7 +420,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_25_120000) do
     t.index ["invoice_id"], name: "index_payments_on_invoice_id"
     t.index ["order_id"], name: "index_payments_on_order_id"
     t.index ["stripe_charge_id"], name: "index_payments_on_stripe_charge_id"
-    t.index ["stripe_payment_intent_id"], name: "index_payments_on_stripe_payment_intent_id", unique: true
+    t.index ["stripe_payment_intent_id"], name: "index_payments_on_stripe_payment_intent_id", unique: true, where: "(stripe_payment_intent_id IS NOT NULL)"
     t.index ["tenant_customer_id"], name: "index_payments_on_tenant_customer_id"
   end
 
@@ -567,6 +569,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_25_120000) do
     t.index ["marketing_campaign_id"], name: "index_sms_messages_on_marketing_campaign_id"
     t.index ["status"], name: "index_sms_messages_on_status"
     t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
+  end
+
+  create_table "solid_cache_entries", force: :cascade do |t|
+    t.binary "key", null: false
+    t.binary "value", null: false
+    t.datetime "created_at", null: false
+    t.bigint "key_hash", null: false
+    t.integer "byte_size", null: false
+    t.index ["byte_size"], name: "index_solid_cache_entries_on_byte_size"
+    t.index ["key_hash", "byte_size"], name: "index_solid_cache_entries_on_key_hash_and_byte_size"
+    t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
