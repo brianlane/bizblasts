@@ -124,6 +124,7 @@ class StripeService
       business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - platform_fee_cents / 100.0).round(2),
       stripe_payment_intent_id: session.payment_intent,
       stripe_customer_id: customer.id,
+      payment_method: :credit_card, # Default for Stripe Checkout, will be updated by webhook
       status: :pending
     )
 
@@ -170,6 +171,7 @@ class StripeService
       business_amount: (total_amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
       stripe_payment_intent_id: intent.id,
       stripe_customer_id: customer.id,
+      payment_method: payment_method_id.present? ? :credit_card : :other, # Set based on whether payment method is provided
       status: :pending
     )
 

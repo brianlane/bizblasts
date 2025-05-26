@@ -15,7 +15,7 @@ FactoryBot.define do
     stripe_customer_id { tenant_customer.stripe_customer_id || "cus_#{SecureRandom.hex(8)}" }
     stripe_transfer_id { "tr_#{SecureRandom.hex(8)}" }
 
-    payment_method { nil }
+    payment_method { :credit_card }
     status { :pending }
     paid_at { nil }
     failure_reason { nil }
