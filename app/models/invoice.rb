@@ -15,7 +15,7 @@ class Invoice < ApplicationRecord
   validates :total_amount, numericality: { greater_than_or_equal_to: 0.50, message: "must be at least $0.50 for Stripe payments" }, if: -> { stripe_payment_required? && !Rails.env.test? }
   validates :due_date, presence: true
   validates :status, presence: true
-  validates :invoice_number, presence: true, uniqueness: { scope: :business_id }
+  validates :invoice_number, uniqueness: { scope: :business_id }
   validates :original_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :discount_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :booking_id, uniqueness: true, allow_nil: true
@@ -68,6 +68,10 @@ class Invoice < ApplicationRecord
   end
 
   def calculate_totals
+    # Only calculate totals if we have data sources (booking, order, or line items)
+    # This allows validation to catch missing required fields
+    return unless booking.present? || order.present? || line_items.any?
+    
     items_subtotal = 0
     if booking.present?
       items_subtotal = booking.total_charge

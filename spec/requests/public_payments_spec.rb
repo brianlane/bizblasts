@@ -4,7 +4,7 @@ RSpec.describe 'Public Payments', type: :request do
   let(:business) { create(:business) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }
   let(:user) { create(:user, :client, email: tenant_customer.email) }
-  let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer) }
+  let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 10.00) }
 
   before do
     host! "#{business.subdomain}.example.com"
@@ -14,43 +14,57 @@ RSpec.describe 'Public Payments', type: :request do
 
   describe 'GET /payments/new' do
     before do
-      allow(StripeService).to receive(:create_payment_intent).and_return({ id: 'pi_123', client_secret: 'secret', payment: build(:payment) })
+      # Mock the checkout session creation
+      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_test_123')
+      })
     end
 
-    it 'returns http success and sets client_secret and publishable_key' do
+    it 'redirects to Stripe Checkout for invoice payments' do
       get new_tenant_payment_path, params: { invoice_id: invoice.id }
-      expect(response).to have_http_status(:success)
-      expect(assigns(:client_secret)).to eq('secret')
-      expect(assigns(:stripe_publishable_key)).to be_present
+      expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
+      expect(StripeService).to have_received(:create_payment_checkout_session).with(
+        invoice: invoice,
+        success_url: tenant_invoice_url(invoice, payment_success: true),
+        cancel_url: tenant_invoice_url(invoice, payment_cancelled: true)
+      )
     end
-  end
 
-  describe 'POST /payments' do
-    let(:payment_method_id) { 'pm_123' }
-
-    context 'when successful' do
+    context 'when invoice amount is too small' do
       before do
-        allow(StripeService).to receive(:create_payment_intent)
+        allow(StripeService).to receive(:create_payment_checkout_session)
+          .and_raise(ArgumentError, "Payment amount must be at least $0.50 USD")
       end
 
-      it 'redirects to the invoice with success message' do
-        post tenant_payments_path, params: { invoice_id: invoice.id, payment_method_id: payment_method_id }
+      it 'redirects to invoice with error message' do
+        get new_tenant_payment_path, params: { invoice_id: invoice.id }
         expect(response).to redirect_to(tenant_invoice_path(invoice))
         follow_redirect!
-        expect(response.body).to include('Payment submitted successfully.')
+        expect(response.body).to include('This invoice amount is too small for online payment')
       end
     end
 
     context 'when Stripe error occurs' do
       before do
-        allow(StripeService).to receive(:create_payment_intent).and_raise(Stripe::StripeError.new('error'))
+        allow(StripeService).to receive(:create_payment_checkout_session)
+          .and_raise(Stripe::StripeError.new('Stripe connection error'))
       end
 
-      it 're-renders new with error message' do
-        post tenant_payments_path, params: { invoice_id: invoice.id, payment_method_id: payment_method_id }
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.body).to include('error')
+      it 'redirects to invoice with error message' do
+        get new_tenant_payment_path, params: { invoice_id: invoice.id }
+        expect(response).to redirect_to(tenant_invoice_path(invoice))
+        follow_redirect!
+        expect(response.body).to include('Could not connect to Stripe')
       end
+    end
+  end
+
+  describe 'POST /payments' do
+    it 'redirects to the invoice with message about using payment link' do
+      post tenant_payments_path, params: { invoice_id: invoice.id }
+      expect(response).to redirect_to(tenant_invoice_path(invoice))
+      follow_redirect!
+      expect(response.body).to include('Please use the payment link to complete your payment')
     end
   end
 end 

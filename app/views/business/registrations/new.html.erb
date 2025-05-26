@@ -82,10 +82,48 @@
     </div>
 
     <div class="field">
-      <%= business_f.label :tier %>
-      <%# TODO: Add descriptions for each tier %>
-      <%= business_f.select :tier, Business.tiers.keys.map { |t| [t.humanize.titleize, t] }, { prompt: 'Select Tier' }, required: true, data: { action: "change->business-registration#toggleDomainFields" } %>
-      <div id="tier-descriptions" style="font-size: 0.9em; color: #555; margin-top: 5px;">
+      <%= business_f.label :tier, "Choose Your Plan" %>
+      <%= business_f.hidden_field :tier, id: "selected_tier" %>
+      
+      <div class="subscription-plans">
+        <div class="subscription-plan" data-tier="free">
+          <h3>Free Plan</h3>
+          <div class="price">$0/month</div>
+          <div class="features">
+            <p>Basic features</p>
+            <p>BizBlasts subdomain</p>
+            <p>%5 payment fee</p>
+            <p>Essential tools</p>
+          </div>
+          <button type="button" class="btn btn-outline plan-select-btn" data-tier="free">Select Free</button>
+        </div>
+        
+        <div class="subscription-plan" data-tier="standard">
+          <h3>Standard Plan</h3>
+          <div class="price">$49/month</div>
+          <div class="features">
+            <p>More features</p>
+            <p>Customizable pages</p>
+            <p>BizBlasts subdomain</p>
+            <p>Advanced tools</p>
+          </div>
+          <button type="button" class="btn btn-primary plan-select-btn" data-tier="standard">Select Standard</button>
+        </div>
+        
+        <div class="subscription-plan" data-tier="premium">
+          <h3>Premium Plan</h3>
+          <div class="price">$99/month</div>
+          <div class="features">
+            <p>All features</p>
+            <p>SEO optimization</p>
+            <p>Lower fees</p>
+            <p>Custom domain</p>
+          </div>
+          <button type="button" class="btn btn-primary plan-select-btn" data-tier="premium">Select Premium</button>
+        </div>
+      </div>
+      
+      <div id="tier-descriptions" style="font-size: 0.9em; color: #555; margin-top: 15px;">
         <p data-tier="free" style="display: none;"><strong>Free:</strong> Basic features, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
         <p data-tier="standard" style="display: none;"><strong>Standard:</strong> More features, customizable pages, and much more, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
         <p data-tier="premium" style="display: none;"><strong>Premium:</strong> All features, SEO, lower fees, and much more, plus your own custom domain!</p>
@@ -112,18 +150,170 @@
   <%# Controller target is implicitly the form fields_for :business %>
 </div>
 
+<style>
+  .subscription-plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+  }
+  
+  .subscription-plan {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #fff;
+  }
+  
+  .subscription-plan:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  }
+  
+  .subscription-plan.selected {
+    border-color: #007bff;
+    background-color: #f8f9ff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+  }
+  
+  .subscription-plan h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    color: #333;
+  }
+  
+  .subscription-plan .price {
+    font-size: 32px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 15px;
+  }
+  
+  .subscription-plan .features {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  
+  .subscription-plan .features p {
+    margin: 5px 0;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    border: 2px solid;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+  
+  .btn-primary {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+  
+  .btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+  }
+  
+  .btn-outline {
+    background-color: transparent;
+    color: #007bff;
+    border-color: #007bff;
+  }
+  
+  .btn-outline:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .btn.selected {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+  }
+  
+  .field {
+    margin-bottom: 20px;
+  }
+  
+  .field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+  }
+  
+  .actions {
+    margin-top: 30px;
+  }
+  
+  .actions input[type="submit"] {
+    background-color: #28a745;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .actions input[type="submit"]:hover {
+    background-color: #218838;
+  }
+</style>
+
 <script type="text/javascript">
-  // Simple inline script if setup is not ready
   document.addEventListener('DOMContentLoaded', function() {
-    const tierSelect = document.getElementById('user_business_attributes_tier');
+    const selectedTierInput = document.getElementById('selected_tier');
     const hostnameFieldDiv = document.getElementById('hostname-field');
-    const hostnameInput = hostnameFieldDiv.querySelector('input[name="user[business_attributes][hostname]"]'); // Corrected selector
+    const hostnameInput = hostnameFieldDiv.querySelector('input[name="user[business_attributes][hostname]"]');
     const hostnameHelpText = document.getElementById('hostname-help-text');
     const tierDescriptionDiv = document.getElementById('tier-descriptions');
+    const planSelectButtons = document.querySelectorAll('.plan-select-btn');
+    const subscriptionPlans = document.querySelectorAll('.subscription-plan');
 
-    function toggleFields() {
-      const selectedTier = tierSelect.value;
+    function selectPlan(tier) {
+      // Update hidden field
+      selectedTierInput.value = tier;
       
+      // Update visual selection
+      subscriptionPlans.forEach(plan => {
+        plan.classList.remove('selected');
+        const btn = plan.querySelector('.plan-select-btn');
+        btn.classList.remove('selected');
+        btn.textContent = btn.textContent.replace('✓ Selected', 'Select ' + plan.dataset.tier.charAt(0).toUpperCase() + plan.dataset.tier.slice(1));
+      });
+      
+      const selectedPlan = document.querySelector(`[data-tier="${tier}"]`);
+      if (selectedPlan) {
+        selectedPlan.classList.add('selected');
+        const selectedBtn = selectedPlan.querySelector('.plan-select-btn');
+        selectedBtn.classList.add('selected');
+        selectedBtn.textContent = '✓ Selected';
+      }
+      
+      toggleFields(tier);
+    }
+
+    function toggleFields(selectedTier) {
       // Hide all descriptions first
       tierDescriptionDiv.querySelectorAll('p[data-tier]').forEach(p => p.style.display = 'none');
       // Clear help text
@@ -150,9 +340,16 @@
       }
     }
 
-    if (tierSelect) {
-      tierSelect.addEventListener('change', toggleFields);
-      toggleFields(); 
-    }
+    // Add click handlers to plan selection buttons
+    planSelectButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tier = this.dataset.tier;
+        selectPlan(tier);
+      });
+    });
+
+    // Initialize with free plan selected
+    selectPlan('free');
   });
 </script> 

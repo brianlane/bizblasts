@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Public
   class OrdersController < ::OrdersController
     skip_before_action :authenticate_user!, only: [:new, :create, :show]
@@ -38,52 +40,68 @@ module Public
           )
         end
       else
+        # Guest user - create or find customer
         nested = order_params[:tenant_customer_attributes] || {}
-        email = nested[:email].presence
         full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
-
-        # Use find_or_initialize_by to find or build the tenant customer
-        customer = current_tenant.tenant_customers.find_or_initialize_by(email: email)
-
-        # Assign other attributes if it's a new record or if attributes are missing
-        if customer.new_record?
-           customer.assign_attributes(name: full_name, phone: nested[:phone])
-        # Optionally update existing customer attributes if needed:
-        # else
-        #   customer.assign_attributes(name: full_name, phone: nested[:phone])
+        
+        # Try to find existing customer by email
+        customer = current_tenant.tenant_customers.find_by(email: nested[:email])
+        
+        if customer
+          # Update existing customer with new info if provided
+          customer.update!(
+            name: full_name.present? ? full_name : customer.name,
+            phone: nested[:phone].present? ? nested[:phone] : customer.phone
+          )
+        else
+          # Create new customer
+          customer = current_tenant.tenant_customers.new(
+            name:  full_name,
+            phone: nested[:phone],
+            email: nested[:email]
+          )
         end
 
-        # Save the customer. This will run validations.
+        # Handle account creation if requested
+        if order_params[:create_account] == '1' && nested[:email].present?
+          password = order_params[:password]
+          password_confirmation = order_params[:password_confirmation]
+          
+          if password.present? && password == password_confirmation
+            # Try to create user account
+            user = User.new(
+              email: nested[:email],
+              password: password,
+              password_confirmation: password_confirmation,
+              first_name: nested[:first_name],
+              last_name: nested[:last_name],
+              phone: nested[:phone],
+              role: :client
+            )
+            
+            if user.save
+              # Sign in the newly created user
+              sign_in(user)
+              flash[:notice] = 'Account created successfully!'
+            else
+              # If user creation fails, add errors to order
+              user.errors.full_messages.each do |message|
+                (@order || Order.new).errors.add(:base, "Account creation error: #{message}")
+              end
+            end
+          else
+            (@order || Order.new).errors.add(:base, "Password confirmation doesn't match password") if password != password_confirmation
+            (@order || Order.new).errors.add(:base, "Password can't be blank") if password.blank?
+          end
+        end
+
+        # Save customer (either new or updated existing)
         if customer.save
-           # Customer successfully found or created and saved
-
-           # Now, proceed with optional user account creation if requested
-           if order_params[:create_account] == '1' && order_params[:password].present?
-             # Create or update the User account for this guest
-             user = User.find_or_initialize_by(email: email)
-             user.assign_attributes(
-               email:                 email,
-               first_name:            nested[:first_name],
-               last_name:             nested[:last_name],
-               phone:                 nested[:phone],
-               password:              order_params[:password],
-               password_confirmation: order_params[:password_confirmation],
-               role:                  :client
-             )
-             if user.save
-               # Link the user to the business as a client
-               ClientBusiness.find_or_create_by!(user: user, business: current_tenant)
-               sign_in(user)
-             else
-               user.errors.full_messages.each { |msg| (@order || Order.new).errors.add(:base, "Account creation error: #{msg}") }
-             end
-           end
-
-           # Now that we have the correct customer object (either found or created)
-           # and optional user account is handled, proceed with order creation.
-           creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
-           creation_params[:tenant_customer_id] = customer.id # Assign the customer ID to the order params
-           creation_params[:business_id]        = current_tenant.id
+          # Now that we have the correct customer object (either found or created)
+          # and optional user account is handled, proceed with order creation.
+          creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
+          creation_params[:tenant_customer_id] = customer.id # Assign the customer ID to the order params
+          creation_params[:business_id]        = current_tenant.id
 
         else # Customer.save failed
           # If customer save failed (e.g., validation error other than email uniqueness, though uniqueness should be handled by find_or_initialize_by)
@@ -108,6 +126,7 @@ module Public
       @order = OrderCreator.create_from_cart(@cart, creation_params)
       if @order.persisted? && @order.errors.empty?
         session[:cart] = {}
+        
         # Create an invoice immediately
         invoice = @order.build_invoice(
           tenant_customer: @order.tenant_customer,
@@ -116,8 +135,30 @@ module Public
           status:         :pending
         )
         invoice.save!
-        # Redirect to payment page
-        redirect_to new_tenant_payment_path(invoice_id: invoice.id), notice: 'Order was successfully created. Please complete payment to confirm your order.'
+        
+        # Redirect directly to Stripe Checkout instead of payment page
+        begin
+          success_url = order_url(@order, payment_success: true)
+          cancel_url = order_url(@order, payment_cancelled: true)
+          
+          result = StripeService.create_payment_checkout_session(
+            invoice: invoice,
+            success_url: success_url,
+            cancel_url: cancel_url
+          )
+          
+          redirect_to result[:session].url, allow_other_host: true
+        rescue ArgumentError => e
+          if e.message.include?("Payment amount must be at least")
+            flash[:alert] = "This order amount is too small for online payment. Please contact the business directly."
+            redirect_to order_path(@order)
+          else
+            raise e
+          end
+        rescue Stripe::StripeError => e
+          flash[:alert] = "Could not connect to Stripe: #{e.message}"
+          redirect_to order_path(@order)
+        end
       else
         # If order creation failed, add order errors (which might include user/customer errors added above)
         flash.now[:alert] = @order.errors.full_messages.to_sentence if @order.errors.any?

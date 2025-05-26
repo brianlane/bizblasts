@@ -78,13 +78,13 @@ RSpec.describe "Business Manager Orders", type: :request do
 
       context "with status filter" do
         it "filters orders by status" do
-          pending_order = create(:order, :pending, business: business, tenant_customer: tenant_customer)
-          completed_order = create(:order, :completed, business: business, tenant_customer: tenant_customer)
+          pending_order = create(:order, :pending_payment, business: business, tenant_customer: tenant_customer)
+          paid_order = create(:order, :paid, business: business, tenant_customer: tenant_customer)
           
-          get business_manager_orders_path, params: { status: 'pending' }
+          get business_manager_orders_path, params: { status: 'pending_payment' }
           expect(assigns(:orders)).to include(pending_order)
-          expect(assigns(:orders)).not_to include(completed_order)
-          expect(assigns(:status_filter)).to eq('pending')
+          expect(assigns(:orders)).not_to include(paid_order)
+          expect(assigns(:status_filter)).to eq('pending_payment')
         end
       end
 
@@ -113,13 +113,13 @@ RSpec.describe "Business Manager Orders", type: :request do
 
       context "with combined filters" do
         it "applies both status and type filters" do
-          pending_product_order = create(:order, :pending, business: business, tenant_customer: tenant_customer, order_type: :product)
-          completed_product_order = create(:order, :completed, business: business, tenant_customer: tenant_customer, order_type: :product)
+          pending_product_order = create(:order, :pending_payment, business: business, tenant_customer: tenant_customer, order_type: :product)
+          paid_product_order = create(:order, :paid, business: business, tenant_customer: tenant_customer, order_type: :product)
           
-          get business_manager_orders_path, params: { status: 'pending', type: 'product' }
+          get business_manager_orders_path, params: { status: 'pending_payment', type: 'product' }
           expect(assigns(:orders)).to include(pending_product_order)
-          expect(assigns(:orders)).not_to include(completed_product_order, service_order, mixed_order)
-          expect(assigns(:status_filter)).to eq('pending')
+          expect(assigns(:orders)).not_to include(paid_product_order, service_order, mixed_order)
+          expect(assigns(:status_filter)).to eq('pending_payment')
           expect(assigns(:type_filter)).to eq('product')
         end
       end

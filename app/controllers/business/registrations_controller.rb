@@ -78,6 +78,9 @@ class Business::RegistrationsController < Users::RegistrationsController
       # Create a default location for the business using the business address
       create_default_location(committed_business)
       
+      # Setup Stripe integration for paid tiers
+      setup_stripe_integration(committed_business)
+      
       if resource.active_for_authentication?
         set_flash_message! :notice, :signed_up
         sign_up(resource_name, resource)
@@ -192,6 +195,37 @@ class Business::RegistrationsController < Users::RegistrationsController
   rescue => e
     # Log error but don't fail the registration if location creation fails
     Rails.logger.error "[REGISTRATION] Failed to create default location: #{e.message}"
+  end
+
+  # Setup Stripe integration for paid tiers
+  def setup_stripe_integration(business)
+    # Only setup Stripe for paid tiers
+    return unless business.tier.in?(['standard', 'premium'])
+    
+    Rails.logger.info "[REGISTRATION] Setting up Stripe integration for Business ##{business.id} (#{business.tier} tier)"
+    
+    begin
+      # Create Stripe Connect account for the business
+      unless business.stripe_account_id.present?
+        Rails.logger.info "[REGISTRATION] Creating Stripe Connect account for Business ##{business.id}"
+        StripeService.create_connect_account(business)
+        Rails.logger.info "[REGISTRATION] Successfully created Stripe Connect account: #{business.stripe_account_id}"
+      end
+      
+      # Create Stripe customer for subscription billing
+      unless business.stripe_customer_id.present?
+        Rails.logger.info "[REGISTRATION] Creating Stripe customer for Business ##{business.id}"
+        StripeService.ensure_stripe_customer_for_business(business)
+        Rails.logger.info "[REGISTRATION] Successfully created Stripe customer: #{business.stripe_customer_id}"
+      end
+      
+    rescue Stripe::StripeError => e
+      # Log Stripe errors but don't fail the registration
+      Rails.logger.error "[REGISTRATION] Stripe Connect account creation failed for Business ##{business.id}: #{e.message}"
+    rescue => e
+      # Log any other errors but don't fail the registration
+      Rails.logger.error "[REGISTRATION] Unexpected error during Stripe setup for Business ##{business.id}: #{e.message}"
+    end
   end
 
   # Override path after successful business sign up to use tenant's subdomain

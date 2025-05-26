@@ -11,7 +11,7 @@ RSpec.describe "business_manager/orders/show.html.erb", type: :view do
       business: business, 
       tenant_customer: tenant_customer,
       order_type: :product,
-      status: 'pending',
+              status: 'pending_payment',
       shipping_method: shipping_method,
       tax_rate: tax_rate,
       shipping_address: "123 Shipping St\nShippingville, CA 90210",

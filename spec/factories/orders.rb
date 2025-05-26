@@ -25,12 +25,28 @@ FactoryBot.define do
     tax_amount { 9.99 }    # Placeholder
     shipping_amount { 5.99 } # Placeholder
 
-    trait :pending do
-      status { :pending }
+    trait :pending_payment do
+      status { :pending_payment }
     end
 
-    trait :completed do
-      status { :completed }
+    trait :paid do
+      status { :paid }
+    end
+
+    trait :processing do
+      status { :processing }
+    end
+
+    trait :shipped do
+      status { :shipped }
+    end
+
+    trait :cancelled do
+      status { :cancelled }
+    end
+
+    trait :refunded do
+      status { :refunded }
     end
 
     # Trait to create line items

@@ -122,11 +122,29 @@ module Public
 
       if @booking.save
         generate_or_update_invoice_for_booking(@booking)
-        # Redirect to payment for experience services, otherwise to confirmation
-        if @service.experience?
-          redirect_to new_tenant_payment_path(invoice_id: @booking.invoice.id), notice: 'Booking was successfully created. Please complete payment to confirm your experience booking.'
-        else
-          redirect_to tenant_booking_confirmation_path(@booking), notice: 'Booking was successfully created.'
+        
+        # Redirect directly to Stripe Checkout for all service bookings
+        begin
+          success_url = tenant_booking_confirmation_path(@booking, payment_success: true)
+          cancel_url = tenant_booking_confirmation_path(@booking, payment_cancelled: true)
+          
+          result = StripeService.create_payment_checkout_session(
+            invoice: @booking.invoice,
+            success_url: success_url,
+            cancel_url: cancel_url
+          )
+          
+          redirect_to result[:session].url, allow_other_host: true
+        rescue ArgumentError => e
+          if e.message.include?("Payment amount must be at least")
+            flash[:alert] = "This booking amount is too small for online payment. Please contact the business directly."
+            redirect_to tenant_booking_confirmation_path(@booking)
+          else
+            raise e
+          end
+        rescue Stripe::StripeError => e
+          flash[:alert] = "Could not connect to Stripe: #{e.message}"
+          redirect_to tenant_booking_confirmation_path(@booking)
         end
       else
         flash.now[:alert] = @booking.errors.full_messages.to_sentence

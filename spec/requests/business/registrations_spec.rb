@@ -14,6 +14,12 @@ RSpec.describe "Business::Registrations", type: :request do
 
   before(:each) do
     DatabaseCleaner.clean
+    # Mock Stripe API key configuration for all tests
+    allow(Rails.application.credentials).to receive(:stripe).and_return({ 
+      secret_key: 'sk_test_xyz', 
+      webhook_secret: 'whsec_abc' 
+    })
+    Stripe.api_key = 'sk_test_xyz'
   end
 
   describe "POST /business" do
@@ -49,6 +55,40 @@ RSpec.describe "Business::Registrations", type: :request do
 
     def build_params(business_attrs)
       { user: base_user_attributes.merge(business_attributes: base_business_attributes.merge(business_attrs)) }
+    end
+
+    # Mock Stripe services for paid tiers
+    before do
+      # Mock StripeService.create_connect_account
+      allow(StripeService).to receive(:create_connect_account) do |business|
+        mock_account = Stripe::Account.construct_from({
+          id: "acct_#{SecureRandom.hex(8)}",
+          type: 'express',
+          country: 'US',
+          email: business.email
+        })
+        business.update!(stripe_account_id: mock_account.id)
+        mock_account
+      end
+
+      # Mock StripeService.ensure_stripe_customer_for_business
+      allow(StripeService).to receive(:ensure_stripe_customer_for_business) do |business|
+        mock_customer = Stripe::Customer.construct_from({
+          id: "cus_#{SecureRandom.hex(8)}",
+          email: business.email,
+          name: business.name
+        })
+        business.update!(stripe_customer_id: mock_customer.id)
+        mock_customer
+      end
+
+      # Mock Stripe::Checkout::Session.create for subscription checkout
+      allow(Stripe::Checkout::Session).to receive(:create).and_return(
+        Stripe::Checkout::Session.construct_from({
+          id: "cs_test_#{SecureRandom.hex(8)}",
+          url: "https://checkout.stripe.com/pay/cs_test_123"
+        })
+      )
     end
 
     shared_examples "successful business sign-up" do |param_builder, expected_tier, expected_hostname, expected_host_type|
@@ -87,24 +127,81 @@ RSpec.describe "Business::Registrations", type: :request do
       end
     end
 
+    shared_examples "successful business sign-up with Stripe integration" do |param_builder, expected_tier, expected_hostname, expected_host_type|
+      include_examples "successful business sign-up", param_builder, expected_tier, expected_hostname, expected_host_type
+
+      it "creates Stripe Connect account and customer for paid tiers" do
+        params = build_params(send(param_builder))
+        post business_registration_path, params: params
+        
+        new_business = Business.last
+        expect(StripeService).to have_received(:create_connect_account).with(new_business)
+        expect(StripeService).to have_received(:ensure_stripe_customer_for_business).with(new_business)
+        expect(new_business.stripe_account_id).to be_present
+        expect(new_business.stripe_customer_id).to be_present
+      end
+
+      it "handles Stripe Connect account creation failure gracefully" do
+        allow(StripeService).to receive(:create_connect_account).and_raise(Stripe::APIError.new("Stripe error"))
+        
+        params = build_params(send(param_builder))
+        expect {
+          post business_registration_path, params: params
+        }.to change(User, :count).by(1).and change(Business, :count).by(1)
+        
+        # Business should still be created even if Stripe fails
+        new_business = Business.last
+        expect(new_business.stripe_account_id).to be_nil
+        expect(response).to redirect_to(root_path)
+        expect(flash[:notice]).to eq("Welcome! You have signed up successfully.")
+      end
+
+      it "handles Stripe customer creation failure gracefully" do
+        allow(StripeService).to receive(:ensure_stripe_customer_for_business).and_raise(Stripe::APIError.new("Customer creation failed"))
+        
+        params = build_params(send(param_builder))
+        expect {
+          post business_registration_path, params: params
+        }.to change(User, :count).by(1).and change(Business, :count).by(1)
+        
+        # Business should still be created even if Stripe customer creation fails
+        new_business = Business.last
+        expect(new_business.stripe_customer_id).to be_nil
+        expect(response).to redirect_to(root_path)
+        expect(flash[:notice]).to eq("Welcome! You have signed up successfully.")
+      end
+    end
+
     context "with valid parameters (Free Tier)" do
       include_examples "successful business sign-up", :free_tier_attrs, 'free', 'test-biz', 'subdomain'
+
+      it "does not create Stripe accounts for free tier" do
+        params = build_params(free_tier_attrs)
+        post business_registration_path, params: params
+        
+        expect(StripeService).not_to have_received(:create_connect_account)
+        expect(StripeService).not_to have_received(:ensure_stripe_customer_for_business)
+        
+        new_business = Business.last
+        expect(new_business.stripe_account_id).to be_nil
+        expect(new_business.stripe_customer_id).to be_nil
+      end
     end
 
     context "with valid parameters (Standard Tier - Subdomain)" do
-      include_examples "successful business sign-up", :standard_tier_subdomain_attrs, 'standard', 'std-biz', 'subdomain'
+      include_examples "successful business sign-up with Stripe integration", :standard_tier_subdomain_attrs, 'standard', 'std-biz', 'subdomain'
     end
 
     context "with valid parameters (Standard Tier - Domain)" do
-      include_examples "successful business sign-up", :standard_tier_domain_attrs, 'standard', 'std-biz.com', 'custom_domain'
+      include_examples "successful business sign-up with Stripe integration", :standard_tier_domain_attrs, 'standard', 'std-biz.com', 'custom_domain'
     end
 
     context "with valid parameters (Premium Tier - Domain)" do
-      include_examples "successful business sign-up", :premium_tier_domain_attrs, 'premium', 'premium-biz.com', 'custom_domain'
+      include_examples "successful business sign-up with Stripe integration", :premium_tier_domain_attrs, 'premium', 'premium-biz.com', 'custom_domain'
     end
 
     context "with valid parameters (Premium Tier - Both - Domain Takes Precedence)" do
-      include_examples "successful business sign-up", :premium_tier_both_attrs, 'premium', 'premium-biz.com', 'custom_domain'
+      include_examples "successful business sign-up with Stripe integration", :premium_tier_both_attrs, 'premium', 'premium-biz.com', 'custom_domain'
     end
 
     context "with invalid parameters" do
@@ -130,6 +227,16 @@ RSpec.describe "Business::Registrations", type: :request do
         post business_registration_path, params: params
         expect(response).to have_http_status(:unprocessable_entity)
         expect(response.body).to match(/id="error_explanation".*Name can&#39;t be blank/m)
+      end
+
+      it "does not call Stripe services when validation fails" do
+        params = build_params(standard_tier_subdomain_attrs)
+        params[:user][:business_attributes][:name] = '' # Invalid business name
+        
+        post business_registration_path, params: params
+        
+        expect(StripeService).not_to have_received(:create_connect_account)
+        expect(StripeService).not_to have_received(:ensure_stripe_customer_for_business)
       end
     end
 
@@ -223,6 +330,33 @@ RSpec.describe "Business::Registrations", type: :request do
         }.not_to change { [User.count, Business.count] }
         expect(response).to have_http_status(:unprocessable_entity)
         expect(response.body).to match(/id="error_explanation".*Hostname has already been taken/m)
+      end
+    end
+
+    context "Stripe integration edge cases" do
+      it "handles partial Stripe setup gracefully" do
+        # Simulate Connect account creation succeeding but customer creation failing
+        allow(StripeService).to receive(:ensure_stripe_customer_for_business).and_raise(Stripe::APIError.new("Customer error"))
+        
+        params = build_params(standard_tier_subdomain_attrs)
+        expect {
+          post business_registration_path, params: params
+        }.to change(User, :count).by(1).and change(Business, :count).by(1)
+        
+        new_business = Business.last
+        expect(new_business.stripe_account_id).to be_present # Connect account was created
+        expect(new_business.stripe_customer_id).to be_nil # Customer creation failed
+        expect(response).to redirect_to(root_path)
+      end
+
+      it "logs Stripe errors appropriately" do
+        allow(Rails.logger).to receive(:error)
+        allow(StripeService).to receive(:create_connect_account).and_raise(Stripe::APIError.new("Connect error"))
+        
+        params = build_params(premium_tier_domain_attrs)
+        post business_registration_path, params: params
+        
+        expect(Rails.logger).to have_received(:error).with(/Stripe Connect account creation failed/)
       end
     end
   end

@@ -7,7 +7,6 @@ module Public
     before_action :authenticate_user!, except: [:new, :create]
     before_action :set_tenant_customer, only: [:index, :new, :create]
     before_action :set_invoice, only: [:new, :create]
-    before_action :set_stripe_publishable_key, only: [:new, :create]
 
     # GET /payments
     def index
@@ -16,29 +15,18 @@ module Public
 
     # GET /payments/new?invoice_id=...
     def new
-      # invoice loaded by before_action
-      # new view will mount Stripe Elements with @stripe_publishable_key and @client_secret
+      # Create Stripe Checkout session and redirect to Stripe
       begin
-        result = StripeService.create_payment_intent(invoice: @invoice)
-        @client_secret = result[:client_secret]
-      rescue ArgumentError => e
-        if e.message.include?("Payment amount must be at least")
-          flash[:alert] = "This invoice amount is too small for online payment. Please contact the business directly."
-          redirect_to tenant_invoice_path(@invoice)
-          return
-        else
-          raise e
-        end
-      end
-    end
-
-    # POST /payments
-    def create
-      # Process payment: confirm with server-side payment method
-      payment_method_id = params[:payment_method_id]
-      begin
-        StripeService.create_payment_intent(invoice: @invoice, payment_method_id: payment_method_id)
-        redirect_to tenant_invoice_path(@invoice), notice: 'Payment submitted successfully.'
+        success_url = tenant_invoice_url(@invoice, payment_success: true)
+        cancel_url = tenant_invoice_url(@invoice, payment_cancelled: true)
+        
+        result = StripeService.create_payment_checkout_session(
+          invoice: @invoice,
+          success_url: success_url,
+          cancel_url: cancel_url
+        )
+        
+        redirect_to result[:session].url, allow_other_host: true
       rescue ArgumentError => e
         if e.message.include?("Payment amount must be at least")
           flash[:alert] = "This invoice amount is too small for online payment. Please contact the business directly."
@@ -48,11 +36,16 @@ module Public
           raise e
         end
       rescue Stripe::StripeError => e
-        flash.now[:alert] = e.message
-        creds = Rails.application.credentials.stripe || {}
-        @stripe_publishable_key = creds[:publishable_key] || ENV['STRIPE_PUBLISHABLE_KEY']
-        render :new, status: :unprocessable_entity
+        flash[:alert] = "Could not connect to Stripe: #{e.message}"
+        redirect_to tenant_invoice_path(@invoice)
       end
+    end
+
+    # POST /payments - This is now mainly for webhook handling or legacy support
+    def create
+      # This method can be kept for backward compatibility or webhook processing
+      # The main payment flow now goes through Stripe Checkout
+      redirect_to tenant_invoice_path(@invoice), notice: 'Please use the payment link to complete your payment.'
     end
 
     private
@@ -81,15 +74,5 @@ module Public
       end
       raise ActiveRecord::RecordNotFound unless @invoice
     end
-
-    def set_stripe_publishable_key
-      creds = Rails.application.credentials.stripe || {}
-      @stripe_publishable_key = creds[:publishable_key] || ENV['STRIPE_PUBLISHABLE_KEY']
-    end
-
-    # Helper to find the TenantCustomer record for the current user in this tenant
-    # def current_tenant_customer
-    #   @tenant_customer
-    # end
   end
 end 
