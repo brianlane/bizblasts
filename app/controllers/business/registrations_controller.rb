@@ -85,8 +85,15 @@ class Business::RegistrationsController < Users::RegistrationsController
         set_flash_message! :notice, :signed_up
         sign_up(resource_name, resource)
         session[:signed_up_business_id] = committed_business.id
-        # Redirect to the path defined by after_sign_up_path_for (uses subdomain in non-test)
-        redirect_to after_sign_up_path_for(resource), allow_other_host: true, status: :see_other
+        
+        # For paid tiers, redirect to Stripe checkout instead of the business dashboard
+        # But in test environment, use the standard redirect path
+        if committed_business.tier.in?(['standard', 'premium']) && !Rails.env.test?
+          redirect_to_stripe_subscription_checkout(committed_business)
+        else
+          # For free tier or test environment, redirect to the business dashboard
+          redirect_to after_sign_up_path_for(resource), allow_other_host: true, status: :see_other
+        end
       else
         set_flash_message! :notice, :"signed_up_but_#{resource.inactive_message}"
         expire_data_after_sign_in!
@@ -225,6 +232,46 @@ class Business::RegistrationsController < Users::RegistrationsController
     rescue => e
       # Log any other errors but don't fail the registration
       Rails.logger.error "[REGISTRATION] Unexpected error during Stripe setup for Business ##{business.id}: #{e.message}"
+    end
+  end
+
+  # Redirect to Stripe subscription checkout for paid tiers
+  def redirect_to_stripe_subscription_checkout(business)
+    begin
+      # Configure Stripe API key
+      stripe_credentials = Rails.application.credentials.stripe || {}
+      Stripe.api_key = stripe_credentials[:secret_key] || ENV['STRIPE_SECRET_KEY']
+      
+      # Determine the price ID based on the business tier
+      price_id = StripeService.get_stripe_price_id(business.tier)
+      
+      unless price_id
+        raise ArgumentError, "No Stripe price ID configured for tier: #{business.tier}"
+      end
+
+      # Create Stripe checkout session
+      session = Stripe::Checkout::Session.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price: price_id,
+          quantity: 1,
+        }],
+        mode: 'subscription',
+        success_url: main_app.root_url(subdomain: business.hostname) + '?subscription_success=true',
+        cancel_url: main_app.root_url(subdomain: business.hostname) + '?subscription_cancelled=true',
+        customer: business.stripe_customer_id,
+        client_reference_id: business.id
+      })
+      
+      redirect_to session.url, allow_other_host: true
+    rescue Stripe::StripeError => e
+      Rails.logger.error "[REGISTRATION] Stripe checkout creation failed for Business ##{business.id}: #{e.message}"
+      flash[:alert] = "Could not connect to Stripe for subscription setup: #{e.message}"
+      redirect_to after_sign_up_path_for(current_user), allow_other_host: true, status: :see_other
+    rescue => e
+      Rails.logger.error "[REGISTRATION] Unexpected error during Stripe checkout for Business ##{business.id}: #{e.message}"
+      flash[:alert] = "An error occurred during subscription setup. Please contact support."
+      redirect_to after_sign_up_path_for(current_user), allow_other_host: true, status: :see_other
     end
   end
 

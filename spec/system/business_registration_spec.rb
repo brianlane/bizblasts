@@ -50,6 +50,19 @@ RSpec.describe "Business Registration", type: :system do
     allow(Stripe::Customer).to receive(:create).and_return(
       double('Stripe::Customer', id: "cus_mock_#{SecureRandom.hex(8)}")
     )
+    
+    # Mock Stripe checkout session creation for subscription
+    allow(Stripe::Checkout::Session).to receive(:create).and_return(
+      double('Stripe::Checkout::Session', 
+        id: "cs_test_#{SecureRandom.hex(8)}", 
+        url: "https://checkout.stripe.com/pay/cs_subscription_123"
+      )
+    )
+    
+    # Mock environment variables for Stripe price IDs
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:[]).with('STRIPE_STANDARD_PRICE_ID').and_return('price_standard_test_123')
+    allow(ENV).to receive(:[]).with('STRIPE_PREMIUM_PRICE_ID').and_return('price_premium_test_123')
   end
 
   describe "Plan selection interface" do
@@ -199,9 +212,8 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Create Business Account"
       }.to change(Business, :count).by(1).and change(User, :count).by(1)
       
-      # Should redirect to root path in test environment
-      expect(page).to have_current_path(root_path)
-      expect(page).to have_content("Welcome! You have signed up successfully.")
+      # Should redirect to Stripe checkout for paid tiers
+      expect(current_url).to eq("https://checkout.stripe.com/pay/cs_subscription_123")
       
       # Verify business was created with correct attributes and Stripe integration
       business = Business.last
@@ -214,6 +226,15 @@ RSpec.describe "Business Registration", type: :system do
       # Verify Stripe services were called
       expect(StripeService).to have_received(:create_connect_account).with(business)
       expect(StripeService).to have_received(:ensure_stripe_customer_for_business).with(business)
+      
+      # Verify Stripe checkout session was created
+      expect(Stripe::Checkout::Session).to have_received(:create).with(
+        hash_including(
+          mode: 'subscription',
+          customer: business.stripe_customer_id,
+          client_reference_id: business.id
+        )
+      )
     end
   end
 
@@ -228,7 +249,7 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_current_path(new_business_registration_path)
     end
 
-    it "handles Stripe errors gracefully for paid tiers", js: true do
+    it "handles Stripe Connect errors gracefully for paid tiers", js: true do
       allow(StripeService).to receive(:create_connect_account).and_raise(Stripe::APIError.new("Stripe error"))
       
       visit new_business_registration_path
@@ -263,14 +284,59 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Create Business Account"
       }.to change(Business, :count).by(1).and change(User, :count).by(1)
       
-      # Should still succeed even with Stripe error
-      expect(page).to have_current_path(root_path)
-      expect(page).to have_content("Welcome! You have signed up successfully.")
+      # Should still redirect to Stripe checkout even with Connect account error
+      expect(current_url).to eq("https://checkout.stripe.com/pay/cs_subscription_123")
       
-      # Business should be created but without Stripe account
+      # Business should be created but without Stripe Connect account
       business = Business.last
       expect(business.tier).to eq("premium")
       expect(business.stripe_account_id).to be_nil
+      # Customer creation might also fail if Connect account creation fails
+      # but the business should still be created and redirect to Stripe checkout
+    end
+    
+    it "handles Stripe checkout errors gracefully for paid tiers", js: true do
+      allow(Stripe::Checkout::Session).to receive(:create).and_raise(Stripe::APIError.new("Checkout error"))
+      
+      visit new_business_registration_path
+      
+      # Fill in all required fields
+      fill_in "First name", with: "Test"
+      fill_in "Last name", with: "User"
+      fill_in "Email", with: "test2@example.com"
+      fill_in "Password", with: "password123"
+      fill_in "Password confirmation", with: "password123"
+      fill_in "Business Name", with: "Test Business 2"
+      select "Other", from: "Industry"
+      fill_in "Business Phone", with: "555-123-4567"
+      fill_in "Business Contact Email", with: "contact@test2.com"
+      fill_in "Address", with: "123 Test St"
+      fill_in "City", with: "Test City"
+      fill_in "State", with: "CA"
+      fill_in "Zip", with: "12345"
+      fill_in "Description", with: "A test business"
+      
+      # Select premium plan
+      within('.subscription-plan[data-tier="premium"]') do
+        click_button "Select Premium"
+      end
+      
+      # Wait for JavaScript and fill hostname
+      expect(page).to have_field("selected_tier", with: "premium", type: :hidden)
+      expect(page).to have_field("user_business_attributes_hostname", visible: true)
+      fill_in "user_business_attributes_hostname", with: "testbiz2"
+      
+      expect {
+        click_button "Create Business Account"
+      }.to change(Business, :count).by(1).and change(User, :count).by(1)
+      
+      # Should redirect to root path with error message when Stripe checkout fails
+      expect(page).to have_current_path(root_path)
+      expect(page).to have_content("Could not connect to Stripe for subscription setup")
+      
+      # Business should still be created
+      business = Business.last
+      expect(business.tier).to eq("premium")
     end
   end
 end 
