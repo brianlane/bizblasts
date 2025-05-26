@@ -138,8 +138,8 @@ module Public
         
         # Redirect directly to Stripe Checkout instead of payment page
         begin
-          success_url = order_url(@order, payment_success: true)
-          cancel_url = order_url(@order, payment_cancelled: true)
+          success_url = order_url(@order, payment_success: true, host: request.host_with_port)
+          cancel_url = order_url(@order, payment_cancelled: true, host: request.host_with_port)
           
           result = StripeService.create_payment_checkout_session(
             invoice: invoice,

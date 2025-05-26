@@ -17,8 +17,8 @@ module Public
     def new
       # Create Stripe Checkout session and redirect to Stripe
       begin
-        success_url = tenant_invoice_url(@invoice, payment_success: true)
-        cancel_url = tenant_invoice_url(@invoice, payment_cancelled: true)
+        success_url = tenant_invoice_url(@invoice, payment_success: true, host: request.host_with_port)
+        cancel_url = tenant_invoice_url(@invoice, payment_cancelled: true, host: request.host_with_port)
         
         result = StripeService.create_payment_checkout_session(
           invoice: @invoice,

@@ -65,7 +65,13 @@ module Public
         if booking_params[:tenant_customer_id].present? && booking_params[:tenant_customer_id] != 'new'
           customer = current_tenant.tenant_customers.find(booking_params[:tenant_customer_id])
         else
-          nested   = booking_params[:tenant_customer_attributes] || {}
+          # Check if customer selection is required but missing
+          nested = booking_params[:tenant_customer_attributes] || {}
+          if nested[:first_name].blank? && nested[:last_name].blank? && nested[:email].blank?
+            flash[:alert] = "Please select a customer or provide customer details to create a booking."
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+          end
+          
           full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
           customer  = current_tenant.tenant_customers.create!(
             name:  full_name,
@@ -75,7 +81,14 @@ module Public
         end
       else
         # Guest user: build a new TenantCustomer and optional account
-        nested   = booking_params[:tenant_customer_attributes] || {}
+        nested = booking_params[:tenant_customer_attributes] || {}
+        
+        # Check if required customer information is provided
+        if nested[:first_name].blank? && nested[:last_name].blank? && nested[:email].blank?
+          flash[:alert] = "Please provide your contact information to create a booking."
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+        end
+        
         full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
         customer  = current_tenant.tenant_customers.create!(
           name:  full_name,
@@ -125,8 +138,8 @@ module Public
         
         # Redirect directly to Stripe Checkout for all service bookings
         begin
-          success_url = tenant_booking_confirmation_path(@booking, payment_success: true)
-          cancel_url = tenant_booking_confirmation_path(@booking, payment_cancelled: true)
+          success_url = tenant_booking_confirmation_url(@booking, payment_success: true, host: request.host_with_port)
+          cancel_url = tenant_booking_confirmation_url(@booking, payment_cancelled: true, host: request.host_with_port)
           
           result = StripeService.create_payment_checkout_session(
             invoice: @booking.invoice,

@@ -52,8 +52,8 @@ RSpec.describe Public::BookingController, type: :controller do
       # Verify Stripe service was called with correct parameters
       expect(StripeService).to have_received(:create_payment_checkout_session).with(
         invoice: booking.invoice,
-        success_url: tenant_booking_confirmation_path(booking, payment_success: true),
-        cancel_url: tenant_booking_confirmation_path(booking, payment_cancelled: true)
+        success_url: tenant_booking_confirmation_url(booking, payment_success: true, host: 'testtenant.lvh.me'),
+        cancel_url: tenant_booking_confirmation_url(booking, payment_cancelled: true, host: 'testtenant.lvh.me')
       )
     end
 
@@ -84,6 +84,65 @@ RSpec.describe Public::BookingController, type: :controller do
         booking = Booking.last
         expect(response).to redirect_to(tenant_booking_confirmation_path(booking))
         expect(flash[:alert]).to include('This booking amount is too small for online payment')
+      end
+    end
+
+    context 'when staff user does not select a customer' do
+      let(:staff_user) { create(:user, :staff) }
+      let(:invalid_booking_params) do
+        {
+          booking: {
+            service_id: service.id,
+            staff_member_id: staff_member.id,
+            tenant_customer_id: "",  # Empty customer ID
+            start_time: 1.day.from_now,
+            notes: 'Test booking',
+            tenant_customer_attributes: {}  # Empty customer attributes
+          }
+        }
+      end
+
+      before do
+        sign_out user
+        sign_in staff_user
+      end
+
+      it 'redirects with flash error instead of 422' do
+        post :create, params: invalid_booking_params
+        
+        expect(response).to redirect_to(new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id))
+        expect(flash[:alert]).to eq('Please select a customer or provide customer details to create a booking.')
+        
+        # Verify no booking was created
+        expect(Booking.count).to eq(0)
+      end
+    end
+
+    context 'when guest user does not provide contact information' do
+      let(:invalid_guest_booking_params) do
+        {
+          booking: {
+            service_id: service.id,
+            staff_member_id: staff_member.id,
+            start_time: 1.day.from_now,
+            notes: 'Test booking',
+            tenant_customer_attributes: {}  # Empty customer attributes
+          }
+        }
+      end
+
+      before do
+        sign_out user  # Ensure no user is signed in (guest scenario)
+      end
+
+      it 'redirects with flash error instead of 422' do
+        post :create, params: invalid_guest_booking_params
+        
+        expect(response).to redirect_to(new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id))
+        expect(flash[:alert]).to eq('Please provide your contact information to create a booking.')
+        
+        # Verify no booking was created
+        expect(Booking.count).to eq(0)
       end
     end
   end

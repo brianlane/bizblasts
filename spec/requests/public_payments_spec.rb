@@ -25,8 +25,8 @@ RSpec.describe 'Public Payments', type: :request do
       expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
       expect(StripeService).to have_received(:create_payment_checkout_session).with(
         invoice: invoice,
-        success_url: tenant_invoice_url(invoice, payment_success: true),
-        cancel_url: tenant_invoice_url(invoice, payment_cancelled: true)
+        success_url: tenant_invoice_url(invoice, payment_success: true, host: "#{business.subdomain}.example.com"),
+        cancel_url: tenant_invoice_url(invoice, payment_cancelled: true, host: "#{business.subdomain}.example.com")
       )
     end
 
