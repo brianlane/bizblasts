@@ -34,6 +34,8 @@
     <%= f.text_field :q, value: params[:q], class: 'border rounded px-2 py-1' %>
     <%= f.submit 'Search', class: 'ml-2 px-4 py-1 bg-blue-600 text-white rounded' %>
   <% end %>
+  <br>
+  <br>
   <% products = @business.products.active.where(product_type: [:standard, :mixed]) %>
   <% products = products.where('name ILIKE ?', "%#{params[:q]}%") if params[:q].present? %>
   <% if products.any? %>

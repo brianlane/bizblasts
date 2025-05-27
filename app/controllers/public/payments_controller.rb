@@ -18,16 +18,20 @@ module Public
       # Create Stripe Checkout session and redirect to Stripe
       begin
         # For guest users, include the token in the success/cancel URLs
-        url_params = { payment_success: true, host: request.host_with_port }
-        cancel_params = { payment_cancelled: true, host: request.host_with_port }
+        url_params = { type: 'invoice', payment_success: true, host: request.host_with_port }
+        cancel_params = { type: 'invoice', payment_cancelled: true, host: request.host_with_port }
         
         unless current_user
-          url_params[:token] = @invoice.guest_access_token
-          cancel_params[:token] = @invoice.guest_access_token
+          # For guest users, still redirect to invoice view with token since they can't access transactions
+          url_params = { payment_success: true, host: request.host_with_port, token: @invoice.guest_access_token }
+          cancel_params = { payment_cancelled: true, host: request.host_with_port, token: @invoice.guest_access_token }
+          success_url = tenant_invoice_url(@invoice, url_params)
+          cancel_url = tenant_invoice_url(@invoice, cancel_params)
+        else
+          # For authenticated users, redirect to transactions view
+          success_url = tenant_transaction_url(@invoice, url_params)
+          cancel_url = tenant_transaction_url(@invoice, cancel_params)
         end
-        
-        success_url = tenant_invoice_url(@invoice, url_params)
-        cancel_url = tenant_invoice_url(@invoice, cancel_params)
         
         result = StripeService.create_payment_checkout_session(
           invoice: @invoice,
@@ -86,7 +90,7 @@ module Public
 
     def redirect_to_invoice_with_token(flash_options = {})
       if current_user
-        redirect_to tenant_invoice_path(@invoice), flash_options
+        redirect_to tenant_transaction_path(@invoice, type: 'invoice'), flash_options
       else
         redirect_to tenant_invoice_path(@invoice, token: @invoice.guest_access_token), flash_options
       end

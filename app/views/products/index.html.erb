@@ -7,6 +7,10 @@
     <%= f.submit 'Search', class: 'ml-2 px-4 py-1 bg-blue-600 text-white rounded' %>
   <% end %>
 
+  <br>
+  <br>
+
+
   <% if @products.any? %>
     <div class="space-y-4">
       <% @products.order(:name).each do |product| %>

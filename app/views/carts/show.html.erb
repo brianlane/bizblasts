@@ -1,40 +1,88 @@
-<h1>Your Cart</h1>
-<% if @cart.any? %>
-  <table>
-    <thead>
-      <tr>
-        <th>Product</th>
-        <th>Variant</th>
-        <th>Quantity</th>
-        <th>Price</th>
-        <th>Total</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% total = 0 %>
-      <% @cart.each do |variant, quantity| %>
-        <tr>
-          <td><%= variant.product.name %></td>
-          <td><%= variant.name %></td>
-          <td>
-            <%= form_with(url: line_item_path(variant.id), method: :patch, class: 'quantity-form', data: { remote: true }) do |f| %>
-              <%= f.number_field :quantity, value: quantity, min: 1, class: 'quantity-input' %>
-              <%= f.submit 'Update', class: 'update-btn' %>
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <h1 class="text-3xl font-bold text-dark mb-6 flex items-center">
+      <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6m0 0h9M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"></path>
+      </svg>
+      Your Cart
+    </h1>
+    
+    <% if @cart.any? %>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-light">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-dark uppercase tracking-wider">Product</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-dark uppercase tracking-wider">Variant</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-dark uppercase tracking-wider">Quantity</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-dark uppercase tracking-wider">Price</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-dark uppercase tracking-wider">Total</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-dark uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% total = 0 %>
+            <% @cart.each do |variant, quantity| %>
+              <tr class="hover:bg-gray-50 transition-colors duration-200">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-dark"><%= variant.product.name %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-700"><%= variant.name %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <%= form_with(url: line_item_path(variant.id), method: :patch, class: 'flex items-center space-x-2', data: { remote: true }) do |f| %>
+                    <%= f.number_field :quantity, value: quantity, min: 1, class: 'w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-primary focus:border-primary' %>
+                    <%= f.submit 'Update', class: 'px-3 py-1 bg-secondary text-white text-xs rounded-md hover:bg-opacity-90 transition-colors duration-200' %>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-dark"><%= number_to_currency(variant.final_price) %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-bold text-primary"><%= number_to_currency(variant.final_price * quantity) %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <%= button_to 'Remove', line_item_path(variant.id), method: :delete, remote: true, 
+                      class: 'inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-error hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error transition-colors duration-200',
+                      data: { confirm: 'Are you sure you want to remove this item?' } %>
+                </td>
+              </tr>
+              <% total += variant.final_price * quantity %>
             <% end %>
-          </td>
-          <td><%= number_to_currency(variant.final_price) %></td>
-          <td><%= number_to_currency(variant.final_price * quantity) %></td>
-          <td>
-            <%= button_to 'Remove', line_item_path(variant.id), method: :delete, remote: true %>
-          </td>
-        </tr>
-        <% total += variant.final_price * quantity %>
-      <% end %>
-    </tbody>
-  </table>
-  <h3>Subtotal: <%= number_to_currency(total) %></h3>
-  <%= link_to 'Checkout', new_order_path, class: 'btn btn-primary' %>
-<% else %>
-  <p>Your cart is empty.</p>
-<% end %> 
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="mt-8 border-t pt-6">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <div class="text-2xl font-bold text-dark">
+              Subtotal: <span class="text-primary"><%= number_to_currency(total) %></span>
+            </div>
+            <p class="text-sm text-gray-600 mt-1">Shipping and taxes calculated at checkout</p>
+          </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-between">
+          <%= link_to 'Continue Shopping', products_path, 
+              class: 'inline-flex items-center justify-center px-6 py-3 border border-primary text-base font-medium rounded-md text-primary bg-white hover:bg-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200' %>
+          <%= link_to 'Proceed to Checkout', new_order_path, 
+              class: 'inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200' %>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-12">
+        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6m0 0h9M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"></path>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-dark">Your cart is empty</h3>
+        <p class="mt-2 text-gray-600">Start shopping to add items to your cart.</p>
+        <div class="mt-6">
+          <%= link_to 'Browse Products', products_path, 
+              class: 'inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200' %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div> 
