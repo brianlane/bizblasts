@@ -104,6 +104,7 @@ class Invoice < ApplicationRecord
 
   before_validation :calculate_totals
   before_validation :set_invoice_number, on: :create
+  before_validation :set_guest_access_token, on: :create
 
   private
 
@@ -114,5 +115,12 @@ class Invoice < ApplicationRecord
       self.invoice_number = "INV-#{SecureRandom.hex(6).upcase}"
       break unless self.class.exists?(business_id: self.business_id, invoice_number: self.invoice_number)
     end
+  end
+
+  def set_guest_access_token
+    return if guest_access_token.present?
+    
+    # Generate a secure random token for guest access
+    self.guest_access_token = SecureRandom.urlsafe_base64(32)
   end
 end 

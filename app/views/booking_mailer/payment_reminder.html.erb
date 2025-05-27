@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+      .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+      .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+      .booking-details { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      .payment-section { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      .experience-warning { background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      .tier-benefits { background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      .button { display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+      .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 14px; color: #6c757d; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Payment <%= @booking.service.experience? ? 'Required' : 'Reminder' %></h1>
+        <p>Hello <%= @customer.name %>,</p>
+      </div>
+
+      <% if @booking.service.experience? %>
+        <div class="experience-warning">
+          <h3>⚠️ Immediate Payment Required</h3>
+          <p>Your experience booking requires payment to confirm your spot. Experience services have limited availability and require immediate payment to secure your reservation.</p>
+        </div>
+      <% else %>
+        <div class="payment-section">
+          <h3>💳 Payment Reminder</h3>
+          <p>This is a friendly reminder about your upcoming service booking. While payment is not required to maintain your booking, you can pay now for convenience or pay after your service.</p>
+        </div>
+      <% end %>
+
+      <div class="booking-details">
+        <h3>Booking Details</h3>
+        <p><strong>Service:</strong> <%= @booking.service.name %></p>
+        <p><strong>Date & Time:</strong> <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
+        <p><strong>Duration:</strong> <%= @booking.service.duration %> minutes</p>
+        <% if @booking.service.experience? && @booking.quantity > 1 %>
+          <p><strong>Attendees:</strong> <%= @booking.quantity %></p>
+        <% end %>
+        <p><strong>Staff:</strong> <%= @booking.staff_member&.name || 'Any available staff' %></p>
+        <% if @booking.notes.present? %>
+          <p><strong>Notes:</strong> <%= @booking.notes %></p>
+        <% end %>
+      </div>
+
+      <% if @invoice %>
+        <div class="payment-section">
+          <h3>Invoice Information</h3>
+          <p><strong>Invoice Number:</strong> <%= @invoice.invoice_number %></p>
+          <p><strong>Amount Due:</strong> <%= number_to_currency(@invoice.total_amount) %></p>
+          <p><strong>Due Date:</strong> <%= @invoice.due_date.strftime("%B %d, %Y") %></p>
+          
+          <% if @booking.service.experience? %>
+            <p><strong>Payment Status:</strong> <span style="color: #dc3545;">Payment Required to Confirm</span></p>
+          <% else %>
+            <p><strong>Payment Status:</strong> <span style="color: #ffc107;">Optional - Pay Now or Later</span></p>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @tier_benefits.present? %>
+        <div class="tier-benefits">
+          <h3>Your Business Tier Benefits</h3>
+          <p><%= @tier_benefits %></p>
+        </div>
+      <% end %>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <% if @invoice %>
+          <a href="<%= new_tenant_payment_url(@business.subdomain, invoice_id: @invoice.id) %>" class="button">
+            <%= @booking.service.experience? ? 'Pay Now to Confirm' : 'Pay Online Now' %>
+          </a>
+          <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">
+            No account required - pay securely as a guest
+          </p>
+          <p style="font-size: 11px; color: #adb5bd; margin-top: 5px;">
+            <a href="<%= tenant_invoice_url(@business.subdomain, @invoice.id, token: @invoice.guest_access_token) %>" style="color: #6c757d;">View Invoice Details</a>
+          </p>
+        <% end %>
+      </div>
+
+      <% unless @booking.service.experience? %>
+        <p style="text-align: center; color: #6c757d; font-style: italic;">
+          Remember: Your booking is confirmed regardless of payment timing. You can also pay in person after your service.
+        </p>
+      <% end %>
+
+      <div class="footer">
+        <p>Thank you for choosing <%= @business.name %>!</p>
+        <p>If you have any questions, please contact us directly.</p>
+        <p style="font-size: 12px; color: #adb5bd;">
+          This email was sent regarding your booking at <%= @business.name %>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html> 

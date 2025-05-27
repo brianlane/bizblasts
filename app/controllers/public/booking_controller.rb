@@ -134,22 +134,73 @@ module Public
         render :new, status: :unprocessable_entity and return
       end
 
-      if @booking.save
-        generate_or_update_invoice_for_booking(@booking)
-        
-        # Check if current user is business staff/manager making booking for client
-        if current_user.present? && (current_user.staff? || current_user.manager?)
-          # Business users creating bookings for clients should not be redirected to payment
+      # Check if current user is business staff/manager making booking for client
+      if current_user.present? && (current_user.staff? || current_user.manager?)
+        # Business users creating bookings for clients - create booking immediately
+        if @booking.save
+          generate_or_update_invoice_for_booking(@booking)
           flash[:notice] = "Booking was successfully created."
           redirect_to tenant_booking_confirmation_path(@booking)
         else
-          # Redirect directly to Stripe Checkout for client and guest bookings
+          flash.now[:alert] = @booking.errors.full_messages.to_sentence
+          render :new, status: :unprocessable_entity
+        end
+      else
+        # Client and guest users - validate booking but don't save yet for experience services
+        # For standard services, save immediately and allow flexible payment
+        if @service.experience?
+          # Experience services require immediate payment - redirect to Stripe
+          # Create a temporary invoice to calculate the total amount for Stripe
+          temp_invoice = Invoice.new(
+            tenant_customer: customer,
+            business: current_tenant,
+            due_date: @booking.start_time.to_date,
+            status: :pending
+          )
+          
+          # Calculate total amount including service and any add-ons
+          service_amount = @service.price || 0
+          addon_amount = 0
+          
+          if @booking.booking_product_add_ons.any?
+            addon_amount = @booking.booking_product_add_ons.sum do |addon|
+              variant = ProductVariant.find_by(id: addon.product_variant_id)
+              next 0 unless variant
+              
+              base_price = variant.product.price || 0
+              modifier = variant.price_modifier || 0
+              final_price = base_price + modifier
+              final_price * addon.quantity
+            end
+          end
+          
+          total_amount = service_amount + addon_amount
+          temp_invoice.total_amount = total_amount
+          
+          # Prepare booking data for Stripe metadata
+          booking_data = {
+            service_id: @booking.service_id,
+            staff_member_id: @booking.staff_member_id,
+            start_time: @booking.start_time.iso8601,
+            end_time: @booking.end_time.iso8601,
+            notes: @booking.notes,
+            tenant_customer_id: customer.id,
+            booking_product_add_ons: @booking.booking_product_add_ons.map do |addon|
+              {
+                product_variant_id: addon.product_variant_id,
+                quantity: addon.quantity
+              }
+            end
+          }
+          
+          # Redirect directly to Stripe Checkout for experience services
           begin
-            success_url = tenant_booking_confirmation_url(@booking, payment_success: true, host: request.host_with_port)
-            cancel_url = tenant_booking_confirmation_url(@booking, payment_cancelled: true, host: request.host_with_port)
+            success_url = tenant_booking_confirmation_url('PENDING', payment_success: true, host: request.host_with_port)
+            cancel_url = new_tenant_booking_url(service_id: @service.id, staff_member_id: @booking.staff_member_id, payment_cancelled: true, host: request.host_with_port)
             
-            result = StripeService.create_payment_checkout_session(
-              invoice: @booking.invoice,
+            result = StripeService.create_payment_checkout_session_for_booking(
+              invoice: temp_invoice,
+              booking_data: booking_data,
               success_url: success_url,
               cancel_url: cancel_url
             )
@@ -158,18 +209,30 @@ module Public
           rescue ArgumentError => e
             if e.message.include?("Payment amount must be at least")
               flash[:alert] = "This booking amount is too small for online payment. Please contact the business directly."
-              redirect_to tenant_booking_confirmation_path(@booking)
+              redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
             else
               raise e
             end
           rescue Stripe::StripeError => e
             flash[:alert] = "Could not connect to Stripe: #{e.message}"
+            redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
+          end
+        else
+          # Standard services allow flexible payment - create booking immediately
+          if @booking.save
+            # Generate invoice for the booking
+            generate_or_update_invoice_for_booking(@booking)
+            
+            # Set appropriate status - confirmed for standard services even without payment
+            @booking.update!(status: :confirmed)
+            
+            flash[:notice] = "Booking confirmed! You can pay now or later."
             redirect_to tenant_booking_confirmation_path(@booking)
+          else
+            flash.now[:alert] = @booking.errors.full_messages.to_sentence
+            render :new, status: :unprocessable_entity
           end
         end
-      else
-        flash.now[:alert] = @booking.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity
       end
     end
 
@@ -179,6 +242,16 @@ module Public
         Rails.logger.warn "[Public::BookingController#confirmation] Tenant not set for request: #{request.host}"
         return
       end
+      
+      # Handle payment success for pending bookings
+      if params[:id] == 'PENDING' && params[:payment_success] == 'true'
+        # Payment was successful, booking should have been created by webhook
+        # Show a generic success message and redirect to find their booking
+        flash[:notice] = "Payment successful! Your booking has been confirmed."
+        redirect_to tenant_root_path
+        return
+      end
+      
       # Ensure the booking belongs to the current tenant
       @booking = current_tenant.bookings.find_by(id: params[:id])
       

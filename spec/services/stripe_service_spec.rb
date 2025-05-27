@@ -94,6 +94,75 @@ RSpec.describe StripeService, type: :service do
     end
   end
 
+  describe '.create_payment_checkout_session_for_booking' do
+    let(:mock_session) do
+      double('Stripe::Checkout::Session', 
+        id: 'cs_booking_test123',
+        url: 'https://checkout.stripe.com/pay/cs_booking_test123',
+        payment_intent: 'pi_booking_test123'
+      )
+    end
+    let(:mock_customer) { double('Stripe::Customer', id: 'cus_test123') }
+    let(:booking_data) do
+      {
+        service_id: 1,
+        staff_member_id: 1,
+        start_time: 1.day.from_now.iso8601,
+        end_time: (1.day.from_now + 1.hour).iso8601,
+        notes: 'Test booking',
+        tenant_customer_id: tenant_customer.id,
+        booking_product_add_ons: []
+      }
+    end
+
+    before do
+      allow(StripeService).to receive(:ensure_stripe_customer_for_tenant).and_return(mock_customer)
+      allow(Stripe::Checkout::Session).to receive(:create).and_return(mock_session)
+    end
+
+    it 'creates a checkout session with booking data in metadata' do
+      success_url = 'http://example.com/success'
+      cancel_url = 'http://example.com/cancel'
+
+      result = StripeService.create_payment_checkout_session_for_booking(
+        invoice: invoice,
+        booking_data: booking_data,
+        success_url: success_url,
+        cancel_url: cancel_url
+      )
+
+      expect(Stripe::Checkout::Session).to have_received(:create).with(
+        hash_including(
+          payment_method_types: ['card'],
+          mode: 'payment',
+          success_url: success_url,
+          cancel_url: cancel_url,
+          customer: 'cus_test123',
+          metadata: hash_including(
+            booking_type: 'service_booking',
+            booking_data: booking_data.to_json
+          )
+        )
+      )
+
+      expect(result[:session]).to eq(mock_session)
+      expect(result[:payment]).to be_nil
+    end
+
+    it 'raises error for amounts below minimum' do
+      low_amount_invoice = create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 0.25)
+
+      expect {
+        StripeService.create_payment_checkout_session_for_booking(
+          invoice: low_amount_invoice,
+          booking_data: booking_data,
+          success_url: 'http://example.com/success',
+          cancel_url: 'http://example.com/cancel'
+        )
+      }.to raise_error(ArgumentError, /Payment amount must be at least/)
+    end
+  end
+
   describe '.handle_checkout_session_completed' do
     let(:session_data) do
       {
@@ -155,6 +224,71 @@ RSpec.describe StripeService, type: :service do
       }.not_to change(Payment, :count)
 
       expect(existing_payment.reload.status).to eq('completed')
+    end
+  end
+
+  describe '.handle_booking_payment_completion' do
+    let!(:service) { create(:service, business: business, price: 50.00) }
+    let!(:staff_member) { create(:staff_member, business: business) }
+    let(:booking_session_data) do
+      {
+        'id' => 'cs_booking_test123',
+        'payment_intent' => 'pi_booking_test123',
+        'customer' => 'cus_test123',
+        'metadata' => {
+          'business_id' => business.id.to_s,
+          'tenant_customer_id' => tenant_customer.id.to_s,
+          'booking_type' => 'service_booking',
+          'booking_data' => {
+            service_id: service.id,
+            staff_member_id: staff_member.id,
+            start_time: 1.day.from_now.iso8601,
+            end_time: (1.day.from_now + 1.hour).iso8601,
+            notes: 'Test booking from webhook',
+            tenant_customer_id: tenant_customer.id,
+            booking_product_add_ons: []
+          }.to_json
+        }
+      }
+    end
+
+    it 'creates booking and payment after successful payment' do
+      expect {
+        StripeService.handle_booking_payment_completion(booking_session_data)
+      }.to change(Booking, :count).by(1)
+       .and change(Payment, :count).by(1)
+       .and change(Invoice, :count).by(1)
+
+      booking = Booking.last
+      expect(booking.service).to eq(service)
+      expect(booking.staff_member).to eq(staff_member)
+      expect(booking.tenant_customer).to eq(tenant_customer)
+      expect(booking.status).to eq('confirmed')
+      expect(booking.notes).to eq('Test booking from webhook')
+
+      payment = Payment.last
+      expect(payment.stripe_payment_intent_id).to eq('pi_booking_test123')
+      expect(payment.stripe_customer_id).to eq('cus_test123')
+      expect(payment.status).to eq('completed')
+      expect(payment.payment_method).to eq('credit_card')
+      expect(payment.invoice.booking).to eq(booking)
+
+      invoice = Invoice.last
+      expect(invoice.status).to eq('paid')
+      expect(invoice.booking).to eq(booking)
+    end
+
+    it 'handles missing business or customer gracefully' do
+      invalid_session_data = booking_session_data.dup
+      invalid_session_data['metadata']['business_id'] = '999999'
+
+      allow(Rails.logger).to receive(:error)
+
+      expect {
+        StripeService.handle_booking_payment_completion(invalid_session_data)
+      }.not_to change(Booking, :count)
+
+      expect(Rails.logger).to have_received(:error).with(/Could not find business/)
     end
   end
 end 

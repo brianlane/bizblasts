@@ -10,11 +10,6 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
     create(:services_staff_member, service: service, staff_member: staff_member)
     ActsAsTenant.current_tenant = business
     set_tenant(business)
-    
-    # Mock Stripe checkout session creation for all tests
-    allow(StripeService).to receive(:create_payment_checkout_session).and_return({
-      session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_guest_booking_123')
-    })
   end
 
   let(:date) { Date.today.next_day }
@@ -39,12 +34,14 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       fill_in 'Notes', with: 'Guest booking test'
       click_button 'Confirm Booking'
 
-      # Should redirect to Stripe (mocked)
-      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_booking_123')
+      # Should redirect to confirmation page for standard services
+      expect(current_path).to match(%r{/booking/\d+/confirmation})
+      expect(page).to have_content('Booking confirmed! You can pay now or later.')
       
       # Ensure record persisted
       booking = Booking.find_by(service: service, staff_member: staff_member, notes: 'Guest booking test')
       expect(booking).not_to be_nil
+      expect(booking.status).to eq('confirmed')
       expect(booking.invoice).to be_present
     end
   end
@@ -70,8 +67,9 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       fill_in 'Notes', with: 'Booking with account'
       click_button 'Confirm Booking'
 
-      # Should redirect to Stripe (mocked)
-      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_booking_123')
+      # Should redirect to confirmation page for standard services
+      expect(current_path).to match(%r{/booking/\d+/confirmation})
+      expect(page).to have_content('Booking confirmed! You can pay now or later.')
       
       # Ensure user is created and signed in
       expect(User.find_by(email: 'jane.doe@example.com')).to be_present
@@ -79,6 +77,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       # Verify booking was created
       booking = Booking.last
       expect(booking).to be_present
+      expect(booking.status).to eq('confirmed')
       expect(booking.invoice).to be_present
     end
   end

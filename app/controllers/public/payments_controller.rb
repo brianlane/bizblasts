@@ -17,8 +17,17 @@ module Public
     def new
       # Create Stripe Checkout session and redirect to Stripe
       begin
-        success_url = tenant_invoice_url(@invoice, payment_success: true, host: request.host_with_port)
-        cancel_url = tenant_invoice_url(@invoice, payment_cancelled: true, host: request.host_with_port)
+        # For guest users, include the token in the success/cancel URLs
+        url_params = { payment_success: true, host: request.host_with_port }
+        cancel_params = { payment_cancelled: true, host: request.host_with_port }
+        
+        unless current_user
+          url_params[:token] = @invoice.guest_access_token
+          cancel_params[:token] = @invoice.guest_access_token
+        end
+        
+        success_url = tenant_invoice_url(@invoice, url_params)
+        cancel_url = tenant_invoice_url(@invoice, cancel_params)
         
         result = StripeService.create_payment_checkout_session(
           invoice: @invoice,
@@ -30,14 +39,14 @@ module Public
       rescue ArgumentError => e
         if e.message.include?("Payment amount must be at least")
           flash[:alert] = "This invoice amount is too small for online payment. Please contact the business directly."
-          redirect_to tenant_invoice_path(@invoice)
+          redirect_to_invoice_with_token
           return
         else
           raise e
         end
       rescue Stripe::StripeError => e
         flash[:alert] = "Could not connect to Stripe: #{e.message}"
-        redirect_to tenant_invoice_path(@invoice)
+        redirect_to_invoice_with_token
       end
     end
 
@@ -45,7 +54,7 @@ module Public
     def create
       # This method can be kept for backward compatibility or webhook processing
       # The main payment flow now goes through Stripe Checkout
-      redirect_to tenant_invoice_path(@invoice), notice: 'Please use the payment link to complete your payment.'
+      redirect_to_invoice_with_token(notice: 'Please use the payment link to complete your payment.')
     end
 
     private
@@ -73,6 +82,14 @@ module Public
         raise ActiveRecord::RecordNotFound
       end
       raise ActiveRecord::RecordNotFound unless @invoice
+    end
+
+    def redirect_to_invoice_with_token(flash_options = {})
+      if current_user
+        redirect_to tenant_invoice_path(@invoice), flash_options
+      else
+        redirect_to tenant_invoice_path(@invoice, token: @invoice.guest_access_token), flash_options
+      end
     end
   end
 end 

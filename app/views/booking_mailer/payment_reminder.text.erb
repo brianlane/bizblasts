@@ -1,0 +1,64 @@
+Payment <%= @booking.service.experience? ? 'Required' : 'Reminder' %> - <%= @business.name %>
+
+Hello <%= @customer.name %>,
+
+<% if @booking.service.experience? %>
+⚠️ IMMEDIATE PAYMENT REQUIRED
+
+Your experience booking requires payment to confirm your spot. Experience services have limited availability and require immediate payment to secure your reservation.
+<% else %>
+💳 PAYMENT REMINDER
+
+This is a friendly reminder about your upcoming service booking. While payment is not required to maintain your booking, you can pay now for convenience or pay after your service.
+<% end %>
+
+BOOKING DETAILS
+===============
+Service: <%= @booking.service.name %>
+Date & Time: <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %>
+Duration: <%= @booking.service.duration %> minutes
+<% if @booking.service.experience? && @booking.quantity > 1 %>
+Attendees: <%= @booking.quantity %>
+<% end %>
+Staff: <%= @booking.staff_member&.name || 'Any available staff' %>
+<% if @booking.notes.present? %>
+Notes: <%= @booking.notes %>
+<% end %>
+
+<% if @invoice %>
+INVOICE INFORMATION
+==================
+Invoice Number: <%= @invoice.invoice_number %>
+Amount Due: <%= number_to_currency(@invoice.total_amount) %>
+Due Date: <%= @invoice.due_date.strftime("%B %d, %Y") %>
+
+<% if @booking.service.experience? %>
+Payment Status: PAYMENT REQUIRED TO CONFIRM
+<% else %>
+Payment Status: OPTIONAL - PAY NOW OR LATER
+<% end %>
+<% end %>
+
+<% if @tier_benefits.present? %>
+YOUR BUSINESS TIER BENEFITS
+===========================
+<%= @tier_benefits %>
+<% end %>
+
+<% if @invoice %>
+To pay online, visit: <%= new_tenant_payment_url(@business.subdomain, invoice_id: @invoice.id) %>
+
+To view invoice details, visit: <%= tenant_invoice_url(@business.subdomain, @invoice.id, token: @invoice.guest_access_token) %>
+
+(No account required - you can pay securely as a guest)
+<% end %>
+
+<% unless @booking.service.experience? %>
+Remember: Your booking is confirmed regardless of payment timing.
+
+Thank you for choosing <%= @business.name %>!
+
+If you have any questions, please contact us directly.
+
+---
+This email was sent regarding your booking at <%= @business.name %>. 

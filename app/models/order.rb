@@ -161,4 +161,6 @@ class Order < ApplicationRecord
       # Mixed orders can contain both, no validation needed
     end
   end
+
+
 end
