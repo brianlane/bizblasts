@@ -36,13 +36,9 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
-      # Mock Stripe checkout session creation
-      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
-        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_booking_123')
-      })
     end
 
-    it 'redirects directly to Stripe Checkout after booking' do
+    it 'creates booking and redirects to confirmation for standard services' do
       with_subdomain('testbiz') do
         # Sign in
         visit new_user_session_path
@@ -63,21 +59,17 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         
         click_button 'Confirm Booking'
         
-        # Should redirect to Stripe (mocked)
-        expect(current_url).to eq('https://checkout.stripe.com/pay/cs_booking_123')
+        # Should redirect to confirmation page for standard services
+        expect(current_path).to match(%r{/booking/\d+/confirmation})
+        expect(page).to have_content('Booking confirmed! You can pay now or later.')
         
         # Verify booking was created
+        expect(Booking.count).to eq(1)
         booking = Booking.last
-        expect(booking).to be_present
-        expect(booking.tenant_customer).to eq(tenant_customer)
+        expect(booking.status).to eq('confirmed')
+        expect(booking.service).to eq(service)
+        expect(booking.staff_member).to eq(staff_member)
         expect(booking.invoice).to be_present
-        
-        # Verify Stripe service was called with correct parameters
-        expect(StripeService).to have_received(:create_payment_checkout_session).with(
-          invoice: booking.invoice,
-          success_url: "http://testbiz.lvh.me:9887/booking/#{booking.id}/confirmation?payment_success=true",
-          cancel_url: "http://testbiz.lvh.me:9887/booking/#{booking.id}/confirmation?payment_cancelled=true"
-        )
       end
     end
   end
@@ -88,13 +80,9 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
-      # Mock Stripe checkout session creation
-      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
-        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_guest_booking_456')
-      })
     end
 
-    it 'redirects guest booking directly to Stripe Checkout' do
+    it 'creates guest booking and redirects to confirmation for standard services' do
       with_subdomain('testbiz') do
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
         
@@ -114,14 +102,22 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         
         click_button 'Confirm Booking'
         
-        # Should redirect to Stripe (mocked)
-        expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_booking_456')
+        # Should redirect to confirmation page for standard services
+        expect(current_path).to match(%r{/booking/\d+/confirmation})
+        expect(page).to have_content('Booking confirmed! You can pay now or later.')
         
         # Verify booking was created
+        expect(Booking.count).to eq(1)
         booking = Booking.last
-        expect(booking).to be_present
-        expect(booking.tenant_customer.email).to eq('guest@example.com')
+        expect(booking.status).to eq('confirmed')
+        expect(booking.service).to eq(service)
+        expect(booking.staff_member).to eq(staff_member)
         expect(booking.invoice).to be_present
+        
+        # Verify customer was created
+        customer = TenantCustomer.find_by(email: 'guest@example.com')
+        expect(customer).to be_present
+        expect(customer.name).to eq('Guest Customer')
       end
     end
   end

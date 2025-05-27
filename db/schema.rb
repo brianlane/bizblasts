@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_26_200402) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_27_151749) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -266,6 +266,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_26_200402) do
     t.bigint "shipping_method_id"
     t.bigint "tax_rate_id"
     t.bigint "order_id"
+    t.string "guest_access_token"
     t.index ["booking_id"], name: "index_invoices_on_booking_id"
     t.index ["business_id"], name: "index_invoices_on_business_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"

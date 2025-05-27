@@ -19,7 +19,7 @@ RSpec.describe Public::BookingController, type: :controller do
   describe 'POST #create' do
     before do
       # Mock the checkout session creation for the redirect
-      allow(StripeService).to receive(:create_payment_checkout_session).and_return({
+      allow(StripeService).to receive(:create_payment_checkout_session_for_booking).and_return({
         session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_booking_test_123')
       })
     end
@@ -35,55 +35,87 @@ RSpec.describe Public::BookingController, type: :controller do
       }
     end
 
-    it 'creates booking and redirects to Stripe Checkout' do
+    it 'creates booking and redirects to confirmation for standard services' do
       post :create, params: valid_booking_params
       
-      # Should redirect to Stripe instead of the confirmation page
-      expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_booking_test_123')
+      # Should redirect to confirmation page for standard services
+      booking = Booking.last
+      expect(response).to redirect_to(tenant_booking_confirmation_path(booking))
       
       # Verify booking was created
-      booking = Booking.last
+      expect(Booking.count).to eq(1)
       expect(booking).to be_present
-      expect(booking.tenant_customer).to eq(tenant_customer)
       expect(booking.service).to eq(service)
       expect(booking.staff_member).to eq(staff_member)
+      expect(booking.status).to eq('confirmed')
       expect(booking.invoice).to be_present
       
-      # Verify Stripe service was called with correct parameters
-      expect(StripeService).to have_received(:create_payment_checkout_session).with(
-        invoice: booking.invoice,
-        success_url: tenant_booking_confirmation_url(booking, payment_success: true, host: 'testtenant.lvh.me'),
-        cancel_url: tenant_booking_confirmation_url(booking, payment_cancelled: true, host: 'testtenant.lvh.me')
-      )
+      # Verify Stripe service was NOT called for standard services
+      expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
     end
 
-    context 'when Stripe error occurs' do
+    context 'with experience service' do
+      let!(:experience_service) { create(:service, business: business, name: 'Experience Service', price: 50.00, duration: 30, service_type: :experience, min_bookings: 1, max_bookings: 5, spots: 5) }
+      let(:experience_booking_params) do
+        {
+          booking: {
+            service_id: experience_service.id,
+            staff_member_id: staff_member.id,
+            start_time: 1.day.from_now,
+            notes: 'Test experience booking'
+          }
+        }
+      end
+
       before do
-        allow(StripeService).to receive(:create_payment_checkout_session)
-          .and_raise(Stripe::StripeError.new('Stripe connection error'))
+        create(:services_staff_member, service: experience_service, staff_member: staff_member)
       end
 
-      it 'redirects to confirmation with error message' do
-        post :create, params: valid_booking_params
+      it 'redirects to Stripe Checkout for experience services' do
+        post :create, params: experience_booking_params
         
-        booking = Booking.last
-        expect(response).to redirect_to(tenant_booking_confirmation_path(booking))
-        expect(flash[:alert]).to include('Could not connect to Stripe')
-      end
-    end
-
-    context 'when booking amount is too small' do
-      before do
-        allow(StripeService).to receive(:create_payment_checkout_session)
-          .and_raise(ArgumentError, "Payment amount must be at least $0.50 USD")
-      end
-
-      it 'redirects to confirmation with error message' do
-        post :create, params: valid_booking_params
+        # Should redirect to Stripe for experience services
+        expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_booking_test_123')
         
-        booking = Booking.last
-        expect(response).to redirect_to(tenant_booking_confirmation_path(booking))
-        expect(flash[:alert]).to include('This booking amount is too small for online payment')
+        # Verify booking was NOT created yet (will be created after payment)
+        expect(Booking.count).to eq(0)
+        
+        # Verify Stripe service was called
+        expect(StripeService).to have_received(:create_payment_checkout_session_for_booking)
+      end
+
+      context 'when Stripe error occurs' do
+        before do
+          allow(StripeService).to receive(:create_payment_checkout_session_for_booking)
+            .and_raise(Stripe::StripeError.new('Stripe connection error'))
+        end
+
+        it 'redirects to booking form with error message' do
+          post :create, params: experience_booking_params
+          
+          expect(response).to redirect_to(new_tenant_booking_path(service_id: experience_service.id, staff_member_id: staff_member.id))
+          expect(flash[:alert]).to include('Could not connect to Stripe')
+          
+          # Verify no booking was created
+          expect(Booking.count).to eq(0)
+        end
+      end
+
+      context 'when booking amount is too small' do
+        before do
+          allow(StripeService).to receive(:create_payment_checkout_session_for_booking)
+            .and_raise(ArgumentError, "Payment amount must be at least $0.50 USD")
+        end
+
+        it 'redirects to booking form with error message' do
+          post :create, params: experience_booking_params
+          
+          expect(response).to redirect_to(new_tenant_booking_path(service_id: experience_service.id, staff_member_id: staff_member.id))
+          expect(flash[:alert]).to include('This booking amount is too small for online payment')
+          
+          # Verify no booking was created
+          expect(Booking.count).to eq(0)
+        end
       end
     end
 
@@ -126,7 +158,7 @@ RSpec.describe Public::BookingController, type: :controller do
         expect(booking.invoice).to be_present
         
         # Verify Stripe service was NOT called
-        expect(StripeService).not_to have_received(:create_payment_checkout_session)
+        expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
       end
     end
 
@@ -169,7 +201,7 @@ RSpec.describe Public::BookingController, type: :controller do
         expect(booking.invoice).to be_present
         
         # Verify Stripe service was NOT called
-        expect(StripeService).not_to have_received(:create_payment_checkout_session)
+        expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
       end
     end
 

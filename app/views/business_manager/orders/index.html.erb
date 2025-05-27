@@ -52,6 +52,67 @@
         </div>
       </div>
       
+      <!-- Status Dashboards by Order Type -->
+      <div class="status-dashboards">
+        <div class="dashboard-section">
+          <h3>Product Orders</h3>
+          <div class="status-cards">
+            <div class="status-card payment">
+              <div class="card-number"><%= @current_business.orders.products.status_pending_payment.count %></div>
+              <div class="card-label">Pending Payment</div>
+              <div class="card-description">Require immediate payment</div>
+            </div>
+            <div class="status-card ready">
+              <div class="card-number"><%= @current_business.orders.products.status_paid.count %></div>
+              <div class="card-label">Ready to Ship</div>
+              <div class="card-description">Paid, ready for fulfillment</div>
+            </div>
+            <div class="status-card shipped">
+              <div class="card-number"><%= @current_business.orders.products.status_shipped.count %></div>
+              <div class="card-label">Shipped</div>
+              <div class="card-description">Products sent to customer</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-section">
+          <h3>Service Bookings</h3>
+          <div class="status-cards">
+            <div class="status-card scheduled">
+              <div class="card-number"><%= @current_business.orders.services.status_processing.count %></div>
+              <div class="card-label">Scheduled</div>
+              <div class="card-description">Confirmed bookings</div>
+            </div>
+            <div class="status-card completed">
+              <div class="card-number"><%= @current_business.orders.services.status_paid.count %></div>
+              <div class="card-label">Completed</div>
+              <div class="card-description">Service finished</div>
+            </div>
+            <div class="status-card payment-pending">
+              <div class="card-number"><%= @current_business.orders.services.status_pending_payment.count %></div>
+              <div class="card-label">Payment Pending</div>
+              <div class="card-description">Flexible payment services</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-section">
+          <h3>Mixed Orders</h3>
+          <div class="status-cards">
+            <div class="status-card mixed-pending">
+              <div class="card-number"><%= @current_business.orders.mixed.status_pending_payment.count %></div>
+              <div class="card-label">Pending Payment</div>
+              <div class="card-description">Products + Services</div>
+            </div>
+            <div class="status-card mixed-partial">
+              <div class="card-number"><%= @current_business.orders.mixed.status_processing.count %></div>
+              <div class="card-label">Partial Fulfillment</div>
+              <div class="card-description">Products shipped, services scheduled</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="actions" style="text-align: right; margin-bottom: 20px;">
         <%= link_to 'Generate New Order', new_business_manager_order_path, class: 'btn btn-primary' %>
       </div>
@@ -160,5 +221,26 @@
     
     .empty-state { text-align: center; padding: 40px 0; color: #666; }
     .table-responsive { overflow-x: auto; }
+    
+    /* Status Dashboard Styles */
+    .status-dashboards { margin-bottom: 30px; }
+    .dashboard-section { margin-bottom: 25px; }
+    .dashboard-section h3 { font-size: 18px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+    .status-cards { display: flex; flex-wrap: wrap; gap: 15px; }
+    .status-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; min-width: 150px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; }
+    .status-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    .card-number { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+    .card-label { font-size: 14px; font-weight: bold; margin-bottom: 3px; }
+    .card-description { font-size: 12px; color: #666; }
+    
+    /* Status-specific colors */
+    .status-card.payment .card-number { color: #dc3545; }
+    .status-card.ready .card-number { color: #28a745; }
+    .status-card.shipped .card-number { color: #17a2b8; }
+    .status-card.scheduled .card-number { color: #007bff; }
+    .status-card.completed .card-number { color: #28a745; }
+    .status-card.payment-pending .card-number { color: #ffc107; }
+    .status-card.mixed-pending .card-number { color: #fd7e14; }
+    .status-card.mixed-partial .card-number { color: #6f42c1; }
   </style>
 </div> 

@@ -17,10 +17,7 @@ RSpec.describe "Booking Flow", type: :system do
     # Create client-business association
     create(:client_business, user: client, business: business)
     
-    # Mock Stripe checkout session creation for all tests
-    allow(StripeService).to receive(:create_payment_checkout_session).and_return({
-      session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_booking_consistency_123')
-    })
+    # No need to mock Stripe for standard services
 
     # Set up staff member's availability (9 AM to 5 PM weekdays)
     staff_member.update!(availability: {
@@ -69,10 +66,11 @@ RSpec.describe "Booking Flow", type: :system do
       
       click_button 'Confirm Booking'
       
-      # Should redirect to Stripe (mocked)
-      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_booking_consistency_123')
+      # Should redirect to confirmation page for standard services
+      expect(current_path).to match(%r{/booking/\d+/confirmation})
+      expect(page).to have_content('Booking confirmed! You can pay now or later.')
       
-      # Visit my bookings page directly since we're redirected to Stripe
+      # Visit my bookings page
       visit tenant_my_bookings_path
       
       # Return the booked time for comparison

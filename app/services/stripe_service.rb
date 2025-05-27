@@ -62,6 +62,62 @@ class StripeService
     record&.update!(status: 'suspended')
   end
 
+  # Create a Stripe Checkout session for booking payment (booking created after payment)
+  def self.create_payment_checkout_session_for_booking(invoice:, booking_data:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = invoice.business
+    customer = ensure_stripe_customer_for_tenant(invoice.tenant_customer)
+
+    total_amount = invoice.total_amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if total_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{total_amount}"
+    end
+    
+    amount_cents = (total_amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    # Create the checkout session with booking data in metadata
+    session = Stripe::Checkout::Session.create(
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: "Service Booking",
+            description: "Payment for #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: success_url,
+      cancel_url: cancel_url,
+      customer: customer.id,
+      payment_intent_data: {
+        application_fee_amount: platform_fee_cents,
+        transfer_data: { destination: business.stripe_account_id },
+        metadata: { 
+          business_id: business.id, 
+          tenant_customer_id: invoice.tenant_customer.id,
+          booking_type: 'service_booking'
+        }
+      },
+      metadata: { 
+        business_id: business.id, 
+        tenant_customer_id: invoice.tenant_customer.id,
+        booking_type: 'service_booking',
+        booking_data: booking_data.to_json
+      }
+    )
+
+    # Don't create payment record here - it will be created by the webhook
+    # when the payment is actually processed by Stripe
+    { session: session, payment: nil }
+  end
+
   # Create a Stripe Checkout session for invoice payment
   def self.create_payment_checkout_session(invoice:, success_url:, cancel_url:)
     configure_stripe_api_key
@@ -249,6 +305,12 @@ class StripeService
       return
     end
 
+    # Check if this is a booking payment
+    if session.dig('metadata', 'booking_type') == 'service_booking'
+      handle_booking_payment_completion(session)
+      return
+    end
+
     # Check if this is a payment (not subscription) by looking for invoice_id in metadata
     invoice_id = session.dig('metadata', 'invoice_id')
     return unless invoice_id
@@ -341,6 +403,98 @@ class StripeService
       record = Subscription.find_by(stripe_subscription_id: sub['id'])
       return unless record
       record.update!(status: sub['status'], current_period_end: Time.at(sub['current_period_end']).to_datetime)
+    end
+  end
+
+  # Handle booking creation after successful payment
+  def self.handle_booking_payment_completion(session)
+    Rails.logger.info "[BOOKING] Processing booking creation for session #{session['id']}"
+    
+    begin
+      # Extract booking data from session metadata
+      booking_data = JSON.parse(session.dig('metadata', 'booking_data'))
+      business_id = session.dig('metadata', 'business_id')
+      tenant_customer_id = session.dig('metadata', 'tenant_customer_id')
+      
+      business = Business.find_by(id: business_id)
+      tenant_customer = TenantCustomer.find_by(id: tenant_customer_id)
+      
+      unless business && tenant_customer
+        Rails.logger.error "[BOOKING] Could not find business (#{business_id}) or customer (#{tenant_customer_id})"
+        return
+      end
+      
+      Rails.logger.info "[BOOKING] Creating booking for customer #{tenant_customer.email} at business #{business.name}"
+      
+      ActiveRecord::Base.transaction do
+        # Create the booking
+        booking = business.bookings.create!(
+          service_id: booking_data['service_id'],
+          staff_member_id: booking_data['staff_member_id'],
+          start_time: Time.parse(booking_data['start_time']),
+          end_time: Time.parse(booking_data['end_time']),
+          notes: booking_data['notes'],
+          tenant_customer: tenant_customer,
+          status: :confirmed  # Mark as confirmed since payment was successful
+        )
+        
+        # Create booking product add-ons if any
+        if booking_data['booking_product_add_ons'].present?
+          booking_data['booking_product_add_ons'].each do |addon_data|
+            booking.booking_product_add_ons.create!(
+              product_variant_id: addon_data['product_variant_id'],
+              quantity: addon_data['quantity']
+            )
+          end
+        end
+        
+        # Create invoice for the booking
+        invoice = booking.build_invoice(
+          tenant_customer: tenant_customer,
+          business: business,
+          due_date: booking.start_time.to_date,
+          status: :paid  # Mark as paid since payment was successful
+        )
+        invoice.save!
+        
+        # Create payment record
+        total_amount = invoice.total_amount.to_f
+        amount_cents = (total_amount * 100).to_i
+        
+        payment = Payment.create!(
+          business: business,
+          invoice: invoice,
+          tenant_customer: tenant_customer,
+          amount: total_amount,
+          stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
+          platform_fee_amount: calculate_platform_fee_cents(amount_cents, business) / 100.0,
+          business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - calculate_platform_fee_cents(amount_cents, business) / 100.0).round(2),
+          stripe_payment_intent_id: session['payment_intent'],
+          stripe_customer_id: session['customer'],
+          payment_method: :credit_card,
+          status: :completed,
+          paid_at: Time.current
+        )
+        
+        Rails.logger.info "[BOOKING] Successfully created booking ##{booking.id} with payment ##{payment.id}"
+        
+        # Send confirmation email
+        begin
+          BookingMailer.status_update(booking).deliver_later
+        rescue => e
+          Rails.logger.error "[BOOKING] Failed to send confirmation email for booking ##{booking.id}: #{e.message}"
+          # Don't fail the whole transaction for email issues
+        end
+      end
+      
+    rescue JSON::ParserError => e
+      Rails.logger.error "[BOOKING] Failed to parse booking data from session #{session['id']}: #{e.message}"
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "[BOOKING] Database validation failed for session #{session['id']}: #{e.message}"
+    rescue => e
+      Rails.logger.error "[BOOKING] Unexpected error processing booking for session #{session['id']}: #{e.message}"
+      # Re-raise to ensure webhook fails and can be retried
+      raise e
     end
   end
 
