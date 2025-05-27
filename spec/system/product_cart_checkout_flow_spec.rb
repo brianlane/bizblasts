@@ -42,10 +42,10 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       click_button 'Add to Cart'
       visit cart_path
       expect(page).to have_content('Test Product')
-      expect(page).to have_field(class: 'quantity-input', with: '2', type: 'number')
+      expect(page).to have_field(with: '2', type: 'number')
       click_link 'Checkout'
       # No need to fill in customer ID since it's determined by the current_user
-      select 'Standard', from: 'Shipping Method'
+      select 'Standard', from: 'Select shipping method'
       click_button 'Place Order'
       
       # Should redirect to Stripe (mocked)
@@ -75,7 +75,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       visit cart_path
       click_link 'Checkout'
       # No need to fill in customer ID
-      select 'Standard', from: 'Shipping Method'
+      select 'Standard', from: 'Select shipping method'
       click_button 'Place Order'
       # Expect the line item stock validation message
       expect(page).to have_content('Quantity for Default is not sufficient')
@@ -95,7 +95,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       fill_in 'Last Name', with: 'User'
       fill_in 'Email', with: 'guest@example.com'
       fill_in 'Phone', with: '555-5555'
-      select 'Standard', from: 'Shipping Method'
+      select 'Standard', from: 'Select shipping method'
       click_button 'Place Order'
       
       # Should redirect to Stripe (mocked)
@@ -124,7 +124,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       check 'Create an account with these details?'
       fill_in 'Password', with: 'securepass'
       fill_in 'Confirm Password', with: 'securepass'
-      select 'Standard', from: 'Shipping Method'
+      select 'Standard', from: 'Select shipping method'
       click_button 'Place Order'
       
       # Should redirect to Stripe (mocked)

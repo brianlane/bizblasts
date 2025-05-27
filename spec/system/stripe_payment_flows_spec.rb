@@ -170,7 +170,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Checkout
         visit cart_path
         click_link 'Checkout'
-        select 'Standard', from: 'Shipping Method'
+        select 'Standard', from: 'Select shipping method'
         click_button 'Place Order'
         
         # Should redirect to Stripe (mocked)
@@ -215,7 +215,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Last Name', with: 'Buyer'
         fill_in 'Email', with: 'buyer@example.com'
         fill_in 'Phone', with: '555-9999'
-        select 'Express', from: 'Shipping Method'
+        select 'Express', from: 'Select shipping method'
         click_button 'Place Order'
         
         # Should redirect to Stripe (mocked)
