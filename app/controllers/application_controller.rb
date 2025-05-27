@@ -110,8 +110,7 @@ class ApplicationController < ActionController::Base
     # Handle case where hostname/domain provided but no business found
     if request.subdomain.present? && request.subdomain != 'www'
       Rails.logger.warn "Tenant not found for hostname: #{request.subdomain}"
-      tenant_not_found
-      return
+      tenant_not_found and return
     end
     
     # Session fallback logic for users who just signed up
@@ -187,7 +186,8 @@ class ApplicationController < ActionController::Base
 
   def tenant_not_found
     @subdomain = request.subdomain || request.host
-    render template: "errors/tenant_not_found", status: :not_found
+    render template: "errors/tenant_not_found", status: :not_found, layout: false
+    false # Halt the filter chain
   end
 
   def set_tenant_from_params

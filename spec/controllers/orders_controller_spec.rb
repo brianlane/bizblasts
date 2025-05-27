@@ -51,8 +51,8 @@ RSpec.describe Public::OrdersController, type: :controller do
       # Verify Stripe service was called with correct parameters
       expect(StripeService).to have_received(:create_payment_checkout_session).with(
         invoice: order.invoice,
-        success_url: order_url(order, payment_success: true),
-        cancel_url: order_url(order, payment_cancelled: true)
+        success_url: order_url(order, payment_success: true, host: 'testtenant.lvh.me'),
+        cancel_url: order_url(order, payment_cancelled: true, host: 'testtenant.lvh.me')
       )
     end
 
