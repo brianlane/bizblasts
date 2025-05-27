@@ -1,6 +1,6 @@
 class TransactionsController < ApplicationController
   before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
-  before_action :authenticate_user!
+  before_action :authenticate_user!, except: [:show]
   before_action :set_current_tenant
   before_action :set_tenant_customer
 
@@ -63,11 +63,17 @@ class TransactionsController < ApplicationController
     end
 
     unless @transaction
-      flash[:alert] = "Transaction not found."
-      if request.subdomain.present? && request.subdomain != 'www'
-        redirect_to tenant_transactions_path
+      if params[:type] == 'invoice' && !current_user && params[:token].present?
+        # Guest user with invalid token - raise 404
+        raise ActiveRecord::RecordNotFound
       else
-        redirect_to transactions_path
+        # Other cases - redirect with flash message
+        flash[:alert] = "Transaction not found."
+        if request.subdomain.present? && request.subdomain != 'www'
+          redirect_to tenant_transactions_path
+        else
+          redirect_to transactions_path
+        end
       end
     end
   end
@@ -87,11 +93,27 @@ class TransactionsController < ApplicationController
 
   def find_invoice(id)
     if request.subdomain.present? && request.subdomain != 'www'
-      @current_tenant&.invoices&.where(tenant_customer: @tenant_customer)
-                     &.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
-                               line_items: {product_variant: :product},
-                               shipping_method: {}, tax_rate: {}, order: {})
-                     &.find_by(id: id)
+      if current_user
+        # Authenticated user - verify they own this invoice
+        @current_tenant&.invoices&.where(tenant_customer: @tenant_customer)
+                       &.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
+                                 line_items: {product_variant: :product},
+                                 shipping_method: {}, tax_rate: {}, order: {})
+                       &.find_by(id: id)
+      else
+        # Guest access - require valid token
+        if params[:token].present?
+          invoice = @current_tenant&.invoices&.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
+                                                       line_items: {product_variant: :product},
+                                                       shipping_method: {}, tax_rate: {}, order: {})
+                                             &.find_by(id: id, guest_access_token: params[:token])
+          if invoice
+            @tenant_customer = invoice.tenant_customer
+            return invoice
+          end
+        end
+        nil
+      end
     else
       Invoice.joins(:tenant_customer)
              .where(tenant_customers: { email: current_user.email })
@@ -114,6 +136,10 @@ class TransactionsController < ApplicationController
   def set_tenant_customer
     if @current_tenant && current_user
       @tenant_customer = TenantCustomer.find_by(business_id: @current_tenant.id, email: current_user.email)
+    elsif @current_tenant && !current_user && params[:type] == 'invoice' && params[:token].blank?
+      # Guest trying to access invoice without token - redirect to login
+      redirect_to new_user_session_path, alert: "Please log in to view this transaction."
+      return false
     end
   end
 

@@ -74,14 +74,27 @@ module Public
           end
           
           full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
-          customer  = current_tenant.tenant_customers.create!(
-            name:  full_name,
-            phone: nested[:phone],
-            email: nested[:email].presence
-          )
+          
+          # Try to find existing customer by email
+          customer = current_tenant.tenant_customers.find_by(email: nested[:email])
+          
+          if customer
+            # Update existing customer with new info if provided
+            customer.update!(
+              name: full_name.present? ? full_name : customer.name,
+              phone: nested[:phone].present? ? nested[:phone] : customer.phone
+            )
+          else
+            # Create new customer
+            customer = current_tenant.tenant_customers.create!(
+              name:  full_name,
+              phone: nested[:phone],
+              email: nested[:email].presence
+            )
+          end
         end
       else
-        # Guest user: build a new TenantCustomer and optional account
+        # Guest user: find or create TenantCustomer and optional account
         nested = booking_params[:tenant_customer_attributes] || {}
         
         # Check if required customer information is provided
@@ -91,11 +104,24 @@ module Public
         end
         
         full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
-        customer  = current_tenant.tenant_customers.create!(
-          name:  full_name,
-          phone: nested[:phone],
-          email: nested[:email].presence
-        )
+        
+        # Try to find existing customer by email
+        customer = current_tenant.tenant_customers.find_by(email: nested[:email])
+        
+        if customer
+          # Update existing customer with new info if provided
+          customer.update!(
+            name: full_name.present? ? full_name : customer.name,
+            phone: nested[:phone].present? ? nested[:phone] : customer.phone
+          )
+        else
+          # Create new customer
+          customer = current_tenant.tenant_customers.create!(
+            name:  full_name,
+            phone: nested[:phone],
+            email: nested[:email].presence
+          )
+        end
 
         # Optionally create an account if requested
         if booking_params[:create_account] == '1' && booking_params[:password].present?
