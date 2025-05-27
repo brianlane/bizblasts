@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   include StripeWebhookHelpers
   
-  let!(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', host_type: 'subdomain', tier: 'standard', stripe_account_id: 'acct_test123') }
+  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain', stripe_account_id: 'acct_test123') }
   
   before do
     ActsAsTenant.current_tenant = business
@@ -70,6 +70,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         expect(booking.service).to eq(service)
         expect(booking.staff_member).to eq(staff_member)
         expect(booking.invoice).to be_present
+        
+        # Verify invoice has proper tax calculations
+        invoice = booking.invoice
+        expect(invoice.tax_rate).to be_present
+        expect(invoice.tax_rate).to eq(business.default_tax_rate)
+        expect(invoice.original_amount).to be_within(0.01).of(50.00)
+        expect(invoice.tax_amount).to be_within(0.01).of(4.90) # 9.8% of $50
+        expect(invoice.total_amount).to be_within(0.01).of(54.90) # $50 + $4.90 tax
       end
     end
   end
@@ -113,6 +121,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         expect(booking.service).to eq(service)
         expect(booking.staff_member).to eq(staff_member)
         expect(booking.invoice).to be_present
+        
+        # Verify invoice has proper tax calculations
+        invoice = booking.invoice
+        expect(invoice.tax_rate).to be_present
+        expect(invoice.tax_rate).to eq(business.default_tax_rate)
+        expect(invoice.original_amount).to be_within(0.01).of(80.00)
+        expect(invoice.tax_amount).to be_within(0.01).of(7.84) # 9.8% of $80
+        expect(invoice.total_amount).to be_within(0.01).of(87.84) # $80 + $7.84 tax
         
         # Verify customer was created
         customer = TenantCustomer.find_by(email: 'guest@example.com')

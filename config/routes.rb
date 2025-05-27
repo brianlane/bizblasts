@@ -159,6 +159,9 @@ Rails.application.routes.draw do
 
       resources :invoices, only: [:index, :show], as: :tenant_invoices
       resources :payments, only: [:index, :new, :create], as: :tenant_payments
+      
+      # Unified transactions view for subdomain
+      resources :transactions, only: [:index, :show], as: :tenant_transactions
 
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
@@ -194,6 +197,9 @@ Rails.application.routes.draw do
         patch 'cancel'
       end
     end
+
+    # New unified transactions view
+    resources :transactions, only: [:index, :show]
 
     # Client Settings
     namespace :client, path: '' do # path: '' to avoid /client/client/settings

@@ -230,6 +230,7 @@ RSpec.describe StripeService, type: :service do
   describe '.handle_booking_payment_completion' do
     let!(:service) { create(:service, business: business, price: 50.00) }
     let!(:staff_member) { create(:staff_member, business: business) }
+    let!(:default_tax_rate) { create(:tax_rate, business: business, name: 'Default Tax', rate: 0.098) }
     let(:booking_session_data) do
       {
         'id' => 'cs_booking_test123',
@@ -276,6 +277,9 @@ RSpec.describe StripeService, type: :service do
       invoice = Invoice.last
       expect(invoice.status).to eq('paid')
       expect(invoice.booking).to eq(booking)
+      expect(invoice.tax_rate).to eq(default_tax_rate)
+      expect(invoice.tax_amount).to be_within(0.01).of(4.90) # 9.8% of $50
+      expect(invoice.total_amount).to be_within(0.01).of(54.90) # $50 + $4.90 tax
     end
 
     it 'handles missing business or customer gracefully' do

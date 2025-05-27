@@ -1,0 +1,189 @@
+<h1>My Transactions</h1>
+
+<!-- Filter Controls -->
+<div class="mb-6">
+  <div class="flex flex-wrap gap-2 mb-4">
+    <%= link_to "Orders", transactions_path(filter: 'orders'), 
+        class: "px-4 py-2 rounded #{@filter == 'orders' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}" %>
+    <%= link_to "Invoices", transactions_path(filter: 'invoices'), 
+        class: "px-4 py-2 rounded #{@filter == 'invoices' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}" %>
+    <%= link_to "Both", transactions_path(filter: 'both'), 
+        class: "px-4 py-2 rounded #{@filter == 'both' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}" %>
+  </div>
+  
+  <p class="text-gray-600">
+    <% if request.subdomain.present? && request.subdomain != 'www' %>
+      Showing 
+      <%= case @filter
+          when 'orders' then 'orders'
+          when 'invoices' then 'invoices'
+          when 'both' then 'all transactions'
+          end %> with <%= @current_tenant.name %>
+    <% else %>
+      Showing 
+      <%= case @filter
+          when 'orders' then 'orders'
+          when 'invoices' then 'invoices'
+          when 'both' then 'all transactions'
+          end %> across all businesses
+    <% end %>
+  </p>
+</div>
+
+<% if @transactions.any? %>
+
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+        <% if !request.subdomain.present? || request.subdomain == 'www' %>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+        <% end %>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+      <% @transactions.each do |transaction| %>
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <% if transaction.is_a?(Order) %>
+              <div>
+                <div class="text-sm font-medium text-gray-900"><%= transaction.order_number %></div>
+                <div class="text-sm text-gray-500">Order</div>
+              </div>
+            <% else %>
+              <div>
+                <div class="text-sm font-medium text-gray-900"><%= transaction.invoice_number %></div>
+                <div class="text-sm text-gray-500">Invoice</div>
+              </div>
+            <% end %>
+          </td>
+          
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <%= l transaction.created_at, format: :short %>
+          </td>
+          
+          <td class="px-6 py-4 whitespace-nowrap">
+            <% if transaction.is_a?(Order) %>
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                <%= transaction.order_type.titleize %>
+              </span>
+            <% else %>
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                <% if transaction.booking %>
+                  Booking Invoice
+                <% elsif transaction.order %>
+                  Order Invoice
+                <% else %>
+                  Invoice
+                <% end %>
+              </span>
+            <% end %>
+          </td>
+          
+          <td class="px-6 py-4 whitespace-nowrap">
+            <% if transaction.is_a?(Order) %>
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                <%= transaction.status == 'pending_payment' ? 'bg-yellow-100 text-yellow-800' : '' %>
+                <%= transaction.status == 'processing' ? 'bg-blue-100 text-blue-800' : '' %>
+                <%= transaction.status == 'shipped' ? 'bg-green-100 text-green-800' : '' %>
+                <%= transaction.status == 'paid' ? 'bg-green-100 text-green-800' : '' %>
+                <%= transaction.status == 'cancelled' ? 'bg-red-100 text-red-800' : '' %>
+                <%= transaction.status == 'refunded' ? 'bg-gray-100 text-gray-800' : '' %>
+              ">
+                <%= transaction.status.titleize %>
+              </span>
+            <% else %>
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                <%= transaction.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' %>
+                <%= transaction.status == 'paid' ? 'bg-green-100 text-green-800' : '' %>
+                <%= transaction.status == 'overdue' ? 'bg-red-100 text-red-800' : '' %>
+                <%= transaction.status == 'cancelled' ? 'bg-gray-100 text-gray-800' : '' %>
+                <%= transaction.status == 'draft' ? 'bg-gray-100 text-gray-800' : '' %>
+              ">
+                <%= transaction.status.titleize %>
+              </span>
+            <% end %>
+          </td>
+          
+          <% if !request.subdomain.present? || request.subdomain == 'www' %>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <% business = transaction.is_a?(Order) ? transaction.business : transaction.business %>
+              <% if business %>
+                <% if business.hostname.present? %>
+                  <%= link_to business.name, "http://#{business.hostname}.#{request.domain}:#{request.port}", 
+                      class: "text-blue-600 hover:underline", target: "_blank" %>
+                <% else %>
+                  <%= business.name %>
+                <% end %>
+              <% else %>
+                Unknown Business
+              <% end %>
+            </td>
+          <% end %>
+          
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <%= number_to_currency transaction.total_amount %>
+          </td>
+          
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <% if transaction.is_a?(Order) %>
+              <%= link_to 'View Details', transaction_path(transaction, type: 'order'), class: "text-blue-600 hover:underline" %>
+              <% if transaction.invoice %>
+                <br>
+                <%= link_to 'View Invoice', transaction_path(transaction.invoice, type: 'invoice'), class: "text-purple-600 hover:underline text-xs" %>
+              <% end %>
+            <% else %>
+              <%= link_to 'View Details', transaction_path(transaction, type: 'invoice'), class: "text-purple-600 hover:underline" %>
+              <% if transaction.order %>
+                <br>
+                <%= link_to 'View Order', transaction_path(transaction.order, type: 'order'), class: "text-blue-600 hover:underline text-xs" %>
+              <% elsif transaction.booking %>
+                <br>
+                <% if request.subdomain.present? && request.subdomain != 'www' %>
+                  <%= link_to 'View Booking', tenant_my_booking_path(transaction.booking), class: "text-green-600 hover:underline text-xs" %>
+                <% else %>
+                  <%= link_to 'View Booking', client_booking_path(transaction.booking), class: "text-green-600 hover:underline text-xs" %>
+                <% end %>
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <div class="bg-white p-6 rounded-lg shadow">
+    <p class="text-gray-700">
+      <% if request.subdomain.present? && request.subdomain != 'www' %>
+        You have no 
+        <%= case @filter
+            when 'orders' then 'orders'
+            when 'invoices' then 'invoices'
+            when 'both' then 'transactions'
+            end %> with this business yet.
+      <% else %>
+        You have no 
+        <%= case @filter
+            when 'orders' then 'orders'
+            when 'invoices' then 'invoices'
+            when 'both' then 'transactions'
+            end %> across any businesses yet.
+      <% end %>
+    </p>
+  </div>
+<% end %>
+
+<div class="mt-8">
+  <% if request.subdomain.present? && request.subdomain != 'www' %>
+    <%= link_to 'Continue Shopping', products_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4" %>
+    <%= link_to 'Book Appointment', tenant_calendar_path, class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" %>
+  <% else %>
+    <%= link_to 'Back to Dashboard', dashboard_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4" %>
+    <%= link_to 'Find Businesses', businesses_path, class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" %>
+  <% end %>
+</div> 

@@ -22,7 +22,7 @@
             Price: <%= number_to_currency(product.price) %>
           </p>
           <div class="mt-4">
-            <%= link_to product.name, product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" %>
+            <%= link_to "View Product", product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" %>
           </div>
         </div>
       <% end %>

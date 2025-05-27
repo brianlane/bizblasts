@@ -294,9 +294,14 @@ module Public
 
     def generate_or_update_invoice_for_booking(booking)
       invoice = booking.invoice || booking.build_invoice
+      
+      # Automatically assign the default tax rate if none provided
+      default_tax_rate = booking.business.default_tax_rate
+      
       invoice.assign_attributes(
         tenant_customer: booking.tenant_customer,
         business: booking.business,
+        tax_rate: default_tax_rate, # Assign default tax rate for proper tax calculation
         # Set other invoice attributes like due_date, status etc.
         # For now, ensure amounts are calculated based on booking and its add-ons
         due_date: booking.start_time.to_date, # Example due date

@@ -125,9 +125,14 @@ class ClientBookingsController < ApplicationController
   # Copied and adapted from Public::BookingController - ensure it fits context
   def generate_or_update_invoice_for_booking(booking)
     invoice = booking.invoice || booking.build_invoice
+    
+    # Automatically assign the default tax rate if none provided
+    default_tax_rate = booking.business.default_tax_rate
+    
     invoice.assign_attributes(
       tenant_customer: booking.tenant_customer,
       business: booking.business,
+      tax_rate: default_tax_rate, # Assign default tax rate for proper tax calculation
       due_date: booking.start_time.to_date,
       status: :pending 
     )

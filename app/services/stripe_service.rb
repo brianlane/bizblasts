@@ -452,6 +452,7 @@ class StripeService
         invoice = booking.build_invoice(
           tenant_customer: tenant_customer,
           business: business,
+          tax_rate: business.default_tax_rate, # Assign default tax rate for proper tax calculation
           due_date: booking.start_time.to_date,
           status: :paid  # Mark as paid since payment was successful
         )

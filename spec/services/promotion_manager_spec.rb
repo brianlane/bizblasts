@@ -272,12 +272,13 @@ RSpec.describe PromotionManager, type: :service do
   describe '.apply_promotion_to_invoice' do
     let!(:service) { create(:service, business: tenant, price: 100.00) }
     let!(:staff_member) { create(:staff_member, business: tenant) }
+    let!(:default_tax_rate) { create(:tax_rate, business: tenant, name: 'Default Tax', rate: 0.098) }
     # Booking needed for invoice context
     let!(:booking_for_invoice) { 
       create(:booking, business: tenant, tenant_customer: customer, service: service, staff_member: staff_member, amount: service.price)
     }
     let!(:invoice) { 
-      create(:invoice, business: tenant, tenant_customer: customer, booking: booking_for_invoice, amount: booking_for_invoice.amount, total_amount: booking_for_invoice.amount)
+      create(:invoice, business: tenant, tenant_customer: customer, booking: booking_for_invoice, amount: booking_for_invoice.amount, total_amount: booking_for_invoice.amount, tax_rate: default_tax_rate)
     }
     let!(:percent_promo_inv) { 
       create(:promotion, :percentage, business: tenant, code: 'INVPERCENT15', discount_value: 15)
