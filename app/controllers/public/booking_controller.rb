@@ -40,6 +40,7 @@ module Public
     end
 
     # POST /booking for guests, clients, and staff/managers
+    # Note: Staff/managers creating bookings for clients will not be redirected to payment
     def create
       # Ensure tenant context
       unless current_tenant
@@ -136,28 +137,35 @@ module Public
       if @booking.save
         generate_or_update_invoice_for_booking(@booking)
         
-        # Redirect directly to Stripe Checkout for all service bookings
-        begin
-          success_url = tenant_booking_confirmation_url(@booking, payment_success: true, host: request.host_with_port)
-          cancel_url = tenant_booking_confirmation_url(@booking, payment_cancelled: true, host: request.host_with_port)
-          
-          result = StripeService.create_payment_checkout_session(
-            invoice: @booking.invoice,
-            success_url: success_url,
-            cancel_url: cancel_url
-          )
-          
-          redirect_to result[:session].url, allow_other_host: true
-        rescue ArgumentError => e
-          if e.message.include?("Payment amount must be at least")
-            flash[:alert] = "This booking amount is too small for online payment. Please contact the business directly."
-            redirect_to tenant_booking_confirmation_path(@booking)
-          else
-            raise e
-          end
-        rescue Stripe::StripeError => e
-          flash[:alert] = "Could not connect to Stripe: #{e.message}"
+        # Check if current user is business staff/manager making booking for client
+        if current_user.present? && (current_user.staff? || current_user.manager?)
+          # Business users creating bookings for clients should not be redirected to payment
+          flash[:notice] = "Booking was successfully created."
           redirect_to tenant_booking_confirmation_path(@booking)
+        else
+          # Redirect directly to Stripe Checkout for client and guest bookings
+          begin
+            success_url = tenant_booking_confirmation_url(@booking, payment_success: true, host: request.host_with_port)
+            cancel_url = tenant_booking_confirmation_url(@booking, payment_cancelled: true, host: request.host_with_port)
+            
+            result = StripeService.create_payment_checkout_session(
+              invoice: @booking.invoice,
+              success_url: success_url,
+              cancel_url: cancel_url
+            )
+            
+            redirect_to result[:session].url, allow_other_host: true
+          rescue ArgumentError => e
+            if e.message.include?("Payment amount must be at least")
+              flash[:alert] = "This booking amount is too small for online payment. Please contact the business directly."
+              redirect_to tenant_booking_confirmation_path(@booking)
+            else
+              raise e
+            end
+          rescue Stripe::StripeError => e
+            flash[:alert] = "Could not connect to Stripe: #{e.message}"
+            redirect_to tenant_booking_confirmation_path(@booking)
+          end
         end
       else
         flash.now[:alert] = @booking.errors.full_messages.to_sentence

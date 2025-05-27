@@ -87,6 +87,92 @@ RSpec.describe Public::BookingController, type: :controller do
       end
     end
 
+    context 'when staff user creates booking for client' do
+      let(:staff_user) { create(:user, :staff) }
+      let(:valid_staff_booking_params) do
+        {
+          booking: {
+            service_id: service.id,
+            staff_member_id: staff_member.id,
+            start_time: 1.day.from_now,
+            notes: 'Test booking',
+            tenant_customer_attributes: {
+              first_name: 'John',
+              last_name: 'Doe',
+              email: 'john.doe@example.com',
+              phone: '555-1234'
+            }
+          }
+        }
+      end
+
+      before do
+        sign_out user
+        sign_in staff_user
+      end
+
+      it 'creates booking and redirects to confirmation (not Stripe)' do
+        post :create, params: valid_staff_booking_params
+        
+        # Should redirect to confirmation page, not Stripe
+        booking = Booking.last
+        expect(response).to redirect_to(tenant_booking_confirmation_path(booking))
+        expect(flash[:notice]).to eq('Booking was successfully created.')
+        
+        # Verify booking was created
+        expect(booking).to be_present
+        expect(booking.service).to eq(service)
+        expect(booking.staff_member).to eq(staff_member)
+        expect(booking.invoice).to be_present
+        
+        # Verify Stripe service was NOT called
+        expect(StripeService).not_to have_received(:create_payment_checkout_session)
+      end
+    end
+
+    context 'when manager user creates booking for client' do
+      let(:manager_user) { create(:user, :manager) }
+      let(:valid_manager_booking_params) do
+        {
+          booking: {
+            service_id: service.id,
+            staff_member_id: staff_member.id,
+            start_time: 1.day.from_now,
+            notes: 'Test booking',
+            tenant_customer_attributes: {
+              first_name: 'Jane',
+              last_name: 'Smith',
+              email: 'jane.smith@example.com',
+              phone: '555-5678'
+            }
+          }
+        }
+      end
+
+      before do
+        sign_out user
+        sign_in manager_user
+      end
+
+      it 'creates booking and redirects to confirmation (not Stripe)' do
+        post :create, params: valid_manager_booking_params
+        
+        # Should redirect to confirmation page, not Stripe
+        booking = Booking.last
+        expect(response).to redirect_to(tenant_booking_confirmation_path(booking))
+        expect(flash[:notice]).to eq('Booking was successfully created.')
+        
+        # Verify booking was created
+        expect(booking).to be_present
+        expect(booking.service).to eq(service)
+        expect(booking.staff_member).to eq(staff_member)
+        expect(booking.invoice).to be_present
+        
+        # Verify Stripe service was NOT called
+        expect(StripeService).not_to have_received(:create_payment_checkout_session)
+      end
+    end
+
     context 'when staff user does not select a customer' do
       let(:staff_user) { create(:user, :staff) }
       let(:invalid_booking_params) do
