@@ -15,12 +15,32 @@ FactoryBot.define do
 
     trait :with_booking do
       association :booking
-      # Optionally link amount to booking/service price
+      # Ensure business has a default tax rate for proper tax calculation
       after(:build) do |invoice, evaluator|
-        if invoice.booking && invoice.amount.blank?
-          invoice.amount = invoice.booking.service&.price || 100.00
-          invoice.total_amount = invoice.amount + invoice.tax_amount
+        # Create default tax rate if business doesn't have one
+        unless invoice.business.default_tax_rate
+          create(:tax_rate, business: invoice.business, name: 'Default Tax', rate: 0.098)
         end
+        
+        # Assign the default tax rate to the invoice
+        invoice.tax_rate = invoice.business.default_tax_rate
+        
+        # Let the invoice calculate its own totals based on booking
+        if invoice.booking
+          # Don't set amount manually - let calculate_totals handle it
+          invoice.amount = nil
+          invoice.tax_amount = nil
+          invoice.total_amount = nil
+        end
+      end
+    end
+
+    trait :with_tax_rate do
+      association :tax_rate
+      after(:build) do |invoice, evaluator|
+        # Ensure tax_rate belongs to the same business
+        invoice.tax_rate.business = invoice.business
+        invoice.tax_rate.save! if invoice.tax_rate.changed?
       end
     end
 

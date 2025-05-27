@@ -96,14 +96,14 @@
             <% if current_user.client? %>
               <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
                 <li><%= link_to "My Bookings", tenant_my_bookings_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "My Orders", orders_path, class: "text-primary hover:underline" %></li>
+                <li><%= link_to "My Transactions", transactions_path, class: "text-primary hover:underline" %></li>
                 <li><%= link_to "Book Appointment", tenant_calendar_path, class: "text-primary hover:underline" %></li>
                 <li><%= link_to "View All Businesses", main_domain_url_for('/businesses'), class: "text-primary hover:underline" %></li>
                 <li><%= link_to "Cart", cart_path, class: "text-primary hover:underline" %></li>
                 <li><%= link_to "Settings", settings_url_for_client, class: "text-primary hover:underline" %></li>
               <% else %>
                 <li><%= link_to "My Bookings", client_bookings_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "My Orders", orders_path, class: "text-primary hover:underline" %></li>
+                <li><%= link_to "My Transactions", transactions_path, class: "text-primary hover:underline" %></li>
                 <li><%= link_to "Find Businesses", businesses_path, class: "text-primary hover:underline" %></li>
                 <li><%= link_to "Cart", cart_path, class: "text-primary hover:underline" %></li>
                 <li><%= link_to "Settings", settings_url_for_client, class: "text-primary hover:underline" %></li>

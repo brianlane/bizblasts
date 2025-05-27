@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Guest Booking Flow', type: :system, js: true do
-  let!(:business) { create(:business, hostname: 'guestbiz', subdomain: 'guestbiz', host_type: 'subdomain', time_zone: 'UTC') }
+  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'guestbiz', subdomain: 'guestbiz', host_type: 'subdomain', time_zone: 'UTC') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Guest Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Staff Member') }
 
@@ -43,6 +43,12 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       expect(booking).not_to be_nil
       expect(booking.status).to eq('confirmed')
       expect(booking.invoice).to be_present
+      
+      # Verify invoice has proper tax calculations
+      invoice = booking.invoice
+      expect(invoice.tax_rate).to be_present
+      expect(invoice.tax_rate).to eq(business.default_tax_rate)
+      expect(invoice.tax_amount).to be > 0 # Should have tax applied
     end
   end
 
@@ -79,6 +85,12 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       expect(booking).to be_present
       expect(booking.status).to eq('confirmed')
       expect(booking.invoice).to be_present
+      
+      # Verify invoice has proper tax calculations
+      invoice = booking.invoice
+      expect(invoice.tax_rate).to be_present
+      expect(invoice.tax_rate).to eq(business.default_tax_rate)
+      expect(invoice.tax_amount).to be > 0 # Should have tax applied
     end
   end
 end 

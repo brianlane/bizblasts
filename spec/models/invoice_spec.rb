@@ -75,5 +75,39 @@ RSpec.describe Invoice, type: :model do
       #   expect(invoice.total_amount).to be_within(0.01).of(49.50) # 45 + 4.50
       # end
     end
+
+    context 'booking-based invoice calculations' do
+      let(:service) { create(:service, business: business, price: 100.00) }
+      let(:staff_member) { create(:staff_member, business: business) }
+      let(:booking) { create(:booking, business: business, service: service, staff_member: staff_member, tenant_customer: tenant_customer) }
+      let(:default_tax_rate) { create(:tax_rate, business: business, name: 'Default Tax', rate: 0.098) }
+
+      it 'calculates totals correctly for booking-based invoice with tax rate' do
+        invoice = create(:invoice, :with_booking, business: business, tenant_customer: tenant_customer, booking: booking)
+        
+        expect(invoice.original_amount).to be_within(0.01).of(100.00)
+        expect(invoice.amount).to be_within(0.01).of(100.00)
+        expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of 100
+        expect(invoice.total_amount).to be_within(0.01).of(109.80) # 100 + 9.80
+        expect(invoice.tax_rate).to be_present
+      end
+
+      it 'calculates totals correctly for booking with product add-ons' do
+        # Create products for add-ons
+        product = create(:product, business: business, price: 50.00)
+        variant = create(:product_variant, product: product, price_modifier: 0)
+        
+        # Add product add-on to booking
+        create(:booking_product_add_on, booking: booking, product_variant: variant, quantity: 2)
+        
+        invoice = create(:invoice, :with_booking, business: business, tenant_customer: tenant_customer, booking: booking)
+        
+        # Service: $100, Add-ons: $100 (50 * 2), Total before tax: $200
+        expect(invoice.original_amount).to be_within(0.01).of(200.00)
+        expect(invoice.amount).to be_within(0.01).of(200.00)
+        expect(invoice.tax_amount).to be_within(0.01).of(19.60) # 9.8% of 200
+        expect(invoice.total_amount).to be_within(0.01).of(219.60) # 200 + 19.60
+      end
+    end
   end
 end 

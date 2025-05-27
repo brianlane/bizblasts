@@ -1,17 +1,17 @@
 require 'rails_helper'
 
 RSpec.describe Public::BookingController, type: :controller do
-  let!(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant', stripe_account_id: 'acct_test123') }
-  let!(:service) { create(:service, business: business, name: 'Test Service', price: 50.00, duration: 30) }
+  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain') }
+  let!(:service) { create(:service, business: business, name: 'Test Service', price: 100.00, duration: 30) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Test Staff') }
-  let!(:user) { create(:user, email: 'test@example.com') }
-  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email) }
+  let!(:user) { create(:user, :client) }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
 
   before do
     business.save! unless business.persisted?
     ActsAsTenant.current_tenant = business
     set_tenant(business)
-    @request.host = 'testtenant.lvh.me'
+    @request.host = 'testbiz.lvh.me'
     sign_in user
     create(:services_staff_member, service: service, staff_member: staff_member)
   end
@@ -49,6 +49,14 @@ RSpec.describe Public::BookingController, type: :controller do
       expect(booking.staff_member).to eq(staff_member)
       expect(booking.status).to eq('confirmed')
       expect(booking.invoice).to be_present
+      
+      # Verify invoice has proper tax calculations
+      invoice = booking.invoice
+      expect(invoice.tax_rate).to be_present
+      expect(invoice.tax_rate).to eq(business.default_tax_rate)
+      expect(invoice.original_amount).to be_within(0.01).of(100.00)
+      expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of $100
+      expect(invoice.total_amount).to be_within(0.01).of(109.80) # $100 + $9.80 tax
       
       # Verify Stripe service was NOT called for standard services
       expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
@@ -157,6 +165,13 @@ RSpec.describe Public::BookingController, type: :controller do
         expect(booking.staff_member).to eq(staff_member)
         expect(booking.invoice).to be_present
         
+        # Verify invoice has proper tax calculations
+        invoice = booking.invoice
+        expect(invoice.tax_rate).to be_present
+        expect(invoice.tax_rate).to eq(business.default_tax_rate)
+        expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of $100
+        expect(invoice.total_amount).to be_within(0.01).of(109.80) # $100 + $9.80 tax
+        
         # Verify Stripe service was NOT called
         expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
       end
@@ -199,6 +214,13 @@ RSpec.describe Public::BookingController, type: :controller do
         expect(booking.service).to eq(service)
         expect(booking.staff_member).to eq(staff_member)
         expect(booking.invoice).to be_present
+        
+        # Verify invoice has proper tax calculations
+        invoice = booking.invoice
+        expect(invoice.tax_rate).to be_present
+        expect(invoice.tax_rate).to eq(business.default_tax_rate)
+        expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of $100
+        expect(invoice.total_amount).to be_within(0.01).of(109.80) # $100 + $9.80 tax
         
         # Verify Stripe service was NOT called
         expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)

@@ -74,19 +74,43 @@
       <% end %>
 
       <% if @booking.invoice %>
-        <div class="mt-6">
-          <h3 class="text-sm font-medium text-gray-500 mb-1">Invoice Summary:</h3>
-          <p><strong>Service Cost:</strong> <%= number_to_currency @booking.service.price %></p>
-          <p><strong>Total Items (Service + Products):</strong> <%= number_to_currency @booking.invoice.original_amount %></p>
-          <% if @booking.invoice.discount_amount&.positive? %>
-            <p><strong>Discount Applied:</strong> <%= number_to_currency @booking.invoice.discount_amount %></p>
-            <p><strong>Net Amount (after discount):</strong> <%= number_to_currency @booking.invoice.amount %></p>
-          <% end %>
-          <% if @booking.invoice.tax_amount&.positive? %>
-            <p><strong>Tax:</strong> <%= number_to_currency @booking.invoice.tax_amount %></p>
-          <% end %>
-          <p><strong>Grand Total:</strong> <%= number_to_currency @booking.invoice.total_amount %></p>
-          <p>Invoice Number: <%= @booking.invoice.invoice_number %> (<%= @booking.invoice.status.titleize %>)</p>
+        <div class="mt-6 p-4 bg-purple-50 border border-purple-200 rounded">
+          <h3 class="text-lg font-semibold mb-2 text-purple-800">Related Invoice</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p><span class="font-medium">Invoice Number:</span> <%= @booking.invoice.invoice_number %></p>
+              <p><span class="font-medium">Status:</span> 
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                  <%= @booking.invoice.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' %>
+                  <%= @booking.invoice.status == 'paid' ? 'bg-green-100 text-green-800' : '' %>
+                  <%= @booking.invoice.status == 'overdue' ? 'bg-red-100 text-red-800' : '' %>
+                ">
+                  <%= @booking.invoice.status.titleize %>
+                </span>
+              </p>
+              <p><span class="font-medium">Service Cost:</span> <%= number_to_currency @booking.service.price %></p>
+            </div>
+            <div>
+              <p><span class="font-medium">Total Items:</span> <%= number_to_currency @booking.invoice.original_amount %></p>
+              <% if @booking.invoice.discount_amount&.positive? %>
+                <p><span class="font-medium">Discount Applied:</span> <%= number_to_currency @booking.invoice.discount_amount %></p>
+                <p><span class="font-medium">Net Amount:</span> <%= number_to_currency @booking.invoice.amount %></p>
+              <% end %>
+              <% if @booking.invoice.tax_amount&.positive? %>
+                <p><span class="font-medium">Tax:</span> <%= number_to_currency @booking.invoice.tax_amount %></p>
+              <% end %>
+              <p><span class="font-medium">Grand Total:</span> <%= number_to_currency @booking.invoice.total_amount %></p>
+            </div>
+          </div>
+          <div class="mt-3">
+            <% if request.subdomain.present? && request.subdomain != 'www' %>
+              <%= link_to 'View Invoice Details', tenant_transaction_path(@booking.invoice, type: 'invoice'), 
+                  class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
+            <% else %>
+              <%= link_to 'View Invoice Details', transaction_path(@booking.invoice, type: 'invoice'), 
+                  class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>

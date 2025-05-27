@@ -109,6 +109,12 @@ FactoryBot.define do
       with_bookings
     end
 
+    trait :with_default_tax_rate do
+      after(:create) do |business, evaluator|
+        create(:tax_rate, business: business, name: 'Default Tax', rate: 0.098)
+      end
+    end
+
     trait :inactive do
       active { false }
     end
