@@ -75,8 +75,8 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Verify Stripe service was called with correct parameters
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
           invoice: booking.invoice,
-          success_url: "/booking/#{booking.id}/confirmation?payment_success=true",
-          cancel_url: "/booking/#{booking.id}/confirmation?payment_cancelled=true"
+          success_url: "http://testbiz.lvh.me:9887/booking/#{booking.id}/confirmation?payment_success=true",
+          cancel_url: "http://testbiz.lvh.me:9887/booking/#{booking.id}/confirmation?payment_cancelled=true"
         )
       end
     end
