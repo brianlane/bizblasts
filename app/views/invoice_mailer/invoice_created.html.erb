@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice from <%= @business.name %></title>
+  <% if @include_analytics %>
+  <!-- Email tracking for premium tier businesses -->
+  <style type="text/css">
+    .email-analytics { display: none; }
+  </style>
+  <% end %>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">New Invoice</h1>
+    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">From <%= @business.name %></p>
+  </div>
+
+  <!-- Invoice Details -->
+  <div style="background: #f8f9fa; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
+    <div style="background: white; padding: 25px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <h2 style="color: #495057; margin: 0 0 20px 0; font-size: 22px;">Invoice #<%= @invoice.invoice_number %></h2>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px; margin-bottom: 15px;">
+          <strong style="color: #6c757d; display: block; margin-bottom: 5px;">Invoice Date:</strong>
+          <span style="font-size: 16px;"><%= @invoice.created_at.strftime("%B %d, %Y") %></span>
+        </div>
+        <div style="flex: 1; min-width: 200px; margin-bottom: 15px;">
+          <strong style="color: #6c757d; display: block; margin-bottom: 5px;">Due Date:</strong>
+          <span style="font-size: 16px;"><%= @invoice.due_date.strftime("%B %d, %Y") %></span>
+        </div>
+      </div>
+
+      <!-- Customer Information -->
+      <% if @customer.present? %>
+      <div style="margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+        <strong style="color: #495057; display: block; margin-bottom: 10px;">Bill To:</strong>
+        <p style="margin: 5px 0;"><strong>Name:</strong> <%= @customer.name %></p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> <%= @customer.email %></p>
+        <% if @customer.phone.present? %>
+        <p style="margin: 5px 0;"><strong>Phone:</strong> <%= @customer.phone %></p>
+        <% end %>
+      </div>
+      <% end %>
+
+      <!-- Invoice Items -->
+      <h3 style="color: #495057; margin: 25px 0 15px 0; font-size: 18px; border-bottom: 2px solid #e9ecef; padding-bottom: 8px;">Invoice Items</h3>
+      
+      <!-- If invoice is for a booking -->
+      <% if @invoice.booking.present? %>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f3f4;">
+          <div style="flex: 1;">
+            <strong style="color: #495057; font-size: 16px;"><%= @invoice.booking.service.name %></strong>
+            <br><span style="color: #6c757d; font-size: 14px;">Service Date: <%= @invoice.booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></span>
+            <% if @invoice.booking.staff_member.present? %>
+            <br><span style="color: #6c757d; font-size: 14px;">Staff: <%= @invoice.booking.staff_member.name %></span>
+            <% end %>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(@invoice.booking.service.price) %></div>
+          </div>
+        </div>
+        
+        <!-- Booking add-ons -->
+        <% @invoice.booking.booking_product_add_ons.each do |addon| %>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f3f4;">
+          <div style="flex: 1;">
+            <strong style="color: #495057; font-size: 16px;"><%= addon.product_variant.product.name %></strong>
+            <% if addon.product_variant.name != 'Default' %>
+            <br><span style="color: #6c757d; font-size: 14px;"><%= addon.product_variant.name %></span>
+            <% end %>
+            <br><span style="color: #6c757d; font-size: 14px;">Quantity: <%= addon.quantity %></span>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 14px; color: #6c757d;"><%= number_to_currency(addon.price) %> each</div>
+            <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(addon.total_amount) %></div>
+          </div>
+        </div>
+        <% end %>
+        
+      <!-- If invoice has line items -->
+      <% elsif @invoice.line_items.any? %>
+        <% @invoice.line_items.each do |item| %>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f3f4;">
+          <div style="flex: 1;">
+            <strong style="color: #495057; font-size: 16px;"><%= item.product_variant.product.name %></strong>
+            <% if item.product_variant.name != 'Default' %>
+            <br><span style="color: #6c757d; font-size: 14px;"><%= item.product_variant.name %></span>
+            <% end %>
+            <br><span style="color: #6c757d; font-size: 14px;">Quantity: <%= item.quantity %></span>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 14px; color: #6c757d;"><%= number_to_currency(item.price) %> each</div>
+            <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(item.total_amount) %></div>
+          </div>
+        </div>
+        <% end %>
+      <% end %>
+
+      <!-- Invoice Summary -->
+      <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 6px;">
+        <h3 style="color: #495057; margin: 0 0 15px 0; font-size: 18px;">Invoice Summary</h3>
+        
+        <% if @invoice.original_amount.present? %>
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Subtotal:</span>
+          <span style="font-weight: bold;"><%= number_to_currency(@invoice.original_amount) %></span>
+        </div>
+        <% end %>
+        
+        <% if @invoice.discount_amount.present? && @invoice.discount_amount > 0 %>
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Discount:</span>
+          <span style="font-weight: bold; color: #dc3545;">-<%= number_to_currency(@invoice.discount_amount) %></span>
+        </div>
+        <% end %>
+        
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Amount:</span>
+          <span style="font-weight: bold;"><%= number_to_currency(@invoice.amount) %></span>
+        </div>
+        
+        <% if (@invoice.tax_amount || 0) > 0 %>
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Tax:</span>
+          <span style="font-weight: bold;"><%= number_to_currency(@invoice.tax_amount) %></span>
+        </div>
+        <% end %>
+        
+        <div style="display: flex; justify-content: space-between; margin: 15px 0 0 0; padding-top: 15px; border-top: 2px solid #dee2e6; font-size: 18px;">
+          <span style="font-weight: bold; color: #495057;">Total Due:</span>
+          <span style="font-weight: bold; color: #dc3545;"><%= number_to_currency(@invoice.total_amount) %></span>
+        </div>
+      </div>
+
+      <!-- Payment Button -->
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="<%= @payment_url %>" 
+           style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);">
+          Pay Now - <%= number_to_currency(@invoice.total_amount) %>
+        </a>
+        <p style="margin: 15px 0 0 0; font-size: 14px; color: #6c757d;">Secure payment powered by Stripe</p>
+      </div>
+
+      <!-- Payment Instructions -->
+      <div style="margin-top: 25px; padding: 20px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px;">
+        <h3 style="color: #856404; margin: 0 0 15px 0; font-size: 18px;">Payment Instructions</h3>
+        <p style="margin: 8px 0; color: #856404;">• Click the "Pay Now" button above to pay securely with your credit card</p>
+        <p style="margin: 8px 0; color: #856404;">• Payment is due by <%= @invoice.due_date.strftime("%B %d, %Y") %></p>
+        <p style="margin: 8px 0; color: #856404;">• You'll receive a receipt immediately after payment</p>
+        <p style="margin: 8px 0; color: #856404;">• Contact us if you have any questions about this invoice</p>
+      </div>
+
+      <!-- Business Contact -->
+      <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 6px; text-align: center;">
+        <h3 style="color: #495057; margin: 0 0 15px 0; font-size: 18px;">Questions about this invoice?</h3>
+        <p style="margin: 8px 0; color: #6c757d;">Contact <strong><%= @business.name %></strong></p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:<%= @business.email %>" style="color: #007bff; text-decoration: none;"><%= @business.email %></a></p>
+        <% if @business.phone.present? %>
+        <p style="margin: 5px 0;"><strong>Phone:</strong> <%= @business.phone %></p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="background: #495057; color: white; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+    <p style="margin: 0; font-size: 14px; opacity: 0.8;">This invoice was generated by <%= @business.name %> via BizBlasts.</p>
+    <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.6;">Please do not reply to this email. For support, contact <%= @business.name %> directly.</p>
+  </div>
+
+  <% if @include_analytics %>
+  <!-- Email tracking pixel for premium tier businesses -->
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1" class="email-analytics" alt="">
+  <% end %>
+
+</body>
+</html> 

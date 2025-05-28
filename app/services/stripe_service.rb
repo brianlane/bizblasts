@@ -357,6 +357,22 @@ class StripeService
     if (order = payment.order)
       new_status = order.payment_required? ? :paid : :processing
       order.update!(status: new_status)
+      
+      # Send order confirmation email (available to all tiers)
+      begin
+        OrderMailer.order_confirmation(order).deliver_later
+        Rails.logger.info "[EMAIL] Sent order confirmation email for Order ##{order.order_number}"
+      rescue => e
+        Rails.logger.error "[EMAIL] Failed to send order confirmation email for Order ##{order.order_number}: #{e.message}"
+      end
+    else
+      # Send invoice payment confirmation email (available to all tiers)
+      begin
+        InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
+        Rails.logger.info "[EMAIL] Sent payment confirmation email for Invoice ##{invoice.invoice_number}"
+      rescue => e
+        Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{invoice.invoice_number}: #{e.message}"
+      end
     end
   end
 
@@ -479,11 +495,12 @@ class StripeService
         
         Rails.logger.info "[BOOKING] Successfully created booking ##{booking.id} with payment ##{payment.id}"
         
-        # Send confirmation email
+        # Send payment confirmation email (since booking invoice is now paid)
         begin
-          BookingMailer.status_update(booking).deliver_later
+          InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
+          Rails.logger.info "[EMAIL] Sent payment confirmation email for booking invoice ##{invoice.invoice_number}"
         rescue => e
-          Rails.logger.error "[BOOKING] Failed to send confirmation email for booking ##{booking.id}: #{e.message}"
+          Rails.logger.error "[EMAIL] Failed to send payment confirmation email for booking invoice ##{invoice.invoice_number}: #{e.message}"
           # Don't fail the whole transaction for email issues
         end
       end
