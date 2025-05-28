@@ -1,7 +1,7 @@
 class Payment < ApplicationRecord
   include TenantScoped
   
-  belongs_to :business
+  belongs_to :business, optional: true
   belongs_to :invoice
   belongs_to :order, optional: true
   belongs_to :tenant_customer
@@ -9,6 +9,8 @@ class Payment < ApplicationRecord
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :payment_method, presence: true
   validates :status, presence: true
+  
+  validates :business, presence: true, unless: :orphaned_payment?
   
   enum :payment_method, {
     credit_card: 'credit_card',
@@ -34,5 +36,18 @@ class Payment < ApplicationRecord
   
   def refund!
     update(status: :refunded, refunded_at: Time.current)
+  end
+  
+  # Mark payment as business deleted and remove business association
+  def mark_business_deleted!
+    ActsAsTenant.without_tenant do
+      update_columns(business_id: nil)
+    end
+  end
+  
+  private
+  
+  def orphaned_payment?
+    business_id.nil?
   end
 end
