@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_28_165635) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_28_170243) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -396,7 +396,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_165635) do
 
   create_table "payments", force: :cascade do |t|
     t.bigint "business_id"
-    t.bigint "invoice_id", null: false
+    t.bigint "invoice_id"
     t.bigint "order_id"
     t.bigint "tenant_customer_id"
     t.decimal "amount", precision: 10, scale: 2, null: false
@@ -855,7 +855,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_165635) do
   add_foreign_key "page_sections", "pages"
   add_foreign_key "pages", "businesses", on_delete: :cascade
   add_foreign_key "payments", "businesses", on_delete: :cascade
-  add_foreign_key "payments", "invoices"
+  add_foreign_key "payments", "invoices", on_delete: :nullify
   add_foreign_key "payments", "orders"
   add_foreign_key "payments", "tenant_customers", on_delete: :nullify
   add_foreign_key "product_variants", "products"
