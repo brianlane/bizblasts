@@ -77,12 +77,19 @@ if !Rails.env.production?
     user.password_confirmation = 'password123'
     user.role = :manager
     user.active = true
+    # Confirm the user immediately since this is seed data
+    user.confirmed_at = Time.current
   end
 
   if admin_user.new_record?
     admin_user.save!
     puts "Admin user created with email: #{admin_user.email} and password: password123"
   else
+    # Ensure existing admin user is confirmed
+    unless admin_user.confirmed?
+      admin_user.update!(confirmed_at: Time.current)
+      puts "Confirmed existing admin user: #{admin_user.email}"
+    end
     puts "Admin user already exists: #{admin_user.email}"
   end
 else

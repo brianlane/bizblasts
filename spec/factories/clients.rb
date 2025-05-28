@@ -9,9 +9,15 @@ FactoryBot.define do
     password_confirmation { "password" }
     role { :client } # Assuming you have a role attribute/enum
     active { true } # Ensure user is active
+    # Confirm users by default for tests
+    confirmed_at { Time.current }
 
     # Add association if clients belong to a business
     # association :business
+
+    trait :unconfirmed do
+      confirmed_at { nil }
+    end
 
     after(:create) do |user|
       # Ensure confirmation if using Devise confirmable module

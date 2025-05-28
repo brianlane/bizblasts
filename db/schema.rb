@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_28_154702) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -365,7 +365,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
     t.index ["status"], name: "index_orders_on_status"
     t.index ["tax_rate_id"], name: "index_orders_on_tax_rate_id"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -817,7 +817,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "booking_policies", "businesses"
+  add_foreign_key "booking_policies", "businesses", on_delete: :cascade
   add_foreign_key "booking_product_add_ons", "bookings"
   add_foreign_key "booking_product_add_ons", "product_variants"
   add_foreign_key "bookings", "businesses", on_delete: :cascade
@@ -828,27 +828,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
   add_foreign_key "businesses", "service_templates"
   add_foreign_key "campaign_recipients", "marketing_campaigns"
   add_foreign_key "campaign_recipients", "tenant_customers"
-  add_foreign_key "categories", "businesses"
+  add_foreign_key "categories", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
-  add_foreign_key "integration_credentials", "businesses"
-  add_foreign_key "integrations", "businesses"
+  add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
+  add_foreign_key "integrations", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "bookings"
   add_foreign_key "invoices", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "orders"
   add_foreign_key "invoices", "promotions"
   add_foreign_key "invoices", "shipping_methods"
   add_foreign_key "invoices", "tax_rates"
-  add_foreign_key "invoices", "tenant_customers"
+  add_foreign_key "invoices", "tenant_customers", on_delete: :cascade
   add_foreign_key "line_items", "product_variants"
   add_foreign_key "line_items", "services"
   add_foreign_key "line_items", "staff_members"
-  add_foreign_key "locations", "businesses"
+  add_foreign_key "locations", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
-  add_foreign_key "notification_templates", "businesses"
+  add_foreign_key "notification_templates", "businesses", on_delete: :cascade
   add_foreign_key "orders", "bookings"
-  add_foreign_key "orders", "businesses"
+  add_foreign_key "orders", "businesses", on_delete: :cascade
   add_foreign_key "orders", "shipping_methods"
   add_foreign_key "orders", "tax_rates"
   add_foreign_key "orders", "tenant_customers"
@@ -859,7 +859,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
   add_foreign_key "payments", "orders"
   add_foreign_key "payments", "tenant_customers"
   add_foreign_key "product_variants", "products"
-  add_foreign_key "products", "businesses"
+  add_foreign_key "products", "businesses", on_delete: :cascade
   add_foreign_key "products", "categories"
   add_foreign_key "promotion_redemptions", "bookings"
   add_foreign_key "promotion_redemptions", "invoices"
@@ -869,7 +869,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
   add_foreign_key "services", "businesses", on_delete: :cascade
   add_foreign_key "services_staff_members", "services"
   add_foreign_key "services_staff_members", "staff_members"
-  add_foreign_key "shipping_methods", "businesses"
+  add_foreign_key "shipping_methods", "businesses", on_delete: :cascade
   add_foreign_key "sms_messages", "bookings"
   add_foreign_key "sms_messages", "marketing_campaigns"
   add_foreign_key "sms_messages", "tenant_customers"
@@ -885,8 +885,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_152102) do
   add_foreign_key "staff_members", "users"
   add_foreign_key "stock_reservations", "orders"
   add_foreign_key "stock_reservations", "product_variants"
-  add_foreign_key "subscriptions", "businesses"
-  add_foreign_key "tax_rates", "businesses"
+  add_foreign_key "subscriptions", "businesses", on_delete: :cascade
+  add_foreign_key "tax_rates", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
   add_foreign_key "users", "businesses", on_delete: :cascade
   add_foreign_key "users", "staff_members"
