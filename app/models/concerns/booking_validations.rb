@@ -7,7 +7,7 @@ module BookingValidations
   included do
     # Common validations for bookings
     validates :service, presence: true, unless: :business_deleted?
-    validates :tenant_customer, presence: true
+    validates :tenant_customer, presence: true, unless: :business_deleted?
     validates :staff_member, presence: true, unless: :business_deleted?
     validates :start_time, presence: true
     validates :end_time, presence: true

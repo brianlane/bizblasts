@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_28_174516) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -121,9 +121,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
     t.datetime "end_time", null: false
     t.integer "status", default: 0
     t.text "notes"
-    t.bigint "service_id", null: false
-    t.bigint "staff_member_id", null: false
-    t.bigint "tenant_customer_id", null: false
+    t.bigint "service_id"
+    t.bigint "staff_member_id"
+    t.bigint "tenant_customer_id"
     t.bigint "business_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -342,7 +342,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
   end
 
   create_table "orders", force: :cascade do |t|
-    t.bigint "tenant_customer_id", null: false
+    t.bigint "tenant_customer_id"
     t.string "order_number", null: false
     t.string "status", default: "pending_payment", null: false
     t.decimal "total_amount", precision: 10, scale: 2, null: false
@@ -365,7 +365,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
     t.index ["status"], name: "index_orders_on_status"
     t.index ["tax_rate_id"], name: "index_orders_on_tax_rate_id"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -818,13 +818,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "booking_policies", "businesses", on_delete: :cascade
-  add_foreign_key "booking_product_add_ons", "bookings"
+  add_foreign_key "booking_product_add_ons", "bookings", on_delete: :cascade
   add_foreign_key "booking_product_add_ons", "product_variants"
   add_foreign_key "bookings", "businesses", on_delete: :cascade
-  add_foreign_key "bookings", "promotions"
-  add_foreign_key "bookings", "services"
-  add_foreign_key "bookings", "staff_members"
-  add_foreign_key "bookings", "tenant_customers"
+  add_foreign_key "bookings", "promotions", on_delete: :nullify
+  add_foreign_key "bookings", "services", on_delete: :nullify
+  add_foreign_key "bookings", "staff_members", on_delete: :nullify
+  add_foreign_key "bookings", "tenant_customers", on_delete: :nullify
   add_foreign_key "businesses", "service_templates"
   add_foreign_key "campaign_recipients", "marketing_campaigns"
   add_foreign_key "campaign_recipients", "tenant_customers"
@@ -833,7 +833,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
   add_foreign_key "client_businesses", "users"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
-  add_foreign_key "invoices", "bookings"
+  add_foreign_key "invoices", "bookings", on_delete: :nullify
   add_foreign_key "invoices", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "orders"
   add_foreign_key "invoices", "promotions"
@@ -842,35 +842,35 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
   add_foreign_key "invoices", "tenant_customers", on_delete: :cascade
   add_foreign_key "line_items", "product_variants"
   add_foreign_key "line_items", "services", on_delete: :nullify
-  add_foreign_key "line_items", "staff_members"
+  add_foreign_key "line_items", "staff_members", on_delete: :nullify
   add_foreign_key "locations", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
   add_foreign_key "notification_templates", "businesses", on_delete: :cascade
-  add_foreign_key "orders", "bookings"
+  add_foreign_key "orders", "bookings", on_delete: :nullify
   add_foreign_key "orders", "businesses", on_delete: :cascade
   add_foreign_key "orders", "shipping_methods"
   add_foreign_key "orders", "tax_rates"
-  add_foreign_key "orders", "tenant_customers"
+  add_foreign_key "orders", "tenant_customers", on_delete: :nullify
   add_foreign_key "page_sections", "pages"
   add_foreign_key "pages", "businesses", on_delete: :cascade
   add_foreign_key "payments", "businesses", on_delete: :cascade
   add_foreign_key "payments", "invoices", on_delete: :nullify
-  add_foreign_key "payments", "orders"
+  add_foreign_key "payments", "orders", on_delete: :nullify
   add_foreign_key "payments", "tenant_customers", on_delete: :nullify
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses", on_delete: :cascade
   add_foreign_key "products", "categories"
-  add_foreign_key "promotion_redemptions", "bookings"
+  add_foreign_key "promotion_redemptions", "bookings", on_delete: :cascade
   add_foreign_key "promotion_redemptions", "invoices"
   add_foreign_key "promotion_redemptions", "promotions"
   add_foreign_key "promotion_redemptions", "tenant_customers"
   add_foreign_key "promotions", "businesses", on_delete: :cascade
   add_foreign_key "services", "businesses", on_delete: :cascade
-  add_foreign_key "services_staff_members", "services"
-  add_foreign_key "services_staff_members", "staff_members"
+  add_foreign_key "services_staff_members", "services", on_delete: :cascade
+  add_foreign_key "services_staff_members", "staff_members", on_delete: :cascade
   add_foreign_key "shipping_methods", "businesses", on_delete: :cascade
-  add_foreign_key "sms_messages", "bookings"
+  add_foreign_key "sms_messages", "bookings", on_delete: :cascade
   add_foreign_key "sms_messages", "marketing_campaigns"
   add_foreign_key "sms_messages", "tenant_customers"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
@@ -882,7 +882,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
   add_foreign_key "staff_assignments", "services"
   add_foreign_key "staff_assignments", "users"
   add_foreign_key "staff_members", "businesses", on_delete: :cascade
-  add_foreign_key "staff_members", "users"
+  add_foreign_key "staff_members", "users", on_delete: :nullify
   add_foreign_key "stock_reservations", "orders"
   add_foreign_key "stock_reservations", "product_variants", on_delete: :cascade
   add_foreign_key "subscriptions", "businesses", on_delete: :cascade
