@@ -2,7 +2,7 @@ class Payment < ApplicationRecord
   include TenantScoped
   
   belongs_to :business, optional: true
-  belongs_to :invoice
+  belongs_to :invoice, optional: true
   belongs_to :order, optional: true
   belongs_to :tenant_customer, optional: true
   
@@ -12,6 +12,7 @@ class Payment < ApplicationRecord
   
   validates :business, presence: true, unless: :orphaned_payment?
   validates :tenant_customer, presence: true, unless: :orphaned_payment?
+  validates :invoice, presence: true, unless: :orphaned_payment?
   
   enum :payment_method, {
     credit_card: 'credit_card',
@@ -44,7 +45,8 @@ class Payment < ApplicationRecord
     ActsAsTenant.without_tenant do
       update_columns(
         business_id: nil,
-        tenant_customer_id: nil
+        tenant_customer_id: nil,
+        invoice_id: nil
       )
     end
   end
@@ -52,6 +54,6 @@ class Payment < ApplicationRecord
   private
   
   def orphaned_payment?
-    business_id.nil? || tenant_customer_id.nil?
+    business_id.nil? || tenant_customer_id.nil? || invoice_id.nil?
   end
 end
