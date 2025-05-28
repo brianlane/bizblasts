@@ -66,10 +66,19 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
         
         div style: "margin-bottom: 15px;" do
           form_tag admin_solidqueue_jobs_retry_all_failed_jobs_path, method: :post, 
-                   onsubmit: "return confirm('Are you sure you want to retry all failed jobs?')" do
+                   onsubmit: "return confirm('Are you sure you want to retry all failed jobs?')", 
+                   style: "display: inline-block; margin-right: 10px;" do
             submit_tag "Retry All Failed Jobs", 
                        class: "button", 
                        style: "background-color: #dc3545; color: white; border: none; padding: 8px 16px; cursor: pointer;"
+          end
+          
+          form_tag admin_solidqueue_jobs_cleanup_orphaned_jobs_path, method: :post,
+                   onsubmit: "return confirm('This will permanently discard failed jobs that reference deleted businesses. Continue?')",
+                   style: "display: inline-block;" do
+            submit_tag "Clean Up Orphaned Jobs", 
+                       class: "button", 
+                       style: "background-color: #6c757d; color: white; border: none; padding: 8px 16px; cursor: pointer;"
           end
         end
         
@@ -144,18 +153,94 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
 
   page_action :retry_all_failed_jobs, method: :post do
     retried_count = 0
+    failed_count = 0
+    
     SolidQueue::FailedExecution.find_each do |failed_execution|
-      failed_execution.retry
-      retried_count += 1
+      begin
+        failed_execution.retry
+        retried_count += 1
+      rescue => e
+        Rails.logger.error "[SolidQueue] Failed to retry job #{failed_execution.id}: #{e.message}"
+        failed_count += 1
+        # Continue with other jobs even if one fails
+      end
     end
     
-    redirect_to admin_solidqueue_jobs_path, notice: "Retried #{retried_count} failed jobs."
+    if failed_count > 0
+      redirect_to admin_solidqueue_jobs_path, notice: "Retried #{retried_count} jobs successfully. #{failed_count} jobs could not be retried (check logs for details)."
+    else
+      redirect_to admin_solidqueue_jobs_path, notice: "Retried #{retried_count} failed jobs."
+    end
   end
 
   page_action :retry_failed_job, method: :post do
-    failed_execution = SolidQueue::FailedExecution.find(params[:id])
-    failed_execution.retry
+    if params[:id].blank?
+      redirect_to admin_solidqueue_jobs_path, alert: "No job ID provided for retry."
+      return
+    end
     
-    redirect_to admin_solidqueue_jobs_path, notice: "Retried failed job."
+    begin
+      failed_execution = SolidQueue::FailedExecution.find(params[:id])
+      failed_execution.retry
+      redirect_to admin_solidqueue_jobs_path, notice: "Retried failed job successfully."
+    rescue ActiveRecord::RecordNotFound
+      redirect_to admin_solidqueue_jobs_path, alert: "Failed job not found (may have already been processed)."
+    rescue => e
+      Rails.logger.error "[SolidQueue] Failed to retry job #{params[:id]}: #{e.message}"
+      redirect_to admin_solidqueue_jobs_path, alert: "Failed to retry job: #{e.message}"
+    end
+  end
+
+  page_action :cleanup_orphaned_jobs, method: :post do
+    cleaned_count = 0
+    
+    # Find failed jobs that reference non-existent businesses
+    SolidQueue::FailedExecution.joins(:job).find_each do |failed_execution|
+      begin
+        job_args = JSON.parse(failed_execution.job.arguments)
+        
+        # Check if this is a mailer job that might reference a business
+        if failed_execution.job.class_name == 'ActionMailer::MailDeliveryJob'
+          mailer_class = job_args.dig('arguments', 0)
+          
+          if mailer_class == 'BusinessMailer'
+            # Try to find the business referenced in the job
+            mailer_args = job_args.dig('arguments', 2)
+            
+            # Handle different argument structures for different mailer methods
+            business_id = case mailer_args
+                         when Hash
+                           mailer_args['business_id'] if mailer_args.key?('business_id')
+                         when Array
+                           # Extract business ID from various ActiveRecord objects
+                           mailer_args.each do |arg|
+                             if arg.is_a?(Hash) && arg['_aj_globalid']
+                               gid = arg['_aj_globalid']
+                               if gid.include?('Business/')
+                                 return gid.split('/').last.to_i
+                               elsif gid.include?('TenantCustomer/') || gid.include?('Order/') || gid.include?('Payment/') || gid.include?('Booking/')
+                                 # These objects have business associations - we'd need to check if they exist
+                                 # For now, we'll skip this check and let the retry handle it
+                                 break
+                               end
+                             end
+                           end
+                         end
+            
+            # If we can identify a business ID and it doesn't exist, discard the job
+            if business_id && !Business.exists?(business_id)
+              failed_execution.discard
+              cleaned_count += 1
+              Rails.logger.info "[SolidQueue] Cleaned up failed job #{failed_execution.id} referencing non-existent Business #{business_id}"
+            end
+          end
+        end
+      rescue => e
+        Rails.logger.error "[SolidQueue] Error checking job #{failed_execution.id}: #{e.message}"
+        # Continue with other jobs
+      end
+    end
+    
+    redirect_to admin_solidqueue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
   end
 end 
