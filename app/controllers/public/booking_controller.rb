@@ -165,6 +165,15 @@ module Public
         # Business users creating bookings for clients - create booking immediately
         if @booking.save
           generate_or_update_invoice_for_booking(@booking)
+          
+          # Send business notification email
+          begin
+            BusinessMailer.new_booking_notification(@booking).deliver_later
+            Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{@booking.id}"
+          rescue => e
+            Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
+          end
+          
           flash[:notice] = "Booking was successfully created."
           redirect_to tenant_booking_confirmation_path(@booking)
         else
@@ -251,6 +260,14 @@ module Public
             
             # Set appropriate status - confirmed for standard services even without payment
             @booking.update!(status: :confirmed)
+            
+            # Send business notification email for standard bookings too
+            begin
+              BusinessMailer.new_booking_notification(@booking).deliver_later
+              Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{@booking.id}"
+            rescue => e
+              Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
+            end
             
             flash[:notice] = "Booking confirmed! You can pay now or later."
             redirect_to tenant_booking_confirmation_path(@booking)

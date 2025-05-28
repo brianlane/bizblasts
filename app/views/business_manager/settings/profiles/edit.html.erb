@@ -56,11 +56,61 @@
         </div>
 
         <div class="field">
-          <%= f.label :notification_preferences %><br>
-          <%# Example checkboxes for notification preferences %>
-          <%= f.check_box :notification_preferences, { multiple: true }, 'email', nil %> Email
-          <%= f.check_box :notification_preferences, { multiple: true }, 'sms', nil %> SMS
-          <%# Add other preference options here %>
+          <%= f.label :notification_preferences, "Email Notification Preferences" %>
+          <p class="field-description">Choose which business notifications you'd like to receive via email.</p>
+          
+          <%= f.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
+            <div class="preference-group">
+              <h4>Customer Interactions</h4>
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_booking_notifications, { checked: @user.notification_preferences&.fetch('email_booking_notifications', true) } %>
+                <%= prefs_fields.label :email_booking_notifications, "New Booking Notifications" %>
+                <small>Get notified when customers make new bookings</small>
+              </div>
+              
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_order_notifications, { checked: @user.notification_preferences&.fetch('email_order_notifications', true) } %>
+                <%= prefs_fields.label :email_order_notifications, "New Order Notifications" %>
+                <small>Get notified when customers place new orders</small>
+              </div>
+              
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_customer_notifications, { checked: @user.notification_preferences&.fetch('email_customer_notifications', true) } %>
+                <%= prefs_fields.label :email_customer_notifications, "New Customer Notifications" %>
+                <small>Get notified when new customers register</small>
+              </div>
+            </div>
+
+            <div class="preference-group">
+              <h4>Payments & Financial</h4>
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_payment_notifications, { checked: @user.notification_preferences&.fetch('email_payment_notifications', true) } %>
+                <%= prefs_fields.label :email_payment_notifications, "Payment Received Notifications" %>
+                <small>Get notified when payments are received</small>
+              </div>
+              
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_failed_payment_notifications, { checked: @user.notification_preferences&.fetch('email_failed_payment_notifications', true) } %>
+                <%= prefs_fields.label :email_failed_payment_notifications, "Failed Payment Notifications" %>
+                <small>Get notified when payments fail</small>
+              </div>
+            </div>
+
+            <div class="preference-group">
+              <h4>System & Updates</h4>
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_system_notifications, { checked: @user.notification_preferences&.fetch('email_system_notifications', true) } %>
+                <%= prefs_fields.label :email_system_notifications, "System Notifications" %>
+                <small>Important system updates and maintenance notices</small>
+              </div>
+              
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_marketing_updates, { checked: @user.notification_preferences&.fetch('email_marketing_updates', false) } %>
+                <%= prefs_fields.label :email_marketing_updates, "Marketing & Feature Updates" %>
+                <small>New features, tips, and promotional content from BizBlasts</small>
+              </div>
+            </div>
+          <% end %>
         </div>
 
         <div class="field">
@@ -98,11 +148,20 @@
     .field { margin-bottom: 15px; }
     .field label { display: block; font-weight: bold; margin-bottom: 5px; }
     .field input[type="text"], .field input[type="email"], .field input[type="password"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    .field small { color: #666; font-size: 0.9em; }
+    .field small { color: #666; font-size: 0.9em; display: block; margin-top: 5px; }
+    .field-description { color: #666; font-size: 0.9em; margin-bottom: 15px; }
     .actions input[type="submit"] { background-color: #0066cc; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
     .actions input[type="submit"]:hover { background-color: #0056b3; }
     #error_explanation { color: red; margin-bottom: 20px; }
     #error_explanation h2 { font-size: 1.2em; color: red; }
     #error_explanation ul { padding-left: 20px; }
+    
+    /* Notification Preferences Styling */
+    .preference-group { background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+    .preference-group h4 { margin: 0 0 10px 0; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 5px; }
+    .checkbox-field { margin-bottom: 12px; }
+    .checkbox-field input[type="checkbox"] { margin-right: 8px; }
+    .checkbox-field label { font-weight: normal; display: inline; }
+    .checkbox-field small { margin-left: 24px; color: #6c757d; font-style: italic; }
   </style>
 </div> 

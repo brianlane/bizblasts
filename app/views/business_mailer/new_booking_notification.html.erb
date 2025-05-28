@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>New Booking Notification</title>
+    <style>
+      .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+      .header { background-color: #f8f9fa; padding: 20px; border-radius: 8px 8px 0 0; border-bottom: 2px solid #e9ecef; }
+      .content { padding: 30px; background-color: #ffffff; }
+      .booking-details { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+      .detail-row { margin-bottom: 10px; }
+      .label { font-weight: bold; color: #495057; }
+      .value { color: #212529; }
+      .footer { background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef; }
+      .cta-button { display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 15px 0; }
+      .cta-button:hover { background-color: #0056b3; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2 style="margin: 0; color: #007bff;">🎉 New Booking Received!</h2>
+        <p style="margin: 10px 0 0 0; color: #6c757d;">You have a new booking for your business</p>
+      </div>
+
+      <div class="content">
+        <p>Hello <%= @business.name %> Team,</p>
+        
+        <p>Great news! You've received a new booking from <strong><%= @customer.name %></strong>.</p>
+
+        <div class="booking-details">
+          <h3 style="margin-top: 0; color: #007bff;">Booking Details</h3>
+          
+          <div class="detail-row">
+            <span class="label">Customer:</span>
+            <span class="value"><%= @customer.name %></span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Email:</span>
+            <span class="value"><%= @customer.email %></span>
+          </div>
+          
+          <% if @customer.phone.present? %>
+          <div class="detail-row">
+            <span class="label">Phone:</span>
+            <span class="value"><%= @customer.phone %></span>
+          </div>
+          <% end %>
+          
+          <div class="detail-row">
+            <span class="label">Service:</span>
+            <span class="value"><%= @service.name %></span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Staff Member:</span>
+            <span class="value"><%= @staff_member.name %></span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Date & Time:</span>
+            <span class="value"><%= @booking.start_time.strftime("%A, %B %d, %Y at %I:%M %p") %></span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Duration:</span>
+            <span class="value"><%= @booking.duration %> minutes</span>
+          </div>
+          
+          <% if @booking.notes.present? %>
+          <div class="detail-row">
+            <span class="label">Notes:</span>
+            <span class="value"><%= @booking.notes %></span>
+          </div>
+          <% end %>
+          
+          <div class="detail-row">
+            <span class="label">Status:</span>
+            <span class="value"><%= @booking.status.humanize %></span>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/bookings/<%= @booking.id %>" class="cta-button">
+            View Booking Details
+          </a>
+        </div>
+
+        <p>You can manage this booking and contact the customer through your business dashboard.</p>
+      </div>
+
+      <div class="footer">
+        <p style="margin: 0; color: #6c757d; font-size: 14px;">
+          This notification was sent because you have business booking notifications enabled.<br>
+          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/settings/profile/edit" style="color: #007bff;">Manage notification preferences</a>
+        </p>
+        <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 12px;">
+          © <%= Date.current.year %> BizBlasts. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html> 

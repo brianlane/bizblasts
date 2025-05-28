@@ -365,6 +365,14 @@ class StripeService
       rescue => e
         Rails.logger.error "[EMAIL] Failed to send order confirmation email for Order ##{order.order_number}: #{e.message}"
       end
+      
+      # Send business payment notification
+      begin
+        BusinessMailer.payment_received_notification(payment).deliver_later
+        Rails.logger.info "[EMAIL] Scheduled business payment notification for Order ##{order.order_number}"
+      rescue => e
+        Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Order ##{order.order_number}: #{e.message}"
+      end
     else
       # Send invoice payment confirmation email (available to all tiers)
       begin
@@ -372,6 +380,14 @@ class StripeService
         Rails.logger.info "[EMAIL] Sent payment confirmation email for Invoice ##{invoice.invoice_number}"
       rescue => e
         Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{invoice.invoice_number}: #{e.message}"
+      end
+      
+      # Send business payment notification
+      begin
+        BusinessMailer.payment_received_notification(payment).deliver_later
+        Rails.logger.info "[EMAIL] Scheduled business payment notification for Invoice ##{invoice.invoice_number}"
+      rescue => e
+        Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Invoice ##{invoice.invoice_number}: #{e.message}"
       end
     end
   end
@@ -501,6 +517,24 @@ class StripeService
           Rails.logger.info "[EMAIL] Sent payment confirmation email for booking invoice ##{invoice.invoice_number}"
         rescue => e
           Rails.logger.error "[EMAIL] Failed to send payment confirmation email for booking invoice ##{invoice.invoice_number}: #{e.message}"
+          # Don't fail the whole transaction for email issues
+        end
+        
+        # Send business notifications for the booking
+        begin
+          BusinessMailer.new_booking_notification(booking).deliver_later
+          Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{booking.id}"
+        rescue => e
+          Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{booking.id}: #{e.message}"
+          # Don't fail the whole transaction for email issues
+        end
+        
+        # Send business payment notification
+        begin
+          BusinessMailer.payment_received_notification(payment).deliver_later
+          Rails.logger.info "[EMAIL] Scheduled business payment notification for Booking ##{booking.id} payment"
+        rescue => e
+          Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Booking ##{booking.id}: #{e.message}"
           # Don't fail the whole transaction for email issues
         end
       end

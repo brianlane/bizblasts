@@ -51,8 +51,16 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       :last_name,
       :email,
       :phone,
-      notification_preferences: [:email_booking_confirmation, :sms_booking_reminder, :email_promotions, :sms_promotions, :email_order_updates, :sms_order_updates]
-      # Add other specific keys for notification_preferences as they are defined
+      notification_preferences: [
+        :email_booking_confirmation, 
+        :sms_booking_reminder, 
+        :email_booking_updates,
+        :email_order_updates, 
+        :sms_order_updates,
+        :email_payment_confirmations,
+        :email_promotions, 
+        :sms_promotions
+      ]
     )
   end
 
@@ -75,7 +83,16 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       :password,
       :password_confirmation,
       :current_password,
-      notification_preferences: [:email_booking_confirmation, :sms_booking_reminder, :email_promotions, :sms_promotions, :email_order_updates, :sms_order_updates]
+      notification_preferences: [
+        :email_booking_confirmation, 
+        :sms_booking_reminder, 
+        :email_booking_updates,
+        :email_order_updates, 
+        :sms_order_updates,
+        :email_payment_confirmations,
+        :email_promotions, 
+        :sms_promotions
+      ]
     )
   end
 end 

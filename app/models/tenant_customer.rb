@@ -19,6 +19,9 @@ class TenantCustomer < ApplicationRecord
   # Make phone optional for now to fix booking flow
   validates :phone, presence: true, allow_blank: true
   
+  # Callbacks
+  after_create :send_business_customer_notification
+  
   scope :active, -> { where(active: true) }
   
   def full_name
@@ -51,5 +54,16 @@ class TenantCustomer < ApplicationRecord
   # This combined with the index on the database should improve performance
   def self.index_for_email_uniqueness
     @email_business_index ||= {}
+  end
+  
+  private
+  
+  def send_business_customer_notification
+    begin
+      BusinessMailer.new_customer_notification(self).deliver_later
+      Rails.logger.info "[EMAIL] Scheduled business customer notification for Customer #{name} (#{email})"
+    rescue => e
+      Rails.logger.error "[EMAIL] Failed to schedule business customer notification for Customer #{name} (#{email}): #{e.message}"
+    end
   end
 end 
