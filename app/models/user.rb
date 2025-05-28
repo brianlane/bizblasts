@@ -19,7 +19,7 @@ class User < ApplicationRecord
 
   # Devise modules - Removed :validatable to use custom email uniqueness
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable # Removed :validatable
+         :recoverable, :rememberable, :confirmable # Added :confirmable for email verification
 
   # Validations
   validates :email, presence: true,

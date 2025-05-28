@@ -28,6 +28,9 @@ gem "solid_queue"
 gem "devise"
 gem "devise-jwt"
 
+# Email delivery
+gem "resend"
+
 # Authorization
 gem "pundit"
 

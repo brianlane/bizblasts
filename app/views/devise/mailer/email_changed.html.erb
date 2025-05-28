@@ -1,7 +1,57 @@
-<p>Hello <%= @email %>!</p>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px 20px; text-align: center;">
+    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">BizBlasts</h1>
+    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Email Address Changed</p>
+  </div>
+  
+  <!-- Content -->
+  <div style="padding: 40px 30px;">
+    <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Hello <%= @resource.first_name || @email %>!</h2>
+    
+    <% if @resource.try(:unconfirmed_email?) %>
+      <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+        We're contacting you to notify you that your email address is being changed to <strong><%= @resource.unconfirmed_email %></strong>.
+      </p>
+      
+      <div style="background-color: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <p style="color: #1e40af; font-size: 14px; margin: 0 0 10px 0; font-weight: bold;">📧 Confirmation Required</p>
+        <p style="color: #1e40af; font-size: 14px; margin: 0; line-height: 1.5;">
+          Please check your new email address for a confirmation link to complete this change.
+        </p>
+      </div>
+    <% else %>
+      <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+        We're contacting you to notify you that your email address has been successfully changed to <strong><%= @resource.email %></strong>.
+      </p>
+      
+      <div style="background-color: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <p style="color: #15803d; font-size: 14px; margin: 0 0 10px 0; font-weight: bold;">✅ Change Complete</p>
+        <p style="color: #15803d; font-size: 14px; margin: 0; line-height: 1.5;">
+          Your email address has been successfully updated in your BizBlasts account.
+        </p>
+      </div>
+    <% end %>
 
-<% if @resource.try(:unconfirmed_email?) %>
-  <p>We're contacting you to notify you that your email is being changed to <%= @resource.unconfirmed_email %>.</p>
-<% else %>
-  <p>We're contacting you to notify you that your email has been changed to <%= @resource.email %>.</p>
-<% end %>
+    <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 30px 0;">
+      <p style="color: #92400e; font-size: 14px; margin: 0 0 10px 0; font-weight: bold;">🔒 Security Notice</p>
+      <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.5;">
+        If you didn't make this change, please contact our support team immediately at <%= ENV['ADMIN_EMAIL'] %>.
+      </p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+    <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+      Thanks,<br>
+      The BizBlasts Team
+    </p>
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+      Please do not reply to this email, and send all communications to <%= ENV['ADMIN_EMAIL'] %>
+    </p>
+    <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
+      <a href="https://bizblasts.com" style="color: #2563eb; text-decoration: none;">bizblasts.com</a>
+    </p>
+  </div>
+</div>

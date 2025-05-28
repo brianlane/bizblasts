@@ -43,6 +43,12 @@ services:
         value: production
       - key: RAILS_LOG_LEVEL
         value: info
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAILER_EMAIL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
 
 databases:
   - name: bizblast-postgresql
