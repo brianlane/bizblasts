@@ -193,9 +193,15 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
 
   page_action :cleanup_orphaned_jobs, method: :post do
     cleaned_count = 0
+    total_checked = 0
+    
+    Rails.logger.info "[SolidQueue] Starting cleanup of orphaned jobs"
     
     # Find failed jobs that reference non-existent businesses
     SolidQueue::FailedExecution.joins(:job).find_each do |failed_execution|
+      total_checked += 1
+      Rails.logger.info "[SolidQueue] Checking job #{failed_execution.id}, class: #{failed_execution.job.class_name}"
+      
       begin
         # Handle both string and already-parsed arguments
         job_args = if failed_execution.job.arguments.is_a?(String)
@@ -204,9 +210,12 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
                      failed_execution.job.arguments
                    end
         
+        Rails.logger.info "[SolidQueue] Job #{failed_execution.id} arguments type: #{job_args.class}"
+        
         # Check if this is a mailer job that might reference a business
         if failed_execution.job.class_name == 'ActionMailer::MailDeliveryJob'
           mailer_class = job_args.dig('arguments', 0)
+          Rails.logger.info "[SolidQueue] MailDeliveryJob mailer class: #{mailer_class}"
           
           if mailer_class == 'BusinessMailer'
             # Try to find the business referenced in the job
@@ -264,6 +273,9 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
             end
             
             # Also check the error message for business ID references
+            Rails.logger.info "[SolidQueue] Checking error message for Business ID references"
+            Rails.logger.info "[SolidQueue] Error type: #{failed_execution.error.class}, Error: #{failed_execution.error.inspect}"
+            
             if business_id.nil? && failed_execution.error.is_a?(String)
               # Look for "Couldn't find Business with 'id'=X" pattern
               if match = failed_execution.error.match(/Couldn't find Business with 'id'=(\d+)/)
@@ -292,6 +304,7 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
       end
     end
     
-    redirect_to admin_solidqueue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
+    Rails.logger.info "[SolidQueue] Cleanup complete: checked #{total_checked} jobs, cleaned #{cleaned_count}"
+    redirect_to admin_solidqueue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs (checked #{total_checked} total)."
   end
 end 
