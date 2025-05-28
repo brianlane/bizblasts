@@ -48,8 +48,8 @@ class Invoice < ApplicationRecord
   # Mark invoice as business deleted and remove associations
   def mark_business_deleted!
     ActsAsTenant.without_tenant do
-      update!(
-        status: :business_deleted,
+      update_columns(
+        status: 5, # business_deleted enum value
         business_id: nil,
         booking_id: nil,
         order_id: nil,

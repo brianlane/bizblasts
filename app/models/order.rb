@@ -103,8 +103,8 @@ class Order < ApplicationRecord
   # Mark order as business deleted and remove associations
   def mark_business_deleted!
     ActsAsTenant.without_tenant do
-      update!(
-        status: :business_deleted,
+      update_columns(
+        status: 'business_deleted',
         business_id: nil,
         shipping_method_id: nil,
         tax_rate_id: nil
@@ -181,9 +181,7 @@ class Order < ApplicationRecord
 
   def orphan_invoice
     # Mark the associated invoice as business deleted if it exists
-    ActsAsTenant.without_tenant do
-      invoice&.mark_business_deleted!
-    end
+    invoice&.mark_business_deleted!
   end
 
 end
