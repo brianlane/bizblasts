@@ -9,7 +9,7 @@ class Service < ApplicationRecord
   has_many :assigned_staff, through: :staff_assignments, source: :user
   has_many :services_staff_members, dependent: :destroy
   has_many :staff_members, through: :services_staff_members
-  has_many :bookings, dependent: :restrict_with_error
+  has_many :bookings, dependent: :destroy
   
   # Add-on products association
   has_many :product_service_add_ons, dependent: :destroy
@@ -29,6 +29,9 @@ class Service < ApplicationRecord
 
   # Define service types
   enum :service_type, { standard: 0, experience: 1 }
+  
+  # Callbacks
+  before_destroy :orphan_bookings
   
   validates :name, presence: true
   validates :name, uniqueness: { scope: :business_id }
@@ -166,5 +169,12 @@ class Service < ApplicationRecord
   def set_initial_spots
     # For 'Experience' services, initialize spots with max_bookings if not already set
     self.spots = max_bookings if spots.nil? && max_bookings.present?
+  end
+
+  def orphan_bookings
+    # Mark all associated bookings as business_deleted and remove associations
+    bookings.find_each do |booking|
+      booking.mark_business_deleted!
+    end
   end
 end 

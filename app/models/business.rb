@@ -104,6 +104,7 @@ class Business < ApplicationRecord
   
   before_validation :normalize_hostname
   before_validation :ensure_hours_is_hash
+  before_destroy :orphan_all_bookings
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   
   # Find the current tenant
@@ -229,5 +230,12 @@ class Business < ApplicationRecord
     
     # Ensure hours is a hash
     self.hours = {} unless self.hours.is_a?(Hash)
+  end
+  
+  def orphan_all_bookings
+    # Mark all bookings as business_deleted and remove associations
+    bookings.find_each do |booking|
+      booking.mark_business_deleted!
+    end
   end
 end 
