@@ -1,0 +1,45 @@
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 30px 20px; text-align: center;">
+    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">BizBlasts</h1>
+    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Welcome to Your Service Booking Platform</p>
+  </div>
+  
+  <!-- Content -->
+  <div style="padding: 40px 30px;">
+    <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Welcome <%= @resource.first_name || @email %>!</h2>
+    
+    <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+      Thank you for joining BizBlasts! We're excited to help you discover and book amazing services from local businesses.
+    </p>
+    
+    <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+      To get started booking services, please confirm your email address by clicking the button below:
+    </p>
+
+    <!-- CTA Button -->
+    <div style="text-align: center; margin: 40px 0;">
+      <%= link_to 'Confirm My Account', confirmation_url(@resource, confirmation_token: @token), 
+            style: "background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.25);" %>
+    </div>
+
+    <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 30px 0 0 0;">
+      If the button above doesn't work, you can copy and paste this link into your browser:<br>
+      <span style="word-break: break-all; color: #059669;"><%= confirmation_url(@resource, confirmation_token: @token) %></span>
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+    <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+      Thanks,<br>
+      The BizBlasts Team
+    </p>
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+      Please do not reply to this email, and send all communications to <%= ENV['ADMIN_EMAIL'] %>
+    </p>
+    <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
+      <a href="https://bizblasts.com" style="color: #059669; text-decoration: none;">bizblasts.com</a>
+    </p>
+  </div>
+</div> 

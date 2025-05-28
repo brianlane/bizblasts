@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Domain Request Received</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8fafc;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 40px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 8px 8px 0 0;
+      margin: -40px -40px 30px -40px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .content {
+      margin: 20px 0;
+    }
+    .domain-box {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .domain-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #4a5568;
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    }
+    .status-badge {
+      display: inline-block;
+      background: #fef5e7;
+      color: #d69e2e;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .next-steps {
+      background: #edf2f7;
+      border-left: 4px solid #4299e1;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      color: #718096;
+      font-size: 14px;
+    }
+    .team-signature {
+      margin-top: 20px;
+      color: #4a5568;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌐 Custom Domain Request Received</h1>
+    </div>
+
+    <div class="content">
+      <p>Hello <%= @user.first_name %>,</p>
+      
+      <p>Thank you for confirming your email address and welcome to BizBlasts Premium! We've received your custom domain request for <strong><%= @business.name %></strong>.</p>
+
+      <% if @domain_requested.present? %>
+      <div class="domain-box">
+        <div class="domain-name"><%= @domain_requested %></div>
+        <div class="status-badge">🔍 Under Review</div>
+      </div>
+      <% end %>
+
+      <div class="next-steps">
+        <h3 style="margin-top: 0; color: #2d3748;">What happens next:</h3>
+        <ul style="margin: 10px 0;">
+          <li><strong>Domain Verification:</strong> Our team will verify that your requested domain is available and meets our requirements</li>
+          <li><strong>Setup Process:</strong> We'll handle all technical aspects of the domain configuration</li>
+          <li><strong>Direct Communication:</strong> A member of our team will contact you directly with the next steps</li>
+        </ul>
+      </div>
+
+      <p>Our team at <strong>bizblaststeam@gmail.com</strong> will be reaching out to you shortly regarding domain availability and to guide you through the setup process. No action is required on your part at this time.</p>
+
+      <p>In the meantime, you can start building your business profile and setting up your services using your temporary subdomain while we work on your custom domain setup.</p>
+
+      <p>We appreciate your business and look forward to helping you establish your professional online presence!</p>
+
+      <div class="team-signature">
+        <p><strong>Best regards,</strong><br>
+        The BizBlasts Team<br>
+        <strong>Email:</strong> bizblaststeam@gmail.com</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>BizBlasts</strong> - Professional Business Platform</p>
+      <p>This is an automated message. For immediate assistance, please contact bizblaststeam@gmail.com</p>
+    </div>
+  </div>
+</body>
+</html> 

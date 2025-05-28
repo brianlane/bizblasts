@@ -21,6 +21,9 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :confirmable # Added :confirmable for email verification
 
+  # Callbacks
+  after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
+
   # Validations
   validates :email, presence: true,
                     format: { with: URI::MailTo::EMAIL_REGEXP } # Removed global uniqueness
@@ -111,6 +114,24 @@ class User < ApplicationRecord
   end
 
   private # Ensure private keyword exists or add it if needed
+
+  # Check if this is a premium business user who just confirmed their email
+  def premium_business_confirmed_email?
+    return false unless confirmed_at_changed? && confirmed_at.present?
+    return false unless business.present? && business.premium_tier?
+    return false unless business.host_type_custom_domain?
+    true
+  end
+
+  # Send domain request notification email
+  def send_domain_request_notification
+    begin
+      BusinessMailer.domain_request_notification(self).deliver_later
+      Rails.logger.info "[EMAIL] Sent domain request notification for User ##{id} - Business: #{business.name}"
+    rescue => e
+      Rails.logger.error "[EMAIL] Failed to send domain request notification for User ##{id}: #{e.message}"
+    end
+  end
 
   # Helper method for conditional password validation (mimics Devise behavior)
   def password_required?
