@@ -5,7 +5,7 @@ class CustomDeviseMailer < Devise::Mailer
     @resource = record
     
     # Determine template path based on user role
-    template_path = if record.client?
+    template_path = if record.respond_to?(:client?) && record.client?
       'devise/mailer/client'
     else
       'devise/mailer/business' 
@@ -19,7 +19,7 @@ class CustomDeviseMailer < Devise::Mailer
     @token = token
     @resource = record
     
-    template_path = if record.client?
+    template_path = if record.respond_to?(:client?) && record.client?
       'devise/mailer/client'
     else
       'devise/mailer/business'
@@ -31,7 +31,7 @@ class CustomDeviseMailer < Devise::Mailer
   def email_changed(record, opts = {})
     @resource = record
     
-    template_path = if record.client?
+    template_path = if record.respond_to?(:client?) && record.client?
       'devise/mailer/client'
     else
       'devise/mailer/business'
@@ -43,7 +43,7 @@ class CustomDeviseMailer < Devise::Mailer
   def password_change(record, opts = {})
     @resource = record
     
-    template_path = if record.client?
+    template_path = if record.respond_to?(:client?) && record.client?
       'devise/mailer/client'
     else
       'devise/mailer/business'

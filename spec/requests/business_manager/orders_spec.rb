@@ -293,7 +293,9 @@ RSpec.describe "Business Manager Orders", type: :request do
     
     describe "GET /manage/orders/:id/edit" do
       before { sign_in manager }
-      let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product, line_items_count: 1) }
+      let(:variant) { create(:product_variant, product: create(:product, business: business), stock_quantity: 10) }
+      let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product) }
+      let!(:line_item) { create(:line_item, lineable: order, product_variant: variant) }
 
       it "renders the edit form and loads collections" do
         get edit_business_manager_order_path(order)
@@ -310,7 +312,9 @@ RSpec.describe "Business Manager Orders", type: :request do
     
     describe "PATCH /manage/orders/:id" do
       before { sign_in manager }
-      let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product, line_items_count: 1) }
+      let(:variant) { create(:product_variant, product: create(:product, business: business), stock_quantity: 10) }
+      let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product) }
+      let!(:line_item) { create(:line_item, lineable: order, product_variant: variant, quantity: 2) }
       let(:variant2) { create(:product_variant, product: create(:product, business: business), stock_quantity: 10) }
 
       context "with valid parameters" do
@@ -321,7 +325,7 @@ RSpec.describe "Business Manager Orders", type: :request do
               tenant_customer_id: tenant_customer.id,
               shipping_method_id: shipping_method.id,
               tax_rate_id: tax_rate.id,
-              line_items_attributes: { order.line_items.first.id.to_s => { id: order.line_items.first.id, product_variant_id: variant2.id, quantity: 3 } }
+              line_items_attributes: { line_item.id.to_s => { id: line_item.id, product_variant_id: variant2.id, quantity: 3 } }
             }
           }
         end
@@ -342,7 +346,7 @@ RSpec.describe "Business Manager Orders", type: :request do
         let(:invalid_update_params) do
           {
             id: order.id,
-            order: { line_items_attributes: { order.line_items.first.id.to_s => { id: order.line_items.first.id, product_variant_id: low_stock_variant2.id, quantity: 5 } } }
+            order: { line_items_attributes: { line_item.id.to_s => { id: line_item.id, product_variant_id: low_stock_variant2.id, quantity: 5 } } }
           }
         end
 

@@ -164,7 +164,8 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
   end
 
   describe 'GET #edit' do
-    let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product, line_items_count: 1) }
+    let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product) }
+    let!(:line_item) { create(:line_item, lineable: order, product_variant: variant) }
 
     it 'assigns the order and loads collections' do
       get :edit, params: { id: order.id }
@@ -181,7 +182,8 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
   end
 
   describe 'PATCH #update' do
-    let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product, line_items_count: 1) }
+    let!(:order) { create(:order, tenant_customer: tenant_customer, business: business, order_type: :product) }
+    let!(:line_item) { create(:line_item, lineable: order, product_variant: variant, quantity: 2) }
 
     context 'with valid params' do
       let(:update_params) do
@@ -191,7 +193,7 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
             tenant_customer_id: tenant_customer.id,
             shipping_method_id: shipping_method.id,
             tax_rate_id: tax_rate.id,
-            line_items_attributes: { order.line_items.first.id.to_s => { id: order.line_items.first.id, product_variant_id: variant.id, quantity: 3 } }
+            line_items_attributes: { line_item.id.to_s => { id: line_item.id, product_variant_id: variant.id, quantity: 3 } }
           }
         }
       end
@@ -213,7 +215,7 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
           id: order.id,
           order: {
             tenant_customer_id: tenant_customer.id,
-            line_items_attributes: { order.line_items.first.id.to_s => { id: order.line_items.first.id, product_variant_id: low_stock_variant.id, quantity: 5 } }
+            line_items_attributes: { line_item.id.to_s => { id: line_item.id, product_variant_id: low_stock_variant.id, quantity: 5 } }
           }
         }
       end
