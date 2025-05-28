@@ -237,5 +237,15 @@ class Business < ApplicationRecord
     bookings.find_each do |booking|
       booking.mark_business_deleted!
     end
+    
+    # Mark all orders as business_deleted and remove associations
+    orders.find_each do |order|
+      order.mark_business_deleted!
+    end
+    
+    # Mark all invoices as business_deleted and remove associations
+    invoices.find_each do |invoice|
+      invoice.mark_business_deleted!
+    end
   end
 end 

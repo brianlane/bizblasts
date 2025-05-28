@@ -25,7 +25,8 @@ class Invoice < ApplicationRecord
     pending: 1,
     paid: 2,
     overdue: 3,
-    cancelled: 4
+    cancelled: 4,
+    business_deleted: 5
   }
   
   scope :unpaid, -> { where(status: [:pending, :overdue]) }
@@ -42,6 +43,18 @@ class Invoice < ApplicationRecord
   
   def mark_as_paid!
     update(status: :paid)
+  end
+  
+  # Mark invoice as business deleted and remove associations
+  def mark_business_deleted!
+    update!(
+      status: :business_deleted,
+      business_id: nil,
+      booking_id: nil,
+      order_id: nil,
+      shipping_method_id: nil,
+      tax_rate_id: nil
+    )
   end
   
   def send_reminder

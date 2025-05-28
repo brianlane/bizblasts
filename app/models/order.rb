@@ -16,13 +16,15 @@ class Order < ApplicationRecord
   #   shipped         → Product sent to customer
   #   refunded        → Order funds sent back to customer
   #   processing      → Paid, but service not yet completed
+  #   business_deleted → Business was deleted, order orphaned
   enum :status, {
     pending_payment: 'pending_payment',
     paid:            'paid',
     cancelled:       'cancelled',
     shipped:         'shipped',
     refunded:        'refunded',
-    processing:      'processing'
+    processing:      'processing',
+    business_deleted: 'business_deleted'
   }, prefix: true
 
   enum :order_type, { product: 0, service: 1, mixed: 2 }, prefix: true
@@ -38,6 +40,7 @@ class Order < ApplicationRecord
   before_validation :set_order_number, on: :create
   before_validation :calculate_totals
   before_save :calculate_totals!
+  before_destroy :orphan_invoice
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
   accepts_nested_attributes_for :tenant_customer
@@ -95,6 +98,18 @@ class Order < ApplicationRecord
   # Get service line items only  
   def service_line_items
     line_items.select(&:service?)
+  end
+
+  # Mark order as business deleted and remove associations
+  def mark_business_deleted!
+    update!(
+      status: :business_deleted,
+      business_id: nil,
+      shipping_method_id: nil,
+      tax_rate_id: nil
+    )
+    # Also orphan the associated invoice
+    invoice&.mark_business_deleted!
   end
 
   def set_order_number
@@ -162,5 +177,9 @@ class Order < ApplicationRecord
     end
   end
 
+  def orphan_invoice
+    # Mark the associated invoice as business deleted if it exists
+    invoice&.mark_business_deleted!
+  end
 
 end
