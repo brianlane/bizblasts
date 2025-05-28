@@ -170,3 +170,77 @@ Created professional, responsive HTML email templates for all business notificat
 - Periodically review email open rates and engagement
 - Update email templates based on user feedback
 - Maintain tier-based restrictions as business model evolves 
+
+## Production Deployment
+
+### SolidQueue Configuration
+
+The email notification system is configured to work reliably in production using **SolidQueue in Puma**:
+
+#### SolidQueue in Puma (Recommended for Single Server)
+- Enabled via `SOLID_QUEUE_IN_PUMA=true` environment variable
+- Runs background jobs within the main web process using the SolidQueue Puma plugin
+- Eliminates need for separate worker processes
+- Suitable for email notification workloads (lightweight, infrequent jobs)
+- Simpler deployment with single service
+- No additional service costs
+
+### Production Environment Variables Required
+
+The following environment variables must be configured in production:
+- `RESEND_API_KEY`: API key for Resend email service
+- `MAILER_EMAIL`: Default from email address
+- `SOLID_QUEUE_IN_PUMA`: Set to "true" to enable background job processing
+- `DATABASE_URL`: PostgreSQL connection string (auto-configured by Render)
+
+### How It Works
+
+1. **Puma starts** with the `solid_queue` plugin enabled
+2. **SolidQueue supervisor** runs within the Puma process
+3. **Email jobs** are processed in background threads
+4. **Web requests** continue to be handled normally
+5. **Jobs and web traffic** share the same process but run in separate threads
+
+### Email Delivery Verification
+
+To verify email delivery in production:
+1. Monitor SolidQueue job status via Rails console or logs
+2. Check Resend dashboard for email delivery status
+3. Review application logs for email-related errors
+4. Test with actual guest bookings to confirm end-to-end functionality
+
+### Debugging Failed Jobs
+
+#### ActiveAdmin Interface (Recommended)
+Access the comprehensive job monitoring interface via ActiveAdmin:
+1. **Navigate to**: `/admin/solid_queue_jobs` 
+2. **View Dashboard**: Job statistics, recent jobs, failed jobs, and email-specific monitoring
+3. **Retry Jobs**: Individual or bulk retry failed jobs with one click
+4. **Monitor Status**: Real-time job status with color-coded indicators
+
+#### Rails Console Access
+Access failed jobs in production via Rails console:
+```ruby
+# Check for failed email jobs
+SolidQueue::FailedExecution.joins(:job)
+  .where('solid_queue_jobs.class_name = ?', 'ActionMailer::MailDeliveryJob')
+  .each { |f| puts f.error }
+
+# Retry failed jobs
+SolidQueue::FailedExecution.find_each(&:retry)
+```
+
+#### Features of ActiveAdmin Interface
+- **Job Statistics Dashboard**: Visual overview of all job types and statuses
+- **Recent Jobs Table**: Latest 10 jobs with status indicators
+- **Failed Jobs Management**: Detailed error messages with retry functionality  
+- **Email Job Monitoring**: Dedicated section for email-related jobs
+- **One-Click Actions**: Retry individual jobs or all failed jobs at once
+- **Integrated Navigation**: Accessible from main admin dashboard
+
+### Scaling Considerations
+
+If you later need to scale beyond single-server deployment:
+- Remove `SOLID_QUEUE_IN_PUMA=true`
+- Add dedicated worker services in `render.yaml`
+- Use `bundle exec bin/jobs start` as worker start command 

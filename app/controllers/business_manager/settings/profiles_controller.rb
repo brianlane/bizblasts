@@ -23,6 +23,16 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       update_params[:password_confirmation] = params[:user][:password_confirmation]
     end
 
+    # Handle notification preferences conversion
+    if params[:user][:notification_preferences].present?
+      # Convert checkbox values to boolean hash
+      notification_prefs = {}
+      params[:user][:notification_preferences].each do |key, value|
+        notification_prefs[key] = value == '1'
+      end
+      update_params[:notification_preferences] = notification_prefs
+    end
+
     if @user.update(update_params)
       # Sign in the user again to reset their session if password was changed.
       # This is a common Devise practice after password updates.
@@ -52,15 +62,16 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       :phone, 
       :password, 
       :password_confirmation,
-      notification_preferences: [
-        :email_booking_notifications,
-        :email_order_notifications, 
-        :email_customer_notifications,
-        :email_payment_notifications,
-        :email_failed_payment_notifications,
-        :email_system_notifications,
-        :email_marketing_updates
-      ]
+      # notification_preferences: [
+      #   :email_booking_notifications,
+      #   :email_order_notifications, 
+      #   :email_customer_notifications,
+      #   :email_payment_notifications,
+      #   :email_failed_payment_notifications,
+      #   :email_system_notifications,
+      #   :email_marketing_updates
+      # ]
+      notification_preferences: {}
     )
   end
 end 
