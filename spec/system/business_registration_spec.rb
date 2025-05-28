@@ -166,7 +166,7 @@ RSpec.describe "Business Registration", type: :system do
       
       # Should redirect to root path in test environment
       expect(page).to have_current_path(root_path)
-      expect(page).to have_content("Welcome! You have signed up successfully.")
+      expect(page).to have_content("A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.")
       
       # Verify business was created with correct attributes
       business = Business.last

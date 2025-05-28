@@ -7,7 +7,7 @@
   
   <!-- Content -->
   <div style="padding: 40px 30px;">
-    <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Hello <%= @resource.first_name || @email %>!</h2>
+    <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Hello <%= @resource.try(:first_name) || @email %>!</h2>
     
     <% if @resource.try(:unconfirmed_email?) %>
       <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">

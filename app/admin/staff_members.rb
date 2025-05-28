@@ -93,16 +93,99 @@ ActiveAdmin.register StaffMember do
     column :phone
     column :active
     column :business
+    column "Availability" do |staff|
+      availability = staff.availability || {}
+      days_with_hours = 0
+      exceptions_count = 0
+      
+      %w[monday tuesday wednesday thursday friday saturday sunday].each do |day|
+        day_schedule = availability[day] || []
+        days_with_hours += 1 if day_schedule.present? && day_schedule.any?
+      end
+      
+      exceptions = availability['exceptions'] || {}
+      exceptions_count = exceptions.keys.count
+      
+      "#{days_with_hours} days, #{exceptions_count} exceptions"
+    end
     actions
   end
 
+  show do
+    attributes_table do
+      row :name
+      row :email
+      row :phone
+      row :bio
+      row :active
+      row :business
+      row :user
+      row :created_at
+      row :updated_at
+      row :status
+      row :position
+      row :specialties
+      row :timezone
+      row :availability do |staff|
+        if staff.availability.present?
+          content_tag :pre, JSON.pretty_generate(staff.availability)
+        else
+          content_tag :pre, "{}"
+        end
+      end
+      row :color
+      row :photo_url do |staff|
+        if staff.photo_url.present?
+          image_tag staff.photo_url, alt: staff.name, style: "max-width: 200px; max-height: 200px;"
+        else
+          span "Empty", class: "empty"
+        end
+      end
+    end
+    
+    panel "Staff Member Details" do
+      attributes_table_for staff_member do
+        row :name
+        row :email
+        row :phone
+        row :bio
+        row :active
+        row :business
+        row :user
+        row :created_at
+        row :updated_at
+        row :status
+        row :position
+        row :specialties
+        row :timezone
+        row :availability do |staff|
+          if staff.availability.present?
+            JSON.pretty_generate(staff.availability)
+          else
+            "{}"
+          end
+        end
+        row :color
+        row :photo_url
+      end
+    end
+    
+    active_admin_comments
+  end
+
+  action_item :manage_availability, only: :show do
+    link_to "Manage Availability", "#", class: "action_item"
+  end
+
   form do |f|
-    f.inputs do
+    f.inputs "Staff Member Details" do
       f.input :name
       f.input :email
       f.input :phone
       f.input :active
       f.input :business, collection: Business.order(:name)
+      
+      f.para "Availability is managed separately after creating the staff member."
     end
     f.actions
   end

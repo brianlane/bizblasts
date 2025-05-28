@@ -88,7 +88,7 @@ RSpec.describe 'Authentication', type: :system do
         fill_in 'Password confirmation', with: 'password'
         click_button 'Sign up'
       end
-      expect(page).to have_content('Welcome! You have signed up successfully.')
+      expect(page).to have_content('A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.')
       expect(User.last.email).to eq('newclient@example.com')
       expect(User.last.client?).to be true
     end

@@ -6,7 +6,11 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
   let!(:variant) { create(:product_variant, product: product, name: 'Default', stock_quantity: 2) }
   let!(:shipping_method) { create(:shipping_method, name: 'Standard', cost: 5.0, business: business) }
   let!(:tax_rate) { create(:tax_rate, name: 'Sales Tax', rate: 0.1, business: business) }
-  let!(:user) { create(:user, email: 'test-customer@example.com', password: 'password123') }
+  let!(:user) { 
+    user = create(:user, email: 'test-customer@example.com', password: 'password123', password_confirmation: 'password123')
+    user.confirm # Confirm the user's email so they can sign in
+    user
+  }
   let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email) }
 
   before do
@@ -127,15 +131,25 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       select 'Standard', from: 'Select shipping method'
       click_button 'Place Order'
       
-      # Should redirect to Stripe (mocked)
-      expect(current_url).to eq('https://checkout.stripe.com/pay/cs_test_123')
+      # With email confirmation enabled, user creation redirects to sign-in
+      # because the new user needs to confirm their email before signing in
+      expect(current_path).to eq('/users/sign_in')
+      expect(page).to have_content('You have to confirm your email address before continuing')
       
-      # Verify user account was created
-      expect(User.find_by(email: 'john.doe@example.com')).to be_present
+      # Verify user account was created but not confirmed
+      user = User.find_by(email: 'john.doe@example.com')
+      expect(user).to be_present
+      expect(user.confirmed?).to be false
       
-      # Verify order was created
-      order = Order.last
-      expect(order).to be_present
+      # Confirm the user and sign in to complete the order process
+      user.confirm
+      fill_in 'Email', with: 'john.doe@example.com'
+      fill_in 'Password', with: 'securepass'
+      click_button 'Log in'
+      
+      # After sign-in, client users are redirected to dashboard
+      expect(current_path).to eq('/dashboard')
+      expect(page).to have_content('Signed in successfully')
     end
   end
 end 

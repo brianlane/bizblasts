@@ -85,4 +85,8 @@ Rails.application.configure do
 
   # Set default URL options for routing helpers
   routes.default_url_options[:host] = 'lvh.me'
+  
+  # Set up test environment variables for email
+  ENV['MAILER_EMAIL'] ||= 'from@example.com'
+  ENV['ADMIN_EMAIL'] ||= 'admin@example.com'
 end

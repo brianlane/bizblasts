@@ -45,12 +45,12 @@ RSpec.describe "Client::Registrations", type: :request do
       it "redirects to the root path after sign up" do
         post client_registration_path, params: valid_attributes
         expect(response).to redirect_to(root_path)
-        expect(flash[:notice]).to eq("Welcome! You have signed up successfully.")
+        expect(flash[:notice]).to eq("A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.")
       end
 
-      it "signs in the user" do
+      it "does not sign in the user immediately (requires email confirmation)" do
         post client_registration_path, params: valid_attributes
-        expect(controller.current_user).to eq(User.last)
+        expect(controller.current_user).to be_nil
       end
     end
 

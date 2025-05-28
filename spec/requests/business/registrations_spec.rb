@@ -117,13 +117,13 @@ RSpec.describe "Business::Registrations", type: :request do
         params = build_params(send(param_builder))
         post business_registration_path, params: params
         expect(response).to redirect_to(root_path)
-        expect(flash[:notice]).to eq("Welcome! You have signed up successfully.")
+        expect(flash[:notice]).to eq("A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.")
       end
 
-      it "signs in the user" do
+      it "does not sign in the user immediately (requires email confirmation)" do
         params = build_params(send(param_builder))
         post business_registration_path, params: params
-        expect(controller.current_user).to eq(User.last)
+        expect(controller.current_user).to be_nil
       end
     end
 
@@ -153,7 +153,7 @@ RSpec.describe "Business::Registrations", type: :request do
         new_business = Business.last
         expect(new_business.stripe_account_id).to be_nil
         expect(response).to redirect_to(root_path)
-        expect(flash[:notice]).to eq("Welcome! You have signed up successfully.")
+        expect(flash[:notice]).to eq("A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.")
       end
 
       it "handles Stripe customer creation failure gracefully" do
@@ -168,7 +168,7 @@ RSpec.describe "Business::Registrations", type: :request do
         new_business = Business.last
         expect(new_business.stripe_customer_id).to be_nil
         expect(response).to redirect_to(root_path)
-        expect(flash[:notice]).to eq("Welcome! You have signed up successfully.")
+        expect(flash[:notice]).to eq("A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.")
       end
     end
 
