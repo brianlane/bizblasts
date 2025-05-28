@@ -11,7 +11,8 @@ module BookingStatus
       confirmed: 1,
       cancelled: 2,
       completed: 3,
-      no_show: 4
+      no_show: 4,
+      business_deleted: 5
     }
     
     validates :status, presence: true
@@ -27,9 +28,20 @@ module BookingStatus
     update(status: :cancelled, cancellation_reason: reason)
   end
   
+  # Mark booking as business deleted and remove associations
+  def mark_business_deleted!
+    update!(
+      status: :business_deleted,
+      cancellation_reason: 'Business was deleted',
+      business_id: nil,
+      service_id: nil,
+      staff_member_id: nil
+    )
+  end
+  
   # Check if the booking can be cancelled
   def can_cancel?
-    !%w[cancelled completed].include?(status) && start_time > Time.current
+    !%w[cancelled completed business_deleted].include?(status) && start_time > Time.current
   end
   
   # Check if the booking is in the past

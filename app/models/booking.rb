@@ -7,9 +7,9 @@ class Booking < ApplicationRecord
   include BookingValidations
   
   acts_as_tenant(:business)
-  belongs_to :business
-  belongs_to :service
-  belongs_to :staff_member
+  belongs_to :business, optional: true
+  belongs_to :service, optional: true
+  belongs_to :staff_member, optional: true
   belongs_to :tenant_customer
   accepts_nested_attributes_for :tenant_customer
   belongs_to :promotion, optional: true
