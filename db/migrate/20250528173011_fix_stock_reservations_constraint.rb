@@ -1,5 +1,16 @@
 class FixStockReservationsConstraint < ActiveRecord::Migration[8.0]
   def up
+    # First, clean up any orphaned stock_reservations that reference non-existent product_variants
+    orphaned_count = execute(<<-SQL).cmd_tuples
+      DELETE FROM stock_reservations 
+      WHERE product_variant_id IS NOT NULL 
+      AND product_variant_id NOT IN (SELECT id FROM product_variants)
+    SQL
+    
+    if orphaned_count > 0
+      puts "Cleaned up #{orphaned_count} orphaned stock_reservations"
+    end
+    
     # Check if the foreign key exists before trying to remove it
     if foreign_key_exists?(:stock_reservations, :product_variants)
       # Get the current foreign key to check if it already has cascade delete
