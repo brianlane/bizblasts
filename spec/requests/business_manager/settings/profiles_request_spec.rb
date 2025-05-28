@@ -83,7 +83,9 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         first_name: "Updated",
         last_name: "User",
         phone: "123-456-7890",
-        notification_preferences: ["sms"]
+        notification_preferences: {
+          email_booking_notifications: '1'
+        }
       }
     end
 
@@ -124,7 +126,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
           expect(manager_user.first_name).to eq("Updated")
           expect(manager_user.last_name).to eq("User")
           expect(manager_user.phone).to eq("123-456-7890")
-          expect(manager_user.notification_preferences).to eq(["sms"])
+          expect(manager_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
         end
 
         it "redirects to the profile page" do
@@ -258,7 +260,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         expect(staff_user.first_name).to eq("Updated")
         expect(staff_user.last_name).to eq("User")
         expect(staff_user.phone).to eq("123-456-7890")
-        expect(staff_user.notification_preferences).to eq(["sms"])
+        expect(staff_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
       end
 
       it "redirects to the profile page" do
@@ -334,6 +336,42 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
       it "redirects due to authorization failure" do
         subject
         expect(response).to have_http_status(:forbidden)
+      end
+    end
+
+    context "when updating notification preferences" do
+      before do
+        sign_in manager_user
+      end
+      
+      let(:attributes) do
+        {
+          first_name: 'NewFirstName',
+          last_name: 'NewLastName',
+          phone: '987-654-3210',
+          notification_preferences: {
+            email_booking_notifications: '1'
+          }
+        }
+      end
+
+      it "updates the requested user" do
+        subject
+        manager_user.reload
+        expect(manager_user.first_name).to eq('NewFirstName')
+        expect(manager_user.last_name).to eq('NewLastName')
+        expect(manager_user.phone).to eq('987-654-3210')
+        expect(manager_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
+      end
+
+      it "redirects to the profile page" do
+        subject
+        expect(response).to redirect_to(edit_business_manager_settings_profile_path)
+      end
+
+      it "sets a notice flash message" do
+        subject
+        expect(flash[:notice]).to eq('Profile updated successfully.')
       end
     end
   end

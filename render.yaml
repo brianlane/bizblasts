@@ -49,6 +49,8 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "true"
 
 databases:
   - name: bizblast-postgresql

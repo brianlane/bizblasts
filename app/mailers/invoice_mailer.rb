@@ -85,7 +85,10 @@ class InvoiceMailer < ApplicationMailer
 
   def generate_payment_url(invoice)
     # For authenticated users, use transaction path
-    if @customer.user_id.present?
+    # Check if this customer has an associated user account
+    user = User.find_by(email: @customer.email) if @customer.email.present?
+    
+    if user.present?
       Rails.application.routes.url_helpers.tenant_transaction_url(
         invoice, 
         type: 'invoice', 

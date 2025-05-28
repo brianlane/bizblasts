@@ -152,6 +152,38 @@ ActiveAdmin.register_page "Dashboard" do
         li do
           link_to("Tenant Debug Information", admin_debug_path)
         end
+        li do
+          link_to("Background Jobs Monitor", admin_solidqueue_jobs_path)
+        end
+      end
+    end
+
+    panel "Background Job Status" do
+      table_for([], class: "index_table") do
+        tbody do
+          tr do
+            td "Total Jobs"
+            td SolidQueue::Job.count
+          end
+          tr do
+            td "Failed Jobs"
+            td SolidQueue::FailedExecution.count, style: SolidQueue::FailedExecution.count > 0 ? "color: red; font-weight: bold;" : ""
+          end
+          tr do
+            td "Ready Jobs"
+            td SolidQueue::ReadyExecution.count, style: SolidQueue::ReadyExecution.count > 0 ? "color: orange; font-weight: bold;" : ""
+          end
+          tr do
+            td "Email Jobs (Total)"
+            td SolidQueue::Job.where(class_name: 'ActionMailer::MailDeliveryJob').count
+          end
+        end
+      end
+      
+      if SolidQueue::FailedExecution.count > 0
+        div style: "margin-top: 15px;" do
+          link_to "View Failed Jobs →", admin_solidqueue_jobs_path, class: "button", style: "background-color: #dc3545; color: white;"
+        end
       end
     end
   end
