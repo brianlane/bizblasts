@@ -85,7 +85,7 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
           end
           column "Actions" do |failed_execution|
             link_to "Retry", 
-                    admin_solidqueue_jobs_retry_failed_job_path(failed_execution.id), 
+                    admin_solidqueue_jobs_retry_failed_job_path(id: failed_execution.id), 
                     method: :post, 
                     class: "button",
                     style: "background-color: #28a745; color: white; font-size: 12px; padding: 5px 10px;"

@@ -54,7 +54,8 @@
             <span class="value"><%= @customer.created_at.strftime("%B %d, %Y at %I:%M %p") %></span>
           </div>
           
-          <% if @customer.user_id.present? %>
+          <% user_account = User.find_by(email: @customer.email) if @customer.email.present? %>
+          <% if user_account.present? %>
           <div class="detail-row">
             <span class="label">Account Type:</span>
             <span class="value">Registered User (has account login)</span>
