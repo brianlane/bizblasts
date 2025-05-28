@@ -45,6 +45,7 @@ class Order < ApplicationRecord
   before_validation :calculate_totals
   before_save :calculate_totals!
   before_destroy :orphan_invoice
+  after_create :send_business_order_notification
   after_update :send_order_status_update_email, if: :saved_change_to_status?
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
@@ -202,6 +203,18 @@ class Order < ApplicationRecord
       Rails.logger.info "[EMAIL] Sent order status update email for Order ##{order_number} (#{previous_status} → #{status})"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send order status update email for Order ##{order_number}: #{e.message}"
+    end
+  end
+
+  def send_business_order_notification
+    # Skip notification for business_deleted status
+    return if status == 'business_deleted'
+    
+    begin
+      BusinessMailer.new_order_notification(self).deliver_later
+      Rails.logger.info "[EMAIL] Scheduled business order notification for Order ##{order_number}"
+    rescue => e
+      Rails.logger.error "[EMAIL] Failed to schedule business order notification for Order ##{order_number}: #{e.message}"
     end
   end
 

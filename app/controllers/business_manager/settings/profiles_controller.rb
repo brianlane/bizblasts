@@ -44,7 +44,23 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
   def user_params
     # Permit basic profile attributes and password fields for update.
     # Devise handles if current_password is required or if password fields should be ignored if blank.
-    # notification_preferences expects an array.
-    params.require(:user).permit(:first_name, :last_name, :email, :phone, :password, :password_confirmation, notification_preferences: [])
+    # notification_preferences expects nested attributes for business users.
+    params.require(:user).permit(
+      :first_name, 
+      :last_name, 
+      :email, 
+      :phone, 
+      :password, 
+      :password_confirmation,
+      notification_preferences: [
+        :email_booking_notifications,
+        :email_order_notifications, 
+        :email_customer_notifications,
+        :email_payment_notifications,
+        :email_failed_payment_notifications,
+        :email_system_notifications,
+        :email_marketing_updates
+      ]
+    )
   end
 end 
