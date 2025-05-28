@@ -35,6 +35,9 @@ class LineItem < ApplicationRecord
   scope :products, -> { where(lineable_type: 'ProductVariant') }
   scope :services, -> { where(lineable_type: 'Service') }
 
+  validates :service, presence: true, if: :service?, unless: :orphaned_line_item?
+  validates :staff_member, presence: true, if: :service?, unless: :orphaned_line_item?
+
   def product?
     # A line item is a product if it has no service_id
     service_id.blank?
@@ -43,6 +46,11 @@ class LineItem < ApplicationRecord
   def service?
     # A line item is a service if it has a service_id
     service_id.present?
+  end
+
+  def orphaned_line_item?
+    # Line item is orphaned if it was a service line item but service was deleted
+    service_id.nil? && staff_member_id.present?
   end
 
   # --- Add Ransack methods --- 
@@ -95,6 +103,9 @@ class LineItem < ApplicationRecord
   end
 
   def product_or_service_presence
+    # Allow orphaned line items (service was deleted but staff_member_id remains)
+    return if orphaned_line_item?
+    
     if product_variant_id.blank? && service_id.blank?
       errors.add(:base, 'Line items must have either a product or a service selected')
     elsif product_variant_id.present? && service_id.present?

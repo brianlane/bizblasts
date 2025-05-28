@@ -177,6 +177,8 @@ class Service < ApplicationRecord
       bookings.find_each do |booking|
         booking.mark_business_deleted!
       end
+      # Reload the association to reflect the updated state
+      bookings.reload
     end
   end
 end 
