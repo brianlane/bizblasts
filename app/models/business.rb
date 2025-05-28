@@ -248,6 +248,11 @@ class Business < ApplicationRecord
       invoices.find_each do |invoice|
         invoice.mark_business_deleted!
       end
+      
+      # Mark all payments as business_deleted and remove associations
+      payments.find_each do |payment|
+        payment.mark_business_deleted!
+      end
     end
   end
 end 
