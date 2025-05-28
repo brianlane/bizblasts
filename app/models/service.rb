@@ -173,8 +173,10 @@ class Service < ApplicationRecord
 
   def orphan_bookings
     # Mark all associated bookings as business_deleted and remove associations
-    bookings.find_each do |booking|
-      booking.mark_business_deleted!
+    ActsAsTenant.without_tenant do
+      bookings.find_each do |booking|
+        booking.mark_business_deleted!
+      end
     end
   end
 end 

@@ -30,13 +30,15 @@ module BookingStatus
   
   # Mark booking as business deleted and remove associations
   def mark_business_deleted!
-    update!(
-      status: :business_deleted,
-      cancellation_reason: 'Business was deleted',
-      business_id: nil,
-      service_id: nil,
-      staff_member_id: nil
-    )
+    ActsAsTenant.without_tenant do
+      update!(
+        status: :business_deleted,
+        cancellation_reason: 'Business was deleted',
+        business_id: nil,
+        service_id: nil,
+        staff_member_id: nil
+      )
+    end
   end
   
   # Check if the booking can be cancelled

@@ -47,14 +47,16 @@ class Invoice < ApplicationRecord
   
   # Mark invoice as business deleted and remove associations
   def mark_business_deleted!
-    update!(
-      status: :business_deleted,
-      business_id: nil,
-      booking_id: nil,
-      order_id: nil,
-      shipping_method_id: nil,
-      tax_rate_id: nil
-    )
+    ActsAsTenant.without_tenant do
+      update!(
+        status: :business_deleted,
+        business_id: nil,
+        booking_id: nil,
+        order_id: nil,
+        shipping_method_id: nil,
+        tax_rate_id: nil
+      )
+    end
   end
   
   def send_reminder
