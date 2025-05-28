@@ -197,7 +197,12 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
     # Find failed jobs that reference non-existent businesses
     SolidQueue::FailedExecution.joins(:job).find_each do |failed_execution|
       begin
-        job_args = JSON.parse(failed_execution.job.arguments)
+        # Handle both string and already-parsed arguments
+        job_args = if failed_execution.job.arguments.is_a?(String)
+                     JSON.parse(failed_execution.job.arguments)
+                   else
+                     failed_execution.job.arguments
+                   end
         
         # Check if this is a mailer job that might reference a business
         if failed_execution.job.class_name == 'ActionMailer::MailDeliveryJob'
@@ -206,26 +211,51 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
           if mailer_class == 'BusinessMailer'
             # Try to find the business referenced in the job
             mailer_args = job_args.dig('arguments', 2)
+            business_id = nil
             
             # Handle different argument structures for different mailer methods
-            business_id = case mailer_args
-                         when Hash
-                           mailer_args['business_id'] if mailer_args.key?('business_id')
-                         when Array
-                           # Extract business ID from various ActiveRecord objects
-                           mailer_args.each do |arg|
-                             if arg.is_a?(Hash) && arg['_aj_globalid']
-                               gid = arg['_aj_globalid']
-                               if gid.include?('Business/')
-                                 return gid.split('/').last.to_i
-                               elsif gid.include?('TenantCustomer/') || gid.include?('Order/') || gid.include?('Payment/') || gid.include?('Booking/')
-                                 # These objects have business associations - we'd need to check if they exist
-                                 # For now, we'll skip this check and let the retry handle it
-                                 break
-                               end
-                             end
-                           end
-                         end
+            case mailer_args
+            when Hash
+              business_id = mailer_args['business_id'] if mailer_args.key?('business_id')
+            when Array
+              # Extract business ID from various ActiveRecord objects
+              mailer_args.each do |arg|
+                if arg.is_a?(Hash) && arg['_aj_globalid']
+                  gid = arg['_aj_globalid']
+                  if gid.include?('Business/')
+                    business_id = gid.split('/').last.to_i
+                    break
+                  elsif gid.include?('TenantCustomer/') || gid.include?('Order/') || gid.include?('Payment/') || gid.include?('Booking/')
+                    # These objects have business associations - check if the referenced object exists
+                    begin
+                      object_class = gid.split('/')[1]
+                      object_id = gid.split('/').last.to_i
+                      
+                      case object_class
+                      when 'TenantCustomer'
+                        customer = TenantCustomer.find(object_id)
+                        business_id = customer.business_id
+                      when 'Order'
+                        order = Order.find(object_id)
+                        business_id = order.business_id
+                      when 'Payment'
+                        payment = Payment.find(object_id)
+                        business_id = payment.business_id
+                      when 'Booking'
+                        booking = Booking.find(object_id)
+                        business_id = booking.business_id
+                      end
+                    rescue ActiveRecord::RecordNotFound
+                      # If the referenced object doesn't exist, discard the job
+                      failed_execution.discard
+                      cleaned_count += 1
+                      Rails.logger.info "[SolidQueue] Cleaned up failed job #{failed_execution.id} referencing non-existent #{object_class} #{object_id}"
+                      break
+                    end
+                  end
+                end
+              end
+            end
             
             # If we can identify a business ID and it doesn't exist, discard the job
             if business_id && !Business.exists?(business_id)
