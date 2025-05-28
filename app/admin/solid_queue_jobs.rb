@@ -212,6 +212,9 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
             # Try to find the business referenced in the job
             mailer_args = job_args.dig('arguments', 2)
             business_id = nil
+            should_discard = false
+            
+            Rails.logger.info "[SolidQueue] Checking job #{failed_execution.id} with args: #{mailer_args.inspect}"
             
             # Handle different argument structures for different mailer methods
             case mailer_args
@@ -222,8 +225,11 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
               mailer_args.each do |arg|
                 if arg.is_a?(Hash) && arg['_aj_globalid']
                   gid = arg['_aj_globalid']
+                  Rails.logger.info "[SolidQueue] Found GlobalID: #{gid}"
+                  
                   if gid.include?('Business/')
                     business_id = gid.split('/').last.to_i
+                    Rails.logger.info "[SolidQueue] Extracted Business ID: #{business_id}"
                     break
                   elsif gid.include?('TenantCustomer/') || gid.include?('Order/') || gid.include?('Payment/') || gid.include?('Booking/')
                     # These objects have business associations - check if the referenced object exists
@@ -245,11 +251,11 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
                         booking = Booking.find(object_id)
                         business_id = booking.business_id
                       end
+                      Rails.logger.info "[SolidQueue] Extracted Business ID from #{object_class}: #{business_id}"
                     rescue ActiveRecord::RecordNotFound
                       # If the referenced object doesn't exist, discard the job
-                      failed_execution.discard
-                      cleaned_count += 1
-                      Rails.logger.info "[SolidQueue] Cleaned up failed job #{failed_execution.id} referencing non-existent #{object_class} #{object_id}"
+                      should_discard = true
+                      Rails.logger.info "[SolidQueue] Object #{object_class} #{object_id} not found, marking for discard"
                       break
                     end
                   end
@@ -257,8 +263,23 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
               end
             end
             
+            # Also check the error message for business ID references
+            if business_id.nil? && failed_execution.error.is_a?(String)
+              # Look for "Couldn't find Business with 'id'=X" pattern
+              if match = failed_execution.error.match(/Couldn't find Business with 'id'=(\d+)/)
+                business_id = match[1].to_i
+                Rails.logger.info "[SolidQueue] Extracted Business ID from error message: #{business_id}"
+              end
+            elsif business_id.nil? && failed_execution.error.is_a?(Hash)
+              error_message = failed_execution.error['message'] || failed_execution.error['error']
+              if error_message && (match = error_message.match(/Couldn't find Business with 'id'=(\d+)/))
+                business_id = match[1].to_i
+                Rails.logger.info "[SolidQueue] Extracted Business ID from error hash: #{business_id}"
+              end
+            end
+            
             # If we can identify a business ID and it doesn't exist, discard the job
-            if business_id && !Business.exists?(business_id)
+            if should_discard || (business_id && !Business.exists?(business_id))
               failed_execution.discard
               cleaned_count += 1
               Rails.logger.info "[SolidQueue] Cleaned up failed job #{failed_execution.id} referencing non-existent Business #{business_id}"
