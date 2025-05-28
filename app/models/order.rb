@@ -45,6 +45,7 @@ class Order < ApplicationRecord
   before_validation :calculate_totals
   before_save :calculate_totals!
   before_destroy :orphan_invoice
+  after_update :send_order_status_update_email, if: :saved_change_to_status?
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
   accepts_nested_attributes_for :tenant_customer
@@ -186,6 +187,22 @@ class Order < ApplicationRecord
   def orphan_invoice
     # Mark the associated invoice as business deleted if it exists
     invoice&.mark_business_deleted!
+  end
+
+  def send_order_status_update_email
+    # Skip email for initial status or business_deleted status
+    previous_status = saved_changes['status'][0]
+    return if previous_status.nil? || status == 'business_deleted'
+    
+    # Only send for standard+ tier businesses
+    return unless business&.tier.in?(['standard', 'premium'])
+    
+    begin
+      OrderMailer.order_status_update(self, previous_status).deliver_later
+      Rails.logger.info "[EMAIL] Sent order status update email for Order ##{order_number} (#{previous_status} → #{status})"
+    rescue => e
+      Rails.logger.error "[EMAIL] Failed to send order status update email for Order ##{order_number}: #{e.message}"
+    end
   end
 
 end

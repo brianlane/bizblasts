@@ -11,11 +11,15 @@ FactoryBot.define do
     notes { "Order notes here" }
 
     # Set associations based on tenant_customer's business if not explicitly provided
+    # But skip for business_deleted status
     after(:build) do |order|
-      order.business ||= order.tenant_customer&.business
-      # Ensure associated methods belong to the same business
-      order.shipping_method = create(:shipping_method, business: order.business) unless order.shipping_method&.business == order.business
-      order.tax_rate = create(:tax_rate, business: order.business) unless order.tax_rate&.business == order.business
+      # Skip association setup for business_deleted orders
+      unless order.status == 'business_deleted'
+        order.business ||= order.tenant_customer&.business
+        # Ensure associated methods belong to the same business
+        order.shipping_method = create(:shipping_method, business: order.business) unless order.shipping_method&.business == order.business
+        order.tax_rate = create(:tax_rate, business: order.business) unless order.tax_rate&.business == order.business
+      end
     end
 
     # Set calculated fields *after* associations are finalized but before validation
@@ -49,6 +53,14 @@ FactoryBot.define do
       status { :refunded }
     end
 
+    trait :business_deleted do
+      status { :business_deleted }
+      tenant_customer { nil }
+      business { nil }
+      shipping_method { nil }
+      tax_rate { nil }
+    end
+
     # Trait to create line items
     transient do
       line_items_count { 0 }
@@ -57,8 +69,8 @@ FactoryBot.define do
     end
 
     after(:build) do |order, evaluator|
-      # Must happen *after* business is set
-      if evaluator.line_items_count > 0
+      # Must happen *after* business is set and skip for business_deleted
+      if evaluator.line_items_count > 0 && order.status != 'business_deleted' && order.business.present?
         evaluator.line_items_count.times do |i|
           # Create a product and variant belonging to the order's business
           product = create(:product, business: order.business, variants_count: 1)

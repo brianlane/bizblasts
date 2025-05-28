@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation - <%= @business.name %></title>
+  <% if @include_analytics %>
+  <!-- Email tracking for premium tier businesses -->
+  <style type="text/css">
+    /* Email analytics tracking styles */
+    .email-analytics { display: none; }
+  </style>
+  <% end %>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Order Confirmed!</h1>
+    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Thank you for your order from <%= @business.name %></p>
+  </div>
+
+  <!-- Order Details -->
+  <div style="background: #f8f9fa; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
+    <div style="background: white; padding: 25px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <h2 style="color: #495057; margin: 0 0 20px 0; font-size: 22px;">Order #<%= @order.order_number %></h2>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px; margin-bottom: 15px;">
+          <strong style="color: #6c757d; display: block; margin-bottom: 5px;">Order Date:</strong>
+          <span style="font-size: 16px;"><%= @order.created_at.strftime("%B %d, %Y at %I:%M %p") %></span>
+        </div>
+        <div style="flex: 1; min-width: 200px; margin-bottom: 15px;">
+          <strong style="color: #6c757d; display: block; margin-bottom: 5px;">Order Type:</strong>
+          <span style="font-size: 16px; text-transform: capitalize;"><%= @order.order_type.humanize %></span>
+        </div>
+      </div>
+
+      <% if @customer.present? %>
+      <div style="margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+        <strong style="color: #495057; display: block; margin-bottom: 10px;">Customer Information:</strong>
+        <p style="margin: 5px 0;"><strong>Name:</strong> <%= @customer.name %></p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> <%= @customer.email %></p>
+        <% if @customer.phone.present? %>
+        <p style="margin: 5px 0;"><strong>Phone:</strong> <%= @customer.phone %></p>
+        <% end %>
+      </div>
+      <% end %>
+
+      <!-- Order Items -->
+      <h3 style="color: #495057; margin: 25px 0 15px 0; font-size: 18px; border-bottom: 2px solid #e9ecef; padding-bottom: 8px;">Order Items</h3>
+      
+      <% @order.line_items.each do |item| %>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f3f4;">
+        <div style="flex: 1;">
+          <strong style="color: #495057; font-size: 16px;"><%= item.product_variant.product.name %></strong>
+          <% if item.product_variant.name != 'Default' %>
+          <br><span style="color: #6c757d; font-size: 14px;"><%= item.product_variant.name %></span>
+          <% end %>
+          <br><span style="color: #6c757d; font-size: 14px;">Quantity: <%= item.quantity %></span>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 14px; color: #6c757d;"><%= number_to_currency(item.price) %> each</div>
+          <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(item.total_amount) %></div>
+        </div>
+      </div>
+      <% end %>
+
+      <!-- Order Summary -->
+      <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 6px;">
+        <h3 style="color: #495057; margin: 0 0 15px 0; font-size: 18px;">Order Summary</h3>
+        
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Subtotal:</span>
+          <span style="font-weight: bold;"><%= number_to_currency(@order.total_amount - (@order.tax_amount || 0) - (@order.shipping_amount || 0)) %></span>
+        </div>
+        
+        <% if (@order.shipping_amount || 0) > 0 %>
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Shipping:</span>
+          <span style="font-weight: bold;"><%= number_to_currency(@order.shipping_amount) %></span>
+        </div>
+        <% end %>
+        
+        <% if (@order.tax_amount || 0) > 0 %>
+        <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+          <span style="color: #6c757d;">Tax:</span>
+          <span style="font-weight: bold;"><%= number_to_currency(@order.tax_amount) %></span>
+        </div>
+        <% end %>
+        
+        <div style="display: flex; justify-content: space-between; margin: 15px 0 0 0; padding-top: 15px; border-top: 2px solid #dee2e6; font-size: 18px;">
+          <span style="font-weight: bold; color: #495057;">Total:</span>
+          <span style="font-weight: bold; color: #28a745;"><%= number_to_currency(@order.total_amount) %></span>
+        </div>
+      </div>
+
+      <!-- Payment Information -->
+      <% if @payment.present? %>
+      <div style="margin-top: 25px; padding: 20px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px;">
+        <h3 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">✓ Payment Confirmed</h3>
+        <p style="margin: 5px 0; color: #155724;"><strong>Payment Method:</strong> <%= @payment.payment_method.humanize %></p>
+        <p style="margin: 5px 0; color: #155724;"><strong>Payment Date:</strong> <%= @payment.paid_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
+        <p style="margin: 5px 0; color: #155724;"><strong>Amount Paid:</strong> <%= number_to_currency(@payment.amount) %></p>
+      </div>
+      <% end %>
+
+      <!-- Next Steps -->
+      <div style="margin-top: 25px; padding: 20px; background: #cce5ff; border: 1px solid #80bfff; border-radius: 6px;">
+        <h3 style="color: #0056b3; margin: 0 0 15px 0; font-size: 18px;">What's Next?</h3>
+        <% if @order.order_type == 'product' %>
+        <p style="margin: 8px 0; color: #0056b3;">• We're preparing your order for shipment</p>
+        <p style="margin: 8px 0; color: #0056b3;">• You'll receive a tracking number once your order ships</p>
+        <p style="margin: 8px 0; color: #0056b3;">• Estimated delivery time depends on your shipping method</p>
+        <% elsif @order.order_type == 'service' %>
+        <p style="margin: 8px 0; color: #0056b3;">• We'll contact you to schedule your service</p>
+        <p style="margin: 8px 0; color: #0056b3;">• Check your email for booking confirmation details</p>
+        <% else %>
+        <p style="margin: 8px 0; color: #0056b3;">• We're processing your order</p>
+        <p style="margin: 8px 0; color: #0056b3;">• You'll receive updates on both products and services</p>
+        <% end %>
+      </div>
+
+      <!-- Business Contact -->
+      <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 6px; text-align: center;">
+        <h3 style="color: #495057; margin: 0 0 15px 0; font-size: 18px;">Questions about your order?</h3>
+        <p style="margin: 8px 0; color: #6c757d;">Contact <strong><%= @business.name %></strong></p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:<%= @business.email %>" style="color: #007bff; text-decoration: none;"><%= @business.email %></a></p>
+        <% if @business.phone.present? %>
+        <p style="margin: 5px 0;"><strong>Phone:</strong> <%= @business.phone %></p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="background: #495057; color: white; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+    <p style="margin: 0; font-size: 14px; opacity: 0.8;">This is an automated email confirmation from <%= @business.name %> via BizBlasts.</p>
+    <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.6;">Please do not reply to this email. For support, contact <%= @business.name %> directly.</p>
+  </div>
+
+  <% if @include_analytics %>
+  <!-- Email tracking pixel for premium tier businesses -->
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1" class="email-analytics" alt="">
+  <% end %>
+
+</body>
+</html> 

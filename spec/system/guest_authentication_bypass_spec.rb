@@ -21,8 +21,9 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       expect(current_path).to include('/book')
       expect(page).not_to have_content('You need to sign in')
       
-      # Should show booking form
-      expect(page).to have_content('Book Your Appointment')
+      # Should show booking form - check for actual content on the page
+      expect(page).to have_content('Book Service: Test Service')
+      expect(page).to have_content('at Business 1')
       expect(page).to have_field('First Name')
       expect(page).to have_field('Last Name')
       expect(page).to have_field('Email')

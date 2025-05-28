@@ -124,6 +124,7 @@ class Invoice < ApplicationRecord
   before_validation :calculate_totals
   before_validation :set_invoice_number, on: :create
   before_validation :set_guest_access_token, on: :create
+  after_create :send_invoice_created_email
 
   private
 
@@ -141,5 +142,18 @@ class Invoice < ApplicationRecord
     
     # Generate a secure random token for guest access
     self.guest_access_token = SecureRandom.urlsafe_base64(32)
+  end
+
+  def send_invoice_created_email
+    # Only send for pending invoices (not for paid invoices created after payment)
+    # Available for all tiers
+    return unless status == 'pending'
+    
+    begin
+      InvoiceMailer.invoice_created(self).deliver_later
+      Rails.logger.info "[EMAIL] Sent invoice created email for Invoice ##{invoice_number}"
+    rescue => e
+      Rails.logger.error "[EMAIL] Failed to send invoice created email for Invoice ##{invoice_number}: #{e.message}"
+    end
   end
 end 

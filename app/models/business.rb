@@ -149,7 +149,7 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id payment_reminders_enabled]
   end
   
   # Define which associations are allowed to be searched with Ransack

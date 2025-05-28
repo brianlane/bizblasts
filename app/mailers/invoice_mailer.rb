@@ -1,19 +1,95 @@
 class InvoiceMailer < ApplicationMailer
-  def new_invoice(invoice)
-    # Placeholder for new invoice email
+  # Send invoice with payment link (all tiers)
+  def invoice_created(invoice)
     @invoice = invoice
-    mail(to: invoice.email, subject: 'Your new invoice')
+    @business = invoice.business
+    @customer = invoice.tenant_customer
+    @payment_url = generate_payment_url(invoice)
+    
+    # Add tier-specific features for premium businesses
+    @include_analytics = @business.tier == 'premium'
+    
+    mail(
+      to: @customer.email,
+      subject: "Invoice ##{@invoice.invoice_number} - #{@business.name}"
+    )
   end
 
+  # Send payment confirmation when invoice is paid
+  def payment_confirmation(invoice, payment)
+    @invoice = invoice
+    @business = invoice.business
+    @customer = invoice.tenant_customer
+    @payment = payment
+    
+    # Add tier-specific features for premium businesses
+    @include_analytics = @business.tier == 'premium'
+    
+    mail(
+      to: @customer.email,
+      subject: "Payment Received - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+    )
+  end
+
+  # Send payment reminder for overdue invoices (standard+ tier only, must be enabled)
   def payment_reminder(invoice)
-    # Placeholder for payment reminder email
+    return unless invoice.business.tier.in?(['standard', 'premium'])
+    return unless invoice.business.payment_reminders_enabled?
+    
     @invoice = invoice
-    mail(to: invoice.email, subject: 'Payment reminder for your invoice')
+    @business = invoice.business
+    @customer = invoice.tenant_customer
+    @payment_url = generate_payment_url(invoice)
+    @days_overdue = (Date.current - invoice.due_date).to_i
+    
+    # Add tier-specific features for premium businesses
+    @include_analytics = @business.tier == 'premium'
+    
+    mail(
+      to: @customer.email,
+      subject: "Payment Reminder - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+    )
   end
 
-  def payment_confirmation(invoice)
-    # Placeholder for payment confirmation email
+  # Send notification when payment fails (standard+ tier only)
+  def payment_failed(invoice, payment)
+    return unless invoice.business.tier.in?(['standard', 'premium'])
+    
     @invoice = invoice
-    mail(to: invoice.email, subject: 'Payment received for your invoice')
+    @business = invoice.business
+    @customer = invoice.tenant_customer
+    @payment = payment
+    @payment_url = generate_payment_url(invoice)
+    @failure_reason = payment.failure_reason
+    
+    # Add tier-specific features for premium businesses
+    @include_analytics = @business.tier == 'premium'
+    
+    mail(
+      to: @customer.email,
+      subject: "Payment Failed - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+    )
+  end
+
+  private
+
+  def generate_payment_url(invoice)
+    # For authenticated users, use transaction path
+    if @customer.user_id.present?
+      Rails.application.routes.url_helpers.tenant_transaction_url(
+        invoice, 
+        type: 'invoice', 
+        subdomain: @business.hostname,
+        host: Rails.application.config.action_mailer.default_url_options[:host]
+      )
+    else
+      # For guest users, use guest access token
+      Rails.application.routes.url_helpers.tenant_invoice_url(
+        invoice,
+        token: invoice.guest_access_token,
+        subdomain: @business.hostname,
+        host: Rails.application.config.action_mailer.default_url_options[:host]
+      )
+    end
   end
 end

@@ -29,21 +29,83 @@ RSpec.describe Order, type: :model do
 
   describe 'validations' do
     subject { build(:order, tenant_customer: tenant_customer, business: business) }
-    it { should validate_presence_of(:tenant_customer) }
+    # Note: tenant_customer is optional for orphaned orders (status: business_deleted)
+    # This is handled by a conditional validation: validates :tenant_customer, presence: true, unless: :status_business_deleted?
+    
     it { should validate_presence_of(:status) }
-    # it { should validate_inclusion_of(:status).in_array(Order.statuses.keys.map(&:to_s)) } # Covered by model validation, matcher has issues with string enums
-    # it { should validate_presence_of(:total_amount) } #This is a known limitation: because the callback always sets a value (even if you assign nil), the matcher cannot "prove" presence validation. This is a common issue for calculated fields in Rails models.
+    
+    # Skip the total_amount presence validation test since the model's calculate_totals callback
+    # automatically sets this value when nil, making it impossible to test presence validation
+    it 'validates total_amount numericality' do
+      order = build(:order, tenant_customer: tenant_customer, business: business)
+      order.total_amount = -1
+      expect(order).not_to be_valid
+      expect(order.errors[:total_amount]).to include("must be greater than or equal to 0")
+    end
+    
     it { should validate_numericality_of(:total_amount).is_greater_than_or_equal_to(0) }
     it { should validate_numericality_of(:tax_amount).is_greater_than_or_equal_to(0) }
     it { should validate_numericality_of(:shipping_amount).is_greater_than_or_equal_to(0) }
-    # Order number presence is ensured by before_validation callback
-    # it { should validate_presence_of(:order_number) }
-    # Uniqueness validation is difficult to test with shoulda-matchers due to before_validation callback
-    # Relying on database index and model validation `uniqueness: { scope: :business_id }`
-    # it "validates uniqueness of order_number scoped to business_id" do
-    #   create(:order, tenant_customer: tenant_customer, business: business) # Need existing record
-    #   should validate_uniqueness_of(:order_number).scoped_to(:business_id)
-    # end
+    
+    # Skip the order_number presence validation test since the model's set_order_number callback
+    # automatically sets this value when blank, making it impossible to test presence validation
+    it 'validates order_number is set by callback' do
+      order = build(:order, tenant_customer: tenant_customer, business: business, order_number: nil)
+      order.valid?
+      expect(order.order_number).to be_present
+      expect(order.order_number).to match(/^ORD-[A-F0-9]{12}$/)
+    end
+    
+    # Test uniqueness validation with a properly set up order
+    it 'validates uniqueness of order_number scoped to business_id' do
+      # Create an existing order with a specific order number
+      existing_order = create(:order, tenant_customer: tenant_customer, business: business)
+      
+      # Build a new order with the same order number
+      new_order = build(:order, 
+                       tenant_customer: tenant_customer, 
+                       business: business, 
+                       order_number: existing_order.order_number)
+      
+      expect(new_order).not_to be_valid
+      expect(new_order.errors[:order_number]).to include("has already been taken")
+    end
+    
+    # Test the conditional validation for tenant_customer
+    context 'when order is not business_deleted' do
+      it 'requires tenant_customer' do
+        order = build(:order, tenant_customer: nil, business: business, status: 'pending_payment')
+        expect(order).not_to be_valid
+        expect(order.errors[:tenant_customer]).to include("can't be blank")
+      end
+    end
+    
+    context 'when order is business_deleted' do
+      it 'does not require tenant_customer' do
+        # Create a minimal order for business_deleted status without associations that require business
+        order = Order.new(
+          tenant_customer: nil, 
+          business: nil, 
+          status: 'business_deleted',
+          order_number: 'ORD-BUSINESS-DELETED',
+          total_amount: 0,
+          tax_amount: 0,
+          shipping_amount: 0,
+          order_type: :product
+        )
+        
+        # The TenantScoped concern adds a non-conditional business validation that 
+        # conflicts with the Order model's conditional validation. For this test,
+        # we'll verify that the tenant_customer validation is properly conditional
+        # while acknowledging the business validation limitation.
+        order.valid?
+        expect(order.errors[:tenant_customer]).to be_empty
+        
+        # Note: The business validation error is expected due to TenantScoped concern
+        # In actual use, mark_business_deleted! method handles this properly
+        # by using update_columns to bypass validations
+      end
+    end
   end
 
   describe 'enums' do
