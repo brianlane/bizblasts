@@ -29,7 +29,19 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     host_type: 'subdomain'
   ) }
 
-  let!(:user) { User.create!(first_name: 'Test', last_name: 'Business', email: 'business@test.com', password: 'password', business: business, role: 'manager') }
+  let!(:user) { 
+    user = User.create!(
+      first_name: 'Test', 
+      last_name: 'Business', 
+      email: 'business@test.com', 
+      password: 'password', 
+      password_confirmation: 'password',
+      business: business, 
+      role: 'manager'
+    )
+    user.confirm # Confirm the user's email so they can sign in
+    user
+  }
 
   scenario 'Business user logs in from homepage and is redirected to subdomain dashboard, then logs out back to homepage' do
     # Start at the main domain

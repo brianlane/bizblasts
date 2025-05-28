@@ -87,7 +87,7 @@ RSpec.describe "Client::Settings", type: :request do
         
         # Create a user with a known password for this test specifically
         # to avoid issues with devise password management in other tests
-        test_user_for_password = create(:user, role: :client, password: 'originalpassword')
+        test_user_for_password = create(:user, role: :client, password: 'originalpassword', password_confirmation: 'originalpassword')
         sign_in test_user_for_password
 
         password_params = { 
@@ -102,7 +102,7 @@ RSpec.describe "Client::Settings", type: :request do
 
       it "fails to update with incorrect current_password" do
         # Similar setup as above for clarity for password test
-        test_user_for_password = create(:user, role: :client, password: 'originalpassword')
+        test_user_for_password = create(:user, role: :client, password: 'originalpassword', password_confirmation: 'originalpassword')
         sign_in test_user_for_password
         password_params = { 
           current_password: 'wrongpassword', 
@@ -115,7 +115,7 @@ RSpec.describe "Client::Settings", type: :request do
       end
 
       it "fails to update with mismatched new passwords" do
-        test_user_for_password = create(:user, role: :client, password: 'originalpassword')
+        test_user_for_password = create(:user, role: :client, password: 'originalpassword', password_confirmation: 'originalpassword')
         sign_in test_user_for_password
         password_params = { 
           current_password: 'originalpassword', 

@@ -42,8 +42,8 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
 
       # Check regular staff 
       expect(body).to include(staff_member.name)
-      expect(body).to match(/<a[^>]*>#{Regexp.escape(business.name)}<\/a>/)
-      expect(body).to include("7 days, 0 exceptions") 
+      expect(body).to match(/<a[^>]*href="\/admin\/businesses\/#{Regexp.escape(business.hostname)}"[^>]*>#{Regexp.escape(business.name)}<\/a>/)
+      expect(body).to include("5 days, 0 exceptions") # Default factory has Mon-Fri (5 days)
       
       # Check staff with empty availability
       expect(body).to include(staff_empty_avail.name)
@@ -52,7 +52,7 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
       
       # Check staff with no exceptions key
       expect(body).to include(staff_no_except.name)
-      expect(body).to include("1 day, 0 exceptions") 
+      expect(body).to include("0 days, 0 exceptions") # Empty array for Monday means 0 days
     end
   end
 
@@ -159,6 +159,69 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
       # Check standard flash message (might fail)
       # follow_redirect!
       # expect(response.body).to include("Staff member was successfully destroyed.")
+    end
+  end
+
+  # Test for the availability summary functionality fixed during our conversation
+  describe "availability summary display" do
+    it "correctly displays availability summaries for different staff member configurations" do
+      # Create staff with full weekday availability (Mon-Fri)
+      staff_weekdays = create(:staff_member, business: business, name: "Weekday Staff", 
+        availability: {
+          'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'saturday' => [],
+          'sunday' => [],
+          'exceptions' => {}
+        })
+      
+      # Create staff with weekend availability
+      staff_weekend = create(:staff_member, business: business, name: "Weekend Staff",
+        availability: {
+          'monday' => [],
+          'tuesday' => [],
+          'wednesday' => [],
+          'thursday' => [],
+          'friday' => [],
+          'saturday' => [{ 'start' => '10:00', 'end' => '16:00' }],
+          'sunday' => [{ 'start' => '12:00', 'end' => '18:00' }],
+          'exceptions' => {}
+        })
+      
+      # Create staff with exceptions
+      staff_with_exceptions = create(:staff_member, business: business, name: "Staff With Exceptions",
+        availability: {
+          'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+          'wednesday' => [],
+          'thursday' => [],
+          'friday' => [],
+          'saturday' => [],
+          'sunday' => [],
+          'exceptions' => {
+            Date.today.to_s => [{ 'start' => '10:00', 'end' => '14:00' }],
+            (Date.today + 1).to_s => []
+          }
+        })
+
+      get "/admin/staff_members"
+      expect(response).to be_successful
+      body = response.body
+
+      # Test weekday staff shows 5 days, 0 exceptions
+      expect(body).to include(staff_weekdays.name)
+      expect(body).to include("5 days, 0 exceptions")
+      
+      # Test weekend staff shows 2 days, 0 exceptions  
+      expect(body).to include(staff_weekend.name)
+      expect(body).to include("2 days, 0 exceptions")
+      
+      # Test staff with exceptions shows 2 days, 2 exceptions
+      expect(body).to include(staff_with_exceptions.name)
+      expect(body).to include("2 days, 2 exceptions")
     end
   end
 end

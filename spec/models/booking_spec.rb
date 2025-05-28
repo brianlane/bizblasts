@@ -10,10 +10,26 @@ RSpec.describe Booking, type: :model do
   let(:customer) { create(:tenant_customer, business: business) }
   
   describe "associations" do
-    it { should belong_to(:business) }
-    it { should belong_to(:service) }
-    it { should belong_to(:staff_member) }
-    it { should belong_to(:tenant_customer) }
+    it 'belongs to business (optional for orphaned bookings)' do
+      expect(Booking.reflect_on_association(:business)).to be_present
+      expect(Booking.reflect_on_association(:business).options[:optional]).to be true
+    end
+
+    it 'belongs to service (optional for orphaned bookings)' do
+      expect(Booking.reflect_on_association(:service)).to be_present
+      expect(Booking.reflect_on_association(:service).options[:optional]).to be true
+    end
+
+    it 'belongs to staff_member (optional for orphaned bookings)' do
+      expect(Booking.reflect_on_association(:staff_member)).to be_present
+      expect(Booking.reflect_on_association(:staff_member).options[:optional]).to be true
+    end
+
+    it 'belongs to tenant_customer (optional for orphaned bookings)' do
+      expect(Booking.reflect_on_association(:tenant_customer)).to be_present
+      expect(Booking.reflect_on_association(:tenant_customer).options[:optional]).to be true
+    end
+
     it { should belong_to(:promotion).optional }
     it { should have_one(:invoice) }
   end

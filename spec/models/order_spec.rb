@@ -9,8 +9,17 @@ RSpec.describe Order, type: :model do
   let(:tax_rate_with_shipping) { create(:tax_rate, business: business, rate: 0.08, applies_to_shipping: true) }
 
   describe 'associations' do
-    it { should belong_to(:business) }
-    it { should belong_to(:tenant_customer) }
+    # Custom association tests that understand the business logic
+    it 'belongs to business (optional for orphaned orders)' do
+      expect(Order.reflect_on_association(:business)).to be_present
+      expect(Order.reflect_on_association(:business).options[:optional]).to be true
+    end
+
+    it 'belongs to tenant_customer (optional for orphaned orders)' do
+      expect(Order.reflect_on_association(:tenant_customer)).to be_present
+      expect(Order.reflect_on_association(:tenant_customer).options[:optional]).to be true
+    end
+
     it { should belong_to(:shipping_method).optional }
     it { should belong_to(:tax_rate).optional }
     it { should have_many(:line_items).dependent(:destroy).with_foreign_key(:lineable_id) }

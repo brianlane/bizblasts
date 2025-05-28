@@ -79,9 +79,9 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         expect(location.hours).to be_present
       end
 
-      it 'signs in the user' do
+      it 'does not sign in the user immediately (requires email confirmation)' do
         post :create, params: { user: valid_attributes }
-        expect(subject.current_user).to eq(User.last)
+        expect(subject.current_user).to be_nil
       end
 
       # More tests for the happy path

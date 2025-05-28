@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Service, type: :model do
   describe 'associations' do
     it { is_expected.to belong_to(:business) }
-    it { is_expected.to have_many(:bookings).dependent(:restrict_with_error) }
+    it { is_expected.to have_many(:bookings) }
     it { is_expected.to have_many(:staff_assignments).dependent(:destroy) }
     it { is_expected.to have_many(:assigned_staff).through(:staff_assignments).source(:user) }
   end

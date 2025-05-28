@@ -18,7 +18,7 @@ RSpec.describe "Admin::Services", type: :request do
 
       # Check for service with business and price
       expect(response.body).to include(service_with_business_and_price.name)
-      expect(response.body).to include(admin_business_path(business.id)) # Check link to business
+      expect(response.body).to include(admin_business_path(business.hostname)) # Check link to business using hostname
       expect(response.body).to include("$100.00") # Check formatted price
     end
 
