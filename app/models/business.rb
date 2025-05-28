@@ -30,16 +30,16 @@ class Business < ApplicationRecord
   has_many :tenant_customers
   has_many :services, dependent: :destroy
   has_many :staff_members
-  has_many :bookings
-  has_many :invoices
-  has_many :payments
+  has_many :bookings  # Orphaned, not deleted
+  has_many :invoices  # Orphaned, not deleted
+  has_many :payments  # Orphaned, not deleted
   has_many :marketing_campaigns
   has_many :promotions
   has_many :pages, dependent: :destroy
   has_many :page_sections, through: :pages
   has_many :loyalty_programs
   has_many :products, dependent: :destroy
-  has_many :orders, dependent: :destroy
+  has_many :orders  # Orphaned, not deleted
   has_many :categories, dependent: :destroy
   has_many :shipping_methods, dependent: :destroy
   has_many :tax_rates, dependent: :destroy
@@ -104,7 +104,7 @@ class Business < ApplicationRecord
   
   before_validation :normalize_hostname
   before_validation :ensure_hours_is_hash
-  before_destroy :orphan_all_bookings
+  before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   
   # Find the current tenant

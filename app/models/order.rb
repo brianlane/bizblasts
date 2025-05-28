@@ -1,7 +1,7 @@
 class Order < ApplicationRecord
   include TenantScoped
 
-  belongs_to :tenant_customer
+  belongs_to :tenant_customer, optional: true  # Allow nil for orphaned orders
   belongs_to :shipping_method, optional: true
   belongs_to :tax_rate, optional: true
   belongs_to :booking, optional: true
@@ -30,7 +30,7 @@ class Order < ApplicationRecord
 
   enum :order_type, { product: 0, service: 1, mixed: 2 }, prefix: true
 
-  validates :tenant_customer, presence: true
+  validates :tenant_customer, presence: true, unless: :status_business_deleted?
   validates :status, presence: true, inclusion: { in: statuses.keys.map(&:to_s) }
   validates :total_amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :tax_amount, numericality: { greater_than_or_equal_to: 0 }
