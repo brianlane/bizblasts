@@ -5,16 +5,118 @@ ActiveAdmin.register Service do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  # permit_params :business, :name, :description, :price, :duration_minutes, :active, :settings, :notes
+  permit_params :name, :description, :price, :duration, :active, :business_id, :category_id
   #
   # or
   #
   # permit_params do
-  #   permitted = [:business_id, :name, :description, :price, :duration_minutes, :active, :settings, :notes]
+  #   permitted = [:name, :description, :price, :duration, :active, :business_id, :category_id]
   #   permitted << :other if params[:action] == 'create' && current_user.admin?
   #   permitted
   # end
-  
+
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these services?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    Service.where(id: ids).find_each do |service|
+      begin
+        service.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete service #{service.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} services deleted successfully. #{failed_count} services failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} services deleted successfully."
+    end
+  end
+
+  batch_action :activate, confirm: "Are you sure you want to activate these services?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Service.where(id: ids).find_each do |service|
+      begin
+        service.update!(active: true)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to activate service #{service.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} services activated successfully. #{failed_count} services failed to activate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} services activated successfully."
+    end
+  end
+
+  batch_action :deactivate, confirm: "Are you sure you want to deactivate these services?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Service.where(id: ids).find_each do |service|
+      begin
+        service.update!(active: false)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to deactivate service #{service.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} services deactivated successfully. #{failed_count} services failed to deactivate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} services deactivated successfully."
+    end
+  end
+
+  filter :name
+  filter :description
+  filter :price
+  filter :duration
+  filter :active
+  filter :business
+  filter :category
+
+  index do
+    selectable_column
+    id_column
+    column :name
+    column :description
+    column :price do |service|
+      number_to_currency(service.price) if service.price
+    end
+    column :duration do |service|
+      "#{service.duration} minutes" if service.duration
+    end
+    column :active
+    column :business
+    column :category
+    actions
+  end
+
+  form do |f|
+    f.inputs do
+      f.input :name
+      f.input :description
+      f.input :price
+      f.input :duration, label: 'Duration (minutes)'
+      f.input :active
+      f.input :business, collection: Business.order(:name)
+      f.input :category, collection: Category.order(:name)
+    end
+    f.actions
+  end
+
   # Permit relevant parameters including the association and nested image attributes
   permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :availability_settings, staff_member_ids: [], add_on_product_ids: [], type: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
 

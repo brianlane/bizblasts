@@ -15,6 +15,70 @@ ActiveAdmin.register Product do
   #   permitted
   # end
 
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these products?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    Product.where(id: ids).find_each do |product|
+      begin
+        product.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete product #{product.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} products deleted successfully. #{failed_count} products failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} products deleted successfully."
+    end
+  end
+
+  batch_action :activate, confirm: "Are you sure you want to activate these products?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Product.where(id: ids).find_each do |product|
+      begin
+        product.update!(active: true)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to activate product #{product.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} products activated successfully. #{failed_count} products failed to activate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} products activated successfully."
+    end
+  end
+
+  batch_action :deactivate, confirm: "Are you sure you want to deactivate these products?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Product.where(id: ids).find_each do |product|
+      begin
+        product.update!(active: false)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to deactivate product #{product.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} products deactivated successfully. #{failed_count} products failed to deactivate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} products deactivated successfully."
+    end
+  end
+
   filter :name
   filter :category, collection: -> {
     Category.order(:name)

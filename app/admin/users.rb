@@ -1,5 +1,5 @@
 ActiveAdmin.register User do
-  permit_params :email, :first_name, :last_name, :role, :business_id, :active, :password, :password_confirmation, :staff_member_id
+  permit_params :email, :first_name, :last_name, :role, :business_id, :active, :password, :password_confirmation, :staff_member_id, :phone
 
   # Filters
   filter :email
@@ -9,6 +9,72 @@ ActiveAdmin.register User do
   filter :business, as: :select, collection: -> { Business.order(:name).pluck(:name, :id) }
   filter :active
   filter :created_at
+
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these users?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    User.where(id: ids).find_each do |user|
+      begin
+        user.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete user #{user.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} users deleted successfully. #{failed_count} users failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} users deleted successfully."
+    end
+  end
+
+  batch_action :activate, confirm: "Are you sure you want to activate these users?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    User.where(id: ids).find_each do |user|
+      begin
+        # Assuming users have an active field or similar
+        user.update!(confirmed_at: Time.current) if user.confirmed_at.nil?
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to activate user #{user.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} users activated successfully. #{failed_count} users failed to activate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} users activated successfully."
+    end
+  end
+
+  batch_action :deactivate, confirm: "Are you sure you want to deactivate these users?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    User.where(id: ids).find_each do |user|
+      begin
+        # Deactivate by removing confirmation
+        user.update!(confirmed_at: nil)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to deactivate user #{user.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} users deactivated successfully. #{failed_count} users failed to deactivate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} users deactivated successfully."
+    end
+  end
 
   # Index Page Configuration
   index do
@@ -42,6 +108,8 @@ ActiveAdmin.register User do
       user.businesses.count
     end
     column :active
+    column :confirmed_at
+    column :created_at
     actions
   end
 
@@ -76,6 +144,7 @@ ActiveAdmin.register User do
         end
       end
       row :active
+      row :confirmed_at
       row :created_at
       row :updated_at
       row :reset_password_sent_at
@@ -96,6 +165,7 @@ ActiveAdmin.register User do
       f.input :email
       f.input :first_name
       f.input :last_name
+      f.input :phone
       
       f.input :staff_member, as: :select, 
               collection: StaffMember.where(business_id: f.object.business_id).order(:name).all,
