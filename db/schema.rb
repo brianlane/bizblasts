@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_28_172356) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_28_173011) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -884,7 +884,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_172356) do
   add_foreign_key "staff_members", "businesses", on_delete: :cascade
   add_foreign_key "staff_members", "users"
   add_foreign_key "stock_reservations", "orders"
-  add_foreign_key "stock_reservations", "product_variants"
+  add_foreign_key "stock_reservations", "product_variants", on_delete: :cascade
   add_foreign_key "subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "tax_rates", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
