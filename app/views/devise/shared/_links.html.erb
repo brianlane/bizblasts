@@ -3,7 +3,17 @@
 <% end %>
 
 <%- if devise_mapping.registerable? && controller_name != 'registrations' %>
-  <%= link_to "Sign up", new_registration_path(resource_name) %><br />
+  <%# Custom logic for different registration types since we don't have a generic user registration %>
+  <% if resource_name == :user %>
+    <%= link_to "Sign up as Client", new_client_registration_path %><br />
+    <%= link_to "Sign up as Business", new_business_registration_path %><br />
+  <% elsif respond_to?("new_#{resource_name}_registration_path") %>
+    <%= link_to "Sign up", send("new_#{resource_name}_registration_path") %><br />
+  <% else %>
+    <%# Fallback for any other cases %>
+    <%= link_to "Sign up as Client", new_client_registration_path %><br />
+    <%= link_to "Sign up as Business", new_business_registration_path %><br />
+  <% end %>
 <% end %>
 
 <%- if devise_mapping.recoverable? && controller_name != 'passwords' && controller_name != 'registrations' %>
