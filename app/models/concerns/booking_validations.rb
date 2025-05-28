@@ -6,9 +6,9 @@ module BookingValidations
 
   included do
     # Common validations for bookings
-    validates :service, presence: true
+    validates :service, presence: true, unless: :business_deleted?
     validates :tenant_customer, presence: true
-    validates :staff_member, presence: true
+    validates :staff_member, presence: true, unless: :business_deleted?
     validates :start_time, presence: true
     validates :end_time, presence: true
     validates :original_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
@@ -16,11 +16,11 @@ module BookingValidations
     validates :amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
     
     validate :end_time_after_start_time
-    validate :no_overlapping_bookings, on: :create
-    validate :check_max_advance_days_policy, on: :create
-    validate :check_max_daily_bookings_policy, on: :create
-    validate :check_min_duration_policy, on: :create
-    validate :check_max_duration_policy, on: :create
+    validate :no_overlapping_bookings, on: :create, unless: :business_deleted?
+    validate :check_max_advance_days_policy, on: :create, unless: :business_deleted?
+    validate :check_max_daily_bookings_policy, on: :create, unless: :business_deleted?
+    validate :check_min_duration_policy, on: :create, unless: :business_deleted?
+    validate :check_max_duration_policy, on: :create, unless: :business_deleted?
   end
   
   # Calculate booking duration in minutes
