@@ -28,12 +28,78 @@ ActiveAdmin.register Business do
                 :active, :tier, :service_template_id, 
                 :hostname, :host_type # Added new fields
 
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these businesses?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    Business.where(id: ids).find_each do |business|
+      begin
+        business.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete business #{business.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} businesses deleted successfully. #{failed_count} businesses failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} businesses deleted successfully."
+    end
+  end
+
+  batch_action :activate, confirm: "Are you sure you want to activate these businesses?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Business.where(id: ids).find_each do |business|
+      begin
+        business.update!(active: true)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to activate business #{business.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} businesses activated successfully. #{failed_count} businesses failed to activate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} businesses activated successfully."
+    end
+  end
+
+  batch_action :deactivate, confirm: "Are you sure you want to deactivate these businesses?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Business.where(id: ids).find_each do |business|
+      begin
+        business.update!(active: false)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to deactivate business #{business.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} businesses deactivated successfully. #{failed_count} businesses failed to deactivate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} businesses deactivated successfully."
+    end
+  end
+
   # Filter options updated
   filter :name
   filter :hostname
-  filter :host_type, as: :select, collection: Business.host_types.keys
-  filter :tier, as: :select, collection: Business.tiers.keys
+  filter :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }
+  filter :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }
+  filter :industry
   filter :active
+  filter :created_at
 
   # Index page configuration updated
   index do
@@ -100,8 +166,8 @@ ActiveAdmin.register Business do
     f.inputs "Business Details" do
       f.input :name
       f.input :hostname
-      f.input :host_type, as: :select, collection: Business.host_types.keys, include_blank: false
-      f.input :tier, as: :select, collection: Business.tiers.keys, include_blank: false
+      f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
+      f.input :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :industry, as: :select, collection: Business.industries.keys, include_blank: false
       f.input :phone
       f.input :email
@@ -111,7 +177,7 @@ ActiveAdmin.register Business do
       f.input :state
       f.input :zip
       f.input :description, as: :text
-      f.input :time_zone, as: :select, collection: ActiveSupport::TimeZone.all.map(&:name)
+      f.input :time_zone, as: :select, collection: ActiveSupport::TimeZone.all.map { |tz| [tz.to_s, tz.name] }
       f.input :active
       f.input :service_template # Assuming this is the correct association name
     end

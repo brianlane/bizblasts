@@ -19,6 +19,50 @@ ActiveAdmin.register Order do
   #   permitted
   # end
 
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these orders?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    Order.where(id: ids).find_each do |order|
+      begin
+        order.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete order #{order.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} orders deleted successfully. #{failed_count} orders failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} orders deleted successfully."
+    end
+  end
+
+  # Add batch action to mark orders as business_deleted (useful for orphaned orders)
+  batch_action :mark_as_business_deleted, confirm: "Are you sure you want to mark these orders as business deleted?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Order.where(id: ids).find_each do |order|
+      begin
+        order.mark_business_deleted!
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to mark order #{order.id} as business deleted: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} orders marked as business deleted. #{failed_count} orders failed to update."
+    else
+      redirect_to collection_path, notice: "#{updated_count} orders marked as business deleted."
+    end
+  end
+
   filter :tenant_customer, collection: -> {
     TenantCustomer.order(:name)
   }

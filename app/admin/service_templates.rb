@@ -146,6 +146,70 @@ ActiveAdmin.register ServiceTemplate do
     redirect_to collection_path, notice: "Selected templates have been deactivated!"
   end
 
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these service templates?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    ServiceTemplate.where(id: ids).find_each do |template|
+      begin
+        template.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete service template #{template.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} service templates deleted successfully. #{failed_count} service templates failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} service templates deleted successfully."
+    end
+  end
+
+  batch_action :activate, confirm: "Are you sure you want to activate these service templates?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    ServiceTemplate.where(id: ids).find_each do |template|
+      begin
+        template.update!(active: true)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to activate service template #{template.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} service templates activated successfully. #{failed_count} service templates failed to activate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} service templates activated successfully."
+    end
+  end
+
+  batch_action :deactivate, confirm: "Are you sure you want to deactivate these service templates?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    ServiceTemplate.where(id: ids).find_each do |template|
+      begin
+        template.update!(active: false)
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to deactivate service template #{template.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} service templates deactivated successfully. #{failed_count} service templates failed to deactivate."
+    else
+      redirect_to collection_path, notice: "#{updated_count} service templates deactivated successfully."
+    end
+  end
+
   # Controller customization to manually handle destroy and redirect
   controller do
     # Rescue from JSON parsing errors that might occur during assignment

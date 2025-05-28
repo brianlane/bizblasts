@@ -19,6 +19,9 @@ ActiveAdmin.setup do |config|
   script_code = File.read(Rails.root.join('app/assets/javascripts/delete_fix.js'))
   config.head = "<script>#{script_code}</script>".html_safe
 
+  # Register Active Admin JavaScript to ensure batch actions work
+  config.register_javascript 'active_admin.js'
+
   # Set an optional image to be displayed for the header
   # instead of a string (overrides :site_title)
   #

@@ -10,6 +10,77 @@ ActiveAdmin.register Booking do
                 :stripe_payment_intent_id, :stripe_customer_id, :paid, 
                 :cancelled_at, :cancellation_reason, :quantity
   
+  # Enable batch actions
+  batch_action :destroy, confirm: "Are you sure you want to delete these bookings?" do |ids|
+    deleted_count = 0
+    failed_count = 0
+    
+    Booking.where(id: ids).find_each do |booking|
+      begin
+        booking.destroy!
+        deleted_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to delete booking #{booking.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{deleted_count} bookings deleted successfully. #{failed_count} bookings failed to delete."
+    else
+      redirect_to collection_path, notice: "#{deleted_count} bookings deleted successfully."
+    end
+  end
+
+  # Add batch action to mark bookings as business_deleted (useful for orphaned bookings)
+  batch_action :mark_as_business_deleted, confirm: "Are you sure you want to mark these bookings as business deleted?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Booking.where(id: ids).find_each do |booking|
+      begin
+        booking.mark_business_deleted!
+        updated_count += 1
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to mark booking #{booking.id} as business deleted: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} bookings marked as business deleted. #{failed_count} bookings failed to update."
+    else
+      redirect_to collection_path, notice: "#{updated_count} bookings marked as business deleted."
+    end
+  end
+
+  # Add batch action to cancel multiple bookings
+  batch_action :cancel, confirm: "Are you sure you want to cancel these bookings?" do |ids|
+    updated_count = 0
+    failed_count = 0
+    
+    Booking.where(id: ids).find_each do |booking|
+      begin
+        if booking.can_be_cancelled?
+          booking.update!(status: :cancelled, cancelled_at: Time.current, cancellation_reason: "Batch cancelled by admin")
+          updated_count += 1
+        else
+          failed_count += 1
+          Rails.logger.error "Booking #{booking.id} cannot be cancelled (status: #{booking.status})"
+        end
+      rescue => e
+        failed_count += 1
+        Rails.logger.error "Failed to cancel booking #{booking.id}: #{e.message}"
+      end
+    end
+    
+    if failed_count > 0
+      redirect_to collection_path, alert: "#{updated_count} bookings cancelled successfully. #{failed_count} bookings failed to cancel."
+    else
+      redirect_to collection_path, notice: "#{updated_count} bookings cancelled successfully."
+    end
+  end
+  
   scope :all
   scope :upcoming
   scope :today
