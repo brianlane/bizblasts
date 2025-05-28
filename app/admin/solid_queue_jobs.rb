@@ -65,12 +65,12 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
         h3 "Failed Jobs", style: "color: #721c24;"
         
         div style: "margin-bottom: 15px;" do
-          link_to "Retry All Failed Jobs", 
-                  admin_solidqueue_jobs_retry_all_failed_jobs_path, 
-                  method: :post, 
-                  class: "button", 
-                  style: "background-color: #dc3545; color: white;",
-                  confirm: "Are you sure you want to retry all failed jobs?"
+          form_tag admin_solidqueue_jobs_retry_all_failed_jobs_path, method: :post, 
+                   onsubmit: "return confirm('Are you sure you want to retry all failed jobs?')" do
+            submit_tag "Retry All Failed Jobs", 
+                       class: "button", 
+                       style: "background-color: #dc3545; color: white; border: none; padding: 8px 16px; cursor: pointer;"
+          end
         end
         
         table_for SolidQueue::FailedExecution.joins(:job).order('solid_queue_jobs.created_at DESC').limit(10), class: "index_table" do
@@ -84,11 +84,12 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
             truncate(failed_execution.error.is_a?(Hash) ? failed_execution.error['message'] : failed_execution.error.to_s, length: 100)
           end
           column "Actions" do |failed_execution|
-            link_to "Retry", 
-                    admin_solidqueue_jobs_retry_failed_job_path(id: failed_execution.id), 
-                    method: :post, 
-                    class: "button",
-                    style: "background-color: #28a745; color: white; font-size: 12px; padding: 5px 10px;"
+            form_tag admin_solidqueue_jobs_retry_failed_job_path, method: :post, style: "display: inline;" do
+              hidden_field_tag :id, failed_execution.id
+              submit_tag "Retry", 
+                         class: "button",
+                         style: "background-color: #28a745; color: white; font-size: 12px; padding: 5px 10px; border: none; cursor: pointer;"
+            end
           end
         end
       end
