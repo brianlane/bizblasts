@@ -27,6 +27,9 @@ class Booking < ApplicationRecord
   validates :quantity, numericality: { less_than_or_equal_to: :service_max_bookings }, if: :experience_service?
   validates :quantity, numericality: { greater_than_or_equal_to: :service_min_bookings }, if: :experience_service?
 
+  # Override TenantScoped validation to allow nil business for orphaned bookings
+  validates :business, presence: true, unless: :business_deleted?
+
   delegate :name, to: :service, prefix: true, allow_nil: true
   delegate :name, to: :staff_member, prefix: true, allow_nil: true
   delegate :name, :email, to: :tenant_customer, prefix: :customer, allow_nil: true

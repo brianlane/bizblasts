@@ -5,6 +5,7 @@ class Order < ApplicationRecord
   belongs_to :shipping_method, optional: true
   belongs_to :tax_rate, optional: true
   belongs_to :booking, optional: true
+  belongs_to :business, optional: true  # Allow nil for orphaned orders
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
   has_one :invoice
@@ -36,6 +37,9 @@ class Order < ApplicationRecord
   validates :shipping_amount, numericality: { greater_than_or_equal_to: 0 }
   validates :order_number, presence: true, uniqueness: { scope: :business_id }
   validate :line_items_match_order_type
+  
+  # Override TenantScoped validation to allow nil business for orphaned orders
+  validates :business, presence: true, unless: :status_business_deleted?
 
   before_validation :set_order_number, on: :create
   before_validation :calculate_totals

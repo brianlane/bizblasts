@@ -7,6 +7,7 @@ class Invoice < ApplicationRecord
   belongs_to :promotion, optional: true
   belongs_to :shipping_method, optional: true
   belongs_to :tax_rate, optional: true
+  belongs_to :business, optional: true  # Allow nil for orphaned invoices
   has_many :payments, dependent: :destroy
   has_many :line_items, as: :lineable, dependent: :destroy
   
@@ -19,6 +20,9 @@ class Invoice < ApplicationRecord
   validates :original_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :discount_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :booking_id, uniqueness: true, allow_nil: true
+  
+  # Override TenantScoped validation to allow nil business for orphaned invoices
+  validates :business, presence: true, unless: :business_deleted?
   
   enum :status, {
     draft: 0,
