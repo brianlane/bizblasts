@@ -57,7 +57,7 @@ gem "thruster", require: false
 gem "image_processing", "~> 1.2"
 
 # Stripe for payments
-gem "stripe", "~> 15.1"
+gem "stripe", "~> 15.2"
 
 # Use node based css bundling
 gem "cssbundling-rails"
