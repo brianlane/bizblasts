@@ -203,4 +203,125 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
     end
   end
 
+  describe "Domain Coverage functionality" do
+    let!(:premium_business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'premium.com') }
+    let!(:premium_business_with_coverage) do
+      create(:business, 
+        tier: 'premium', 
+        host_type: 'custom_domain', 
+        hostname: 'covered.com',
+        domain_coverage_applied: true,
+        domain_cost_covered: 15.99,
+        domain_renewal_date: 1.year.from_now,
+        domain_coverage_notes: 'Domain registered successfully'
+      )
+    end
+
+    describe "GET /admin/businesses index with domain coverage" do
+      before { get admin_businesses_path }
+
+      it "shows domain coverage status in index" do
+        expect(response.body).to include('Domain Coverage')
+        # Should show different status tags based on coverage status
+        expect(response.body).to match(/Available|Covered|Not Eligible/)
+      end
+
+      it "shows correct coverage information for premium businesses" do
+        expect(response.body).to include('Available') # For premium_business without coverage
+        expect(response.body).to include('Covered') # For premium_business_with_coverage
+      end
+    end
+
+    describe "GET /admin/businesses/:id show with domain coverage" do
+      context "for premium business with domain coverage" do
+        before { get admin_business_path(premium_business_with_coverage.id) }
+
+        it "shows domain coverage panel" do
+          expect(response.body).to include('Domain Coverage Information')
+          expect(response.body).to include('Coverage Status')
+          expect(response.body).to include('Coverage Applied')
+          expect(response.body).to include('$15.99')
+          expect(response.body).to include('Domain registered successfully')
+        end
+
+        it "shows coverage limit and renewal date" do
+          expect(response.body).to include('$20.0/year')
+          expect(response.body).to match(/\w+ \d{1,2}, \d{4}/) # Date format
+        end
+      end
+
+      context "for premium business without domain coverage" do
+        before { get admin_business_path(premium_business.id) }
+
+        it "shows domain coverage panel with available status" do
+          expect(response.body).to include('Domain Coverage Information')
+          expect(response.body).to include('Coverage Available')
+          expect(response.body).to include('Not applied')
+          expect(response.body).to include('Not set')
+        end
+      end
+
+      context "for non-premium business" do
+        before { get admin_business_path(business.id) }
+
+        it "does not show domain coverage panel" do
+          expect(response.body).not_to include('Domain Coverage Information')
+        end
+      end
+    end
+
+    describe "POST /admin/businesses with domain coverage fields" do
+      let(:valid_attributes_with_coverage) do
+        { 
+          business: {
+            name: "Premium Business with Coverage",
+            hostname: "premium-coverage",
+            host_type: 'custom_domain',
+            tier: 'premium',
+            industry: "consulting",
+            phone: "555-000-2222",
+            email: "premium@coverage.com",
+            address: "2 Premium St",
+            city: "Premiumville",
+            state: "CA",
+            zip: "98765",
+            description: "A premium business with domain coverage.",
+            active: true,
+            domain_coverage_applied: true,
+            domain_cost_covered: 18.50,
+            domain_renewal_date: 1.year.from_now.to_date,
+            domain_coverage_notes: "Domain registered via admin interface"
+          } 
+        }
+      end
+
+      it "creates business with domain coverage fields" do
+        expect {
+          post admin_businesses_path, params: valid_attributes_with_coverage
+        }.to change(Business, :count).by(1)
+        
+        new_business = Business.last
+        expect(new_business.domain_coverage_applied?).to be true
+        expect(new_business.domain_cost_covered).to eq(18.50)
+        expect(new_business.domain_coverage_notes).to eq("Domain registered via admin interface")
+        expect(new_business.domain_renewal_date).to be_within(1.day).of(1.year.from_now)
+      end
+    end
+
+    describe "GET /admin/businesses/new form with domain coverage fields" do
+      before { get new_admin_business_path }
+      
+      it "includes domain coverage form fields" do
+        expect(response.body).to include('name="business[domain_coverage_applied]"')
+        expect(response.body).to include('name="business[domain_cost_covered]"')
+        expect(response.body).to include('name="business[domain_renewal_date]"')
+        expect(response.body).to include('name="business[domain_coverage_notes]"')
+      end
+
+      it "shows domain coverage section heading" do
+        expect(response.body).to include('Domain Coverage (Premium Only)')
+      end
+    end
+  end
+
 end 

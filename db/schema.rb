@@ -177,6 +177,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
     t.string "stripe_account_id"
     t.string "status", default: "pending", null: false
     t.boolean "payment_reminders_enabled", default: false, null: false
+    t.boolean "domain_coverage_applied", default: false
+    t.decimal "domain_cost_covered", precision: 8, scale: 2
+    t.date "domain_renewal_date"
+    t.text "domain_coverage_notes"
+    t.boolean "domain_auto_renewal_enabled", default: false
+    t.date "domain_coverage_expires_at"
+    t.string "domain_registrar"
+    t.date "domain_registration_date"
+    t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
+    t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
+    t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"
+    t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"

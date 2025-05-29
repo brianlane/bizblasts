@@ -106,6 +106,43 @@ RSpec.describe "Business Registration", type: :system do
       end
     end
 
+    it "shows domain coverage information for Premium plan" do
+      visit new_business_registration_path
+      
+      # Premium plan should show domain coverage feature
+      within('.subscription-plan[data-tier="premium"]') do
+        expect(page).to have_content("Domain coverage up to $20/year")
+      end
+    end
+
+    it "displays domain coverage details when Premium is selected", js: true do
+      visit new_business_registration_path
+      
+      # Click on Premium plan
+      within('.subscription-plan[data-tier="premium"]') do
+        click_button "Select Premium"
+      end
+      
+      # Should show domain coverage information in description
+      expect(page).to have_content("Domain Coverage Included")
+      expect(page).to have_content("BizBlasts covers up to $20/year for new domain registration")
+      expect(page).to have_content("If you already own your domain, you handle domain costs")
+      expect(page).to have_content("Our team manages all technical setup and verification")
+    end
+
+    it "shows domain coverage policy in hostname help text for Premium", js: true do
+      visit new_business_registration_path
+      
+      # Click on Premium plan
+      within('.subscription-plan[data-tier="premium"]') do
+        click_button "Select Premium"
+      end
+      
+      # Should show domain coverage info in help text
+      expect(page).to have_content("Domain Coverage: BizBlasts covers up to $20/year for new domains")
+      expect(page).to have_content("For domains over $20/year, we'll contact you with alternatives")
+    end
+
     it "has selection buttons for each plan" do
       visit new_business_registration_path
       
