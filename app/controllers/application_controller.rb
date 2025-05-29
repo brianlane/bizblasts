@@ -332,8 +332,27 @@ class ApplicationController < ActionController::Base
   # Check if the current request is on the main domain
   def main_domain_request?
     if Rails.env.development? || Rails.env.test?
-      # Development: Only treat lvh.me (no subdomain) or www.lvh.me as main domain
-      request.host == 'lvh.me' || (request.subdomain == 'www' && request.host == 'www.lvh.me')
+      # Development/Test: Handle both lvh.me and example.com domains
+      host = request.host.downcase
+      main_domain_patterns = [
+        'lvh.me',           # Development main domain
+        'www.lvh.me',       # Development main domain with www
+        'example.com',      # Test main domain
+        'www.example.com'   # Test main domain with www (default in RSpec)
+      ]
+      return true if main_domain_patterns.include?(host)
+      
+      # Also check for no subdomain or www subdomain on these domains
+      host_parts = request.host.split('.')
+      if host_parts.length >= 2
+        base_domain = host_parts.last(2).join('.')
+        if ['lvh.me', 'example.com'].include?(base_domain)
+          # Only main domain if no subdomain or www subdomain
+          return host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
+        end
+      end
+      
+      false
     else
       # Production: Check for actual main domain patterns
       host = request.host.downcase
