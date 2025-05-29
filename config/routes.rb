@@ -78,7 +78,7 @@ Rails.application.routes.draw do
       get '/settings', to: 'settings#index', as: :settings
 
       namespace :settings do
-        resource :profile, only: [:edit, :update]
+        resource :profile, only: [:edit, :update, :destroy]
         resource :business, only: [:edit, :update], controller: 'business' do
           post :connect_stripe
           get :stripe_onboarding
@@ -200,11 +200,11 @@ Rails.application.routes.draw do
 
     # New unified transactions view
     resources :transactions, only: [:index, :show]
+  end
 
-    # Client Settings
-    namespace :client, path: '' do # path: '' to avoid /client/client/settings
-      resource :settings, only: [:show, :update], controller: 'settings'
-    end
+  # Client Settings - moved outside authenticated block to allow proper redirects
+  namespace :client, path: '' do # path: '' to avoid /client/client/settings
+    resource :settings, only: [:show, :update, :destroy], controller: 'settings'
   end
 
   authenticated :user, ->(user) { user.admin? } do

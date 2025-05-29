@@ -12,6 +12,11 @@ module Settings
       user == record
     end
 
+    def destroy?
+      # A user can only delete their own profile
+      user == record
+    end
+
     class Scope < Scope
       def resolve
         # Users can only see their own record in a profile context

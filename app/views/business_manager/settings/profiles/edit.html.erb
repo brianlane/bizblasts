@@ -146,14 +146,100 @@
     </div>
   </div>
 
+  <!-- Account Deletion Section -->
+  <div class="panel danger-zone">
+    <div class="panel-header">
+      <h2>Delete Account</h2>
+    </div>
+    <div class="panel-body">
+      <p><strong>Warning:</strong> Once you delete your account, there is no going back. Please be certain.</p>
+      
+      <% if @account_deletion_info[:restrictions].any? %>
+        <div class="restriction-box">
+          <h4>Account deletion is currently restricted:</h4>
+          <ul>
+            <% @account_deletion_info[:restrictions].each do |restriction| %>
+              <li><%= restriction %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% elsif @account_deletion_info[:warnings].any? %>
+        <div class="warning-box">
+          <h4>Before you delete your account:</h4>
+          <ul>
+            <% @account_deletion_info[:warnings].each do |warning| %>
+              <li><%= warning %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <% if @user.manager? && @user.business.users.where(role: 'manager').where.not(id: @user.id).empty? && @user.business.users.where.not(id: @user.id).empty? %>
+        <div class="sole-manager-warning">
+          <h4>Warning: You are the sole manager of this business</h4>
+          <p>Deleting your account will also delete the entire business and all its data.</p>
+          
+          <div class="business-data-warning">
+            <h5>Deleting the business will also delete:</h5>
+            <ul>
+              <li>All services (<%= @user.business.services.count %> services)</li>
+              <li>All staff members (<%= @user.business.staff_members.count %> staff members)</li>
+              <li>All customer data (<%= @user.business.tenant_customers.count %> customers)</li>
+              <li>All bookings (<%= @user.business.bookings.count %> bookings)</li>
+              <li>All products (<%= @user.business.products.count %> products)</li>
+              <li>All orders (<%= @user.business.orders.count %> orders)</li>
+            </ul>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @account_deletion_info[:can_delete] %>
+        <%= form_with model: @user, url: business_manager_settings_profile_path, method: :delete, local: true, data: { confirm: "Are you absolutely sure? This action cannot be undone." } do |form| %>
+          <div class="deletion-form">
+            <div class="field">
+              <%= form.label :current_password, "Current Password" %>
+              <%= form.password_field :current_password, autocomplete: "current-password", required: true %>
+              <small>Required to confirm your identity</small>
+            </div>
+
+            <div class="field">
+              <%= form.label :confirm_deletion, "Type DELETE to confirm" %>
+              <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true %>
+              <small>You must type DELETE exactly as shown</small>
+            </div>
+
+            <% if @user.manager? && @user.business.users.where.not(id: @user.id).empty? %>
+              <div class="field">
+                <%= form.check_box :delete_business, { required: true }, '1', '0' %>
+                <%= form.label :delete_business, "I understand this will delete the business and all its data" %>
+                <small>This checkbox is required for sole managers</small>
+              </div>
+            <% end %>
+
+            <div class="actions">
+              <%= form.submit "Delete My Account", class: "btn-danger", 
+                  data: { 
+                    confirm: @user.manager? && @user.business.users.where.not(id: @user.id).empty? ? 
+                      "This will permanently delete your account AND the entire business. Are you sure?" : 
+                      "This will permanently delete your account. Are you sure?" 
+                  } %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="restriction-notice">Account deletion is currently disabled due to the restrictions listed above.</p>
+      <% end %>
+    </div>
+  </div>
+
   <style>
     /* Basic styling from orders index */
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .notice { background: #e8f4f8; border: 1px solid #b8e0ed; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
     .alert { background: #f8e8e8; border: 1px solid #edb8b8; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
-    .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+    .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
     .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; }
-    .panel-header h1 { font-size: 24px; margin: 0; }
+    .panel-header h1, .panel-header h2 { font-size: 24px; margin: 0; }
     .panel-actions a { color: #0066cc; text-decoration: none; }
     .panel-actions a:hover { text-decoration: underline; }
     .panel-body { padding: 20px; }
@@ -177,5 +263,94 @@
     .checkbox-field input[type="checkbox"] { margin-right: 8px; }
     .checkbox-field label { font-weight: normal; display: inline; }
     .checkbox-field small { margin-left: 24px; color: #6c757d; font-style: italic; }
+
+    /* Account Deletion Styling */
+    .danger-zone {
+      border-color: #dc3545 !important;
+      background: #fff5f5 !important;
+    }
+
+    .danger-zone .panel-header {
+      background: #dc3545;
+      color: white;
+      border-bottom-color: #c82333;
+    }
+
+    .restriction-box, .warning-box {
+      background: #fef5e7;
+      border: 1px solid #f6ad55;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .restriction-box {
+      background: #fed7d7;
+      border-color: #fc8181;
+    }
+
+    .restriction-box h4, .warning-box h4 {
+      color: #c05621;
+      margin-top: 0;
+    }
+
+    .restriction-box h4 {
+      color: #c53030;
+    }
+
+    .sole-manager-warning {
+      background: #fed7d7;
+      border: 2px solid #fc8181;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .sole-manager-warning h4 {
+      color: #c53030;
+      margin-top: 0;
+    }
+
+    .business-data-warning {
+      background: #f7fafc;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+
+    .business-data-warning h5 {
+      color: #2d3748;
+      margin-top: 0;
+    }
+
+    .deletion-form {
+      background: #f7fafc;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .btn-danger {
+      background-color: #dc3545 !important;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-danger:hover {
+      background-color: #c82333 !important;
+    }
+
+    .restriction-notice {
+      color: #6c757d;
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+    }
   </style>
 </div> 
