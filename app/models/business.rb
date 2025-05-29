@@ -149,12 +149,72 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id payment_reminders_enabled]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date]
   end
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
     %w[staff_members services bookings tenant_customers users clients client_businesses subscription integrations]
+  end
+  
+  # Domain coverage methods for Premium tier
+  def eligible_for_domain_coverage?
+    premium_tier? && host_type_custom_domain?
+  end
+  
+  def domain_coverage_limit
+    20.0 # Fixed at $20/year as per requirements
+  end
+  
+  def domain_coverage_available?
+    eligible_for_domain_coverage? && !domain_coverage_applied?
+  end
+  
+  def apply_domain_coverage!(cost, notes = nil, registrar = 'namecheap', auto_renewal = true)
+    return false unless eligible_for_domain_coverage?
+    return false if cost > domain_coverage_limit
+    
+    registration_date = Date.current
+    coverage_expires = registration_date + 1.year
+    next_renewal = registration_date + 1.year
+    
+    update!(
+      domain_coverage_applied: true,
+      domain_cost_covered: cost,
+      domain_coverage_notes: notes,
+      domain_renewal_date: next_renewal,
+      domain_coverage_expires_at: coverage_expires,
+      domain_registration_date: registration_date,
+      domain_registrar: registrar,
+      domain_auto_renewal_enabled: auto_renewal
+    )
+  end
+  
+  def domain_coverage_status
+    return :not_eligible unless eligible_for_domain_coverage?
+    return :available if domain_coverage_available?
+    return :expired if domain_coverage_applied? && domain_coverage_expired?
+    return :applied if domain_coverage_applied?
+    :unknown
+  end
+  
+  def domain_coverage_expired?
+    domain_coverage_expires_at.present? && domain_coverage_expires_at < Date.current
+  end
+  
+  def domain_coverage_expires_soon?(days = 30)
+    domain_coverage_expires_at.present? && 
+    domain_coverage_expires_at <= Date.current + days.days
+  end
+  
+  def domain_will_auto_renew?
+    domain_auto_renewal_enabled? && domain_renewal_date.present?
+  end
+  
+  def domain_coverage_remaining_days
+    return nil unless domain_coverage_expires_at.present?
+    return 0 if domain_coverage_expired?
+    (domain_coverage_expires_at - Date.current).to_i
   end
   
   # Method to get the full URL for this business

@@ -112,4 +112,98 @@ RSpec.describe Business, type: :model do
       end
     end
   end
+
+  describe 'domain coverage methods' do
+    let(:premium_business) { build(:business, tier: 'premium', host_type: 'custom_domain') }
+    let(:free_business) { build(:business, tier: 'free', host_type: 'subdomain') }
+    let(:standard_subdomain) { build(:business, tier: 'standard', host_type: 'subdomain') }
+    let(:standard_custom) { build(:business, tier: 'standard', host_type: 'custom_domain') }
+
+    describe '#eligible_for_domain_coverage?' do
+      it 'returns true for premium tier with custom domain' do
+        expect(premium_business.eligible_for_domain_coverage?).to be true
+      end
+
+      it 'returns false for free tier regardless of host type' do
+        expect(free_business.eligible_for_domain_coverage?).to be false
+      end
+
+      it 'returns false for standard tier with subdomain' do
+        expect(standard_subdomain.eligible_for_domain_coverage?).to be false
+      end
+
+      it 'returns false for standard tier with custom domain' do
+        expect(standard_custom.eligible_for_domain_coverage?).to be false
+      end
+    end
+
+    describe '#domain_coverage_limit' do
+      it 'returns 20.0 for all businesses' do
+        expect(premium_business.domain_coverage_limit).to eq(20.0)
+        expect(free_business.domain_coverage_limit).to eq(20.0)
+      end
+    end
+
+    describe '#domain_coverage_available?' do
+      it 'returns true for eligible business without coverage applied' do
+        expect(premium_business.domain_coverage_available?).to be true
+      end
+
+      it 'returns false for eligible business with coverage already applied' do
+        premium_business.domain_coverage_applied = true
+        expect(premium_business.domain_coverage_available?).to be false
+      end
+
+      it 'returns false for non-eligible business' do
+        expect(free_business.domain_coverage_available?).to be false
+      end
+    end
+
+    describe '#apply_domain_coverage!' do
+      let(:premium_business_saved) { create(:business, tier: 'premium', host_type: 'custom_domain') }
+
+      it 'applies coverage for eligible business with valid cost' do
+        result = premium_business_saved.apply_domain_coverage!(15.99, 'Test domain registration')
+        
+        expect(result).to be true
+        premium_business_saved.reload
+        expect(premium_business_saved.domain_coverage_applied?).to be true
+        expect(premium_business_saved.domain_cost_covered).to eq(15.99)
+        expect(premium_business_saved.domain_coverage_notes).to eq('Test domain registration')
+        expect(premium_business_saved.domain_renewal_date).to be_within(1.day).of(1.year.from_now.to_date)
+      end
+
+      it 'fails for cost exceeding limit' do
+        result = premium_business_saved.apply_domain_coverage!(25.00)
+        
+        expect(result).to be false
+        premium_business_saved.reload
+        expect(premium_business_saved.domain_coverage_applied?).to be false
+      end
+
+      it 'fails for non-eligible business' do
+        free_business_saved = create(:business, tier: 'free', host_type: 'subdomain')
+        result = free_business_saved.apply_domain_coverage!(10.00)
+        
+        expect(result).to be false
+        free_business_saved.reload
+        expect(free_business_saved.domain_coverage_applied?).to be false
+      end
+    end
+
+    describe '#domain_coverage_status' do
+      it 'returns :not_eligible for non-eligible business' do
+        expect(free_business.domain_coverage_status).to eq(:not_eligible)
+      end
+
+      it 'returns :available for eligible business without coverage' do
+        expect(premium_business.domain_coverage_status).to eq(:available)
+      end
+
+      it 'returns :applied for eligible business with coverage' do
+        premium_business.domain_coverage_applied = true
+        expect(premium_business.domain_coverage_status).to eq(:applied)
+      end
+    end
+  end
 end 

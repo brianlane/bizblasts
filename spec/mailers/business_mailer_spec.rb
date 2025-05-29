@@ -34,6 +34,36 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(mail.body.encoded).to include(premium_business.name)
       expect(mail.body.encoded).to include(premium_business.hostname)
     end
+
+    it 'includes domain coverage information in the email' do
+      mail = BusinessMailer.domain_request_notification(premium_user)
+      
+      # Check for domain coverage content in HTML version
+      expect(mail.body.encoded).to include('Domain Cost Coverage')
+      expect(mail.body.encoded).to include('$20 per year')
+      expect(mail.body.encoded).to include('BizBlasts covers domain registration costs')
+      expect(mail.body.encoded).to include('If under $20/year: We handle registration at no cost')
+      expect(mail.body.encoded).to include('If over $20/year: We\'ll contact you with alternatives')
+    end
+
+    it 'includes coverage policy details' do
+      mail = BusinessMailer.domain_request_notification(premium_user)
+      
+      expect(mail.body.encoded).to include('If you already own this domain')
+      expect(mail.body.encoded).to include('domain-related costs through your current registrar')
+    end
+
+    context 'with domain name in email' do
+      let(:premium_business_with_domain) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'mybusiness.com') }
+      let(:premium_user_with_domain) { create(:user, :manager, business: premium_business_with_domain, email: 'owner@mybusiness.com') }
+
+      it 'displays the requested domain in the email' do
+        mail = BusinessMailer.domain_request_notification(premium_user_with_domain)
+        
+        expect(mail.body.encoded).to include('mybusiness.com')
+        expect(mail.body.encoded).to include('Under Review')
+      end
+    end
   end
 
   describe '#new_booking_notification' do

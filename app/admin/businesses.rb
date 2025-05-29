@@ -22,11 +22,13 @@ ActiveAdmin.register Business do
     # Removed custom create action - let ActiveAdmin handle redirect
   end
 
-  # Permit parameters updated for hostname/host_type
+  # Permit parameters updated for hostname/host_type and domain coverage
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
                 :active, :tier, :service_template_id, 
-                :hostname, :host_type # Added new fields
+                :hostname, :host_type, # Added new fields
+                :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
+                :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date # Auto-renewal tracking
 
   # Enable batch actions
   batch_action :destroy, confirm: "Are you sure you want to delete these businesses?" do |ids|
@@ -99,6 +101,8 @@ ActiveAdmin.register Business do
   filter :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }
   filter :industry
   filter :active
+  filter :domain_coverage_applied, as: :select, collection: [['Yes', true], ['No', false]]
+  filter :domain_renewal_date
   filter :created_at
 
   # Index page configuration updated
@@ -109,6 +113,17 @@ ActiveAdmin.register Business do
     column :hostname
     column :host_type
     column :tier
+    column "Domain Coverage", :domain_coverage_applied do |business|
+      if business.eligible_for_domain_coverage?
+        if business.domain_coverage_applied?
+          status_tag "Covered ($#{business.domain_cost_covered})", :ok
+        else
+          status_tag "Available", :warning
+        end
+      else
+        status_tag "Not Eligible", :no
+      end
+    end
     column :industry
     column :email
     column :active
@@ -142,6 +157,66 @@ ActiveAdmin.register Business do
       row :active
       row :created_at
       row :updated_at
+    end
+    
+    # Domain Coverage Panel for Premium businesses
+    if business.eligible_for_domain_coverage?
+      panel "Domain Coverage Information" do
+        attributes_table_for business do
+          row "Coverage Status" do |b|
+            if b.domain_coverage_applied?
+              if b.domain_coverage_expired?
+                status_tag "Coverage Expired", :error
+              elsif b.domain_coverage_expires_soon?
+                status_tag "Expiring Soon (#{b.domain_coverage_remaining_days} days)", :warning
+              else
+                status_tag "Coverage Applied", :ok
+              end
+            else
+              status_tag "Coverage Available", :warning
+            end
+          end
+          row "Coverage Limit" do |b|
+            "$#{b.domain_coverage_limit}/year"
+          end
+          row "Amount Covered" do |b|
+            b.domain_cost_covered.present? ? "$#{b.domain_cost_covered}" : "Not applied"
+          end
+          row "Domain Registrar" do |b|
+            b.domain_registrar.present? ? b.domain_registrar.titleize : "Not specified"
+          end
+          row "Registration Date" do |b|
+            b.domain_registration_date&.strftime("%B %d, %Y") || "Not set"
+          end
+          row "Domain Renewal Date" do |b|
+            b.domain_renewal_date&.strftime("%B %d, %Y") || "Not set"
+          end
+          row "Coverage Expires" do |b|
+            if b.domain_coverage_expires_at.present?
+              expires_text = b.domain_coverage_expires_at.strftime("%B %d, %Y")
+              if b.domain_coverage_expired?
+                "#{expires_text} (EXPIRED)"
+              elsif b.domain_coverage_expires_soon?
+                "#{expires_text} (expires in #{b.domain_coverage_remaining_days} days)"
+              else
+                expires_text
+              end
+            else
+              "Not set"
+            end
+          end
+          row "Auto-Renewal Status" do |b|
+            if b.domain_will_auto_renew?
+              status_tag "Auto-Renewal Enabled", :ok
+            else
+              status_tag "Manual Renewal", :warning
+            end
+          end
+          row "Coverage Notes" do |b|
+            b.domain_coverage_notes.present? ? simple_format(b.domain_coverage_notes) : "No notes"
+          end
+        end
+      end
     end
     
     panel "Users" do
@@ -181,6 +256,20 @@ ActiveAdmin.register Business do
       f.input :active
       f.input :service_template # Assuming this is the correct association name
     end
+    
+    # Domain Coverage section (only for Premium tier businesses)
+    f.inputs "Domain Coverage (Premium Only)", class: "domain-coverage-section" do
+      f.input :domain_coverage_applied, as: :boolean, label: "Domain coverage has been applied"
+      f.input :domain_cost_covered, as: :number, step: 0.01, label: "Amount covered (USD)", hint: "Maximum $20.00/year"
+      f.input :domain_registrar, as: :select, collection: [['Namecheap', 'namecheap'], ['GoDaddy', 'godaddy'], ['Cloudflare', 'cloudflare'], ['Other', 'other']], include_blank: "Select registrar", label: "Domain registrar"
+      f.input :domain_registration_date, as: :datepicker, label: "Domain registration date"
+      f.input :domain_renewal_date, as: :datepicker, label: "Domain renewal date"
+      f.input :domain_coverage_expires_at, as: :datepicker, label: "Coverage expires on", hint: "When BizBlasts coverage ends (usually 1 year from registration)"
+      f.input :domain_auto_renewal_enabled, as: :boolean, label: "Auto-renewal enabled at registrar"
+      f.input :domain_coverage_notes, as: :text, label: "Coverage notes", 
+              hint: "Internal notes about domain coverage, cost details, alternatives offered, registrar info, etc."
+    end
+    
     f.actions
   end
 end
