@@ -193,15 +193,9 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
 
   page_action :cleanup_orphaned_jobs, method: :post do
     cleaned_count = 0
-    total_checked = 0
-    
-    Rails.logger.info "[SolidQueue] Starting cleanup of orphaned jobs"
     
     # Find failed jobs that reference non-existent businesses
     SolidQueue::FailedExecution.joins(:job).find_each do |failed_execution|
-      total_checked += 1
-      Rails.logger.info "[SolidQueue] Checking job #{failed_execution.id}, class: #{failed_execution.job.class_name}"
-      
       begin
         # Handle both string and already-parsed arguments
         job_args = if failed_execution.job.arguments.is_a?(String)
@@ -210,20 +204,15 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
                      failed_execution.job.arguments
                    end
         
-        Rails.logger.info "[SolidQueue] Job #{failed_execution.id} arguments type: #{job_args.class}"
-        
         # Check if this is a mailer job that might reference a business
         if failed_execution.job.class_name == 'ActionMailer::MailDeliveryJob'
           mailer_class = job_args.dig('arguments', 0)
-          Rails.logger.info "[SolidQueue] MailDeliveryJob mailer class: #{mailer_class}"
           
           if mailer_class == 'BusinessMailer'
             # Try to find the business referenced in the job
             mailer_args = job_args.dig('arguments', 2)
             business_id = nil
             should_discard = false
-            
-            Rails.logger.info "[SolidQueue] Checking job #{failed_execution.id} with args: #{mailer_args.inspect}"
             
             # Handle different argument structures for different mailer methods
             case mailer_args
@@ -234,11 +223,9 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
               mailer_args.each do |arg|
                 if arg.is_a?(Hash) && arg['_aj_globalid']
                   gid = arg['_aj_globalid']
-                  Rails.logger.info "[SolidQueue] Found GlobalID: #{gid}"
                   
                   if gid.include?('Business/')
                     business_id = gid.split('/').last.to_i
-                    Rails.logger.info "[SolidQueue] Extracted Business ID: #{business_id}"
                     break
                   elsif gid.include?('TenantCustomer/') || gid.include?('Order/') || gid.include?('Payment/') || gid.include?('Booking/')
                     # These objects have business associations - check if the referenced object exists
@@ -260,11 +247,9 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
                         booking = Booking.find(object_id)
                         business_id = booking.business_id
                       end
-                      Rails.logger.info "[SolidQueue] Extracted Business ID from #{object_class}: #{business_id}"
                     rescue ActiveRecord::RecordNotFound
                       # If the referenced object doesn't exist, discard the job
                       should_discard = true
-                      Rails.logger.info "[SolidQueue] Object #{object_class} #{object_id} not found, marking for discard"
                       break
                     end
                   end
@@ -273,20 +258,17 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
             end
             
             # Also check the error message for business ID references
-            Rails.logger.info "[SolidQueue] Checking error message for Business ID references"
-            Rails.logger.info "[SolidQueue] Error type: #{failed_execution.error.class}, Error: #{failed_execution.error.inspect}"
-            
-            if business_id.nil? && failed_execution.error.is_a?(String)
-              # Look for "Couldn't find Business with 'id'=X" pattern
-              if match = failed_execution.error.match(/Couldn't find Business with 'id'=(\d+)/)
+            if business_id.nil?
+              error_text = if failed_execution.error.is_a?(String)
+                            failed_execution.error
+                          elsif failed_execution.error.is_a?(Hash)
+                            failed_execution.error['message'] || failed_execution.error['error'] || failed_execution.error.to_s
+                          else
+                            failed_execution.error.to_s
+                          end
+              
+              if error_text && (match = error_text.match(/Couldn't find Business with 'id'=(\d+)/))
                 business_id = match[1].to_i
-                Rails.logger.info "[SolidQueue] Extracted Business ID from error message: #{business_id}"
-              end
-            elsif business_id.nil? && failed_execution.error.is_a?(Hash)
-              error_message = failed_execution.error['message'] || failed_execution.error['error']
-              if error_message && (match = error_message.match(/Couldn't find Business with 'id'=(\d+)/))
-                business_id = match[1].to_i
-                Rails.logger.info "[SolidQueue] Extracted Business ID from error hash: #{business_id}"
               end
             end
             
@@ -304,7 +286,6 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
       end
     end
     
-    Rails.logger.info "[SolidQueue] Cleanup complete: checked #{total_checked} jobs, cleaned #{cleaned_count}"
-    redirect_to admin_solidqueue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs (checked #{total_checked} total)."
+    redirect_to admin_solidqueue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
   end
 end 

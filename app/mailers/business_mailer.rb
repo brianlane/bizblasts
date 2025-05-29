@@ -20,8 +20,6 @@ class BusinessMailer < ApplicationMailer
 
   # Send notification to business when a new booking is made
   def new_booking_notification(booking)
-    Rails.logger.info "[BusinessMailer] Starting new_booking_notification for Booking ##{booking.id}"
-    
     @booking = booking
     @business = booking.business
     
@@ -31,33 +29,26 @@ class BusinessMailer < ApplicationMailer
       return
     end
     
-    Rails.logger.info "[BusinessMailer] Business found: ##{@business.id} (#{@business.name})"
-    
     @customer = booking.tenant_customer
     @service = booking.service
     @staff_member = booking.staff_member
     
     # Check if business user has this notification enabled (fixed role reference)
     business_user = @business.users.where(role: [:manager]).first
-    Rails.logger.info "[BusinessMailer] Business users with manager role: #{@business.users.where(role: [:manager]).count}"
     
     unless business_user.present?
       Rails.logger.warn "[BusinessMailer] No manager user found for Business ##{@business.id}, skipping notification"
       return
     end
     
-    Rails.logger.info "[BusinessMailer] Manager user found: #{business_user.email}"
-    
     notification_enabled = business_user&.notification_preferences&.fetch('email_booking_notifications', true)
-    Rails.logger.info "[BusinessMailer] Email booking notifications enabled: #{notification_enabled}"
-    Rails.logger.info "[BusinessMailer] Notification preferences: #{business_user.notification_preferences}"
     
     unless notification_enabled
-      Rails.logger.warn "[BusinessMailer] Email booking notifications disabled for user #{business_user.email}, skipping notification"
+      Rails.logger.info "[BusinessMailer] Email booking notifications disabled for Business ##{@business.id}"
       return
     end
     
-    Rails.logger.info "[BusinessMailer] Preparing email to #{business_user.email} for booking notification"
+    Rails.logger.info "[BusinessMailer] Sending booking notification to #{business_user.email} for Booking ##{booking.id}"
     
     mail(
       to: business_user.email,
