@@ -117,7 +117,8 @@ class ApplicationController < ActionController::Base
     # Handle case where hostname/domain provided but no business found
     # Only show tenant_not_found if this looks like a subdomain request
     subdomain = request.subdomain
-    if subdomain.present? && subdomain != 'www' && !main_domain_like_request?
+    
+    if subdomain.present? && subdomain != 'www' && !main_domain_request?
       Rails.logger.warn "Tenant not found for hostname: #{subdomain}"
       tenant_not_found and return
     end
@@ -175,7 +176,7 @@ class ApplicationController < ActionController::Base
       
       # Handle hosting platform scenarios (Render, Netlify, etc.)
       # Don't extract hostname from main domain patterns
-      return nil if main_domain_like_request?
+      return nil if main_domain_request?
       
       # For custom domains or other scenarios, use the subdomain
       subdomain = request.subdomain
@@ -331,46 +332,30 @@ class ApplicationController < ActionController::Base
   # Check if the current request is on the main domain
   def main_domain_request?
     if Rails.env.development? || Rails.env.test?
-      # Development: Check if on lvh.me without subdomain
-      request.host == 'lvh.me' || (request.subdomain.blank? || request.subdomain == 'www')
+      # Development: Only treat lvh.me (no subdomain) or www.lvh.me as main domain
+      request.host == 'lvh.me' || (request.subdomain == 'www' && request.host == 'www.lvh.me')
     else
-      # Production: Check if on bizblasts.com without subdomain or with www
+      # Production: Check for actual main domain patterns
+      host = request.host.downcase
+      
+      # Direct main domain patterns
+      main_domain_patterns = [
+        'bizblasts.com',
+        'www.bizblasts.com',
+        'bizblasts.onrender.com'  # Render's internal routing
+      ]
+      
+      return true if main_domain_patterns.include?(host)
+      
+      # For bizblasts.com, only treat www or no subdomain as main domain
       host_parts = request.host.split('.')
-      if host_parts.last(2).join('.') == 'bizblasts.com'
-        # On bizblasts.com - check if it's the main domain or www
-        host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
-      else
-        # Check for Render hosting scenarios or other main domain indicators
-        main_domain_like_request?
+      if host_parts.length >= 2 && host_parts.last(2).join('.') == 'bizblasts.com'
+        # Only main domain if no subdomain or www subdomain
+        return host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
       end
+      
+      false
     end
-  end
-  
-  # Additional check for main domain requests that might appear differently due to hosting
-  def main_domain_like_request?
-    host = request.host.downcase
-    
-    # Check for various hosting platforms that might route the main domain differently
-    render_main_domain_patterns = [
-      'bizblasts.onrender.com',      # Render's internal domain
-      'bizblasts.netlify.app',       # Netlify hosting
-      'bizblasts.vercel.app',        # Vercel hosting
-      'bizblasts.herokuapp.com',     # Heroku hosting
-      'bizblasts.railway.app'        # Railway hosting
-    ]
-    
-    # Check if the host matches any main domain pattern
-    return true if render_main_domain_patterns.include?(host)
-    
-    # Check if subdomain is "bizblasts" but host suggests it's the main domain
-    # This handles cases where hosting providers map main domain to a subdomain
-    if request.subdomain == 'bizblasts'
-      # If the host contains hosting platform domains, treat as main domain
-      hosting_patterns = ['.onrender.com', '.netlify.app', '.vercel.app', '.herokuapp.com', '.railway.app']
-      return hosting_patterns.any? { |pattern| host.include?(pattern) }
-    end
-    
-    false
   end
   
   # Construct URL for the main domain preserving the current path
