@@ -6,6 +6,7 @@ class HealthController < ApplicationController
   # Skip any authentication or before actions
   skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
   skip_before_action :authenticate_user!
+  skip_before_action :set_tenant  # Health checks should not depend on tenant context
   skip_before_action :check_database_connection, only: %i[check db_check]
 
   # Simple health check endpoint
