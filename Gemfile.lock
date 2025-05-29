@@ -179,7 +179,6 @@ GEM
       concurrent-ruby (~> 1.1)
       webrick (~> 1.7)
       websocket-driver (~> 0.7)
-    ffi (1.17.2)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-aarch64-linux-musl)
     ffi (1.17.2-arm-linux-gnu)
@@ -547,7 +546,6 @@ DEPENDENCIES
   resend
   rspec-rails
   rubocop-rails-omakase
-  selenium-webdriver
   shoulda-matchers (~> 6.5)
   simple_calendar
   simplecov

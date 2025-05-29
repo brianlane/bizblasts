@@ -24,9 +24,9 @@ RSpec.describe "Client::Settings", type: :request do
     end
 
     context "when not logged in" do
-      it "returns 404 not found" do
+      it "redirects to login" do
         get client_settings_path
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(new_user_session_path)
       end
     end
 
@@ -147,9 +147,9 @@ RSpec.describe "Client::Settings", type: :request do
     end
 
     context "when not logged in" do
-      it "returns 404 not found" do
+      it "redirects to login" do
         patch client_settings_path, params: { user: valid_attributes }
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(new_user_session_path)
       end
     end
   end

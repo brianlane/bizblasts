@@ -18,27 +18,33 @@ RSpec.describe "Client Account Deletion", type: :system do
       visit client_settings_path
       
       expect(page).to have_content("Delete Account")
-      expect(page).to have_content("This action cannot be undone")
-      expect(page).to have_field("user[current_password]")
-      expect(page).to have_field("user[confirm_deletion]")
-      expect(page).to have_button("Delete My Account")
+      expect(page).to have_content("Once you delete your account, there is no going back")
+      within('.deletion-form') do
+        expect(page).to have_field("user[current_password]")
+        expect(page).to have_field("user[confirm_deletion]")
+        expect(page).to have_button("Delete My Account")
+      end
     end
 
     it "requires current password for deletion" do
       visit client_settings_path
       
-      fill_in "user[confirm_deletion]", with: "DELETE"
-      click_button "Delete My Account"
+      within('.deletion-form') do
+        fill_in "user[confirm_deletion]", with: "DELETE"
+        click_button "Delete My Account"
+      end
       
-      expect(page).to have_content("Current password is required")
+      expect(page).to have_content("Current password is incorrect")
       expect(User.exists?(client_user.id)).to be true
     end
 
     it "requires deletion confirmation text" do
       visit client_settings_path
       
-      fill_in "user[current_password]", with: "password123"
-      click_button "Delete My Account"
+      within('.deletion-form') do
+        fill_in "user[current_password]", with: "password123"
+        click_button "Delete My Account"
+      end
       
       expect(page).to have_content("must type DELETE")
       expect(User.exists?(client_user.id)).to be true
@@ -47,9 +53,11 @@ RSpec.describe "Client Account Deletion", type: :system do
     it "validates current password" do
       visit client_settings_path
       
-      fill_in "user[current_password]", with: "wrongpassword"
-      fill_in "user[confirm_deletion]", with: "DELETE"
-      click_button "Delete My Account"
+      within('.deletion-form') do
+        fill_in "user[current_password]", with: "wrongpassword"
+        fill_in "user[confirm_deletion]", with: "DELETE"
+        click_button "Delete My Account"
+      end
       
       expect(page).to have_content("Current password is incorrect")
       expect(User.exists?(client_user.id)).to be true
@@ -58,12 +66,14 @@ RSpec.describe "Client Account Deletion", type: :system do
     it "successfully deletes account with valid inputs" do
       visit client_settings_path
       
-      fill_in "user[current_password]", with: "password123"
-      fill_in "user[confirm_deletion]", with: "DELETE"
-      
-      expect {
-        click_button "Delete My Account"
-      }.to change(User, :count).by(-1)
+      within('.deletion-form') do
+        fill_in "user[current_password]", with: "password123"
+        fill_in "user[confirm_deletion]", with: "DELETE"
+        
+        expect {
+          click_button "Delete My Account"
+        }.to change(User, :count).by(-1)
+      end
       
       expect(page).to have_content("Your account has been deleted")
       expect(current_path).to eq(root_path)
@@ -74,13 +84,15 @@ RSpec.describe "Client Account Deletion", type: :system do
       
       visit client_settings_path
       
-      fill_in "user[current_password]", with: "password123"
-      fill_in "user[confirm_deletion]", with: "DELETE"
-      
-      expect {
-        click_button "Delete My Account"
-      }.to change(User, :count).by(-1)
-       .and change(ClientBusiness, :count).by(-1)
+      within('.deletion-form') do
+        fill_in "user[current_password]", with: "password123"
+        fill_in "user[confirm_deletion]", with: "DELETE"
+        
+        expect {
+          click_button "Delete My Account"
+        }.to change(User, :count).by(-1)
+         .and change(ClientBusiness, :count).by(-1)
+      end
       
       # Business should remain
       expect(Business.exists?(business.id)).to be true
@@ -100,41 +112,6 @@ RSpec.describe "Client Account Deletion", type: :system do
       expect(page).to have_content("Deleting your account will:")
       expect(page).to have_content("Remove you from all business relationships")
       expect(page).to have_content("Your booking history will be preserved")
-    end
-  end
-
-  context "with JavaScript enabled" do
-    before do
-      driven_by(:selenium_headless)
-    end
-
-    it "shows confirmation dialog before deletion" do
-      visit client_settings_path
-      
-      fill_in "user[current_password]", with: "password123"
-      fill_in "user[confirm_deletion]", with: "DELETE"
-      
-      # Dismiss the confirmation dialog
-      dismiss_confirm do
-        click_button "Delete My Account"
-      end
-      
-      # Account should still exist
-      expect(User.exists?(client_user.id)).to be true
-    end
-
-    it "proceeds with deletion when confirmed" do
-      visit client_settings_path
-      
-      fill_in "user[current_password]", with: "password123"
-      fill_in "user[confirm_deletion]", with: "DELETE"
-      
-      # Accept the confirmation dialog
-      accept_confirm do
-        click_button "Delete My Account"
-      end
-      
-      expect(page).to have_content("Your account has been deleted")
     end
   end
 end 

@@ -54,6 +54,8 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
 
       redirect_to edit_business_manager_settings_profile_path, notice: 'Profile updated successfully.'
     else
+      @account_deletion_info = @user.can_delete_account?
+      @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
       flash.now[:alert] = 'Failed to update profile.'
       render :edit
     end
