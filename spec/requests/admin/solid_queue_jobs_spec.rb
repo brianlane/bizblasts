@@ -263,11 +263,22 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
       end
 
       it 'should log cleanup actions for audit trail' do
-        expect(Rails.logger).to receive(:info).with(/Cleaned up failed job.*referencing non-existent Business/)
+        # Use spy instead of mock to allow actual logging
+        allow(Rails.logger).to receive(:info).and_call_original
+        
+        initial_count = SolidQueue::FailedExecution.count
+        expect(initial_count).to eq(2)
         
         post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
         
         expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        
+        # Verify jobs were actually cleaned up
+        remaining_count = SolidQueue::FailedExecution.count
+        expect(remaining_count).to eq(0)  # Both jobs should be cleaned up
+        
+        # Verify logging happened for cleaned up jobs
+        expect(Rails.logger).to have_received(:info).with(/Cleaned up failed job.*referencing non-existent Business/).at_least(:once)
       end
 
       it 'should handle mixed scenarios correctly' do

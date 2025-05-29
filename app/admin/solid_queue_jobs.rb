@@ -93,12 +93,14 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
             truncate(failed_execution.error.is_a?(Hash) ? failed_execution.error['message'] : failed_execution.error.to_s, length: 100)
           end
           column "Actions" do |failed_execution|
-            form_tag admin_solidqueue_jobs_retry_failed_job_path, method: :post, style: "display: inline;" do
-              hidden_field_tag :id, failed_execution.id
-              submit_tag "Retry", 
-                         class: "button",
-                         style: "background-color: #28a745; color: white; font-size: 12px; padding: 5px 10px; border: none; cursor: pointer;"
-            end
+            raw <<~HTML
+              <form style="display: inline;" action="#{admin_solidqueue_jobs_retry_failed_job_path}" method="post">
+                <input type="hidden" name="authenticity_token" value="#{form_authenticity_token}">
+                <input type="hidden" name="id" value="#{failed_execution.id}">
+                <input type="submit" name="commit" value="Retry" class="button" 
+                       style="background-color: #28a745; color: white; font-size: 12px; padding: 5px 10px; border: none; cursor: pointer;">
+              </form>
+            HTML
           end
         end
       end
