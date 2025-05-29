@@ -25,22 +25,23 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
 
     # Handle notification preferences conversion
     if params[:user][:notification_preferences].present?
-      # Convert checkbox values to boolean hash
+      # Handle both Rails form helper and checkbox_tag formats:
+      # - Rails form helpers send '1' for checked, '0' for unchecked (simple strings)
+      # - checkbox_tag with Rails checkboxes send ['0', '1'] for checked, ['0'] for unchecked
       notification_prefs = {}
       params[:user][:notification_preferences].each do |key, value|
-        # Handle Rails checkbox behavior where checked boxes send ['0', '1'] and unchecked send ['0']
         if value.is_a?(Array)
-          # If it's an array with '1' as the last element, it's checked
+          # Handle checkbox_tag format: ['0', '1'] = checked, ['0'] = unchecked
           notification_prefs[key] = value.last == '1'
         else
-          # Simple string value: '1' means checked, anything else means unchecked
+          # Handle Rails form helper format: '1' = checked, '0' = unchecked
           notification_prefs[key] = value == '1'
         end
       end
       update_params[:notification_preferences] = notification_prefs
     else
-      # If no notification preferences are submitted, preserve existing ones
-      # This handles the case where the form doesn't include notification preferences
+      # If no notification preferences are submitted at all, preserve existing ones
+      # This handles edge cases where the form section might be missing entirely
       update_params[:notification_preferences] = @user.notification_preferences || {}
     end
 
