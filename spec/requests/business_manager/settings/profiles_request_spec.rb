@@ -375,4 +375,177 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
       end
     end
   end
+
+  # Production issue tests based on screenshot and bug report
+  describe 'notification preferences production issues' do
+    let(:manager_user) { create(:user, :manager, business: business) }
+    
+    before do
+      sign_in manager_user
+    end
+
+    context 'when updating profile with notification preferences checked' do
+      it 'saves notification preferences correctly (currently failing in prod)' do
+        # This test replicates the exact scenario from the screenshot
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            first_name: 'Ftest',
+            last_name: 'Ltest', 
+            email: 'brianlanefanmail@gmail.com',
+            notification_preferences: {
+              'email_booking_notifications' => '1',
+              'email_order_notifications' => '1',
+              'email_customer_notifications' => '1',
+              'email_payment_notifications' => '1'
+            }
+          }
+        }
+
+        expect(response).to redirect_to(edit_business_manager_settings_profile_path)
+        expect(flash[:notice]).to eq('Profile updated successfully.')
+        
+        # Verify the preferences were actually saved to the database
+        manager_user.reload
+        expect(manager_user.notification_preferences).to be_present
+        expect(manager_user.notification_preferences['email_booking_notifications']).to be true
+        expect(manager_user.notification_preferences['email_order_notifications']).to be true
+        expect(manager_user.notification_preferences['email_customer_notifications']).to be true
+        expect(manager_user.notification_preferences['email_payment_notifications']).to be true
+      end
+
+      it 'handles mixed notification preferences correctly' do
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            first_name: 'Test',
+            last_name: 'User',
+            notification_preferences: {
+              'email_booking_notifications' => '1',   # checked
+              'email_order_notifications' => '0',     # unchecked
+              'email_customer_notifications' => '1',  # checked
+              'email_payment_notifications' => '0'    # unchecked
+            }
+          }
+        }
+
+        manager_user.reload
+        expect(manager_user.notification_preferences['email_booking_notifications']).to be true
+        expect(manager_user.notification_preferences['email_order_notifications']).to be false
+        expect(manager_user.notification_preferences['email_customer_notifications']).to be true
+        expect(manager_user.notification_preferences['email_payment_notifications']).to be false
+      end
+
+      it 'handles empty/nil notification preferences' do
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            first_name: 'Test',
+            last_name: 'User',
+            notification_preferences: {}
+          }
+        }
+
+        manager_user.reload
+        # Should preserve existing preferences or set to empty hash (empty hash is not present but is not nil)
+        expect(manager_user.notification_preferences).not_to be_nil
+        expect(manager_user.notification_preferences).to eq({})
+      end
+
+      it 'handles form submission without notification preferences key' do
+        # This might happen if JavaScript fails or form is malformed
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            first_name: 'Test',
+            last_name: 'User'
+          }
+        }
+
+        expect(response).to redirect_to(edit_business_manager_settings_profile_path)
+        expect(flash[:notice]).to eq('Profile updated successfully.')
+        
+        # Should not crash and preferences should remain intact
+        manager_user.reload
+        expect(manager_user.first_name).to eq('Test')
+      end
+    end
+
+    context 'parameter handling debugging' do
+      it 'logs the exact parameters being received' do
+        allow(Rails.logger).to receive(:debug)
+        
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            first_name: 'Debug',
+            notification_preferences: {
+              'email_booking_notifications' => '1'
+            }
+          }
+        }
+
+        # Check if we can capture the actual parameters in the controller
+        # This will help us debug the exact issue
+        expect(response).to redirect_to(edit_business_manager_settings_profile_path)
+      end
+    end
+
+    context 'checkbox form field behavior' do
+      it 'handles Rails checkbox field behavior correctly' do
+        # Rails checkboxes send ['0', '1'] for checked boxes and ['0'] for unchecked
+        # This might be the source of the bug
+        
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            first_name: 'Checkbox',
+            last_name: 'Test',
+            notification_preferences: {
+              'email_booking_notifications' => ['0', '1'], # Checked checkbox
+              'email_order_notifications' => ['0'],        # Unchecked checkbox
+            }
+          }
+        }
+
+        manager_user.reload
+        # Should handle Rails checkbox format correctly
+        expect(manager_user.notification_preferences['email_booking_notifications']).to be true
+        expect(manager_user.notification_preferences['email_order_notifications']).to be false
+      end
+    end
+
+    context 'business email integration after preferences fix' do
+      it 'sends business emails when preferences are properly saved' do
+        # Clear deliveries before test
+        ActionMailer::Base.deliveries.clear
+        
+        # Enable deliveries for this test
+        original_perform_deliveries = ActionMailer::Base.perform_deliveries
+        ActionMailer::Base.perform_deliveries = true
+        
+        begin
+        # First, ensure preferences are saved correctly
+        patch business_manager_settings_profile_path, params: {
+          user: {
+            notification_preferences: {
+              'email_booking_notifications' => '1',
+              'email_customer_notifications' => '1'
+            }
+          }
+        }
+
+        manager_user.reload
+        expect(manager_user.notification_preferences['email_booking_notifications']).to be true
+
+        # Now test that business emails actually send
+        booking = create(:booking, business: business)
+        
+        expect {
+          BusinessMailer.new_booking_notification(booking).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to include(manager_user.email)
+        ensure
+          # Restore original setting
+          ActionMailer::Base.perform_deliveries = original_perform_deliveries
+        end
+      end
+    end
+  end
 end 

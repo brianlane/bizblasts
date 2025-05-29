@@ -16,10 +16,21 @@ FactoryBot.define do
     stripe_transfer_id { "tr_#{SecureRandom.hex(8)}" }
 
     payment_method { :credit_card }
-    status { :pending }
-    paid_at { nil }
+    status { :completed }
+    paid_at { Time.current }
     failure_reason { nil }
     refunded_amount { 0.0 }
     refund_reason { nil }
+    
+    trait :pending do
+      status { :pending }
+      paid_at { nil }
+    end
+    
+    trait :failed do
+      status { :failed }
+      paid_at { nil }
+      failure_reason { "Card declined" }
+    end
   end
 end 

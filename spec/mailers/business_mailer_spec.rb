@@ -1,0 +1,401 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe BusinessMailer, type: :mailer do
+  let(:business) { create(:business, name: 'Test Business') }
+  let(:manager_user) { create(:user, :manager, business: business, email: 'manager@test.com') }
+  let(:tenant_customer) { create(:tenant_customer, business: business) }
+  let(:service) { create(:service, business: business) }
+  let(:staff_member) { create(:staff_member, business: business) }
+
+  before do
+    # Clear deliveries before each test
+    ActionMailer::Base.deliveries.clear
+    
+    # Ensure manager exists and has default notification preferences
+    manager_user.update!(notification_preferences: {
+      'email_booking_notifications' => true,
+      'email_order_notifications' => true,
+      'email_customer_notifications' => true,
+      'email_payment_notifications' => true
+    })
+  end
+
+  describe '#domain_request_notification' do
+    let(:premium_business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
+    let(:premium_user) { create(:user, :manager, business: premium_business, email: 'premium@test.com') }
+
+    it 'sends domain request notification email' do
+      mail = BusinessMailer.domain_request_notification(premium_user)
+      
+      expect(mail.to).to eq([premium_user.email])
+      expect(mail.subject).to include('Custom Domain Request Received')
+      expect(mail.body.encoded).to include(premium_business.name)
+      expect(mail.body.encoded).to include(premium_business.hostname)
+    end
+  end
+
+  describe '#new_booking_notification' do
+    let(:booking) { create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member) }
+
+    it 'sends booking notification to business manager' do
+      mail = BusinessMailer.new_booking_notification(booking)
+      
+      expect(mail.to).to eq([manager_user.email])
+      expect(mail.subject).to include('New Booking')
+      expect(mail.subject).to include(tenant_customer.name)
+      expect(mail.subject).to include(service.name)
+      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(service.name)
+      expect(mail.body.encoded).to include(business.name)
+    end
+
+    it 'does not send email when no manager exists' do
+      business_without_manager = create(:business)
+      booking_no_manager = create(:booking, business: business_without_manager, tenant_customer: tenant_customer, service: service)
+      
+      expect {
+        BusinessMailer.new_booking_notification(booking_no_manager).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+
+    it 'does not send email when notifications are disabled' do
+      manager_user.update!(notification_preferences: { 'email_booking_notifications' => false })
+      
+      expect {
+        BusinessMailer.new_booking_notification(booking).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+  end
+
+  describe '#new_order_notification' do
+    let(:order) { create(:order, business: business, tenant_customer: tenant_customer) }
+
+    it 'sends order notification to business manager' do
+      mail = BusinessMailer.new_order_notification(order)
+      
+      expect(mail.to).to eq([manager_user.email])
+      expect(mail.subject).to include('New Order')
+      expect(mail.subject).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(business.name)
+    end
+
+    it 'does not send email when no manager exists' do
+      business_without_manager = create(:business)
+      order_no_manager = create(:order, business: business_without_manager, tenant_customer: tenant_customer)
+      
+      expect {
+        BusinessMailer.new_order_notification(order_no_manager).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+
+    it 'does not send email when notifications are disabled' do
+      manager_user.update!(notification_preferences: { 'email_order_notifications' => false })
+      
+      expect {
+        BusinessMailer.new_order_notification(order).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+  end
+
+  describe '#new_customer_notification' do
+    it 'sends customer notification to business manager' do
+      mail = BusinessMailer.new_customer_notification(tenant_customer)
+      
+      expect(mail.to).to eq([manager_user.email])
+      expect(mail.subject).to include('New Customer')
+      expect(mail.subject).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(tenant_customer.email)
+      expect(mail.body.encoded).to include(business.name)
+    end
+
+    it 'does not send email when no manager exists' do
+      business_without_manager = create(:business)
+      customer_no_manager = create(:tenant_customer, business: business_without_manager)
+      
+      expect {
+        BusinessMailer.new_customer_notification(customer_no_manager).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+
+    it 'does not send email when notifications are disabled' do
+      manager_user.update!(notification_preferences: { 'email_customer_notifications' => false })
+      
+      expect {
+        BusinessMailer.new_customer_notification(tenant_customer).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+  end
+
+  describe '#payment_received_notification' do
+    let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer) }
+    let(:payment) { create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice) }
+
+    it 'sends payment notification to business manager' do
+      mail = BusinessMailer.payment_received_notification(payment)
+      
+      expect(mail.to).to eq([manager_user.email])
+      expect(mail.subject).to include('Payment Received')
+      expect(mail.subject).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(business.name)
+    end
+
+    it 'includes booking information in subject when payment is for booking' do
+      booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service)
+      invoice.update!(booking: booking)
+      
+      mail = BusinessMailer.payment_received_notification(payment)
+      
+      expect(mail.subject).to include(service.name)
+    end
+
+    it 'includes order information in subject when payment is for order' do
+      order = create(:order, business: business, tenant_customer: tenant_customer)
+      invoice.update!(order: order)
+      
+      mail = BusinessMailer.payment_received_notification(payment)
+      
+      expect(mail.subject).to include("Order ##{order.id}")
+    end
+
+    it 'does not send email when no manager exists' do
+      business_without_manager = create(:business)
+      payment_no_manager = create(:payment, business: business_without_manager, tenant_customer: tenant_customer)
+      
+      expect {
+        BusinessMailer.payment_received_notification(payment_no_manager).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+
+    it 'does not send email when notifications are disabled' do
+      manager_user.update!(notification_preferences: { 'email_payment_notifications' => false })
+      
+      expect {
+        BusinessMailer.payment_received_notification(payment).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+  end
+
+  # Integration test to verify all notifications work end-to-end
+  describe 'end-to-end email delivery' do
+    it 'delivers all business notification emails successfully' do
+      # Test booking notification
+      booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+      
+      expect {
+        BusinessMailer.new_booking_notification(booking).deliver_now
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      
+      booking_mail = ActionMailer::Base.deliveries.last
+      expect(booking_mail.to).to include(manager_user.email)
+      expect(booking_mail.subject).to include('New Booking')
+      
+      # Test order notification
+      order = create(:order, business: business, tenant_customer: tenant_customer)
+      
+      expect {
+        BusinessMailer.new_order_notification(order).deliver_now
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      
+      order_mail = ActionMailer::Base.deliveries.last
+      expect(order_mail.to).to include(manager_user.email)
+      expect(order_mail.subject).to include('New Order')
+      
+      # Test customer notification
+      new_customer = create(:tenant_customer, business: business, name: 'New Customer')
+      
+      expect {
+        BusinessMailer.new_customer_notification(new_customer).deliver_now
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      
+      customer_mail = ActionMailer::Base.deliveries.last
+      expect(customer_mail.to).to include(manager_user.email)
+      expect(customer_mail.subject).to include('New Customer')
+      
+      # Test payment notification
+      invoice = create(:invoice, business: business, tenant_customer: tenant_customer)
+      payment = create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice)
+      
+      expect {
+        BusinessMailer.payment_received_notification(payment).deliver_now
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      
+      payment_mail = ActionMailer::Base.deliveries.last
+      expect(payment_mail.to).to include(manager_user.email)
+      expect(payment_mail.subject).to include('Payment Received')
+    end
+  end
+
+  # Test to verify notifications are properly queued via ActiveJob
+  describe 'ActiveJob integration' do
+    it 'queues business emails properly through deliver_later' do
+      booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+      
+      expect {
+        BusinessMailer.new_booking_notification(booking).deliver_later
+      }.to have_enqueued_mail(BusinessMailer, :new_booking_notification)
+    end
+  end
+
+  # Test error handling and logging
+  describe 'error handling' do
+    it 'logs appropriate warnings when business has no manager' do
+      business_without_manager = create(:business)
+      booking = create(:booking, business: business_without_manager, tenant_customer: tenant_customer, service: service)
+      
+      expect(Rails.logger).to receive(:warn).with(/No manager user found for Business/)
+      BusinessMailer.new_booking_notification(booking).deliver_now
+    end
+
+    it 'logs appropriate info when notifications are disabled' do
+      manager_user.update!(notification_preferences: { 'email_booking_notifications' => false })
+      booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+      
+      expect(Rails.logger).to receive(:info).with(/Email booking notifications disabled/)
+      BusinessMailer.new_booking_notification(booking).deliver_now
+    end
+  end
+
+  # Test notification preferences functionality
+  describe 'notification preferences' do
+    it 'respects notification preferences for all email types' do
+      # Disable all notifications
+      manager_user.update!(notification_preferences: {
+        'email_booking_notifications' => false,
+        'email_order_notifications' => false,
+        'email_customer_notifications' => false,
+        'email_payment_notifications' => false
+      })
+      
+      booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+      order = create(:order, business: business, tenant_customer: tenant_customer)
+      customer = create(:tenant_customer, business: business, name: 'Another Customer')
+      invoice = create(:invoice, business: business, tenant_customer: tenant_customer)
+      payment = create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice)
+      
+      # None of these should send emails
+      expect {
+        BusinessMailer.new_booking_notification(booking).deliver_now
+        BusinessMailer.new_order_notification(order).deliver_now
+        BusinessMailer.new_customer_notification(customer).deliver_now
+        BusinessMailer.payment_received_notification(payment).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
+  end
+
+  # Test real production scenarios where business emails are failing
+  describe 'production failure scenarios' do
+    context 'when notification preferences are disabled in production' do
+      before do
+        # This reflects the actual production state where notifications are disabled
+        manager_user.update!(notification_preferences: {
+          'email_booking_notifications' => false,
+          'email_order_notifications' => false,
+          'email_customer_notifications' => false,
+          'email_payment_notifications' => false
+        })
+      end
+
+      it 'should send booking notifications to business managers (currently failing in prod)' do
+        booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+        
+        expect {
+          BusinessMailer.new_booking_notification(booking).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+        
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to include(manager_user.email)
+        expect(mail.subject).to include('New Booking')
+      end
+
+      it 'should send customer notifications to business managers (currently failing in prod)' do
+        expect {
+          BusinessMailer.new_customer_notification(tenant_customer).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+        
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to include(manager_user.email)
+        expect(mail.subject).to include('New Customer')
+      end
+
+      it 'should send order notifications to business managers (currently failing in prod)' do
+        order = create(:order, business: business, tenant_customer: tenant_customer)
+        
+        expect {
+          BusinessMailer.new_order_notification(order).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+        
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to include(manager_user.email)
+        expect(mail.subject).to include('New Order')
+      end
+
+      it 'should send payment notifications to business managers (currently failing in prod)' do
+        invoice = create(:invoice, business: business, tenant_customer: tenant_customer)
+        payment = create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice)
+        
+        expect {
+          BusinessMailer.payment_received_notification(payment).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+        
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to include(manager_user.email)
+        expect(mail.subject).to include('Payment Received')
+      end
+    end
+
+    context 'when business manager has no notification preferences set' do
+      before do
+        # This reflects businesses that might not have preferences configured
+        manager_user.update!(notification_preferences: nil)
+      end
+
+      it 'should default to sending all business notifications' do
+        booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+        
+        expect {
+          BusinessMailer.new_booking_notification(booking).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+        
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to include(manager_user.email)
+      end
+    end
+
+    context 'when business manager has empty notification preferences' do
+      before do
+        # This reflects businesses with empty preferences hash
+        manager_user.update!(notification_preferences: {})
+      end
+
+      it 'should default to sending all business notifications' do
+        booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+        
+        expect {
+          BusinessMailer.new_booking_notification(booking).deliver_now
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      end
+    end
+
+    context 'when business manager email is invalid or missing' do
+      before do
+        manager_user.update!(email: nil)
+      end
+
+      it 'should handle missing manager email gracefully' do
+        booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+        
+        expect {
+          BusinessMailer.new_booking_notification(booking).deliver_now
+        }.not_to raise_error
+        
+        # Should log an appropriate warning
+        expect(Rails.logger).to receive(:warn).with(/Invalid or missing manager email/)
+      end
+    end
+  end
+end 
