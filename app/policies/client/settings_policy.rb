@@ -13,6 +13,10 @@ class Client::SettingsPolicy < ApplicationPolicy
     user_is_record_owner_and_client?
   end
 
+  def destroy?
+    user_is_record_owner_and_client?
+  end
+
   private
 
   def user_is_record_owner_and_client?

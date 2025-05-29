@@ -11,6 +11,9 @@ class StaffMember < ApplicationRecord
   has_many :services_staff_members, dependent: :destroy
   has_many :services, through: :services_staff_members
   
+  # Bidirectional deletion: when staff member is deleted, delete associated user
+  before_destroy :delete_associated_user, if: -> { user.present? }
+  
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :active, inclusion: { in: [true, false] }
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
@@ -141,6 +144,15 @@ class StaffMember < ApplicationRecord
   
   private
   
+  def delete_associated_user
+    return unless user.present?
+    
+    # Temporarily store the user and remove the association to prevent infinite loops
+    user_to_delete = self.user
+    self.user = nil
+    user_to_delete.destroy
+  end
+
   def process_availability
     return if availability.blank?
     self.availability = {} unless availability.is_a?(Hash)

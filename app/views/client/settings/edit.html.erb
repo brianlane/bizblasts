@@ -114,6 +114,52 @@
   </div>
 <% end %>
 
+<hr>
+<div class="danger-zone">
+  <h3>Delete Account</h3>
+  <p>Once you delete your account, there is no going back. Please be certain.</p>
+  
+  <% if @account_deletion_info[:warnings].any? %>
+    <div class="warning-box">
+      <h4>Before you delete your account:</h4>
+      <ul>
+        <% @account_deletion_info[:warnings].each do |warning| %>
+          <li><%= warning %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="deletion-info">
+    <h4>Deleting your account will:</h4>
+    <ul>
+      <li>Remove you from all business relationships</li>
+      <li>Your booking history will be preserved but anonymized</li>
+      <li>This action cannot be undone</li>
+    </ul>
+  </div>
+
+  <%= form_with model: @user, url: client_settings_path, method: :delete, local: true, data: { confirm: "Are you absolutely sure? This action cannot be undone." } do |form| %>
+    <div class="deletion-form">
+      <div>
+        <%= form.label :current_password, "Current Password" %><br>
+        <%= form.password_field :current_password, autocomplete: "current-password", required: true %>
+        <small>Required to confirm your identity</small>
+      </div>
+
+      <div>
+        <%= form.label :confirm_deletion, "Type DELETE to confirm" %><br>
+        <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true %>
+        <small>You must type DELETE exactly as shown</small>
+      </div>
+
+      <div>
+        <%= form.submit "Delete My Account", class: "btn-danger", data: { confirm: "This will permanently delete your account. Are you sure?" } %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
 <style>
   .preference-section {
     background: #f8f9fa;
@@ -146,5 +192,68 @@
   
   .mb-4 {
     margin-bottom: 20px;
+  }
+
+  .danger-zone {
+    background: #fff5f5;
+    border: 2px solid #fed7d7;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 30px;
+  }
+
+  .danger-zone h3 {
+    color: #c53030;
+    margin-top: 0;
+  }
+
+  .warning-box {
+    background: #fef5e7;
+    border: 1px solid #f6ad55;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+  }
+
+  .warning-box h4 {
+    color: #c05621;
+    margin-top: 0;
+  }
+
+  .deletion-info {
+    background: #f7fafc;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+  }
+
+  .deletion-form {
+    margin-top: 20px;
+  }
+
+  .deletion-form div {
+    margin-bottom: 15px;
+  }
+
+  .deletion-form small {
+    display: block;
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-top: 5px;
+  }
+
+  .btn-danger {
+    background-color: #e53e3e;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .btn-danger:hover {
+    background-color: #c53030;
   }
 </style> 
