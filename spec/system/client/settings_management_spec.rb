@@ -44,20 +44,26 @@ RSpec.describe "Client Settings Management", type: :system do
   # Those would be better suited for a test with a real browser if needed
 
   it "shows errors for invalid password change (e.g., wrong current password)" do
-    fill_in "user[current_password]", with: "wrongpassword"
-    fill_in "user[password]", with: "newsecurepassword"
-    fill_in "user[password_confirmation]", with: "newsecurepassword"
-    click_button "Save Settings"
+    # Target the first form on the page (profile update form)
+    within(first('form')) do
+      fill_in "user[current_password]", with: "wrongpassword"
+      fill_in "user[password]", with: "newsecurepassword"
+      fill_in "user[password_confirmation]", with: "newsecurepassword"
+      click_button "Save Settings"
+    end
 
     expect(page).to have_content("Failed to update password")
     expect(page).to have_content("Current password is invalid") # Devise error message
   end
   
   it "shows errors for mismatched new passwords" do
-    fill_in "user[current_password]", with: "password123"
-    fill_in "user[password]", with: "newsecurepassword"
-    fill_in "user[password_confirmation]", with: "mismatchpassword"
-    click_button "Save Settings"
+    # Target the first form on the page (profile update form)
+    within(first('form')) do
+      fill_in "user[current_password]", with: "password123"
+      fill_in "user[password]", with: "newsecurepassword"
+      fill_in "user[password_confirmation]", with: "mismatchpassword"
+      click_button "Save Settings"
+    end
 
     expect(page).to have_content("Failed to update password")
     expect(page).to have_content("Password confirmation doesn't match Password") # Devise error message

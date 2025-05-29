@@ -71,7 +71,6 @@ group :development, :test do
   gem "faker"
   gem "rspec-rails"
   gem "capybara"
-  gem "selenium-webdriver"
   gem "cuprite"
   gem "webdrivers"
 

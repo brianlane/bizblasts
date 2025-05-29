@@ -25,6 +25,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
         bypass_sign_in(@user)
         redirect_to client_settings_path, notice: 'Settings (including password) updated successfully.'
       else
+        @account_deletion_info = @user.can_delete_account?
         flash.now[:alert] = 'Failed to update password. Please check your current password and ensure new passwords match.'
         render :edit, status: :unprocessable_entity
       end
@@ -34,6 +35,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       if @user.update(profile_update_params)
         redirect_to client_settings_path, notice: 'Profile settings updated successfully.'
       else
+        @account_deletion_info = @user.can_delete_account?
         flash.now[:alert] = 'Failed to update profile settings.'
         render :edit, status: :unprocessable_entity
       end
@@ -102,6 +104,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
     params.require(:user).permit(
       :first_name, 
       :last_name, 
+      :email,
       :phone,
       notification_preferences: [
         :email_booking_confirmation,
@@ -119,6 +122,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
     params.require(:user).permit(
       :first_name, 
       :last_name, 
+      :email,
       :phone, 
       :current_password,
       :password, 
