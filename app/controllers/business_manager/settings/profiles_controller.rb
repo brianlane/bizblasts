@@ -28,9 +28,20 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       # Convert checkbox values to boolean hash
       notification_prefs = {}
       params[:user][:notification_preferences].each do |key, value|
-        notification_prefs[key] = value == '1'
+        # Handle Rails checkbox behavior where checked boxes send ['0', '1'] and unchecked send ['0']
+        if value.is_a?(Array)
+          # If it's an array with '1' as the last element, it's checked
+          notification_prefs[key] = value.last == '1'
+        else
+          # Simple string value: '1' means checked, anything else means unchecked
+          notification_prefs[key] = value == '1'
+        end
       end
       update_params[:notification_preferences] = notification_prefs
+    else
+      # If no notification preferences are submitted, preserve existing ones
+      # This handles the case where the form doesn't include notification preferences
+      update_params[:notification_preferences] = @user.notification_preferences || {}
     end
 
     if @user.update(update_params)
@@ -62,16 +73,15 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       :phone, 
       :password, 
       :password_confirmation,
-      # notification_preferences: [
-      #   :email_booking_notifications,
-      #   :email_order_notifications, 
-      #   :email_customer_notifications,
-      #   :email_payment_notifications,
-      #   :email_failed_payment_notifications,
-      #   :email_system_notifications,
-      #   :email_marketing_updates
-      # ]
-      notification_preferences: {}
+      notification_preferences: [
+        :email_booking_notifications,
+        :email_order_notifications, 
+        :email_customer_notifications,
+        :email_payment_notifications,
+        :email_failed_payment_notifications,
+        :email_system_notifications,
+        :email_marketing_updates
+      ]
     )
   end
 end 
