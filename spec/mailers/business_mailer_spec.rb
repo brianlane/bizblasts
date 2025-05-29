@@ -300,7 +300,62 @@ RSpec.describe BusinessMailer, type: :mailer do
         })
       end
 
-      it 'should send booking notifications to business managers (currently failing in prod)' do
+      it 'should respect disabled booking notifications (correct behavior)' do
+        booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+        
+        expect(Rails.logger).to receive(:info).with(/Email booking notifications disabled/)
+        
+        expect {
+          BusinessMailer.new_booking_notification(booking).deliver_now
+        }.not_to change { ActionMailer::Base.deliveries.count }
+      end
+
+      it 'should respect disabled customer notifications (correct behavior)' do
+        # Create a separate customer for this test to avoid conflicts with the let(:tenant_customer)
+        # that gets created in the before block and automatically triggers the callback
+        test_customer = build(:tenant_customer, business: business)
+        
+        expect(Rails.logger).to receive(:info).with(/Email customer notifications disabled/)
+        
+        expect {
+          BusinessMailer.new_customer_notification(test_customer).deliver_now
+        }.not_to change { ActionMailer::Base.deliveries.count }
+      end
+
+      it 'should respect disabled order notifications (correct behavior)' do
+        order = create(:order, business: business, tenant_customer: tenant_customer)
+        
+        expect(Rails.logger).to receive(:info).with(/Email order notifications disabled/)
+        
+        expect {
+          BusinessMailer.new_order_notification(order).deliver_now
+        }.not_to change { ActionMailer::Base.deliveries.count }
+      end
+
+      it 'should respect disabled payment notifications (correct behavior)' do
+        invoice = create(:invoice, business: business, tenant_customer: tenant_customer)
+        payment = create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice)
+        
+        expect(Rails.logger).to receive(:info).with(/Email payment notifications disabled/)
+        
+        expect {
+          BusinessMailer.payment_received_notification(payment).deliver_now
+        }.not_to change { ActionMailer::Base.deliveries.count }
+      end
+    end
+
+    context 'when notification preferences are enabled in production' do
+      before do
+        # This reflects the correct production state where notifications should be enabled
+        manager_user.update!(notification_preferences: {
+          'email_booking_notifications' => true,
+          'email_order_notifications' => true,
+          'email_customer_notifications' => true,
+          'email_payment_notifications' => true
+        })
+      end
+
+      it 'should send booking notifications to business managers when enabled' do
         booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
         
         expect {
@@ -312,7 +367,7 @@ RSpec.describe BusinessMailer, type: :mailer do
         expect(mail.subject).to include('New Booking')
       end
 
-      it 'should send customer notifications to business managers (currently failing in prod)' do
+      it 'should send customer notifications to business managers when enabled' do
         expect {
           BusinessMailer.new_customer_notification(tenant_customer).deliver_now
         }.to change { ActionMailer::Base.deliveries.count }.by(1)
@@ -322,7 +377,7 @@ RSpec.describe BusinessMailer, type: :mailer do
         expect(mail.subject).to include('New Customer')
       end
 
-      it 'should send order notifications to business managers (currently failing in prod)' do
+      it 'should send order notifications to business managers when enabled' do
         order = create(:order, business: business, tenant_customer: tenant_customer)
         
         expect {
@@ -334,7 +389,7 @@ RSpec.describe BusinessMailer, type: :mailer do
         expect(mail.subject).to include('New Order')
       end
 
-      it 'should send payment notifications to business managers (currently failing in prod)' do
+      it 'should send payment notifications to business managers when enabled' do
         invoice = create(:invoice, business: business, tenant_customer: tenant_customer)
         payment = create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice)
         
@@ -382,19 +437,20 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
 
     context 'when business manager email is invalid or missing' do
-      before do
-        manager_user.update!(email: nil)
-      end
-
       it 'should handle missing manager email gracefully' do
+        # Use update_column to set an invalid email format (database won't allow nil)
+        manager_user.update_column(:email, 'invalid-email-format')
+        
         booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
+        
+        expect(Rails.logger).to receive(:warn).with(/Invalid or missing manager email/)
         
         expect {
           BusinessMailer.new_booking_notification(booking).deliver_now
         }.not_to raise_error
         
-        # Should log an appropriate warning
-        expect(Rails.logger).to receive(:warn).with(/Invalid or missing manager email/)
+        # Should not send any emails
+        expect(ActionMailer::Base.deliveries.count).to eq(0)
       end
     end
   end

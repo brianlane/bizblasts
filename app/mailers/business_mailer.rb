@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class BusinessMailer < ApplicationMailer
   # Send domain request notification to premium business users after email confirmation
   def domain_request_notification(user)
@@ -41,14 +43,17 @@ class BusinessMailer < ApplicationMailer
       return
     end
     
-    notification_enabled = business_user&.notification_preferences&.fetch('email_booking_notifications', true)
-    
-    unless notification_enabled
-      Rails.logger.info "[BusinessMailer] Email booking notifications disabled for Business ##{@business.id}"
+    # Check for valid email
+    if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+      Rails.logger.warn "[BusinessMailer] Invalid or missing manager email for Business ##{@business.id}, skipping notification"
       return
     end
     
-    Rails.logger.info "[BusinessMailer] Sending booking notification to #{business_user.email} for Booking ##{booking.id}"
+    # Check if the manager has booking notifications enabled
+    unless notification_enabled?(business_user, 'email_booking_notifications')
+      Rails.logger.info "[BusinessMailer] Email booking notifications disabled for Business ##{@business.id}"
+      return
+    end
     
     mail(
       to: business_user.email,
@@ -69,9 +74,18 @@ class BusinessMailer < ApplicationMailer
     
     @customer = order.tenant_customer
     
-    # Check if business user has this notification enabled (fixed role reference)
+    # Get business manager
     business_user = @business.users.where(role: [:manager]).first
-    return unless business_user&.notification_preferences&.fetch('email_order_notifications', true)
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has order notifications enabled
+    unless notification_enabled?(business_user, 'email_order_notifications')
+      Rails.logger.info "[BusinessMailer] Email order notifications disabled for Business ##{@business.id}"
+      return
+    end
     
     mail(
       to: business_user.email,
@@ -90,9 +104,18 @@ class BusinessMailer < ApplicationMailer
     # Handle case where business might be nil or deleted
     return unless @business.present?
     
-    # Check if business user has this notification enabled (fixed role reference)
+    # Get business manager
     business_user = @business.users.where(role: [:manager]).first
-    return unless business_user&.notification_preferences&.fetch('email_customer_notifications', true)
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has customer notifications enabled
+    unless notification_enabled?(business_user, 'email_customer_notifications')
+      Rails.logger.info "[BusinessMailer] Email customer notifications disabled for Business ##{@business.id}"
+      return
+    end
     
     mail(
       to: business_user.email,
@@ -116,9 +139,18 @@ class BusinessMailer < ApplicationMailer
     @booking = @invoice&.booking
     @order = @invoice&.order
     
-    # Check if business user has this notification enabled (fixed role reference)
+    # Get business manager
     business_user = @business.users.where(role: [:manager]).first
-    return unless business_user&.notification_preferences&.fetch('email_payment_notifications', true)
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has payment notifications enabled
+    unless notification_enabled?(business_user, 'email_payment_notifications')
+      Rails.logger.info "[BusinessMailer] Email payment notifications disabled for Business ##{@business.id}"
+      return
+    end
     
     subject = if @booking
       "Payment Received: #{@customer.name} - #{@booking.service.name}"
@@ -135,5 +167,17 @@ class BusinessMailer < ApplicationMailer
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for payment notification: #{e.message}"
     return nil
+  end
+
+  private
+
+  def notification_enabled?(user, notification_type)
+    preferences = user.notification_preferences
+    
+    # If no preferences are set, default to enabled
+    return true if preferences.nil? || preferences.empty?
+    
+    # Check the specific notification type
+    preferences[notification_type] == true
   end
 end 
