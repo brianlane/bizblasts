@@ -176,7 +176,7 @@ RSpec.describe "BusinessManager::Services", type: :system do
       # expect(page).to have_current_path(main_domain_login_url, ignore_query: true)
       # Check for redirect to the tenant's root path as a fallback
       expect(page).to have_current_path('/users/sign_in')
-      expect(page).to have_content("Log in") # Or whatever text indicates the login page
+      expect(page).to have_content("Sign in") # Or whatever text indicates the login page
     end
   end
 end 
