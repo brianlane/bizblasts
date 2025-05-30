@@ -11,8 +11,8 @@ RSpec.describe 'Home', type: :request do
     
     it 'renders the correct content for index' do
       get root_path
-      # Check for content instead of template name
-      expect(response.body).to include("Welcome") # Adjust if needed
+      # Check for content that actually exists on the new homepage
+      expect(response.body).to include("Your website, booking system, and growth engine—all in one")
     end
     
     it 'does not require authentication' do
