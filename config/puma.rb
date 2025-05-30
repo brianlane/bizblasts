@@ -31,74 +31,12 @@ threads threads_count, threads_count
 # Only use one port binding method to avoid conflicts
 port ENV.fetch("PORT", 3000)
 
-# Memory-optimized worker configuration
-# Use single worker process to minimize memory usage
-workers ENV.fetch("WEB_CONCURRENCY", 1)
-
-# Only preload app if using multiple workers
-if ENV.fetch("WEB_CONCURRENCY", 1).to_i > 1
-  preload_app!
-  
-  # Worker forking configuration for memory efficiency
-  on_worker_boot do
-    # Reconnect to database after forking
-    ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
-  end
-  
-  before_fork do
-    # Disconnect from database before forking to avoid connection issues
-    ActiveRecord::Base.connection_pool.disconnect! if defined?(ActiveRecord)
-  end
-end
-
-# Memory management settings
-# Restart workers after handling a certain number of requests to prevent memory bloat
-if ENV.fetch("WEB_CONCURRENCY", 1).to_i > 1
-  worker_shutdown_timeout 30
-  worker_timeout 30
-  worker_boot_timeout 30
-  
-  # Restart workers that use too much memory (on platforms that support it)
-  if ENV["RAILS_ENV"] == "production"
-    # Restart worker if it uses more than 400MB
-    worker_kill_timeout 300 # 5 minutes
-  end
-end
-
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
-# SolidQueue plugin - only enable if explicitly requested
-# Removed automatic loading to save memory in the web process
-if ENV["SOLID_QUEUE_IN_PUMA"] == "true"
-  plugin :solid_queue
-  
-  # Configure SolidQueue to use minimal resources when running in Puma
-  before_fork do
-    # Reduce SolidQueue worker threads when running in web process
-    ENV["SOLID_QUEUE_CONCURRENCY"] ||= "1"
-  end
-end
+# Run the Solid Queue supervisor inside of Puma for single-server deployments
+plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
-
-# Additional memory optimization settings
-if ENV["RAILS_ENV"] == "production"
-  # Set lower limits for various buffers to save memory
-  queue_requests false  # Don't queue requests, handle them immediately
-  
-  # Reduce the maximum request size to prevent large uploads from consuming memory
-  # Default is usually around 1MB, we'll keep it reasonable
-  max_request_size 5 * 1024 * 1024  # 5MB max request size
-  
-  # Clean up completed tasks more aggressively
-  nakayoshi_fork if ENV.fetch("WEB_CONCURRENCY", 1).to_i > 1
-end
-
-# Logging configuration
-tag "bizblasts"
-if ENV["RAILS_LOG_TO_STDOUT"].present?
-  log_requests true
-end
