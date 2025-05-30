@@ -15,6 +15,27 @@ class BusinessManager::BaseController < ApplicationController
   # Note: @current_business is set by set_tenant_for_business_manager
   before_action :authorize_access_to_business_manager
 
+  # Check business setup and set flash for managers (not staff)
+  before_action :check_business_setup, if: -> { current_user&.manager? }
+
+  protected
+
+  # Check business setup completion and set todo flash for managers
+  def check_business_setup
+    return unless current_business
+
+    @business_setup_service = BusinessSetupService.new(current_business)
+    
+    # Only show setup todos if there are incomplete items
+    unless @business_setup_service.setup_complete?
+      setup_flash_content = render_to_string(
+        partial: 'shared/business_setup_todos',
+        locals: { setup_service: @business_setup_service }
+      )
+      flash.now[:business_setup] = setup_flash_content.html_safe
+    end
+  end
+
   private
 
   def authorize_access_to_business_manager
