@@ -116,12 +116,13 @@ ActiveAdmin.register Business do
     column "Domain Coverage", :domain_coverage_applied do |business|
       if business.eligible_for_domain_coverage?
         if business.domain_coverage_applied?
-          status_tag "Covered ($#{business.domain_cost_covered})", :ok
+          cost = business.domain_cost_covered || 0
+          status_tag "Covered ($#{cost})", class: "ok"
         else
-          status_tag "Available", :warning
+          status_tag "Available", class: "warning"
         end
       else
-        status_tag "Not Eligible", :no
+        status_tag "Not Eligible", class: "error"
       end
     end
     column :industry
@@ -166,14 +167,14 @@ ActiveAdmin.register Business do
           row "Coverage Status" do |b|
             if b.domain_coverage_applied?
               if b.domain_coverage_expired?
-                status_tag "Coverage Expired", :error
+                status_tag "Coverage Expired", class: "error"
               elsif b.domain_coverage_expires_soon?
-                status_tag "Expiring Soon (#{b.domain_coverage_remaining_days} days)", :warning
+                status_tag "Expiring Soon (#{b.domain_coverage_remaining_days} days)", class: "warning"
               else
-                status_tag "Coverage Applied", :ok
+                status_tag "Coverage Applied", class: "ok"
               end
             else
-              status_tag "Coverage Available", :warning
+              status_tag "Coverage Available", class: "warning"
             end
           end
           row "Coverage Limit" do |b|
@@ -207,9 +208,9 @@ ActiveAdmin.register Business do
           end
           row "Auto-Renewal Status" do |b|
             if b.domain_will_auto_renew?
-              status_tag "Auto-Renewal Enabled", :ok
+              status_tag "Auto-Renewal Enabled", class: "ok"
             else
-              status_tag "Manual Renewal", :warning
+              status_tag "Manual Renewal", class: "warning"
             end
           end
           row "Coverage Notes" do |b|
@@ -243,7 +244,7 @@ ActiveAdmin.register Business do
       f.input :hostname
       f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }, include_blank: false
-      f.input :industry, as: :select, collection: Business.industries.keys, include_blank: false
+      f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :phone
       f.input :email
       f.input :website
