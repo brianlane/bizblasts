@@ -51,23 +51,32 @@ services:
         sync: false
       - key: SOLID_QUEUE_IN_PUMA
         value: "true"
-      # Ruby garbage collection optimization
-      - key: RUBY_GC_HEAP_GROWTH_FACTOR
-        value: "1.1"  # More conservative heap growth
-      - key: RUBY_GC_HEAP_GROWTH_MAX_SLOTS
-        value: "50000"  # Limit heap growth
-      - key: RUBY_GC_MALLOC_LIMIT
-        value: "33554432"  # 32MB malloc limit
-      - key: RUBY_GC_MALLOC_LIMIT_MAX
-        value: "67108864"  # 64MB max malloc limit
-      - key: RUBY_GC_MALLOC_LIMIT_GROWTH_FACTOR
-        value: "1.1"  # Conservative malloc growth
+      # Memory optimization settings
+      - key: SOLID_QUEUE_JOB_TIMEOUT
+        value: "300" # 5 minute timeout
+      # Ruby GC optimization
       - key: RUBY_GC_HEAP_INIT_SLOTS
-        value: "20000"  # Start with fewer heap slots
+        value: "10000"
       - key: RUBY_GC_HEAP_FREE_SLOTS
-        value: "8000"   # Keep fewer free slots
-      - key: RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR
-        value: "0.9"    # More aggressive old object collection
+        value: "3000"
+      - key: RUBY_GC_HEAP_GROWTH_FACTOR
+        value: "1.25"
+      - key: RUBY_GC_MALLOC_LIMIT
+        value: "16000000"
+
+  # Separate background job worker (optional - if you want dedicated worker)
+  # Uncomment this section if you prefer separate worker processes
+  # - type: worker
+  #   name: bizblasts-worker
+  #   env: ruby
+  #   buildCommand: "./bin/render-build.sh"
+  #   startCommand: "bundle exec rails solid_queue:start"
+  #   envVars:
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: bizblast-postgresql
+  #         property: connectionString
+  #     # ... copy other necessary env vars from web service
 
 databases:
   - name: bizblast-postgresql

@@ -15,19 +15,18 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  # Memory-optimized connection pooling for 512MB plan
-  # Reduced from default to minimize memory usage
-  # Each connection uses ~2-8MB of memory
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 2 } %>  # Reduced from 5 to 2
-  timeout: 5000
-  # Connection pool optimization
-  prepared_statements: false  # Reduces memory per connection
-  statement_timeout: 30000    # 30 seconds to prevent long-running queries
+  # For details on connection pooling, see Rails configuration guide
+  # https://guides.rubyonrails.org/configuring.html#database-pooling
+  #
+  # The connection pool size is crucial for performance under concurrent load.
+  # The default is often too small for production environments.
+  # It's recommended to set RAILS_MAX_THREADS based on your web server's thread count
+  # and monitor database connection usage to find an optimal size.
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
   <<: *default
   database: bizblasts_development
-  pool: 3  # Slightly higher for development convenience
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
   # When left blank, PostgreSQL will use the default role. This is
@@ -58,7 +57,7 @@ test: &test
   password: <%= ENV.fetch("DATABASE_PASSWORD", "") %> # Default to empty password for local dev
   host: localhost 
   port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
-  pool: 5 # Slightly higher for parallel tests
+  pool: 10 # Increase connection pool for parallel tests
   prepared_statements: false # Disable for test speed
   variables:
     statement_timeout: '10s'
@@ -93,10 +92,6 @@ test_<%= i %>:
 production:
   primary:
     <<: *default
-    # Memory-optimized settings for 512MB plan
-    pool: 2  # Minimal connections to reduce memory usage
-    timeout: 5000
-    prepared_statements: false
     # Force TCP connection instead of Unix socket
     url: <%= ENV['DATABASE_URL'] %>
     # If URL isn't provided, use these settings
@@ -108,13 +103,11 @@ production:
     # Force TCP sockets by setting this to false
     host_type: tcp
   
-  # Memory-optimized service-specific database connections
-  # Use minimal pools for each service
+  # Restore production DB configs
+  # Configure service-specific database connections using the same database
+  # Rails 8 expects a specific format for these configurations
   cache:
     <<: *default
-    pool: 1  # Cache only needs 1 connection
-    timeout: 5000
-    prepared_statements: false
     # Force TCP connection instead of Unix socket
     url: <%= ENV['DATABASE_URL'] %>
     database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
@@ -127,9 +120,6 @@ production:
   
   queue:
     <<: *default
-    pool: 2  # Queue needs minimal connections for SolidQueue
-    timeout: 5000
-    prepared_statements: false
     # Force TCP connection instead of Unix socket
     url: <%= ENV['DATABASE_URL'] %>
     database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>
@@ -142,9 +132,6 @@ production:
   
   cable:
     <<: *default
-    pool: 1  # Action Cable minimal connection
-    timeout: 5000
-    prepared_statements: false
     # Force TCP connection instead of Unix socket
     url: <%= ENV['DATABASE_URL'] %>
     database: <%= ENV['DATABASE_NAME'] || 'bizblasts_production' %>

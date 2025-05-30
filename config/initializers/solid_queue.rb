@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Memory-optimized SolidQueue configuration for Render 512MB plan
+# Configure SolidQueue for memory optimization on Render
 if defined?(SolidQueue)
   Rails.application.config.to_prepare do
     # Skip SolidQueue setup during asset compilation or when explicitly disabled
@@ -21,14 +21,39 @@ if defined?(SolidQueue)
       
       Rails.application.config.active_job.queue_adapter = :solid_queue
 
-      # Memory-optimized configuration for 512MB plan
-      if defined?(SolidQueue::Configuration)
-        SolidQueue.configure do |config|
-          # Reduce memory footprint by limiting concurrent jobs
-          config.silence_polling = true
-          # Use smaller batches to reduce memory spikes
-          config.silence_polling = true if config.respond_to?(:silence_polling=)
-        end
+      # Memory-optimized SolidQueue configuration
+      SolidQueue.configure do |config|
+        # Reduce worker threads for memory efficiency
+        config.default_concurrency = ENV.fetch('SOLID_QUEUE_CONCURRENCY', 2).to_i
+        
+        # Optimize polling to reduce database load
+        config.polling_interval = ENV.fetch('SOLID_QUEUE_POLLING_INTERVAL', 5).to_i
+        
+        # Set maximum number of threads per process
+        config.max_number_of_threads = ENV.fetch('SOLID_QUEUE_MAX_THREADS', 5).to_i
+        
+        # Configure queues with different concurrency levels
+        config.queues = {
+          'default' => { threads: 1, processes: 1 },
+          'analytics' => { threads: 1, processes: 1 }, # Heavy jobs get single thread
+          'mailers' => { threads: 2, processes: 1 },   # Light jobs can have more
+          'low_priority' => { threads: 1, processes: 1 }
+        }
+        
+        # Enable job timeout to prevent runaway processes
+        config.job_timeout = ENV.fetch('SOLID_QUEUE_JOB_TIMEOUT', 300).to_i # 5 minutes
+        
+        # Configure recurring task cleanup
+        config.clear_finished_jobs_after = ENV.fetch('SOLID_QUEUE_CLEAR_JOBS_AFTER', 7.days).to_i
+        
+        # Optimize database connection settings for queue workers
+        config.connects_to = {
+          database: { 
+            writing: :queue,
+            # Use smaller connection pool for queue workers
+            pool_size: ENV.fetch('SOLID_QUEUE_POOL_SIZE', 3).to_i
+          }
+        }
       end
 
       # Schedule auto-cancel of unpaid product orders every 15 minutes
@@ -36,13 +61,24 @@ if defined?(SolidQueue)
         task.schedule    = '*/15 * * * *' # every 15 minutes
         task.class_name  = 'AutoCancelUnpaidProductOrdersJob'
         task.arguments   = '[]'
-        task.queue_name  = 'default'
-        task.priority    = 0
+        task.queue_name  = 'low_priority' # Move to low priority queue
+        task.priority    = 10 # Lower priority
         task.static      = true
         task.description = 'Auto cancel unpaid product orders after tier-specific deadlines'
       end
       
-      Rails.logger.info "SolidQueue recurring tasks configured successfully with memory optimizations"
+      # Configure garbage collection for better memory management
+      if Rails.env.production?
+        # Force garbage collection after each job to reclaim memory
+        ActiveJob::Base.class_eval do
+          around_perform do |job, block|
+            block.call
+            GC.start
+          end
+        end
+      end
+      
+      Rails.logger.info "SolidQueue configured with memory optimizations - Concurrency: #{SolidQueue.config.default_concurrency}, Polling: #{SolidQueue.config.polling_interval}s"
       
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError, PG::ConnectionBad => e
       Rails.logger.info "Database not available for SolidQueue setup: #{e.message}"
@@ -53,22 +89,6 @@ if defined?(SolidQueue)
     rescue => e
       Rails.logger.warn "Unexpected error during SolidQueue setup: #{e.message}"
       # Log but don't fail
-    end
-  end
-end
-
-# Memory management for production environment
-if Rails.env.production?
-  # Force garbage collection after each job to prevent memory buildup
-  ActiveSupport::Notifications.subscribe 'perform.active_job' do |*args|
-    GC.start(full_mark: false, immediate_sweep: true) if Rails.env.production?
-  end
-  
-  # Log memory usage for monitoring
-  ActiveSupport::Notifications.subscribe 'perform.active_job' do |name, started, finished, unique_id, data|
-    if defined?(ObjectSpace)
-      memory_mb = `ps -o rss= -p #{Process.pid}`.to_i / 1024
-      Rails.logger.info "[Memory] Job #{data[:job].class.name} completed. Process memory: #{memory_mb}MB"
     end
   end
 end
