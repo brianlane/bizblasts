@@ -98,10 +98,10 @@
             <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:underline" %>
           <% else %>
             <%# Show login and signup buttons when user is not signed in %>
-            <div class="flex items-center space-x-3">
-              <%= link_to "Log in", new_user_session_path, class: "bg-white border border-primary text-primary px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200" %>
-              <%= link_to "Client Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200" %>
-              <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200" %>
+            <div class="flex items-stretch md:items-center space-x-2 md:space-x-0 md:space-x-3">
+              <%= link_to "Log in", new_user_session_path, class: "bg-white border border-primary text-primary px-3 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 text-center text-sm md:text-base" %>
+              <%= link_to "Client Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-center text-sm md:text-base" %>
+              <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-center text-sm md:text-base" %>
             </div>
           <% end %>
         </div>
