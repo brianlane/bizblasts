@@ -1,0 +1,52 @@
+<div class="bg-info/10 border border-info/20 rounded-lg p-4">
+  <div class="flex items-start">
+    <svg class="w-5 h-5 text-info mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    
+    <div class="flex-1">
+      <h4 class="text-sm font-semibold text-info mb-2">
+        📋 Business Setup: <%= setup_service.setup_summary %>
+      </h4>
+      
+      <% if setup_service.todo_items.any? %>
+        <div class="text-sm text-gray-700 mb-3">
+          Complete these steps to get your business ready for customers:
+        </div>
+        
+        <ul class="space-y-2">
+          <% setup_service.todo_items.each do |item| %>
+            <li class="flex items-center justify-between py-2 px-3 bg-white rounded border border-gray-200">
+              <div class="flex items-center">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-3
+                  <%= case item[:priority]
+                      when :high then 'bg-red-100 text-red-800'
+                      when :medium then 'bg-yellow-100 text-yellow-800'
+                      when :low then 'bg-green-100 text-green-800'
+                      end %>">
+                  <%= item[:priority].to_s.capitalize %>
+                </span>
+                <span class="text-gray-800"><%= item[:text] %></span>
+              </div>
+              
+              <% if item[:url] %>
+                <%= link_to item[:action], item[:url], 
+                    class: "ml-3 inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+        
+        <div class="mt-3 text-xs text-gray-600">
+          💡 Tip: This notification will disappear once you complete the high-priority items.
+        </div>
+      <% end %>
+    </div>
+    
+    <button type="button" class="ml-2 flex-shrink-0 text-gray-400 hover:text-gray-600" onclick="this.parentElement.parentElement.style.display='none'">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+</div> 

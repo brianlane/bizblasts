@@ -101,6 +101,15 @@
       </header>
       <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
         <%# Display flash messages %>
+        
+        <%# Business Setup Todo Flash (Blue) %>
+        <% if flash[:business_setup] %>
+          <div class="mb-4" role="alert">
+            <%= flash[:business_setup] %>
+          </div>
+        <% end %>
+        
+        <%# Standard Flash Messages %>
         <% if flash[:notice] %>
           <div class="bg-success text-white px-4 py-3 rounded relative mb-4" role="alert">
             <span class="block sm:inline"><%= flash[:notice] %></span>
