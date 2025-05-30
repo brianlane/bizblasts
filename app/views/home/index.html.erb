@@ -8,13 +8,13 @@
         <% begin %>
           <%= image_tag "bizblasts-logo-white.svg", 
               alt: "BizBlasts Logo", 
-              class: "w-auto max-w-full",
-              style: "height: 350px !important; width: auto !important; object-fit: contain !important; max-height: none !important; min-height: 350px !important;" %>
+              class: "max-w-full max-h-full",
+              style: "width: 600px !important; height: auto !important; object-fit: contain !important; min-width: 600px !important;" %>
         <% rescue => e %>
           <img src="<%= asset_path('bizblasts-logo-white.svg') rescue '/bizblasts-logo-white.svg' %>" 
                alt="BizBlasts Logo" 
-               class="w-auto max-w-full"
-               style="height: 350px !important; width: auto !important; object-fit: contain !important; max-height: none !important; min-height: 350px !important;" />
+               class="max-w-full max-h-full"
+               style="width: 600px !important; height: auto !important; object-fit: contain !important; min-width: 600px !important;" />
         <% end %>
       </div>
       
