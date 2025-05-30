@@ -88,7 +88,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       user.confirm
       fill_in 'Email', with: 'jane.doe@example.com'
       fill_in 'Password', with: 'password123'
-      click_button 'Log in'
+      click_button 'Sign In'
       
       # After sign-in, should redirect to client dashboard
       expect(current_path).to eq('/dashboard')
@@ -136,7 +136,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
         # Attempting to sign in without confirmation should fail
         fill_in 'Email', with: 'confirmation@example.com'
         fill_in 'Password', with: 'testpass123'
-        click_button 'Log in'
+        click_button 'Sign In'
         
         expect(page).to have_content('You have to confirm your email address before continuing')
         
@@ -144,7 +144,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
         user.confirm
         fill_in 'Email', with: 'confirmation@example.com'
         fill_in 'Password', with: 'testpass123'
-        click_button 'Log in'
+        click_button 'Sign In'
         
         # Should successfully sign in
         expect(page).to have_content('Signed in successfully')

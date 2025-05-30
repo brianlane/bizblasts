@@ -44,7 +44,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         visit new_user_session_path
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
-        click_button 'Log in'
+        click_button 'Sign In'
         
         # Book service
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
@@ -158,7 +158,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         visit new_user_session_path
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
-        click_button 'Log in'
+        click_button 'Sign In'
         
         # Add product to cart
         visit products_path

@@ -34,7 +34,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       visit new_user_session_path
       fill_in 'Email', with: user.email
       fill_in 'Password', with: 'password123'
-      click_button 'Log in'
+      click_button 'Sign In'
       
       # Now proceed with the checkout flow
       visit products_path
@@ -69,7 +69,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       visit new_user_session_path
       fill_in 'Email', with: user.email
       fill_in 'Password', with: 'password123'
-      click_button 'Log in'
+      click_button 'Sign In'
       
       visit products_path
       click_link 'Test Product'
@@ -145,7 +145,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :feature do
       user.confirm
       fill_in 'Email', with: 'john.doe@example.com'
       fill_in 'Password', with: 'securepass'
-      click_button 'Log in'
+      click_button 'Sign In'
       
       # After sign-in, client users are redirected to dashboard
       expect(current_path).to eq('/dashboard')

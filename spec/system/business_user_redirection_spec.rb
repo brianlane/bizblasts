@@ -93,14 +93,14 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     visit root_path
     expect(URI.parse(page.current_url).host).to eq('lvh.me')
 
-    # Find and click the Log in link (updated from "Sign In")
-    click_link 'Log in'
+    # Find and click the Sign In link (updated from "Log in")
+    click_link 'Sign In'
     expect(page).to have_current_path('/users/sign_in')
 
     # Fill in the login form
-    fill_in 'user[email]', with: user.email
-    fill_in 'user[password]', with: 'password' # Assuming 'password' is the factory default
-    click_button 'Log in'
+    fill_in 'Email', with: user.email
+    fill_in 'Password', with: 'password' # Assuming 'password' is the factory default
+    click_button 'Sign In'
 
     # Assert redirection to the correct subdomain dashboard
     # Wait for potential redirection and page load

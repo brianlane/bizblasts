@@ -39,7 +39,7 @@ RSpec.describe 'Authentication', type: :system do
       
       fill_in 'Email', with: user.email
       fill_in 'Password', with: 'wrongpassword'
-      click_button 'Log in'
+      click_button 'Sign In'
       
       # Look for something that signals failure (either stay on login page
       # or error text - depends on your configuration)
@@ -86,7 +86,7 @@ RSpec.describe 'Authentication', type: :system do
         fill_in 'Email', with: 'newclient@example.com'
         fill_in 'Password', with: 'password'
         fill_in 'Password confirmation', with: 'password'
-        click_button 'Sign up'
+        click_button 'Create Client Account'
       end
       expect(page).to have_content('A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.')
       expect(User.last.email).to eq('newclient@example.com')
@@ -129,7 +129,7 @@ RSpec.describe 'Authentication', type: :system do
       fill_in 'Email', with: user.email
       fill_in 'Password', with: 'wrongpassword'
       
-      click_button 'Log in'
+      click_button 'Sign In'
       
       # Check for failure content - if page shows login form again
       expect(current_path).to eq('/users/sign_in')
