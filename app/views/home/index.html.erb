@@ -1,20 +1,20 @@
 <!-- Hero Section -->
 <div class="bg-primary text-white">
-  <div class="container mx-auto px-4 py-20">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-8 lg:gap-12 min-h-[500px]">
+  <div class="container mx-auto px-4 py-24" style="overflow: visible;">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-8 lg:gap-12 min-h-[600px]" style="overflow: visible;">
       <!-- Left Side: Logo -->
-      <div class="w-full md:w-3/5 lg:w-2/3 flex items-center justify-center md:justify-start" style="overflow: visible;">
+      <div class="w-full md:w-3/5 lg:w-2/3 flex items-center justify-center md:justify-start" style="overflow: visible; padding: 40px 0;">
         <!-- LOGO SIZE UPDATE 2024 - CACHE BUST -->
         <% begin %>
           <%= image_tag "bizblasts-logo-white.svg", 
               alt: "BizBlasts Logo", 
               class: "max-w-full max-h-full",
-              style: "width: 100% !important; height: auto !important; object-fit: contain !important; max-width: 700px !important;" %>
+              style: "width: 100% !important; height: auto !important; object-fit: contain !important; max-width: 700px !important; margin: 20px 0 !important;" %>
         <% rescue => e %>
           <img src="<%= asset_path('bizblasts-logo-white.svg') rescue '/bizblasts-logo-white.svg' %>" 
                alt="BizBlasts Logo" 
                class="max-w-full max-h-full"
-               style="width: 100% !important; height: auto !important; object-fit: contain !important; max-width: 700px !important;" />
+               style="width: 100% !important; height: auto !important; object-fit: contain !important; max-width: 700px !important; margin: 20px 0 !important;" />
         <% end %>
       </div>
       
