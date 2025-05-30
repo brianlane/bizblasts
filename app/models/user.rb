@@ -160,7 +160,7 @@ class User < ApplicationRecord
     # Count associated tenant customers (bookings/orders tied to this user's email)
     tenant_customer_count = TenantCustomer.where(email: email).count
     if tenant_customer_count > 0
-      result[:warnings] << "Your booking and order history will be preserved but anonymized"
+      result[:warnings] << "Your booking and order history will not be preserved"
     end
   end
 
