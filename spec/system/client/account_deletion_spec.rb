@@ -110,8 +110,8 @@ RSpec.describe "Client Account Deletion", type: :system do
       visit client_settings_path
       
       expect(page).to have_content("Deleting your account will:")
-      expect(page).to have_content("Remove you from all business relationships")
-      expect(page).to have_content("Your booking history will be preserved")
+      expect(page).to have_content("Remove you from all businesses")
+      expect(page).to have_content("Your booking history will not be preserved")
     end
   end
 end 
