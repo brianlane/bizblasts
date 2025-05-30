@@ -33,4 +33,13 @@
 .bg-success-100 { background-color: #28A745; }
 .text-success-800 { color: #28A745; }
 .text-brand-600, .text-brand-800, .hover\:text-brand-800:hover { color: #1A5F7A; }
-.border-danger-400 { border-color: #DC3545; } 
+.border-danger-400 { border-color: #DC3545; }
+
+/* Landing Page Specific Styles */
+.hover\:bg-orange-600:hover { background-color: #ea580c; }
+.hover\:bg-teal-600:hover { background-color: #0d9488; }
+
+/* Smooth transitions for interactive elements */
+.transition-colors { transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; }
+.transition-shadow { transition: box-shadow 0.2s ease-in-out; }
+.transition-opacity { transition: opacity 0.2s ease-in-out; } 

@@ -9,22 +9,7 @@ class HomeController < ApplicationController
   skip_before_action :set_tenant, only: [:index]
 
   def index
-    @companies_count = fetch_companies_count
+    # Simple landing page without database dependencies
     render :index
-  end
-
-  private
-
-  def fetch_companies_count
-    # Check specifically for businesses table now
-    return 0 unless ActiveRecord::Base.connection.table_exists?('businesses')
-    
-    begin
-      # Count businesses instead of companies
-      Business.count 
-    rescue => e
-      Rails.logger.error("Error fetching businesses count: #{e.message}")
-      0
-    end
   end
 end
