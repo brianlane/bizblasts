@@ -118,7 +118,7 @@
             <p>SEO optimization</p>
             <p>Lower fees</p>
             <p>Custom domain</p>
-            <p class="text-success font-medium text-sm">🎯 Domain coverage up to $20 annually*</p>
+            <p class="text-success font-medium text-sm">🎯 Domain coverage up to $20/year*</p>
           </div>
           <button type="button" class="btn btn-primary plan-select-btn" data-tier="premium">Select Premium</button>
         </div>
@@ -132,7 +132,7 @@
           <br>
           <span class="inline-block mt-2 p-2 bg-light border-l-4 border-success text-sm rounded-r">
             <strong class="text-success">💰 Domain Coverage Included:</strong><br>
-            • BizBlasts covers up to $20 annually for domain registration and renewals<br>
+            • BizBlasts covers up to $20/year for new domain registration<br>
             • Auto-renewal setup: We pay domain costs every year up to $20<br>
             • Domains over $20/year: You obtain your own domain<br>
             • If you already own your domain, you handle domain costs<br>
@@ -342,7 +342,7 @@
         hostnameFieldDiv.style.display = 'block';
         hostnameInput.required = false; // Optional for paid tiers
         hostnameInput.placeholder = 'yourdomain';
-        hostnameHelpText.innerHTML = 'Enter your desired custom domain. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain.<br><small class="text-success font-medium">💡 Domain Coverage: BizBlasts covers up to $20 annually for domain costs. Domains over $20/year require you to obtain your own.</small>';
+        hostnameHelpText.innerHTML = 'Enter your desired custom domain. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain.<br><small class="text-success font-medium">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we\'ll contact you with alternatives.</small>';
         const desc = tierDescriptionDiv.querySelector(`p[data-tier="${selectedTier}"]`);
         if (desc) desc.style.display = 'block';
       } else {

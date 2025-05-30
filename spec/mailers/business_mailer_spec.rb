@@ -49,8 +49,9 @@ RSpec.describe BusinessMailer, type: :mailer do
     it 'includes coverage policy details' do
       mail = BusinessMailer.domain_request_notification(premium_user)
       
-      expect(mail.body.encoded).to include('If you already own this domain')
-      expect(mail.body.encoded).to include('domain-related costs through your current registrar')
+      text_part = mail.text_part.body.decoded
+      expect(text_part).to include('If you already own this domain')
+      expect(text_part).to include('domain-related costs through your current registrar')
     end
 
     context 'with domain name in email' do

@@ -275,7 +275,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
         { 
           business: {
             name: "Premium Business with Coverage",
-            hostname: "premium-coverage",
+            hostname: "premium-coverage.com",
             host_type: 'custom_domain',
             tier: 'premium',
             industry: "consulting",
@@ -304,7 +304,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
         expect(new_business.domain_coverage_applied?).to be true
         expect(new_business.domain_cost_covered).to eq(18.50)
         expect(new_business.domain_coverage_notes).to eq("Domain registered via admin interface")
-        expect(new_business.domain_renewal_date).to be_within(1.day).of(1.year.from_now)
+        expect(new_business.domain_renewal_date).to be_within(1.day).of(1.year.from_now.to_date)
       end
     end
 
