@@ -85,7 +85,7 @@ RSpec.describe "Business Registration", type: :system do
       within('.subscription-plan[data-tier="free"]') do
         expect(page).to have_content("Basic features")
         expect(page).to have_content("BizBlasts subdomain")
-        expect(page).to have_content("%5 payment fee")
+        expect(page).to have_content("5% payment fee")
         expect(page).to have_content("Essential tools")
       end
       

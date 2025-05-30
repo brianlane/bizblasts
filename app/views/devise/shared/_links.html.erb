@@ -1,6 +1,6 @@
 <div class="mt-6 space-y-3 text-center">
   <%- if controller_name != 'sessions' %>
-    <%= link_to "Log in", new_session_path(resource_name), class: "block text-primary hover:text-blue-800 font-medium transition-colors" %>
+    <%= link_to "Sign In", new_session_path(resource_name), class: "inline-block bg-white border border-primary text-primary px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-center" %>
   <% end %>
 
   <%- if devise_mapping.registerable? && controller_name != 'registrations' && controller_name != 'sessions' %>

@@ -44,10 +44,10 @@ RSpec.describe "Business Manager Orders", type: :system do
     Capybara.app_host = "http://#{business.hostname}.lvh.me"
     
     # Log in as the business manager
-    visit new_user_session_path
-    fill_in "Email", with: manager.email
-    fill_in "Password", with: manager.password
-    click_button "Log in"
+    visit '/users/sign_in'
+    fill_in 'Email', with: manager.email
+    fill_in 'Password', with: 'password123'
+    click_button "Sign In"
   end
 
   describe "viewing orders from dashboard" do
