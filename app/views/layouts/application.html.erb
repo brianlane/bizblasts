@@ -28,14 +28,19 @@
 
   <body>
     <%# Navigation Header %>
-    <nav class="bg-gray-100 border-b border-gray-200 px-4 py-2 mb-4">
+    <nav class="bg-white border-b border-gray-200 px-4 py-3 mb-4 shadow-sm">
       <div class="container mx-auto flex justify-between items-center">
-        <div>
-          <%# Link back to appropriate home %>
+        <div class="flex items-center min-w-0 flex-shrink-0">
+          <%# Logo and Home Link %>
           <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
-            <%= link_to ActsAsTenant.current_tenant.name, tenant_root_path, class: "font-bold text-lg" %>
+            <%= link_to tenant_root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
+              <%= image_tag "/bizblasts-logo.svg", alt: "BizBlasts", class: "h-10 w-auto mr-3" %>
+              <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
+            <% end %>
           <% else %>
-            <%= link_to "BizBlasts Home", root_path, class: "font-bold text-lg" %>
+            <%= link_to root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
+              <span class="font-bold text-lg text-primary whitespace-nowrap">BizBlasts</span>
+            <% end %>
           <% end %>
         </div>
         <div>
@@ -86,6 +91,13 @@
             
             <%= link_to dashboard_text, dashboard_path, class: "mr-4 text-primary hover:underline" %>
             <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:underline" %>
+          <% else %>
+            <%# Show login and signup buttons when user is not signed in %>
+            <div class="flex items-center space-x-3">
+              <%= link_to "Log in", new_user_session_path, class: "bg-white border border-primary text-primary px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200" %>
+              <%= link_to "Client Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200" %>
+              <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200" %>
+            </div>
           <% end %>
         </div>
       </div>
