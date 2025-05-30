@@ -51,6 +51,23 @@ services:
         sync: false
       - key: SOLID_QUEUE_IN_PUMA
         value: "true"
+      # Ruby garbage collection optimization
+      - key: RUBY_GC_HEAP_GROWTH_FACTOR
+        value: "1.1"  # More conservative heap growth
+      - key: RUBY_GC_HEAP_GROWTH_MAX_SLOTS
+        value: "50000"  # Limit heap growth
+      - key: RUBY_GC_MALLOC_LIMIT
+        value: "33554432"  # 32MB malloc limit
+      - key: RUBY_GC_MALLOC_LIMIT_MAX
+        value: "67108864"  # 64MB max malloc limit
+      - key: RUBY_GC_MALLOC_LIMIT_GROWTH_FACTOR
+        value: "1.1"  # Conservative malloc growth
+      - key: RUBY_GC_HEAP_INIT_SLOTS
+        value: "20000"  # Start with fewer heap slots
+      - key: RUBY_GC_HEAP_FREE_SLOTS
+        value: "8000"   # Keep fewer free slots
+      - key: RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR
+        value: "0.9"    # More aggressive old object collection
 
 databases:
   - name: bizblast-postgresql

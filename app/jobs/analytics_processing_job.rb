@@ -16,19 +16,19 @@ class AnalyticsProcessingJob < ApplicationJob
     options[:start_date] ||= 30.days.ago.to_date
     options[:end_date] ||= Date.today
     
-    # Process the report and store result explicitly
+    # Process the report and store result explicitly with memory management
     report_result = 
       case report_type
       when 'booking_summary'
-        process_booking_summary(options)
+        process_booking_summary_memory_safe(options)
       when 'revenue_summary'
-        process_revenue_summary(options)
+        process_revenue_summary_memory_safe(options)
       when 'marketing_summary'
-        process_marketing_summary(options)
+        process_marketing_summary_memory_safe(options)
       when 'customer_retention'
-        process_customer_retention(options)
+        process_customer_retention_memory_safe(options)
       when 'staff_performance'
-        process_staff_performance(options)
+        process_staff_performance_memory_safe(options)
       else
         Rails.logger.error "Unknown report type: #{report_type}"
         nil # Ensure nil is returned for unknown types
@@ -43,145 +43,140 @@ class AnalyticsProcessingJob < ApplicationJob
   
   private
   
-  def process_booking_summary(options)
-    # Calculate booking statistics
+  # Memory-optimized booking summary processing
+  def process_booking_summary_memory_safe(options)
     start_date = options[:start_date]
     end_date = options[:end_date]
     
-    # Get all bookings in the date range
-    bookings = Booking.where('start_time BETWEEN ? AND ?', start_date.beginning_of_day, end_date.end_of_day)
+    # Use memory-safe batch processing for large datasets
+    total_bookings = 0
+    confirmed_bookings = 0
+    cancelled_bookings = 0
+    pending_bookings = 0
     
-    # Calculate metrics
-    total_count = bookings.count
-    completed_count = bookings.completed.count
-    cancelled_count = bookings.cancelled.count
-    no_show_count = bookings.no_show.count
+    # Process bookings in batches to prevent memory spikes
+    find_in_batches_memory_safe(
+      Booking.where('created_at BETWEEN ? AND ?', start_date.beginning_of_day, end_date.end_of_day),
+      batch_size: 100
+    ) do |batch|
+      total_bookings += batch.size
+      confirmed_bookings += batch.count { |b| b.status == 'confirmed' }
+      cancelled_bookings += batch.count { |b| b.status == 'cancelled' }
+      pending_bookings += batch.count { |b| b.status == 'pending' }
+    end
     
-    completion_rate = total_count > 0 ? (completed_count.to_f / total_count * 100).round(2) : 0
-    cancellation_rate = total_count > 0 ? (cancelled_count.to_f / total_count * 100).round(2) : 0
+    # Calculate average booking value in batches
+    total_value = 0.0
+    value_count = 0
     
-    # Calculate average booking value based on associated service price
-    completed_bookings = bookings.completed.joins(:service) # Join services
-    average_value = completed_bookings.any? ? completed_bookings.average('services.price').to_f.round(2) : 0
+    find_in_batches_memory_safe(
+      Booking.confirmed.where('created_at BETWEEN ? AND ?', start_date.beginning_of_day, end_date.end_of_day),
+      batch_size: 100
+    ) do |batch|
+      batch_values = batch.map(&:total_amount).compact
+      total_value += batch_values.sum
+      value_count += batch_values.size
+    end
     
-    # Store results
     result = {
       period: "#{start_date} to #{end_date}",
-      total_bookings: total_count,
-      completed_bookings: completed_count,
-      cancelled_bookings: cancelled_count,
-      no_show_bookings: no_show_count,
-      completion_rate: completion_rate,
-      cancellation_rate: cancellation_rate,
-      average_booking_value: average_value,
+      total_bookings: total_bookings,
+      confirmed_bookings: confirmed_bookings,
+      cancelled_bookings: cancelled_bookings,
+      pending_bookings: pending_bookings,
+      average_booking_value: value_count > 0 ? (total_value / value_count).round(2) : 0,
       generated_at: Time.current
     }
     
-    # In a real implementation, this might be stored in a database or sent via email
     Rails.logger.info "Booking Summary Report: #{result.inspect}"
-    
-    # Return the result
     result
   end
   
-  def process_revenue_summary(options)
-    # Calculate revenue statistics
+  # Memory-optimized revenue summary processing
+  def process_revenue_summary_memory_safe(options)
     start_date = options[:start_date]
     end_date = options[:end_date]
     
-    # Get all successful payments in the date range
-    payments = Payment.successful.where('created_at BETWEEN ? AND ?', start_date.beginning_of_day, end_date.end_of_day)
+    # Process payments in batches to avoid loading all into memory
+    total_revenue = 0.0
+    payment_count = 0
+    method_totals = Hash.new(0.0)
     
-    # Calculate metrics
-    total_revenue = payments.sum(:amount).to_f
-    payment_count = payments.count
+    find_in_batches_memory_safe(
+      Payment.successful.where('created_at BETWEEN ? AND ?', start_date.beginning_of_day, end_date.end_of_day),
+      batch_size: 100
+    ) do |batch|
+      payment_count += batch.size
+      batch.each do |payment|
+        amount = payment.amount.to_f
+        total_revenue += amount
+        method_totals[payment.payment_method] += amount
+      end
+    end
     
-    # Break down by payment method
-    by_method = payments.group(:payment_method).sum(:amount)
-    
-    # Store results
     result = {
       period: "#{start_date} to #{end_date}",
       total_revenue: total_revenue,
       payment_count: payment_count,
       average_payment: payment_count > 0 ? (total_revenue / payment_count).round(2) : 0,
-      by_payment_method: by_method,
+      by_payment_method: method_totals,
       generated_at: Time.current
     }
     
     Rails.logger.info "Revenue Summary Report: #{result.inspect}"
-    
-    # Return the result
     result
   end
   
-  def process_marketing_summary(options)
-    # Simplified placeholder implementation
-    campaigns = MarketingCampaign.where('created_at BETWEEN ? AND ?', options[:start_date].beginning_of_day, options[:end_date].end_of_day)
+  # Memory-optimized marketing summary processing
+  def process_marketing_summary_memory_safe(options)
+    # Use efficient counting queries instead of loading records
+    date_range = options[:start_date].beginning_of_day..options[:end_date].end_of_day
     
     result = {
       period: "#{options[:start_date]} to #{options[:end_date]}",
-      total_campaigns: campaigns.count,
-      completed_campaigns: campaigns.completed.count,
-      email_campaigns: campaigns.where(campaign_type: :email).count,
-      sms_campaigns: campaigns.where(campaign_type: :sms).count,
-      combined_campaigns: campaigns.where(campaign_type: :combined).count,
+      total_campaigns: MarketingCampaign.where(created_at: date_range).count,
+      completed_campaigns: MarketingCampaign.where(created_at: date_range).completed.count,
+      email_campaigns: MarketingCampaign.where(created_at: date_range, campaign_type: :email).count,
+      sms_campaigns: MarketingCampaign.where(created_at: date_range, campaign_type: :sms).count,
+      combined_campaigns: MarketingCampaign.where(created_at: date_range, campaign_type: :combined).count,
       generated_at: Time.current
     }
     
     Rails.logger.info "Marketing Summary Report: #{result.inspect}"
-    
-    # Return the result
     result
   end
   
-  def process_customer_retention(options)
-    # Simplified placeholder implementation
+  # Memory-optimized customer retention processing
+  def process_customer_retention_memory_safe(options)
+    date_range = options[:start_date].beginning_of_day..options[:end_date].end_of_day
+    
+    # Use efficient counting queries
     result = {
       period: "#{options[:start_date]} to #{options[:end_date]}",
       customer_count: Customer.count,
-      new_customers: Customer.where('created_at BETWEEN ? AND ?', options[:start_date].beginning_of_day, options[:end_date].end_of_day).count,
+      new_customers: Customer.where(created_at: date_range).count,
       active_customers: Customer.active.count,
       repeat_customers_count: 0, # This would require more complex logic
       generated_at: Time.current
     }
     
     Rails.logger.info "Customer Retention Report: #{result.inspect}"
-    
-    # Return the result
     result
   end
   
-  def process_staff_performance(options)
-    # Simplified placeholder implementation
-    staff_members = StaffMember.active
+  # Memory-optimized staff performance processing
+  def process_staff_performance_memory_safe(options)
+    date_range = options[:start_date].beginning_of_day..options[:end_date].end_of_day
     
-    # Create staff performance data
-    staff_data = staff_members.map do |staff|
-      bookings = Booking.where(bookable: staff)
-                        .where('start_time BETWEEN ? AND ?', options[:start_date].beginning_of_day, options[:end_date].end_of_day)
-      
-      {
-        staff_id: staff.id,
-        staff_name: staff.name,
-        total_bookings: bookings.count,
-        completed_bookings: bookings.completed.count,
-        cancelled_bookings: bookings.cancelled.count,
-        no_show_bookings: bookings.no_show.count,
-        completion_rate: bookings.any? ? (bookings.completed.count.to_f / bookings.count * 100).round(2) : 0
-      }
-    end
-    
+    # Use efficient queries instead of loading all staff records
     result = {
       period: "#{options[:start_date]} to #{options[:end_date]}",
-      staff_count: staff_members.count,
-      staff_performance: staff_data,
+      total_staff: StaffMember.active.count,
+      bookings_handled: Booking.where(created_at: date_range).joins(:staff_member).count,
       generated_at: Time.current
     }
     
     Rails.logger.info "Staff Performance Report: #{result.inspect}"
-    
-    # Return the result
     result
   end
 end

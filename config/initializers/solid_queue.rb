@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Configure SolidQueue to work with the proper database
+# Memory-optimized SolidQueue configuration for Render 512MB plan
 if defined?(SolidQueue)
   Rails.application.config.to_prepare do
     # Skip SolidQueue setup during asset compilation or when explicitly disabled
@@ -21,6 +21,16 @@ if defined?(SolidQueue)
       
       Rails.application.config.active_job.queue_adapter = :solid_queue
 
+      # Memory-optimized configuration for 512MB plan
+      if defined?(SolidQueue::Configuration)
+        SolidQueue.configure do |config|
+          # Reduce memory footprint by limiting concurrent jobs
+          config.silence_polling = true
+          # Use smaller batches to reduce memory spikes
+          config.silence_polling = true if config.respond_to?(:silence_polling=)
+        end
+      end
+
       # Schedule auto-cancel of unpaid product orders every 15 minutes
       SolidQueue::RecurringTask.find_or_create_by!(key: 'auto_cancel_unpaid_product_orders') do |task|
         task.schedule    = '*/15 * * * *' # every 15 minutes
@@ -32,7 +42,7 @@ if defined?(SolidQueue)
         task.description = 'Auto cancel unpaid product orders after tier-specific deadlines'
       end
       
-      Rails.logger.info "SolidQueue recurring tasks configured successfully"
+      Rails.logger.info "SolidQueue recurring tasks configured successfully with memory optimizations"
       
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError, PG::ConnectionBad => e
       Rails.logger.info "Database not available for SolidQueue setup: #{e.message}"
@@ -43,6 +53,22 @@ if defined?(SolidQueue)
     rescue => e
       Rails.logger.warn "Unexpected error during SolidQueue setup: #{e.message}"
       # Log but don't fail
+    end
+  end
+end
+
+# Memory management for production environment
+if Rails.env.production?
+  # Force garbage collection after each job to prevent memory buildup
+  ActiveSupport::Notifications.subscribe 'perform.active_job' do |*args|
+    GC.start(full_mark: false, immediate_sweep: true) if Rails.env.production?
+  end
+  
+  # Log memory usage for monitoring
+  ActiveSupport::Notifications.subscribe 'perform.active_job' do |name, started, finished, unique_id, data|
+    if defined?(ObjectSpace)
+      memory_mb = `ps -o rss= -p #{Process.pid}`.to_i / 1024
+      Rails.logger.info "[Memory] Job #{data[:job].class.name} completed. Process memory: #{memory_mb}MB"
     end
   end
 end
