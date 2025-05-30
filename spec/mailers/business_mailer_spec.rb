@@ -171,7 +171,7 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('Payment Received')
       expect(mail.subject).to include(tenant_customer.name)
-      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(tenant_customer.name.gsub("'", "&#39;"))
       expect(mail.body.encoded).to include(business.name)
     end
 
