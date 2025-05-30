@@ -18,25 +18,50 @@
 # Global VM Lock (GVL) it has diminishing returns and will degrade the
 # response time (latency) of the application.
 #
-# The default is set to 3 threads as it's deemed a decent compromise between
-# throughput and latency for the average Rails application.
-#
-# Any libraries that use a connection pool or another resource pool should
-# be configured to provide at least as many connections as the number of
-# threads. This includes Active Record's `pool` parameter in `database.yml`.
-threads_count = ENV.fetch("RAILS_MAX_THREADS", 3)
+# Memory-optimized configuration for Render 512MB plan
+# Reduced thread count to minimize memory usage
+# Each thread typically uses 8-32MB of memory
+threads_count = ENV.fetch("RAILS_MAX_THREADS") do
+  # Use fewer threads on production to conserve memory
+  Rails.env.production? ? 2 : 3
+end
 threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
 # Only use one port binding method to avoid conflicts
 port ENV.fetch("PORT", 3000)
 
+# Preload the application for memory efficiency
+if Rails.env.production?
+  preload_app!
+  
+  # Memory optimization settings
+  worker_timeout 60
+  worker_shutdown_timeout 30
+  
+  # Force garbage collection before forking workers
+  before_fork do
+    GC.start(full_mark: true, immediate_sweep: true)
+  end
+end
+
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
 # Run the Solid Queue supervisor inside of Puma for single-server deployments
-plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
+# Only in production to avoid memory overhead in development
+plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"] && Rails.env.production?
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
+
+# Memory monitoring and cleanup
+if Rails.env.production?
+  # Log memory usage periodically
+  lowlevel_error_handler do |ex, env|
+    memory_mb = `ps -o rss= -p #{Process.pid}`.to_i / 1024
+    puts "[Memory Alert] Process memory: #{memory_mb}MB during error: #{ex.message}"
+    [500, {}, ["Internal Server Error"]]
+  end
+end
