@@ -1,74 +1,62 @@
 # frozen_string_literal: true
 
 # Base job class for all application background jobs
-# Provides configuration for retries and error handling
+# Provides configuration for retries, error handling, and memory optimization
 class ApplicationJob < ActiveJob::Base
   # Automatically retry jobs that encountered a deadlock
-  # retry_on ActiveRecord::Deadlocked
-
+  retry_on ActiveRecord::Deadlocked, wait: :exponentially_longer, attempts: 3
+  
   # Most jobs are safe to ignore if the underlying records are no longer available
-  # discard_on ActiveJob::DeserializationError
+  discard_on ActiveJob::DeserializationError
   
-  # Memory optimization for 512MB plan
-  queue_as :default
+  # Memory optimization: Discard jobs that cause out of memory errors
+  discard_on NoMemoryError, StandardError do |job, error|
+    if error.message.include?('memory') || error.message.include?('Memory')
+      Rails.logger.error "Job #{job.class.name} discarded due to memory error: #{error.message}"
+      true
+    else
+      false
+    end
+  end
   
-  # Memory-efficient job execution wrapper
+  # Queue configuration for memory efficiency
+  queue_with_priority 0  # Default priority
+  
+  # Add memory monitoring to all jobs
   around_perform do |job, block|
-    memory_before = current_memory_mb if Rails.env.production?
+    memory_before = memory_usage_mb if Rails.env.production?
     
-    begin
-      # Log job start with memory usage
-      if Rails.env.production?
-        Rails.logger.info "[Job Start] #{job.class.name} - Memory: #{memory_before}MB"
-      end
-      
+    # Set job timeout to prevent runaway processes
+    Timeout.timeout(job_timeout) do
       block.call
+    end
+    
+    if Rails.env.production?
+      memory_after = memory_usage_mb
+      memory_diff = memory_after - memory_before
       
-    ensure
-      if Rails.env.production?
-        memory_after = current_memory_mb
-        memory_diff = memory_after - memory_before
-        
-        Rails.logger.info "[Job End] #{job.class.name} - Memory: #{memory_after}MB (#{memory_diff > 0 ? '+' : ''}#{memory_diff}MB)"
-        
-        # Force garbage collection for memory-intensive jobs
-        if memory_diff > 50 || memory_after > 350
-          Rails.logger.info "[Job GC] Triggering garbage collection after #{job.class.name}"
-          GC.start(full_mark: false, immediate_sweep: true)
-          final_memory = current_memory_mb
-          Rails.logger.info "[Job GC] Final memory: #{final_memory}MB (freed #{memory_after - final_memory}MB)"
-        end
+      # Log memory usage for monitoring
+      Rails.logger.info "Job #{job.class.name} completed - Memory: #{memory_after}MB (#{memory_diff >= 0 ? '+' : ''}#{memory_diff}MB)"
+      
+      # Force GC if job used significant memory
+      if memory_diff > 50 || memory_after > 400
+        Rails.logger.info "Triggering GC after #{job.class.name} - High memory usage"
+        GC.start
       end
     end
+  rescue Timeout::Error
+    Rails.logger.error "Job #{job.class.name} timed out after #{job_timeout} seconds"
+    raise
   end
   
   private
   
-  def current_memory_mb
+  def memory_usage_mb
     `ps -o rss= -p #{Process.pid}`.to_i / 1024
   end
   
-  # Memory-efficient database query helper
-  def find_in_batches_memory_safe(relation, batch_size: 100)
-    relation.find_in_batches(batch_size: batch_size) do |batch|
-      yield batch
-      
-      # Force garbage collection between batches for large datasets
-      if Rails.env.production? && batch_size > 50
-        GC.start(full_mark: false, immediate_sweep: false)
-      end
-    end
-  end
-  
-  # Helper method to prevent memory leaks in loops
-  def process_with_memory_management(items, chunk_size: 50)
-    items.each_slice(chunk_size).with_index do |chunk, index|
-      yield chunk
-      
-      # Trigger GC every 10 chunks in production
-      if Rails.env.production? && (index + 1) % 10 == 0
-        GC.start(full_mark: false, immediate_sweep: false)
-      end
-    end
+  def job_timeout
+    # Default timeout of 5 minutes, can be overridden in subclasses
+    300
   end
 end

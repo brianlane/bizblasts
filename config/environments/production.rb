@@ -135,21 +135,4 @@ Rails.application.configure do
   
   # Skip DNS rebinding protection for the default health check endpoint.
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
-
-  # Memory optimization for 512MB plan
-  # Reduce default logger buffer to save memory
-  config.logger.level = Logger::INFO
-  config.log_level = :info
-  
-  # Optimize Active Record for memory usage
-  config.active_record.cache_query_log_tags = false
-  config.active_record.verbose_query_logs = false
-  
-  # Reduce Action Controller memory usage
-  config.action_controller.enable_fragment_cache_logging = false
-  
-  # Memory-efficient asset serving
-  config.public_file_server.headers = {
-    'Cache-Control' => 'public, max-age=31536000'
-  }
 end
