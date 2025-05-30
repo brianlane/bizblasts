@@ -1,24 +1,24 @@
-<svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
   <!-- Rocket Icon -->
-  <g transform="translate(10, 10)">
+  <g transform="translate(10, 5)">
     <!-- Rocket Body -->
-    <path d="M15,75 C15,30 40,10 50,0 C60,10 85,30 85,75 L85,90 C85,95 75,100 50,100 C25,100 15,95 15,90 L15,75 Z" fill="white" />
+    <path d="M15,60 C15,25 40,8 50,0 C60,8 85,25 85,60 L85,72 C85,76 75,80 50,80 C25,80 15,76 15,72 L15,60 Z" fill="white" />
     
     <!-- Rocket Window -->
-    <circle cx="50" cy="45" r="12" fill="#57C5B6" />
-    <circle cx="50" cy="45" r="7" fill="#1A5F7A" />
+    <circle cx="50" cy="36" r="10" fill="#57C5B6" />
+    <circle cx="50" cy="36" r="6" fill="#1A5F7A" />
     
     <!-- Rocket Fins -->
-    <path d="M15,75 L0,90 L0,75 L15,65 Z" fill="#FF8C42" />
-    <path d="M85,75 L100,90 L100,75 L85,65 Z" fill="#FF8C42" />
+    <path d="M15,60 L0,72 L0,60 L15,52 Z" fill="#FF8C42" />
+    <path d="M85,60 L100,72 L100,60 L85,52 Z" fill="#FF8C42" />
     
     <!-- Rocket Flames -->
-    <path d="M35,100 C35,140 42,145 50,155 C58,145 65,140 65,100 Z" fill="#FF8C42" opacity="0.9" />
-    <path d="M40,100 C40,135 45,140 50,147 C55,140 60,135 60,100 Z" fill="#FFC107" opacity="0.9" />
+    <path d="M30,80 C30,100 42,105 50,110 C58,105 70,100 70,80 Z" fill="#FF8C42" opacity="0.9" />
+    <path d="M35,80 C35,95 45,98 50,102 C55,98 65,95 65,80 Z" fill="#FFC107" opacity="0.9" />
   </g>
   
   <!-- Text -->
-  <g transform="translate(120, 30)">
+  <g transform="translate(120, 25)">
     <text font-family="Arial, sans-serif" font-weight="bold" font-size="32" fill="white">
       <tspan x="0" y="0">Biz</tspan>
       <tspan x="50" y="0" fill="#57C5B6">Blasts</tspan>

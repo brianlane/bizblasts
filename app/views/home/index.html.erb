@@ -2,7 +2,13 @@
 <div class="bg-primary text-white">
   <div class="container mx-auto px-4 py-16">
     <div class="flex flex-col md:flex-row items-center justify-between gap-8 lg:gap-12">
-      <!-- Left Side: Logo -->
+      <!-- Left Side: Tagline -->
+      <div class="w-full md:w-1/2 text-center md:text-left">
+        <h1 class="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold leading-tight" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+          Your website, booking system, and growth engine—all in one.
+        </h1>
+      </div>
+      <!-- Right Side: Logo -->
       <div class="w-full md:w-1/2 flex justify-center md:justify-start">
         <% begin %>
           <%= image_tag "bizblasts-logo-white.svg", 
@@ -11,17 +17,10 @@
               style: "min-height: 80px; min-width: 200px;" %>
         <% rescue => e %>
           <img src="<%= asset_path('bizblasts-logo-white.svg') rescue '/bizblasts-logo-white.svg' %>" 
-               alt="BizBlasts Logo" 
-               class="h-20 md:h-24 lg:h-32 w-auto"
-               style="min-height: 80px; min-width: 200px;" />
+                alt="BizBlasts Logo" 
+                class="h-20 md:h-24 lg:h-32 w-auto"
+                style="min-height: 80px; min-width: 200px;" />
         <% end %>
-      </div>
-      
-      <!-- Right Side: Tagline -->
-      <div class="w-full md:w-1/2 text-center md:text-left">
-        <h1 class="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold leading-tight" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
-          Your website, booking system, and growth engine—all in one.
-        </h1>
       </div>
     </div>
   </div>
@@ -246,13 +245,13 @@
               <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              Advanced Staff Support
+              <b>Advanced Staff Support</b>
             </li>
             <li class="flex items-center">
               <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              Basic Website Tools
+              <b>Basic Website Tools</b>
             </li>
           </ul>
         </div>
