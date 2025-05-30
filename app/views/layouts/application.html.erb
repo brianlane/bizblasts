@@ -34,7 +34,7 @@
           <%# Logo and Home Link %>
           <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
             <%= link_to tenant_root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
-              <%= image_tag "/bizblasts-logo.svg", alt: "BizBlasts", class: "h-10 w-auto mr-3" %>
+              <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts", class: "h-10 w-auto mr-3" %>
               <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
             <% end %>
           <% else %>
