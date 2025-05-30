@@ -93,8 +93,8 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     visit root_path
     expect(URI.parse(page.current_url).host).to eq('lvh.me')
 
-    # Find and click the Sign In link
-    click_link 'Sign In'
+    # Find and click the Log in link (updated from "Sign In")
+    click_link 'Log in'
     expect(page).to have_current_path('/users/sign_in')
 
     # Fill in the login form

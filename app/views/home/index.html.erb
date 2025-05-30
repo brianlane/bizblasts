@@ -1,26 +1,29 @@
 <!-- Hero Section -->
 <div class="bg-primary text-white">
   <div class="container mx-auto px-4 py-16">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-8 lg:gap-12">
-      <!-- Left Side: Tagline -->
-      <div class="w-full md:w-1/2 text-center md:text-left">
-        <h1 class="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold leading-tight" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
-          Your website, booking system, and growth engine—all in one.
-        </h1>
-      </div>
-      <!-- Right Side: Logo -->
-      <div class="w-full md:w-1/2 flex justify-center md:justify-start">
+    <div class="flex flex-col md:flex-row items-stretch justify-between gap-8 lg:gap-12 min-h-[400px]">
+      <!-- Left Side: Logo -->
+      <div class="w-full md:w-1/2 flex items-center justify-center md:justify-start">
         <% begin %>
           <%= image_tag "bizblasts-logo-white.svg", 
               alt: "BizBlasts Logo", 
-              class: "h-20 md:h-24 lg:h-32 w-auto",
-              style: "min-height: 80px; min-width: 200px;" %>
+              class: "w-full max-w-md h-auto",
+              style: "min-height: 120px; max-height: 80vh; object-fit: contain;" %>
         <% rescue => e %>
           <img src="<%= asset_path('bizblasts-logo-white.svg') rescue '/bizblasts-logo-white.svg' %>" 
-                alt="BizBlasts Logo" 
-                class="h-20 md:h-24 lg:h-32 w-auto"
-                style="min-height: 80px; min-width: 200px;" />
+               alt="BizBlasts Logo" 
+               class="w-full max-w-md h-auto"
+               style="min-height: 120px; max-height: 80vh; object-fit: contain;" />
         <% end %>
+      </div>
+      
+      <!-- Right Side: Tagline -->
+      <div class="w-full md:w-1/2 flex items-center justify-center md:justify-start">
+        <div class="text-center md:text-left">
+          <h1 class="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold leading-tight" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+            Your website, booking system, and growth engine—all in one.
+          </h1>
+        </div>
       </div>
     </div>
   </div>

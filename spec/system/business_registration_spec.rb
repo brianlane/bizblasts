@@ -109,9 +109,9 @@ RSpec.describe "Business Registration", type: :system do
     it "shows domain coverage information for Premium plan" do
       visit new_business_registration_path
       
-      # Premium plan should show domain coverage feature
+      # Premium plan should show custom domain feature (visible by default)
       within('.subscription-plan[data-tier="premium"]') do
-        expect(page).to have_content("Domain coverage up to $20/year")
+        expect(page).to have_content("Custom domain")
       end
     end
 
