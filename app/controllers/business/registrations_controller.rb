@@ -96,7 +96,8 @@ class Business::RegistrationsController < Users::RegistrationsController
         :description, :tier, 
         :hostname # Permit the single hostname field
         # Removed :subdomain, :domain
-      ]
+      ],
+      policy_acceptances: {}
     ])
   end
   
@@ -243,6 +244,9 @@ class Business::RegistrationsController < Users::RegistrationsController
       # Success path
       Rails.logger.info "[REGISTRATION] Transaction successful. Business ##{resource.business_id} created immediately."
       
+      # Record policy acceptances after successful creation
+      record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
+      
       if resource.active_for_authentication?
         set_flash_message! :notice, :signed_up
         sign_up(resource_name, resource)
@@ -364,5 +368,24 @@ class Business::RegistrationsController < Users::RegistrationsController
     # System tests typically use a different host pattern or user agent
     # Capybara system tests use a specific port range (9887+)
     request.host.include?('lvh.me') && request.port.to_s.match?(/988\d/)
+  end
+
+  # Record policy acceptances for the user
+  def record_policy_acceptances(user, policy_params)
+    return unless policy_params.present?
+    
+    policy_params.each do |policy_type, accepted|
+      next unless accepted == '1'
+      
+      current_version = PolicyVersion.current_version(policy_type)
+      next unless current_version
+      
+      begin
+        PolicyAcceptance.record_acceptance(user, policy_type, current_version.version, request)
+        Rails.logger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
+      rescue => e
+        Rails.logger.error "[REGISTRATION] Failed to record policy acceptance for #{policy_type}: #{e.message}"
+      end
+    end
   end
 end 

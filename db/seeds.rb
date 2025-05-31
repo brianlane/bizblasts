@@ -277,3 +277,42 @@ if admin_email.present? && admin_password.present?
 else
   puts "Skipping AdminUser creation: ADMIN_EMAIL or ADMIN_PASSWORD environment variables not set."
 end
+
+# Create initial policy versions using current Termly embeds
+puts "Creating initial policy versions..."
+
+PolicyVersion.create!([
+  {
+    policy_type: 'terms_of_service',
+    version: 'v1.0',
+    termly_embed_id: '8e1d177a-1bac-44a7-aabc-2f55625a62bc',
+    active: true,
+    effective_date: Date.current,
+    change_summary: 'Initial Terms of Service - Platform usage rules, billing terms'
+  },
+  {
+    policy_type: 'privacy_policy',
+    version: 'v1.0',
+    termly_embed_id: '34a546a3-a481-4552-85ab-8164b9014422',
+    active: true,
+    effective_date: Date.current,
+    change_summary: 'Initial Privacy Policy - How BizBlasts handles your data'
+  },
+  {
+    policy_type: 'acceptable_use_policy',
+    version: 'v1.0',
+    termly_embed_id: '5acd91e3-ec71-4968-9145-c9ea535b180e',
+    active: true,
+    effective_date: Date.current,
+    change_summary: 'Initial Acceptable Use Policy - Platform usage guidelines'
+  },
+  {
+    policy_type: 'return_policy',
+    version: 'v1.0',
+    active: true,
+    effective_date: Date.current,
+    change_summary: 'Initial Return Policy - Subscription cancellation/refund terms'
+  }
+])
+
+puts "Created #{PolicyVersion.count} policy versions"

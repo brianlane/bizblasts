@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :assigned_services, through: :staff_assignments, source: :service
   has_many :staff_memberships, class_name: 'StaffMember'
   has_many :staffed_businesses, through: :staff_memberships, source: :business
+  has_many :policy_acceptances, dependent: :destroy
 
   # Allow creating business via user form during sign-up
   # accepts_nested_attributes_for :business # Removed - Business creation handled explicitly in controller
@@ -148,6 +149,33 @@ class User < ApplicationRecord
   # Find the StaffMember record for a specific business
   def staff_member_for(business)
     staff_memberships.find_by(business: business)
+  end
+
+  # Policy acceptance methods
+  def needs_policy_acceptance?
+    requires_policy_acceptance? || missing_required_policies.any?
+  end
+  
+  def missing_required_policies
+    required_policies = case role
+    when 'client'
+      %w[privacy_policy terms_of_service acceptable_use_policy]
+    when 'manager', 'staff'
+      %w[terms_of_service privacy_policy acceptable_use_policy return_policy]
+    else
+      %w[privacy_policy terms_of_service acceptable_use_policy]
+    end
+    
+    required_policies.reject do |policy_type|
+      current_version = PolicyVersion.current_version(policy_type)
+      next true unless current_version # Skip if no current version
+      
+      PolicyAcceptance.has_accepted_policy?(self, policy_type, current_version.version)
+    end
+  end
+  
+  def mark_policies_accepted!
+    update!(requires_policy_acceptance: false, last_policy_notification_at: Time.current)
   end
 
   private # Ensure private keyword exists or add it if needed

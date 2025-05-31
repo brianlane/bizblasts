@@ -213,6 +213,69 @@
         <% end %>
       </div>
 
+      <!-- Legal Agreement Section -->
+      <div class="border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-semibold text-dark mb-4 flex items-center">
+          <svg class="h-6 w-6 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Legal Agreements
+        </h3>
+        <div class="space-y-3 bg-gray-50 p-4 rounded-lg">
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[terms_of_service]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_terms_of_service" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Terms of Service", terms_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (platform usage rules, billing terms)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+          
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[privacy_policy]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_privacy_policy" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Privacy Policy", privacypolicy_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (how you handle business data)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+          
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[acceptable_use_policy]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_acceptable_use_policy" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Acceptable Use Policy", acceptableusepolicy_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (what you can/cannot do on platform)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+          
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[return_policy]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_return_policy" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Return Policy", returnpolicy_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (subscription cancellation/refund terms)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <br>
 
       <!-- Submit Button -->

@@ -178,4 +178,138 @@ RSpec.describe User, type: :model do
       end
     end
   end
+
+  describe 'policy acceptance methods' do
+    let!(:privacy_policy) { create(:policy_version, policy_type: 'privacy_policy', version: 'v1.0', active: true) }
+    let!(:terms_policy) { create(:policy_version, policy_type: 'terms_of_service', version: 'v1.0', active: true) }
+    let!(:aup_policy) { create(:policy_version, policy_type: 'acceptable_use_policy', version: 'v1.0', active: true) }
+    let!(:return_policy) { create(:policy_version, policy_type: 'return_policy', version: 'v1.0', active: true) }
+    
+    describe '#needs_policy_acceptance?' do
+      context 'when requires_policy_acceptance is true' do
+        before { user.update!(requires_policy_acceptance: true) }
+        
+        it 'returns true' do
+          expect(user.needs_policy_acceptance?).to be true
+        end
+      end
+      
+      context 'when user has missing required policies' do
+        it 'returns true for client with missing policies' do
+          client = create(:user, role: :client)
+          expect(client.needs_policy_acceptance?).to be true
+        end
+        
+        it 'returns true for manager with missing policies' do
+          manager = create(:user, role: :manager)
+          expect(manager.needs_policy_acceptance?).to be true
+        end
+      end
+      
+      context 'when user has accepted all required policies' do
+        let(:client) { create(:user, role: :client) }
+        
+        before do
+          create(:policy_acceptance, user: client, policy_type: 'privacy_policy', policy_version: 'v1.0')
+          create(:policy_acceptance, user: client, policy_type: 'terms_of_service', policy_version: 'v1.0')
+          create(:policy_acceptance, user: client, policy_type: 'acceptable_use_policy', policy_version: 'v1.0')
+        end
+        
+        it 'returns false' do
+          expect(client.needs_policy_acceptance?).to be false
+        end
+      end
+    end
+    
+    describe '#missing_required_policies' do
+      context 'for client users' do
+        let(:client) { create(:user, role: :client) }
+        
+        it 'returns all required policies when none are accepted' do
+          missing = client.missing_required_policies
+          expect(missing).to include('privacy_policy', 'terms_of_service', 'acceptable_use_policy')
+          expect(missing).not_to include('return_policy')
+        end
+        
+        it 'returns only unaccepted policies' do
+          create(:policy_acceptance, user: client, policy_type: 'privacy_policy', policy_version: 'v1.0')
+          
+          missing = client.missing_required_policies
+          expect(missing).to include('terms_of_service', 'acceptable_use_policy')
+          expect(missing).not_to include('privacy_policy')
+        end
+        
+        it 'returns empty array when all policies are accepted' do
+          create(:policy_acceptance, user: client, policy_type: 'privacy_policy', policy_version: 'v1.0')
+          create(:policy_acceptance, user: client, policy_type: 'terms_of_service', policy_version: 'v1.0')
+          create(:policy_acceptance, user: client, policy_type: 'acceptable_use_policy', policy_version: 'v1.0')
+          
+          expect(client.missing_required_policies).to be_empty
+        end
+      end
+      
+      context 'for business users' do
+        let(:manager) { create(:user, role: :manager) }
+        
+        it 'includes return policy for managers' do
+          missing = manager.missing_required_policies
+          expect(missing).to include('privacy_policy', 'terms_of_service', 'acceptable_use_policy', 'return_policy')
+        end
+        
+        it 'includes return policy for staff' do
+          staff = create(:user, role: :staff)
+          missing = staff.missing_required_policies
+          expect(missing).to include('privacy_policy', 'terms_of_service', 'acceptable_use_policy', 'return_policy')
+        end
+      end
+      
+      context 'when policy version does not exist' do
+        before do
+          privacy_policy.destroy
+        end
+        
+        it 'skips policies without current versions' do
+          client = create(:user, role: :client)
+          missing = client.missing_required_policies
+          expect(missing).not_to include('privacy_policy')
+          expect(missing).to include('terms_of_service', 'acceptable_use_policy')
+        end
+      end
+      
+      context 'when user accepted old version' do
+        let(:client) { create(:user, role: :client) }
+        
+        before do
+          # User accepted old version
+          create(:policy_acceptance, user: client, policy_type: 'privacy_policy', policy_version: 'v0.9')
+          # New version is active
+          privacy_policy.update!(version: 'v1.0')
+        end
+        
+        it 'includes policy with outdated acceptance' do
+          missing = client.missing_required_policies
+          expect(missing).to include('privacy_policy')
+        end
+      end
+    end
+    
+    describe '#mark_policies_accepted!' do
+      before do
+        user.update!(requires_policy_acceptance: true, last_policy_notification_at: nil)
+      end
+      
+      it 'sets requires_policy_acceptance to false' do
+        expect {
+          user.mark_policies_accepted!
+        }.to change { user.requires_policy_acceptance }.from(true).to(false)
+      end
+      
+      it 'sets last_policy_notification_at to current time' do
+        freeze_time do
+          user.mark_policies_accepted!
+          expect(user.last_policy_notification_at).to be_within(1.second).of(Time.current)
+        end
+      end
+    end
+  end
 end

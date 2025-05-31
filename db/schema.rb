@@ -438,6 +438,37 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
     t.index ["tenant_customer_id"], name: "index_payments_on_tenant_customer_id"
   end
 
+  create_table "policy_acceptances", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "policy_type", null: false
+    t.string "policy_version", null: false
+    t.datetime "accepted_at", null: false
+    t.string "ip_address"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["accepted_at"], name: "index_policy_acceptances_on_accepted_at"
+    t.index ["policy_version"], name: "index_policy_acceptances_on_policy_version"
+    t.index ["user_id", "policy_type"], name: "index_policy_acceptances_on_user_and_type"
+    t.index ["user_id"], name: "index_policy_acceptances_on_user_id"
+  end
+
+  create_table "policy_versions", force: :cascade do |t|
+    t.string "policy_type", null: false
+    t.string "version", null: false
+    t.text "content"
+    t.string "termly_embed_id"
+    t.boolean "active", default: false
+    t.boolean "requires_notification", default: false
+    t.datetime "effective_date"
+    t.text "change_summary"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["effective_date"], name: "index_policy_versions_on_effective_date"
+    t.index ["policy_type", "active"], name: "index_policy_versions_on_policy_type_and_active"
+    t.index ["policy_type", "version"], name: "index_policy_versions_on_policy_type_and_version", unique: true
+  end
+
   create_table "product_service_add_ons", force: :cascade do |t|
     t.bigint "product_id"
     t.bigint "service_id"
@@ -823,8 +854,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
     t.string "last_name"
     t.string "phone"
     t.jsonb "notification_preferences"
+    t.boolean "requires_policy_acceptance", default: false
+    t.datetime "last_policy_notification_at"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
@@ -871,6 +905,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
   add_foreign_key "payments", "invoices", on_delete: :nullify
   add_foreign_key "payments", "orders", on_delete: :nullify
   add_foreign_key "payments", "tenant_customers", on_delete: :nullify
+  add_foreign_key "policy_acceptances", "users"
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses", on_delete: :cascade
   add_foreign_key "products", "categories"

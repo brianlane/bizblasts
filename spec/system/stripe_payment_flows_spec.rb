@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
@@ -157,11 +159,13 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Sign in
         visit new_user_session_path
 
-        # Accept the cookie banner if it appears
-        if page.has_css?('#termly-code-snippet-support', wait: 5)
-          within('#termly-code-snippet-support') do
+        # Dismiss cookie banner if it appears (more robust check)
+        begin
+          if page.has_button?('Accept', wait: 2)
             click_button 'Accept'
           end
+        rescue Capybara::ElementNotFound
+          # Banner might not appear in CI - continue with test
         end
 
         fill_in 'Email', with: user.email
@@ -210,11 +214,13 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Add to cart as guest
         visit products_path
 
-        # Accept the cookie banner if it appears
-        if page.has_css?('#termly-code-snippet-support', wait: 5)
-          within('#termly-code-snippet-support') do
+        # Dismiss cookie banner if it appears (more robust check)
+        begin
+          if page.has_button?('Accept', wait: 2)
             click_button 'Accept'
           end
+        rescue Capybara::ElementNotFound
+          # Banner might not appear in CI - continue with test
         end
 
         click_link 'Conditioner'
@@ -225,11 +231,13 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Checkout
         visit cart_path
 
-        # Accept the cookie banner if it appears
-        if page.has_css?('#termly-code-snippet-support', wait: 5)
-          within('#termly-code-snippet-support') do
+        # Dismiss cookie banner again if it appears before placing order
+        begin
+          if page.has_button?('Accept', wait: 2)
             click_button 'Accept'
           end
+        rescue Capybara::ElementNotFound
+          # Banner might not appear in CI - continue with test
         end
 
         click_link 'Checkout'
@@ -240,6 +248,16 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Email', with: 'buyer@example.com'
         fill_in 'Phone', with: '555-9999'
         select 'Express', from: 'Select shipping method'
+        
+        # Dismiss cookie banner one more time if it appears before placing order
+        begin
+          if page.has_button?('Accept', wait: 2)
+            click_button 'Accept'
+          end
+        rescue Capybara::ElementNotFound
+          # Banner might not appear - continue with test
+        end
+        
         click_button 'Place Order'
         
         # Should redirect to Stripe (mocked)
