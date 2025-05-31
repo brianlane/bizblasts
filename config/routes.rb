@@ -195,6 +195,11 @@ Rails.application.routes.draw do
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
 
+  # Policy acceptance routes
+  resources :policy_acceptances, only: [:create]
+  get '/policy_status', to: 'policy_acceptances#status'
+  post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthcheck" => "health#check", as: :health_check
   get "db-check" => "health#db_check", as: :db_check

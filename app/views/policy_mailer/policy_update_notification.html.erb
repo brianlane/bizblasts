@@ -1,0 +1,27 @@
+<h2>Important Policy Updates - Action Required</h2>
+
+<p>Dear <%= @user.full_name %>,</p>
+
+<p>We've updated our policies that affect your BizBlasts account. As required by law, you must review and accept these changes to continue using our platform.</p>
+
+<h3>Updated Policies:</h3>
+<ul>
+  <% @updated_policies.each do |policy| %>
+    <li><strong><%= policy.policy_name %>:</strong> <%= policy.change_summary %></li>
+  <% end %>
+</ul>
+
+<p><strong>Action Required:</strong></p>
+<p>Please log into your BizBlasts account to review and accept these updated policies. You will be prompted to accept them when you next access the platform.</p>
+
+<p style="margin: 20px 0;">
+  <%= link_to "Review Policies Now", 
+        @user.client? ? dashboard_url : root_url, 
+        style: "background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;" %>
+</p>
+
+<p><strong>Important:</strong> Access to your account will be limited until you accept these updated policies.</p>
+
+<p>If you have any questions, please contact our support team.</p>
+
+<p>Thank you,<br>The BizBlasts Team</p> 

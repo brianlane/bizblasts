@@ -69,6 +69,56 @@
         </div>
       </div>
 
+      <!-- Legal Agreement Section -->
+      <div class="border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-semibold text-dark mb-4 flex items-center">
+          <svg class="h-6 w-6 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Legal Agreements
+        </h3>
+        <div class="space-y-3 bg-gray-50 p-4 rounded-lg">
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[privacy_policy]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_privacy_policy" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Privacy Policy", privacypolicy_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (how BizBlasts handles payment/booking data)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+          
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[terms_of_service]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_terms_of_service" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Terms of Service", terms_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (payment processing, booking platform rules)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+          
+          <div class="flex items-start">
+            <%= check_box_tag 'policy_acceptances[acceptable_use_policy]', '1', false, 
+                  required: true, 
+                  class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+            <label for="policy_acceptances_acceptable_use_policy" class="ml-3 text-sm text-gray-700">
+              I agree to the 
+              <%= link_to "Acceptable Use Policy", acceptableusepolicy_path, target: "_blank", 
+                    class: "text-primary hover:underline font-medium" %>
+              (booking system usage rules)
+              <span class="text-red-500">*</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <!-- Submit Button -->
       <div class="pt-2">
         <%= f.submit "Create Client Account", class: "w-full bg-accent hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2" %>
