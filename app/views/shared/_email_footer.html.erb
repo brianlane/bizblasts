@@ -1,0 +1,14 @@
+<p>
+  <a href="<%= privacypolicy_path %>" class="text-primary hover:underline">Privacy Policy</a> |
+  <a href="<%= terms_path %>" class="text-primary hover:underline">Terms of Service</a> |
+  <a href="<%= disclaimer_path %>" class="text-primary hover:underline">Disclaimer</a> |
+  <a href="<%= cookies_path %>" class="text-primary hover:underline">Cookie Policy</a> |
+  <% if @user && @user.client? %>
+    <a href="<%= edit_client_settings_path %>" class="text-primary hover:underline">Unsubscribe</a>
+  <% elsif @user && (@user.manager? || @user.staff?) %>
+    <a href="<%= edit_business_manager_settings_profile_path %>" class="text-primary hover:underline">Unsubscribe</a>
+  <% else %>
+    <%# Fallback or guest unsubscribe link - might need a dedicated tokenized route later %>
+    <a href="#" class="text-primary hover:underline">Unsubscribe</a>
+  <% end %>
+</p> 

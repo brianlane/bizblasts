@@ -49,6 +49,14 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     
     # Visit the homepage
     visit root_path
+
+    # Accept the cookie banner if it appears
+    if page.has_css?('#termly-code-snippet-support', wait: 5)
+      within('#termly-code-snippet-support') do
+        click_button 'Accept'
+      end
+    end
+
     expect(URI.parse(page.current_url).host).to eq('lvh.me')
 
     # Now instead of trying to fill in the login form,
@@ -91,6 +99,14 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     # Start at the main domain
     switch_to_main_domain
     visit root_path
+
+    # Accept the cookie banner if it appears
+    if page.has_css?('#termly-code-snippet-support', wait: 5)
+      within('#termly-code-snippet-support') do
+        click_button 'Accept'
+      end
+    end
+
     expect(URI.parse(page.current_url).host).to eq('lvh.me')
 
     # Find and click the Sign In link (updated from "Log in")

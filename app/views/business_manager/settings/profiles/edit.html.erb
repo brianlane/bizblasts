@@ -146,6 +146,16 @@
     </div>
   </div>
 
+  <%# Add Unsubscribe All button %>
+  <%= form_with url: unsubscribe_all_business_manager_settings_profile_path, method: :patch, local: true, data: { confirm: "Are you sure you want to unsubscribe from all email notifications? You can re-subscribe in your settings at any time." } do |form|
+  %>
+    <div class="mt-4 p-4 border border-gray-300 rounded-md bg-gray-50">
+      <h4 class="font-bold mb-2">Email Preferences</h4>
+      <p class="text-sm text-gray-600 mb-3">Click below to unsubscribe from all email notifications for this business.</p>
+      <%= form.submit "Unsubscribe From All Emails", class: "bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded" %><%# Using a warning-like color from Tailwind config %>
+    </div>
+  <% end %>
+
   <!-- Account Deletion Section -->
   <div class="panel danger-zone">
     <div class="panel-header">

@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 class BusinessManager::Settings::ProfilesController < BusinessManager::BaseController
-  before_action :set_user, only: [:edit, :update, :destroy]
+  before_action :set_user, only: [:edit, :update, :destroy, :unsubscribe_all]
+  before_action :authorize_user, only: [:edit, :update, :destroy, :unsubscribe_all]
 
   def edit
     authorize @user, policy_class: Settings::ProfilePolicy
@@ -118,6 +119,26 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       sign_in(@user)
       flash.now[:alert] = 'An error occurred while deleting your account. Please contact support.'
       @account_deletion_info = @user.can_delete_account?
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  # Action to unsubscribe from all email notifications
+  def unsubscribe_all
+    authorize @user, policy_class: Settings::ProfilePolicy # Ensure user is authorized
+
+    # Update all notification preferences to false
+    @user.notification_preferences.each do |key, value|
+      @user.notification_preferences[key] = false
+    end
+
+    if @user.save
+      redirect_to edit_business_manager_settings_profile_path, notice: 'You have successfully unsubscribed from all email notifications.'
+    else
+      # This case should be rare unless there's a validation on the notification_preferences hash itself
+      @account_deletion_info = @user.can_delete_account?
+      @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
+      flash.now[:alert] = 'Failed to update notification preferences.'
       render :edit, status: :unprocessable_entity
     end
   end
