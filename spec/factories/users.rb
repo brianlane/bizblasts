@@ -13,15 +13,6 @@ FactoryBot.define do
     # Confirm users by default for tests
     confirmed_at { Time.current }
     
-    # Business association is optional, only add if needed or role requires
-    # association :business, strategy: :build 
-    
-    # Allow normal validation and callbacks for proper confirmation handling
-    # Skip callbacks for test performance only when explicitly needed
-    # to_create { |instance| 
-    #   instance.save(validate: false) 
-    # }
-    
     trait :unconfirmed do
       confirmed_at { nil }
     end
@@ -32,18 +23,17 @@ FactoryBot.define do
     
     trait :manager do
       role { :manager }
-      # Managers require a business
       association :business
     end
     
     trait :staff do
       role { :staff }
-      # Staff require a business
       association :business
     end
     
     trait :client do
       role { :client }
+      business { nil }
     end
   end
 end 
