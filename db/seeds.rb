@@ -281,7 +281,7 @@ end
 # Create initial policy versions using current Termly embeds
 puts "Creating initial policy versions..."
 
-PolicyVersion.create!([
+policy_versions = [
   {
     policy_type: 'terms_of_service',
     version: 'v1.0',
@@ -313,6 +313,22 @@ PolicyVersion.create!([
     effective_date: Date.current,
     change_summary: 'Initial Return Policy - Subscription cancellation/refund terms'
   }
-])
+]
 
-puts "Created #{PolicyVersion.count} policy versions"
+policy_versions.each do |policy_attrs|
+  policy = PolicyVersion.find_or_create_by(
+    policy_type: policy_attrs[:policy_type],
+    version: policy_attrs[:version]
+  ) do |p|
+    p.termly_embed_id = policy_attrs[:termly_embed_id]
+    p.active = policy_attrs[:active]
+    p.effective_date = policy_attrs[:effective_date]
+    p.change_summary = policy_attrs[:change_summary]
+  end
+  
+  if policy.persisted?
+    puts "Created/found policy version: #{policy.policy_type} #{policy.version}"
+  end
+end
+
+puts "Policy versions setup complete. Total count: #{PolicyVersion.count}"

@@ -25,8 +25,9 @@ module PolicyEnforcement
       return
     end
     
-    # For regular requests, the JavaScript will handle showing the modal
-    # We don't redirect here to avoid disrupting the page flow
+    # For regular requests, the JavaScript modal will handle showing policy acceptance
+    # We don't redirect here to avoid disrupting the page flow - the modal is embedded
+    # in the application layout and will be shown by the JavaScript on page load
   end
   
   def skip_policy_check?

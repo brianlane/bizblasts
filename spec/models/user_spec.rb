@@ -180,6 +180,7 @@ RSpec.describe User, type: :model do
   end
 
   describe 'policy acceptance methods' do
+    let(:user) { create(:user, role: :client) }
     let!(:privacy_policy) { create(:policy_version, policy_type: 'privacy_policy', version: 'v1.0', active: true) }
     let!(:terms_policy) { create(:policy_version, policy_type: 'terms_of_service', version: 'v1.0', active: true) }
     let!(:aup_policy) { create(:policy_version, policy_type: 'acceptable_use_policy', version: 'v1.0', active: true) }
@@ -201,7 +202,7 @@ RSpec.describe User, type: :model do
         end
         
         it 'returns true for manager with missing policies' do
-          manager = create(:user, role: :manager)
+          manager = create(:user, :manager)
           expect(manager.needs_policy_acceptance?).to be true
         end
       end
@@ -249,7 +250,7 @@ RSpec.describe User, type: :model do
       end
       
       context 'for business users' do
-        let(:manager) { create(:user, role: :manager) }
+        let(:manager) { create(:user, :manager) }
         
         it 'includes return policy for managers' do
           missing = manager.missing_required_policies
@@ -257,7 +258,7 @@ RSpec.describe User, type: :model do
         end
         
         it 'includes return policy for staff' do
-          staff = create(:user, role: :staff)
+          staff = create(:user, :staff)
           missing = staff.missing_required_policies
           expect(missing).to include('privacy_policy', 'terms_of_service', 'acceptable_use_policy', 'return_policy')
         end
@@ -305,10 +306,11 @@ RSpec.describe User, type: :model do
       end
       
       it 'sets last_policy_notification_at to current time' do
-        freeze_time do
-          user.mark_policies_accepted!
-          expect(user.last_policy_notification_at).to be_within(1.second).of(Time.current)
-        end
+        time_before = Time.current
+        user.mark_policies_accepted!
+        time_after = Time.current
+        
+        expect(user.last_policy_notification_at).to be_between(time_before, time_after)
       end
     end
   end
