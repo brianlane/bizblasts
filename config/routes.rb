@@ -185,6 +185,10 @@ Rails.application.routes.draw do
   get '/cookies', to: 'home#cookies'
   get '/privacypolicy', to: 'home#privacy'
   get '/terms', to: 'home#terms'
+  get '/disclaimer', to: 'home#disclaimer'
+  get '/shippingpolicy', to: 'home#shippingpolicy'
+  get '/returnpolicy', to: 'home#returnpolicy'
+  get '/acceptableusepolicy', to: 'home#acceptableusepolicy'
 
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthcheck" => "health#check", as: :health_check
