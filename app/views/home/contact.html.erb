@@ -1,6 +1,58 @@
-<div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-4">Contact Us</h1>
-  <p class="text-gray-700">
-    This is the Contact page. Contact information or a contact form can be added here.
-  </p>
-</div> 
+<!-- Contact Section -->
+<div class="contact-section">
+    <!-- Left Side - Contact Info -->
+    <div class="contact-info">
+        <div class="page-title">
+            <div class="email-icon">✉️</div>
+            <div>
+                <h1>Contact Us</h1>
+                <p class="page-subtitle">We're here to help you grow your business</p>
+            </div>
+        </div>
+
+        <h2 class="main-heading">Send us a <span class="highlight">message</span></h2>
+        
+        <p class="description">
+            We pride ourselves on our dedicated support team for Phoenix service businesses. 
+            Whether you're launching your first website, need help with booking management, 
+            or want to optimize your marketing campaigns, our team is here to help you succeed.
+        </p>
+
+        <p class="description">
+            Use the contact form to get in touch with us, and we'll reply as quickly as possible. 
+            Most inquiries receive a response within 24 hours.
+        </p>
+
+    <!-- Right Side - Contact Form -->
+    <div class="contact-form">
+        <form>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="business">Business Name (Optional)</label>
+                <input type="text" id="business" name="business">
+            </div>
+
+            <div class="form-group">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" placeholder="Tell us how we can help you grow your Phoenix service business..." required></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Send Message</button>
+        </form>
+    </div>
+</div>
