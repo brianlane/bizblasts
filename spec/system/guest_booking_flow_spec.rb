@@ -18,6 +18,13 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
     with_subdomain('guestbiz') do
       visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
 
+      # Accept the cookie banner if it appears
+      if page.has_css?('#termly-code-snippet-support', wait: 5)
+        within('#termly-code-snippet-support') do
+          click_button 'Accept'
+        end
+      end
+
       # Fill in guest details
       fill_in 'First Name', with: 'Guest'
       fill_in 'Last Name', with: 'User'
@@ -55,6 +62,13 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
   it 'allows a guest to book and create an account' do
     with_subdomain('guestbiz') do
       visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
+
+      # Accept the cookie banner if it appears
+      if page.has_css?('#termly-code-snippet-support', wait: 5)
+        within('#termly-code-snippet-support') do
+          click_button 'Accept'
+        end
+      end
 
       fill_in 'First Name', with: 'Jane'
       fill_in 'Last Name', with: 'Doe'
@@ -104,6 +118,13 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
     it 'requires email confirmation for new user accounts created during guest booking' do
       with_subdomain('guestbiz') do
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
+
+        # Accept the cookie banner if it appears
+        if page.has_css?('#termly-code-snippet-support', wait: 5)
+          within('#termly-code-snippet-support') do
+            click_button 'Accept'
+          end
+        end
 
         fill_in 'First Name', with: 'Confirmation'
         fill_in 'Last Name', with: 'Test'

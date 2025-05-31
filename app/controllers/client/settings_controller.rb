@@ -2,8 +2,8 @@
 
 class Client::SettingsController < ApplicationController # Changed from Client::BaseController
   before_action :authenticate_user! # Added Devise authentication
-  before_action :set_user, only: [:show, :edit, :update, :destroy]
-  before_action :authorize_user, only: [:show, :edit, :update, :destroy]
+  before_action :set_user, only: [:show, :edit, :update, :destroy, :unsubscribe_all]
+  before_action :authorize_user, only: [:show, :edit, :update, :destroy, :unsubscribe_all]
 
   def show
     # @user is set by before_action
@@ -84,6 +84,23 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       # Re-sign in the user since we signed them out
       sign_in(@user)
       flash.now[:alert] = 'An error occurred while deleting your account. Please contact support.'
+      @account_deletion_info = @user.can_delete_account?
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  # Action to unsubscribe from all notifications
+  def unsubscribe_all
+    # Update all notification preferences to false
+    @user.notification_preferences.each do |key, value|
+      @user.notification_preferences[key] = false
+    end
+
+    if @user.save
+      redirect_to client_settings_path, notice: 'You have successfully unsubscribed from all emails.'
+    else
+      # This case should be rare unless there's a validation on the notification_preferences hash itself
+      flash.now[:alert] = 'Failed to update notification preferences.'
       @account_deletion_info = @user.can_delete_account?
       render :edit, status: :unprocessable_entity
     end

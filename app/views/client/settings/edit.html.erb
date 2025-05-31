@@ -114,6 +114,14 @@
   </div>
 <% end %>
 
+<%# Add Unsubscribe All button %>
+<%= form_with url: unsubscribe_all_client_settings_path, method: :patch, local: true, data: { confirm: "Are you sure you want to unsubscribe from all notifications? You can re-subscribe in your settings at any time." } do |form|
+%>
+  <div class="mt-4">
+    <%= form.submit "Unsubscribe From All Emails", class: "btn-secondary" %><%# Use a secondary button style %>
+  </div>
+<% end %>
+
 <hr>
 <div class="danger-zone">
   <h3>Delete Account</h3>

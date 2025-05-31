@@ -156,6 +156,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
       with_subdomain('testbiz') do
         # Sign in
         visit new_user_session_path
+
+        # Accept the cookie banner if it appears
+        if page.has_css?('#termly-code-snippet-support', wait: 5)
+          within('#termly-code-snippet-support') do
+            click_button 'Accept'
+          end
+        end
+
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
         click_button 'Sign In'
@@ -201,6 +209,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
       with_subdomain('testbiz') do
         # Add to cart as guest
         visit products_path
+
+        # Accept the cookie banner if it appears
+        if page.has_css?('#termly-code-snippet-support', wait: 5)
+          within('#termly-code-snippet-support') do
+            click_button 'Accept'
+          end
+        end
+
         click_link 'Conditioner'
         select 'Regular', from: 'variant'
         fill_in 'quantity', with: 1
