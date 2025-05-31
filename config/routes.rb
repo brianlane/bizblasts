@@ -179,6 +179,13 @@ Rails.application.routes.draw do
   resources :products, only: [:index, :show]
   root "home#index"
 
+  # New static pages
+  get '/about', to: 'home#about'
+  get '/contact', to: 'home#contact'
+  get '/cookies', to: 'home#cookies'
+  get '/privacypolicy', to: 'home#privacy'
+  get '/terms', to: 'home#terms'
+
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthcheck" => "health#check", as: :health_check
   get "db-check" => "health#db_check", as: :db_check
