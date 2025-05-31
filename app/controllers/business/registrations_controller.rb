@@ -367,7 +367,7 @@ class Business::RegistrationsController < Users::RegistrationsController
   def system_test_environment?
     # System tests typically use a different host pattern or user agent
     # Capybara system tests use a specific port range (9887+)
-    request.host.include?('lvh.me') && request.port.to_s.match?(/988\d+/)
+    request.host.include?('lvh.me') && request.port.to_s.match?(/988\d/)
   end
 
   # Record policy acceptances for the user
