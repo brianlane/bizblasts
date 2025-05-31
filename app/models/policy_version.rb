@@ -51,6 +51,14 @@ class PolicyVersion < ApplicationRecord
     end
   end
   
+  def self.ransackable_attributes(auth_object = nil)
+    ["active", "change_summary", "content", "created_at", "effective_date", "id", "id_value", "policy_type", "requires_notification", "termly_embed_id", "updated_at", "version"]
+  end
+
+  def self.ransackable_associations(auth_object = nil)
+    []
+  end
+  
   private
   
   def mark_users_for_reacceptance

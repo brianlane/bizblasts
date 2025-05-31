@@ -15,6 +15,14 @@ class PolicyAcceptance < ApplicationRecord
     where(user: user).order(accepted_at: :desc)
   }
   
+  def self.ransackable_associations(auth_object = nil)
+    ["user"]
+  end
+
+  def self.ransackable_attributes(auth_object = nil)
+    ["accepted_at", "created_at", "id", "id_value", "ip_address", "policy_type", "policy_version", "updated_at", "user_agent", "user_id"]
+  end
+
   def self.has_accepted_policy?(user, policy_type, required_version = nil)
     acceptance = where(user: user, policy_type: policy_type).order(accepted_at: :desc).first
     return false unless acceptance
