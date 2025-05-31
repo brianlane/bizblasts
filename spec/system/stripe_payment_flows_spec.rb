@@ -224,6 +224,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         
         # Checkout
         visit cart_path
+
+        # Accept the cookie banner if it appears
+        if page.has_css?('#termly-code-snippet-support', wait: 5)
+          within('#termly-code-snippet-support') do
+            click_button 'Accept'
+          end
+        end
+
         click_link 'Checkout'
         
         # Fill guest info

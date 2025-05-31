@@ -2,7 +2,6 @@
 
 class BusinessManager::Settings::ProfilesController < BusinessManager::BaseController
   before_action :set_user, only: [:edit, :update, :destroy, :unsubscribe_all]
-  before_action :authorize_user, only: [:edit, :update, :destroy, :unsubscribe_all]
 
   def edit
     authorize @user, policy_class: Settings::ProfilePolicy

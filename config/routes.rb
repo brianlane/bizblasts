@@ -78,7 +78,9 @@ Rails.application.routes.draw do
       get '/settings', to: 'settings#index', as: :settings
 
       namespace :settings do
-        resource :profile, only: [:edit, :update, :destroy]
+        resource :profile, only: [:edit, :update, :destroy] do
+          patch :unsubscribe_all, on: :member
+        end
         resource :business, only: [:edit, :update], controller: 'business' do
           post :connect_stripe
           get :stripe_onboarding
@@ -215,7 +217,9 @@ Rails.application.routes.draw do
 
   # Client Settings - moved outside authenticated block to allow proper redirects
   namespace :client, path: '' do # path: '' to avoid /client/client/settings
-    resource :settings, only: [:show, :update, :destroy], controller: 'settings'
+    resource :settings, only: [:show, :update, :destroy], controller: 'settings' do
+      patch :unsubscribe_all, on: :member
+    end
   end
 
   authenticated :user, ->(user) { user.admin? } do
