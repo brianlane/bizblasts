@@ -192,6 +192,9 @@ Rails.application.routes.draw do
   get '/returnpolicy', to: 'home#returnpolicy'
   get '/acceptableusepolicy', to: 'home#acceptableusepolicy'
 
+  # Route for contact form submission
+  post '/contact', to: 'contacts#create'
+
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthcheck" => "health#check", as: :health_check
   get "db-check" => "health#db_check", as: :db_check

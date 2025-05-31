@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>New Contact Form Message</title>
+</head>
+<body>
+  <h1>New Contact Form Message</h1>
+
+  <p>
+    <strong>Name:</strong> <%= @name %>
+  </p>
+
+  <p>
+    <strong>Email:</strong> <%= @email %>
+  </p>
+
+  <% if @business_name.present? %>
+    <p>
+      <strong>Business Name:</strong> <%= @business_name %>
+    </p>
+  <% end %>
+
+  <p>
+    <strong>Subject:</strong> <%= @subject %>
+  </p>
+
+  <p>
+    <strong>Message:</strong>
+  </p>
+  <p>
+    <%= simple_format(@message) %>
+  </p>
+</body>
+</html> 
