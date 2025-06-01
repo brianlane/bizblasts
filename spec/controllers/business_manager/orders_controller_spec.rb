@@ -55,6 +55,39 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
         expect(response).to redirect_to(business_manager_order_path(order))
         expect(flash[:notice]).to eq('Order created successfully')
       end
+      
+      it 'provides invoice creation feedback for service orders' do
+        service = create(:service, business: business)
+        staff_member = create(:staff_member, business: business)
+        
+        service_params = {
+          order: {
+            tenant_customer_id: tenant_customer.id,
+            shipping_method_id: shipping_method.id,
+            tax_rate_id: tax_rate.id,
+            line_items_attributes: {
+              '0' => { 
+                service_id: service.id, 
+                staff_member_id: staff_member.id,
+                quantity: 1,
+                price: 100.0,
+                total_amount: 100.0
+              }
+            }
+          }
+        }
+        
+        expect {
+          post :create, params: service_params
+        }.to change(business.orders, :count).by(1)
+         .and change(Invoice, :count).by(1)
+
+        order = business.orders.last
+        expect(order.order_type).to eq('service')
+        expect(order.invoice).to be_present
+        expect(response).to redirect_to(business_manager_order_path(order))
+        expect(flash[:notice]).to eq('Order created successfully. Invoice has been generated and emailed to the customer.')
+      end
     end
 
     context 'with quantity exceeding stock' do

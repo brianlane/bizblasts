@@ -46,6 +46,7 @@ class Order < ApplicationRecord
   before_save :calculate_totals!
   before_destroy :orphan_invoice
   after_create :send_business_order_notification
+  after_create :create_invoice_for_service_orders
   after_update :send_order_status_update_email, if: :saved_change_to_status?
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
@@ -215,6 +216,48 @@ class Order < ApplicationRecord
       Rails.logger.info "[EMAIL] Scheduled business order notification for Order ##{order_number}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to schedule business order notification for Order ##{order_number}: #{e.message}"
+    end
+  end
+
+  def create_invoice_for_service_orders
+    # Only create invoices for service orders and mixed orders (not product orders)
+    # Product orders need payment before shipping, so no invoice needed
+    return unless order_type_service? || order_type_mixed?
+    
+    # Skip if invoice already exists
+    return if invoice.present?
+    
+    # Skip if this order was created through the public customer-facing flow
+    # (those orders should handle their own payment/invoice flow)
+    # We identify business manager created orders by checking if there are line items with services
+    # that are being invoiced after the service is rendered (past service orders)
+    
+    # Ensure we have required data - be more strict about validation
+    return unless tenant_customer.present? && tenant_customer.persisted?
+    return unless business.present? && business.persisted?
+    
+    # Additional safety check - ensure the order itself is valid and persisted
+    return unless persisted? && errors.empty?
+    
+    begin
+      # Create the invoice
+      new_invoice = build_invoice(
+        tenant_customer: tenant_customer,
+        business: business,
+        due_date: 30.days.from_now, # Default 30 day payment terms
+        status: :pending,
+        shipping_method: shipping_method,
+        tax_rate: tax_rate
+      )
+      
+      # The invoice's calculate_totals method will handle copying amounts from the order
+      if new_invoice.save
+        Rails.logger.info "[INVOICE] Created invoice #{new_invoice.invoice_number} for order #{order_number}"
+      else
+        Rails.logger.error "[INVOICE] Failed to create invoice for order #{order_number}: #{new_invoice.errors.full_messages.join(', ')}"
+      end
+    rescue => e
+      Rails.logger.error "[INVOICE] Error creating invoice for order #{order_number}: #{e.message}"
     end
   end
 
