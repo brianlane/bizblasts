@@ -1,0 +1,183 @@
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+  <div class="text-center mb-8">
+    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+      <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+    </div>
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Accept Our Policies to Continue</h1>
+    <p class="text-lg text-gray-600">
+      To ensure the best experience and protect your data, please accept our updated policies:
+    </p>
+  </div>
+
+  <% if current_user&.needs_policy_acceptance? %>
+    <div id="policy-acceptance-form">
+      <div class="space-y-6" id="policies-list">
+        <!-- Policies will be loaded here -->
+      </div>
+      
+      <div class="mt-8 text-center">
+        <button type="button" id="accept-all-btn" 
+                class="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                disabled>
+          Accept All & Continue
+        </button>
+      </div>
+    </div>
+    
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        loadPolicies();
+      });
+      
+      function loadPolicies() {
+        fetch('/policy_status', {
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content || ''
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.missing_policies && data.missing_policies.length > 0) {
+            displayPolicies(data.missing_policies);
+          } else {
+            document.getElementById('policy-acceptance-form').innerHTML = `
+              <div class="text-center p-8 bg-green-50 border border-green-200 rounded-lg">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                  <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <h3 class="text-lg font-medium text-green-800 mb-4">All Policies Accepted</h3>
+                <p class="text-green-700 mb-4">You have accepted all required policies.</p>
+                <a href="<%= dashboard_path rescue root_path %>" class="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                  Continue to Dashboard →
+                </a>
+              </div>
+            `;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading policies:', error);
+          document.getElementById('policies-list').innerHTML = `
+            <div class="text-center p-8 bg-red-50 border border-red-200 rounded-lg">
+              <h3 class="text-lg font-medium text-red-800 mb-4">Error Loading Policies</h3>
+              <p class="text-red-700 mb-4">Unable to load policy information. Please try refreshing the page.</p>
+              <button onclick="loadPolicies()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                Try Again
+              </button>
+            </div>
+          `;
+        });
+      }
+      
+      function displayPolicies(policies) {
+        const container = document.getElementById('policies-list');
+        const acceptedPolicies = new Set();
+        
+        const descriptions = {
+          'privacy_policy': 'How BizBlasts handles your payment/booking data',
+          'terms_of_service': 'Payment processing, booking platform rules, and billing terms',
+          'acceptable_use_policy': 'Platform usage rules and booking system guidelines',
+          'return_policy': 'Subscription cancellation/refund terms'
+        };
+        
+        container.innerHTML = policies.map(policy => `
+          <div class="border border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
+            <div class="flex items-start space-x-4">
+              <input type="checkbox" 
+                     class="policy-checkbox mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-offset-2" 
+                     data-policy-type="${policy.policy_type}"
+                     data-policy-version="${policy.version}"
+                     id="policy-${policy.policy_type}"
+                     onchange="updateAcceptButton()">
+              <div class="flex-1">
+                <label for="policy-${policy.policy_type}" class="text-lg font-medium text-gray-900 cursor-pointer hover:text-blue-700 transition-colors">
+                  I agree to the ${policy.policy_name}
+                </label>
+                <p class="text-sm text-gray-600 mt-2">
+                  ${descriptions[policy.policy_type] || 'Please review and accept this policy.'}
+                </p>
+                <a href="${policy.policy_path}" target="_blank" 
+                   class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                  Read ${policy.policy_name} →
+                </a>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        
+        document.getElementById('accept-all-btn').addEventListener('click', acceptAllPolicies);
+      }
+      
+      function updateAcceptButton() {
+        const checkboxes = document.querySelectorAll('.policy-checkbox');
+        const checkedBoxes = document.querySelectorAll('.policy-checkbox:checked');
+        const button = document.getElementById('accept-all-btn');
+        
+        if (checkedBoxes.length === checkboxes.length && checkboxes.length > 0) {
+          button.disabled = false;
+          button.textContent = 'Accept All & Continue';
+          button.className = 'bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors';
+        } else {
+          button.disabled = true;
+          button.textContent = `Accept All Policies (${checkedBoxes.length}/${checkboxes.length})`;
+          button.className = 'bg-gray-300 text-gray-600 px-8 py-3 rounded-lg font-medium cursor-not-allowed';
+        }
+      }
+      
+      function acceptAllPolicies() {
+        const checkedBoxes = document.querySelectorAll('.policy-checkbox:checked');
+        const acceptances = {};
+        
+        checkedBoxes.forEach(checkbox => {
+          acceptances[checkbox.dataset.policyType] = '1';
+        });
+        
+        const button = document.getElementById('accept-all-btn');
+        button.disabled = true;
+        button.textContent = 'Processing...';
+        button.className = 'bg-gray-400 text-white px-8 py-3 rounded-lg font-medium cursor-not-allowed';
+        
+        fetch('/policy_acceptances/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content || ''
+          },
+          body: JSON.stringify({ policy_acceptances: acceptances })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.href = '<%= dashboard_path rescue root_path %>';
+          } else {
+            throw new Error(data.error || 'Failed to accept policies');
+          }
+        })
+        .catch(error => {
+          console.error('Error accepting policies:', error);
+          alert('An error occurred while accepting policies. Please try again.');
+          updateAcceptButton();
+        });
+      }
+    </script>
+    
+  <% else %>
+    <div class="text-center p-8 bg-green-50 border border-green-200 rounded-lg">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-green-800 mb-4">All Policies Accepted</h3>
+      <p class="text-green-700 mb-4">You have accepted all required policies.</p>
+      <a href="<%= dashboard_path rescue root_path %>" class="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+        Continue to Dashboard →
+      </a>
+    </div>
+  <% end %>
+</div> 

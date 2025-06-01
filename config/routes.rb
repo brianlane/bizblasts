@@ -196,7 +196,7 @@ Rails.application.routes.draw do
   post '/contact', to: 'contacts#create'
 
   # Policy acceptance routes
-  resources :policy_acceptances, only: [:create]
+  resources :policy_acceptances, only: [:create, :show]
   get '/policy_status', to: 'policy_acceptances#status'
   post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
 

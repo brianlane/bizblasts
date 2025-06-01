@@ -21,6 +21,10 @@ class PolicyAcceptancesController < ApplicationController
     }
   end
   
+  def show
+    # Show the policy acceptance page (fallback for when modal fails)
+  end
+  
   def create
     policy_type = params[:policy_type]
     version = params[:version]
