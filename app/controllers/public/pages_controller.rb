@@ -9,6 +9,7 @@ module Public
     # If set_tenant is private, we need a public wrapper method in ApplicationController
     # or move the tenant setting logic here.
     before_action :set_tenant 
+    before_action :ensure_html_format, only: [:show]
 
     # Skip user authentication for public pages
     skip_before_action :authenticate_user!
@@ -88,6 +89,11 @@ module Public
     end
 
     private
+
+    # Force HTML format to prevent JSON template lookup in CI/test environments
+    def ensure_html_format
+      request.format = :html
+    end
 
     def current_tenant
       # Helper to access the tenant set by ActsAsTenant

@@ -1,19 +1,200 @@
-<div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-4">About Us</h1>
-  <p class="text-gray-700 mb-6">
-    This is the About page. We can add information about the company here.
-  </p>
+<div class="bg-light min-h-screen">
+  <!-- Hero Section -->
+  <div class="bg-primary text-white py-16">
+    <div class="container mx-auto px-4 text-center">
+      <h1 class="text-4xl md:text-5xl font-bold mb-6">About BizBlasts</h1>
+      <p class="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto">
+        Empowering service businesses with technology that understands their unique challenges from the ground up.
+      </p>
+    </div>
+  </div>
 
-  <div class="mt-8">
-    <h2 class="text-xl font-bold mb-2">Learn More:</h2>
-    <ul class="list-disc list-inside space-y-2 text-gray-600">
-      <li><%= link_to "Cookies Policy", "/cookies", class: "hover:text-primary" %></li>
-      <li><%= link_to "Privacy Policy", "/privacypolicy", class: "hover:text-primary" %></li>
-      <li><%= link_to "Terms of Service", "/terms", class: "hover:text-primary" %></li>
-      <li><%= link_to "Disclaimer", "/disclaimer", class: "hover:text-primary" %></li>
-      <li><%= link_to "Shipping Policy", "/shippingpolicy", class: "hover:text-primary" %></li>
-      <li><%= link_to "Return Policy", "/returnpolicy", class: "hover:text-primary" %></li>
-      <li><%= link_to "Acceptable Use Policy", "/acceptableusepolicy", class: "hover:text-primary" %></li>
-    </ul>
+  <div class="container mx-auto px-4 py-12">
+    <!-- Background Section -->
+    <div class="mb-16">
+      <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-3xl font-bold text-dark mb-6 border-b-2 border-secondary pb-2">
+          Technology Meets Local Business
+        </h2>
+        <div class="space-y-6">
+          <p class="text-lg text-gray-700 leading-relaxed">
+            With over a decade of experience in software development and a passion for supporting small businesses, it has been seen firsthand how the right technology can transform a struggling company into a thriving enterprise. My background spans custom software development, payment processing systems, and business automation. This is exactly the expertise needed to solve the unique challenges facing service businesses.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Solutions Grid -->
+    <div class="mb-16">
+      <h2 class="text-3xl font-bold text-dark text-center mb-12">
+        The BizBlasts Solution: More Than Just a Website
+      </h2>
+      <p class="text-xl text-gray-700 text-center mb-12 max-w-4xl mx-auto">
+        BizBlasts isn't another generic website builder. It's a complete business platform specifically designed for service providers, with every feature tailored to the realities of running a trades business.
+      </p>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Professional Presence Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-primary">
+          <div class="text-primary mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-dark mb-3">Professional Online Presence</h3>
+          <p class="text-gray-700">
+            Every BizBlasts website is mobile-responsive and optimized for local search, because 73% of customers search for service providers on their phones.
+          </p>
+        </div>
+
+        <!-- Booking System Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-secondary">
+          <div class="text-secondary mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-dark mb-3">Intelligent Booking System</h3>
+          <p class="text-gray-700">
+            Our advanced scheduling platform handles complex operations from managing multiple technicians to handling seasonal fluctuations. Customers can book appointments 24/7.
+          </p>
+        </div>
+
+        <!-- Payment Processing Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-accent">
+          <div class="text-accent mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
+              <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-dark mb-3">Streamlined Payment Processing</h3>
+          <p class="text-gray-700">
+            Through Stripe Connect integration, accept payments seamlessly with transparent fees that scale with growth.
+          </p>
+        </div>
+
+        <!-- Marketing Tools Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-info">
+          <div class="text-info mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-dark mb-3">Marketing Tools That Work</h3>
+          <p class="text-gray-700">
+            From appointment reminders that reduce no-shows to promotional campaigns that fill slow periods, plus loyalty programs to retain customers.
+          </p>
+        </div>
+
+        <!-- Multi-Location Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-success">
+          <div class="text-success mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-dark mb-3">Multi-Location Expertise</h3>
+          <p class="text-gray-700">
+            As businesses expand across diverse communities, BizBlasts handles the complexity of geographic expansion and staff management across different sites.
+          </p>
+        </div>
+
+        <!-- Technology Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-warning">
+          <div class="text-warning mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-dark mb-3">Built for Longevity</h3>
+          <p class="text-gray-700">
+            Built on Ruby on Rails and hosted on modern infrastructure with PostgreSQL, designed to scale with business growth while maintaining performance.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing Philosophy -->
+    <div class="mb-16">
+      <div class="bg-primary rounded-lg shadow-lg text-white p-8">
+        <h2 class="text-3xl font-bold mb-6 text-center">Built for Growth, Priced for Reality</h2>
+        <p class="text-lg text-center mb-8 text-gray-200">
+          Understanding the financial pressures facing new and growing businesses, BizBlasts offers a genuinely free tier with essential features.
+        </p>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="bg-white/10 rounded-lg p-6 text-center">
+            <h3 class="text-xl font-bold mb-2">Free Tier</h3>
+            <p class="text-2xl font-bold mb-4">$0/month</p>
+            <p class="text-gray-300">Perfect for startups testing the market</p>
+          </div>
+          <div class="bg-white/10 rounded-lg p-6 text-center">
+            <h3 class="text-xl font-bold mb-2">Standard</h3>
+            <p class="text-2xl font-bold mb-4">$49/month</p>
+            <p class="text-gray-300">Ideal for established single-location businesses</p>
+          </div>
+          <div class="bg-white/10 rounded-lg p-6 text-center">
+            <h3 class="text-xl font-bold mb-2">Premium</h3>
+            <p class="text-2xl font-bold mb-4">$99/month</p>
+            <p class="text-gray-300">Designed for multi-location or high-volume operations</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personal Touch -->
+    <div class="mb-16">
+      <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-3xl font-bold text-dark mb-6 text-center">The Personal Touch in a Digital World</h2>
+        <div class="max-w-4xl mx-auto space-y-6">
+          <p class="text-lg text-gray-700 leading-relaxed text-center">
+            While BizBlasts leverages cutting-edge technology, it's built around a fundamentally personal approach to business relationships. Every client receives hands-on setup assistance, personalized training, and ongoing support.
+          </p>
+          <p class="text-lg text-gray-700 leading-relaxed text-center">
+            BizBlasts' success is directly tied to the success of local service businesses. Our focus remains laser-sharp on understanding and serving the needs of the service industry.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mission Statement -->
+    <div class="mb-16">
+      <div class="bg-white rounded-lg shadow-lg border-2 border-accent p-8 text-center">
+        <h2 class="text-3xl font-bold mb-6 text-dark">Your Success Is My Mission</h2>
+        <p class="text-lg mb-6 text-gray-700 max-w-4xl mx-auto">
+          Every feature in BizBlasts was designed with a simple question in mind: "Will this help a service business win more customers and operate more efficiently?" If the answer isn't a clear yes, it doesn't make it into the platform.
+        </p>
+        <p class="text-lg text-gray-700 max-w-4xl mx-auto">
+          If you're ready to compete with the digital advantages that larger companies take for granted, BizBlasts is here to level the playing field. Focus on delivering exceptional service while we handle the technology that drives customer acquisition and business growth.
+        </p>
+      </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center mb-16">
+      <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-dark mb-4">Let's Build Something Great Together</h2>
+        <p class="text-lg text-gray-700 mb-8 max-w-2xl mx-auto">
+          From your first online booking to your hundredth five-star review, BizBlasts provides the tools and support needed to build the service business you've always envisioned.
+        </p>
+        <%= link_to "Get Started Free", "/business/sign_up", class: "bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-lg transition duration-200 inline-block" %>
+      </div>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+      <h3 class="text-xl font-bold text-dark mb-6 text-center">Learn More</h3>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <%= link_to "Contact Us", "/contact", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Cookies Policy", "/cookies", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Privacy Policy", "/privacypolicy", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Terms of Service", "/terms", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Disclaimer", "/disclaimer", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Shipping Policy", "/shippingpolicy", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Return Policy", "/returnpolicy", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+        <%= link_to "Acceptable Use Policy", "/acceptableusepolicy", class: "block p-3 bg-light hover:bg-gray-200 rounded transition duration-200 text-center text-gray-700 hover:text-primary" %>
+      </div>
+    </div>
   </div>
 </div> 
