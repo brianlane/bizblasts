@@ -116,8 +116,20 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <% @order.line_items.each do |item| %>
               <tr>
-                <td class="px-6 py-4 whitespace-nowrap"><%= item.product_variant.product.name %></td>
-                <td class="px-6 py-4 whitespace-nowrap"><%= item.product_variant.name %></td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% if item.product_variant&.product %>
+                    <%= item.product_variant.product.name %>
+                  <% else %>
+                    <em class="text-gray-500">Product no longer available</em>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% if item.product_variant %>
+                    <%= item.product_variant.name %>
+                  <% else %>
+                    <em class="text-gray-500">Variant no longer available</em>
+                  <% end %>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap"><%= item.quantity %></td>
                 <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency item.price %></td>
                 <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency item.total_amount %></td>
@@ -283,8 +295,20 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <% @invoice.booking.booking_product_add_ons.each do |add_on| %>
                 <tr>
-                  <td class="px-6 py-4 whitespace-nowrap"><%= add_on.product_variant.product.name %></td>
-                  <td class="px-6 py-4 whitespace-nowrap"><%= add_on.product_variant.name %></td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <% if add_on.product_variant&.product %>
+                      <%= add_on.product_variant.product.name %>
+                    <% else %>
+                      <em class="text-gray-500">Product no longer available</em>
+                    <% end %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <% if add_on.product_variant %>
+                      <%= add_on.product_variant.name %>
+                    <% else %>
+                      <em class="text-gray-500">Variant no longer available</em>
+                    <% end %>
+                  </td>
                   <td class="px-6 py-4 whitespace-nowrap"><%= add_on.quantity %></td>
                   <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency add_on.price %></td>
                   <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency add_on.total_amount %></td>
@@ -310,8 +334,20 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <% @invoice.line_items.each do |item| %>
               <tr>
-                <td class="px-6 py-4 whitespace-nowrap"><%= item.product_variant.product.name %></td>
-                <td class="px-6 py-4 whitespace-nowrap"><%= item.product_variant.name %></td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% if item.product_variant&.product %>
+                    <%= item.product_variant.product.name %>
+                  <% else %>
+                    <em class="text-gray-500">Product no longer available</em>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% if item.product_variant %>
+                    <%= item.product_variant.name %>
+                  <% else %>
+                    <em class="text-gray-500">Variant no longer available</em>
+                  <% end %>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap"><%= item.quantity %></td>
                 <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency item.price %></td>
                 <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency item.total_amount %></td>
