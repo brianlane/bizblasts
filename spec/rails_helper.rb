@@ -193,22 +193,6 @@ RSpec.configure do |config|
 
   Capybara.javascript_driver = :cuprite
   
-  # Configure Cuprite to auto-accept JavaScript confirmation dialogs
-  Capybara.register_driver :cuprite do |app|
-    Capybara::Cuprite::Driver.new(
-      app,
-      window_size: [1200, 800],
-      browser_options: { 'disable-gpu' => true },
-      js_errors: true,
-      process_timeout: 120,  # Increased to 60 seconds for CI stability
-      timeout:         120,  # Increased to 60 seconds for longer startup
-      headless: true,
-      dialog_handler: ->(page, dialog) { dialog.accept },
-      # Important: This option makes Cuprite auto-accept all JavaScript confirmation dialogs
-      ignore_default_browser_options: false
-    )
-  end
-
   config.include Pundit::Authorization, type: :view
 end
 
