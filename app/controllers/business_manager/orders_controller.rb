@@ -59,7 +59,16 @@ module BusinessManager
                    end
       @order = @current_business.orders.new(cp.merge(order_type: order_type))
       if @order.save
-        redirect_to business_manager_order_path(@order), notice: 'Order created successfully'
+        # Provide feedback about invoice creation for service orders
+        if @order.order_type_service? || @order.order_type_mixed?
+          if @order.invoice.present?
+            redirect_to business_manager_order_path(@order), notice: 'Order created successfully. Invoice has been generated and emailed to the customer.'
+          else
+            redirect_to business_manager_order_path(@order), notice: 'Order created successfully. Note: Invoice creation may have failed - please check logs.'
+          end
+        else
+          redirect_to business_manager_order_path(@order), notice: 'Order created successfully'
+        end
       else
         flash.now[:alert] = "Unable to create order: #{@order.errors.full_messages.to_sentence}"
         render :new
@@ -89,7 +98,18 @@ module BusinessManager
                      'product'
                    end
       if @order.update(cp.merge(order_type: order_type))
-        redirect_to business_manager_order_path(@order), notice: 'Order updated successfully'
+        # Check if we need to create an invoice for newly changed service/mixed orders
+        if (@order.order_type_service? || @order.order_type_mixed?) && @order.invoice.blank?
+          # Manually trigger invoice creation for updated orders
+          @order.send(:create_invoice_for_service_orders)
+        end
+        
+        # Provide appropriate feedback
+        if (@order.order_type_service? || @order.order_type_mixed?) && @order.invoice.present?
+          redirect_to business_manager_order_path(@order), notice: 'Order updated successfully. Invoice has been generated and emailed to the customer.'
+        else
+          redirect_to business_manager_order_path(@order), notice: 'Order updated successfully'
+        end
       else
         flash.now[:alert] = "Unable to update order: #{@order.errors.full_messages.to_sentence}"
         render :edit

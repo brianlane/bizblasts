@@ -311,6 +311,172 @@ RSpec.describe Order, type: :model do
     end
   end
 
+  describe 'automatic invoice creation' do
+    let(:service) { create(:service, business: business) }
+    let(:staff_member) { create(:staff_member, business: business) }
+    
+    context 'when creating a service order' do
+      it 'automatically creates an invoice' do
+        order = build(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # Add a service line item
+        order.line_items.build(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        
+        expect { order.save! }.to change(Invoice, :count).by(1)
+        
+        invoice = order.reload.invoice
+        expect(invoice).to be_present
+        expect(invoice.tenant_customer).to eq(tenant_customer)
+        expect(invoice.business).to eq(business)
+        expect(invoice.status).to eq('pending')
+        expect(invoice.due_date).to be_within(1.day).of(30.days.from_now)
+        expect(invoice.total_amount).to eq(order.total_amount)
+      end
+      
+      it 'sends an email to the customer when invoice is created' do
+        order = build(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # Add a service line item
+        order.line_items.build(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        
+        # Expect email to be sent when invoice is created
+        expect {
+          order.save!
+        }.to have_enqueued_job(ActionMailer::MailDeliveryJob)
+         .with('InvoiceMailer', 'invoice_created', 'deliver_now', args: [kind_of(Invoice)])
+        
+        invoice = order.reload.invoice
+        expect(invoice).to be_present
+      end
+    end
+    
+    context 'when creating a mixed order' do
+      let(:product) { create(:product, business: business) }
+      let(:variant) { create(:product_variant, product: product) }
+      
+      it 'automatically creates an invoice' do
+        order = build(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :mixed
+        )
+        
+        # Add both service and product line items
+        order.line_items.build(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        order.line_items.build(
+          product_variant: variant,
+          quantity: 2,
+          price: 50.0,
+          total_amount: 100.0
+        )
+        
+        expect { order.save! }.to change(Invoice, :count).by(1)
+        
+        invoice = order.reload.invoice
+        expect(invoice).to be_present
+        expect(invoice.total_amount).to eq(order.total_amount)
+      end
+    end
+    
+    context 'when creating a product order' do
+      let(:product) { create(:product, business: business) }
+      let(:variant) { create(:product_variant, product: product) }
+      
+      it 'does not create an invoice' do
+        order = build(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :product
+        )
+        
+        # Add a product line item
+        order.line_items.build(
+          product_variant: variant,
+          quantity: 2,
+          price: 50.0,
+          total_amount: 100.0
+        )
+        
+        expect { order.save! }.not_to change(Invoice, :count)
+        expect(order.reload.invoice).to be_nil
+      end
+    end
+    
+    context 'when invoice already exists' do
+      it 'does not create a duplicate invoice' do
+        order = create(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # The order should already have an invoice from the after_create callback
+        expect(order.reload.invoice).to be_present
+        original_invoice = order.invoice
+        
+        # Trigger the callback manually again
+        expect { order.send(:create_invoice_for_service_orders) }.not_to change(Invoice, :count)
+        expect(order.reload.invoice).to eq(original_invoice)
+      end
+    end
+    
+    context 'when required data is missing' do
+      it 'does not create invoice without tenant_customer' do
+        order = build(:order, 
+          business: business, 
+          tenant_customer: nil,
+          order_type: :service
+        )
+        
+        # Manually set order_number to avoid validation issues
+        order.order_number = "TEST-ORDER-1"
+        order.save(validate: false)
+        expect(order.reload.invoice).to be_nil
+      end
+      
+      it 'does not create invoice without business' do
+        order = build(:order, 
+          business: nil, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # Manually set order_number to avoid validation issues
+        order.order_number = "TEST-ORDER-2"
+        # Explicitly set business_id to nil to ensure it's really nil
+        order.business_id = nil
+        order.save(validate: false)
+        expect(order.reload.invoice).to be_nil
+      end
+    end
+  end
+
   # Add tests for TenantScoped concern if not covered elsewhere
   # ...
 end 
