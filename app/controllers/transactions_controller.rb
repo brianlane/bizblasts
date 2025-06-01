@@ -82,11 +82,11 @@ class TransactionsController < ApplicationController
 
   def find_order(id)
     if request.subdomain.present? && request.subdomain != 'www'
-      @tenant_customer&.orders&.includes(:line_items, :shipping_method, :tax_rate, :invoice)&.find_by(id: id)
+      @tenant_customer&.orders&.includes(line_items: { product_variant: :product }, :shipping_method, :tax_rate, :invoice)&.find_by(id: id)
     else
       Order.joins(:tenant_customer)
            .where(tenant_customers: { email: current_user.email })
-           .includes(:line_items, :shipping_method, :tax_rate, :business, :invoice)
+           .includes(line_items: { product_variant: :product }, :shipping_method, :tax_rate, :business, :invoice)
            .find_by(id: id)
     end
   end
