@@ -3,7 +3,7 @@
     <%= link_to "Sign In", new_session_path(resource_name), class: "inline-block bg-white border border-primary text-primary px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-center" %>
   <% end %>
 
-  <%- if devise_mapping.registerable? && controller_name != 'registrations' && controller_name != 'sessions' %>
+  <%- if devise_mapping.registerable? && controller_name != 'registrations' && controller_name != 'sessions' && controller_name != 'passwords' && controller_name != 'confirmations' %>
     <%# Custom logic for different registration types since we don't have a generic user registration %>
     <% if resource_name == :user %>
       <div class="flex flex-col sm:flex-row gap-2 justify-center">
