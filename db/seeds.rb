@@ -51,7 +51,7 @@ puts "--- DEBUG: businesses table columns: #{ActiveRecord::Base.connection.colum
 puts "Creating default tenant..."
 default_business = Business.find_or_create_by!(hostname: 'default', host_type: 'subdomain') do |biz|
   biz.name = 'Default Business'
-  biz.industry = :other # Provide a default valid industry
+  biz.industry = Business.industries[:other] # Use the mapped string value from the enum
   biz.phone = '555-123-4567' # Provide a valid phone number
   biz.email = 'default@example.com'
   biz.address = '123 Main St'
