@@ -367,9 +367,10 @@ RSpec.describe Order, type: :model do
           price: 100.0,
           total_amount: 100.0
         )
-        
-        order.save!
-        
+        perform_enqueued_jobs do
+          order.save!
+        end
+
         invoice = order.reload.invoice
         expect(invoice).to be_present
       end
