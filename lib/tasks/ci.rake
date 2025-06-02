@@ -150,23 +150,24 @@ namespace :ci do
   task create_performance_test_data: :environment do
     puts "Creating performance test business..."
     
-    # Set hostname explicitly to match validation requirements
-    business = Business.find_or_create_by!(subdomain: 'consultllc') do |b|
-      b.name = 'Consult LLC Performance Test'
-      b.active = true
-      b.industry = 'consulting'
-      b.phone = '+1 (555) 555-5555'
-      b.email = 'perf.business@example.com'
-      b.address = '123 Test St'
-      b.city = 'Testville'
-      b.state = 'CA'
-      b.zip = '90210'
-      b.description = 'A test business for performance profiling.'
-      b.tier = 'standard'
-      b.host_type = 'subdomain'
-      b.time_zone = 'UTC'
+    business = Business.find_or_initialize_by(subdomain: 'consultllc')
+    unless business.persisted?
+      business.name = 'Consult LLC Performance Test'
+      business.active = true
+      business.industry = Business::SHOWCASE_INDUSTRY_MAPPINGS[:consulting]
+      business.phone = '+1 (555) 555-5555'
+      business.email = 'perf.business@example.com'
+      business.address = '123 Test St'
+      business.city = 'Testville'
+      business.state = 'CA'
+      business.zip = '90210'
+      business.description = 'A test business for performance profiling.'
+      business.tier = 'standard'
+      business.host_type = 'subdomain'
+      business.time_zone = 'UTC'
       # Set hostname to match subdomain - just lowercase letters, no dots or special chars
-      b.hostname = 'consultllc'
+      business.hostname = 'consultllc'
+      business.save(validate: false)
     end
     
     puts "Created/found business: #{business.name} (ID: #{business.id}, hostname: #{business.hostname})"
