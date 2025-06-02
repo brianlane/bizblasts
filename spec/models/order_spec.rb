@@ -343,7 +343,14 @@ RSpec.describe Order, type: :model do
         expect(invoice.total_amount).to eq(order.total_amount)
       end
       
-      it 'sends an email to the customer when invoice is created' do
+      it 'sends staggered emails when order and invoice are created' do
+        # Expect staggered email service to be called
+        expect(StaggeredEmailService).to receive(:deliver_order_emails) do |order|
+          expect(order).to be_persisted
+          # Order status can vary based on business logic, just ensure it's not business_deleted
+          expect(order.status).not_to eq('business_deleted')
+        end
+        
         order = build(:order, 
           business: business, 
           tenant_customer: tenant_customer,
@@ -359,11 +366,7 @@ RSpec.describe Order, type: :model do
           total_amount: 100.0
         )
         
-        # Expect email to be sent when invoice is created
-        expect {
-          order.save!
-        }.to have_enqueued_job(ActionMailer::MailDeliveryJob)
-         .with('InvoiceMailer', 'invoice_created', 'deliver_now', args: [kind_of(Invoice)])
+        order.save!
         
         invoice = order.reload.invoice
         expect(invoice).to be_present

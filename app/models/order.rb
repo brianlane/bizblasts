@@ -45,8 +45,8 @@ class Order < ApplicationRecord
   before_validation :calculate_totals
   before_save :calculate_totals!
   before_destroy :orphan_invoice
-  after_create :send_business_order_notification
   after_create :create_invoice_for_service_orders
+  after_create :send_staggered_emails
   after_update :send_order_status_update_email, if: :saved_change_to_status?
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
@@ -207,15 +207,16 @@ class Order < ApplicationRecord
     end
   end
 
-  def send_business_order_notification
-    # Skip notification for business_deleted status
+  def send_staggered_emails
+    # Skip notifications for business_deleted status
     return if status == 'business_deleted'
     
     begin
-      BusinessMailer.new_order_notification(self).deliver_later
-      Rails.logger.info "[EMAIL] Scheduled business order notification for Order ##{order_number}"
+      # Use staggered email service to prevent rate limiting
+      StaggeredEmailService.deliver_order_emails(self)
+      Rails.logger.info "[EMAIL] Scheduled staggered emails for Order ##{order_number}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to schedule business order notification for Order ##{order_number}: #{e.message}"
+      Rails.logger.error "[EMAIL] Failed to schedule staggered emails for Order ##{order_number}: #{e.message}"
     end
   end
 
