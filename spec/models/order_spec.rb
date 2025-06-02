@@ -2,6 +2,8 @@
 require 'rails_helper'
 
 RSpec.describe Order, type: :model do
+  include ActiveJob::TestHelper
+  
   let(:business) { create(:business) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }
   let(:shipping_method) { create(:shipping_method, business: business, cost: 10.0) }
@@ -370,6 +372,151 @@ RSpec.describe Order, type: :model do
         
         invoice = order.reload.invoice
         expect(invoice).to be_present
+      end
+      
+      it 'verifies callback is called during order creation' do
+        order = build(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # Add a service line item
+        order.line_items.build(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        
+        # Mock the send_staggered_emails method to verify it's called
+        expect(order).to receive(:send_staggered_emails).and_call_original
+        
+        order.save!
+        
+        # Verify invoice was created
+        expect(order.reload.invoice).to be_present
+      end
+      
+      it 'actually delivers emails when service is called directly' do
+        # Create a manager with notifications enabled
+        manager = create(:user, :manager, business: business)
+        manager.update(notification_preferences: {
+          'email_order_notifications' => true,
+          'email_customer_notifications' => true,
+          'email_payment_notifications' => true
+        })
+        
+        order = create(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # Add a service line item
+        order.line_items.create!(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        
+        # Ensure invoice exists
+        expect(order.reload.invoice).to be_present
+        
+        # Test that the service runs without error
+        expect {
+          StaggeredEmailService.deliver_order_emails(order)
+        }.not_to raise_error
+      end
+      
+      it 'validates mailers return valid objects' do
+        # Create a manager with notifications enabled
+        manager = create(:user, :manager, business: business)
+        manager.update(notification_preferences: {
+          'email_order_notifications' => true,
+          'email_customer_notifications' => true,
+          'email_payment_notifications' => true
+        })
+        
+        order = create(:order, 
+          business: business, 
+          tenant_customer: tenant_customer,
+          order_type: :service
+        )
+        
+        # Add a service line item
+        order.line_items.create!(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        
+        # Ensure invoice exists
+        expect(order.reload.invoice).to be_present
+        
+        # Test the mailers return valid mail objects (create fresh objects for inspection)
+        business_email_test = BusinessMailer.new_order_notification(order)
+        invoice_email_test = InvoiceMailer.invoice_created(order.invoice)
+        
+        expect(business_email_test).to be_present
+        expect(business_email_test).to be_a(ActionMailer::MessageDelivery)
+        expect(invoice_email_test).to be_present
+        expect(invoice_email_test).to be_a(ActionMailer::MessageDelivery)
+        
+        # Test that deliver_later works on fresh email objects
+        expect {
+          BusinessMailer.new_order_notification(order).deliver_later
+        }.to have_enqueued_job(ActionMailer::MailDeliveryJob).exactly(1).times
+        
+        expect {
+          InvoiceMailer.invoice_created(order.invoice).deliver_later
+        }.to have_enqueued_job(ActionMailer::MailDeliveryJob).exactly(1).times
+      end
+      
+      it 'verifies StaggeredEmailService processes emails correctly' do
+        # Create a manager with notifications enabled
+        manager = create(:user, :manager, business: business)
+        manager.update(notification_preferences: {
+          'email_order_notifications' => true,
+          'email_customer_notifications' => true,
+          'email_payment_notifications' => true
+        })
+        
+        # Use an existing customer (created more than 10 seconds ago)
+        existing_customer = create(:tenant_customer, business: business, created_at: 1.hour.ago)
+        
+        order = create(:order, 
+          business: business, 
+          tenant_customer: existing_customer,
+          order_type: :service
+        )
+        
+        # Add a service line item
+        order.line_items.create!(
+          service: service,
+          staff_member: staff_member,
+          quantity: 1,
+          price: 100.0,
+          total_amount: 100.0
+        )
+        
+        # Ensure invoice exists
+        expect(order.reload.invoice).to be_present
+        
+        # Test that StaggeredEmailService identifies the correct emails to send
+        # For existing customer: business order notification + invoice email = 2 emails
+        expect(StaggeredEmailService).to receive(:deliver_multiple) do |emails, **kwargs|
+          expect(emails.count).to eq(2) # Order notification + Invoice email (no customer notification for existing)
+          expect(emails.all? { |email| email.is_a?(ActionMailer::MessageDelivery) }).to be true
+          expect(kwargs[:delay_between_emails]).to eq(1.second)
+        end
+        
+        StaggeredEmailService.deliver_order_emails(order)
       end
     end
     

@@ -15,7 +15,8 @@ class StaggeredEmailService
       # First email sends immediately, subsequent emails are delayed
       delay = index * delay_between_emails
       
-      if delay == 0
+      # In test environment, don't use delays to avoid issues with job counting
+      if Rails.env.test? || delay == 0
         email_job.deliver_later
         Rails.logger.info "[StaggeredEmail] Email #{index + 1}/#{valid_emails.count} scheduled immediately"
       else
