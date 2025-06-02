@@ -17,6 +17,8 @@ class User < ApplicationRecord
   has_many :staff_memberships, class_name: 'StaffMember'
   has_many :staffed_businesses, through: :staff_memberships, source: :business
   has_many :policy_acceptances, dependent: :destroy
+  # Track which setup reminder tasks the user has dismissed
+  has_many :setup_reminder_dismissals, dependent: :destroy
 
   # Allow creating business via user form during sign-up
   # accepts_nested_attributes_for :business # Removed - Business creation handled explicitly in controller

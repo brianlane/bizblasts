@@ -205,4 +205,21 @@ RSpec.describe BusinessSetupService, type: :service do
       end
     end
   end
+
+  describe 'todo_items filtering by user dismissals' do
+    let(:user) { create(:user, :manager, business: business) }
+    subject(:service_with_user) { described_class.new(business, user) }
+
+    before do
+      # Dismiss the stripe_connected task for this user
+      user.setup_reminder_dismissals.create!(task_key: 'stripe_connected', dismissed_at: Time.current)
+    end
+
+    it 'excludes the dismissed task' do
+      keys = service_with_user.todo_items.map { |item| item[:key].to_s }
+      expect(keys).not_to include('stripe_connected')
+      # Other tasks should still be present
+      expect(keys).to include('add_service_or_product')
+    end
+  end
 end 

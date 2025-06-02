@@ -400,7 +400,7 @@ RSpec.describe "Business Registration", type: :system do
       
       # Should redirect back to registration form with error message when Stripe checkout fails
       expect(page).to have_current_path(new_business_registration_path)
-      expect(page).to have_content("Could not connect to Stripe").or have_content("error occurred")
+      expect(page).to have_content("Could not connect to Stripe for subscription setup: Checkout error")
     end
   end
 end 
