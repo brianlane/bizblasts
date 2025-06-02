@@ -23,7 +23,36 @@ RSpec.describe StaggeredEmailService, type: :service do
     )
   end
 
-  describe '.deliver_multiple' do
+  describe '.deliver_specifications' do
+    let(:email_specs) do
+      [
+        double('email_spec_1', execute: true, execute_with_delay: true),
+        double('email_spec_2', execute: true, execute_with_delay: true)
+      ]
+    end
+
+    it 'delivers email specifications with staggered timing' do
+      result = described_class.deliver_specifications(email_specs, delay_between_emails: 1.second)
+
+      expect(email_specs[0]).to have_received(:execute)
+      expect(email_specs[1]).to have_received(:execute_with_delay).with(wait: 1.second)
+      expect(result).to eq(2)
+    end
+
+    it 'handles empty specifications array gracefully' do
+      expect { described_class.deliver_specifications([]) }.not_to raise_error
+    end
+
+    it 'continues processing when individual emails fail' do
+      failing_spec = double('failing_spec', execute: false)
+      passing_spec = double('passing_spec', execute_with_delay: true)
+
+      result = described_class.deliver_specifications([failing_spec, passing_spec])
+      expect(result).to eq(1)
+    end
+  end
+
+  describe '.deliver_multiple (legacy)' do
     it 'delivers emails with staggered timing' do
       # Create mock email jobs
       email1 = double('email1')
@@ -56,31 +85,102 @@ RSpec.describe StaggeredEmailService, type: :service do
     it 'handles all nil emails gracefully' do
       expect { described_class.deliver_multiple([nil, nil, nil]) }.not_to raise_error
     end
+
+    it 'logs deprecation warning' do
+      expect(Rails.logger).to receive(:warn).with(/deliver_multiple is deprecated/)
+      described_class.deliver_multiple([])
+    end
   end
 
   describe '.deliver_order_emails' do
-    it 'runs without raising errors' do
-      expect { described_class.deliver_order_emails(order) }.not_to raise_error
+    it 'runs without raising errors and returns success count' do
+      result = nil
+      expect { result = described_class.deliver_order_emails(order) }.not_to raise_error
+      expect(result).to be_a(Integer)
+      expect(result).to be >= 0
     end
 
-    it 'handles errors gracefully' do
-      # Make BusinessMailer.new_order_notification raise an error
-      allow(BusinessMailer).to receive(:new_order_notification).and_raise(StandardError.new('Test error'))
+    it 'handles errors gracefully and returns 0' do
+      # Make EmailCollectionBuilder raise an error
+      allow(EmailCollectionBuilder).to receive(:new).and_raise(StandardError.new('Test error'))
 
-      expect { described_class.deliver_order_emails(order) }.not_to raise_error
+      result = nil
+      expect { result = described_class.deliver_order_emails(order) }.not_to raise_error
+      expect(result).to eq(0)
+    end
+
+    it 'uses EmailCollectionBuilder to build specifications' do
+      builder = instance_double(EmailCollectionBuilder)
+      allow(EmailCollectionBuilder).to receive(:new).and_return(builder)
+      allow(builder).to receive(:add_order_emails).with(order).and_return(builder)
+      allow(builder).to receive(:build).and_return([])
+
+      described_class.deliver_order_emails(order)
+
+      expect(builder).to have_received(:add_order_emails).with(order)
+      expect(builder).to have_received(:build)
+    end
+  end
+
+  describe '.deliver_booking_emails' do
+    let(:booking) { create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member) }
+
+    it 'runs without raising errors and returns success count' do
+      result = nil
+      expect { result = described_class.deliver_booking_emails(booking) }.not_to raise_error
+      expect(result).to be_a(Integer)
+      expect(result).to be >= 0
+    end
+
+    it 'handles errors gracefully and returns 0' do
+      # Make EmailCollectionBuilder raise an error
+      allow(EmailCollectionBuilder).to receive(:new).and_raise(StandardError.new('Test error'))
+
+      result = nil
+      expect { result = described_class.deliver_booking_emails(booking) }.not_to raise_error
+      expect(result).to eq(0)
+    end
+  end
+
+  describe '.deliver_with_strategy' do
+    let(:email_specs) do
+      [
+        double('email_spec', execute: true, execute_with_delay: true)
+      ]
+    end
+
+    it 'supports immediate delivery strategy' do
+      result = described_class.deliver_with_strategy(email_specs, strategy: :immediate)
+      expect(result).to eq(1)
+    end
+
+    it 'supports time_staggered delivery strategy' do
+      result = described_class.deliver_with_strategy(email_specs, strategy: :time_staggered, delay_between_emails: 2.seconds)
+      expect(result).to eq(1)
+    end
+
+    it 'supports batch_staggered delivery strategy' do
+      result = described_class.deliver_with_strategy(email_specs, strategy: :batch_staggered, batch_size: 2, batch_delay: 3.seconds)
+      expect(result).to eq(1)
+    end
+
+    it 'raises error for unknown strategy' do
+      expect {
+        described_class.deliver_with_strategy(email_specs, strategy: :unknown)
+      }.to raise_error(ArgumentError, /Unknown delivery strategy/)
     end
   end
 
   describe 'rate limit prevention' do
     it 'uses appropriate delay to stay under Resend 2/second limit' do
-      email1 = double('email1')
-      email2 = double('email2')
+      email_specs = [
+        double('email_spec_1', execute: true),
+        double('email_spec_2', execute_with_delay: true)
+      ]
       
-      # In test environment, delays are not used to avoid test complexity
-      expect(email1).to receive(:deliver_later)
-      expect(email2).to receive(:deliver_later)
+      described_class.deliver_specifications(email_specs, delay_between_emails: 1.second)
       
-      described_class.deliver_multiple([email1, email2], delay_between_emails: 1.second)
+      expect(email_specs[1]).to have_received(:execute_with_delay).with(wait: 1.second)
     end
   end
 end 

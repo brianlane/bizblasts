@@ -508,15 +508,18 @@ RSpec.describe Order, type: :model do
         # Ensure invoice exists
         expect(order.reload.invoice).to be_present
         
-        # Test that StaggeredEmailService identifies the correct emails to send
-        # For existing customer: business order notification + invoice email = 2 emails
-        expect(StaggeredEmailService).to receive(:deliver_multiple) do |emails, **kwargs|
-          expect(emails.count).to eq(2) # Order notification + Invoice email (no customer notification for existing)
-          expect(emails.all? { |email| email.is_a?(ActionMailer::MessageDelivery) }).to be true
+        # Test that StaggeredEmailService uses the new architecture
+        # For existing customer: business order notification + conditional customer notification + invoice email = 3 specifications
+        # (The customer notification will be skipped during execution due to the condition)
+        expect(StaggeredEmailService).to receive(:deliver_specifications) do |email_specs, **kwargs|
+          expect(email_specs.count).to eq(3) # Order notification + Conditional customer notification + Invoice email
+          expect(email_specs.all? { |spec| spec.is_a?(EmailSpecification) }).to be true
           expect(kwargs[:delay_between_emails]).to eq(1.second)
+          2 # Return success count (only 2 actually executed - customer notification skipped)
         end
         
-        StaggeredEmailService.deliver_order_emails(order)
+        result = StaggeredEmailService.deliver_order_emails(order)
+        expect(result).to eq(2)
       end
     end
     
