@@ -29,10 +29,19 @@
                 <span class="text-gray-800"><%= item[:text] %></span>
               </div>
               
-              <% if item[:url] %>
-                <%= link_to item[:action], item[:url], 
-                    class: "ml-3 inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
-              <% end %>
+              <div class="flex items-center">
+                <% if item[:url] %>
+                  <%= link_to item[:action], item[:url], class: "ml-3 inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
+                <% end %>
+                <button
+                  type="button"
+                  data-url="<%= business_manager_setup_reminder_path(key: item[:key]) %>"
+                  class="ml-3 text-xs text-gray-500"
+                  onclick="event.preventDefault(); const btn=this; fetch(btn.dataset.url, {method:'DELETE', headers:{'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content}}).then(()=>btn.closest('li').style.display='none');"
+                >
+                  Don't Show This Reminder
+                </button>
+              </div>
             </li>
           <% end %>
         </ul>

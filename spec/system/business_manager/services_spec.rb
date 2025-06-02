@@ -1,32 +1,32 @@
 require 'rails_helper'
 
 # Define the shared context outside the describe block
-RSpec.shared_context 'setup business context' do
-  let!(:business) { FactoryBot.create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
-  let!(:manager) { FactoryBot.create(:user, :manager, business: business) }
-  let!(:staff_user) { FactoryBot.create(:user, :staff, business: business) }
-  # Create the StaffMember record associated with the staff_user
-  let!(:staff_member) { FactoryBot.create(:staff_member, business: business, user: staff_user, name: "#{staff_user.first_name} #{staff_user.last_name}") }
-  let!(:service1) { FactoryBot.create(:service, business: business, name: "Waxing") }
-  let!(:service2) { FactoryBot.create(:service, business: business, name: "Massage") }
+# RSpec.shared_context 'setup business context' do
+#   let!(:business) { FactoryBot.create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+#   let!(:manager) { FactoryBot.create(:user, :manager, business: business) }
+#   let!(:staff_user) { FactoryBot.create(:user, :staff, business: business) }
+#   # Create the StaffMember record associated with the staff_user
+#   let!(:staff_member) { FactoryBot.create(:staff_member, business: business, user: staff_user, name: "#{staff_user.first_name} #{staff_user.last_name}") }
+#   let!(:service1) { FactoryBot.create(:service, business: business, name: "Waxing") }
+#   let!(:service2) { FactoryBot.create(:service, business: business, name: "Massage") }
 
-  # Business from a different tenant
-  let!(:other_business) { FactoryBot.create(:business, subdomain: 'otherbiz') }
-  let!(:other_user) { FactoryBot.create(:user, :manager, business: other_business) }
+#   # Business from a different tenant
+#   let!(:other_business) { FactoryBot.create(:business, subdomain: 'otherbiz') }
+#   let!(:other_user) { FactoryBot.create(:user, :manager, business: other_business) }
 
-  def switch_to_subdomain(subdomain)
-    Capybara.app_host = "http://#{subdomain}.lvh.me"
-    # Ensure default server host is also set for request specs if needed
-    # Capybara.server_host = 'lvh.me' # Not always needed depending on config
-  end
+#   def switch_to_subdomain(subdomain)
+#     Capybara.app_host = "http://#{subdomain}.lvh.me"
+#     # Ensure default server host is also set for request specs if needed
+#     # Capybara.server_host = 'lvh.me' # Not always needed depending on config
+#   end
 
-  before do
-    # Default to the primary business subdomain for most tests
-    switch_to_subdomain(business.subdomain)
-    # Attempt to reload routes to ensure constraints are recognized
-    Rails.application.reload_routes!
-  end
-end
+#   before do
+#     # Default to the primary business subdomain for most tests
+#     switch_to_subdomain(business.subdomain)
+#     # Attempt to reload routes to ensure constraints are recognized
+#     Rails.application.reload_routes!
+#   end
+# end
 
 RSpec.describe "BusinessManager::Services", type: :system do
   # Include the shared context within the describe block

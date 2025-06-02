@@ -18,13 +18,23 @@ class BusinessManager::BaseController < ApplicationController
   # Check business setup and set flash for managers (not staff)
   before_action :check_business_setup, if: -> { current_user&.manager? }
 
+  # Endpoint to record dismissal of a specific business setup reminder task for the current user
+  def dismiss_setup_reminder
+    key = params[:key]
+    # Record the dismissal time, avoid duplicates
+    current_user.setup_reminder_dismissals.find_or_create_by!(task_key: key) do |dismissal|
+      dismissal.dismissed_at = Time.current
+    end
+    head :no_content
+  end
+
   protected
 
   # Check business setup completion and set todo flash for managers
   def check_business_setup
     return unless current_business
 
-    @business_setup_service = BusinessSetupService.new(current_business)
+    @business_setup_service = BusinessSetupService.new(current_business, current_user)
     
     # Only show setup todos if there are incomplete items
     unless @business_setup_service.setup_complete?

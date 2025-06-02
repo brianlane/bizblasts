@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_02_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -584,6 +584,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
     t.index ["staff_member_id"], name: "index_services_staff_members_on_staff_member_id"
   end
 
+  create_table "setup_reminder_dismissals", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "task_key", null: false
+    t.datetime "dismissed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "task_key"], name: "index_setup_reminder_dismissals_on_user_id_and_task_key", unique: true
+    t.index ["user_id"], name: "index_setup_reminder_dismissals_on_user_id"
+  end
+
   create_table "shipping_methods", force: :cascade do |t|
     t.string "name", null: false
     t.decimal "cost", precision: 10, scale: 2, default: "0.0", null: false
@@ -917,6 +927,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_28_195948) do
   add_foreign_key "services", "businesses", on_delete: :cascade
   add_foreign_key "services_staff_members", "services", on_delete: :cascade
   add_foreign_key "services_staff_members", "staff_members", on_delete: :cascade
+  add_foreign_key "setup_reminder_dismissals", "users"
   add_foreign_key "shipping_methods", "businesses", on_delete: :cascade
   add_foreign_key "sms_messages", "bookings", on_delete: :cascade
   add_foreign_key "sms_messages", "marketing_campaigns"

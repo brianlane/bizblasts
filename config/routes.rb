@@ -77,6 +77,9 @@ Rails.application.routes.draw do
       resources :orders, only: [:index, :show, :new, :create, :edit, :update]
       get '/settings', to: 'settings#index', as: :settings
 
+      # Route to dismiss individual business setup reminder tasks for the current user
+      delete 'setup_reminder', to: 'base#dismiss_setup_reminder', as: :setup_reminder
+
       namespace :settings do
         resource :profile, only: [:edit, :update, :destroy] do
           patch :unsubscribe_all, on: :member
