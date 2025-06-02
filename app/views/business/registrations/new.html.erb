@@ -72,10 +72,15 @@
             </div>
 
             <div>
-              <%= business_f.label :industry, class: "block text-sm font-medium text-dark mb-2" %>
-              <%= business_f.select :industry, Business.industries.keys.map { |ind| [ind.humanize.titleize, ind] }, 
-                    { prompt: 'Select Industry' }, 
-                    { required: true, class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" } %>
+              <%= business_f.label :industry, class: "block text-sm font-medium text-dark mb-2" do %>
+                Industry
+              <% end %>
+              <%= business_f.text_field :industry, list: "industry-list", required: true, class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
+              <datalist id="industry-list">
+                <% Business.industries.values.sort.each do |industry_name| %>
+                  <option value="<%= industry_name %>"><%= industry_name %></option>
+                <% end %>
+              </datalist>
             </div>
 
             <div>
@@ -284,8 +289,8 @@
       </div>
     <% end %>
 
-    <!-- Navigation Links -->
-    <%= render "devise/shared/links" %>
+    <%# Remove the Devise shared links section %>
+    <%# render "devise/shared/links" %>
   </div>
 </div>
 

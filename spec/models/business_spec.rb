@@ -22,7 +22,14 @@ RSpec.describe Business, type: :model do
 
   describe 'enums' do
     it { is_expected.to define_enum_for(:tier).with_values(free: 'free', standard: 'standard', premium: 'premium').backed_by_column_of_type(:string).with_suffix(true) }
-    it { is_expected.to define_enum_for(:industry).with_values(hair_salon: 'hair_salon', beauty_spa: 'beauty_spa', massage_therapy: 'massage_therapy', fitness_studio: 'fitness_studio', tutoring_service: 'tutoring_service', cleaning_service: 'cleaning_service', handyman_service: 'handyman_service', pet_grooming: 'pet_grooming', photography: 'photography', consulting: 'consulting', other: 'other').backed_by_column_of_type(:string) }
+    
+    # Test for the new industry enum using SHOWCASE_INDUSTRY_MAPPINGS
+    it do 
+      is_expected.to define_enum_for(:industry)
+        .with_values(Business::SHOWCASE_INDUSTRY_MAPPINGS)
+        .backed_by_column_of_type(:string)
+    end
+
     it { is_expected.to define_enum_for(:host_type).with_values(subdomain: 'subdomain', custom_domain: 'custom_domain').backed_by_column_of_type(:string).with_prefix(true) }
   end
 
@@ -30,6 +37,8 @@ RSpec.describe Business, type: :model do
     # Presence
     it { is_expected.to validate_presence_of(:name) }
     it { is_expected.to validate_presence_of(:industry) }
+    # Ensure the industry validation checks against the new string values
+    it { is_expected.to validate_inclusion_of(:industry).in_array(Business.industries.values) }
     it { is_expected.to validate_presence_of(:phone) }
     it { is_expected.to validate_presence_of(:email) }
     it { is_expected.to validate_presence_of(:address) }

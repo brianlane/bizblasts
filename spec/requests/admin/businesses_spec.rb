@@ -71,7 +71,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
           hostname: "newvalid",
           host_type: 'subdomain',
           tier: 'standard',
-          industry: "hair_salon",
+          industry: :hair_salons,
           phone: "555-000-1111",
           email: "new@valid.com",
           address: "1 New St",
@@ -110,8 +110,8 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
     let!(:business1) { create(:business) }
     let!(:business2) { create(:business) }
     # Ensure the business used for detail checks uses the updated factory 
-    # which provides all required fields and a valid industry.
-    let!(:business_with_details) { create(:business, email: "details@example.com")}
+    # which provides all required fields and a valid industry from the new enum.
+    let!(:business_with_details) { create(:business, email: "details@example.com", industry: :photography) }
     
     before { get admin_businesses_path }
 
@@ -132,7 +132,8 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
       expect(response.body).to include(business_with_details.hostname)
       expect(response.body).to include(business_with_details.host_type)
       expect(response.body).to include(business_with_details.tier)
-      expect(response.body).to include(business_with_details.industry)
+      # The industry displayed will be the full string value, e.g., "Photography"
+      expect(response.body).to include(Business.industries[business_with_details.industry]) 
       expect(response.body).to include(business_with_details.email)
     end
   end
@@ -278,7 +279,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
             hostname: "premium-coverage.com",
             host_type: 'custom_domain',
             tier: 'premium',
-            industry: "consulting",
+            industry: :consulting,
             phone: "555-000-2222",
             email: "premium@coverage.com",
             address: "2 Premium St",

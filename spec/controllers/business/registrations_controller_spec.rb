@@ -18,7 +18,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         password_confirmation: 'password123',
         business_attributes: {
           name: 'Test Business',
-          industry: 'other',
+          industry: :other,
           phone: '555-123-4567',
           email: 'business@example.com',
           website: 'http://example.com',

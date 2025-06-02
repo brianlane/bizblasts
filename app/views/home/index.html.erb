@@ -349,3 +349,12 @@
     </div>
   </div>
 </footer>
+
+<%# Add a script tag to pass the showcase categories data to JavaScript %>
+<script type="application/json" id="showcase-data">
+  <%= @showcase_categories.to_json.html_safe %>
+</script>
+
+<%# Lazy load Inter font %>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
