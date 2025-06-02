@@ -133,8 +133,12 @@ class Business::RegistrationsController < Users::RegistrationsController
       processed_params[:host_type] = tier == 'free' ? 'subdomain' : nil
     end
 
-    # Let the Business model validations handle tier/host_type mismatches 
-    # and specific format rules (e.g., free tier needs subdomain host_type).
+    # Convert human-readable industry name (value) to the enum key string
+    industry_val = processed_params["industry"] || processed_params[:industry]
+    if industry_val.present?
+      key = Business::SHOWCASE_INDUSTRY_MAPPINGS.key(industry_val)
+      processed_params["industry"] = key.to_s if key
+    end
     
     processed_params
   end

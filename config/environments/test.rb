@@ -76,6 +76,7 @@ Rails.application.configure do
   config.hosts = [
     "localhost",
     "127.0.0.1",
+    "lvh.me",                      # Allow root lvh.me for system tests
     "www.example.com",
     /.*\.lvh\.me/,
     /[a-z0-9\-]+\.example\.com/

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="https://app.termly.io/resource-blocker/a04fa7ee-1569-4641-a484-951b2d9c587e?autoBlock=on"></script>
+    <% unless Rails.env.test? %>
+      <script src="https://app.termly.io/resource-blocker/a04fa7ee-1569-4641-a484-951b2d9c587e?autoBlock=on"></script>
+    <% end %>
     <title><%= content_for(:title) || "BizBlasts" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">

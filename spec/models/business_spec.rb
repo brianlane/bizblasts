@@ -37,7 +37,7 @@ RSpec.describe Business, type: :model do
     # Presence
     it { is_expected.to validate_presence_of(:name) }
     it { is_expected.to validate_presence_of(:industry) }
-    # Ensure the industry validation checks against the new string values
+    # Ensure the industry validation checks against the enum keys
     it { is_expected.to validate_inclusion_of(:industry).in_array(Business.industries.values) }
     it { is_expected.to validate_presence_of(:phone) }
     it { is_expected.to validate_presence_of(:email) }
