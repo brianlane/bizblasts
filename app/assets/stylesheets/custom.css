@@ -52,4 +52,28 @@
 /* Smooth transitions for interactive elements */
 .transition-colors { transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; }
 .transition-shadow { transition: box-shadow 0.2s ease-in-out; }
-.transition-opacity { transition: opacity 0.2s ease-in-out; } 
+.transition-opacity { transition: opacity 0.2s ease-in-out; }
+
+/* Category Showcase Styles */
+.category-tile {
+  transition-property: transform, box-shadow;
+  transition-timing-function: ease-in-out;
+  transition-duration: 300ms;
+}
+
+.category-tile .overlay {
+  transition-property: opacity;
+  transition-timing-function: ease-in-out;
+  transition-duration: 300ms;
+  /* The JS adds backdrop-blur-sm, bg-opacity-70 and specific bg color */
+}
+
+.example-item {
+  /* Base styles are applied via Tailwind in JS */
+  /* Transitions for opacity and transform are also applied in JS for staggering */
+}
+
+/* Ensure the examples grid container allows for scrolling if content overflows */
+.examples-grid-container {
+  max-height: 100%; /* Ensure it doesn't exceed tile height */
+} 
