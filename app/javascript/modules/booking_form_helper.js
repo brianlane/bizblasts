@@ -129,7 +129,7 @@ const BookingFormHelper = {
         <p class="mb-1">Confirmation #: ${booking.id}</p>
         <p class="mb-1">Date: ${startTime.toLocaleDateString()}</p>
         <p class="mb-1">Time: ${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-        <button data-action="click->booking-form#hideForm" class="mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Close</button>
+        <button onclick="BookingFormHelper.hideForm()" class="mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Close</button>
       </div>
     `
     confirmationContainer.classList.remove('hidden')
@@ -147,6 +147,16 @@ const BookingFormHelper = {
       overlay.classList.remove('hidden')
     } else {
       overlay.classList.add('hidden')
+    }
+  },
+  
+  /**
+   * Hide the booking form overlay
+   */
+  hideForm() {
+    const overlay = document.querySelector('.booking-overlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
     }
   }
 }

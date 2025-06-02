@@ -250,14 +250,9 @@
 // Dynamic order form behavior
 (function() {
   document.addEventListener('DOMContentLoaded', function() {
-    const customerSelect = document.getElementById('order_tenant_customer_id');
-    const newCustomerFields = document.getElementById('new-customer-fields');
-    if (customerSelect && newCustomerFields) {
-      // Initialize visibility: show only if 'new' selected
-      newCustomerFields.style.display = (customerSelect.value === 'new') ? '' : 'none';
-      customerSelect.addEventListener('change', function() {
-        newCustomerFields.style.display = (this.value === 'new') ? '' : 'none';
-      });
+    // Use the reusable CustomerFormHelper for customer field toggling
+    if (window.CustomerFormHelper) {
+      CustomerFormHelper.initializeOrderForm();
     }
 
     // Line-items dynamic behavior
