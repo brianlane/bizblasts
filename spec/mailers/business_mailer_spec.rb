@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+include ERB::Util
 
 RSpec.describe BusinessMailer, type: :mailer do
   let(:business) { create(:business, name: 'Test Business') }
@@ -109,7 +110,7 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('New Order')
       expect(mail.subject).to include(tenant_customer.name)
-      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(html_escape(tenant_customer.name))
       expect(mail.body.encoded).to include(business.name)
     end
 

@@ -74,8 +74,7 @@
         <div class="form-group mb-4">
           <label for="booking_customer_id" class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
           <select id="booking_customer_id" name="booking[customer_id]" 
-                  class="form-select rounded border px-3 py-2 w-full"
-                  data-new-customer-target="customerSelect">
+                  class="form-select rounded border px-3 py-2 w-full">
             <option value="">Select existing customer</option>
             <% @booking.business.customers.each do |customer| %>
               <option value="<%= customer.id %>"><%= customer.name %> (<%= customer.email %>)</option>
@@ -85,7 +84,7 @@
         </div>
         
         <!-- New customer fields (hidden by default) -->
-        <div id="new-customer-fields" class="hidden" data-new-customer-target="newCustomerFields">
+        <div id="new-customer-fields" class="hidden">
           <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
           
           <div class="form-group mb-4">
@@ -168,16 +167,9 @@
       // You can use fetch API to submit the form data
     });
 
-    // Toggle new customer fields
-    const customerSelect = document.getElementById('booking_customer_id');
-    const newCustomerFields = document.getElementById('new-customer-fields');
-
-    customerSelect.addEventListener('change', function() {
-      if (this.value === 'new') {
-        newCustomerFields.classList.remove('hidden');
-      } else {
-        newCustomerFields.classList.add('hidden');
-      }
-    });
+    // Use the reusable CustomerFormHelper for customer field toggling
+    if (window.CustomerFormHelper) {
+      CustomerFormHelper.initializeGenericBookingForm();
+    }
   });
 </script> 
