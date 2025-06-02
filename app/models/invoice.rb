@@ -149,6 +149,13 @@ class Invoice < ApplicationRecord
     # Available for all tiers
     return unless status == 'pending'
     
+    # Skip automatic email if this invoice belongs to an order
+    # Order creation handles staggered email delivery to avoid rate limits
+    if order.present?
+      Rails.logger.info "[EMAIL] Skipping automatic invoice email for Order-based Invoice ##{invoice_number} (handled by order)"
+      return
+    end
+    
     begin
       InvoiceMailer.invoice_created(self).deliver_later
       Rails.logger.info "[EMAIL] Sent invoice created email for Invoice ##{invoice_number}"

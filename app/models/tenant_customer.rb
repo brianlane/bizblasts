@@ -22,6 +22,9 @@ class TenantCustomer < ApplicationRecord
   # Callbacks
   after_create :send_business_customer_notification
   
+  # Add accessor to skip email notifications when handled by staggered delivery
+  attr_accessor :skip_notification_email
+  
   scope :active, -> { where(active: true) }
   
   def full_name
@@ -59,6 +62,9 @@ class TenantCustomer < ApplicationRecord
   private
   
   def send_business_customer_notification
+    # Skip if explicitly disabled (used by staggered email service)
+    return if skip_notification_email
+    
     begin
       BusinessMailer.new_customer_notification(self).deliver_later
       Rails.logger.info "[EMAIL] Scheduled business customer notification for Customer #{name} (#{email})"
