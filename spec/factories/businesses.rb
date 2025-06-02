@@ -24,11 +24,10 @@ FactoryBot.define do
       end
     end 
 
-    # Add required fields with valid defaults
-    industry { %w[hair_salon beauty_spa massage_therapy fitness_studio tutoring_service cleaning_service handyman_service pet_grooming photography consulting other].sample }
+    # Update industry to sample from the keys of the new enum
+    industry { Business.industries.keys.sample }
     phone { Faker::PhoneNumber.phone_number }
     sequence(:email) { |n| "business#{n}@example.com" }
-    sequence(:subdomain) { |n| "business#{n}" }
     address { Faker::Address.street_address }
     city { Faker::Address.city }
     state { Faker::Address.state_abbr }

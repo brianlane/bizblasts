@@ -9,9 +9,8 @@ class BusinessesController < ApplicationController
 
   # GET /businesses
   def index
-    # Get distinct industries for filtering dropdown
-    # Use compact before sort to remove nils, preventing comparison errors
-    @industries = Business.active.pluck(:industry).compact.uniq.sort
+    # Get distinct, human-readable industries for filtering dropdown from enum values
+    @industries = Business.industries.values.sort
 
     # Base query for active businesses
     businesses_query = Business.active

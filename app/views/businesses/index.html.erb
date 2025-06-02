@@ -12,7 +12,16 @@
   <%= form_with url: businesses_path, method: :get, local: true, data: { turbo_frame: "businesses_list", turbo_action: "advance" }, class: "mb-6 flex flex-wrap gap-4 items-center" do |form| %>
     <div>
       <%= form.label :industry, "Filter by Industry:", class: "block text-sm font-medium text-gray-700 mr-2" %>
-      <%= form.select :industry, options_for_select(@industries, params[:industry]), { include_blank: 'All Industries' }, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+      <%= form.text_field :industry, 
+            list: "filter-industry-list", 
+            value: params[:industry], 
+            placeholder: "Select an Industry", 
+            class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+      <datalist id="filter-industry-list">
+        <% @industries.each do |industry_name| %>
+          <option value="<%= industry_name %>"><%= industry_name %></option>
+        <% end %>
+      </datalist>
     </div>
 
     <div>

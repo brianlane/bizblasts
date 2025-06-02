@@ -3,24 +3,114 @@
 class Business < ApplicationRecord
   # Business represents a tenant in the multi-tenant architecture
   
+  # Define the comprehensive list of industries based on showcase examples
+  SHOWCASE_INDUSTRY_MAPPINGS = {
+    # Services
+    hair_salons: "Hair Salons",
+    massage_therapy: "Massage Therapy",
+    pet_grooming: "Pet Grooming",
+    auto_repair: "Auto Repair",
+    hvac_services: "HVAC Services",
+    plumbing: "Plumbing",
+    landscaping: "Landscaping",
+    pool_services: "Pool Services",
+    cleaning_services: "Cleaning Services",
+    tutoring: "Tutoring",
+    personal_training: "Personal Training",
+    photography: "Photography",
+    web_design: "Web Design",
+    consulting: "Consulting",
+    accounting: "Accounting",
+    legal_services: "Legal Services",
+    dental_care: "Dental Care",
+    veterinary: "Veterinary",
+    handyman_service: "Handyman Service",
+    painting: "Painting",
+    roofing: "Roofing",
+    carpet_cleaning: "Carpet Cleaning",
+    pest_control: "Pest Control",
+    beauty_spa: "Beauty Spa",
+    moving_services: "Moving Services",
+    catering: "Catering",
+    dj_services: "DJ Services",
+    event_planning: "Event Planning",
+    tax_preparation: "Tax Preparation",
+    it_support: "IT Support",
+
+    # Experiences
+    yoga_classes: "Yoga Classes",
+    escape_rooms: "Escape Rooms",
+    wine_tasting: "Wine Tasting",
+    cooking_classes: "Cooking Classes",
+    art_studios: "Art Studios",
+    dance_studios: "Dance Studios",
+    music_lessons: "Music Lessons",
+    adventure_tours: "Adventure Tours",
+    boat_charters: "Boat Charters",
+    helicopter_tours: "Helicopter Tours",
+    food_tours: "Food Tours",
+    ghost_tours: "Ghost Tours",
+    museums: "Museums",
+    aquariums: "Aquariums",
+    theme_parks: "Theme Parks",
+    zip_lines: "Zip Lines",
+    paintball: "Paintball",
+    laser_tag: "Laser Tag",
+    bowling_alleys: "Bowling Alleys",
+    mini_golf: "Mini Golf",
+    go_kart_racing: "Go-Kart Racing",
+    arcades: "Arcades",
+    comedy_clubs: "Comedy Clubs",
+    theater_shows: "Theater Shows",
+    concerts: "Concerts",
+    festivals: "Festivals",
+    workshops: "Workshops",
+    seminars: "Seminars",
+    retreats: "Retreats",
+    spa_days: "Spa Days",
+
+    # Products
+    boutiques: "Boutiques",
+    jewelry_stores: "Jewelry Stores",
+    electronics: "Electronics",
+    bookstores: "Bookstores",
+    art_galleries: "Art Galleries",
+    craft_stores: "Craft Stores",
+    antique_shops: "Antique Shops",
+    toy_stores: "Toy Stores",
+    sports_equipment: "Sports Equipment",
+    outdoor_gear: "Outdoor Gear",
+    home_decor: "Home Decor",
+    furniture_stores: "Furniture Stores",
+    bakeries: "Bakeries",
+    coffee_shops: "Coffee Shops",
+    wine_shops: "Wine Shops",
+    specialty_foods: "Specialty Foods",
+    cosmetics: "Cosmetics",
+    perfume_shops: "Perfume Shops",
+    pet_supplies: "Pet Supplies",
+    plant_nurseries: "Plant Nurseries",
+    garden_centers: "Garden Centers",
+    hardware_stores: "Hardware Stores",
+    music_stores: "Music Stores",
+    gift_shops: "Gift Shops",
+    souvenir_shops: "Souvenir Shops",
+    thrift_stores: "Thrift Stores",
+    clothing: "Clothing",
+    local_artisans: "Local Artisans",
+    handmade_goods: "Handmade Goods",
+    farmers_markets: "Farmers Markets",
+
+    # Other
+    other: "Other"
+  }.freeze
+  
   # Explicitly declare the attribute type for the tier enum
   attribute :tier, :string
   
   # Enums
   enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
-  enum :industry, {
-    hair_salon: 'hair_salon',
-    beauty_spa: 'beauty_spa',
-    massage_therapy: 'massage_therapy',
-    fitness_studio: 'fitness_studio',
-    tutoring_service: 'tutoring_service',
-    cleaning_service: 'cleaning_service',
-    handyman_service: 'handyman_service',
-    pet_grooming: 'pet_grooming',
-    photography: 'photography',
-    consulting: 'consulting',
-    other: 'other'
-  }
+  enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
   
   belongs_to :service_template, optional: true
@@ -63,7 +153,7 @@ class Business < ApplicationRecord
   
   # Validations
   validates :name, presence: true
-  validates :industry, presence: true, inclusion: { in: industries.keys }
+  validates :industry, presence: true, inclusion: { in: industries.values }
   validates :phone, presence: true # Consider adding format validation
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP } # Business contact email
   validates :address, presence: true
