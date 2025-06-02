@@ -153,7 +153,7 @@ class Business < ApplicationRecord
   
   # Validations
   validates :name, presence: true
-  validates :industry, presence: true, inclusion: { in: industries.values }
+  validates :industry, presence: true, inclusion: { in: industries.keys }
   validates :phone, presence: true # Consider adding format validation
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP } # Business contact email
   validates :address, presence: true
