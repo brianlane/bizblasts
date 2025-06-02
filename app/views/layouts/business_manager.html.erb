@@ -38,6 +38,9 @@
 </head>
 
 <body class="bg-gray-100">
+  <%# Policy Acceptance Modal %>
+  <%= render 'shared/policy_acceptance_modal' %>
+
   <div class="flex h-screen bg-gray-100">
     <!-- Sidebar -->
     <div class="w-64 bg-gray-800 text-white p-4 flex flex-col">
@@ -125,5 +128,86 @@
       </main>
     </div>
   </div>
+
+  <% if user_signed_in? %>
+    <%# Fallback script to ensure modal shows when needed %>
+    <script>
+      // Business Manager Policy modal check
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('[BusinessManager] Initializing policy acceptance...');
+        
+        // Try to initialize the PolicyAcceptance class if available
+        if (typeof PolicyAcceptance !== 'undefined') {
+          new PolicyAcceptance();
+        }
+        
+        // Small delay to let other scripts initialize
+        setTimeout(function() {
+          const modal = document.getElementById('policy-acceptance-modal');
+          if (modal) {
+            console.log('[BusinessManager PolicyFallback] Checking if modal should be visible...');
+            
+            // Check if modal should be shown by calling the policy status
+            fetch('/policy_status', {
+              headers: {
+                'Accept': 'application/json',
+                'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content || ''
+              }
+            })
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              } else if (response.status === 401) {
+                console.log('[BusinessManager PolicyFallback] User not authenticated');
+                return null;
+              }
+              throw new Error('Failed to check policy status');
+            })
+            .then(data => {
+              if (data && data.requires_policy_acceptance && data.missing_policies && data.missing_policies.length > 0) {
+                console.log('[BusinessManager PolicyFallback] User needs policy acceptance - ensuring modal is visible');
+                
+                // Force modal to be visible if the main script failed
+                if (modal.classList.contains('hidden')) {
+                  console.log('[BusinessManager PolicyFallback] Main script failed - showing modal manually');
+                  modal.classList.remove('hidden');
+                  modal.style.display = 'block';
+                  modal.style.zIndex = '9999';
+                  document.body.style.overflow = 'hidden';
+                  
+                  // Add emergency styling to ensure visibility
+                  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                  modal.style.position = 'fixed';
+                  modal.style.top = '0';
+                  modal.style.left = '0';
+                  modal.style.width = '100%';
+                  modal.style.height = '100%';
+                  
+                  // Show a simple message if the dynamic content failed to load
+                  const container = document.getElementById('policies-to-accept');
+                  if (container && container.children.length === 0) {
+                    container.innerHTML = `
+                      <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded">
+                        <h3 class="text-lg font-medium text-yellow-800 mb-4">Policy Acceptance Required</h3>
+                        <p class="text-yellow-700 mb-4">You need to accept our updated policies to continue using BizBlasts.</p>
+                        <a href="/policy_acceptances" class="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                          Accept Policies →
+                        </a>
+                      </div>
+                    `;
+                  }
+                }
+              } else {
+                console.log('[BusinessManager PolicyFallback] No policy acceptance required');
+              }
+            })
+            .catch(error => {
+              console.log('[BusinessManager PolicyFallback] Error checking policy status:', error);
+            });
+          }
+        }, 500);
+      });
+    </script>
+  <% end %>
 </body>
 </html> 

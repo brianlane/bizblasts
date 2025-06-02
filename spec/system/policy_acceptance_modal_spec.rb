@@ -146,4 +146,90 @@ RSpec.describe 'Policy Acceptance Modal', type: :system do
       expect(user.missing_required_policies).to be_empty
     end
   end
+
+  describe 'business user on subdomain' do
+    let(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+    let(:business_user) { create(:user, :manager, business: business) }
+    let!(:return_policy) { create(:policy_version, policy_type: 'return_policy', version: 'v1.0', active: true) }
+    
+    before do
+      driven_by(:rack_test)
+      
+      # Configure Capybara for subdomain
+      Capybara.app_host = "http://testbiz.example.com"
+      
+      # Set tenant context for the business
+      ActsAsTenant.current_tenant = business
+      
+      # Mark user as requiring policy acceptance
+      business_user.update!(requires_policy_acceptance: true)
+      
+      # Sign in the business user
+      sign_in business_user
+    end
+    
+    after do
+      # Reset to main domain
+      Capybara.app_host = "http://www.example.com"
+      ActsAsTenant.current_tenant = nil
+    end
+    
+    it 'shows policy modal for business user on subdomain' do
+      # Visit business manager dashboard
+      visit '/manage/dashboard'
+      
+      # The page should load with business manager layout
+      expect(page).to have_content('Business Manager').or have_content('Dashboard')
+      
+      # Check that the policy modal HTML is present in business manager layout
+      expect(page).to have_css('#policy-acceptance-modal', visible: false)
+      expect(page).to have_css('#accept-all-policies', visible: false)
+      expect(page).to have_css('#policies-to-accept', visible: false)
+    end
+    
+    it 'includes all required policies for business user on subdomain' do
+      visit '/policy_status'
+      
+      # Business users need all four policies including return_policy
+      expect(page).to have_content('privacy_policy')
+      expect(page).to have_content('terms_of_service')
+      expect(page).to have_content('acceptable_use_policy')
+      expect(page).to have_content('return_policy')
+    end
+    
+    it 'allows policy acceptance via subdomain routes' do
+      # Test that the policy acceptance endpoint works on subdomain
+      expect {
+        visit '/policy_status'
+      }.not_to raise_error
+      
+      # Should be able to access policy pages (which redirect to main domain)
+      expect {
+        visit '/privacypolicy'
+      }.not_to raise_error
+      
+      expect {
+        visit '/terms'
+      }.not_to raise_error
+      
+      expect {
+        visit '/returnpolicy'
+      }.not_to raise_error
+    end
+    
+    it 'can complete policy acceptance flow on subdomain' do
+      # This would normally be tested with JavaScript, but we can test the endpoint
+      expect {
+        PolicyAcceptance.record_acceptance(business_user, 'privacy_policy', 'v1.0', double('request', remote_ip: '127.0.0.1', user_agent: 'test'))
+        PolicyAcceptance.record_acceptance(business_user, 'terms_of_service', 'v1.0', double('request', remote_ip: '127.0.0.1', user_agent: 'test'))
+        PolicyAcceptance.record_acceptance(business_user, 'acceptable_use_policy', 'v1.0', double('request', remote_ip: '127.0.0.1', user_agent: 'test'))
+        PolicyAcceptance.record_acceptance(business_user, 'return_policy', 'v1.0', double('request', remote_ip: '127.0.0.1', user_agent: 'test'))
+      }.to change(PolicyAcceptance, :count).by(4)
+      
+      business_user.mark_policies_accepted!
+      
+      expect(business_user.reload.requires_policy_acceptance).to be false
+      expect(business_user.missing_required_policies).to be_empty
+    end
+  end
 end 

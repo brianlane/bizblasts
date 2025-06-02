@@ -53,6 +53,43 @@ RSpec.describe EmailSpecification, type: :service do
 
       expect(spec.method_name).to eq(:new_order_notification)
     end
+
+    it 'extracts business context from tenant-scoped arguments' do
+      spec = EmailSpecification.new(
+        mailer_class: BusinessMailer,
+        method_name: :new_customer_notification,
+        arguments: [tenant_customer]
+      )
+
+      expect(spec.business_context).to eq(business)
+    end
+
+    it 'handles direct business argument' do
+      # Create a user first to test business mailer methods
+      user = create(:user, business: business)
+      
+      spec = EmailSpecification.new(
+        mailer_class: BusinessMailer,
+        method_name: :domain_request_notification,
+        arguments: [user]
+      )
+
+      expect(spec.business_context).to eq(business)
+    end
+
+    it 'uses current tenant when no business context in arguments' do
+      # Create a user first to test with a valid mailer method
+      user = create(:user, business: business)
+      allow(ActsAsTenant).to receive(:current_tenant).and_return(business)
+      
+      spec = EmailSpecification.new(
+        mailer_class: BusinessMailer,
+        method_name: :domain_request_notification,
+        arguments: [user]
+      )
+
+      expect(spec.business_context).to eq(business)
+    end
   end
 
   describe 'validation' do
@@ -118,6 +155,24 @@ RSpec.describe EmailSpecification, type: :service do
       expect(mailer_instance).to receive(:deliver_later)
 
       result = spec.execute
+      expect(result).to be true
+    end
+
+    it 'executes within tenant context when business_context is present' do
+      spec_with_tenant = EmailSpecification.new(
+        mailer_class: BusinessMailer,
+        method_name: :new_customer_notification,
+        arguments: [tenant_customer]
+      )
+
+      # Mock ActsAsTenant.with_tenant
+      expect(ActsAsTenant).to receive(:with_tenant).with(business).and_yield
+
+      mailer_instance = double('mailer_instance')
+      allow(BusinessMailer).to receive(:new_customer_notification).with(tenant_customer).and_return(mailer_instance)
+      expect(mailer_instance).to receive(:deliver_later)
+
+      result = spec_with_tenant.execute
       expect(result).to be true
     end
 
@@ -214,6 +269,24 @@ RSpec.describe EmailSpecification, type: :service do
       expect(mailer_instance).to receive(:deliver_later).with(no_args)
 
       result = spec.execute_with_delay(wait: 5.seconds)
+      expect(result).to be true
+    end
+
+    it 'executes within tenant context when business_context is present' do
+      spec_with_tenant = EmailSpecification.new(
+        mailer_class: BusinessMailer,
+        method_name: :new_customer_notification,
+        arguments: [tenant_customer]
+      )
+
+      # Mock ActsAsTenant.with_tenant
+      expect(ActsAsTenant).to receive(:with_tenant).with(business).and_yield
+
+      mailer_instance = double('mailer_instance')
+      allow(BusinessMailer).to receive(:new_customer_notification).with(tenant_customer).and_return(mailer_instance)
+      expect(mailer_instance).to receive(:deliver_later)
+
+      result = spec_with_tenant.execute_with_delay(wait: 5.seconds)
       expect(result).to be true
     end
 

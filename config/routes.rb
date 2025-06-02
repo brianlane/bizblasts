@@ -124,6 +124,33 @@ Rails.application.routes.draw do
     # Subdomain checkout uses Public::OrdersController for guest flows
     resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders'
 
+    # Policy acceptance routes for subdomain users
+    resources :policy_acceptances, only: [:create, :show]
+    get '/policy_status', to: 'policy_acceptances#status'
+    post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+
+    # Policy pages for subdomain users (redirect to main domain)
+    get '/privacypolicy', to: redirect { |params, request| 
+      protocol = request.protocol
+      port = request.port != 80 ? ":#{request.port}" : ""
+      "#{protocol}#{request.domain}#{port}/privacypolicy"
+    }
+    get '/terms', to: redirect { |params, request| 
+      protocol = request.protocol
+      port = request.port != 80 ? ":#{request.port}" : ""
+      "#{protocol}#{request.domain}#{port}/terms"
+    }
+    get '/acceptableusepolicy', to: redirect { |params, request| 
+      protocol = request.protocol
+      port = request.port != 80 ? ":#{request.port}" : ""
+      "#{protocol}#{request.domain}#{port}/acceptableusepolicy"
+    }
+    get '/returnpolicy', to: redirect { |params, request| 
+      protocol = request.protocol
+      port = request.port != 80 ? ":#{request.port}" : ""
+      "#{protocol}#{request.domain}#{port}/returnpolicy"
+    }
+
     # Add a redirect for /settings under subdomain to the main domain
     get '/settings', to: redirect { |params, request| 
       # Extract the protocol and port
