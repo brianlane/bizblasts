@@ -211,6 +211,9 @@ Rails.application.routes.draw do
   resources :products, only: [:index, :show]
   root "home#index"
 
+  # Route for checking business industry
+  get '/check_business_industry', to: 'home#check_business_industry'
+
   # New static pages
   get '/about', to: 'home#about'
   get '/contact', to: 'home#contact'
