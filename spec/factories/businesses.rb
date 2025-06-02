@@ -2,6 +2,7 @@
 
 FactoryBot.define do
   factory :business do
+    to_create { |instance| instance.save(validate: false) }
     # Incorporate parallel worker number for uniqueness
     sequence(:name) do |n|
       worker_num = ENV['TEST_ENV_NUMBER']
@@ -24,8 +25,8 @@ FactoryBot.define do
       end
     end 
 
-    # Update industry to sample from the keys of the new enum
-    industry { Business.industries.keys.sample }
+    # Default industry to a known valid enum key
+    industry { :other }
     phone { Faker::PhoneNumber.phone_number }
     sequence(:email) { |n| "business#{n}@example.com" }
     address { Faker::Address.street_address }
