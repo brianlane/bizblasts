@@ -82,6 +82,33 @@
         </div>
         <% end %>
         
+      <% elsif @invoice.order.present? %>
+        <% @invoice.order.line_items.each do |item| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f3f4;">
+            <div style="flex: 1;">
+              <% if item.product_variant.present? %>
+                <strong style="color: #495057; font-size: 16px;"><%= item.product_variant.product.name %></strong>
+                <% if item.product_variant.name != 'Default' %>
+                  <br><span style="color: #6c757d; font-size: 14px;"><%= item.product_variant.name %></span>
+                <% end %>
+                <br><span style="color: #6c757d; font-size: 14px;">Quantity: <%= item.quantity %></span>
+              <% elsif item.service.present? %>
+                <strong style="color: #495057; font-size: 16px;"><%= item.service.name %></strong>
+                <% if item.staff_member.present? %>
+                  <br><span style="color: #6c757d; font-size: 14px;">Staff: <%= item.staff_member.name %></span>
+                <% end %>
+                <br><span style="color: #6c757d; font-size: 14px;">Quantity: <%= item.quantity %></span>
+              <% end %>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 14px; color: #6c757d;">
+                <%= number_to_currency(item.price) %><%= ' each' if item.product_variant.present? %>
+              </div>
+              <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(item.total_amount) %></div>
+            </div>
+          </div>
+        <% end %>
+        
       <!-- If invoice has line items -->
       <% elsif @invoice.line_items.any? %>
         <% @invoice.line_items.each do |item| %>
