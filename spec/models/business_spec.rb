@@ -38,7 +38,18 @@ RSpec.describe Business, type: :model do
     it { is_expected.to validate_presence_of(:name) }
     it { is_expected.to validate_presence_of(:industry) }
     # Ensure the industry validation checks against the enum keys
-    it { is_expected.to validate_inclusion_of(:industry).in_array(Business.industries.values) }
+    describe 'industry enum' do
+      it 'only allows valid industries' do
+        Business.industries.keys.each do |valid_industry|
+          business = build(:business, industry: valid_industry)
+          expect(business).to be_valid
+        end
+
+        expect {
+          build(:business, industry: 'invalid_industry')
+        }.to raise_error(ArgumentError)
+      end
+    end
     it { is_expected.to validate_presence_of(:phone) }
     it { is_expected.to validate_presence_of(:email) }
     it { is_expected.to validate_presence_of(:address) }

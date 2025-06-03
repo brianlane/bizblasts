@@ -125,7 +125,9 @@ ActiveAdmin.register Business do
         status_tag "Not Eligible", class: "error"
       end
     end
-    column :industry
+    column :industry do |business|
+      Business.industries[business.industry]
+    end
     column :email
     column :active
     column :created_at
@@ -145,7 +147,9 @@ ActiveAdmin.register Business do
       row :hostname
       row :host_type
       row :tier
-      row :industry
+      row :industry do |business|
+        Business.industries[business.industry]
+      end
       row :phone
       row :email
       row :website

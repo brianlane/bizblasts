@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_02_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_03_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -378,7 +378,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_02_120000) do
     t.index ["status"], name: "index_orders_on_status"
     t.index ["tax_rate_id"], name: "index_orders_on_tax_rate_id"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -947,6 +947,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_02_120000) do
   add_foreign_key "subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "tax_rates", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
-  add_foreign_key "users", "businesses", on_delete: :cascade
+  add_foreign_key "users", "businesses"
   add_foreign_key "users", "staff_members"
 end

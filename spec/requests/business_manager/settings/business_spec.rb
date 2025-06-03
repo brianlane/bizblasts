@@ -83,7 +83,7 @@ RSpec.describe "Settings::BusinessController", type: :request do
         patch business_manager_settings_business_path, params: { business: valid_attributes }
         business.reload
         expect(business.name).to eq("Updated Tech Solutions Inc.")
-        expect(business.industry).to eq("Consulting")
+        expect(business.industry).to eq("consulting")
         expect(business.email).to eq("contact@updatedtech.com")
       end
 
