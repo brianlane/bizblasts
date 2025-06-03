@@ -116,7 +116,7 @@ class Business < ApplicationRecord
   belongs_to :service_template, optional: true
   
   # Removed dependent: :destroy from all - Let DB cascade handle via FKs
-  has_many :users, inverse_of: :business, validate: false
+  has_many :users, inverse_of: :business, dependent: :destroy, validate: false
   has_many :tenant_customers
   has_many :services, dependent: :destroy
   has_many :staff_members
