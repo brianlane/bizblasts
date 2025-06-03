@@ -1,0 +1,111 @@
+<%# app/views/business_manager/customers/show.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold"><%= @customer.name %></h1>
+    <div class="space-x-3">
+      <% if policy(@customer).edit? %>
+        <%= link_to 'Edit', edit_business_manager_customer_path(@customer), class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+      <% end %>
+      <% if policy(@customer).destroy? %>
+        <%= button_to 'Delete', business_manager_customer_path(@customer), method: :delete,
+                      data: { confirm: "Are you sure you want to delete this customer?" },
+                      class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline' %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:px-6">
+      <h2 class="text-lg leading-6 font-medium text-gray-900">Customer Details</h2>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+      <dl class="sm:divide-y sm:divide-gray-200">
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Name</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @customer.name %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Email</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @customer.email %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Phone</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @customer.phone.presence || '-' %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Address</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @customer.address.presence || '-' %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Notes</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @customer.notes.presence || '-' %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Last Appointment</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @customer.last_appointment&.strftime("%B %d, %Y at %I:%M %p") || '-' %></dd>
+        </div>
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+          <dt class="text-sm font-medium text-gray-500">Account Type</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <% if User.find_by(email: @customer.email) %>
+              Registered User
+            <% else %>
+              Guest Customer
+            <% end %>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-8">
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Recent Bookings</h2>
+      <% if @customer.bookings.any? %>
+        <ul class="list-disc list-inside">
+          <% @customer.bookings.order(start_time: :desc).limit(5).each do |booking| %>
+            <li><%= link_to booking.start_time.strftime("%b %d, %Y %I:%M %p"), business_manager_booking_path(booking) %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-gray-500 italic">No bookings found.</p>
+      <% end %>
+    </div>
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Recent Orders</h2>
+      <% if @customer.orders.any? %>
+        <ul class="list-disc list-inside">
+          <% @customer.orders.order(created_at: :desc).limit(5).each do |order| %>
+            <li><%= link_to order.id, business_manager_order_path(order) %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-gray-500 italic">No orders found.</p>
+      <% end %>
+    </div>
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Recent Invoices</h2>
+      <% if @customer.invoices.any? %>
+        <ul class="list-disc list-inside">
+          <% @customer.invoices.order(created_at: :desc).limit(5).each do |invoice| %>
+            <li><%= link_to invoice.invoice_number || invoice.id, business_manager_invoice_path(invoice) %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-gray-500 italic">No invoices found.</p>
+      <% end %>
+    </div>
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Recent Payments</h2>
+      <% if @customer.payments.any? %>
+        <ul class="list-disc list-inside">
+          <% @customer.payments.order(created_at: :desc).limit(5).each do |payment| %>
+            <li><%= payment.id %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-gray-500 italic">No payments found.</p>
+      <% end %>
+    </div>
+  </div>
+</div> 
