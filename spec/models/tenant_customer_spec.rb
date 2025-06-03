@@ -40,5 +40,17 @@ RSpec.describe TenantCustomer, type: :model do
         expect(customer_in_biz2).to be_valid
       end
     end
+
+    it 'validates format of email' do
+      customer = build(:tenant_customer, email: 'invalid_email')
+      expect(customer).not_to be_valid
+      expect(customer.errors[:email]).to include('is invalid')
+    end
+
+    it 'allows blank phone' do
+      customer = build(:tenant_customer, phone: nil)
+      customer.validate
+      expect(customer.errors[:phone]).to be_empty
+    end
   end
 end 

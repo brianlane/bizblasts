@@ -1,124 +1,178 @@
 <%# app/views/business_manager/orders/show.html.erb %>
-<h1>Order Details: <%= @order.order_number %></h1>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">Order Details: <%= @order.order_number %></h1>
 
-<p>
-  <strong>Business:</strong> <%= @order.business.name %><br>
-  <strong>Order Number:</strong> <%= @order.order_number %><br>
-  <strong>Status:</strong>
-  <span class="status-badge status-<%= @order.status %>">
-    <%= @order.status.titleize %>
-  </span><br>
-  <strong>Type:</strong>
-  <span class="type-badge type-<%= @order.order_type %>">
-    <%= @order.order_type.titleize %>
-  </span><br>
-  <strong>Date:</strong> <%= l @order.created_at, format: :long %><br>
-  <% if @order.tenant_customer %>
-    <strong>Customer Name:</strong> <%= @order.tenant_customer.name %><br>
-    <strong>Customer Email:</strong> <%= @order.tenant_customer.email %><br>
-    <strong>Customer Phone:</strong> <%= @order.tenant_customer.phone %><br>
-  <% else %>
-    <strong>Customer:</strong> Information not available
-  <% end %>
-</p>
-
-<h2>Items:</h2>
-<% products = @order.line_items.select(&:product?) %>
-<% services = @order.line_items.select(&:service?) %>
-
-<% if products.any? %>
-  <h3>Products</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Product</th>
-        <th>Variant</th>
-        <th>SKU</th>
-        <th>Quantity</th>
-        <th>Unit Price</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% products.each do |item| %>
-        <tr>
-          <td><%= item.product_variant.product.name %></td>
-          <td><%= item.product_variant.name %></td>
-          <td><%= item.product_variant.sku || 'N/A' %></td>
-          <td><%= item.quantity %></td>
-          <td><%= number_to_currency(item.price) %></td>
-          <td><%= number_to_currency(item.total_amount) %></td>
-        </tr>
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <dl class="divide-y divide-gray-200">
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Order Number</dt>
+        <dd class="col-span-2"><%= @order.order_number %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Business</dt>
+        <dd class="col-span-2"><%= @order.business.name %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Status</dt>
+        <dd class="col-span-2"><span class="status-badge status-<%= @order.status %>"><%= @order.status.titleize %></span></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Type</dt>
+        <dd class="col-span-2"><span class="type-badge type-<%= @order.order_type %>"><%= @order.order_type.titleize %></span></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Date</dt>
+        <dd class="col-span-2"><%= l @order.created_at, format: :long %></dd>
+      </div>
+      <% if @order.tenant_customer %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Customer Name</dt>
+          <dd class="col-span-2"><%= @order.tenant_customer.name %></dd>
+        </div>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Customer Email</dt>
+          <dd class="col-span-2"><%= @order.tenant_customer.email %></dd>
+        </div>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Customer Phone</dt>
+          <dd class="col-span-2"><%= @order.tenant_customer.phone %></dd>
+        </div>
+      <% else %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Customer</dt>
+          <dd class="col-span-2">Information not available</dd>
+        </div>
       <% end %>
-    </tbody>
-  </table>
-<% end %>
-
-<% if services.any? %>
-  <h3>Services</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Service</th>
-        <th>Staff Member</th>
-        <th>Quantity</th>
-        <th>Unit Price</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% services.each do |item| %>
-        <tr>
-          <td><%= item.service.name %></td>
-          <td><%= item.staff_member&.name || 'N/A' %></td>
-          <td><%= item.quantity %></td>
-          <td><%= number_to_currency(item.price) %></td>
-          <td><%= number_to_currency(item.total_amount) %></td>
-        </tr>
+      <% if @order.invoice.present? %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Invoice</dt>
+          <dd class="col-span-2"><%= link_to @order.invoice.invoice_number, business_manager_invoice_path(@order.invoice), class: 'text-blue-600 hover:text-blue-800' %></dd>
+        </div>
       <% end %>
-    </tbody>
-  </table>
-<% end %>
+    </dl>
+  </div>
 
-<% if products.empty? && services.empty? %>
-  <p>This order has no items.</p>
-<% end %>
+  <h2 class="text-xl font-semibold mb-2">Items:</h2>
+  <% products = @order.line_items.select(&:product?) %>
+  <% services = @order.line_items.select(&:service?) %>
 
-<h2>Financial Summary:</h2>
-<p>
-  <strong>Subtotal (Items):</strong> <%= number_to_currency @order.line_items.sum { |item| item.total_amount.to_f } %><br>
-  <% if @order.shipping_method || @order.shipping_amount&.positive? %>
-    <strong>Shipping Method:</strong> <%= @order.shipping_method&.name || 'N/A' %><br>
-    <strong>Shipping Cost:</strong> <%= number_to_currency @order.shipping_amount %><br>
-  <% else %>
-    <strong>Shipping:</strong> Not applicable or Free<br>
+  <% if products.any? %>
+    <h3 class="text-lg font-medium mb-2">Products</h3>
+    <div class="overflow-x-auto mb-6">
+      <table class="min-w-full bg-white border border-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variant</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% products.each do |item| %>
+            <tr>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= item.product_variant.product.name %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= item.product_variant.name %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= item.product_variant.sku || 'N/A' %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right"><%= item.quantity %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right"><%= number_to_currency(item.price) %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right"><%= number_to_currency(item.total_amount) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% end %>
-  <% if @order.tax_rate || @order.tax_amount&.positive? %>
-    <strong>Tax (<%= @order.tax_rate&.name || 'Default' %> - <%= number_to_percentage(@order.tax_rate&.rate.to_f * 100, precision: 2) %>):</strong> <%= number_to_currency @order.tax_amount %><br>
-  <% else %>
-    <strong>Tax:</strong> Not applicable or not calculated<br>
+
+  <% if services.any? %>
+    <h3 class="text-lg font-medium mb-2">Services</h3>
+    <div class="overflow-x-auto mb-6">
+      <table class="min-w-full bg-white border border-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Member</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% services.each do |item| %>
+            <tr>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= item.service.name %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= item.staff_member&.name || 'N/A' %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right"><%= item.quantity %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right"><%= number_to_currency(item.price) %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right"><%= number_to_currency(item.total_amount) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% end %>
-  <strong>Total Amount:</strong> <%= number_to_currency @order.total_amount %>
-</p>
 
-<% if @order.shipping_address.present? %>
-  <h2>Shipping Address:</h2>
-  <address>
-    <%= simple_format @order.shipping_address %>
-  </address>
-<% end %>
+  <% if products.empty? && services.empty? %>
+    <p class="text-gray-500 italic mb-6">This order has no items.</p>
+  <% end %>
 
-<% if @order.billing_address.present? %>
-  <h2>Billing Address:</h2>
-  <address>
-    <%= simple_format @order.billing_address %>
-  </address>
-<% end %>
+  <h2 class="text-xl font-semibold mb-2">Financial Summary:</h2>
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <dl class="divide-y divide-gray-200">
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Subtotal (Items):</dt>
+        <dd class="col-span-2 text-right"><%= number_to_currency @order.line_items.sum { |item| item.total_amount.to_f } %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Shipping Method:</dt>
+        <dd class="col-span-2 text-right">
+          <% if @order.shipping_method || @order.shipping_amount&.positive? %>
+            <%= @order.shipping_method&.name || 'N/A' %> (<%= number_to_currency @order.shipping_amount %>)
+          <% else %>
+            Not applicable or Free
+          <% end %>
+        </dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Tax</dt>
+        <dd class="col-span-2 text-right">
+          <% if @order.tax_rate || @order.tax_amount&.positive? %>
+            <%= @order.tax_rate&.name || 'Default' %> (<%= number_to_percentage(@order.tax_rate&.rate.to_f * 100, precision: 2) %>): <%= number_to_currency @order.tax_amount %>
+          <% else %>
+            Not applicable or not calculated
+          <% end %>
+        </dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4 border-t border-gray-300">
+        <dt class="font-semibold text-gray-900">Total Amount:</dt>
+        <dd class="col-span-2 text-right font-semibold text-gray-900"><%= number_to_currency @order.total_amount %></dd>
+      </div>
+    </dl>
+  </div>
 
-<% if @order.notes.present? %>
-  <h2>Order Notes:</h2>
-  <p><%= simple_format @order.notes %></p>
-<% end %>
+  <% if @order.shipping_address.present? %>
+    <h2 class="text-xl font-semibold mb-2">Shipping Address:</h2>
+    <address class="bg-white shadow overflow-hidden sm:rounded-lg p-4 mb-8 not-italic">
+      <%= simple_format @order.shipping_address %>
+    </address>
+  <% end %>
 
-<%= link_to 'Back to Business Orders', business_manager_orders_path %>
-<%# Add links for actions like 'Mark as Shipped', 'Cancel Order', 'Print Invoice' if applicable %> 
+  <% if @order.billing_address.present? %>
+    <h2 class="text-xl font-semibold mb-2">Billing Address:</h2>
+    <address class="bg-white shadow overflow-hidden sm:rounded-lg p-4 mb-8 not-italic">
+      <%= simple_format @order.billing_address %>
+    </address>
+  <% end %>
+
+  <% if @order.notes.present? %>
+    <h2 class="text-xl font-semibold mb-2">Order Notes:</h2>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg p-4 mb-8">
+      <%= simple_format @order.notes %>
+    </div>
+  <% end %>
+
+  <%= link_to 'Back to Business Orders', business_manager_orders_path, class: "text-blue-600 hover:text-blue-800" %>
+  <%# Add links for actions like 'Mark as Shipped', 'Cancel Order', 'Print Invoice' if applicable %> 
+</div> 

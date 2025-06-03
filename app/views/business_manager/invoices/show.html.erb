@@ -1,0 +1,44 @@
+<%# app/views/business_manager/invoices/show.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">Invoice <%= @invoice.invoice_number %></h1>
+
+  <div class="mb-4">
+    <%= button_to 'Resend to Customer', resend_business_manager_invoice_path(@invoice), method: :post,
+                  data: { confirm: 'Resend this invoice to the customer?' },
+                  class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline' %>
+  </div>
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <dl class="divide-y divide-gray-200">
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Invoice Number</dt>
+        <dd class="col-span-2"><%= @invoice.invoice_number %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Customer</dt>
+        <dd class="col-span-2"><%= @invoice.tenant_customer.name %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Total Amount</dt>
+        <dd class="col-span-2"><%= number_to_currency(@invoice.total_amount) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Status</dt>
+        <dd class="col-span-2"><%= @invoice.status.humanize %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Created At</dt>
+        <dd class="col-span-2"><%= @invoice.created_at.strftime('%B %d, %Y %I:%M %p') %></dd>
+      </div>
+      <% if @invoice.order.present? %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Order</dt>
+          <dd class="col-span-2"><%= link_to @invoice.order.order_number, business_manager_order_path(@invoice.order), class: 'text-blue-600 hover:text-blue-800' %></dd>
+        </div>
+      <% end %>
+      <%# Add more fields as needed: due_date, amount, tax_amount, etc. %>
+    </dl>
+  </div>
+
+  <%= link_to 'Back to Invoices', business_manager_invoices_path, class: "text-blue-600 hover:text-blue-800" %>
+  <%= link_to 'Back to Customer', business_manager_customer_path(@invoice.tenant_customer), class: "ml-4 text-blue-600 hover:text-blue-800" %>
+</div> 

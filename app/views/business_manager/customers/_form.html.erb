@@ -1,0 +1,49 @@
+<%# app/views/business_manager/customers/_form.html.erb %>
+<%= form_with model: [:business_manager, customer],
+              url: (customer.persisted? ? business_manager_customer_path(customer) : business_manager_customers_path),
+              local: true do |form| %>
+  <% if customer.errors.any? %>
+    <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <strong class="font-bold"><%= pluralize(customer.errors.count, "error") %> prohibited this customer from being saved:</strong>
+      <ul class="mt-2 list-disc list-inside">
+        <% customer.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%= form.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :email, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.email_field :email, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :phone, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.telephone_field :phone, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :address, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_field :address, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :notes, class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_area :notes, rows: 3, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.check_box :active %>
+    <%= form.label :active, class: "ml-2 text-gray-700 text-sm font-bold" %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit (customer.persisted? ? 'Update Customer' : 'Create Customer'), class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
+  </div>
+<% end %> 

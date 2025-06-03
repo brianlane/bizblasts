@@ -47,6 +47,7 @@ Rails.application.routes.draw do
       resources :products
       resources :shipping_methods
       resources :tax_rates
+      resources :customers
       resources :staff_members do
         member do
           get 'manage_availability'
@@ -75,6 +76,9 @@ Rails.application.routes.draw do
       
       # Business orders management
       resources :orders, only: [:index, :show, :new, :create, :edit, :update]
+      resources :invoices, only: [:index, :show] do
+        post :resend, on: :member
+      end
       get '/settings', to: 'settings#index', as: :settings
 
       # Route to dismiss individual business setup reminder tasks for the current user

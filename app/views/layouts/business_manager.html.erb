@@ -83,6 +83,12 @@
               </li>
             </ul>
           </li>
+          <li class="mb-2">
+            <%= link_to "Customers", business_manager_customers_path, class: "block py-2 px-4 rounded hover:bg-primary #{current_page?(business_manager_customers_path) ? 'bg-primary' : ''}" %>
+          </li>
+          <li class="mb-2">
+            <%= link_to "Orders", business_manager_orders_path, class: "block py-2 px-4 rounded hover:bg-primary #{current_page?(business_manager_orders_path) ? 'bg-primary' : ''}" %>
+          </li>
           <li>
             <%= link_to business_manager_settings_path, class: 'block px-4 py-2 hover:bg-primary rounded' do %>
               <i class="fas fa-cog mr-2"></i> Settings
@@ -99,9 +105,6 @@
 
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col overflow-hidden">
-      <header class="bg-white shadow-sm p-4">
-        <%# Add header content if needed, e.g., breadcrumbs or current section title %>
-      </header>
       <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
         <%# Display flash messages %>
         
