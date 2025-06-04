@@ -5,12 +5,12 @@ ActiveAdmin.register ProductVariant do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :price, :active, :product_id
+  permit_params :name, :price_modifier, :active, :product_id
   #
   # or
   #
   # permit_params do
-  #   permitted = [:name, :price, :active, :product_id]
+  #   permitted = [:name, :price_modifier, :active, :product_id]
   #   permitted << :other if params[:action] == 'create' && current_user.admin?
   #   permitted
   # end
@@ -80,7 +80,7 @@ ActiveAdmin.register ProductVariant do
   end
 
   filter :name
-  filter :price
+  filter :price_modifier
   filter :active
   filter :product
 
@@ -88,8 +88,15 @@ ActiveAdmin.register ProductVariant do
     selectable_column
     id_column
     column :name
-    column :price do |variant|
-      number_to_currency(variant.price) if variant.price
+    column :price_modifier do |variant|
+      if variant.price_modifier
+        number_to_currency(variant.price_modifier)
+      else
+        "No modifier"
+      end
+    end
+    column :final_price do |variant|
+      number_to_currency(variant.final_price)
     end
     column :active
     column :product
@@ -99,7 +106,7 @@ ActiveAdmin.register ProductVariant do
   form do |f|
     f.inputs do
       f.input :name
-      f.input :price
+      f.input :price_modifier, label: 'Price Modifier (+/-)', hint: 'Amount to add or subtract from base product price'
       f.input :active
       f.input :product, collection: Product.order(:name)
     end

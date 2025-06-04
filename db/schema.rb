@@ -866,8 +866,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_03_000000) do
     t.jsonb "notification_preferences"
     t.boolean "requires_policy_acceptance", default: false
     t.datetime "last_policy_notification_at"
+    t.integer "sign_in_count", default: 0, null: false
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.string "last_sign_in_ip"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
+    t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["last_sign_in_at"], name: "index_users_on_last_sign_in_at"
     t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
