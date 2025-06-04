@@ -30,116 +30,211 @@
   </head>
 
   <body>
-    <%# Navigation Header %>
-    <nav class="bg-white border-b border-gray-200 px-4 py-3 mb-4 shadow-sm">
-      <div class="container mx-auto flex justify-between items-center">
-        <div class="flex items-center min-w-0 flex-shrink-0">
-          <%# Logo and Home Link %>
-          <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
-            <%= link_to tenant_root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
-              <% begin %>
-                <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts", class: "h-10 w-auto mr-3" %>
-              <% rescue => e %>
-                <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>" 
-                     alt="BizBlasts" class="h-10 w-auto mr-3" />
-              <% end %>
-              <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
-            <% end %>
-          <% else %>
-            <%= link_to root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
-              <span class="font-bold text-lg text-primary whitespace-nowrap">BizBlasts</span>
-            <% end %>
-          <% end %>
-        </div>
-        <div>
-          <% if user_signed_in? %>
-            <span class="mr-4 text-gray-700">Welcome, <%= current_user.first_name %>!</span>
-            
-            <%# Conditional Dashboard Link %>
-            <% dashboard_text = "Dashboard" %>
-            <% dashboard_path = root_path # Default fallback %>
-            
-            <% if request.subdomain.present? && request.subdomain != 'www' %>
-              <%# On a Tenant Subdomain %>
-              <% if current_user.manager? || current_user.staff? %>
-                <%# Business user on tenant page - link to manager dashboard %>
-                <% dashboard_text = "Manage Business" %>
-                <% dashboard_path = business_manager_dashboard_path # Relative path within subdomain %>
-              <% else %>
-                <%# Client or other user on tenant page - link to main dashboard %>
-                <% dashboard_path = main_domain_url_for('/dashboard') %>
+    <%# Enhanced Professional Navigation Header %>
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+      <!-- Main Header -->
+      <div class="container mx-auto px-4 py-3">
+        <div class="flex justify-between items-center">
+          <!-- Logo and Brand -->
+          <div class="flex items-center min-w-0 flex-shrink-0">
+            <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+              <%= link_to tenant_root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
+                <% begin %>
+                  <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts", class: "h-10 w-auto mr-3" %>
+                <% rescue => e %>
+                  <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>" 
+                       alt="BizBlasts" class="h-10 w-auto mr-3" />
+                <% end %>
+                <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
               <% end %>
             <% else %>
-              <%# On Main Domain %>
-              <% if current_user.client? %>
-                <%# Client on main page - link to client dashboard %>
-                <% dashboard_path = dashboard_path() %>
-              <% elsif current_user.manager? || current_user.staff? %>
-                <%# Business user on main page - link to their tenant's management dashboard %>
-                <% business = current_user.business %>
-                <% dashboard_text = "Manage Business" %>
-                <% if Rails.env.development? || Rails.env.test? %>
-                  <% if business.host_type_subdomain? %>
-                    <% dashboard_path = "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard" %>
-                  <% else %>
-                    <% dashboard_path = "http://#{business.hostname}:#{request.port}/manage/dashboard" %>
-                  <% end %>
+              <%= link_to root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
+                <span class="font-bold text-lg text-primary whitespace-nowrap">BizBlasts</span>
+              <% end %>
+            <% end %>
+          </div>
+
+          <!-- User Actions -->
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <% if user_signed_in? %>
+              <!-- Welcome Message (hidden on small screens) -->
+              <span class="hidden sm:inline text-gray-700 text-sm">Welcome, <%= current_user.first_name %>!</span>
+              
+              <!-- Dashboard Button -->
+              <% dashboard_text = "Dashboard" %>
+              <% dashboard_path = root_path %>
+              
+              <% if request.subdomain.present? && request.subdomain != 'www' %>
+                <% if current_user.manager? || current_user.staff? %>
+                  <% dashboard_text = "Manage Business" %>
+                  <% dashboard_path = business_manager_dashboard_path %>
                 <% else %>
-                  <% if business.host_type_custom_domain? %>
-                    <% dashboard_path = "#{request.protocol}#{business.hostname}/manage/dashboard" %>
-                  <% else %>
-                    <% dashboard_path = "#{request.protocol}#{business.hostname}.bizblasts.com/manage/dashboard" %>
-                  <% end %>
+                  <% dashboard_path = main_domain_url_for('/dashboard') %>
                 <% end %>
               <% else %>
-                <%# Other user with no business - fallback %>
-                <% dashboard_path = root_path %>
+                <% if current_user.client? %>
+                  <% dashboard_path = dashboard_path() %>
+                <% elsif current_user.manager? || current_user.staff? %>
+                  <% business = current_user.business %>
+                  <% dashboard_text = "Manage Business" %>
+                  <% if Rails.env.development? || Rails.env.test? %>
+                    <% if business.host_type_subdomain? %>
+                      <% dashboard_path = "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard" %>
+                    <% else %>
+                      <% dashboard_path = "http://#{business.hostname}:#{request.port}/manage/dashboard" %>
+                    <% end %>
+                  <% else %>
+                    <% if business.host_type_custom_domain? %>
+                      <% dashboard_path = "#{request.protocol}#{business.hostname}/manage/dashboard" %>
+                    <% else %>
+                      <% dashboard_path = "#{request.protocol}#{business.hostname}.bizblasts.com/manage/dashboard" %>
+                    <% end %>
+                  <% end %>
+                <% else %>
+                  <% dashboard_path = root_path %>
+                <% end %>
               <% end %>
+              
+              <%= link_to dashboard_path, class: "bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm flex items-center justify-center" do %>
+                <svg class="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                <span class="hidden sm:inline"><%= dashboard_text %></span>
+              <% end %>
+              
+              <!-- Sign Out Button -->
+              <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:text-red-700 px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm" do %>
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                <span class="hidden sm:inline">Sign out</span>
+              <% end %>
+            <% else %>
+              <!-- Guest User Actions -->
+              <div class="flex items-center space-x-2">
+                <%= link_to "Sign In", new_user_session_path, class: "bg-white border border-primary text-primary px-3 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 text-sm" %>
+                <%= link_to "Client Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm hidden sm:inline-block" %>
+                <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm hidden sm:inline-block" %>
+              </div>
             <% end %>
-            
-            <%= link_to dashboard_text, dashboard_path, class: "mr-4 text-primary hover:underline" %>
-            <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:underline" %>
-          <% else %>
-            <%# Show login and signup buttons when user is not signed in %>
-            <div class="flex items-stretch md:items-center space-x-2 md:space-x-0 md:space-x-3">
-              <%= link_to "Sign In", new_user_session_path, class: "bg-white border border-primary text-primary px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 text-center text-xs md:text-base" %>
-              <%= link_to "Client Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
-              <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
-            </div>
-          <% end %>
+          </div>
         </div>
       </div>
-      
-      <div class="container mx-auto mt-2">
-        <ul class="flex space-x-4">
-          <%# Show cart link if there are items in the session cart (for both signed-in and guest users) %>
-          <% if session[:cart].present? && session[:cart].any? %>
-            <li><%= link_to "Cart", cart_path, class: "text-primary hover:underline" %></li>
-          <% end %>
-          
-          <% if user_signed_in? %>
-            <% if current_user.client? %>
-              <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
-                <li><%= link_to "My Bookings", tenant_my_bookings_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "My Transactions", transactions_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "Book Appointment", tenant_calendar_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "View All Businesses", main_domain_url_for('/businesses'), class: "text-primary hover:underline" %></li>
+
+      <!-- Professional Navigation Menu -->
+      <% if user_signed_in? %>
+        <div class="bg-gray-50 border-t border-gray-200">
+          <div class="container mx-auto px-4">
+            <!-- Mobile Menu Toggle (visible on small screens) -->
+            <div class="sm:hidden py-2">
+              <button id="mobile-nav-toggle" class="flex items-center text-gray-600 hover:text-primary transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+                Menu
+              </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <div id="nav-menu" class="hidden sm:block">
+              <div class="flex flex-col sm:flex-row sm:space-x-1 space-y-1 sm:space-y-0 py-2">
+                <!-- Cart Link (if items exist) -->
+                <% if session[:cart].present? && session[:cart].any? %>
+                  <%= link_to cart_path, class: "nav-link-professional" do %>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 004 16v0a1 1 0 001 1h1M16 16a2 2 0 11-4 0 2 2 0 014 0zM20 16a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Cart
+                    <span class="bg-accent text-white text-xs px-2 py-0.5 rounded-full ml-2"><%= session[:cart].values.sum %></span>
+                  <% end %>
+                <% end %>
                 
-                <li><%= link_to "Settings", settings_url_for_client, class: "text-primary hover:underline" %></li>
-              <% else %>
-                <li><%= link_to "My Bookings", client_bookings_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "My Transactions", transactions_path, class: "text-primary hover:underline" %></li>
-                <li><%= link_to "Find Businesses", businesses_path, class: "text-primary hover:underline" %></li>
-                
-                <li><%= link_to "Settings", settings_url_for_client, class: "text-primary hover:underline" %></li>
-              <% end %>
-            <% end %>
-          <% end %>
-        </ul>
-      </div>
+                <!-- Client Navigation -->
+                <% if current_user.client? %>
+                  <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+                    <!-- Tenant Subdomain Navigation -->
+                    <%= link_to tenant_my_bookings_path, class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                      My Bookings
+                    <% end %>
+                    
+                    <%= link_to transactions_path, class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                      </svg>
+                      My Transactions
+                    <% end %>
+                    
+                    <%= link_to tenant_calendar_path, class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                      Book Appointment
+                    <% end %>
+                    
+                    <%= link_to main_domain_url_for('/businesses'), class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                      </svg>
+                      All Businesses
+                    <% end %>
+                  <% else %>
+                    <!-- Main Domain Navigation -->
+                    <%= link_to client_bookings_path, class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                      My Bookings
+                    <% end %>
+                    
+                    <%= link_to transactions_path, class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                      </svg>
+                      My Transactions
+                    <% end %>
+                    
+                    <%= link_to businesses_path, class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                      </svg>
+                      Find Businesses
+                    <% end %>
+                  <% end %>
+                  
+                  <!-- Settings Link -->
+                  <%= link_to settings_url_for_client, class: "nav-link-professional" do %>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Settings
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </nav>
 
-    <%# Render flash messages %>
+    <!-- Mobile Menu Toggle Script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const toggleButton = document.getElementById('mobile-nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        
+        if (toggleButton && navMenu) {
+          toggleButton.addEventListener('click', function() {
+            navMenu.classList.toggle('hidden');
+          });
+        }
+      });
+    </script>
+
+    <%# Flash messages %>
     <div class="container mx-auto px-4">
       <% flash.each do |type, msg| %>
         <div class="flash-message flash-<%= type %> mb-4 p-3 rounded 

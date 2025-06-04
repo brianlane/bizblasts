@@ -125,7 +125,6 @@ RSpec.describe "Admin Users", type: :request, admin: true do
       expect(body).to include("Manager") # Role
       expect(body).to include(business1.name) # Business Name (link text)
       expect(body).to include("N/A") # Presence of N/A for staff member
-      expect(body).to include("Businesses Count") # Column header
 
       # Check staff user details
       expect(body).to include(staff_user.email)

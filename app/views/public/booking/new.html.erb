@@ -75,14 +75,32 @@
       </div>
     <% end %>
 
-    <%# TODO: Implement Date/Time selection based on service/staff availability %>
-    <%# This likely requires JavaScript integration (e.g., calendar component) %>
-    <%# For now, a simple datetime select %>
+    <%# Date/Time Display (read-only since selected from calendar) %>
     <div class="mb-4">
-      <%= form.label :start_time, class: "block text-sm font-medium text-gray-700 mb-2" %>
-      <%= form.datetime_select :start_time,
-            { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1, use_month_numbers: true },
-            { class: 'form-input rounded border px-3 py-2 w-full' } %>
+      <%= form.label :start_time, "Start time", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      
+      <% if @booking.start_time.present? %>
+        <!-- Display selected date/time as read-only -->
+        <div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-gray-900 font-medium">
+          <%= @booking.start_time.strftime("%A, %B %-d, %Y at %l:%M %p") %>
+        </div>
+        <!-- Hidden field to submit the value -->
+        <%= form.hidden_field :start_time %>
+        
+        <p class="mt-2 text-sm text-gray-600">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          To change, please 
+          <%= link_to "return to calendar", tenant_calendar_path(service_id: @service.id), class: "text-blue-600 hover:text-blue-800 underline" %>.
+        </p>
+      <% else %>
+        <!-- Fallback if no start_time is set -->
+        <%= form.datetime_select :start_time,
+              { minute_step: 15, start_year: Date.today.year, end_year: Date.today.year + 1, use_month_numbers: true },
+              { class: 'form-input rounded border px-3 py-2 w-full' } %>
+        <p class="mt-2 text-sm text-gray-600">Please select your preferred date and time.</p>
+      <% end %>
     </div>
 
     <%# Add quantity input field - Potentially make this conditional based on service type %>
@@ -184,7 +202,7 @@
     <div class="flex items-center justify-between">
       <%# Show submit button if user is client or staff members are available %>
       <% if current_user&.role == 'client' || current_user.nil? || @service.staff_members.any? %>
-        <%= form.submit "Confirm Booking", class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
+        <%= form.submit "Confirm Booking", class: "bg-primary-500 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
       <% else %>
         <span class="text-gray-500">(Booking unavailable)</span>
       <% end %>

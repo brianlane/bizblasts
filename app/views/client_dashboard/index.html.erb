@@ -1,54 +1,219 @@
-<h1 class="text-2xl font-bold mb-6">Client Dashboard</h1>
-
-<p class="text-gray-700 mb-8">Welcome, <%= current_user.full_name %>!</p>
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-lg font-semibold mb-4">My Bookings</h2>
-    <p class="mb-4">View or manage your appointment bookings.</p>
-    <%= link_to "View My Bookings", client_bookings_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block" %>
-  </div>
-  
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-lg font-semibold mb-4">Find Businesses</h2>
-    <p class="mb-4">Browse available businesses and book new appointments.</p>
-    <%= link_to "Browse Businesses", businesses_path, class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-block" %>
+<div class="space-y-4 sm:space-y-6">
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div>
+      <h1 class="text-lg sm:text-2xl font-semibold text-gray-600">Welcome, <%= current_user.full_name %>!</h1>
+    </div>
   </div>
 
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-lg font-semibold mb-4">My Transactions</h2>
-    <p class="mb-4">View all your orders and invoices across businesses.</p>
-    <%= link_to "View My Transactions", transactions_path, class: "bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded inline-block" %>
-  </div>
-  
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-lg font-semibold mb-4">Shopping Cart</h2>
-    <p class="mb-4">View your current shopping cart.</p>
-    <%= link_to "View Cart", cart_path, class: "bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded inline-block" %>
-  </div>
+  <!-- Main Dashboard Widgets -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
 
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h2 class="text-lg font-semibold mb-4">Settings</h2>
-    <p class="mb-4">Manage your account settings.</p>
-    <%= link_to "View Settings", settings_url_for_client, class: "bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded inline-block" %>
-  </div>
-</div>
-
-<% if current_user.businesses.any? %>
-  <div class="bg-white p-6 rounded-lg shadow mb-8">
-    <h2 class="text-xl font-semibold mb-4">Your Associated Businesses</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <% current_user.businesses.each do |business| %>
-        <div class="border rounded p-4 hover:bg-gray-50">
-          <h3 class="font-medium mb-2"><%= business.name %></h3>
-          <% if business.industry.present? %>
-            <p class="text-sm text-gray-600 mb-2"><%= business.industry %></p>
+    <!-- Recent Bookings Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Bookings (Last 7 Days)</h3>
+      <% if @recent_bookings.present? %>
+        <div class="space-y-3">
+          <% @recent_bookings.each do |booking| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="font-medium text-sm sm:text-base"><%= booking.service.name %></div>
+              <div class="text-sm text-gray-600">at <%= booking.business.name %></div>
+              <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                <%= booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+              </div>
+              <% if booking.staff_member %>
+                <div class="text-xs text-gray-500">with <%= booking.staff_member.user&.full_name || booking.staff_member.name %></div>
+              <% end %>
+              <div class="mt-2">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
+                      <%= booking.status == 'confirmed' ? 'bg-success text-white' : 
+                          booking.status == 'pending' ? 'bg-warning text-white' : 
+                          booking.status == 'cancelled' ? 'bg-error text-white' : 'bg-gray-100 text-gray-800' %>">
+                  <%= booking.status.humanize %>
+                </span>
+              </div>
+            </div>
           <% end %>
-          <% if business.hostname.present? %>
-            <%= link_to "Visit Website", "http://#{business.hostname}.#{request.domain}:#{request.port}", target: "_blank", class: "text-blue-600 hover:underline text-sm" %>
+        </div>
+        <%= link_to "View All Bookings", client_bookings_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">No bookings in the last 7 days.</p>
+        <%= link_to "Find Businesses to Book", businesses_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Upcoming Appointments Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Upcoming Appointments (Next 7 Days)</h3>
+      <% if @upcoming_appointments.present? %>
+        <div class="space-y-3">
+          <% @upcoming_appointments.each do |booking| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="font-medium text-sm sm:text-base"><%= booking.service.name %></div>
+              <div class="text-sm text-gray-600">at <%= booking.business.name %></div>
+              <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                <%= booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+              </div>
+              <% if booking.staff_member %>
+                <div class="text-xs text-gray-500">with <%= booking.staff_member.user&.full_name || booking.staff_member.name %></div>
+              <% end %>
+              <div class="mt-2">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
+                      <%= booking.status == 'confirmed' ? 'bg-success text-white' : 
+                          booking.status == 'pending' ? 'bg-warning text-white' : 'bg-gray-100 text-gray-800' %>">
+                  <%= booking.status.humanize %>
+                </span>
+              </div>
+            </div>
           <% end %>
+        </div>
+        <%= link_to "View All Bookings", client_bookings_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">No upcoming appointments in the next 7 days.</p>
+        <%= link_to "Book New Appointment", businesses_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Recent Transactions Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Transactions (Last 30 Days)</h3>
+      <% if @recent_transactions.present? %>
+        <div class="space-y-3">
+          <% @recent_transactions.each do |order| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="font-medium text-sm sm:text-base">Order #<%= order.id %></div>
+              <div class="text-sm text-gray-600">at <%= order.business.name %></div>
+              <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                <%= order.created_at.strftime("%a, %b %d, %Y") %>
+              </div>
+              <div class="flex justify-between items-center mt-2">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
+                      <%= order.status == 'completed' ? 'bg-success text-white' : 
+                          order.status == 'pending' ? 'bg-warning text-white' : 
+                          order.status == 'cancelled' ? 'bg-error text-white' : 'bg-gray-100 text-gray-800' %>">
+                  <%= order.status.humanize %>
+                </span>
+                <span class="text-sm font-medium text-gray-900">$<%= order.total_amount || '0.00' %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <%= link_to "View All Transactions", transactions_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">No transactions in the last 30 days.</p>
+        <%= link_to "Browse Products", businesses_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Favorite Businesses Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Your Frequent Businesses</h3>
+      <% if @frequent_businesses.present? %>
+        <div class="space-y-3">
+          <% @frequent_businesses.each do |business| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="font-medium text-sm sm:text-base"><%= business.name %></div>
+              <% if business.industry.present? %>
+                <div class="text-sm text-gray-600"><%= business.industry %></div>
+              <% end %>
+              <% if business.hostname.present? %>
+                <div class="mt-2">
+                  <%= link_to "Visit Website", 
+                        (Rails.env.development? ? 
+                          "http://#{business.hostname}.lvh.me:#{request.port}" : 
+                          "https://#{business.hostname}.bizblasts.com"), 
+                        target: "_blank", 
+                        class: "text-primary hover:underline text-xs sm:text-sm" %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        <%= link_to "Browse All Businesses", businesses_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">Start booking to see your favorite businesses here.</p>
+        <%= link_to "Discover Businesses", businesses_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Cart Status Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Shopping Cart</h3>
+      <% if @cart_items_count > 0 %>
+        <div class="text-center py-4">
+          <div class="text-3xl font-bold text-accent mb-2"><%= @cart_items_count %></div>
+          <div class="text-sm text-gray-600 mb-4">items in cart</div>
+          <%= link_to "View Cart", cart_path, 
+                class: "bg-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 inline-block" %>
+        </div>
+      <% else %>
+        <div class="text-center py-4">
+          <div class="text-gray-400 mb-4">
+            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 004 16v0a1 1 0 001 1h1M16 16a2 2 0 11-4 0 2 2 0 014 0zM20 16a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+          <p class="text-gray-600 text-sm sm:text-base mb-4">Your cart is empty</p>
+          <%= link_to "Browse Products", businesses_path, 
+                class: "bg-secondary hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 inline-block" %>
         </div>
       <% end %>
     </div>
   </div>
-<% end %>
+
+  <!-- Quick Actions Section -->
+  <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+    <h3 class="text-lg sm:text-xl font-semibold mb-4">Quick Actions</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <%= link_to businesses_path, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <span class="text-sm sm:text-base">Find Businesses</span>
+      <% end %>
+      
+      <%= link_to client_bookings_path, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <span class="text-sm sm:text-base">My Bookings</span>
+      <% end %>
+      
+      <%= link_to transactions_path, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+        </svg>
+        <span class="text-sm sm:text-base">My Transactions</span>
+      <% end %>
+      
+      <%= link_to cart_path, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 004 16v0a1 1 0 001 1h1"/>
+        </svg>
+        <span class="text-sm sm:text-base">Shopping Cart</span>
+      <% end %>
+
+      <%= link_to settings_url_for_client, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        <span class="text-sm sm:text-base">Settings</span>
+      <% end %>
+    </div>
+  </div>
+
+</div>
