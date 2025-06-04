@@ -52,6 +52,9 @@ services:
       - key: SOLID_QUEUE_IN_PUMA
         value: "true"
 
+previews:
+  generate: automatic
+
 databases:
   - name: bizblast-postgresql
     plan: free
