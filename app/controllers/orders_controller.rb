@@ -23,26 +23,40 @@ class OrdersController < ApplicationController
   end
 
   def show
+    # Security: Validate parameter before database query
+    unless params[:id].present? && params[:id].to_i > 0
+      Rails.logger.warn "[SECURITY] Invalid order ID parameter: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
+      flash[:alert] = "Invalid order ID."
+      redirect_to orders_path and return
+    end
+
     if request.subdomain.present? && request.subdomain != 'www'
       # Tenant-specific case
       if @tenant_customer
+        # Security: Proper scoping to prevent enumeration
         @order = @tenant_customer.orders.includes(line_items: { product_variant: :product }).find_by(id: params[:id])
         unless @order
+          # Security: Log unauthorized access attempts
+          Rails.logger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, Customer=#{@tenant_customer.email}, Tenant=#{@current_tenant&.name}, IP=#{request.remote_ip}"
           flash[:alert] = "Order not found or it does not belong to you for this business."
           redirect_to orders_path and return
         end
       else
+        Rails.logger.warn "[SECURITY] Order access attempt without customer context: ID=#{params[:id]}, User=#{current_user&.email}, IP=#{request.remote_ip}"
         flash[:alert] = "Could not identify you as a customer for this business."
         redirect_to root_path and return
       end
     else
       # Main domain case: Show any order that belongs to this user across all businesses
+      # Security: Proper authorization check to prevent cross-user access
       @order = Order.joins(:tenant_customer)
                    .where(tenant_customers: { email: current_user.email })
                    .includes(line_items: { product_variant: :product })
                    .find_by(id: params[:id])
       
       unless @order
+        # Security: Log unauthorized access attempts
+        Rails.logger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, User=#{current_user&.email}, IP=#{request.remote_ip}"
         flash[:alert] = "Order not found or it does not belong to you."
         redirect_to orders_path and return
       end

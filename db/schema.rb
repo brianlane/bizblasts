@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_03_000000) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_04_225250) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -185,6 +185,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_03_000000) do
     t.date "domain_coverage_expires_at"
     t.string "domain_registrar"
     t.date "domain_registration_date"
+    t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
     t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"

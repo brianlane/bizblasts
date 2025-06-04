@@ -6,41 +6,82 @@
       <%# link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "text-purple-600 hover:underline" %>
     <%# end %>
   <%# </div> %>
-  <h1 class="text-3xl font-bold mb-6">Businesses</h1> <%# Keep the title %>
+  <h1 class="text-3xl font-bold mb-8">Businesses</h1> <%# Keep the title %>
 
-  <%# Filter and Sort Controls %>
-  <%= form_with url: businesses_path, method: :get, local: true, data: { turbo_frame: "businesses_list", turbo_action: "advance" }, class: "mb-6 flex flex-wrap gap-4 items-center" do |form| %>
-    <div>
-      <%= form.label :industry, "Filter by Industry:", class: "block text-sm font-medium text-gray-700 mr-2" %>
-      <%= form.text_field :industry, 
-            list: "filter-industry-list", 
-            value: params[:industry], 
-            placeholder: "Select an Industry", 
-            class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
-      <datalist id="filter-industry-list">
-        <% @industries.each do |industry_name| %>
-          <option value="<%= industry_name %>"><%= industry_name %></option>
-        <% end %>
-      </datalist>
-    </div>
+  <%# Enhanced Filter and Sort Controls with Mobile-Friendly Design %>
+  <%= form_with url: businesses_path, method: :get, local: true, data: { turbo_frame: "businesses_list", turbo_action: "advance" }, class: "mb-8" do |form| %>
+    <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+      <h2 class="text-lg font-semibold text-gray-800 mb-6">Search & Filter Options</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <%# Search Description Field %>
+        <div class="space-y-2">
+          <%= form.label :search, class: "block text-base font-semibold text-gray-800 mb-2" do %>
+            🔍 Search Description
+          <% end %>
+          <%= form.text_field :search, 
+                value: params[:search], 
+                placeholder: "Enter keywords...", 
+                class: "w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" %>
+        </div>
 
-    <div>
-      <%= form.label :sort, "Sort by:", class: "block text-sm font-medium text-gray-700 mr-2" %>
-      <%= form.select :sort, options_for_select([['Name', 'name'], ['Date Added', 'date']], params[:sort]), {}, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
-    </div>
-    
-    <div>
-      <%= form.label :direction, "Direction:", class: "block text-sm font-medium text-gray-700 mr-2" %>
-      <%= form.select :direction, options_for_select([['Ascending', 'asc'], ['Descending', 'desc']], params[:direction]), {}, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
-    </div>
+        <%# Industry Filter %>
+        <div class="space-y-2">
+          <%= form.label :industry, class: "block text-base font-semibold text-gray-800 mb-2" do %>
+            🏢 Filter by Industry
+          <% end %>
+          <%= form.text_field :industry, 
+                list: "filter-industry-list", 
+                value: params[:industry], 
+                placeholder: "Select industry...", 
+                class: "w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" %>
+          <datalist id="filter-industry-list">
+            <% @industries.each do |industry_name| %>
+              <option value="<%= industry_name %>"><%= industry_name %></option>
+            <% end %>
+          </datalist>
+        </div>
 
-    <%= form.submit "Apply", class: "mt-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer" %>
-    <%= link_to "Reset", businesses_path, class: "mt-4 ml-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        <%# Sort Options %>
+        <div class="space-y-2">
+          <%= form.label :sort, class: "block text-base font-semibold text-gray-800 mb-2" do %>
+            📊 Sort by
+          <% end %>
+          <%= form.select :sort, 
+                options_for_select([['Name', 'name'], ['Date Added', 'date']], params[:sort]), 
+                {}, 
+                class: "w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white" %>
+        </div>
+        
+        <%# Direction Options %>
+        <div class="space-y-2">
+          <%= form.label :direction, class: "block text-base font-semibold text-gray-800 mb-2" do %>
+            ↕️ Direction
+          <% end %>
+          <%= form.select :direction, 
+                options_for_select([['Ascending', 'asc'], ['Descending', 'desc']], params[:direction]), 
+                {}, 
+                class: "w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white" %>
+        </div>
+      </div>
+
+      <%# Action Buttons %>
+      <div class="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-gray-200">
+        <%= form.submit "Apply Filters", class: "flex-1 sm:flex-initial inline-flex justify-center items-center py-3 px-6 border border-transparent shadow-sm text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors" %>
+        <%= link_to "Reset All", businesses_path, class: "flex-1 sm:flex-initial inline-flex justify-center items-center py-3 px-6 border-2 border-gray-300 shadow-sm text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors" %>
+      </div>
+    </div>
   <% end %>
 
   <%# Business Listing Area %>
   <%= tag.div id: "businesses_list" do %>
     <% if @businesses.any? %>
+      <% if params[:search].present? %>
+        <div class="mb-4 text-sm text-gray-600">
+          <%= pluralize(@businesses.total_count, 'business') %> found matching "<%= params[:search] %>"
+        </div>
+      <% end %>
+      
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <% @businesses.each do |business| %>
           <div class="border rounded-lg p-4 shadow hover:shadow-md transition-shadow flex flex-col justify-between">
@@ -70,7 +111,11 @@
         <%#== pagy_nav(@pagy) if @pagy %> 
       </div>
     <% else %>
-      <p>No businesses found matching your criteria.</p>
+      <% if params[:search].present? %>
+        <p>No businesses found with descriptions matching "<%= params[:search] %>". <%= link_to "Reset search", businesses_path, class: "text-blue-600 hover:underline" %></p>
+      <% else %>
+        <p>No businesses found matching your criteria.</p>
+      <% end %>
     <% end %>
   <% end %> <%# End turbo_frame %>
 </div> 

@@ -295,13 +295,37 @@ module Public
         return
       end
       
-      # Ensure the booking belongs to the current tenant
+      # Security: Validate parameter before database query
+      unless params[:id].present? && (params[:id] == 'PENDING' || params[:id].to_i > 0)
+        Rails.logger.warn "[SECURITY] Invalid booking ID parameter: #{params[:id]}, Tenant: #{current_tenant&.name}, IP: #{request.remote_ip}"
+        flash[:alert] = "Invalid booking ID."
+        redirect_to tenant_root_path and return
+      end
+      
+      # Security: Ensure the booking belongs to the current tenant and add authorization
       @booking = current_tenant.bookings.find_by(id: params[:id])
       
       if @booking.nil?
+        # Security: Log unauthorized access attempts
+        Rails.logger.warn "[SECURITY] Attempted access to non-existent booking: ID=#{params[:id]}, Tenant=#{current_tenant&.name}, IP=#{request.remote_ip}"
         flash[:alert] = "Booking not found."
-        redirect_to tenant_root_path # Or another appropriate path
+        redirect_to tenant_root_path and return
       end
+      
+      # Security: Additional authorization - ensure user has permission to view this booking
+      if current_user.present?
+        # If user is logged in, ensure they have permission to view this booking
+        unless user_can_view_booking?(@booking)
+          Rails.logger.warn "[SECURITY] Unauthorized booking access attempt: Booking=#{@booking.id}, User=#{current_user.email}, Customer=#{@booking.tenant_customer&.email}, IP=#{request.remote_ip}"
+          flash[:alert] = "You are not authorized to view this booking."
+          redirect_to tenant_root_path and return
+        end
+      else
+        # For guest users, we'll allow access but this could be enhanced with additional verification
+        # Consider adding guest_access_token similar to invoices for better security
+        Rails.logger.info "[BOOKING] Guest access to booking confirmation: Booking=#{@booking.id}, IP=#{request.remote_ip}"
+      end
+      
       # Implicitly renders confirmation.html.erb
     end
 
@@ -357,6 +381,23 @@ module Public
 
     def current_tenant
       ActsAsTenant.current_tenant
+    end
+
+    # Security: Helper method to check if user can view booking
+    def user_can_view_booking?(booking)
+      return false unless current_user.present?
+      
+      # Business staff/managers can view all bookings for their business
+      if current_user.staff? || current_user.manager?
+        return current_user.business_id == booking.business_id
+      end
+      
+      # Clients can only view their own bookings
+      if current_user.client?
+        return booking.tenant_customer&.email == current_user.email
+      end
+      
+      false
     end
   end
 end 
