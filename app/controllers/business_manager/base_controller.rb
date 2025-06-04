@@ -36,8 +36,8 @@ class BusinessManager::BaseController < ApplicationController
 
     @business_setup_service = BusinessSetupService.new(current_business, current_user)
     
-    # Only show setup todos if there are incomplete items
-    unless @business_setup_service.setup_complete?
+    # Only show setup todos if there are incomplete items AND visible todo items remaining
+    unless @business_setup_service.setup_complete? || @business_setup_service.todo_items.empty?
       setup_flash_content = render_to_string(
         partial: 'shared/business_setup_todos',
         locals: { setup_service: @business_setup_service }
