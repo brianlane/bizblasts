@@ -49,7 +49,14 @@ module BusinessManager
     end
     
     def tax_rate_params
-      params.require(:tax_rate).permit(:name, :rate, :region, :applies_to_shipping)
+      permitted_params = params.require(:tax_rate).permit(:name, :rate, :region, :applies_to_shipping)
+      
+      # Convert rate from percentage format to decimal format
+      if permitted_params[:rate].present?
+        permitted_params[:rate] = permitted_params[:rate].to_f / 100
+      end
+      
+      permitted_params
     end
   end
 end 

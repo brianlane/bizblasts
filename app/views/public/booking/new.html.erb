@@ -47,12 +47,97 @@
       <!-- Customer selection -->
       <div class="mb-4">
         <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= form.select :tenant_customer_id,
-              options_for_select(@business.tenant_customers.map { |c| [c.email.present? ? "#{c.name} (#{c.email})" : c.name, c.id] } + [["Create new customer", "new"]], @booking.tenant_customer_id),
-              { prompt: "Select existing customer" },
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
-              id: "tenant_customer_id"
-        %>
+        
+        <!-- Custom Customer Dropdown -->
+        <div class="customer-dropdown relative">
+          <button type="button" 
+                  class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                  data-customer-dropdown-target="button">
+            <span class="customer-dropdown-text text-gray-900">
+              <% if @booking.tenant_customer_id.present? %>
+                <% customer = @business.tenant_customers.find(@booking.tenant_customer_id) %>
+                <%= customer.email.present? ? "#{customer.name} (#{customer.email})" : customer.name %>
+              <% else %>
+                Select existing customer
+              <% end %>
+            </span>
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </span>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div class="customer-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+               data-customer-dropdown-target="menu">
+            
+            <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-customer-id=""
+                 data-customer-name="Select existing customer"
+                 data-customer-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-500">Select existing customer</div>
+                </div>
+              </div>
+              <% if @booking.tenant_customer_id.blank? %>
+                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              <% end %>
+            </div>
+            
+            <% @business.tenant_customers.each do |customer| %>
+              <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                   data-customer-id="<%= customer.id %>"
+                   data-customer-name="<%= customer.email.present? ? "#{customer.name} (#{customer.email})" : customer.name %>"
+                   data-customer-dropdown-target="option">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900"><%= customer.name %></div>
+                    <% if customer.email.present? %>
+                      <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
+                    <% end %>
+                    <% if customer.phone.present? %>
+                      <div class="text-xs text-gray-400 mt-1"><%= customer.phone %></div>
+                    <% end %>
+                  </div>
+                </div>
+                <% if @booking.tenant_customer_id == customer.id %>
+                  <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+            
+            <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+                 data-customer-id="new"
+                 data-customer-name="Create new customer"
+                 data-customer-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-blue-600">+ Create new customer</div>
+                </div>
+              </div>
+              <% if @booking.tenant_customer_id == "new" %>
+                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Hidden field to store the selected customer ID -->
+        <%= form.hidden_field :tenant_customer_id, id: "tenant_customer_id" %>
       </div>
 
       <!-- New customer fields (hidden by default) -->
@@ -215,9 +300,370 @@
 <script>
 // Handle dynamic customer field toggling for staff/manager users
 document.addEventListener('DOMContentLoaded', function() {
-  // Use the reusable CustomerFormHelper for customer field toggling
-  if (window.CustomerFormHelper) {
-    CustomerFormHelper.initializeBookingForm();
+  // Customer Dropdown Functionality (similar to service dropdown)
+  const customerDropdownButton = document.querySelector('[data-customer-dropdown-target="button"]');
+  const customerDropdownMenu = document.querySelector('[data-customer-dropdown-target="menu"]');
+  const customerDropdownOptions = document.querySelectorAll('[data-customer-dropdown-target="option"]');
+  const customerDropdownText = document.querySelector('.customer-dropdown-text');
+  const customerDropdownArrow = customerDropdownButton?.querySelector('svg');
+  const customerHiddenField = document.getElementById('tenant_customer_id');
+  
+  // Only proceed if customer dropdown elements exist (staff/manager users only)
+  if (!customerDropdownButton || !customerDropdownMenu) {
+    return;
   }
+  
+  let selectedCustomerId = '<%= @booking.tenant_customer_id || "" %>';
+  let customerDropdownButtonTouched = false;
+    
+  // Initialize customer fields display based on current selection
+  function initializeCustomerFields() {
+    const newCustomerFields = document.getElementById('new-tenant-customer-fields');
+    if (newCustomerFields) {
+      if (selectedCustomerId === 'new') {
+        newCustomerFields.classList.remove('hidden');
+      } else {
+        newCustomerFields.classList.add('hidden');
+      }
+    }
+  }
+  
+  // Call initialization
+  initializeCustomerFields();
+  
+  // Shared function to toggle customer dropdown
+  function toggleCustomerDropdown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check current state by examining classes and inline styles
+    const isHidden = customerDropdownMenu.classList.contains('hidden') || 
+                    customerDropdownMenu.style.display === 'none' || 
+                    customerDropdownMenu.style.display === '';
+    
+    if (isHidden) {
+      // Show dropdown
+      customerDropdownMenu.classList.remove('hidden');
+      customerDropdownArrow?.classList.add('rotate-180');
+      
+      // Mobile-specific positioning adjustments
+      if (window.innerWidth <= 640) {
+        customerDropdownMenu.style.position = 'absolute';
+        customerDropdownMenu.style.top = '100%';
+        customerDropdownMenu.style.left = '0';
+        customerDropdownMenu.style.right = '0';
+        customerDropdownMenu.style.zIndex = '50';
+        customerDropdownMenu.style.marginTop = '0.25rem';
+      }
+    } else {
+      // Hide dropdown
+      customerDropdownMenu.classList.add('hidden');
+      customerDropdownArrow?.classList.remove('rotate-180');
+      
+      // Clear mobile-specific inline styles
+      if (window.innerWidth <= 640) {
+        customerDropdownMenu.style.display = '';
+        customerDropdownMenu.style.position = '';
+        customerDropdownMenu.style.top = '';
+        customerDropdownMenu.style.left = '';
+        customerDropdownMenu.style.right = '';
+        customerDropdownMenu.style.zIndex = '';
+        customerDropdownMenu.style.marginTop = '';
+      }
+    }
+  }
+  
+  // Toggle customer dropdown on click
+  customerDropdownButton?.addEventListener('click', function(e) {
+    customerDropdownButtonTouched = true;
+    toggleCustomerDropdown(e);
+    setTimeout(() => { customerDropdownButtonTouched = false; }, 100);
+  });
+  
+  // Toggle customer dropdown on touch (for mobile)
+  customerDropdownButton?.addEventListener('touchend', function(e) {
+    customerDropdownButtonTouched = true;
+    toggleCustomerDropdown(e);
+    setTimeout(() => { customerDropdownButtonTouched = false; }, 100);
+  });
+  
+  // Shared function for customer option selection
+  function selectCustomerOption(element, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const customerId = element.dataset.customerId;
+    const customerName = element.dataset.customerName;
+    
+    // Update button text
+    customerDropdownText.textContent = customerName;
+    selectedCustomerId = customerId;
+    
+    // Update hidden field
+    customerHiddenField.value = customerId;
+    
+    // Update selected state
+    customerDropdownOptions.forEach(opt => {
+      const checkIcon = opt.querySelector('svg');
+      if (checkIcon) checkIcon.remove();
+    });
+    
+    // Add check icon to selected option
+    const checkIcon = document.createElement('span');
+    checkIcon.className = 'absolute inset-y-0 right-2 flex items-center text-blue-600';
+    checkIcon.innerHTML = `
+      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+      </svg>
+    `;
+    element.appendChild(checkIcon);
+    
+    // Close dropdown properly
+    customerDropdownMenu.classList.add('hidden');
+    customerDropdownArrow?.classList.remove('rotate-180');
+    
+    // Clear mobile-specific inline styles (critical for mobile)
+    if (window.innerWidth <= 640) {
+      customerDropdownMenu.style.display = '';
+      customerDropdownMenu.style.position = '';
+      customerDropdownMenu.style.top = '';
+      customerDropdownMenu.style.left = '';
+      customerDropdownMenu.style.right = '';
+      customerDropdownMenu.style.zIndex = '';
+      customerDropdownMenu.style.marginTop = '';
+    }
+    
+    // Handle new customer fields toggle
+    const newCustomerFields = document.getElementById('new-tenant-customer-fields');
+    if (newCustomerFields) {
+      if (customerId === 'new') {
+        // Show new customer fields - use aggressive approach
+        newCustomerFields.className = 'mb-4'; // Remove hidden, keep only mb-4
+        newCustomerFields.style.display = 'block';
+        newCustomerFields.style.visibility = 'visible';
+        newCustomerFields.style.opacity = '1';
+        
+        // Make new customer fields required - using more specific selectors
+        const nameField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="name"]');
+        const phoneField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="phone"]');
+        
+        if (nameField) nameField.required = true;
+        if (phoneField) phoneField.required = true;
+        
+      } else {
+        // Hide new customer fields
+        newCustomerFields.className = 'hidden mb-4'; // Ensure hidden class is applied
+        newCustomerFields.style.display = 'none';
+        newCustomerFields.style.visibility = 'hidden';
+        newCustomerFields.style.opacity = '0';
+        
+        // Remove required attributes - using more specific selectors
+        const nameField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="name"]');
+        const emailField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="email"]');
+        const phoneField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="phone"]');
+        
+        if (nameField) nameField.required = false;
+        if (emailField) emailField.required = false;
+        if (phoneField) phoneField.required = false;
+        
+        // Clear the fields
+        if (nameField) nameField.value = '';
+        if (emailField) emailField.value = '';
+        if (phoneField) phoneField.value = '';
+        
+      }
+    }
+  }
+  
+  // Handle customer option selection
+  customerDropdownOptions.forEach(option => {
+    option.addEventListener('click', function(e) {
+      selectCustomerOption(this, e);
+    });
+    
+    // Handle touch for mobile options
+    option.addEventListener('touchend', function(e) {
+      selectCustomerOption(this, e);
+    });
+  });
+  
+  // Close customer dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.customer-dropdown')) {
+      if (!customerDropdownMenu?.classList.contains('hidden')) {
+        customerDropdownMenu?.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear mobile styles if needed
+        if (window.innerWidth <= 640) {
+          customerDropdownMenu.style.display = '';
+          customerDropdownMenu.style.position = '';
+          customerDropdownMenu.style.top = '';
+          customerDropdownMenu.style.left = '';
+          customerDropdownMenu.style.right = '';
+          customerDropdownMenu.style.zIndex = '';
+          customerDropdownMenu.style.marginTop = '';
+        }
+      }
+    }
+  });
+  
+  // Handle touch outside for mobile
+  document.addEventListener('touchend', function(event) {
+    // Don't close if button was just touched
+    if (customerDropdownButtonTouched) {
+      return;
+    }
+    
+    if (!event.target.closest('.customer-dropdown')) {
+      const isOpen = !customerDropdownMenu?.classList.contains('hidden') && 
+                    customerDropdownMenu?.style.display !== 'none' && 
+                    customerDropdownMenu?.style.display !== '';
+      if (isOpen) {
+        customerDropdownMenu?.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear mobile styles if needed
+        if (window.innerWidth <= 640) {
+          customerDropdownMenu.style.display = '';
+          customerDropdownMenu.style.position = '';
+          customerDropdownMenu.style.top = '';
+          customerDropdownMenu.style.left = '';
+          customerDropdownMenu.style.right = '';
+          customerDropdownMenu.style.zIndex = '';
+          customerDropdownMenu.style.marginTop = '';
+        }
+      }
+    }
+  });
+  
+  // Handle escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      if (!customerDropdownMenu?.classList.contains('hidden')) {
+        customerDropdownMenu?.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear mobile styles if needed
+        if (window.innerWidth <= 640) {
+          customerDropdownMenu.style.display = '';
+          customerDropdownMenu.style.position = '';
+          customerDropdownMenu.style.top = '';
+          customerDropdownMenu.style.left = '';
+          customerDropdownMenu.style.right = '';
+          customerDropdownMenu.style.zIndex = '';
+          customerDropdownMenu.style.marginTop = '';
+        }
+      }
+    }
+  });
 });
 </script>
+
+<style>
+  /* Customer Dropdown Styles (similar to service dropdown) */
+  .customer-dropdown {
+    position: relative;
+  }
+  
+  .customer-dropdown-button {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .customer-dropdown-button:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .customer-dropdown-menu {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .customer-option {
+    transition: all 0.15s ease-in-out;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .customer-option:active {
+    background-color: #dbeafe;
+    transform: scale(0.98);
+  }
+  
+  .customer-option:last-child {
+    border-bottom: none;
+  }
+  
+  /* Arrow rotation animation */
+  .customer-dropdown-button svg {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .rotate-180 {
+    transform: rotate(180deg);
+  }
+  
+  /* Hidden class definition */
+  .hidden {
+    display: none !important;
+  }
+  
+  /* New customer fields specific styling */
+  #new-tenant-customer-fields {
+    display: none;
+  }
+  
+  #new-tenant-customer-fields:not(.hidden) {
+    display: block !important;
+  }
+  
+  /* Mobile improvements */
+  @media (max-width: 640px) {
+    .customer-dropdown-menu {
+      position: absolute !important;
+      left: 0 !important;
+      right: 0 !important;
+      top: 100% !important;
+      bottom: auto !important;
+      width: 100% !important;
+      max-height: 60vh !important;
+      z-index: 50 !important;
+      margin-top: 0.25rem !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      border: 1px solid #e5e7eb !important;
+    }
+    
+    .customer-dropdown {
+      position: relative !important;
+      z-index: 40 !important;
+    }
+    
+    .customer-option {
+      min-height: 70px;
+      padding: 1rem;
+    }
+    
+    .customer-dropdown-button {
+      font-size: 1rem;
+      padding: 1rem;
+    }
+    
+    /* Ensure dropdown appears above other content */
+    .customer-dropdown-menu:not(.hidden) {
+      display: block !important;
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+  }
+  
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: reduce) {
+    .customer-dropdown-button svg,
+    .customer-option {
+      transition: none;
+    }
+  }
+</style>
