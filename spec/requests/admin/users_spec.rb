@@ -26,6 +26,94 @@ RSpec.describe "Admin Users", type: :request, admin: true do
   end
 
   describe "GET /admin/users" do
+    context "with daily active users analytics" do
+      before do
+        # Create users with login tracking data
+        manager_user.update!(last_sign_in_at: Date.current.beginning_of_day + 2.hours, sign_in_count: 5)
+        staff_user.update!(last_sign_in_at: 1.day.ago, sign_in_count: 12)
+        client_user.update!(last_sign_in_at: 5.days.ago, sign_in_count: 3)
+        unassigned_user.update!(last_sign_in_at: 35.days.ago, sign_in_count: 8)
+        # unassigned_staff_user has no login data (never logged in)
+      end
+      
+      it "displays daily active users analytics panel" do
+        get "/admin/users"
+        expect(response).to be_successful
+        body = response.body
+        
+        expect(body).to include("Daily Active Users Analytics")
+        expect(body).to include("Today&#39;s Active Users")
+        expect(body).to include("Weekly Active Users")
+        expect(body).to include("Monthly Active Users")
+        expect(body).to include("Daily Engagement Rate")
+      end
+      
+      it "shows activity breakdown by role when users have logged in recently" do
+        get "/admin/users"
+        expect(response).to be_successful
+        body = response.body
+        
+        expect(body).to include("Activity by Role")
+        expect(body).to include("Manager")
+        expect(body).to include("Client")
+      end
+    end
+    
+    context "with last login columns" do
+      before do
+        manager_user.update!(
+          last_sign_in_at: 2.hours.ago, 
+          sign_in_count: 15,
+          current_sign_in_at: 1.hour.ago,
+          last_sign_in_ip: '192.168.1.1'
+        )
+        staff_user.update!(last_sign_in_at: 30.days.ago, sign_in_count: 3)
+        # client_user has no login data (never logged in)
+      end
+      
+      it "displays last login times and sign-in counts" do
+        get "/admin/users"
+        expect(response).to be_successful
+        body = response.body
+        
+        expect(body).to include("Last Login")
+        expect(body).to include("Sign-in Count")
+        expect(body).to include("ago")
+        expect(body).to include("Never")
+        expect(body).to include("15") # manager's sign-in count
+        expect(body).to include("3")  # staff's sign-in count
+      end
+    end
+    
+    context "with login tracking filters" do
+      before do
+        manager_user.update!(last_sign_in_at: 1.day.ago, sign_in_count: 5)
+        staff_user.update!(last_sign_in_at: 30.days.ago, sign_in_count: 15)
+      end
+      
+      it "filters by last_sign_in_at" do
+        get "/admin/users", params: { 
+          q: { 
+            last_sign_in_at_gteq: 7.days.ago.strftime('%Y-%m-%d')
+          } 
+        }
+        expect(response).to be_successful
+        expect(response.body).to include(manager_user.email)
+        expect(response.body).not_to include(staff_user.email)
+      end
+      
+      it "filters by sign_in_count" do
+        get "/admin/users", params: { 
+          q: { 
+            sign_in_count_gteq: 10
+          } 
+        }
+        expect(response).to be_successful
+        expect(response.body).to include(staff_user.email)
+        expect(response.body).not_to include(manager_user.email)
+      end
+    end
+
     it "lists all users with correct column content" do
       get "/admin/users"
       expect(response).to be_successful
@@ -279,6 +367,45 @@ RSpec.describe "Admin Users", type: :request, admin: true do
         expect(body).to match(/<a[^>]*>#{Regexp.escape(business2.name)}<\/a>/)
         expect(body).to match(/<a[^>]*>#{Regexp.escape(business3.name)}<\/a>/)
         expect(body).to include("None") # Staff Member
+      end
+    end
+    
+    context "with login activity tracking" do
+      let(:tracked_user) { create(:user, :manager, business: business1,
+                                 last_sign_in_at: 2.days.ago,
+                                 current_sign_in_at: 1.day.ago,
+                                 sign_in_count: 8,
+                                 last_sign_in_ip: '192.168.1.1',
+                                 current_sign_in_ip: '192.168.1.2') }
+      
+      it "displays login activity information" do
+        get admin_user_path(tracked_user)
+        expect(response).to be_successful
+        body = response.body
+        
+        expect(body).to include("Login Activity Timeline")
+        expect(body).to include("Total Sign-ins")
+        expect(body).to include("Last Login")
+        expect(body).to include("Previous Login")
+        expect(body).to include("Account Created")
+        expect(body).to include("8") # sign_in_count
+        expect(body).to include("192.168.1.1") # last_sign_in_ip
+        expect(body).to include("192.168.1.2") # current_sign_in_ip
+        expect(body).to include("Average Logins per Day")
+      end
+      
+      context "when user has never logged in" do
+        let(:never_logged_in_user) { create(:user, :client, last_sign_in_at: nil) }
+        
+        it "shows appropriate message for users who never logged in" do
+          get admin_user_path(never_logged_in_user)
+          expect(response).to be_successful
+          body = response.body
+          
+          expect(body).to include("User has never logged in")
+          expect(body).to include("Never logged in")
+          expect(body).to include("No current session")
+        end
       end
     end
   end

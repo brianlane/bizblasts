@@ -25,7 +25,7 @@ class User < ApplicationRecord
 
   # Devise modules - Removed :validatable to use custom email uniqueness
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :confirmable # Added :confirmable for email verification
+         :recoverable, :rememberable, :confirmable, :trackable # Added :confirmable for email verification and :trackable for login tracking
 
   # Callbacks
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
@@ -108,8 +108,8 @@ class User < ApplicationRecord
 
   # Ransackable Attributes & Associations
   def self.ransackable_attributes(auth_object = nil)
-    # Allow searching by associated business name via business_name
-    %w[id email role first_name last_name active created_at updated_at business_id]
+    # Allow searching by associated business name via business_name, including login tracking fields
+    %w[id email role first_name last_name active created_at updated_at business_id sign_in_count current_sign_in_at last_sign_in_at]
   end
 
   def self.ransackable_associations(auth_object = nil)
