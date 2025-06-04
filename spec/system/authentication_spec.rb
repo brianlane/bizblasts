@@ -63,13 +63,16 @@ RSpec.describe 'Authentication', type: :system do
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
       
-      # Try to find and click sign out link
-      if has_link?('Sign Out')
+      # Look for sign out button instead of link (we changed from link_to to button_to)
+      if has_button?('Sign Out')
+        click_button 'Sign Out'
+      elsif has_link?('Sign Out')
         click_link 'Sign Out'
       elsif has_link?('Sign out')
         click_link 'Sign out'
       else
-        click_link 'Sign out', match: :prefer_exact
+        # Look for the form with sign out button
+        find('form[action="/users/sign_out"]').click_button('Sign Out')
       end
       
       # Verify we're signed out - should be on home page
@@ -173,13 +176,16 @@ RSpec.describe 'Authentication', type: :system do
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
       
-      # Attempt to find and click the sign out link using a helper that checks different formats
-      if has_link?('Sign Out')
+      # Look for sign out button instead of link (we changed from link_to to button_to)
+      if has_button?('Sign Out')
+        click_button 'Sign Out'
+      elsif has_link?('Sign Out')
         click_link 'Sign Out'
       elsif has_link?('Sign out')
         click_link 'Sign out'
       else
-        click_link 'Sign out', match: :prefer_exact
+        # Look for the form with sign out button
+        find('form[action="/users/sign_out"]').click_button('Sign Out')
       end
       
       # After sign out we should be on the home page or login page

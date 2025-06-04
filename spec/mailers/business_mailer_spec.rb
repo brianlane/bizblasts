@@ -78,7 +78,7 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(mail.subject).to include('New Booking')
       expect(mail.subject).to include(tenant_customer.name)
       expect(mail.subject).to include(service.name)
-      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(html_escape(tenant_customer.name))
       expect(mail.body.encoded).to include(service.name)
       expect(mail.body.encoded).to include(business.name)
     end
@@ -139,7 +139,7 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('New Customer')
       expect(mail.subject).to include(tenant_customer.name)
-      expect(mail.body.encoded).to include(tenant_customer.name)
+      expect(mail.body.encoded).to include(html_escape(tenant_customer.name))
       expect(mail.body.encoded).to include(tenant_customer.email)
       expect(mail.body.encoded).to include(business.name)
     end

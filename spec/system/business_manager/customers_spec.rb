@@ -53,15 +53,23 @@ RSpec.describe "Business Manager Customers", type: :system do
     it "allows deleting a customer" do
       visit business_manager_customers_path
       
-      # Try to find and click the delete button/link - it might be a form submit button or link
-      # First try to find a delete button, if not found try a delete link
-      if page.has_button?('Delete')
-        first('button', text: 'Delete').click
-      elsif page.has_link?('Delete')
-        first('a', text: 'Delete').click
+      # The delete button is created by button_to which creates a form
+      # There are multiple forms (mobile and desktop views), so get the first visible one
+      customer_delete_forms = page.all("form[action='#{business_manager_customer_path(customer)}'][method='post']")
+      
+      # Try different approaches to click the delete form
+      form = customer_delete_forms.first
+      
+      # Try to find a submit button or input
+      if form.has_button?
+        form.click_button
+      elsif form.has_css?('input[type="submit"]')
+        form.find('input[type="submit"]').click
+      elsif form.has_css?('button[type="submit"]')
+        form.find('button[type="submit"]').click
       else
-        # Look for any delete action - might be an icon or styled differently
-        first("*[data-method='delete'], form[data-method='delete'] button, form[data-method='delete'] input[type='submit']").click
+        # If no specific submit found, just click the form itself
+        form.click
       end
       
       # The delete might redirect to root or stay on customers page
