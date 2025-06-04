@@ -39,22 +39,22 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
 
       it "shows upgrade options" do
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("You do not have an active paid subscription")
+        expect(response.body).to include("You're currently on the free plan. Upgrade to unlock more features!")
         expect(response.body).to include("Standard Plan")
         expect(response.body).to include("Premium Plan")
       end
 
       it "displays domain coverage information for Premium plan" do
-        expect(response.body).to include("Domain coverage up to $20 annually")
-        expect(response.body).to include("MOST POPULAR")
-        expect(response.body).to include("Custom domain support")
+        expect(response.body).to include("BizBlasts covers up to $20/year for new domain registration")
+        expect(response.body).to include("Custom Domain")
+        expect(response.body).to include("Domain Coverage Policy")
       end
 
       it "shows detailed domain coverage policy" do
-        expect(response.body).to include("Domain Coverage Policy:")
-        expect(response.body).to include("BizBlasts covers domain registration and renewal costs up to $20 annually")
-        expect(response.body).to include("If you already own a domain, you're responsible for all domain-related costs")
-        expect(response.body).to include("For new domains over $20/year, we'll contact you with alternatives under $20")
+        expect(response.body).to include("Domain Coverage Policy")
+        expect(response.body).to include("BizBlasts covers up to $20/year for new domain registration")
+        expect(response.body).to include("If you already own your domain, you handle domain costs")
+        expect(response.body).to include("Domains over $20/year: You obtain your own domain")
       end
 
       it "includes upgrade buttons" do
@@ -74,8 +74,8 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
 
       it "shows current subscription details" do
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("Current Plan:</strong> Premium")
-        expect(response.body).to include("Business Tier:</strong> Premium")
+        expect(response.body).to include("Current Subscription")
+        expect(response.body).to include("Business Tier")
       end
 
       it "includes subscription management button" do
@@ -123,14 +123,12 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
     end
 
     it "includes CSS styling for premium plan highlighting" do
-      expect(response.body).to include("premium-plan")
-      expect(response.body).to include("border-2 border-accent")
-      expect(response.body).to include("absolute -top-3")
+      expect(response.body).to include("border-purple-300")
+      expect(response.body).to include("bg-purple-50")
     end
 
     it "includes proper grid layout classes" do
-      expect(response.body).to include("subscription-plans")
-      expect(response.body).to include("subscription-plan")
+      expect(response.body).to include("grid grid-cols-1 md:grid-cols-2")
     end
   end
 
@@ -143,15 +141,14 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
 
     it "shows all premium tier benefits" do
       expect(response.body).to include("All Standard tier features")
-      expect(response.body).to include("Custom domain support")
-      expect(response.body).to include("Advanced SEO optimization")
+      expect(response.body).to include("Custom Domain")
       expect(response.body).to include("Priority support")
-      expect(response.body).to include("Advanced analytics")
+      expect(response.body).to include("Unlimited staff members")
     end
 
     it "highlights domain coverage as a key benefit" do
-      expect(response.body).to include("🎯 Domain coverage up to $20 annually")
-      expect(response.body).to match(/text-success.*font-medium/)
+      expect(response.body).to include("Domain Coverage Policy")
+      expect(response.body).to include("BizBlasts covers up to $20/year")
     end
   end
 

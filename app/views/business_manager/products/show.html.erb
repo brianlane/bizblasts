@@ -1,63 +1,184 @@
 <%# app/views/business_manager/products/show.html.erb %>
-<h1><%= @product.name %></h1>
-
-<p>
-  <strong>Description:</strong> <%= simple_format @product.description %><br>
-  <strong>Category:</strong> <%= @product.category&.name || 'N/A' %><br>
-  <strong>Base Price:</strong> <%= number_to_currency @product.price %><br>
-  <strong>Type:</strong> <%= @product.product_type&.titleize || 'N/A' %><br>
-  <strong>Active:</strong> <%= @product.active ? 'Yes' : 'No' %><br>
-  <strong>Featured:</strong> <%= @product.featured ? 'Yes' : 'No' %><br>
-  <% unless @product.has_variants? %>
-    <strong>Stock:</strong> <%= @product.stock_quantity %><br>
-  <% end %>
-</p>
-
-<h2>Images</h2>
-<% if @product.images.attached? %>
-  <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-    <% @product.images.each do |img| %>
-      <div style="text-align: center;">
-        <%= image_tag img.representation(resize_to_limit: [150, 150]) %><br>
-        <%# Optional: Add primary flag/position info %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h3 class="text-lg sm:text-xl leading-6 font-medium text-gray-900">
+          Product Details: <%= @product.name %>
+        </h3>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <%= link_to 'Edit', edit_business_manager_product_path(@product), 
+                class: "inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors" %>
+          <%= link_to 'Back to Products', business_manager_products_path, 
+                class: "inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" %>
+        </div>
       </div>
-    <% end %>
+    </div>
+    
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+      <dl class="sm:divide-y sm:divide-gray-200">
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Name</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @product.name %></dd>
+        </div>
+        
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Description</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <%= @product.description.present? ? simple_format(@product.description) : content_tag(:em, "No description provided", class: "text-gray-500") %>
+          </dd>
+        </div>
+        
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Category</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <%= @product.category&.name || content_tag(:em, "No category", class: "text-gray-500") %>
+          </dd>
+        </div>
+        
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Base Price</dt>
+          <dd class="mt-1 text-lg font-semibold text-green-600 sm:mt-0 sm:col-span-2">
+            <%= number_to_currency(@product.price) %>
+          </dd>
+        </div>
+        
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Product Type</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <%= @product.product_type&.titleize || content_tag(:em, "No type", class: "text-gray-500") %>
+          </dd>
+        </div>
+        
+        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Status</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <div class="flex flex-wrap gap-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @product.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                <%= @product.active? ? 'Active' : 'Inactive' %>
+              </span>
+              <% if @product.featured? %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Featured
+                </span>
+              <% end %>
+            </div>
+          </dd>
+        </div>
+        
+        <% unless @product.has_variants? %>
+          <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Stock Quantity</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              <span class="font-medium"><%= @product.stock_quantity %></span> units
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+
+      <!-- Product Images Section -->
+      <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Product Images</h3>
+        <% if @product.images.attached? %>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <% @product.images.each do |img| %>
+              <div class="bg-gray-50 rounded-lg p-2">
+                <%= image_tag img.representation(resize_to_limit: [200, 200]), 
+                      class: "w-full h-32 object-cover rounded shadow-md" %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-sm text-gray-500">No images attached to this product.</p>
+        <% end %>
+      </div>
+
+      <!-- Product Variants Section -->
+      <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Product Variants</h3>
+        <% if @product.product_variants.any? %>
+          <!-- Mobile Variant Cards (hidden on lg+ screens) -->
+          <div class="lg:hidden space-y-4">
+            <% @product.product_variants.order(:name).each do |variant| %>
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex-1">
+                    <h4 class="text-base font-medium text-gray-900"><%= variant.name %></h4>
+                    <p class="text-sm text-gray-600 mt-1">
+                      SKU: <%= variant.sku.presence || content_tag(:em, "No SKU", class: "text-gray-400") %>
+                    </p>
+                  </div>
+                  <div class="ml-4 text-right">
+                    <div class="text-lg font-semibold text-green-600">
+                      <%= number_to_currency(variant.final_price) %>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      <%= variant.price_modifier.zero? ? "Base price" : "#{number_to_currency(variant.price_modifier)} modifier" %>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Stock</div>
+                    <div class="text-gray-900 font-medium"><%= variant.stock_quantity %> units</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Options</div>
+                    <div class="text-gray-900">
+                      <%= variant.options.presence || content_tag(:em, "No options", class: "text-gray-400") %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          
+          <!-- Desktop Variant Table (hidden on mobile) -->
+          <div class="hidden lg:block">
+            <div class="overflow-x-auto">
+              <table class="min-w-full bg-white border border-gray-200">
+                <thead class="bg-gray-100">
+                  <tr>
+                    <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">SKU</th>
+                    <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price Modifier</th>
+                    <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Final Price</th>
+                    <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock</th>
+                    <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Options</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <% @product.product_variants.order(:name).each do |variant| %>
+                    <tr class="hover:bg-gray-50">
+                      <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        <%= variant.name %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-gray-600">
+                        <%= variant.sku || '-' %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                        <%= number_to_currency(variant.price_modifier) %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600">
+                        <%= number_to_currency(variant.final_price) %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                        <%= variant.stock_quantity %>
+                      </td>
+                      <td class="px-6 py-4 text-gray-900">
+                        <%= variant.options.presence || '-' %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% else %>
+          <p class="text-sm text-gray-500">No variants defined for this product. Base price and stock apply.</p>
+        <% end %>
+      </div>
+    </div>
   </div>
-<% else %>
-  <p>No images attached.</p>
-<% end %>
-
-<h2>Variants</h2>
-<% if @product.product_variants.any? %>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>SKU</th>
-        <th>Price Modifier</th>
-        <th>Final Price</th>
-        <th>Stock</th>
-        <th>Options</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @product.product_variants.order(:name).each do |variant| %>
-        <tr>
-          <td><%= variant.name %></td>
-          <td><%= variant.sku || '-' %></td>
-          <td><%= number_to_currency variant.price_modifier %></td>
-          <td><%= number_to_currency variant.final_price %></td>
-          <td><%= variant.stock_quantity %></td>
-          <td><%= variant.options.presence || '-' %></td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% else %>
-  <p>No variants defined for this product. Base price and stock apply.</p>
-<% end %>
-
-<hr style="margin: 20px 0;">
-
-<%= link_to 'Edit Product', edit_business_manager_product_path(@product) %> |
-<%= link_to 'Back to Products List', business_manager_products_path %> 
+</div> 

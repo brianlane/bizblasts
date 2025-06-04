@@ -1,11 +1,11 @@
-<div class="bg-info/10 border border-info/20 rounded-lg p-4">
+<div class="bg-info/10 border border-info/20 rounded-lg p-3 sm:p-4">
   <div class="flex items-start">
     <svg class="w-5 h-5 text-info mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
     </svg>
     
-    <div class="flex-1">
-      <h4 class="text-sm font-semibold text-info mb-2">
+    <div class="flex-1 min-w-0">
+      <h4 class="text-sm sm:text-base font-semibold text-info mb-2">
         📋 Business Setup: <%= setup_service.setup_summary %>
       </h4>
       
@@ -14,33 +14,66 @@
           Complete these steps to get your business ready for customers:
         </div>
         
-        <ul class="space-y-2">
+        <ul class="space-y-3">
           <% setup_service.todo_items.each do |item| %>
-            <li class="flex items-center justify-between py-2 px-3 bg-white rounded border border-gray-200">
-              <div class="flex items-center">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-3
-                  <%= case item[:priority]
-                      when :high then 'bg-red-100 text-red-800'
-                      when :medium then 'bg-yellow-100 text-yellow-800'
-                      when :low then 'bg-green-100 text-green-800'
-                      end %>">
-                  <%= item[:priority].to_s.capitalize %>
-                </span>
-                <span class="text-gray-800"><%= item[:text] %></span>
+            <li class="bg-white rounded border border-gray-200 p-3">
+              <!-- Mobile Layout: Stack everything vertically -->
+              <div class="block sm:hidden">
+                <div class="flex items-start justify-between mb-2">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                    <%= case item[:priority]
+                        when :high then 'bg-red-100 text-red-800'
+                        when :medium then 'bg-yellow-100 text-yellow-800'
+                        when :low then 'bg-green-100 text-green-800'
+                        end %>">
+                    <%= item[:priority].to_s.capitalize %>
+                  </span>
+                </div>
+                <div class="text-gray-800 text-sm mb-3 leading-relaxed">
+                  <%= item[:text] %>
+                </div>
+                <div class="flex flex-col space-y-2">
+                  <% if item[:url] %>
+                    <%= link_to item[:action], item[:url], class: "inline-flex items-center justify-center px-4 py-2 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
+                  <% end %>
+                  <button
+                    type="button"
+                    data-url="<%= business_manager_setup_reminder_path(key: item[:key]) %>"
+                    class="text-xs text-gray-500 text-center py-1"
+                    onclick="event.preventDefault(); const btn=this; fetch(btn.dataset.url, {method:'DELETE', headers:{'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content}}).then(()=>btn.closest('li').style.display='none');"
+                  >
+                    Don't Show This Reminder
+                  </button>
+                </div>
               </div>
               
-              <div class="flex items-center">
-                <% if item[:url] %>
-                  <%= link_to item[:action], item[:url], class: "ml-3 inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
-                <% end %>
-                <button
-                  type="button"
-                  data-url="<%= business_manager_setup_reminder_path(key: item[:key]) %>"
-                  class="ml-3 text-xs text-gray-500"
-                  onclick="event.preventDefault(); const btn=this; fetch(btn.dataset.url, {method:'DELETE', headers:{'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content}}).then(()=>btn.closest('li').style.display='none');"
-                >
-                  Don't Show This Reminder
-                </button>
+              <!-- Desktop Layout: Horizontal layout -->
+              <div class="hidden sm:flex items-center justify-between">
+                <div class="flex items-center min-w-0 flex-1">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-3 flex-shrink-0
+                    <%= case item[:priority]
+                        when :high then 'bg-red-100 text-red-800'
+                        when :medium then 'bg-yellow-100 text-yellow-800'
+                        when :low then 'bg-green-100 text-green-800'
+                        end %>">
+                    <%= item[:priority].to_s.capitalize %>
+                  </span>
+                  <span class="text-gray-800 truncate"><%= item[:text] %></span>
+                </div>
+                
+                <div class="flex items-center flex-shrink-0 ml-4">
+                  <% if item[:url] %>
+                    <%= link_to item[:action], item[:url], class: "inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
+                  <% end %>
+                  <button
+                    type="button"
+                    data-url="<%= business_manager_setup_reminder_path(key: item[:key]) %>"
+                    class="ml-3 text-xs text-gray-500 hover:text-gray-700"
+                    onclick="event.preventDefault(); const btn=this; fetch(btn.dataset.url, {method:'DELETE', headers:{'X-CSRF-Token': document.querySelector('meta[name=csrf-token]').content}}).then(()=>btn.closest('li').style.display='none');"
+                  >
+                    Don't Show This Reminder
+                  </button>
+                </div>
               </div>
             </li>
           <% end %>

@@ -1,184 +1,324 @@
 <%# app/views/business_manager/staff_members/availability.html.erb %>
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <!-- Flash Messages -->
   <% if flash[:notice] %>
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-      <strong class="font-bold">Success!</strong>
-      <span class="block sm:inline"><%= flash[:notice] %></span>
+    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4" role="alert">
+      <div class="flex">
+        <svg class="w-4 h-4 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span class="text-sm font-medium"><%= flash[:notice] %></span>
+      </div>
     </div>
   <% end %>
   
   <% if flash[:alert] %>
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-      <strong class="font-bold">Error!</strong>
-      <span class="block sm:inline"><%= flash[:alert] %></span>
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
+      <div class="flex">
+        <svg class="w-4 h-4 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <span class="text-sm font-medium"><%= flash[:alert] %></span>
+      </div>
     </div>
   <% end %>
 
-  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-      <h3 class="text-lg leading-6 font-medium text-gray-900">
-        Manage <%= @staff_member.name %>'s Availability
-      </h3>
+  <!-- Header -->
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-4 py-5 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <%= link_to 'Back to Staff Details', business_manager_staff_member_path(@staff_member), class: "text-blue-600 hover:text-blue-800" %>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
+          Manage Availability
+        </h1>
+        <p class="text-sm text-gray-600 mt-1">
+          <%= @staff_member.name %>'s Schedule - Week of <%= @start_date.strftime("%b %d, %Y") %>
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <%= link_to business_manager_staff_member_path(@staff_member), 
+              class: "inline-flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m0 7h18"/>
+          </svg>
+          Back to Staff
+        <% end %>
       </div>
     </div>
-    
-    <div class="border-t border-gray-200">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
-        <!-- Weekly Schedule -->
-        <div class="lg:col-span-1">
-          <h4 class="text-lg font-medium text-gray-700 mb-4">Weekly Schedule</h4>
-          
-          <%= form_with model: @staff_member, 
-                        url: manage_availability_business_manager_staff_member_path(@staff_member, date: @date), 
-                        method: :patch, 
-                        local: true do |f| %>
-            <% days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday] %>
-            
-            <% days_of_week.each_with_index do |day, idx| %>
-              <% current_date = @start_date + idx.days %>
-              <fieldset class="mb-6">
-                <legend class="text-base font-medium text-gray-700 mb-2">
-                  <%= day.capitalize %> (<%= current_date.strftime("%-d %b") %>)
-                </legend>
-                
-                <div id="<%= day %>-slots" class="time-slots space-y-2">
-                  <% 
-                    # Get current slots or create a default if none exist
-                    day_slots = @staff_member.availability&.dig(day) || []
-                    
-                    # Display slots, or one empty slot if no slots exist
-                    slots_to_display = day_slots.any? ? day_slots : [{}]
-                    slots_to_display.each_with_index do |slot, index| 
-                  %>
-                    <div class="time-slot-row flex items-center space-x-2">
-                      <input type="hidden" 
-                             name="staff_member[availability][<%= day %>][<%= index %>][id]" 
-                             value="<%= index %>" />
-                      
-                      <input type="time"
-                             name="staff_member[availability][<%= day %>][<%= index %>][start]"
-                             value="<%= slot['start'] || '09:00' %>"
-                             class="time-input px-2 py-1 border rounded"
-                             placeholder="09:00" />
-                          
-                      <span>to</span>
-                      
-                      <input type="time"
-                             name="staff_member[availability][<%= day %>][<%= index %>][end]"
-                             value="<%= slot['end'] || '17:00' %>"
-                             class="time-input px-2 py-1 border rounded"
-                             placeholder="17:00" />
-                          
-                      <button type="button" class="remove-slot-btn text-red-600 hover:text-red-800">
-                        <span>✕</span>
-                      </button>
-                    </div>
-                  <% end %>
-                </div>
-                
-                <button type="button" 
-                        class="add-slot-btn mt-2 text-blue-600 hover:text-blue-800" 
-                        data-day="<%= day %>">
-                  + Add Time Slot
-                </button>
-              </fieldset>
-            <% end %>
-            
-            <div class="mt-4 flex items-center space-x-2">
-              <%= f.check_box :only_current_week, {}, "1", "0" %>
-              <%= f.label :only_current_week, "Apply changes to this week only" %>
-            </div>
-            
-            <div class="mt-8">
-              <%= f.submit "Save Availability", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
-            </div>
-          <% end %>
+
+    <!-- Week Navigation -->
+    <div class="border-t border-gray-200 px-4 py-4 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <%= link_to manage_availability_business_manager_staff_member_path(@staff_member, date: @start_date - 7.days), 
+              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Previous Week
+        <% end %>
+        
+        <div class="text-center">
+          <div class="text-lg font-semibold text-gray-900">
+            <%= @start_date.strftime("%b %d") %> - <%= @end_date.strftime("%b %d, %Y") %>
+          </div>
         </div>
         
-        <!-- Calendar View -->
+        <%= link_to manage_availability_business_manager_staff_member_path(@staff_member, date: @end_date + 1.day), 
+              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors" do %>
+          Next Week
+          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="border-t border-gray-200">
+      <div class="lg:grid lg:grid-cols-5 lg:gap-8 p-4 sm:p-6">
+        
+        <!-- Schedule Form (Mobile: Full width, Desktop: 2 columns) -->
         <div class="lg:col-span-2">
-          <div class="bg-white rounded shadow p-6">
-            <h4 class="text-lg font-medium text-gray-700 mb-4">Calendar View</h4>
+          <div class="bg-gray-50 rounded-lg p-4 mb-6 lg:mb-0">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Weekly Schedule</h2>
             
-            <div class="date-navigator flex justify-between items-center mb-4">
-              <%= link_to "← Previous Week", 
-                    manage_availability_business_manager_staff_member_path(@staff_member, date: @start_date - 7.days), 
-                    class: "text-blue-600 hover:text-blue-800" %>
-                    
-              <h5 class="text-base font-medium">
-                <%= @start_date.strftime("%b %d") %> - <%= @end_date.strftime("%b %d, %Y") %>
-              </h5>
+            <%= form_with model: @staff_member, 
+                          url: manage_availability_business_manager_staff_member_path(@staff_member, date: @date), 
+                          method: :patch, 
+                          local: true,
+                          class: "space-y-4" do |f| %>
               
-              <%= link_to "Next Week →", 
-                    manage_availability_business_manager_staff_member_path(@staff_member, date: @end_date + 1.day), 
-                    class: "text-blue-600 hover:text-blue-800" %>
+              <% days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday] %>
+              <% days_of_week.each_with_index do |day, idx| %>
+                <% current_date = @start_date + idx.days %>
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <button type="button" 
+                          class="day-toggle w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 text-left flex items-center justify-between transition-colors"
+                          data-day="<%= day %>">
+                    <div>
+                      <h3 class="font-medium text-gray-900"><%= day.capitalize %></h3>
+                      <p class="text-sm text-gray-500"><%= current_date.strftime("%-d %b") %></p>
+                    </div>
+                    <svg class="day-chevron w-5 h-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+                  
+                  <div class="day-content px-4 pb-4" data-day="<%= day %>">
+                    <div id="<%= day %>-slots" class="space-y-3 mt-4">
+                      <% 
+                        day_slots = @staff_member.availability&.dig(day) || []
+                        slots_to_display = day_slots.any? ? day_slots : [{}]
+                        slots_to_display.each_with_index do |slot, index| 
+                      %>
+                        <div class="time-slot-row">
+                          <input type="hidden" 
+                                 name="staff_member[availability][<%= day %>][<%= index %>][id]" 
+                                 value="<%= index %>" />
+                          
+                          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                              <input type="time"
+                                     name="staff_member[availability][<%= day %>][<%= index %>][start]"
+                                     value="<%= slot['start'] || '09:00' %>"
+                                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                     placeholder="09:00" />
+                              
+                              <span class="text-gray-500 text-sm font-medium flex-shrink-0 px-1">→</span>
+                              
+                              <input type="time"
+                                     name="staff_member[availability][<%= day %>][<%= index %>][end]"
+                                     value="<%= slot['end'] || '17:00' %>"
+                                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                     placeholder="17:00" />
+                            </div>
+                            
+                            <button type="button" 
+                                    class="remove-slot-btn flex-shrink-0 flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                                    title="Remove time slot">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                    
+                    <button type="button" 
+                            class="add-slot-btn mt-3 w-full px-3 py-2 border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 rounded-md transition-colors"
+                            data-day="<%= day %>">
+                      <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                      Add Time Slot
+                    </button>
+                  </div>
+                </div>
+              <% end %>
+              
+              <!-- Options -->
+              <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <div class="flex items-start">
+                  <div class="flex items-center h-5">
+                    <%= f.check_box :only_current_week, 
+                          { class: "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" }, 
+                          "1", "0" %>
+                  </div>
+                  <div class="ml-3">
+                    <%= f.label :only_current_week, class: "text-sm font-medium text-gray-900" do %>
+                      Apply changes to this week only
+                    <% end %>
+                    <p class="text-xs text-gray-500 mt-1">Check this to override the regular schedule for just this week</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Submit Button -->
+              <div class="pt-4">
+                <%= f.submit "Save Availability", 
+                      class: "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        
+        <!-- Calendar View (Mobile: Full width, Desktop: 3 columns) -->
+        <div class="lg:col-span-3">
+          <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-gray-900">Calendar Preview</h2>
             </div>
             
-            <div class="week-calendar grid grid-cols-7 gap-1">
+            <!-- Mobile Calendar (Stack view) -->
+            <div class="lg:hidden divide-y divide-gray-200">
               <% (@start_date..@end_date).each do |date| %>
-                <div class="day-column border min-h-[120px]">
-                  <div class="day-header text-center py-1 bg-gray-100 border-b">
-                    <div class="text-sm font-medium"><%= date.strftime("%a") %></div>
-                    <div class="text-lg"><%= date.strftime("%-d") %></div>
+                <div class="p-4">
+                  <div class="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 class="font-medium text-gray-900"><%= date.strftime("%A") %></h3>
+                      <p class="text-sm text-gray-500"><%= date.strftime("%B %-d, %Y") %></p>
+                    </div>
                   </div>
                   
-                  <div class="day-slots p-1">
-                    <% @calendar_data[date.to_s]&.each do |slot| %>
-                      <div class="slot bg-blue-100 text-xs p-1 mb-1 rounded">
-                        <%= slot[:start_time].strftime('%l:%M %p').strip %>
-                      </div>
-                    <% end %>
-                    
-                    <% if @calendar_data[date.to_s]&.empty? %>
-                      <div class="empty-slots text-xs text-gray-500 p-1 text-center">
-                        No slots
-                      </div>
+                  <div class="space-y-2">
+                    <% if @calendar_data[date.to_s]&.any? %>
+                      <% @calendar_data[date.to_s].each do |slot| %>
+                        <div class="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+                          <div class="text-sm font-medium text-blue-900">
+                            <%= slot[:start_time].strftime('%l:%M %p').strip %>
+                          </div>
+                        </div>
+                      <% end %>
+                    <% else %>
+                      <div class="text-sm text-gray-500 italic">No available slots</div>
                     <% end %>
                   </div>
                 </div>
               <% end %>
             </div>
+            
+            <!-- Desktop Calendar (Grid view) -->
+            <div class="hidden lg:block p-4">
+              <div class="grid grid-cols-7 gap-1 mb-4">
+                <% %w[Sun Mon Tue Wed Thu Fri Sat].each do |day_name| %>
+                  <div class="p-2 text-xs font-medium text-gray-500 text-center">
+                    <%= day_name %>
+                  </div>
+                <% end %>
+              </div>
+              
+              <div class="grid grid-cols-7 gap-1">
+                <% (@start_date..@end_date).each do |date| %>
+                  <div class="border border-gray-200 rounded-md min-h-[100px] p-2">
+                    <div class="text-sm font-medium text-gray-900 mb-2">
+                      <%= date.strftime("%-d") %>
+                    </div>
+                    
+                    <div class="space-y-1">
+                      <% if @calendar_data[date.to_s]&.any? %>
+                        <% @calendar_data[date.to_s].each do |slot| %>
+                          <div class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                            <%= slot[:start_time].strftime('%l:%M %p').strip %>
+                          </div>
+                        <% end %>
+                      <% else %>
+                        <div class="text-xs text-gray-400 italic">No slots</div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
           </div>
           
-          <!-- Services Offered -->
+          <!-- Services Table -->
           <% if @services.any? %>
-            <div class="bg-white rounded shadow p-6 mt-6">
-              <h4 class="text-lg font-medium text-gray-700 mb-4">Services Offered</h4>
+            <div class="bg-white rounded-lg border border-gray-200 mt-6 overflow-hidden">
+              <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Assigned Services</h2>
+              </div>
               
-              <table class="min-w-full bg-white">
-                <thead>
-                  <tr>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Price
-                    </th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% @services.each do |service| %>
+              <!-- Mobile Service Cards -->
+              <div class="lg:hidden divide-y divide-gray-200">
+                <% @services.each do |service| %>
+                  <div class="p-4">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-medium text-gray-900 truncate">
+                          <%= service.name %>
+                        </h3>
+                        <div class="mt-1 flex items-center gap-4 text-xs text-gray-500">
+                          <span><%= service.duration %> min</span>
+                          <span><%= number_to_currency(service.price) %></span>
+                        </div>
+                      </div>
+                      <div class="ml-4 flex-shrink-0">
+                        <%= link_to business_manager_available_slots_bookings_path(service_id: service.id, staff_member_id: @staff_member.id),
+                              class: "text-blue-600 hover:text-blue-800 text-sm font-medium",
+                              target: "_blank" do %>
+                          View Slots
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+              
+              <!-- Desktop Service Table -->
+              <div class="hidden lg:block overflow-hidden">
+                <table class="w-full">
+                  <thead class="bg-gray-50">
                     <tr>
-                      <td class="py-2 px-3 border-b border-gray-200"><%= service.name %></td>
-                      <td class="py-2 px-3 border-b border-gray-200"><%= service.duration %> min</td>
-                      <td class="py-2 px-3 border-b border-gray-200"><%= number_to_currency(service.price) %></td>
-                      <td class="py-2 px-3 border-b border-gray-200">
-                        <%= link_to "Available Slots", 
-                              business_manager_available_slots_bookings_path(service_id: service.id, staff_member_id: @staff_member.id),
-                              class: "text-blue-600 hover:text-blue-800", target: "_blank" %>
-                      </td>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  <% end %>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <% @services.each do |service| %>
+                      <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                          <%= service.name %>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                          <%= service.duration %> min
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                          <%= number_to_currency(service.price) %>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                          <%= link_to business_manager_available_slots_bookings_path(service_id: service.id, staff_member_id: @staff_member.id),
+                                class: "text-blue-600 hover:text-blue-800 font-medium",
+                                target: "_blank" do %>
+                            View Available Slots
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
             </div>
           <% end %>
         </div>
@@ -188,50 +328,89 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Add time slot functionality
-    document.querySelectorAll('.add-slot-btn').forEach(function(button) {
-      button.addEventListener('click', function() {
-        const day = this.dataset.day;
-        const slotsContainer = document.getElementById(day + '-slots');
-        const index = slotsContainer.children.length;
-        
-        const slotHtml = `
-          <div class="time-slot-row flex items-center space-x-2">
-            <input type="hidden" 
-                  name="staff_member[availability][${day}][${index}][id]" 
-                  value="${index}" />
-            <input type="time" 
-                  name="staff_member[availability][${day}][${index}][start]" 
-                  value="09:00" 
-                  class="time-input px-2 py-1 border rounded" 
-                  placeholder="09:00" />
-            <span>to</span>
-            <input type="time" 
-                  name="staff_member[availability][${day}][${index}][end]" 
-                  value="17:00" 
-                  class="time-input px-2 py-1 border rounded" 
-                  placeholder="17:00" />
-            <button type="button" class="remove-slot-btn text-red-600 hover:text-red-800">
-              <span>✕</span>
+document.addEventListener('DOMContentLoaded', function() {
+  // Collapsible day sections
+  document.querySelectorAll('.day-toggle').forEach(function(toggle) {
+    toggle.addEventListener('click', function() {
+      const day = this.dataset.day;
+      const content = document.querySelector(`.day-content[data-day="${day}"]`);
+      const chevron = this.querySelector('.day-chevron');
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.style.transform = 'rotate(0deg)';
+      } else {
+        content.style.display = 'none';
+        chevron.style.transform = 'rotate(-90deg)';
+      }
+    });
+  });
+  
+  // Initialize collapsed state (mobile-first approach)
+  if (window.innerWidth < 1024) {
+    document.querySelectorAll('.day-content').forEach(function(content) {
+      content.style.display = 'none';
+    });
+    document.querySelectorAll('.day-chevron').forEach(function(chevron) {
+      chevron.style.transform = 'rotate(-90deg)';
+    });
+  }
+
+  // Add time slot functionality
+  document.querySelectorAll('.add-slot-btn').forEach(function(button) {
+    button.addEventListener('click', function() {
+      const day = this.dataset.day;
+      const slotsContainer = document.getElementById(day + '-slots');
+      const index = slotsContainer.children.length;
+      
+      const slotHtml = `
+        <div class="time-slot-row">
+          <input type="hidden" 
+                name="staff_member[availability][${day}][${index}][id]" 
+                value="${index}" />
+          
+          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <input type="time"
+                     name="staff_member[availability][${day}][${index}][start]"
+                     value="09:00"
+                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="09:00" />
+              
+              <span class="text-gray-500 text-sm font-medium flex-shrink-0 px-1">→</span>
+              
+              <input type="time"
+                     name="staff_member[availability][${day}][${index}][end]"
+                     value="17:00"
+                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="17:00" />
+            </div>
+            
+            <button type="button" 
+                    class="remove-slot-btn flex-shrink-0 flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                    title="Remove time slot">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
             </button>
           </div>
-        `;
-        
-        slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
-        setupRemoveSlotButtons();
+        </div>
+      `;
+      
+      slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
+      setupRemoveSlotButtons();
+    });
+  });
+  
+  // Remove time slot functionality
+  function setupRemoveSlotButtons() {
+    document.querySelectorAll('.remove-slot-btn').forEach(function(button) {
+      button.addEventListener('click', function() {
+        this.closest('.time-slot-row').remove();
       });
     });
-    
-    // Remove time slot functionality
-    function setupRemoveSlotButtons() {
-      document.querySelectorAll('.remove-slot-btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-          this.closest('.time-slot-row').remove();
-        });
-      });
-    }
-    
-    setupRemoveSlotButtons();
-  });
+  }
+  
+  setupRemoveSlotButtons();
+});
 </script>

@@ -1,51 +1,289 @@
 <%# app/views/business_manager/staff_members/index.html.erb %>
-<div class="container mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Manage Staff</h1>
-    <%= link_to 'New Staff Member', new_business_manager_staff_member_path, class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
-  </div>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold">Manage Staff</h1>
+          <p class="text-sm text-gray-600 mt-1">Add and manage your business staff members</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <% if @current_business.free_tier? || (@current_business.standard_tier? && @staff_members.count >= 3) %>
+            <%= link_to business_manager_settings_subscription_path, 
+                  class: "inline-flex items-center justify-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2" do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+              </svg>
+              <% if @current_business.free_tier? %>
+                Upgrade to Add Staff
+              <% else %>
+                Upgrade for More Staff
+              <% end %>
+            <% end %>
+          <% else %>
+            <%= link_to 'New Staff Member', new_business_manager_staff_member_path, 
+                  class: "inline-flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
 
-  <% if @staff_members.any? %>
-    <table class="min-w-full bg-white border border-gray-200">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Position</th>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Services</th>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Booked Hours (This Month)</th>
-          <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Completed Hours (This Month)</th>
-          <th class="px-6 py-3 border-b border-gray-200"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200">
-        <% @staff_members.each do |staff_member| %>
-          <tr>
-            <td class="px-6 py-4 whitespace-nowrap"><%= link_to staff_member.name || "(No name set)", business_manager_staff_member_path(staff_member), class: "text-blue-600 hover:text-blue-800" %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.user&.email %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.position %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= boolean_status_tag staff_member.active %></td>
-            <td class="px-6 py-4"><%= staff_member.services.map(&:name).join(", ").presence || "-" %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.hours_booked_this_month.round(2) %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= staff_member.hours_completed_this_month.round(2) %></td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <% if policy(staff_member).edit? %>
-                <%= link_to 'Edit', edit_business_manager_staff_member_path(staff_member), class: "text-indigo-600 hover:text-indigo-900 mr-3" %>
+    <% if @current_business.free_tier? && @staff_members.empty? %>
+      <!-- Free Tier Upgrade Message -->
+      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">Staff Management Requires an Upgrade</h3>
+          <p class="mt-1 text-sm text-gray-500 max-w-md mx-auto">
+            Add team members to help run your business! Staff management is available on Standard and Premium plans.
+          </p>
+          <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 class="font-medium text-blue-900">Standard Plan - $49/month</h4>
+              <p class="text-sm text-blue-700 mt-1">1-3 staff members, reduced fees</p>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <h4 class="font-medium text-purple-900">Premium Plan - $99/month</h4>
+              <p class="text-sm text-purple-700 mt-1">Unlimited staff, custom domain</p>
+            </div>
+          </div>
+          <div class="mt-6">
+            <%= link_to 'View Upgrade Options', business_manager_settings_subscription_path, 
+                  class: "inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 transition-colors" %>
+          </div>
+        </div>
+      </div>
+    <% elsif @current_business.standard_tier? && @staff_members.count >= 3 %>
+      <!-- Standard Tier Limit Reached Message -->
+      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">Staff Limit Reached</h3>
+          <p class="mt-1 text-sm text-gray-500 max-w-md mx-auto">
+            You've reached the maximum of 3 staff members for your Standard plan. Upgrade to Premium for unlimited staff members.
+          </p>
+          <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
+            <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <h4 class="font-medium text-purple-900">Premium Plan - $99/month</h4>
+              <p class="text-sm text-purple-700 mt-1">Unlimited staff, custom domain, priority support</p>
+            </div>
+          </div>
+          <div class="mt-6">
+            <%= link_to 'Upgrade to Premium', business_manager_settings_subscription_path, 
+                  class: "inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors" %>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <% if @staff_members.any? %>
+          <!-- Mobile Card Layout (hidden on lg+ screens) -->
+          <div class="lg:hidden space-y-4">
+            <% @staff_members.each do |staff_member| %>
+              <div id="staff_member_<%= staff_member.id %>" class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                <!-- Staff Header -->
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center flex-1 min-w-0">
+                    <% if staff_member.photo_url.present? %>
+                      <%= image_tag staff_member.photo_url, class: "h-12 w-12 rounded-full object-cover mr-3" %>
+                    <% else %>
+                      <div class="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center mr-3">
+                        <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                      </div>
+                    <% end %>
+                    <div class="flex-1 min-w-0">
+                      <%= link_to (staff_member.name.presence || "(No name set)"), business_manager_staff_member_path(staff_member), 
+                            class: "text-lg font-medium text-blue-600 hover:text-blue-800 transition-colors truncate" %>
+                      <div class="text-sm text-gray-600 mt-1 truncate">
+                        <%= staff_member.user&.email %>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ml-4 flex-shrink-0">
+                    <%= boolean_status_tag staff_member.active %>
+                  </div>
+                </div>
+                
+                <!-- Staff Details -->
+                <div class="grid grid-cols-1 gap-4 mb-4 text-sm">
+                  <div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Position & Services</div>
+                    <div class="text-gray-900 font-medium">
+                      <%= staff_member.position.presence || "No position set" %>
+                    </div>
+                    <div class="text-gray-600 text-xs mt-1">
+                      <%= staff_member.services.any? ? staff_member.services.pluck(:name).join(", ") : "No services assigned" %>
+                    </div>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider">This Month</div>
+                      <div class="text-green-600 font-semibold">
+                        <%= staff_member.hours_completed_this_month.round(1) %>h completed
+                      </div>
+                      <div class="text-gray-600 text-xs">
+                        <%= staff_member.hours_booked_this_month.round(1) %>h booked
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-2">
+                  <%= link_to 'View', business_manager_staff_member_path(staff_member), 
+                        class: "inline-flex items-center px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" %>
+                  <% if policy(staff_member).edit? %>
+                    <%= link_to 'Edit', edit_business_manager_staff_member_path(staff_member), 
+                          class: "inline-flex items-center px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors" %>
+                  <% end %>
+                  <%= link_to 'Availability', manage_availability_business_manager_staff_member_path(staff_member), 
+                        class: "inline-flex items-center px-3 py-2 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-md transition-colors" %>
+                  <% if policy(staff_member).destroy? %>
+                    <%= button_to 'Delete',
+                                  business_manager_staff_member_path(staff_member),
+                                  method: :delete,
+                                  data: { confirm: %Q[Are you sure you want to delete the staff member '#{staff_member.name || staff_member.user&.email}'?] },
+                                  class: 'inline-flex items-center px-3 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors border-0' %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          
+          <!-- Desktop Table Layout (hidden on mobile) -->
+          <div class="hidden lg:block">
+            <table class="w-full bg-white border border-gray-200">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-4 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staff Member</th>
+                  <th class="px-3 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Position & Status</th>
+                  <th class="px-3 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Services</th>
+                  <th class="px-3 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hours</th>
+                  <th class="px-3 py-3 border-b border-gray-200 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% @staff_members.each do |staff_member| %>
+                  <tr id="staff_member_<%= staff_member.id %>" class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                      <div class="flex items-center">
+                        <% if staff_member.photo_url.present? %>
+                          <%= image_tag staff_member.photo_url, class: "h-8 w-8 rounded-full object-cover mr-3 flex-shrink-0" %>
+                        <% else %>
+                          <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center mr-3 flex-shrink-0">
+                            <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                          </div>
+                        <% end %>
+                        <div class="min-w-0 flex-1">
+                          <%= link_to staff_member.name || "(No name set)", business_manager_staff_member_path(staff_member), 
+                                class: "text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors block truncate" %>
+                          <div class="text-xs text-gray-500 truncate">
+                            <%= staff_member.user&.email %>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-3 py-3">
+                      <div class="text-sm text-gray-900 font-medium">
+                        <%= staff_member.position.presence || "No position" %>
+                      </div>
+                      <div class="mt-1">
+                        <%= boolean_status_tag staff_member.active %>
+                      </div>
+                    </td>
+                    <td class="px-3 py-3">
+                      <% if staff_member.services.any? %>
+                        <div class="text-xs">
+                          <% if staff_member.services.count <= 2 %>
+                            <% staff_member.services.each do |service| %>
+                              <div class="text-gray-700 truncate"><%= service.name %></div>
+                            <% end %>
+                          <% else %>
+                            <div class="text-gray-700"><%= staff_member.services.first.name %></div>
+                            <div class="text-gray-500">+<%= staff_member.services.count - 1 %> more</div>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <span class="text-xs text-gray-400">None</span>
+                      <% end %>
+                    </td>
+                    <td class="px-3 py-3">
+                      <div class="text-xs">
+                        <div class="text-green-600 font-medium"><%= staff_member.hours_completed_this_month.round(1) %>h done</div>
+                        <div class="text-gray-500"><%= staff_member.hours_booked_this_month.round(1) %>h booked</div>
+                      </div>
+                    </td>
+                    <td class="px-3 py-3">
+                      <div class="flex items-center justify-center space-x-1">
+                        <%= link_to business_manager_staff_member_path(staff_member), 
+                              class: "text-blue-600 hover:text-blue-900 transition-colors p-1",
+                              title: "View Details" do %>
+                          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                        <% end %>
+                        <% if policy(staff_member).edit? %>
+                          <%= link_to edit_business_manager_staff_member_path(staff_member), 
+                                class: "text-indigo-600 hover:text-indigo-900 transition-colors p-1",
+                                title: "Edit" do %>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                          <% end %>
+                        <% end %>
+                        <%= link_to manage_availability_business_manager_staff_member_path(staff_member), 
+                              class: "text-green-600 hover:text-green-900 transition-colors p-1",
+                              title: "Manage Availability" do %>
+                          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                          </svg>
+                        <% end %>
+                        <% if policy(staff_member).destroy? %>
+                          <%= button_to business_manager_staff_member_path(staff_member),
+                                        method: :delete,
+                                        data: { confirm: %Q[Are you sure you want to delete the staff member '#{staff_member.name || staff_member.user&.email}'?] },
+                                        class: 'text-red-600 hover:text-red-900 transition-colors bg-transparent border-0 p-1',
+                                        title: "Delete" do %>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No staff members found</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by adding your first staff member.</p>
+            <div class="mt-6">
+              <% if @current_business.free_tier? || (@current_business.standard_tier? && @staff_members.count >= 3) %>
+                <!-- Show upgrade message instead of add button -->
+              <% else %>
+                <%= link_to 'Add Staff Member', new_business_manager_staff_member_path, 
+                      class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors" %>
               <% end %>
-              <% if policy(staff_member).destroy? %>
-                <%= button_to 'Delete',
-                              business_manager_staff_member_path(staff_member),
-                              method: :delete,
-                              data: { confirm: %Q[Are you sure you want to delete the staff member '#{staff_member.full_name}'?] },
-                              class: 'text-red-600 hover:text-red-900' %>
-              <% end %>
-            </td>
-          </tr>
+            </div>
+          </div>
         <% end %>
-      </tbody>
-    </table>
-  <% else %>
-    <p class="text-gray-500 italic">No staff members found.</p>
-  <% end %>
+      </div>
+    <% end %>
+  </div>
 </div>

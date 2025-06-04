@@ -1,92 +1,210 @@
-<div class="container">
-  <p>
-    <%= link_to "← Back to Settings", business_manager_settings_path %>
-  </p>
-
+<div class="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
+  <!-- Flash Messages -->
   <% if flash[:notice] %>
-    <div class="notice"><p><%= flash[:notice] %></p></div>
+    <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+      <p><%= flash[:notice] %></p>
+    </div>
   <% end %>
+  
   <% if flash[:alert] %>
-    <div class="alert"><p><%= flash[:alert] %></p></div>
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+      <p><%= flash[:alert] %></p>
+    </div>
   <% end %>
 
-  <div class="panel">
-    <div class="panel-header">
-      <h1>Subscription & Billing</h1>
+  <!-- Navigation -->
+  <div class="mb-6">
+    <%= link_to business_manager_settings_path, class: "inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors" do %>
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Back to Settings
+    <% end %>
+  </div>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <!-- Header -->
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Subscription & Billing</h1>
+      <p class="text-sm text-gray-600 mt-1">Manage your subscription plan and billing information</p>
     </div>
 
-    <div class="panel-body">
+    <div class="px-4 py-5 sm:px-6">
       <% if @subscription && @subscription.persisted? %>
-        <div class="subscription-details">
-          <p><strong>Current Plan:</strong> <%= @subscription.plan_name.titleize %></p>
-          <p><strong>Status:</strong> <%= @subscription.status.titleize %></p>
-          <p><strong>Current Period End:</strong> <%= l @subscription.current_period_end, format: :long %></p>
-          <p><strong>Business Tier:</strong> <%= @business.tier.titleize %></p>
-
-          <%# Button to manage subscription via Stripe Customer Portal %>
-          <%= button_to "Manage Subscription", business_manager_settings_subscription_portal_path, method: :post, class: "btn btn-primary" %>
-
-          <%# TODO: Add options to change plan if applicable directly here, or link to a plan selection page %>
-          <%# Example: link_to "Change Plan", new_business_manager_settings_subscription_path, class: "btn btn-secondary" %>
-        </div>
-      <% else %>
-        <p>You do not have an active paid subscription.</p>
-        <p><strong>Current Business Tier:</strong> <%= @business.tier.titleize %></p>
-        <div class="subscription-plans">
-          <div class="subscription-plan">
-            <h3>Standard Plan</h3>
-            <div class="price">$49/month</div>
-            <%= button_to "Upgrade to Standard", 
-                  business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_STANDARD_PRICE_ID']), 
-                  method: :post, class: "btn btn-primary" %>
-          </div>
-          <div class="subscription-plan premium-plan border-2 border-accent relative">
-            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-accent text-dark px-3 py-1 text-xs font-bold rounded-full">
-              MOST POPULAR
+        <!-- Current Subscription Details -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Current Subscription</h2>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div>
+              <div class="text-sm text-gray-500">Plan</div>
+              <div class="text-lg font-medium text-gray-900"><%= @subscription.plan_name.titleize %></div>
             </div>
-            <h3>Premium Plan</h3>
-            <div class="price">$99/month</div>
-            <div class="premium-benefits mt-3 mb-4">
-              <ul class="text-left text-sm space-y-1">
-                <li>✓ All Standard tier features</li>
-                <li>✓ Custom domain support</li>
-                <li class="text-success font-medium">🎯 Domain coverage up to $20 annually</li>
-                <li>✓ Advanced SEO optimization</li>
-                <li>✓ Priority support</li>
-                <li>✓ Advanced analytics</li>
-              </ul>
-              <div class="bg-light border-l-4 border-success p-3 mt-3 text-xs">
-                <strong class="text-success">Domain Coverage Policy:</strong><br>
-                BizBlasts covers domain registration and renewal costs up to $20 annually as part of your Premium subscription. 
-                Domains over $20/year require you to obtain your own domain, which you can then connect to your BizBlasts site.
-                If you already own a domain, you're responsible for all domain-related costs.
-                For new domains over $20/year, we'll contact you with alternatives under $20.
+            <div>
+              <div class="text-sm text-gray-500">Status</div>
+              <div class="text-lg font-medium">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @subscription.status == 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+                  <%= @subscription.status.titleize %>
+                </span>
               </div>
             </div>
-            <%= button_to "Upgrade to Premium", 
-                  business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_PREMIUM_PRICE_ID']), 
-                  method: :post, class: "btn btn-primary premium-upgrade-btn" %>
+            <div>
+              <div class="text-sm text-gray-500">Current Period End</div>
+              <div class="text-lg font-medium text-gray-900"><%= l @subscription.current_period_end, format: :long %></div>
+            </div>
+            <div>
+              <div class="text-sm text-gray-500">Business Tier</div>
+              <div class="text-lg font-medium">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                  <%= case @business.tier
+                      when 'premium' then 'bg-purple-100 text-purple-800'
+                      when 'standard' then 'bg-blue-100 text-blue-800'
+                      else 'bg-gray-100 text-gray-800'
+                      end %>">
+                  <%= @business.tier.titleize %>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-gray-200">
+            <%= button_to "Manage Subscription", business_manager_settings_subscription_portal_path, 
+                  method: :post, 
+                  class: "inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
           </div>
         </div>
-        <p><small>You will be redirected to Stripe to complete your subscription.</small></p>
+      <% else %>
+        <!-- Upgrade Options for Free Tier -->
+        <div class="mb-6">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <div>
+                <h3 class="text-sm font-medium text-yellow-800">Free Plan</h3>
+                <p class="text-sm text-yellow-700 mt-1">You're currently on the free plan. Upgrade to unlock more features!</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-center mb-6">
+            <p class="text-lg font-medium text-gray-900 mb-2">Current Business Tier: <span class="text-blue-600"><%= @business.tier.titleize %></span></p>
+            <p class="text-sm text-gray-600">Choose a plan that best fits your business needs</p>
+          </div>
+        </div>
+
+        <!-- Subscription Plans -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Standard Plan -->
+          <div class="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 transition-colors">
+            <div class="text-center">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Standard Plan</h3>
+              <div class="text-3xl font-bold text-blue-600 mb-4">$49<span class="text-sm text-gray-500">/month</span></div>
+              
+              <div class="space-y-3 text-left text-sm text-gray-600 mb-6">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  More Features
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Staff management (1-3 members)
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Customizable Pages
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Enhanced analytics
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Text Reminders
+                </div>
+              </div>
+              
+              <%= button_to "Upgrade to Standard", 
+                    business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_STANDARD_PRICE_ID']), 
+                    method: :post, 
+                    class: "w-full inline-flex items-center justify-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+            </div>
+          </div>
+
+          <!-- Premium Plan -->
+          <div class="border-2 border-purple-300 rounded-xl p-6 relative bg-purple-50">
+            <div class="text-center">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Premium Plan</h3>
+              <div class="text-3xl font-bold text-purple-600 mb-4">$99<span class="text-sm text-gray-500">/month</span></div>
+              
+              <div class="space-y-3 text-left text-sm text-gray-600 mb-6">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  All Standard tier features
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Unlimited staff members
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-purple-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="text-purple-700 font-medium">Custom Domain</span>
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Smaller transaction fees (3%)
+                </div>
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Priority support
+                </div>
+              </div>
+              
+              <!-- Domain Coverage Policy -->
+              <div class="bg-purple-100 border border-purple-200 rounded-lg p-3 mb-6 text-left">
+                <h4 class="text-sm font-medium text-purple-900 mb-2">💰 Domain Coverage Policy</h4>
+                <ul class="text-xs text-purple-800 space-y-1">
+                  <li>• BizBlasts covers up to $20/year for new domain registration</li>
+                  <li>• Auto-renewal setup: We pay domain costs annually up to $20</li>
+                  <li>• Domains over $20/year: You obtain your own domain</li>
+                  <li>• If you already own your domain, you handle domain costs</li>
+                  <li>• Our team manages all technical setup and verification</li>
+                </ul>
+              </div>
+              
+              <%= button_to "Upgrade to Premium", 
+                    business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_PREMIUM_PRICE_ID']), 
+                    method: :post, 
+                    class: "w-full inline-flex items-center justify-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2" %>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-6 text-center">
+          <p class="text-sm text-gray-500">You will be redirected to Stripe to complete your subscription.</p>
+        </div>
       <% end %>
     </div>
   </div>
-</div>
-
-<style>
-  .container { max-width: 960px; margin: 20px auto; padding: 0 15px; }
-  .panel { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 20px; }
-  .panel-header { background: #f5f5f5; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
-  .panel-header h1 { font-size: 20px; margin: 0; }
-  .panel-body { padding: 20px; }
-  .subscription-details p { margin-bottom: 10px; font-size: 16px; }
-  .btn { display: inline-block; padding: 10px 15px; font-size: 16px; border-radius: 4px; text-decoration: none; cursor: pointer; border: none; }
-  .btn-primary { background-color: #007bff; color: white; }
-  .btn-primary:hover { background-color: #0056b3; }
-  .btn-secondary { background-color: #6c757d; color: white; margin-left: 10px; }
-  .btn-secondary:hover { background-color: #545b62; }
-  .notice, .alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; }
-  .notice { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
-  .alert { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
-</style> 
+</div> 

@@ -11,7 +11,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       business: business, 
       tenant_customer: tenant_customer, 
       order_type: :product, 
-              status: 'pending_payment',
+      status: 'pending_payment',
       line_items_count: 2,
       total_amount: 49.99
     )
@@ -78,20 +78,21 @@ RSpec.describe "Business Manager Orders", type: :system do
       expect(page).to have_content(service_order.order_number)
       expect(page).to have_content(mixed_order.order_number)
       
-      # Verify status badges
-      expect(page).to have_css(".status-badge", text: "Pending Payment")
-      expect(page).to have_css(".status-badge", text: "Paid")
-      expect(page).to have_css(".status-badge", text: "Shipped")
+      # Verify status badges (using tailwind classes)
+      expect(page).to have_css("span.inline-flex", text: "Pending Payment")
+      expect(page).to have_css("span.inline-flex", text: "Paid")
+      expect(page).to have_css("span.inline-flex", text: "Shipped")
       
-      # Verify type badges
-      expect(page).to have_css(".type-badge", text: "Product")
-      expect(page).to have_css(".type-badge", text: "Service")
-      expect(page).to have_css(".type-badge", text: "Mixed")
+      # Verify type badges (using tailwind classes)
+      expect(page).to have_css("span.inline-flex", text: "Product")
+      expect(page).to have_css("span.inline-flex", text: "Service")
+      expect(page).to have_css("span.inline-flex", text: "Mixed")
     end
 
     it "filters orders by type" do
-      # Click on the Product filter
-      within ".filter-group", text: "Filter by Type" do
+      # Click on the Product filter - find the section with the h3 containing "Filter by Type"
+      type_section = find("h3", text: "Filter by Type").find(:xpath, "..")
+      within type_section do
         click_link "Product"
       end
       
@@ -101,7 +102,8 @@ RSpec.describe "Business Manager Orders", type: :system do
       expect(page).not_to have_content(mixed_order.order_number)
       
       # Now try service filter
-      within ".filter-group", text: "Filter by Type" do
+      type_section = find("h3", text: "Filter by Type").find(:xpath, "..")
+      within type_section do
         click_link "Service"
       end
       
@@ -112,8 +114,9 @@ RSpec.describe "Business Manager Orders", type: :system do
     end
 
     it "filters orders by status" do
-      # Click on the Pending Payment filter
-      within ".filter-group", text: "Filter by Status" do
+      # Click on the Pending Payment filter - find the section with the h3 containing "Filter by Status"
+      status_section = find("h3", text: "Filter by Status").find(:xpath, "..")
+      within status_section do
         click_link "Pending Payment"
       end
       
@@ -125,12 +128,14 @@ RSpec.describe "Business Manager Orders", type: :system do
     
     it "combines status and type filters" do
       # Apply status filter first
-      within ".filter-group", text: "Filter by Status" do
+      status_section = find("h3", text: "Filter by Status").find(:xpath, "..")
+      within status_section do
         click_link "Pending Payment"
       end
       
       # Then apply type filter
-      within ".filter-group", text: "Filter by Type" do
+      type_section = find("h3", text: "Filter by Type").find(:xpath, "..")
+      within type_section do
         click_link "Product"
       end
       
@@ -147,7 +152,7 @@ RSpec.describe "Business Manager Orders", type: :system do
     end
     
     it "returns to dashboard when clicking back link" do
-      click_link "← Back to Dashboard"
+      click_link "Back to Dashboard"
       expect(page).to have_current_path(business_manager_dashboard_path)
     end
   end

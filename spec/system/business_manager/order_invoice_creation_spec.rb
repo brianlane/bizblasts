@@ -37,8 +37,8 @@ RSpec.describe "Business Manager Order Invoice Creation", type: :system do
     it "automatically creates an invoice and sends email to customer" do
       visit business_manager_orders_path
       
-      # Click the "Generate New Order" link
-      click_link "Generate New Order"
+      # Click the "Generate New Order" link (choose the first one to avoid ambiguity)
+      first("a", text: "Generate New Order").click
       
       # Fill in the order form
       select "#{tenant_customer.name} (#{tenant_customer.email})", from: "Customer"
@@ -92,8 +92,8 @@ RSpec.describe "Business Manager Order Invoice Creation", type: :system do
     it "does not create an invoice" do
       visit business_manager_orders_path
       
-      # Click the "Generate New Order" link
-      click_link "Generate New Order"
+      # Click the "Generate New Order" link (choose the first one to avoid ambiguity)
+      first("a", text: "Generate New Order").click
       
       # Fill in the order form
       select "#{tenant_customer.name} (#{tenant_customer.email})", from: "Customer"
@@ -136,8 +136,8 @@ RSpec.describe "Business Manager Order Invoice Creation", type: :system do
     it "automatically creates an invoice and sends email to customer" do
       visit business_manager_orders_path
       
-      # Click the "Generate New Order" link
-      click_link "Generate New Order"
+      # Click the "Generate New Order" link (choose the first one to avoid ambiguity)
+      first("a", text: "Generate New Order").click
       
       # Fill in the order form
       select "#{tenant_customer.name} (#{tenant_customer.email})", from: "Customer"

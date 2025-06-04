@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "BusinessManager::Settings::Locations", type: :request do
-  let(:business) { create(:business) }
+  let(:business) { create(:business, :premium_tier) }
   let(:business_manager_user) { create(:user, :manager, business: business) }
   let!(:location) { create(:location, business: business) }
 

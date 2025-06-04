@@ -1,170 +1,298 @@
 <%# app/views/business_manager/orders/index.html.erb %>
-<div class="container">
-  <% if flash[:notice] %>
-    <div class="notice">
-      <p><%= flash[:notice] %></p>
-    </div>
-  <% end %>
-  
-  <% if flash[:alert] %>
-    <div class="alert">
-      <p><%= flash[:alert] %></p>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <!-- Flash Messages -->
+  <% if notice %>
+    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4" role="alert">
+      <div class="flex">
+        <svg class="w-4 h-4 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span class="text-sm font-medium"><%= notice %></span>
+      </div>
     </div>
   <% end %>
 
-  <div class="panel">
-    <div class="panel-header">
-      <h1>Business Orders</h1>
-      <div class="panel-actions">
-        <%= link_to business_manager_dashboard_path do %>
-          ← Back to Dashboard
+  <% if alert %>
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
+      <div class="flex">
+        <svg class="w-4 h-4 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <span class="text-sm font-medium"><%= alert %></span>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Header -->
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-4 py-5 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
+          Business Orders
+        </h1>
+        <p class="text-sm text-gray-600 mt-1">
+          Manage customer orders and track fulfillment status
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <%= link_to business_manager_dashboard_path,
+              class: "inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Back to Dashboard
+        <% end %>
+        <%= link_to new_business_manager_order_path,
+              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          Generate New Order
         <% end %>
       </div>
     </div>
-    
-    <div class="panel-body">
-      <!-- Filters -->
-      <div class="filters">
-        <div class="filter-group">
-          <h3 class="filter-title">Filter by Status</h3>
-          <div class="filter-options">
-            <%= link_to "All", business_manager_orders_path(type: @type_filter), 
-                  class: "filter-option #{@status_filter.nil? ? 'active' : ''}" %>
-                  
+
+    <!-- Filters -->
+    <div class="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+      <div class="space-y-4">
+        <!-- Status Filter -->
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Filter by Status</h3>
+          <div class="flex flex-wrap gap-2">
+            <%= link_to "All", business_manager_orders_path(type: @type_filter),
+                  class: "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors #{@status_filter.nil? ? 'bg-blue-100 text-blue-800' : 'bg-white text-gray-700 hover:bg-gray-100'}" %>
             <% Order.statuses.keys.each do |status_name| %>
-              <%= link_to status_name.titleize, business_manager_orders_path(status: status_name, type: @type_filter), 
-                    class: "filter-option #{@status_filter == status_name ? 'active' : ''}" %>
+              <%= link_to status_name.titleize, business_manager_orders_path(status: status_name, type: @type_filter),
+                    class: "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors #{@status_filter == status_name ? 'bg-blue-100 text-blue-800' : 'bg-white text-gray-700 hover:bg-gray-100'}" %>
             <% end %>
           </div>
         </div>
         
-        <div class="filter-group">
-          <h3 class="filter-title">Filter by Type</h3>
-          <div class="filter-options">
-            <%= link_to "All", business_manager_orders_path(status: @status_filter), 
-                  class: "filter-option #{@type_filter.nil? ? 'active' : ''}" %>
-                  
+        <!-- Type Filter -->
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Filter by Type</h3>
+          <div class="flex flex-wrap gap-2">
+            <%= link_to "All", business_manager_orders_path(status: @status_filter),
+                  class: "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors #{@type_filter.nil? ? 'bg-blue-100 text-blue-800' : 'bg-white text-gray-700 hover:bg-gray-100'}" %>
             <% Order.order_types.keys.each do |type_name| %>
-              <%= link_to type_name.titleize, business_manager_orders_path(type: type_name, status: @status_filter), 
-                    class: "filter-option #{@type_filter == type_name ? 'active' : ''}" %>
+              <%= link_to type_name.titleize, business_manager_orders_path(type: type_name, status: @status_filter),
+                    class: "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors #{@type_filter == type_name ? 'bg-blue-100 text-blue-800' : 'bg-white text-gray-700 hover:bg-gray-100'}" %>
             <% end %>
           </div>
         </div>
       </div>
-      
-      <!-- Status Dashboards by Order Type -->
-      <div class="status-dashboards">
-        <div class="dashboard-section">
-          <h3>Product Orders</h3>
-          <div class="status-cards">
-            <div class="status-card payment">
-              <div class="card-number"><%= @current_business.orders.products.status_pending_payment.count %></div>
-              <div class="card-label">Pending Payment</div>
-              <div class="card-description">Require immediate payment</div>
+    </div>
+
+    <!-- Status Dashboard -->
+    <div class="border-t border-gray-200 px-4 py-6 sm:px-6">
+      <div class="space-y-6">
+        <!-- Product Orders -->
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-3">Product Orders</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-red-600 mb-1">
+                <%= @current_business.orders.products.status_pending_payment.count %>
+              </div>
+              <div class="text-sm font-medium text-red-800 mb-1">Pending Payment</div>
+              <div class="text-xs text-red-600">Require immediate payment</div>
             </div>
-            <div class="status-card ready">
-              <div class="card-number"><%= @current_business.orders.products.status_paid.count %></div>
-              <div class="card-label">Ready to Ship</div>
-              <div class="card-description">Paid, ready for fulfillment</div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-green-600 mb-1">
+                <%= @current_business.orders.products.status_paid.count %>
+              </div>
+              <div class="text-sm font-medium text-green-800 mb-1">Ready to Ship</div>
+              <div class="text-xs text-green-600">Paid, ready for fulfillment</div>
             </div>
-            <div class="status-card shipped">
-              <div class="card-number"><%= @current_business.orders.products.status_shipped.count %></div>
-              <div class="card-label">Shipped</div>
-              <div class="card-description">Products sent to customer</div>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-blue-600 mb-1">
+                <%= @current_business.orders.products.status_shipped.count %>
+              </div>
+              <div class="text-sm font-medium text-blue-800 mb-1">Shipped</div>
+              <div class="text-xs text-blue-600">Products sent to customer</div>
             </div>
           </div>
         </div>
 
-        <div class="dashboard-section">
-          <h3>Service Bookings</h3>
-          <div class="status-cards">
-            <div class="status-card scheduled">
-              <div class="card-number"><%= @current_business.orders.services.status_processing.count %></div>
-              <div class="card-label">Scheduled</div>
-              <div class="card-description">Confirmed bookings</div>
+        <!-- Service Bookings -->
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-3">Service Bookings</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-blue-600 mb-1">
+                <%= @current_business.orders.services.status_processing.count %>
+              </div>
+              <div class="text-sm font-medium text-blue-800 mb-1">Scheduled</div>
+              <div class="text-xs text-blue-600">Confirmed bookings</div>
             </div>
-            <div class="status-card completed">
-              <div class="card-number"><%= @current_business.orders.services.status_paid.count %></div>
-              <div class="card-label">Completed</div>
-              <div class="card-description">Service finished</div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-green-600 mb-1">
+                <%= @current_business.orders.services.status_paid.count %>
+              </div>
+              <div class="text-sm font-medium text-green-800 mb-1">Completed</div>
+              <div class="text-xs text-green-600">Service finished</div>
             </div>
-            <div class="status-card payment-pending">
-              <div class="card-number"><%= @current_business.orders.services.status_pending_payment.count %></div>
-              <div class="card-label">Payment Pending</div>
-              <div class="card-description">Flexible payment services</div>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-yellow-600 mb-1">
+                <%= @current_business.orders.services.status_pending_payment.count %>
+              </div>
+              <div class="text-sm font-medium text-yellow-800 mb-1">Payment Pending</div>
+              <div class="text-xs text-yellow-600">Flexible payment services</div>
             </div>
           </div>
         </div>
 
-        <div class="dashboard-section">
-          <h3>Mixed Orders</h3>
-          <div class="status-cards">
-            <div class="status-card mixed-pending">
-              <div class="card-number"><%= @current_business.orders.mixed.status_pending_payment.count %></div>
-              <div class="card-label">Pending Payment</div>
-              <div class="card-description">Products + Services</div>
+        <!-- Mixed Orders -->
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-3">Mixed Orders</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-orange-600 mb-1">
+                <%= @current_business.orders.mixed.status_pending_payment.count %>
+              </div>
+              <div class="text-sm font-medium text-orange-800 mb-1">Pending Payment</div>
+              <div class="text-xs text-orange-600">Products + Services</div>
             </div>
-            <div class="status-card mixed-partial">
-              <div class="card-number"><%= @current_business.orders.mixed.status_processing.count %></div>
-              <div class="card-label">Partial Fulfillment</div>
-              <div class="card-description">Products shipped, services scheduled</div>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+              <div class="text-2xl font-bold text-purple-600 mb-1">
+                <%= @current_business.orders.mixed.status_processing.count %>
+              </div>
+              <div class="text-sm font-medium text-purple-800 mb-1">Partial Fulfillment</div>
+              <div class="text-xs text-purple-600">Products shipped, services scheduled</div>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="actions" style="text-align: right; margin-bottom: 20px;">
-        <%= link_to 'Generate New Order', new_business_manager_order_path, class: 'bg-secondary hover:bg-secondary text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline' %>
-      </div>
-      
-      <!-- Orders List -->
+    <!-- Orders List -->
+    <div class="border-t border-gray-200">
       <% if @orders.any? %>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
+        <!-- Mobile Cards (hidden on desktop) -->
+        <div class="lg:hidden divide-y divide-gray-200">
+          <% @orders.each do |order| %>
+            <div class="p-4">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-sm font-medium text-gray-900 truncate">
+                    <%= link_to order.order_number, business_manager_order_path(order), class: "text-blue-600 hover:text-blue-800" %>
+                  </h3>
+                  <div class="mt-1 space-y-1">
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                      <span><%= l order.created_at, format: :short %></span>
+                      <span class="font-medium text-gray-900"><%= number_to_currency order.total_amount %></span>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                      Customer: <%= order.tenant_customer&.name || 'N/A' %>
+                    </div>
+                    <div class="flex items-center gap-2 mt-2">
+                      <% status_classes = {
+                        'pending_payment' => 'bg-yellow-100 text-yellow-800',
+                        'paid'            => 'bg-green-100 text-green-800',
+                        'processing'      => 'bg-blue-100 text-blue-800',
+                        'shipped'         => 'bg-green-100 text-green-800',
+                        'cancelled'       => 'bg-red-100 text-red-800',
+                        'refunded'        => 'bg-gray-100 text-gray-800'
+                      } %>
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium <%= status_classes[order.status] %>">
+                        <%= order.status.titleize %>
+                      </span>
+                      <% type_classes = {
+                        'product' => 'bg-green-100 text-green-800',
+                        'service' => 'bg-blue-100 text-blue-800',
+                        'mixed' => 'bg-purple-100 text-purple-800'
+                      } %>
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium <%= type_classes[order.order_type] %>">
+                        <%= order.order_type.titleize %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <%= link_to business_manager_order_path(order),
+                      class: "flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" do %>
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  View
+                <% end %>
+                <%= link_to edit_business_manager_order_path(order),
+                      class: "flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" do %>
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                  Edit
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table (hidden on mobile) -->
+        <div class="hidden lg:block">
+          <table class="w-full">
+            <thead class="bg-gray-50">
               <tr>
-                <th>Order Number</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Type</th>
-                <th>Total</th>
-                <th>Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Number</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white divide-y divide-gray-200">
               <% @orders.each do |order| %>
-                <tr>
-                  <td><%= link_to order.order_number, business_manager_order_path(order) %></td>
-                  <td><%= l order.created_at, format: :short %></td>
-                  <td><%= order.tenant_customer&.name || 'N/A' %></td>
-                  <td>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <%= link_to order.order_number, business_manager_order_path(order), class: "text-blue-600 hover:text-blue-800" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= l order.created_at, format: :short %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= order.tenant_customer&.name || 'N/A' %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
                     <% status_classes = {
-                      'pending_payment' => 'status-pending',
-                      'paid'            => 'status-paid',
-                      'processing'      => 'status-processing',
-                      'shipped'         => 'status-shipped',
-                      'cancelled'       => 'status-cancelled',
-                      'refunded'        => 'status-refunded'
+                      'pending_payment' => 'bg-yellow-100 text-yellow-800',
+                      'paid'            => 'bg-green-100 text-green-800',
+                      'processing'      => 'bg-blue-100 text-blue-800',
+                      'shipped'         => 'bg-green-100 text-green-800',
+                      'cancelled'       => 'bg-red-100 text-red-800',
+                      'refunded'        => 'bg-gray-100 text-gray-800'
                     } %>
-                    <span class="status-badge <%= status_classes[order.status] %>">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_classes[order.status] %>">
                       <%= order.status.titleize %>
                     </span>
                   </td>
-                  <td>
+                  <td class="px-6 py-4 whitespace-nowrap">
                     <% type_classes = {
-                      'product' => 'type-product',
-                      'service' => 'type-service',
-                      'mixed' => 'type-mixed'
+                      'product' => 'bg-green-100 text-green-800',
+                      'service' => 'bg-blue-100 text-blue-800',
+                      'mixed' => 'bg-purple-100 text-purple-800'
                     } %>
-                    <span class="type-badge <%= type_classes[order.order_type] %>">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= type_classes[order.order_type] %>">
                       <%= order.order_type.titleize %>
                     </span>
                   </td>
-                  <td><%= number_to_currency order.total_amount %></td>
-                  <td>
-                    <%= link_to 'View', business_manager_order_path(order), class: "action-link" %>
-                    <%= link_to 'Edit', edit_business_manager_order_path(order), class: 'action-link ml-2' %>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= number_to_currency order.total_amount %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center gap-2">
+                      <%= link_to business_manager_order_path(order),
+                            class: "text-blue-600 hover:text-blue-900 font-medium" do %>
+                        View
+                      <% end %>
+                      <%= link_to edit_business_manager_order_path(order),
+                            class: "text-blue-600 hover:text-blue-900 font-medium" do %>
+                        Edit
+                      <% end %>
+                    </div>
                   </td>
                 </tr>
               <% end %>
@@ -172,75 +300,24 @@
           </table>
         </div>
       <% else %>
-        <div class="empty-state">
-          <p>No orders found for this business.</p>
+        <!-- Empty State -->
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
+          <p class="mt-1 text-sm text-gray-500">Get started by creating your first order.</p>
+          <div class="mt-6">
+            <%= link_to new_business_manager_order_path,
+                  class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+              </svg>
+              Generate New Order
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>
   </div>
-
-  <style>
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .notice { background: #e8f4f8; border: 1px solid #b8e0ed; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
-    .alert { background: #f8e8e8; border: 1px solid #edb8b8; padding: 10px; margin-bottom: 20px; border-radius: 4px; }
-    
-    .panel { background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
-    .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; }
-    .panel-header h1 { font-size: 24px; margin: 0; }
-    .panel-actions a { color: #0066cc; text-decoration: none; }
-    .panel-actions a:hover { text-decoration: underline; }
-    .panel-body { padding: 20px; }
-    
-    .filters { background: #f5f5f5; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
-    .filter-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; }
-    .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
-    .filter-option { padding: 5px 10px; border-radius: 20px; font-size: 14px; text-decoration: none; background: #ddd; color: #333; }
-    .filter-option:hover { background: #ccc; }
-    .filter-option.active { background: #0066cc; color: white; }
-    
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th, .data-table td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-    .data-table th { background: #f5f5f5; font-weight: bold; }
-    .data-table tr:hover { background: #f9f9f9; }
-    
-    .status-badge, .type-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-    
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-paid { background: #d4edda; color: #155724; }
-    .status-processing { background: #cce5ff; color: #004085; }
-    .status-shipped { background: #d4edda; color: #155724; }
-    .status-cancelled { background: #f8d7da; color: #721c24; }
-    .status-refunded { background: #e2e3e5; color: #383d41; }
-    
-    .type-product { background: #e2f0d9; color: #345b27; }
-    .type-service { background: #deebf7; color: #1a456b; }
-    .type-mixed { background: #fff2cc; color: #856b36; }
-    
-    .action-link { color: #0066cc; text-decoration: none; }
-    .action-link:hover { text-decoration: underline; }
-    
-    .empty-state { text-align: center; padding: 40px 0; color: #666; }
-    .table-responsive { overflow-x: auto; }
-    
-    /* Status Dashboard Styles */
-    .status-dashboards { margin-bottom: 30px; }
-    .dashboard-section { margin-bottom: 25px; }
-    .dashboard-section h3 { font-size: 18px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #eee; padding-bottom: 5px; }
-    .status-cards { display: flex; flex-wrap: wrap; gap: 15px; }
-    .status-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; min-width: 150px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; }
-    .status-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-    .card-number { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
-    .card-label { font-size: 14px; font-weight: bold; margin-bottom: 3px; }
-    .card-description { font-size: 12px; color: #666; }
-    
-    /* Status-specific colors */
-    .status-card.payment .card-number { color: #dc3545; }
-    .status-card.ready .card-number { color: #28a745; }
-    .status-card.shipped .card-number { color: #17a2b8; }
-    .status-card.scheduled .card-number { color: #007bff; }
-    .status-card.completed .card-number { color: #28a745; }
-    .status-card.payment-pending .card-number { color: #ffc107; }
-    .status-card.mixed-pending .card-number { color: #fd7e14; }
-    .status-card.mixed-partial .card-number { color: #6f42c1; }
-  </style>
 </div> 

@@ -1,46 +1,113 @@
-<%= form_with(model: [:business_manager, tax_rate], local: true, class: "space-y-4") do |form| %>
+<%= form_with(model: [:business_manager, tax_rate], local: true, class: "space-y-6") do |form| %>
   <% if tax_rate.errors.any? %>
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-      <h2 class="text-lg font-bold mb-2"><%= pluralize(tax_rate.errors.count, "error") %> prohibited this tax rate from being saved:</h2>
-      <ul class="list-disc ml-5">
-        <% tax_rate.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" role="alert">
+      <div class="flex">
+        <svg class="w-5 h-5 text-red-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <h3 class="text-sm font-medium text-red-800 mb-2">
+            <%= pluralize(tax_rate.errors.count, "error") %> prohibited this tax rate from being saved:
+          </h3>
+          <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
+            <% tax_rate.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
     </div>
   <% end %>
 
-  <div class="mb-4">
-    <%= form.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= form.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
-    <p class="text-gray-600 text-xs italic mt-1">Example: Standard Tax, Local Sales Tax, etc.</p>
-  </div>
-
-  <div class="mb-4">
-    <%= form.label :rate, "Rate (%)", class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <div class="relative">
-      <%= form.number_field :rate, step: '0.001', min: 0, max: 1, value: (tax_rate.rate ? tax_rate.rate * 100 : nil), class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600">%</span>
+  <!-- Form Fields -->
+  <div class="space-y-6">
+    <!-- Name Field -->
+    <div>
+      <%= form.label :name, class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :name, 
+            class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors", 
+            placeholder: "e.g., Standard Tax, Local Sales Tax",
+            required: true %>
+      <p class="mt-2 text-sm text-gray-600">
+        Choose a descriptive name to identify this tax rate in your business records.
+      </p>
     </div>
-    <p class="text-gray-600 text-xs italic mt-1">Enter as a percentage (e.g., 8 for 8%).</p>
-  </div>
 
-  <div class="mb-4">
-    <%= form.label :region, class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= form.text_field :region, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-    <p class="text-gray-600 text-xs italic mt-1">Optional. The region this tax applies to (e.g., State, County, etc.)</p>
-  </div>
-
-  <div class="mb-4">
-    <div class="flex items-center">
-      <%= form.check_box :applies_to_shipping, class: "mr-2" %>
-      <%= form.label :applies_to_shipping, "Apply tax to shipping costs", class: "text-gray-700 text-sm font-bold" %>
+    <!-- Rate Field -->
+    <div>
+      <%= form.label :rate, "Tax Rate (%)", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <div class="relative">
+        <%= form.number_field :rate, 
+              step: '0.001', 
+              min: 0, 
+              max: 100, 
+              value: (tax_rate.rate ? tax_rate.rate * 100 : nil), 
+              class: "w-full pr-8 pl-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors", 
+              placeholder: "8.25",
+              required: true %>
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+          <span class="text-gray-500 text-sm">%</span>
+        </div>
+      </div>
+      <p class="mt-2 text-sm text-gray-600">
+        Enter the tax rate as a percentage (e.g., 8.25 for 8.25% tax rate).
+      </p>
     </div>
-    <p class="text-gray-600 text-xs italic mt-1">If checked, this tax will be applied to shipping charges as well as product prices.</p>
+
+    <!-- Region Field -->
+    <div>
+      <%= form.label :region, class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :region, 
+            class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors", 
+            placeholder: "e.g., California, New York City, European Union" %>
+      <p class="mt-2 text-sm text-gray-600">
+        Optional. Specify the geographic region or jurisdiction where this tax applies.
+      </p>
+    </div>
+
+    <!-- Applies to Shipping Checkbox -->
+    <div class="bg-gray-50 rounded-lg p-4">
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          <%= form.check_box :applies_to_shipping, 
+                class: "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" %>
+        </div>
+        <div class="ml-3">
+          <%= form.label :applies_to_shipping, "Apply tax to shipping costs", 
+                class: "text-sm font-medium text-gray-900" %>
+          <p class="text-sm text-gray-600 mt-1">
+            When enabled, this tax rate will be applied to shipping charges in addition to product prices. 
+            Check your local tax regulations to determine if shipping should be taxed.
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="flex items-center justify-between mt-8">
-    <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
-    <%= link_to 'Cancel', business_manager_tax_rates_path, class: "text-blue-500 hover:text-blue-800" %>
+  <!-- Form Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-gray-200">
+    <div class="flex flex-col sm:flex-row gap-3">
+      <%= form.submit class: "inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors" %>
+      <%= link_to business_manager_tax_rates_path, 
+            class: "inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors" do %>
+        Cancel
+      <% end %>
+    </div>
+    
+    <% unless tax_rate.new_record? %>
+      <div class="text-right">
+        <%= button_to business_manager_tax_rate_path(tax_rate),
+              method: :delete,
+              data: { 
+                confirm: "Are you sure you want to delete the tax rate '#{tax_rate.name}'? This action cannot be undone." 
+              },
+              class: "inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Delete Tax Rate
+        <% end %>
+      </div>
+    <% end %>
   </div>
 <% end %> 

@@ -41,71 +41,99 @@
   <%# Policy Acceptance Modal %>
   <%= render 'shared/policy_acceptance_modal' %>
 
-  <div class="flex h-screen bg-gray-100">
+  <div class="flex h-screen bg-gray-100 relative">
+    <!-- Sidebar Toggle Button (Mobile) -->
+    <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700 transition-colors shadow-lg">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+
+    <!-- Sidebar Toggle Button (Desktop) -->
+    <button id="desktop-sidebar-toggle" class="fixed top-4 z-50 hidden lg:block bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700 transition-colors shadow-lg desktop-toggle-btn">
+      <svg id="desktop-toggle-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
+
     <!-- Sidebar -->
-    <div class="w-64 bg-gray-800 text-white p-4 flex flex-col">
-      <h2 class="text-2xl font-semibold mb-6"><%= @current_business&.name %></h2>
-      <nav class="flex-1">
+    <div id="sidebar" class="fixed lg:relative w-64 bg-gray-800 text-white h-full flex flex-col z-40 transform transition-transform duration-300 ease-in-out">
+      <div class="p-4 flex-shrink-0">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl lg:text-2xl font-semibold"><%= @current_business&.name %></h2>
+          <!-- Close button for mobile -->
+          <button id="sidebar-close" class="lg:hidden text-white hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <nav class="flex-1 px-4 pb-4 overflow-y-auto">
         <ul>
           <li class="mb-2">
-            <%= link_to "Dashboard", business_manager_dashboard_path, class: "block py-2 px-4 rounded hover:bg-primary #{current_page?(business_manager_dashboard_path) ? 'bg-primary' : ''}" %>
+            <%= link_to "Dashboard", business_manager_dashboard_path, class: "block py-3 px-4 rounded hover:bg-primary #{current_page?(business_manager_dashboard_path) ? 'bg-primary' : ''} transition-colors" %>
           </li>
           <li class="mb-2">
-            <%= link_to "Bookings", business_manager_bookings_path, class: "block py-2 px-4 rounded hover:bg-primary" %>
+            <%= link_to "Bookings", business_manager_bookings_path, class: "block py-3 px-4 rounded hover:bg-primary transition-colors" %>
           </li>
           <li class="mb-2">
             <% if defined?(@current_business) && @current_business&.respond_to?(:full_url) && @current_business.present? %>
-              <%= link_to "Website", @current_business.full_url, class: "block py-2 px-4 rounded hover:bg-primary" %>
+              <%= link_to "Website", @current_business.full_url, class: "block py-3 px-4 rounded hover:bg-primary transition-colors" %>
             <% end %>
           </li>
           <li class="mb-2">
-            <%= link_to "Staff", business_manager_staff_members_path, class: "block py-2 px-4 rounded hover:bg-primary" %>
+            <%= link_to "Staff", business_manager_staff_members_path, class: "block py-3 px-4 rounded hover:bg-primary transition-colors" %>
           </li>
           <li class="mb-2">
-            <%= link_to business_manager_services_path, class: 'block px-4 py-2 hover:bg-primary rounded' do %>
+            <%= link_to business_manager_services_path, class: 'block px-4 py-3 hover:bg-primary rounded transition-colors' do %>
               <i class="fas fa-concierge-bell mr-2"></i> Services
             <% end %>
           </li>
           <li class="mb-2">
-            <%= link_to business_manager_products_path, class: 'block px-4 py-2 hover:bg-primary rounded' do %>
+            <%= link_to business_manager_products_path, class: 'block px-4 py-3 hover:bg-primary rounded transition-colors' do %>
               <i class="fas fa-box mr-2"></i> Products
             <% end %>
-            <ul class="ml-4">
-              <li>
-                <%= link_to business_manager_shipping_methods_path, class: 'block py-1 px-2 rounded hover:bg-primary text-sm' do %>
+            <ul class="ml-4 mt-2">
+              <li class="mb-1">
+                <%= link_to business_manager_shipping_methods_path, class: 'block py-2 px-2 rounded hover:bg-primary text-sm transition-colors' do %>
                   <i class="fas fa-truck mr-1"></i> Shipping Methods
                 <% end %>
               </li>
-              <li>
-                <%= link_to business_manager_tax_rates_path, class: 'block py-1 px-2 rounded hover:bg-primary text-sm' do %>
+              <li class="mb-1">
+                <%= link_to business_manager_tax_rates_path, class: 'block py-2 px-2 rounded hover:bg-primary text-sm transition-colors' do %>
                   <i class="fas fa-percent mr-1"></i> Tax Rates
                 <% end %>
               </li>
             </ul>
           </li>
           <li class="mb-2">
-            <%= link_to "Customers", business_manager_customers_path, class: "block py-2 px-4 rounded hover:bg-primary #{current_page?(business_manager_customers_path) ? 'bg-primary' : ''}" %>
+            <%= link_to "Customers", business_manager_customers_path, class: "block py-3 px-4 rounded hover:bg-primary #{current_page?(business_manager_customers_path) ? 'bg-primary' : ''} transition-colors" %>
           </li>
           <li class="mb-2">
-            <%= link_to "Orders", business_manager_orders_path, class: "block py-2 px-4 rounded hover:bg-primary #{current_page?(business_manager_orders_path) ? 'bg-primary' : ''}" %>
+            <%= link_to "Orders", business_manager_orders_path, class: "block py-3 px-4 rounded hover:bg-primary #{current_page?(business_manager_orders_path) ? 'bg-primary' : ''} transition-colors" %>
           </li>
           <li>
-            <%= link_to business_manager_settings_path, class: 'block px-4 py-2 hover:bg-primary rounded' do %>
+            <%= link_to business_manager_settings_path, class: 'block px-4 py-3 hover:bg-primary rounded transition-colors' do %>
               <i class="fas fa-cog mr-2"></i> Settings
             <% end %>
           </li>
-          <%# Add more links as features are built %>
         </ul>
       </nav>
-      <div class="mt-auto">
-        <p class="text-sm text-gray-400">Signed in as <%= current_user.email %> (<%= current_user.role.humanize %>)</p>
-        <%= link_to "Sign Out", destroy_user_session_path, method: :delete, class: "block py-2 px-4 mt-2 text-center bg-error rounded hover:bg-red-700" %>
+      
+      <div class="p-4 border-t border-gray-700 flex-shrink-0">
+        <p class="text-sm text-gray-400 mb-2">Signed in as <%= current_user.email %> (<%= current_user.role.humanize %>)</p>
+        <%= link_to "Sign Out", destroy_user_session_path, method: :delete, class: "block py-2 px-4 text-center bg-error rounded hover:bg-red-700 transition-colors" %>
       </div>
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+    <div id="main-content" class="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
+      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6 pt-16 lg:pt-6">
         <%# Display flash messages %>
         
         <%# Business Setup Todo Flash (Blue) %>
@@ -131,6 +159,257 @@
       </main>
     </div>
   </div>
+
+  <!-- Sidebar Toggle JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('[Sidebar] Initializing sidebar toggle functionality...');
+      
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const desktopSidebarToggle = document.getElementById('desktop-sidebar-toggle');
+      const desktopToggleIcon = document.getElementById('desktop-toggle-icon');
+      const mainContent = document.getElementById('main-content');
+      
+      console.log('[Sidebar] Elements found:', {
+        sidebar: !!sidebar,
+        sidebarOverlay: !!sidebarOverlay,
+        sidebarToggle: !!sidebarToggle,
+        sidebarClose: !!sidebarClose,
+        desktopSidebarToggle: !!desktopSidebarToggle,
+        desktopToggleIcon: !!desktopToggleIcon,
+        mainContent: !!mainContent
+      });
+      
+      let sidebarOpen = window.innerWidth >= 1024; // Default open on desktop
+      console.log('[Sidebar] Initial sidebar state:', sidebarOpen, 'Screen width:', window.innerWidth);
+      
+      // Set initial classes based on screen size and desired state
+      function setInitialState() {
+        const isLargeScreen = window.innerWidth >= 1024;
+        if (isLargeScreen) {
+          // Desktop: start with sidebar open
+          sidebarOpen = true;
+          sidebar.classList.remove('-translate-x-full');
+          sidebar.classList.add('translate-x-0');
+          if (desktopSidebarToggle) {
+            desktopSidebarToggle.style.left = '270px';
+            desktopSidebarToggle.classList.add('sidebar-open');
+          }
+          if (desktopToggleIcon) {
+            desktopToggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+          }
+          // Hide mobile toggle on desktop
+          if (sidebarToggle) {
+            sidebarToggle.style.display = 'none';
+          }
+        } else {
+          // Mobile: start with sidebar closed
+          sidebarOpen = false;
+          sidebar.classList.add('-translate-x-full');
+          sidebar.classList.remove('translate-x-0');
+          sidebar.classList.remove('show');
+          if (sidebarToggle) {
+            sidebarToggle.style.display = 'block'; // Ensure hamburger button is visible initially on mobile
+          }
+          if (desktopSidebarToggle) {
+            desktopSidebarToggle.style.left = '16px';
+            desktopSidebarToggle.classList.remove('sidebar-open');
+          }
+          if (desktopToggleIcon) {
+            desktopToggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>';
+          }
+        }
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.add('hidden');
+          sidebarOverlay.classList.remove('show');
+        }
+        document.body.style.overflow = '';
+        console.log('[Sidebar] Initial state set:', { sidebarOpen, isLargeScreen });
+      }
+      
+      function updateSidebarState() {
+        const isLargeScreen = window.innerWidth >= 1024;
+        console.log('[Sidebar] Updating state - Large screen:', isLargeScreen, 'Sidebar open:', sidebarOpen);
+        
+        // Debug current sidebar state before changes
+        console.log('[Sidebar] Before changes:', {
+          sidebarClasses: sidebar.className,
+          sidebarTransform: getComputedStyle(sidebar).transform,
+          mainContentMarginLeft: mainContent.style.marginLeft,
+          desktopToggleLeft: desktopSidebarToggle ? desktopSidebarToggle.style.left : 'N/A',
+          overlayClasses: sidebarOverlay ? sidebarOverlay.className : 'N/A',
+          bodyOverflow: document.body.style.overflow
+        });
+        
+        if (isLargeScreen) {
+          // Desktop behavior
+          if (sidebarOpen) {
+            console.log('[Sidebar] Desktop: Opening sidebar');
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            if (desktopSidebarToggle) {
+              desktopSidebarToggle.style.left = '270px'; // Position toggle button to the right of sidebar
+              desktopSidebarToggle.classList.add('sidebar-open');
+            }
+            if (desktopToggleIcon) {
+              desktopToggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            }
+            // Ensure mobile toggle is hidden on desktop
+            if (sidebarToggle) {
+              sidebarToggle.style.display = 'none';
+            }
+          } else {
+            console.log('[Sidebar] Desktop: Closing sidebar');
+            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            if (desktopSidebarToggle) {
+              desktopSidebarToggle.style.left = '16px'; // Position toggle button at left edge
+              desktopSidebarToggle.classList.remove('sidebar-open');
+            }
+            if (desktopToggleIcon) {
+              desktopToggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>';
+            }
+            // Ensure mobile toggle is hidden on desktop
+            if (sidebarToggle) {
+              sidebarToggle.style.display = 'none';
+            }
+          }
+          if (sidebarOverlay) {
+            sidebarOverlay.classList.add('hidden');
+          }
+          document.body.style.overflow = '';
+        } else {
+          // Mobile behavior
+          console.log('[Sidebar] Mobile behavior - Sidebar open:', sidebarOpen);
+          if (desktopSidebarToggle) {
+            desktopSidebarToggle.style.left = '16px';
+            desktopSidebarToggle.classList.remove('sidebar-open');
+          }
+          if (sidebarOpen) {
+            console.log('[Sidebar] Mobile: Opening sidebar');
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            sidebar.classList.add('show');
+            if (sidebarToggle) {
+              sidebarToggle.style.display = 'none'; // Hide hamburger button when sidebar is open
+            }
+            if (sidebarOverlay) {
+              console.log('[Sidebar] Mobile: Showing overlay');
+              sidebarOverlay.classList.remove('hidden');
+              sidebarOverlay.classList.add('show');
+            }
+            document.body.style.overflow = 'hidden';
+          } else {
+            console.log('[Sidebar] Mobile: Closing sidebar');
+            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            sidebar.classList.remove('show');
+            if (sidebarToggle) {
+              sidebarToggle.style.display = 'block'; // Show hamburger button when sidebar is closed
+            }
+            if (sidebarOverlay) {
+              console.log('[Sidebar] Mobile: Hiding overlay');
+              sidebarOverlay.classList.add('hidden');
+              sidebarOverlay.classList.remove('show');
+            }
+            document.body.style.overflow = '';
+          }
+        }
+        
+        // Debug current sidebar state after changes
+        console.log('[Sidebar] After changes:', {
+          sidebarClasses: sidebar.className,
+          sidebarTransform: getComputedStyle(sidebar).transform,
+          mainContentMarginLeft: mainContent.style.marginLeft,
+          desktopToggleLeft: desktopSidebarToggle ? desktopSidebarToggle.style.left : 'N/A',
+          overlayClasses: sidebarOverlay ? sidebarOverlay.className : 'N/A',
+          overlayDisplay: sidebarOverlay ? getComputedStyle(sidebarOverlay).display : 'N/A',
+          bodyOverflow: document.body.style.overflow
+        });
+      }
+      
+      function toggleSidebar() {
+        console.log('[Sidebar] Toggle clicked - current state:', sidebarOpen);
+        sidebarOpen = !sidebarOpen;
+        updateSidebarState();
+      }
+      
+      function closeSidebar() {
+        console.log('[Sidebar] Close clicked');
+        sidebarOpen = false;
+        updateSidebarState();
+      }
+      
+      // Event listeners with better error handling
+      if (sidebarToggle) {
+        console.log('[Sidebar] Attaching mobile toggle listener');
+        sidebarToggle.addEventListener('click', function(e) {
+          console.log('[Sidebar] Mobile toggle clicked');
+          e.preventDefault();
+          toggleSidebar();
+        });
+      }
+      
+      if (desktopSidebarToggle) {
+        console.log('[Sidebar] Attaching desktop toggle listener');
+        desktopSidebarToggle.addEventListener('click', function(e) {
+          console.log('[Sidebar] Desktop toggle clicked');
+          e.preventDefault();
+          toggleSidebar();
+        });
+      }
+      
+      if (sidebarClose) {
+        console.log('[Sidebar] Attaching close listener');
+        sidebarClose.addEventListener('click', function(e) {
+          console.log('[Sidebar] Close button clicked');
+          e.preventDefault();
+          closeSidebar();
+        });
+      }
+      
+      if (sidebarOverlay) {
+        console.log('[Sidebar] Attaching overlay listener');
+        sidebarOverlay.addEventListener('click', function(e) {
+          console.log('[Sidebar] Overlay clicked');
+          e.preventDefault();
+          closeSidebar();
+        });
+      }
+      
+      // Close sidebar when clicking on navigation links on mobile
+      const navLinks = sidebar.querySelectorAll('a');
+      console.log('[Sidebar] Found', navLinks.length, 'navigation links');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth < 1024) {
+            console.log('[Sidebar] Nav link clicked on mobile, closing sidebar');
+            closeSidebar();
+          }
+        });
+      });
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        console.log('[Sidebar] Window resized to:', window.innerWidth);
+        // Reinitialize state on screen size change to handle button visibility correctly
+        setInitialState();
+      });
+      
+      // Initial state
+      console.log('[Sidebar] Setting initial state');
+      setInitialState();
+      
+      // Test function - you can call this in the console
+      window.testSidebarToggle = function() {
+        console.log('Testing sidebar toggle...');
+        toggleSidebar();
+      };
+    });
+  </script>
 
   <% if user_signed_in? %>
     <%# Fallback script to ensure modal shows when needed %>
@@ -205,10 +484,10 @@
               }
             })
             .catch(error => {
-              console.log('[BusinessManager PolicyFallback] Error checking policy status:', error);
+              console.error('[BusinessManager PolicyFallback] Error checking policy status:', error);
             });
           }
-        }, 500);
+        }, 1000);
       });
     </script>
   <% end %>
