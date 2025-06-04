@@ -7,7 +7,7 @@ services:
     healthCheckPath: /healthcheck
     domains:
       - bizblasts.com
-      - "*.bizblasts.com"  # Add this for subdomain support
+      - "*.bizblasts.com"
     envVars:
       - key: PORT
         value: 10000

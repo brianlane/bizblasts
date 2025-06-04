@@ -19,6 +19,20 @@ ActiveAdmin.setup do |config|
   script_code = File.read(Rails.root.join('app/assets/javascripts/delete_fix.js'))
   config.head = "<script>#{script_code}</script>".html_safe
 
+  # Add custom CSS for better login styling
+  custom_css = <<~CSS
+    <style>
+      body.logged_out #login .panel_title,
+      body.logged_out #login h2,
+      body.logged_out #login h3 {
+        color: #1a202c !important;
+        text-shadow: none !important;
+      }
+    </style>
+  CSS
+  
+  config.head = "#{config.head}#{custom_css}".html_safe
+
   # Register Active Admin JavaScript to ensure batch actions work
   config.register_javascript 'active_admin.js'
 
@@ -199,7 +213,7 @@ ActiveAdmin.setup do |config|
 
   # == Setting a Favicon
   #
-  # config.favicon = 'favicon.ico'
+  config.favicon = 'icon.png'
 
   # == Meta Tags
   #
