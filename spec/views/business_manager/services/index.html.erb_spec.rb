@@ -41,6 +41,6 @@ RSpec.describe "business_manager/services/index.html.erb", type: :view do
     expect(rendered).to have_link('Edit', href: edit_business_manager_service_path(service1))
     expect(rendered).to have_link('Edit', href: edit_business_manager_service_path(service2))
     # Check for delete links by class within table rows
-    expect(rendered).to have_button('Delete', count: 2)
+    expect(rendered).to have_button('Delete', count: 4) # 2 services × 2 views (mobile + desktop)
   end
 end

@@ -41,7 +41,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
 
     it "allows access to the dashboard" do
       expect(page).to have_current_path(business_manager_dashboard_path)
-      expect(page).to have_content("Welcome to #{business.name} Dashboard")
+      expect(page).to have_content("Welcome to #{business.name}")
       expect(page).to have_content("Upcoming Appointments (Next 7 Days)")
 
       # Check for Recent Bookings widget
@@ -53,7 +53,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
 
       # Check for Upcoming Appointments widget
       expect(page).to have_selector('#upcoming-appointments-widget') do |widget|
-        expect(widget).to have_selector('h2', text: 'Upcoming Appointments (Next 7 Days)')
+        expect(widget).to have_selector('h3', text: 'Upcoming Appointments (Next 7 Days)')
       end
 
       # Check for Placeholder Statistics widget
@@ -65,8 +65,8 @@ RSpec.describe "Business Manager Dashboard", type: :system do
       # Check for Quick Actions including Services link
       within('#quick-actions-widget') do
         expect(page).to have_link("Manage Services", href: "/manage/services")
-        expect(page).to have_link("Create New Booking") # Placeholder check
-        expect(page).to have_link("Edit Website Pages", href: edit_business_manager_settings_website_pages_path)
+        expect(page).to have_link("Create Booking") # Placeholder check
+        expect(page).to have_link("Edit Website", href: edit_business_manager_settings_website_pages_path)
       end
     end
   end
@@ -80,7 +80,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
 
     it "allows access to the dashboard" do
       expect(page).to have_current_path(business_manager_dashboard_path)
-      expect(page).to have_content("Welcome to #{business.name} Dashboard")
+      expect(page).to have_content("Welcome to #{business.name}")
     end
   end
 

@@ -12,79 +12,132 @@
     </div>
   <% end %>
 
-  <div id="new-user-fields" class="mb-6">
-    <%= f.fields_for :user do |uf| %>
-      <div class="mb-4">
-        <%= uf.label :first_name %>
-        <%= uf.text_field :first_name, class: "w-full" %>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- User Account Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">User Account Information</h3>
+      
+      <%= f.fields_for :user do |uf| %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <%= uf.label :first_name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= uf.text_field :first_name, required: true,
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+          
+          <div>
+            <%= uf.label :last_name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= uf.text_field :last_name, required: true,
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+        </div>
+
+        <div>
+          <%= uf.label :email, class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= uf.email_field :email, required: true,
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <%= uf.label :password, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= uf.password_field :password, required: staff_member.new_record?,
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+          
+          <div>
+            <%= uf.label :password_confirmation, class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= uf.password_field :password_confirmation, required: staff_member.new_record?,
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+        </div>
+      <% end %>
+
+      <div>
+        <%= f.label :user_role, "User Role", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.select :user_role,
+             [['Staff Member','staff'], ['Manager','manager']],
+             { prompt: 'Select role' },
+             class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
       </div>
-      <div class="mb-4">
-        <%= uf.label :last_name %>
-        <%= uf.text_field :last_name, class: "w-full" %>
+    </div>
+
+    <!-- Staff Member Details -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Staff Member Details</h3>
+      
+      <div>
+        <%= f.label :name, "Display Name", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.text_field :name, placeholder: "Optional - defaults to First Last name",
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Leave blank to use first and last name automatically</p>
       </div>
-      <div class="mb-4">
-        <%= uf.label :email %>
-        <%= uf.email_field :email, class: "w-full" %>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :phone, class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= f.text_field :phone, placeholder: "(555) 123-4567",
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        </div>
+        
+        <div>
+          <%= f.label :position, "Job Position", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= f.text_field :position, placeholder: "e.g., Senior Technician, Stylist",
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        </div>
       </div>
-      <div class="mb-4">
-        <%= uf.label :password %>
-        <%= uf.password_field :password, class: "w-full" %>
+
+      <div>
+        <%= f.label :bio, class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.text_area :bio, rows: 4, placeholder: "Tell customers about this staff member's experience and expertise...",
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
       </div>
-      <div class="mb-4">
-        <%= uf.label :password_confirmation %>
-        <%= uf.password_field :password_confirmation, class: "w-full" %>
+      
+      <div>
+        <%= f.label :photo_url, "Profile Photo URL", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.text_field :photo_url, placeholder: "https://example.com/photo.jpg",
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Link to a professional headshot or profile photo</p>
+      </div>
+
+      <!-- Status Toggle -->
+      <div class="flex items-center">
+        <%= f.check_box :active, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+        <%= f.label :active, "Active Staff Member", class: "ml-2 text-gray-700 text-sm font-bold" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Assignment Section -->
+  <div class="mt-8 border-t pt-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Service Assignment</h3>
+    <p class="text-sm text-gray-600 mb-4">Select which services this staff member can provide:</p>
+    
+    <% if @current_business.services.any? %>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <%= f.collection_check_boxes :service_ids, @current_business.services.order(:name), :id, :name do |b|
+          content_tag(:div, class: "bg-gray-50 rounded-lg p-3 border border-gray-200 hover:bg-gray-100 transition-colors") do
+            b.label(class: "flex items-center cursor-pointer") do
+              b.check_box(class: "form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 mr-3") + 
+              content_tag(:span, b.text, class: "text-sm text-gray-900")
+            end
+          end
+        end %>
+      </div>
+    <% else %>
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p class="text-sm text-yellow-800">
+          No services found. <%= link_to "Create a service", new_business_manager_service_path, class: "text-yellow-900 underline" %> first, then assign it to this staff member.
+        </p>
       </div>
     <% end %>
   </div>
 
-  <%# Name, email, phone might be pre-filled from User or editable here %>
-  <div class="mb-4">
-    <%= f.label :name, "Display Name (optional, defaults to User name)", class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= f.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-  </div>
-
-  <div class="mb-4">
-    <%= f.label :phone, class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= f.text_field :phone, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-  </div>
-  
-  <div class="mb-4">
-    <%= f.label :bio, class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= f.text_area :bio, rows: 4, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-  </div>
-  
-  <div class="mb-4">
-    <%= f.label :photo_url, class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= f.text_field :photo_url, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-  </div>
-
-  <div class="mb-4">
-    <%= f.check_box :active %>
-    <%= f.label :active, class: "ml-2 text-gray-700 text-sm font-bold" %>
-  </div>
-
-  <div class="mb-4">
-    <%= f.label :user_role, "Assign Role", class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= f.select :user_role,
-         [['Staff','staff'], ['Manager','manager']],
-         { prompt: 'Select role' },
-         class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-  </div>
-
-  <div class="mb-4">
-    <h3 class="text-lg font-semibold mb-2">Assign Services</h3>
-    <%= f.collection_check_boxes :service_ids, @current_business.services.order(:name), :id, :name do |b|
-      b.label(class: "inline-flex items-center mr-4 mb-2") do
-        b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
-        content_tag(:span, b.text, class: "ml-2")
-      end
-    end %>
-  </div>
-
-  <%# TODO: Add input for availability_settings if needed / decide on management flow %>
-  <%# TODO: Add input for notes if needed %>
-
-  <div class="actions">
-    <%= f.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
+  <!-- Submit Button -->
+  <div class="mt-8 border-t pt-6">
+    <div class="flex flex-col sm:flex-row gap-4">
+      <%= f.submit(staff_member.new_record? ? 'Create Staff Member' : 'Update Staff Member', 
+            class: "inline-flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer") %>
+    </div>
   </div>
 <% end %> 

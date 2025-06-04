@@ -55,7 +55,7 @@
     <%= form.text_area :hours, value: hours_value, rows: 10, cols: 80 %>
   </div>
   
-  <% if location == @business.default_location %>
+  <% if location == @current_business.default_location %>
     <div class="field mt-4">
       <%= check_box_tag :sync_to_business, '1', true %>
       <%= label_tag :sync_to_business, "Update business information with these changes" %>

@@ -1,45 +1,169 @@
 <%# app/views/business_manager/products/index.html.erb %>
-<h1>Products</h1>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold">Manage Products</h1>
+          <p class="text-sm text-gray-600 mt-1">Create and manage your business products</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <%= link_to 'New Product', new_business_manager_product_path, 
+                class: "inline-flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
+        </div>
+      </div>
+    </div>
 
-<%= link_to 'New Product', new_business_manager_product_path %>
-
-<% if @products.any? %>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Price</th>
-        <th>Type</th>
-        <th>Active</th>
-        <th>Featured</th>
-        <th>Variants</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @products.each do |product| %>
-        <tr>
-          <td><%= link_to product.name, business_manager_product_path(product) %></td>
-          <td><%= product.category&.name || '-' %></td>
-          <td><%= number_to_currency product.price %></td>
-          <td><%= product.product_type&.titleize || '-' %></td>
-          <td><%= product.active ? 'Yes' : 'No' %></td>
-          <td><%= product.featured ? 'Yes' : 'No' %></td>
-          <td><%= product.product_variants.count %></td>
-          <td>
-            <%= link_to 'Show', business_manager_product_path(product) %> |
-            <%= link_to 'Edit', edit_business_manager_product_path(product) %> |
-            <%= button_to 'Delete',
-                          business_manager_product_path(product),
-                          method: :delete,
-                          data: { confirm: %Q[Are you sure you want to delete the product '#{product.name}'?] },
-                          class: 'text-red-600 hover:text-red-900' %>
-          </td>
-        </tr>
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <% if @products.any? %>
+        <!-- Mobile Card Layout (hidden on lg+ screens) -->
+        <div class="lg:hidden space-y-4">
+          <% @products.each do |product| %>
+            <div id="product_<%= product.id %>" class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+              <!-- Product Header -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <%= link_to product.name, business_manager_product_path(product), 
+                        class: "text-lg font-medium text-blue-600 hover:text-blue-800 transition-colors" %>
+                  <div class="text-sm text-gray-600 mt-1">
+                    <%= product.category&.name || 'No category' %>
+                  </div>
+                </div>
+                <div class="ml-4 flex gap-2">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= product.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                    <%= product.active? ? 'Active' : 'Inactive' %>
+                  </span>
+                  <% if product.featured? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Featured
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+              
+              <!-- Product Details -->
+              <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <div class="text-xs text-gray-500 uppercase tracking-wider">Price & Type</div>
+                  <div class="text-green-600 font-semibold text-lg">
+                    <%= number_to_currency(product.price) %>
+                  </div>
+                  <div class="text-gray-900">
+                    <%= product.product_type&.titleize || 'No type' %>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 uppercase tracking-wider">Variants</div>
+                  <div class="text-gray-900 font-medium">
+                    <%= pluralize(product.product_variants.count, 'variant') %>
+                  </div>
+                  <% if product.product_variants.any? %>
+                    <div class="text-xs text-gray-500 mt-1">
+                      <%= product.product_variants.limit(2).pluck(:name).join(', ') %>
+                      <% if product.product_variants.count > 2 %>
+                        <span class="text-gray-400">+<%= product.product_variants.count - 2 %> more</span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="flex flex-wrap gap-2">
+                <%= link_to 'Show', business_manager_product_path(product), 
+                      class: "inline-flex items-center px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" %>
+                <%= link_to 'Edit', edit_business_manager_product_path(product), 
+                      class: "inline-flex items-center px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors" %>
+                <%= button_to 'Delete',
+                              business_manager_product_path(product),
+                              method: :delete,
+                              data: { confirm: %Q[Are you sure you want to delete the product '#{product.name}'?] },
+                              class: 'inline-flex items-center px-3 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors border-0' %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        
+        <!-- Desktop Table Layout (hidden on mobile) -->
+        <div class="hidden lg:block">
+          <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Variants</th>
+                  <th class="px-6 py-3 border-b border-gray-200"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% @products.each do |product| %>
+                  <tr id="product_<%= product.id %>" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <%= link_to product.name, business_manager_product_path(product), 
+                            class: "text-blue-600 hover:text-blue-800 font-medium transition-colors" %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                      <%= product.category&.name || '-' %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600">
+                      <%= number_to_currency(product.price) %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                      <%= product.product_type&.titleize || '-' %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= product.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                          <%= product.active? ? 'Active' : 'Inactive' %>
+                        </span>
+                        <% if product.featured? %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Featured
+                          </span>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900">
+                        <%= pluralize(product.product_variants.count, 'variant') %>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex items-center justify-end space-x-2">
+                        <%= link_to 'Show', business_manager_product_path(product), 
+                              class: "text-blue-600 hover:text-blue-900 transition-colors" %>
+                        <%= link_to 'Edit', edit_business_manager_product_path(product), 
+                              class: "text-indigo-600 hover:text-indigo-900 transition-colors" %>
+                        <%= button_to 'Delete',
+                                      business_manager_product_path(product),
+                                      method: :delete,
+                                      data: { confirm: %Q[Are you sure you want to delete the product '#{product.name}'?] },
+                                      class: 'text-red-600 hover:text-red-900 transition-colors bg-transparent border-0 p-0' %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+          <p class="mt-1 text-sm text-gray-500">Get started by creating your first product.</p>
+          <div class="mt-6">
+            <%= link_to 'Create Product', new_business_manager_product_path, 
+                  class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors" %>
+          </div>
+        </div>
       <% end %>
-    </tbody>
-  </table>
-<% else %>
-  <p>You haven't added any products yet.</p>
-<% end %>
+    </div>
+  </div>
+</div>

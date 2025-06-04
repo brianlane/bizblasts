@@ -11,9 +11,19 @@ module ApplicationHelper
   # include BusinessManager::ServicesHelper # Example, might not be needed
 
   # Simple helper to display boolean values with some styling
-  def boolean_status_tag(status, true_text = "Yes", false_text = "No", true_class = "status-tag yes", false_class = "status-tag no")
+  def boolean_status_tag(status, true_text = "Active", false_text = "Inactive", options = {})
     text = status ? true_text : false_text
-    css_class = status ? true_class : false_class
+    
+    # Default CSS classes using Tailwind
+    if status
+      css_class = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+    else
+      css_class = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
+    end
+    
+    # Allow custom classes via options
+    css_class = options[:class] if options[:class].present?
+    
     content_tag(:span, text, class: css_class)
   end
 

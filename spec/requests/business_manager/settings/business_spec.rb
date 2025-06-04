@@ -124,7 +124,7 @@ RSpec.describe "Settings::BusinessController", type: :request do
         patch business_manager_settings_business_path, params: { business: invalid_attributes }
         expect(response).to render_template(:edit)
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.body).to include("prohibited this business from being saved") # From error_explanation
+        expect(response.body).to include("Name can&#39;t be blank") # From the custom error display format (HTML encoded)
       end
     end
   end

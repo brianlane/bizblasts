@@ -1,26 +1,43 @@
 <%# app/views/business_manager/products/_variant_fields.html.erb %>
-<div class="nested-fields product-variant-fields" style="border: 1px dashed #ccc; padding: 10px; margin-bottom: 10px;">
-  <div>
-    <%= form.label :name, 'Variant Name' %> (e.g., Large, Red)
-    <%= form.text_field :name, required: true %>
-  </div>
-  <div>
-    <%= form.label :sku, 'SKU' %>
-    <%= form.text_field :sku %>
-  </div>
-  <div>
-    <%= form.label :price_modifier, 'Price Modifier (+/-)' %>
-    <%= form.number_field :price_modifier, step: 0.01 %>
-  </div>
-  <div>
-    <%= form.label :stock_quantity %>
-    <%= form.number_field :stock_quantity, required: true %>
-  </div>
-  <div>
-    <%= form.label :options, 'Options (JSON)' %>
-    <%= form.text_area :options, rows: 2, placeholder: 'e.g., {"size": "Large", "color": "Red"}' %>
-    <small>Enter as valid JSON</small>
+<div class="variant-field bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+  <div class="flex items-center justify-between mb-4">
+    <h4 class="text-md font-medium text-gray-900">Product Variant</h4>
+    <%= link_to 'Remove Variant', '#', 
+          class: 'remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors' %>
   </div>
   
-  <%= link_to 'Remove Variant', '#', class: 'remove-variant text-red-600 hover:text-red-900' %>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div>
+      <%= form.label :name, 'Variant Name', class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.text_field :name, required: true, placeholder: "e.g., Large, Red", 
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+    </div>
+    
+    <div>
+      <%= form.label :sku, 'SKU', class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.text_field :sku, placeholder: "Stock Keeping Unit", 
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+    </div>
+    
+    <div>
+      <%= form.label :price_modifier, 'Price Modifier ($)', class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.number_field :price_modifier, step: 0.01, placeholder: "0.00", 
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
+    </div>
+    
+    <div>
+      <%= form.label :stock_quantity, 'Stock Quantity', class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.number_field :stock_quantity, required: true, min: 0, placeholder: "0", 
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+    </div>
+  </div>
+  
+  <div class="mt-4">
+    <%= form.label :options, 'Options (JSON)', class: "block text-gray-700 text-sm font-bold mb-2" %>
+    <%= form.text_area :options, rows: 2, 
+          placeholder: 'e.g., {"size": "Large", "color": "Red"}', 
+          class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+    <p class="mt-1 text-xs text-gray-500">Enter as valid JSON for additional variant properties</p>
+  </div>
 </div>
