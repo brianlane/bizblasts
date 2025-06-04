@@ -1,16 +1,23 @@
 ActiveAdmin.register User do
   permit_params :email, :first_name, :last_name, :role, :business_id, :active, :password, :password_confirmation, :staff_member_id, :phone
 
-  # Filters
-  filter :email
-  filter :first_name
-  filter :last_name
-  filter :role, as: :select, collection: User.roles.keys.map { |r| [r.humanize, r] }
-  filter :business, as: :select, collection: -> { Business.order(:name).pluck(:name, :id) }
-  filter :active
-  filter :created_at
-  filter :last_sign_in_at
-  filter :sign_in_count
+  # Filters - Organized for better UX
+  filter :email, label: "Email Address"
+  filter :first_name, label: "First Name"
+  filter :last_name, label: "Last Name"
+  filter :role, as: :select, 
+         collection: User.roles.map { |key, value| [key.humanize, key] },
+         include_blank: "All Roles"
+  filter :business, as: :select, 
+         collection: proc { Business.order(:name).pluck(:name, :id) },
+         include_blank: "All Businesses"
+  filter :active, as: :select,
+         collection: [['Active', true], ['Inactive', false]],
+         include_blank: "All Users"
+  filter :created_at, label: "Account Created"
+  filter :last_sign_in_at, label: "Last Login Date"
+  filter :sign_in_count, label: "Sign-in Count (minimum)"
+  filter :confirmed_at, label: "Email Confirmed"
 
   # Enable batch actions
   batch_action :destroy, confirm: "Are you sure you want to delete these users?" do |ids|
