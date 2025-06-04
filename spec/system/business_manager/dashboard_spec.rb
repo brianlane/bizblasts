@@ -101,7 +101,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
       visit dashboard_path
       
       # Should now see the client dashboard
-      expect(page).to have_content("Client Dashboard")
+      expect(page).to have_content("Welcome, #{client.full_name}!")
     end
   end
 
