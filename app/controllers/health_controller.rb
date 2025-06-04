@@ -22,6 +22,12 @@ class HealthController < ApplicationController
   
   # Database connectivity check
   def db_check
+    # Security: Add basic authentication for detailed database info
+    if request.headers['Authorization'] != "Bearer #{ENV['HEALTH_CHECK_TOKEN']}" && Rails.env.production?
+      render json: { status: 'unauthorized' }, status: :unauthorized
+      return
+    end
+
     check_database_connection
   rescue => e
     render_database_error(e)
@@ -31,52 +37,77 @@ class HealthController < ApplicationController
 
   def check_database_connection
     # Try to connect to the database
-    result = ActiveRecord::Base.connection.execute(
-      "SELECT current_timestamp as time, current_database() as database, version() as version"
-    )
-    data = result.first
+    # Security: Use simpler query that doesn't expose system information
+    result = ActiveRecord::Base.connection.execute("SELECT 1 as health_check")
     
     render json: { 
       status: 'ok', 
-      database: database_info(data),
-      env: environment_info
+      database: {
+        connected: true,
+        timestamp: Time.current.iso8601
+      },
+      env: limited_environment_info
     }
   end
 
   def database_info(data)
+    # Security: Removed - this method exposed too much information
+    # Only keeping basic connectivity status
     {
       connected: true,
-      time: data['time'],
-      database_name: data['database'],
-      version: data['version'],
-      adapter: ActiveRecord::Base.connection.adapter_name,
-      config: database_config
+      timestamp: Time.current.iso8601
     }
   end
 
   def database_config
+    # Security: Removed - this exposed sensitive configuration details
+    # Keep minimal info for debugging if authenticated
+    if Rails.env.development?
+      {
+        adapter: ActiveRecord::Base.connection.adapter_name,
+        database: ActiveRecord::Base.connection_db_config.database
+      }
+    else
+      { adapter: 'configured' }
+    end
+  end
+
+  def limited_environment_info
+    # Security: Limit information exposure
     {
-      host: ActiveRecord::Base.connection_db_config.configuration_hash[:host],
-      port: ActiveRecord::Base.connection_db_config.configuration_hash[:port],
-      database: ActiveRecord::Base.connection_db_config.configuration_hash[:database]
+      rails_env: Rails.env,
+      healthy: true
     }
   end
 
   def environment_info
-    {
-      rails_env: Rails.env,
-      database_url_set: ENV['DATABASE_URL'].present?,
-      database_host_set: ENV['DATABASE_HOST'].present?,
-      database_port_set: ENV['DATABASE_PORT'].present?
-    }
+    # Security: Only show in development or with proper authentication
+    if Rails.env.development? || request.headers['Authorization'] == "Bearer #{ENV['HEALTH_CHECK_TOKEN']}"
+      {
+        rails_env: Rails.env,
+        database_url_set: ENV['DATABASE_URL'].present?,
+        database_host_set: ENV['DATABASE_HOST'].present?,
+        database_port_set: ENV['DATABASE_PORT'].present?
+      }
+    else
+      limited_environment_info
+    end
   end
 
   def render_database_error(exception)
-    render json: { 
-      status: 'error', 
-      message: "Database connection failed: #{exception.message}",
-      error_class: exception.class.name,
-      env: environment_info
-    }, status: :service_unavailable
+    # Security: Don't expose detailed error information in production
+    if Rails.env.production?
+      render json: { 
+        status: 'error', 
+        message: "Database connectivity issue"
+      }, status: :service_unavailable
+    else
+      render json: { 
+        status: 'error', 
+        message: "Database connection failed: #{exception.message}",
+        error_class: exception.class.name,
+        env: environment_info
+      }, status: :service_unavailable
+    end
   end
 end

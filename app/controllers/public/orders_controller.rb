@@ -172,11 +172,35 @@ module Public
 
     # GET /orders/:id  (guest view)
     def show
+      # Security: Validate parameter before database query
+      unless params[:id].present? && params[:id].to_i > 0
+        Rails.logger.warn "[SECURITY] Invalid order ID parameter in public orders: #{params[:id]}, IP: #{request.remote_ip}"
+        flash[:alert] = "Invalid order ID."
+        redirect_to tenant_root_path and return
+      end
+
+      # Security: Proper scoping to current tenant to prevent cross-tenant access
       @order = Order.includes(line_items: :product_variant).find_by(id: params[:id], business_id: current_tenant.id)
       unless @order
+        # Security: Log unauthorized access attempts
+        Rails.logger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, Tenant=#{current_tenant&.name}, IP=#{request.remote_ip}"
         flash[:alert] = 'Order not found'
         redirect_to tenant_root_path and return
       end
+
+      # Security: Additional authorization check for logged-in users
+      if current_user.present?
+        unless user_can_view_order?(@order)
+          Rails.logger.warn "[SECURITY] Unauthorized order access attempt: Order=#{@order.id}, User=#{current_user.email}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
+          flash[:alert] = "You are not authorized to view this order."
+          redirect_to tenant_root_path and return
+        end
+      else
+        # For guest users, we'll allow access but log it for monitoring
+        # Consider adding guest_access_token similar to invoices for better security
+        Rails.logger.info "[ORDER] Guest access to order: Order=#{@order.id}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
+      end
+      
       # Renders public/orders/show which renders orders/show
     end
 
@@ -196,6 +220,23 @@ module Public
         tenant_customer_attributes: [:id, :first_name, :last_name, :email, :phone],
         line_items_attributes:     [:id, :product_variant_id, :quantity, :_destroy]
       )
+    end
+
+    # Security: Helper method to check if user can view order
+    def user_can_view_order?(order)
+      return false unless current_user.present?
+      
+      # Business staff/managers can view all orders for their business
+      if current_user.staff? || current_user.manager?
+        return current_user.business_id == order.business_id
+      end
+      
+      # Clients can only view their own orders
+      if current_user.client?
+        return order.tenant_customer&.email == current_user.email
+      end
+      
+      false
     end
   end
 end

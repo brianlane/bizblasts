@@ -84,13 +84,23 @@ class ClientBookingsController < ApplicationController
   private
   
   def set_booking
-    # Ensure booking is scoped to the current_user's tenant_customer records across all their businesses
+    # Security: Validate parameter before database query
+    unless params[:id].present? && params[:id].to_i > 0
+      Rails.logger.warn "[SECURITY] Invalid booking ID parameter in client bookings: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
+      redirect_to client_bookings_path, alert: "Invalid booking ID." and return
+    end
+
+    # Security: Ensure booking is scoped to the current_user's tenant_customer records across all their businesses
     @booking = Booking.joins(:tenant_customer)
-                      .where(tenant_customers: { email: current_user.email })
-                      .includes(:service, :staff_member, :business, :tenant_customer, booking_product_add_ons: { product_variant: :product })
-                      .find_by(id: params[:id])
+                     .where(tenant_customers: { email: current_user.email })
+                     .includes(:service, :staff_member, :business, :tenant_customer, booking_product_add_ons: { product_variant: :product })
+                     .find_by(id: params[:id])
     
-    redirect_to client_bookings_path, alert: "Booking not found." unless @booking
+    unless @booking
+      # Security: Log unauthorized access attempts
+      Rails.logger.warn "[SECURITY] Client attempted to access unauthorized booking: ID=#{params[:id]}, User=#{current_user.email}, IP=#{request.remote_ip}"
+      redirect_to client_bookings_path, alert: "Booking not found." and return
+    end
   end
   
   def ensure_client_user
