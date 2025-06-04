@@ -27,7 +27,7 @@ $breadcrumbs-color: color.adjust($primary-color, $lightness: 20%) !default;
 $breadcrumbs-separator-color: color.adjust($primary-color, $lightness: 20%) !default;
 $required-field-marker: $error-color !default;
 $form-label-color: $section-header-text-color !default;
-$page-header-text-color: #cdcdcd !default;
+$page-header-text-color: #ffffff !default;
 
 // Revert to @import for ActiveAdmin files to resolve variable scope issues
 @import "active_admin/mixins";
@@ -54,6 +54,7 @@ body.active_admin {
 #header h1 {
   font-weight: normal;
   margin: 0;
+  color: white;
 }
 
 #header a, #header a:link, #header a:visited {
@@ -61,20 +62,85 @@ body.active_admin {
   text-decoration: none;
 }
 
+// Style the form title/header specifically for BizBlasts Admin Login with maximum specificity
+body.logged_out #login .panel_title,
+body.logged_out #login .header h3,
+body.logged_out #login h3,
+body.logged_out #login .panel .panel_title,
+body.logged_out #login .panel .header,
+body.logged_out #login .panel h2,
+body.logged_out #login .panel h3,
+body.logged_out div#login div.panel div.panel_title,
+body.logged_out div#login .panel_title,
+body.logged_out #login > .panel > .panel_title {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  margin-bottom: 30px !important;
+  margin-top: 0 !important;
+  padding: 15px 20px !important;
+  border-radius: 8px !important;
+  text-shadow: none !important;
+  border: none !important;
+  width: calc(100% + 0px) !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+// Force any nested elements to also be white
+body.logged_out #login .panel_title *,
+body.logged_out #login h2 *,
+body.logged_out #login h3 * {
+  color: #ffffff !important;
+}
+
+// Ensure the login panel itself has proper background
+#login .panel {
+  background: white !important;
+  border: none !important;
+}
+
+#login .panel_title {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
 // Login form specific styles
 body.logged_out {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding-top: 50px;
   min-height: 100vh;
+  
+  // Style flash messages to have white text - improved clarity
+  .flash_notice,
+  .flash_alert,
+  .flash,
+  #flash_notice,
+  #flash_alert {
+    color: #ffffff !important;
+    background: rgba(0, 0, 0, 0.25) !important; // Darker background for better contrast
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 8px !important;
+    padding: 16px 24px !important; // Increased padding
+    margin: 20px auto !important;
+    max-width: 400px !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+    font-size: 15px !important; // Slightly larger text
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important; // Subtle shadow
+    backdrop-filter: none !important; // Remove any blur effects
+  }
 }
 
 #login {
   max-width: 400px;
   margin: 0 auto;
-  background: white;
+  background: transparent !important; // Remove white background
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border-radius: 0 !important; // Remove border radius
+  box-shadow: none !important; // Remove shadow
 }
 
 #login h2 {
@@ -86,47 +152,44 @@ body.logged_out {
   font-weight: 600;
 }
 
-// Style the form title/header specifically for BizBlasts Admin Login
-#login .panel_title,
-#login .header h3,
-#login h3 {
-  color: #1a202c !important;
-  font-size: 24px !important;
-  font-weight: 600 !important;
-  text-align: center !important;
-  margin-bottom: 30px !important;
-  margin-top: 0 !important;
-}
-
-// Improve form field styling
+// Improve form field styling with better spacing
 #login form {
   .form-inputs {
     margin-bottom: 20px;
   }
   
   .input {
-    margin-bottom: 20px;
+    margin-bottom: 25px; // Increased spacing between form fields
     
     label {
-      color: #4a5568;
+      color: #ffffff !important; // White labels for contrast
       font-weight: 500;
-      margin-bottom: 5px;
+      margin-bottom: 8px !important; // Increased space between label and input
       display: block;
+      font-size: 14px;
     }
     
     input[type="email"],
     input[type="password"] {
       width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #d1d5db;
+      padding: 14px 18px; // Increased padding for better touch targets
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 8px;
       font-size: 16px;
       transition: border-color 0.2s, box-shadow 0.2s;
+      color: #333 !important;
+      background: rgba(255, 255, 255, 0.95) !important; // Slightly transparent white
+      box-sizing: border-box;
       
       &:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        border-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+        background: #ffffff !important; // Full white on focus
+      }
+      
+      &::placeholder {
+        color: #9ca3af;
       }
     }
   }
@@ -137,48 +200,81 @@ body.logged_out {
     input[type="submit"] {
       width: 100%;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      color: white !important;
       border: none;
-      padding: 14px 20px;
+      padding: 16px 20px; // Increased padding
       border-radius: 8px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s, transform 0.1s;
       
       &:hover {
         opacity: 0.9;
+        transform: translateY(-1px); // Subtle lift effect
       }
     }
   }
 }
 
-// Remember me checkbox styling
+// Remember me checkbox styling with better spacing
 #login .check_boxes {
   .choice {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 25px; // Increased spacing
+    margin-top: 20px; // Add top margin
     
     input[type="checkbox"] {
-      margin-right: 8px;
+      margin-right: 10px; // Increased spacing
     }
     
     label {
-      color: #4a5568;
+      color: #ffffff !important; // White text for contrast
       font-weight: normal;
       margin: 0;
+      font-size: 14px;
     }
   }
 }
 
 // Style any links in the login form
 #login a {
-  color: #667eea;
+  color: #ffffff !important; // White links for contrast
   text-decoration: none;
   
   &:hover {
     text-decoration: underline;
+    color: #f0f8ff !important; // Slightly lighter on hover
+  }
+}
+
+// Additional styling for better contrast
+body.logged_out {
+  #login {
+    // Ensure all text elements have proper contrast
+    p, span, div, label {
+      color: #4a5568 !important;
+    }
+    
+    // Success/error messages
+    .flash {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      
+      &.notice {
+        background: #d1fae5;
+        color: #065f46 !important;
+        border: 1px solid #a7f3d0;
+      }
+      
+      &.alert {
+        background: #fee2e2;
+        color: #991b1b !important;
+        border: 1px solid #fecaca;
+      }
+    }
   }
 }
 
@@ -190,4 +286,334 @@ body.logged_out {
 // Custom style to properly hide Formtastic input wrappers
 .input-hidden {
   display: none !important; // Use !important to override potential inline styles or other rules
+}
+
+// ULTRA SPECIFIC SELECTORS FOR LOGIN TITLE - FORCE WHITE TEXT
+// Using maximum CSS specificity to override any Active Admin defaults
+html body.logged_out #login .panel_title,
+html body.logged_out #login h2,
+html body.logged_out #login h3,
+html body.logged_out div#login div.panel div.panel_title,
+html body.logged_out div#login h2,
+html body.logged_out div#login h3,
+html body.logged_out #login .panel .panel_title,
+html body.logged_out #login .panel h2,
+html body.logged_out #login .panel h3,
+html body.logged_out div#login div h2,
+html body.logged_out div#login div h3,
+body.active_admin.logged_out #login h2,
+body.active_admin.logged_out #login h3,
+body.active_admin.logged_out #login .panel_title {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  text-shadow: none !important;
+  padding: 15px 20px !important;
+  margin: -40px -40px 30px -40px !important;
+  border-radius: 12px 12px 0 0 !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  display: block !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+// Force all child elements to be white too
+html body.logged_out #login .panel_title *,
+html body.logged_out #login h2 *,
+html body.logged_out #login h3 *,
+body.active_admin.logged_out #login h2 *,
+body.active_admin.logged_out #login h3 *,
+body.active_admin.logged_out #login .panel_title * {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+// ULTRA AGGRESSIVE LOGIN CONTAINER REMOVAL - USING SAME APPROACH AS TITLE
+// REMOVE WHITE RECTANGLE BACKGROUND COMPLETELY
+html body.logged_out #login,
+html body.logged_out div#login,
+body.active_admin.logged_out #login,
+body.active_admin.logged_out div#login {
+  background: transparent !important; // Remove white background completely
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important; // Remove rounded corners
+  box-shadow: none !important; // Remove shadow
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  padding: 40px !important; // Keep padding for spacing
+  max-width: 400px !important;
+  margin: 0 auto !important;
+}
+
+// REMOVE BACKGROUND FROM INNER PANEL BUT KEEP FORM VISIBLE
+html body.logged_out #login .panel,
+html body.logged_out div#login div.panel,
+body.active_admin.logged_out #login .panel,
+body.active_admin.logged_out #login form,
+html body.logged_out #login form,
+body.active_admin.logged_out #login form {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  padding: 0 !important;
+}
+
+// ULTRA AGGRESSIVE INPUT FIELD STYLING - PROPER CONTRAST
+html body.logged_out #login input[type="email"],
+html body.logged_out #login input[type="password"], 
+html body.logged_out #login input[type="text"],
+html body.logged_out div#login input[type="email"],
+html body.logged_out div#login input[type="password"],
+html body.logged_out div#login input[type="text"],
+body.active_admin.logged_out #login input[type="email"],
+body.active_admin.logged_out #login input[type="password"],
+body.active_admin.logged_out #login input[type="text"],
+body.active_admin.logged_out #login .input input,
+html body.logged_out #login .input input {
+  color: #333333 !important; // Dark text for visibility
+  background: #ffffff !important; // Solid white background
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important; // Visible gray border
+  border-radius: 8px !important;
+  padding: 14px 18px !important;
+  font-size: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+}
+
+// INPUT FOCUS STATES
+html body.logged_out #login input[type="email"]:focus,
+html body.logged_out #login input[type="password"]:focus,
+html body.logged_out #login input[type="text"]:focus,
+body.active_admin.logged_out #login input[type="email"]:focus,
+body.active_admin.logged_out #login input[type="password"]:focus,
+body.active_admin.logged_out #login input[type="text"]:focus {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #667eea !important; // Blue border on focus
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important; // Blue glow
+  outline: none !important;
+}
+
+// ULTRA AGGRESSIVE LABEL AND TEXT STYLING - BETTER SPACING
+html body.logged_out #login label,
+html body.logged_out div#login label,
+html body.logged_out #login .input label,
+html body.logged_out #login form label,
+html body.logged_out #login .form-inputs label,
+html body.logged_out #login .check_boxes label,
+body.active_admin.logged_out #login label,
+body.active_admin.logged_out div#login label,
+body.active_admin.logged_out #login .input label,
+body.active_admin.logged_out #login form label {
+  color: #333333 !important; // Dark gray labels for visibility on white background
+  text-shadow: none !important;
+  font-weight: 500 !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+  font-size: 14px !important;
+}
+
+// FORM FIELD CONTAINERS - BETTER SPACING
+html body.logged_out #login .input,
+html body.logged_out #login .form-inputs .input,
+body.active_admin.logged_out #login .input,
+body.active_admin.logged_out #login .form-inputs .input {
+  margin-bottom: 25px !important;
+}
+
+// FORM CONTAINER OVERALL SPACING
+html body.logged_out #login .form-inputs,
+body.active_admin.logged_out #login .form-inputs {
+  margin-bottom: 20px !important;
+}
+
+// ACTIONS CONTAINER
+html body.logged_out #login .actions,
+body.active_admin.logged_out #login .actions {
+  margin-top: 30px !important;
+}
+
+// SUBMIT BUTTON STYLING
+html body.logged_out #login input[type="submit"],
+html body.logged_out #login .actions input[type="submit"],
+body.active_admin.logged_out #login input[type="submit"],
+body.active_admin.logged_out #login .actions input[type="submit"] {
+  width: 100% !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background-color: transparent !important;
+  color: white !important;
+  border: none !important;
+  padding: 16px 20px !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s, transform 0.1s !important;
+}
+
+html body.logged_out #login input[type="submit"]:hover,
+body.active_admin.logged_out #login input[type="submit"]:hover {
+  opacity: 0.9 !important;
+  transform: translateY(-1px) !important;
+}
+
+// CHECKBOX STYLING WITH BETTER SPACING - ULTRA SPECIFIC APPROACH
+html body.logged_out #login .check_boxes .choice,
+html body.logged_out div#login .check_boxes .choice,
+body.active_admin.logged_out #login .check_boxes .choice,
+body.active_admin.logged_out div#login .check_boxes .choice,
+html body.logged_out #login .check_boxes,
+body.active_admin.logged_out #login .check_boxes {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important; // Left align
+  margin-bottom: 25px !important;
+  margin-top: 20px !important;
+  flex-direction: row !important; // Ensure horizontal layout
+  text-align: left !important;
+}
+
+html body.logged_out #login .check_boxes .choice input[type="checkbox"],
+html body.logged_out div#login .check_boxes .choice input[type="checkbox"],
+body.active_admin.logged_out #login .check_boxes .choice input[type="checkbox"],
+body.active_admin.logged_out div#login .check_boxes .choice input[type="checkbox"],
+html body.logged_out #login input[type="checkbox"],
+body.active_admin.logged_out #login input[type="checkbox"] {
+  margin-right: 10px !important;
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-left: 0 !important;
+  flex-shrink: 0 !important; // Prevent checkbox from shrinking
+  width: auto !important;
+  height: auto !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+// FORCE CHECKBOX TEXT TO BE DARK AND VISIBLE - ULTRA SPECIFIC APPROACH
+html body.logged_out #login .check_boxes .choice label,
+html body.logged_out #login input[type="checkbox"] + label,
+html body.logged_out div#login .check_boxes .choice label,
+html body.logged_out div#login input[type="checkbox"] + label,
+body.active_admin.logged_out #login .check_boxes .choice label,
+body.active_admin.logged_out #login input[type="checkbox"] + label,
+body.active_admin.logged_out div#login .check_boxes .choice label,
+body.active_admin.logged_out div#login input[type="checkbox"] + label {
+  color: #333333 !important; // Dark text for visibility
+  text-shadow: none !important;
+  font-weight: normal !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  font-size: 14px !important;
+  display: inline-block !important; // Inline for horizontal alignment
+  vertical-align: middle !important; // Center with checkbox
+  line-height: 1.4 !important; // Better line height
+  text-align: left !important;
+}
+
+// FORCE ALL LINKS TO BE DARK AND VISIBLE
+html body.logged_out #login a,
+html body.logged_out div#login a,
+body.active_admin.logged_out #login a,
+body.active_admin.logged_out div#login a {
+  color: #4a5568 !important; // Dark gray for visibility
+  text-shadow: none !important;
+  text-decoration: none !important;
+}
+
+html body.logged_out #login a:hover,
+body.active_admin.logged_out #login a:hover {
+  text-decoration: underline !important;
+  color: #2d3748 !important; // Darker on hover
+}
+
+// FORCE FLASH MESSAGES TO BE CLEAR AND READABLE - NO BLUR
+html body.logged_out .flash_notice,
+html body.logged_out .flash_alert,
+html body.logged_out .flash,
+html body.logged_out #flash_notice,
+html body.logged_out #flash_alert,
+body.active_admin.logged_out .flash_notice,
+body.active_admin.logged_out .flash_alert,
+body.active_admin.logged_out .flash {
+  color: #ffffff !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 8px !important;
+  padding: 16px 24px !important;
+  margin: 20px auto !important;
+  max-width: 400px !important;
+  text-align: center !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
+// ULTRA AGGRESSIVE WHITE CONTAINER REMOVAL - TARGET ALL POSSIBLE ELEMENTS
+html body.logged_out #wrapper,
+html body.logged_out div#wrapper,
+html body.logged_out #active_admin_content,
+html body.logged_out div#active_admin_content,
+html body.logged_out .content_wrapper,
+html body.logged_out div.content_wrapper,
+body.active_admin.logged_out #wrapper,
+body.active_admin.logged_out div#wrapper,
+body.active_admin.logged_out #active_admin_content,
+body.active_admin.logged_out div#active_admin_content,
+body.active_admin.logged_out .content_wrapper,
+body.active_admin.logged_out div.content_wrapper {
+  background: transparent !important; // Remove all white backgrounds
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
+// ADD WHITE BACKGROUND TO LOGIN FORM AREA ONLY
+html body.logged_out #login,
+html body.logged_out div#login,
+body.active_admin.logged_out #login,
+body.active_admin.logged_out div#login {
+  background: rgba(255, 255, 255, 0.95) !important; // Semi-transparent white for form area
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border: none !important;
+  border-radius: 12px !important; // Rounded corners for modern look
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important; // Subtle shadow
+  -webkit-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  -moz-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  padding: 40px !important; // Keep padding for spacing
+  max-width: 400px !important;
+  margin: 0 auto !important;
+}
+
+// KEEP INNER PANELS TRANSPARENT
+html body.logged_out #login .panel,
+html body.logged_out div#login div.panel,
+body.active_admin.logged_out #login .panel,
+body.active_admin.logged_out div#login div.panel {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  padding: 0 !important;
 }

@@ -22,11 +22,81 @@ ActiveAdmin.setup do |config|
   # Add custom CSS for better login styling
   custom_css = <<~CSS
     <style>
-      body.logged_out #login .panel_title,
+      /* Universal approach - target all text elements on login page */
+      body.logged_out {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      
+      /* Force white text on ALL elements within the login form */
+      body.logged_out #login,
+      body.logged_out #login *,
+      body.logged_out #login h1,
       body.logged_out #login h2,
-      body.logged_out #login h3 {
-        color: #1a202c !important;
+      body.logged_out #login h3,
+      body.logged_out #login h4,
+      body.logged_out #login h5,
+      body.logged_out #login h6,
+      body.logged_out #login .panel,
+      body.logged_out #login .panel *,
+      body.logged_out #login .panel h1,
+      body.logged_out #login .panel h2,
+      body.logged_out #login .panel h3,
+      body.logged_out #login div,
+      body.logged_out #login div * {
+        color: #ffffff !important;
         text-shadow: none !important;
+      }
+      
+      /* Specific styling for the container */
+      body.logged_out #login .panel {
+        background: white !important;
+        border-radius: 12px !important;
+        padding: 40px !important;
+        max-width: 400px !important;
+        margin: 0 auto !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+      }
+      
+      /* Force the title area to have gradient background */
+      body.logged_out #login .panel > *:first-child,
+      body.logged_out #login > *:first-child {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: #ffffff !important;
+        padding: 15px 20px !important;
+        margin: -40px -40px 30px -40px !important;
+        border-radius: 12px 12px 0 0 !important;
+        text-align: center !important;
+        font-weight: 600 !important;
+      }
+      
+      /* Flash messages */
+      body.logged_out .flash_notice,
+      body.logged_out .flash_alert,
+      body.logged_out .flash,
+      body.logged_out #flash_notice,
+      body.logged_out #flash_alert {
+        color: #ffffff !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 8px !important;
+        padding: 12px 20px !important;
+        margin: 20px auto !important;
+        max-width: 400px !important;
+        text-align: center !important;
+        font-weight: 500 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      }
+      
+      /* Ensure inputs and labels are readable */
+      body.logged_out #login input,
+      body.logged_out #login textarea,
+      body.logged_out #login select {
+        color: #333 !important;
+        background: white !important;
+      }
+      
+      body.logged_out #login label {
+        color: #4a5568 !important;
       }
     </style>
   CSS
@@ -213,7 +283,7 @@ ActiveAdmin.setup do |config|
 
   # == Setting a Favicon
   #
-  config.favicon = 'icon.png'
+  config.favicon = 'icon.svg'
 
   # == Meta Tags
   #
