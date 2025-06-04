@@ -137,6 +137,13 @@
     transform: translateX(0);
   }
   
+  /* Ensure sign out button is always visible in sidebar */
+  #sidebar .flex-shrink-0 {
+    position: sticky;
+    bottom: 0;
+    background-color: #1f2937; /* gray-800 - match sidebar background */
+  }
+  
   /* Ensure mobile cards have proper touch targets */
   .mobile-card-action {
     min-height: 44px;
