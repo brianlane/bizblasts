@@ -4,13 +4,99 @@
   <!-- Customer Selection -->
   <div class="mb-4">
     <%= f.label :tenant_customer_id, 'Customer', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-    <select name="order[tenant_customer_id]" id="order_tenant_customer_id" class="form-select rounded border px-3 py-2 w-full">
-      <option value="">Select existing customer</option>
-      <% @customers.each do |c| %>
-        <option value="<%= c.id %>" <%= 'selected' if @order.tenant_customer_id == c.id %>><%= c.name %> (<%= c.email %>)</option>
-      <% end %>
-      <option value="new">Create new customer</option>
-    </select>
+    
+    <!-- Custom Customer Dropdown -->
+    <div class="customer-dropdown relative">
+      <button type="button" 
+              class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+              data-customer-dropdown-target="button">
+        <span class="customer-dropdown-text text-gray-900">
+          <% if @order.tenant_customer_id.present? && @order.tenant_customer_id != "new" %>
+            <% customer = @customers.find { |c| c.id == @order.tenant_customer_id } %>
+            <%= customer ? "#{customer.name} (#{customer.email})" : 'Select existing customer' %>
+          <% elsif @order.tenant_customer_id == "new" %>
+            Create new customer
+          <% else %>
+            Select existing customer
+          <% end %>
+        </span>
+        <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </span>
+      </button>
+      
+      <!-- Dropdown Menu -->
+      <div class="customer-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+           data-customer-dropdown-target="menu">
+        
+        <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+             data-customer-id=""
+             data-customer-name="Select existing customer"
+             data-customer-dropdown-target="option">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="font-medium text-gray-500">Select existing customer</div>
+            </div>
+          </div>
+          <% if @order.tenant_customer_id.blank? %>
+            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          <% end %>
+        </div>
+        
+        <% @customers.each do |customer| %>
+          <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-customer-id="<%= customer.id %>"
+               data-customer-name="<%= customer.name %> (<%= customer.email %>)"
+               data-customer-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-900"><%= customer.name %></div>
+                <% if customer.email.present? %>
+                  <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
+                <% end %>
+                <% if customer.phone.present? %>
+                  <div class="text-xs text-gray-400 mt-1"><%= customer.phone %></div>
+                <% end %>
+              </div>
+            </div>
+            <% if @order.tenant_customer_id == customer.id %>
+              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+        
+        <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+             data-customer-id="new"
+             data-customer-name="Create new customer"
+             data-customer-dropdown-target="option">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="font-medium text-blue-600">+ Create new customer</div>
+            </div>
+          </div>
+          <% if @order.tenant_customer_id == "new" %>
+            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Hidden field to store the selected customer ID -->
+    <%= f.hidden_field :tenant_customer_id, id: "order_tenant_customer_id" %>
   </div>
   <div id="new-customer-fields" class="hidden mb-4">
     <h3 class="text-lg font-medium mb-2">New Customer Details</h3>
@@ -163,7 +249,7 @@
                 <div class="flex-1">
                   <div class="font-medium text-gray-900"><%= tax_rate.name %></div>
                   <% if tax_rate.respond_to?(:rate) && tax_rate.rate.present? %>
-                    <div class="text-sm text-gray-500 mt-1"><%= "#{tax_rate.rate}%" %></div>
+                    <div class="text-sm text-gray-500 mt-1"><%= number_to_percentage(tax_rate.rate * 100, precision: 2) %></div>
                   <% end %>
                 </div>
               </div>
@@ -388,10 +474,10 @@
 // Dynamic order form behavior
 (function() {
   document.addEventListener('DOMContentLoaded', function() {
-    // Use the reusable CustomerFormHelper for customer field toggling
-    if (window.CustomerFormHelper) {
-      CustomerFormHelper.initializeOrderForm();
-    }
+    // Customer form handling now done by custom dropdown JavaScript below
+    // if (window.CustomerFormHelper) {
+    //   CustomerFormHelper.initializeOrderForm();
+    // }
 
     // Line-items dynamic behavior
     const addBtn = document.getElementById('add-product-btn');
@@ -696,6 +782,87 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!taxDropdownButton.contains(e.target) && !taxDropdownMenu.contains(e.target)) {
         taxDropdownMenu.classList.add('hidden');
         taxDropdownArrow?.classList.remove('rotate-180');
+      }
+    });
+  }
+  
+  // Customer Dropdown
+  const customerDropdownButton = document.querySelector('[data-customer-dropdown-target="button"]');
+  const customerDropdownMenu = document.querySelector('[data-customer-dropdown-target="menu"]');
+  const customerDropdownOptions = document.querySelectorAll('[data-customer-dropdown-target="option"]');
+  const customerDropdownText = document.querySelector('.customer-dropdown-text');
+  const customerDropdownArrow = customerDropdownButton?.querySelector('svg');
+  const customerHiddenField = document.getElementById('order_tenant_customer_id');
+  const newCustomerFields = document.getElementById('new-customer-fields');
+  
+  if (customerDropdownButton && customerDropdownMenu) {
+    // Toggle dropdown
+    customerDropdownButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      const isHidden = customerDropdownMenu.classList.contains('hidden');
+      
+      if (isHidden) {
+        customerDropdownMenu.classList.remove('hidden');
+        customerDropdownArrow?.classList.add('rotate-180');
+      } else {
+        customerDropdownMenu.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+      }
+    });
+    
+    // Handle option selection
+    customerDropdownOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const customerId = this.getAttribute('data-customer-id');
+        const customerName = this.getAttribute('data-customer-name');
+        
+        // Update hidden field
+        if (customerHiddenField) {
+          customerHiddenField.value = customerId;
+        }
+        
+        // Update button text
+        if (customerDropdownText) {
+          customerDropdownText.textContent = customerName;
+        }
+        
+        // Update selection indicators
+        customerDropdownOptions.forEach(opt => {
+          const checkmark = opt.querySelector('svg');
+          if (checkmark) {
+            checkmark.classList.add('hidden');
+          }
+        });
+        
+        const selectedCheckmark = this.querySelector('svg');
+        if (selectedCheckmark) {
+          selectedCheckmark.classList.remove('hidden');
+        }
+        
+        // Toggle new customer fields visibility
+        if (newCustomerFields) {
+          if (customerId === 'new') {
+            newCustomerFields.classList.remove('hidden');
+            newCustomerFields.style.display = '';
+          } else {
+            newCustomerFields.classList.add('hidden');
+            newCustomerFields.style.display = 'none';
+          }
+        }
+        
+        // Close dropdown
+        customerDropdownMenu.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+      });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!customerDropdownButton.contains(e.target) && !customerDropdownMenu.contains(e.target)) {
+        customerDropdownMenu.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
       }
     });
   }

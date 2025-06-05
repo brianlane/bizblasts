@@ -87,9 +87,9 @@ RSpec.describe "BusinessManager::Services", type: :system do
         expect(page).to have_content('Inactive') # Active should be false
       end
       
-      # Check for Featured status being "Active" in the service row  
+      # Check for Featured status being "Featured" in the service row  
       within("#service_#{updated_service.id}") do
-        expect(page).to have_content('Active') # Featured should be true
+        expect(page).to have_content('Featured') # Featured should be true
       end
       # Delete - verify the delete link exists (UI verification)
       within("#service_#{updated_service.id}") do
