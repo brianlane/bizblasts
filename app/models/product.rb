@@ -38,6 +38,7 @@ class Product < ApplicationRecord
                      size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
   
   validate :image_size_validation
+  validate :validate_pending_image_attributes
   validate :image_format_validation
 
   # TODO: Add method or validation for primary image designation if needed
@@ -110,6 +111,9 @@ class Product < ApplicationRecord
     attrs_list = attrs.is_a?(Hash) ? attrs.values : Array(attrs)
     return if attrs_list.empty?
 
+    # Store attributes for validation
+    @pending_image_attributes = attrs_list
+
     # Process deletions first
     attrs_list.each do |image_attrs|
       next unless image_attrs[:id].present? && ActiveModel::Type::Boolean.new.cast(image_attrs[:_destroy])
@@ -154,6 +158,62 @@ class Product < ApplicationRecord
   end
 
   private
+
+  def validate_pending_image_attributes
+    return unless @pending_image_attributes
+    
+    validation_errors = validate_image_attributes(@pending_image_attributes)
+    validation_errors.each { |error| errors.add(:images, error) }
+    @pending_image_attributes = nil # Clear after validation
+  end
+
+  def validate_image_attributes(attrs_list)
+    errors = []
+    
+    # Get IDs that aren't being destroyed
+    image_ids = attrs_list
+      .reject { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
+      .map { |attrs| attrs[:id] }
+      .compact
+      .map(&:to_i)
+    
+    return errors if image_ids.empty?
+    
+    # Check for non-existent image IDs
+    existing_attachment_ids = images.attachments.pluck(:id)
+    image_ids.each do |id|
+      unless existing_attachment_ids.include?(id)
+        errors << "Image must exist"
+        break
+      end
+    end
+    
+    # Check for duplicate image IDs
+    if image_ids.uniq.length != image_ids.length
+      errors << "Image IDs must be unique"
+    end
+    
+    # Check if we're trying to reorder images and have all image IDs
+    positions = attrs_list
+      .reject { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
+      .map { |attrs| attrs[:position] }
+      .compact
+    
+    if positions.any? && image_ids.sort != existing_attachment_ids.sort
+      errors << "Image IDs are incomplete"
+    end
+    
+    # Check if image IDs belong to this product
+    image_ids.each do |id|
+      attachment = ActiveStorage::Attachment.find_by(id: id)
+      if attachment && attachment.record != self
+        errors << "Image must belong to the product"
+        break
+      end
+    end
+    
+    errors
+  end
 
   def image_size_validation
     images.each do |image|
