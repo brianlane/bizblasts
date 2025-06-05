@@ -179,12 +179,25 @@ class Product < ApplicationRecord
     
     return errors if image_ids.empty?
     
-    # Check for non-existent image IDs
+    # Check for non-existent image IDs (only for non-deletion operations)
     existing_attachment_ids = images.attachments.pluck(:id)
-    image_ids.each do |id|
+    
+    # Only validate existence for operations that require the image to exist
+    # (like setting primary or position), not for deletions which should be graceful
+    non_deletion_attrs = attrs_list.reject { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
+    has_deletions = attrs_list.any? { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
+    
+    non_deletion_attrs.each do |attrs|
+      id = attrs[:id].to_i
+      next unless id > 0 # Skip invalid IDs
+      
       unless existing_attachment_ids.include?(id)
-        errors << "Image must exist"
-        break
+        # Only error if we're trying to set properties on a non-existent image
+        # But be more forgiving in mixed operations (deletion + other operations)
+        if (attrs.key?(:primary) || attrs.key?(:position)) && !has_deletions
+          errors << "Image must exist"
+          break
+        end
       end
     end
     
