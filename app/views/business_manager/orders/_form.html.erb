@@ -38,11 +38,149 @@
   <div class="grid grid-cols-2 gap-4 mb-4">
     <div>
       <%= f.label :shipping_method_id, 'Shipping Method', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-      <%= f.collection_select :shipping_method_id, @shipping_methods, :id, :name, { prompt: 'Select shipping' }, class: 'form-select rounded border px-3 py-2 w-full' %>
+      
+      <!-- Custom Shipping Method Dropdown -->
+      <div class="shipping-dropdown relative">
+        <button type="button" 
+                class="shipping-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                data-shipping-dropdown-target="button">
+          <span class="shipping-dropdown-text text-gray-900">
+            <% if @order.shipping_method_id.present? %>
+              <% shipping_method = @shipping_methods.find { |sm| sm.id == @order.shipping_method_id } %>
+              <%= shipping_method&.name || 'Select shipping' %>
+            <% else %>
+              Select shipping
+            <% end %>
+          </span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        
+        <!-- Dropdown Menu -->
+        <div class="shipping-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-shipping-dropdown-target="menu">
+          
+          <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-shipping-id=""
+               data-shipping-name="Select shipping"
+               data-shipping-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-500">Select shipping</div>
+              </div>
+            </div>
+            <% if @order.shipping_method_id.blank? %>
+              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </span>
+            <% end %>
+          </div>
+          
+          <% @shipping_methods.each do |shipping_method| %>
+            <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-shipping-id="<%= shipping_method.id %>"
+                 data-shipping-name="<%= shipping_method.name %>"
+                 data-shipping-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900"><%= shipping_method.name %></div>
+                  <% if shipping_method.respond_to?(:cost) && shipping_method.cost.present? %>
+                    <div class="text-sm text-gray-500 mt-1"><%= number_to_currency(shipping_method.cost) %></div>
+                  <% end %>
+                </div>
+              </div>
+              <% if @order.shipping_method_id == shipping_method.id %>
+                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Hidden field to store the selected shipping method ID -->
+      <%= f.hidden_field :shipping_method_id, id: "order_shipping_method_id" %>
     </div>
     <div>
       <%= f.label :tax_rate_id, 'Tax Rate', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-      <%= f.collection_select :tax_rate_id, @tax_rates, :id, :name, { prompt: 'Select tax rate' }, class: 'form-select rounded border px-3 py-2 w-full' %>
+      
+      <!-- Custom Tax Rate Dropdown -->
+      <div class="tax-dropdown relative">
+        <button type="button" 
+                class="tax-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                data-tax-dropdown-target="button">
+          <span class="tax-dropdown-text text-gray-900">
+            <% if @order.tax_rate_id.present? %>
+              <% tax_rate = @tax_rates.find { |tr| tr.id == @order.tax_rate_id } %>
+              <%= tax_rate&.name || 'Select tax rate' %>
+            <% else %>
+              Select tax rate
+            <% end %>
+          </span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        
+        <!-- Dropdown Menu -->
+        <div class="tax-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-tax-dropdown-target="menu">
+          
+          <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-tax-id=""
+               data-tax-name="Select tax rate"
+               data-tax-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-500">Select tax rate</div>
+              </div>
+            </div>
+            <% if @order.tax_rate_id.blank? %>
+              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </span>
+            <% end %>
+          </div>
+          
+          <% @tax_rates.each do |tax_rate| %>
+            <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-tax-id="<%= tax_rate.id %>"
+                 data-tax-name="<%= tax_rate.name %>"
+                 data-tax-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900"><%= tax_rate.name %></div>
+                  <% if tax_rate.respond_to?(:rate) && tax_rate.rate.present? %>
+                    <div class="text-sm text-gray-500 mt-1"><%= "#{tax_rate.rate}%" %></div>
+                  <% end %>
+                </div>
+              </div>
+              <% if @order.tax_rate_id == tax_rate.id %>
+                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Hidden field to store the selected tax rate ID -->
+      <%= f.hidden_field :tax_rate_id, id: "order_tax_rate_id" %>
     </div>
   </div>
 
@@ -420,5 +558,146 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize existing service rows
   svcBody.querySelectorAll('tr').forEach(bindSvcRow);
+});
+
+// Shipping and Tax Rate Dropdown Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Shipping Method Dropdown
+  const shippingDropdownButton = document.querySelector('[data-shipping-dropdown-target="button"]');
+  const shippingDropdownMenu = document.querySelector('[data-shipping-dropdown-target="menu"]');
+  const shippingDropdownOptions = document.querySelectorAll('[data-shipping-dropdown-target="option"]');
+  const shippingDropdownText = document.querySelector('.shipping-dropdown-text');
+  const shippingDropdownArrow = shippingDropdownButton?.querySelector('svg');
+  const shippingHiddenField = document.getElementById('order_shipping_method_id');
+  
+  if (shippingDropdownButton && shippingDropdownMenu) {
+    // Toggle dropdown
+    shippingDropdownButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      const isHidden = shippingDropdownMenu.classList.contains('hidden');
+      
+      if (isHidden) {
+        shippingDropdownMenu.classList.remove('hidden');
+        shippingDropdownArrow?.classList.add('rotate-180');
+      } else {
+        shippingDropdownMenu.classList.add('hidden');
+        shippingDropdownArrow?.classList.remove('rotate-180');
+      }
+    });
+    
+    // Handle option selection
+    shippingDropdownOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const shippingId = this.getAttribute('data-shipping-id');
+        const shippingName = this.getAttribute('data-shipping-name');
+        
+        // Update hidden field
+        if (shippingHiddenField) {
+          shippingHiddenField.value = shippingId;
+        }
+        
+        // Update button text
+        if (shippingDropdownText) {
+          shippingDropdownText.textContent = shippingName;
+        }
+        
+        // Update selection indicators
+        shippingDropdownOptions.forEach(opt => {
+          const checkmark = opt.querySelector('svg');
+          if (checkmark) {
+            checkmark.classList.add('hidden');
+          }
+        });
+        
+        const selectedCheckmark = this.querySelector('svg');
+        if (selectedCheckmark) {
+          selectedCheckmark.classList.remove('hidden');
+        }
+        
+        // Close dropdown
+        shippingDropdownMenu.classList.add('hidden');
+        shippingDropdownArrow?.classList.remove('rotate-180');
+      });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!shippingDropdownButton.contains(e.target) && !shippingDropdownMenu.contains(e.target)) {
+        shippingDropdownMenu.classList.add('hidden');
+        shippingDropdownArrow?.classList.remove('rotate-180');
+      }
+    });
+  }
+  
+  // Tax Rate Dropdown
+  const taxDropdownButton = document.querySelector('[data-tax-dropdown-target="button"]');
+  const taxDropdownMenu = document.querySelector('[data-tax-dropdown-target="menu"]');
+  const taxDropdownOptions = document.querySelectorAll('[data-tax-dropdown-target="option"]');
+  const taxDropdownText = document.querySelector('.tax-dropdown-text');
+  const taxDropdownArrow = taxDropdownButton?.querySelector('svg');
+  const taxHiddenField = document.getElementById('order_tax_rate_id');
+  
+  if (taxDropdownButton && taxDropdownMenu) {
+    // Toggle dropdown
+    taxDropdownButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      const isHidden = taxDropdownMenu.classList.contains('hidden');
+      
+      if (isHidden) {
+        taxDropdownMenu.classList.remove('hidden');
+        taxDropdownArrow?.classList.add('rotate-180');
+      } else {
+        taxDropdownMenu.classList.add('hidden');
+        taxDropdownArrow?.classList.remove('rotate-180');
+      }
+    });
+    
+    // Handle option selection
+    taxDropdownOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const taxId = this.getAttribute('data-tax-id');
+        const taxName = this.getAttribute('data-tax-name');
+        
+        // Update hidden field
+        if (taxHiddenField) {
+          taxHiddenField.value = taxId;
+        }
+        
+        // Update button text
+        if (taxDropdownText) {
+          taxDropdownText.textContent = taxName;
+        }
+        
+        // Update selection indicators
+        taxDropdownOptions.forEach(opt => {
+          const checkmark = opt.querySelector('svg');
+          if (checkmark) {
+            checkmark.classList.add('hidden');
+          }
+        });
+        
+        const selectedCheckmark = this.querySelector('svg');
+        if (selectedCheckmark) {
+          selectedCheckmark.classList.remove('hidden');
+        }
+        
+        // Close dropdown
+        taxDropdownMenu.classList.add('hidden');
+        taxDropdownArrow?.classList.remove('rotate-180');
+      });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!taxDropdownButton.contains(e.target) && !taxDropdownMenu.contains(e.target)) {
+        taxDropdownMenu.classList.add('hidden');
+        taxDropdownArrow?.classList.remove('rotate-180');
+      }
+    });
+  }
 });
 </script> 

@@ -15,7 +15,79 @@
   <div class="mb-4">
     <%# Assuming linking to an existing User record %>
     <%= form.label :user_id, "Select User", class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= form.collection_select :user_id, User.where(role: 'staff').order(:email), :id, :email, { prompt: 'Select an existing user' }, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    
+    <!-- Custom User Dropdown -->
+    <div class="user-dropdown relative">
+      <button type="button" 
+              class="user-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+              data-user-dropdown-target="button">
+        <span class="user-dropdown-text text-gray-900">
+          <% if staff_member.user_id.present? %>
+            <% user = User.find(staff_member.user_id) %>
+            <%= user.email %>
+          <% else %>
+            Select an existing user
+          <% end %>
+        </span>
+        <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </span>
+      </button>
+      
+      <!-- Dropdown Menu -->
+      <div class="user-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+           data-user-dropdown-target="menu">
+        
+        <div class="user-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+             data-user-id=""
+             data-user-email="Select an existing user"
+             data-user-dropdown-target="option">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="font-medium text-gray-500">Select an existing user</div>
+            </div>
+          </div>
+          <% if staff_member.user_id.blank? %>
+            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          <% end %>
+        </div>
+        
+        <% User.where(role: 'staff').order(:email).each do |user| %>
+          <div class="user-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-user-id="<%= user.id %>"
+               data-user-email="<%= user.email %>"
+               data-user-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-900"><%= user.email %></div>
+                <% if user.first_name.present? || user.last_name.present? %>
+                  <div class="text-sm text-gray-500 mt-1"><%= "#{user.first_name} #{user.last_name}".strip %></div>
+                <% end %>
+                <% if user.created_at.present? %>
+                  <div class="text-xs text-gray-400 mt-1">Joined <%= user.created_at.strftime("%B %Y") %></div>
+                <% end %>
+              </div>
+            </div>
+            <% if staff_member.user_id == user.id %>
+              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Hidden field to store the selected user ID -->
+    <%= form.hidden_field :user_id, id: "staff_member_user_id" %>
     <%# Consider adding a link/flow to invite/create new Users if needed %> 
   </div>
 
@@ -66,4 +138,77 @@
   <div class="actions">
     <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
   </div>
-<% end %> 
+<% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // User Dropdown Functionality
+    const userDropdownButton = document.querySelector('[data-user-dropdown-target="button"]');
+    const userDropdownMenu = document.querySelector('[data-user-dropdown-target="menu"]');
+    const userDropdownOptions = document.querySelectorAll('[data-user-dropdown-target="option"]');
+    const userDropdownText = document.querySelector('.user-dropdown-text');
+    const userDropdownArrow = userDropdownButton?.querySelector('svg');
+    const userHiddenField = document.getElementById('staff_member_user_id');
+    
+    if (userDropdownButton && userDropdownMenu) {
+      // Toggle dropdown
+      userDropdownButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        const isHidden = userDropdownMenu.classList.contains('hidden');
+        
+        if (isHidden) {
+          userDropdownMenu.classList.remove('hidden');
+          userDropdownArrow?.classList.add('rotate-180');
+        } else {
+          userDropdownMenu.classList.add('hidden');
+          userDropdownArrow?.classList.remove('rotate-180');
+        }
+      });
+      
+      // Handle option selection
+      userDropdownOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const userId = this.getAttribute('data-user-id');
+          const userEmail = this.getAttribute('data-user-email');
+          
+          // Update hidden field
+          if (userHiddenField) {
+            userHiddenField.value = userId;
+          }
+          
+          // Update button text
+          if (userDropdownText) {
+            userDropdownText.textContent = userEmail;
+          }
+          
+          // Update selection indicators
+          userDropdownOptions.forEach(opt => {
+            const checkmark = opt.querySelector('svg');
+            if (checkmark) {
+              checkmark.classList.add('hidden');
+            }
+          });
+          
+          const selectedCheckmark = this.querySelector('svg');
+          if (selectedCheckmark) {
+            selectedCheckmark.classList.remove('hidden');
+          }
+          
+          // Close dropdown
+          userDropdownMenu.classList.add('hidden');
+          userDropdownArrow?.classList.remove('rotate-180');
+        });
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!userDropdownButton.contains(e.target) && !userDropdownMenu.contains(e.target)) {
+          userDropdownMenu.classList.add('hidden');
+          userDropdownArrow?.classList.remove('rotate-180');
+        }
+      });
+    }
+  });
+</script> 

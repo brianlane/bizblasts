@@ -12,7 +12,84 @@
 
   <div class="mb-4">
     <%= form.label :kind, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.select :kind, Integration.kinds.keys.map { |k| [k.humanize.titleize, k] }, { prompt: 'Select an integration type' }, class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" %>
+    
+    <!-- Custom Integration Type Dropdown -->
+    <div class="integration-dropdown relative">
+      <button type="button" 
+              class="integration-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base min-h-[48px]"
+              data-integration-dropdown-target="button">
+        <span class="integration-dropdown-text text-gray-900">
+          <% if integration.kind.present? %>
+            <%= integration.kind.humanize.titleize %>
+          <% else %>
+            Select an integration type
+          <% end %>
+        </span>
+        <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </span>
+      </button>
+      
+      <!-- Dropdown Menu -->
+      <div class="integration-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+           data-integration-dropdown-target="menu">
+        
+        <div class="integration-option cursor-pointer select-none relative py-3 px-3 hover:bg-indigo-50 transition-colors"
+             data-integration-value=""
+             data-integration-name="Select an integration type"
+             data-integration-dropdown-target="option">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="font-medium text-gray-500">Select an integration type</div>
+            </div>
+          </div>
+          <% if integration.kind.blank? %>
+            <span class="absolute inset-y-0 right-2 flex items-center text-indigo-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          <% end %>
+        </div>
+        
+        <% Integration.kinds.keys.each do |kind| %>
+          <div class="integration-option cursor-pointer select-none relative py-3 px-3 hover:bg-indigo-50 transition-colors"
+               data-integration-value="<%= kind %>"
+               data-integration-name="<%= kind.humanize.titleize %>"
+               data-integration-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-900"><%= kind.humanize.titleize %></div>
+                <div class="text-sm text-gray-500 mt-1">
+                  <% case kind %>
+                  <% when 'webhook' %>
+                    Receive notifications via HTTP callbacks
+                  <% when 'api' %>
+                    External API integration
+                  <% when 'email' %>
+                    Email-based notifications
+                  <% else %>
+                    <%= kind %> integration
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <% if integration.kind == kind %>
+              <span class="absolute inset-y-0 right-2 flex items-center text-indigo-600">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    
+    <!-- Hidden field to store the selected integration type -->
+    <%= form.hidden_field :kind, id: "integration_kind" %>
   </div>
 
   <div class="mb-4">
@@ -26,4 +103,77 @@
     <%= link_to "Cancel", business_manager_settings_integrations_path, class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
     <%= form.submit class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
   </div>
-<% end %> 
+<% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Integration Type Dropdown Functionality
+    const integrationDropdownButton = document.querySelector('[data-integration-dropdown-target="button"]');
+    const integrationDropdownMenu = document.querySelector('[data-integration-dropdown-target="menu"]');
+    const integrationDropdownOptions = document.querySelectorAll('[data-integration-dropdown-target="option"]');
+    const integrationDropdownText = document.querySelector('.integration-dropdown-text');
+    const integrationDropdownArrow = integrationDropdownButton?.querySelector('svg');
+    const integrationHiddenField = document.getElementById('integration_kind');
+    
+    if (integrationDropdownButton && integrationDropdownMenu) {
+      // Toggle dropdown
+      integrationDropdownButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        const isHidden = integrationDropdownMenu.classList.contains('hidden');
+        
+        if (isHidden) {
+          integrationDropdownMenu.classList.remove('hidden');
+          integrationDropdownArrow?.classList.add('rotate-180');
+        } else {
+          integrationDropdownMenu.classList.add('hidden');
+          integrationDropdownArrow?.classList.remove('rotate-180');
+        }
+      });
+      
+      // Handle option selection
+      integrationDropdownOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const integrationValue = this.getAttribute('data-integration-value');
+          const integrationName = this.getAttribute('data-integration-name');
+          
+          // Update hidden field
+          if (integrationHiddenField) {
+            integrationHiddenField.value = integrationValue;
+          }
+          
+          // Update button text
+          if (integrationDropdownText) {
+            integrationDropdownText.textContent = integrationName;
+          }
+          
+          // Update selection indicators
+          integrationDropdownOptions.forEach(opt => {
+            const checkmark = opt.querySelector('svg');
+            if (checkmark) {
+              checkmark.classList.add('hidden');
+            }
+          });
+          
+          const selectedCheckmark = this.querySelector('svg');
+          if (selectedCheckmark) {
+            selectedCheckmark.classList.remove('hidden');
+          }
+          
+          // Close dropdown
+          integrationDropdownMenu.classList.add('hidden');
+          integrationDropdownArrow?.classList.remove('rotate-180');
+        });
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!integrationDropdownButton.contains(e.target) && !integrationDropdownMenu.contains(e.target)) {
+          integrationDropdownMenu.classList.add('hidden');
+          integrationDropdownArrow?.classList.remove('rotate-180');
+        }
+      });
+    }
+  });
+</script> 

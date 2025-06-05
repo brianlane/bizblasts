@@ -28,6 +28,8 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   # GET /business_manager/staff_members/1/edit
   def edit
     # @staff_member is set by before_action
+    # Populate the virtual user_role so the dropdown shows the current role
+    @staff_member.user_role = @staff_member.user&.role if @staff_member.user.present?
     # authorize @staff_member # Add Pundit authorization later
   end
 
