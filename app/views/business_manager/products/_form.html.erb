@@ -86,7 +86,7 @@
     <% if @product.persisted? && @product.images.attached? %>
       <div id="existing-images" class="mb-6">
         <h4 class="text-md font-medium mb-3 text-gray-700">Current Images:</h4>
-        <%= form.fields_for :images_attributes, @product.images.ordered do |image_fields| %>
+        <%= form.fields_for :images, @product.images.ordered do |image_fields| %>
           <%= image_fields.hidden_field :id %>
           <%= image_fields.hidden_field :_destroy, value: 0, class: 'destroy-image' %>
           <%= image_fields.hidden_field :position, class: 'image-position' %>
@@ -121,16 +121,28 @@
       </div>
     <% end %>
     
-    <div class="mb-4">
+        <div class="mb-4">
       <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
       <div class="relative">
-              <%= form.file_field :images, multiple: true, 
-            accept: "image/png,image/jpeg,image/jpg",
-            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500",
-            id: "product_images_input" %>
+        <!-- Hidden file input -->
+        <%= form.file_field :images, multiple: true, 
+              accept: "image/png,image/jpeg,image/jpg",
+              class: "hidden",
+              id: "product_images_input" %>
+        
+        <!-- Custom styled button -->
+        <button type="button" id="custom-file-button" 
+                class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Choose Files
+        </button>
+        
+        <!-- File selection display -->
+        <span id="file-selection-display" class="ml-3 text-sm text-gray-600">No files selected</span>
       </div>
       <p class="mt-1 text-sm text-gray-500">
-        <span class="text-blue-600 font-medium">Note:</span> New images will be added to your existing images, not replace them.
         <br>Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.
       </p>
     </div>
@@ -290,8 +302,18 @@
       });
     }
     
-    // Handle file input change to validate file types and show feedback
+    // Handle custom file button click
+    const customFileButton = document.getElementById('custom-file-button');
     const fileInput = document.getElementById('product_images_input');
+    const fileSelectionDisplay = document.getElementById('file-selection-display');
+    
+    if (customFileButton && fileInput) {
+      customFileButton.addEventListener('click', function() {
+        fileInput.click();
+      });
+    }
+    
+    // Handle file input change to validate file types and show feedback
     if (fileInput) {
       fileInput.addEventListener('change', function(event) {
         const files = event.target.files;
@@ -318,13 +340,21 @@
           }
           
           if (invalidFiles.length > 0) {
-            // Show error for invalid files
-            event.target.style.borderColor = '#EF4444'; // Red border
+            // Update button styling for error
+            if (customFileButton) {
+              customFileButton.className = 'inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
+            }
+            
+            // Update file selection display
+            if (fileSelectionDisplay) {
+              fileSelectionDisplay.className = 'ml-3 text-sm text-red-600 font-medium';
+              fileSelectionDisplay.textContent = `Invalid file type(s): ${invalidFiles.map(f => f.name).join(', ')}`;
+            }
             
             const feedback = document.createElement('div');
             feedback.id = 'file-selection-feedback';
             feedback.className = 'mt-2 text-sm text-red-600 font-medium';
-            feedback.innerHTML = `❌ Invalid file type(s): ${invalidFiles.map(f => f.name).join(', ')}<br>Only PNG and JPEG files are allowed.`;
+            feedback.innerHTML = `❌ Only PNG and JPEG files are allowed.`;
             event.target.parentElement.appendChild(feedback);
             
             // Clear the input
@@ -333,10 +363,16 @@
           }
           
           if (validFiles.length > 0) {
-            // Remove any placeholder styling or behavior
-            event.target.removeAttribute('placeholder');
-            event.target.style.color = '#374151';
-            event.target.style.borderColor = '#10B981'; // Green border
+            // Update button styling for success
+            if (customFileButton) {
+              customFileButton.className = 'inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
+            }
+            
+            // Update file selection display
+            if (fileSelectionDisplay) {
+              fileSelectionDisplay.className = 'ml-3 text-sm text-green-600 font-medium';
+              fileSelectionDisplay.textContent = `${validFiles.length} file(s) selected: ${validFiles.map(f => f.name).join(', ')}`;
+            }
             
             // Show success message
             const feedback = document.createElement('div');
@@ -347,7 +383,13 @@
           }
         } else {
           // Reset styling if no files
-          event.target.style.borderColor = '#D1D5DB';
+          if (customFileButton) {
+            customFileButton.className = 'inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
+          }
+          if (fileSelectionDisplay) {
+            fileSelectionDisplay.className = 'ml-3 text-sm text-gray-600';
+            fileSelectionDisplay.textContent = 'No files selected';
+          }
         }
       });
     }
