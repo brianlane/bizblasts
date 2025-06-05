@@ -87,56 +87,120 @@
     end %>
   </div>
 
-  <%# Image Upload and Management Section %>
-  <div class="mb-6">
-    <h3 class="text-lg font-semibold mb-2">Service Images</h3>
-
+  <!-- Service Images Section -->
+  <div class="mt-8 border-t pt-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Service Images</h3>
+    
     <% if service.persisted? && service.images.attached? %>
-      <div id="existing-images" class="mb-4">
-        <h4 class="text-md font-medium mb-2">Existing Images:</h4>
-        <%# Use fields_for to manage existing attachments via nested attributes %>
-        <%= form.fields_for :images, service.images.ordered, builder: ImageAttachmentsFieldsBuilder do |image_fields| %>
-           <%# The ImageAttachmentsFieldsBuilder will render each image management block %>
-           <%= image_fields.hidden_field :id %>
-           <%= image_fields.hidden_field :_destroy, value: 0, class: 'destroy-image' %>
-           <%= image_fields.hidden_field :position, class: 'image-position' %><%# Add position field %>
-           
-           <div class="flex items-center mb-2 border p-2 rounded image-management-item" data-image-id="<%= image_fields.object.id %>">
-             <div class="flex-shrink-0 mr-4">
-               <% if image_fields.object.variable? %>
-                 <%= image_tag rails_public_blob_url(image_fields.object.representation(resize_to_limit: [100, 100])), class: "rounded" %>
-               <% else %>
-                 <%# Handle non-image files if necessary, though validation should prevent %>
-                 <span class="text-gray-500 text-sm">Attachment</span>
-               <% end %>
-             </div>
-             <div class="flex-grow">
-                <p class="text-sm font-medium text-gray-700"><%= image_fields.object.filename %></p>
-                <div class="flex items-center mt-1">
-                  <%= image_fields.check_box :primary, class: "form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox" %>
-                  <%= image_fields.label :primary, "Primary", class: "ml-1 mr-4 text-sm text-gray-700" %>
+      <div id="existing-images" class="mb-6">
+        <h4 class="text-md font-medium mb-3 text-gray-700">Current Images:</h4>
+        <% service.images.ordered.each_with_index do |image, index| %>
+          <div class="mb-4 border border-gray-200 rounded-lg image-management-item bg-white shadow-sm" data-image-id="<%= image.id %>">
+            <!-- Hidden fields for managing this image -->
+            <input type="hidden" name="service[images_attributes][<%= index %>][id]" value="<%= image.id %>" />
+            <input type="hidden" name="service[images_attributes][<%= index %>][_destroy]" value="0" class="destroy-image" />
+            <input type="hidden" name="service[images_attributes][<%= index %>][position]" value="<%= index %>" class="image-position" />
+            
+            <!-- Mobile-first responsive layout -->
+            <div class="flex flex-col sm:flex-row sm:items-center p-4 gap-4">
+              <!-- Image thumbnail -->
+              <div class="flex-shrink-0 self-center sm:self-start">
+                <% if image.variable? %>
+                  <% begin %>
+                    <%= image_tag rails_public_blob_url(image.representation(resize_to_limit: [120, 120])), 
+                          class: "w-20 h-20 sm:w-24 sm:h-24 rounded-lg shadow-sm object-cover" %>
+                  <% rescue ActiveStorage::UnrepresentableError %>
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <span class="text-gray-500 text-xs text-center">Unsupported<br>Format</span>
+                    </div>
+                  <% end %>
+                <% else %>
+                  <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <span class="text-gray-500 text-xs text-center">Attachment</span>
+                  </div>
+                <% end %>
+              </div>
+              
+              <!-- Image details and controls -->
+              <div class="flex-grow min-w-0">
+                <!-- Filename - truncated on mobile -->
+                <p class="text-sm font-medium text-gray-700 mb-3 truncate" title="<%= image.filename %>">
+                  <%= image.filename %>
+                </p>
+                
+                <!-- Controls stacked on mobile, inline on larger screens -->
+                <div class="space-y-3 sm:space-y-2">
+                  <!-- Primary checkbox -->
+                  <div class="flex items-center">
+                    <input type="checkbox" 
+                           name="service[images_attributes][<%= index %>][primary]" 
+                           value="1" 
+                           class="form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox mr-3"
+                           <%= 'checked' if image.primary %>
+                           id="service_images_attributes_<%= index %>_primary" />
+                    <label for="service_images_attributes_<%= index %>_primary" 
+                           class="text-sm text-gray-700 font-medium">Primary Image</label>
+                  </div>
                   
-                  <button type="button" class="text-red-600 hover:text-red-800 text-sm delete-image-button">Remove</button>
+                  <!-- Remove button -->
+                  <div>
+                    <button type="button" 
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors delete-image-button">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                      Remove Image
+                    </button>
+                  </div>
                 </div>
-             </div>
-           </div>
+              </div>
+            </div>
+          </div>
         <% end %>
       </div>
     <% end %>
-
-    <div class="mb-4">
-      <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%= form.file_field :images, 
-          multiple: true, 
-          accept: "image/*",
-          data: { 
-            max_file_size: 15728640,  # 15MB in bytes
-            max_files: 10 
-          },
-          class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-      <p class="mt-1 text-sm text-gray-500">Accepted formats: PNG, JPG/JPEG, GIF, WebP. Max size: 15MB per file, 10 files max.</p>
+    
+    <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+      <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-3" %>
+      
+      <!-- File upload area -->
+      <div class="text-center">
+        <!-- Hidden file input -->
+        <%= form.file_field :images, multiple: true, 
+              accept: "image/*",
+              data: { 
+                max_file_size: 15728640,  # 15MB in bytes
+                max_files: 10 
+              },
+              class: "hidden",
+              id: "service_images_input" %>
+        
+        <!-- Custom styled button with icon -->
+        <button type="button" id="custom-file-button" 
+                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+          Choose Files
+        </button>
+        
+        <!-- File selection display -->
+        <div id="file-selection-display" class="mt-3 text-sm text-gray-600 font-medium">
+          No files selected
+        </div>
+      </div>
+      
+      <!-- Help text -->
+      <div class="mt-4 p-3 bg-blue-50 rounded-md">
+        <p class="text-sm text-blue-700">
+          <strong>📸 Image Guidelines:</strong><br>
+          • Formats: PNG, JPG/JPEG, GIF, WebP<br>
+          • Max size: 15MB per file<br>
+          • Max files: 10 images<br>
+          • Recommended: Square images work best
+        </p>
+      </div>
     </div>
-
   </div>
 
   <%# TODO: Add input for availability_settings if needed %>
@@ -163,25 +227,49 @@
       });
     }
 
-    // Image deletion logic
+    // Image management functionality
     const existingImagesDiv = document.getElementById('existing-images');
     if (existingImagesDiv) {
+      // Handle image deletion
       existingImagesDiv.addEventListener('click', function(event) {
         if (event.target.classList.contains('delete-image-button')) {
+          event.preventDefault();
+          
           const item = event.target.closest('.image-management-item');
           if (item) {
             // Find the hidden _destroy field and set its value to 1
             const destroyField = item.querySelector('.destroy-image');
             if (destroyField) {
-              destroyField.value = 1;
-              // Hide the element visually
-              item.style.display = 'none';
+              destroyField.value = '1';
+              
+              // Apply visual feedback to show it will be deleted
+              item.style.opacity = '0.6';
+              item.style.backgroundColor = '#FEF2F2';
+              item.style.border = '1px solid #FCA5A5';
+              
+              // Update the button
+              event.target.textContent = 'Marked for Deletion';
+              event.target.className = 'text-gray-500 text-sm font-medium cursor-not-allowed';
+              event.target.disabled = true;
+              
+              // Add visual indicator
+              const indicator = document.createElement('span');
+              indicator.className = 'ml-2 text-red-600 font-medium text-xs';
+              indicator.textContent = '(Will be removed when saved)';
+              event.target.parentNode.appendChild(indicator);
+              
+              // Also disable the primary checkbox if exists
+              const primaryCheckbox = item.querySelector('.primary-image-checkbox');
+              if (primaryCheckbox) {
+                primaryCheckbox.disabled = true;
+                primaryCheckbox.checked = false;
+              }
             }
           }
         }
       });
 
-      // Handle primary image radio-like behavior for checkboxes
+      // Handle primary image selection (ensure only one is selected)
       existingImagesDiv.addEventListener('change', function(event) {
         if (event.target.classList.contains('primary-image-checkbox')) {
           if (event.target.checked) {
@@ -192,27 +280,37 @@
               }
             });
           }
-          // Note: If unchecked, no other checkbox is automatically checked.
-          // The user would need to manually select a new primary image.
         }
       });
     }
-
-    // Client-side file validation for image uploads
-    const imageFileInput = document.querySelector('input[type="file"][data-max-file-size]');
-    if (imageFileInput) {
-      imageFileInput.addEventListener('change', function(e) {
-        const maxSize = parseInt(this.dataset.maxFileSize) || 15728640; // 15MB
-        const maxFiles = parseInt(this.dataset.maxFiles) || 10;
+    
+    // Handle custom file button click
+    const customFileButton = document.getElementById('custom-file-button');
+    const fileInput = document.getElementById('service_images_input');
+    const fileSelectionDisplay = document.getElementById('file-selection-display');
+    
+    if (customFileButton && fileInput) {
+      customFileButton.addEventListener('click', function() {
+        fileInput.click();
+      });
+    }
+    
+    // Handle file input change to validate file types and show feedback
+    if (fileInput) {
+      fileInput.addEventListener('change', function(event) {
+        const files = event.target.files;
+        const maxSize = parseInt(fileInput.dataset.maxFileSize) || 15728640; // 15MB
+        const maxFiles = parseInt(fileInput.dataset.maxFiles) || 10;
         
-        if (this.files.length > maxFiles) {
+        if (files.length > maxFiles) {
           alert(`Maximum ${maxFiles} files allowed`);
-          this.value = '';
+          fileInput.value = '';
+          fileSelectionDisplay.textContent = 'No files selected';
           return;
         }
         
         let validFiles = true;
-        Array.from(this.files).forEach(file => {
+        Array.from(files).forEach(file => {
           if (file.size > maxSize) {
             alert(`${file.name} is too large. Maximum size is 15MB.`);
             validFiles = false;
@@ -224,7 +322,82 @@
         });
         
         if (!validFiles) {
-          this.value = '';
+          fileInput.value = '';
+          fileSelectionDisplay.textContent = 'No files selected';
+          return;
+        }
+        
+        // Remove any existing feedback
+        let existingFeedback = document.getElementById('file-selection-feedback');
+        if (existingFeedback) {
+          existingFeedback.remove();
+        }
+        
+        if (files && files.length > 0) {
+          // Validate file types
+          const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+          const invalidFiles = [];
+          const validFiles = [];
+          
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (allowedTypes.includes(file.type)) {
+              validFiles.push(file);
+            } else {
+              invalidFiles.push(file);
+            }
+          }
+          
+          if (invalidFiles.length > 0) {
+            // Update button styling for error
+            if (customFileButton) {
+              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
+            }
+            
+            // Update file selection display
+            if (fileSelectionDisplay) {
+              fileSelectionDisplay.className = 'mt-3 text-sm text-red-600 font-medium';
+              fileSelectionDisplay.textContent = `Invalid file type(s): ${invalidFiles.map(f => f.name).join(', ')}`;
+            }
+            
+            const feedback = document.createElement('div');
+            feedback.id = 'file-selection-feedback';
+            feedback.className = 'mt-2 text-sm text-red-600 font-medium';
+            feedback.innerHTML = `❌ Only PNG and JPEG files are allowed.`;
+            event.target.parentElement.appendChild(feedback);
+            
+            // Clear the input
+            event.target.value = '';
+            return;
+          }
+          
+          if (validFiles.length > 0) {
+            // Update button styling for success
+            if (customFileButton) {
+              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
+            }
+            
+            // Update file selection display
+            if (fileSelectionDisplay) {
+              fileSelectionDisplay.className = 'mt-3 text-sm text-green-600 font-medium';
+              fileSelectionDisplay.textContent = `${validFiles.length} file(s) selected: ${validFiles.map(f => f.name).join(', ')}`;
+            }
+            
+            // Show success message
+            const feedback = document.createElement('div');
+            feedback.id = 'file-selection-feedback';
+            feedback.className = 'mt-2 text-sm text-green-600 font-medium';
+            event.target.parentElement.appendChild(feedback);
+          }
+        } else {
+          // Reset styling if no files
+          if (customFileButton) {
+            customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
+          }
+          if (fileSelectionDisplay) {
+            fileSelectionDisplay.className = 'mt-3 text-sm text-gray-600 font-medium';
+            fileSelectionDisplay.textContent = 'No files selected';
+          }
         }
       });
     }
@@ -232,23 +405,4 @@
   });
 </script>
 
-<%# Helper to render image management fields (optional - can inline if simple) %>
-<%# This is not actually used by fields_for directly, but shows the structure %>
-<%# needed if you were to manually render fields for nested attributes. %>
-<%# For fields_for with a block, the block content is rendered for each item. %>
-<%# If using a custom builder, define it in an initializer or similar. %>
-
-<%# Example custom form builder for image attachments (define elsewhere) %>
-<%# module ImageAttachmentsFieldsBuilder
-#   class Builder < ActionView::Helpers::FormBuilder
-#     def primary_image
-#       @template.check_box(@object_name, :primary, objectify_options(@options)) +
-#       @template.label(@object_name, :primary, 'Primary')
-#     end
-#     
-#     def delete_image
-#        # This would link to a delete action or set a hidden _destroy field
-#     end
-#   end
-# end
-%> 
+ 

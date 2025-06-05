@@ -93,39 +93,154 @@
               class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
       </div>
       
-      <div>
-        <%= f.label :photo, "Profile Photo", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= f.file_field :photo, accept: "image/png,image/jpeg,image/gif,image/webp",
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500",
-              onchange: "validatePhoto(this)" %>
-        <p class="mt-1 text-sm text-gray-500">Optional: Upload a professional headshot or profile photo (PNG, JPEG, GIF, WebP - max 15MB)</p>
-        <% if staff_member.photo.attached? %>
-          <div class="mt-2">
-            <p class="text-sm text-gray-600 mb-2">Current photo:</p>
-            <%= image_tag rails_public_blob_url(staff_member.photo.variant(:thumb)), class: "h-16 w-16 rounded-full object-cover" %>
+      <!-- Profile Photo Section -->
+      <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+        <%= f.label :photo, "Profile Photo", class: "block text-gray-700 text-sm font-bold mb-3" %>
+        
+        <!-- File upload area -->
+        <div class="text-center">
+          <!-- Hidden file input -->
+          <%= f.file_field :photo, 
+                accept: "image/png,image/jpeg,image/gif,image/webp",
+                class: "hidden",
+                id: "staff_member_photo_input",
+                onchange: "validateStaffPhoto(this)" %>
+          
+          <!-- Custom styled button -->
+          <button type="button" id="staff-photo-button" 
+                  class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            Choose Profile Photo
+          </button>
+          
+          <!-- File selection display -->
+          <div id="photo-selection-display" class="mt-3 text-sm text-gray-600 font-medium">
+            No photo selected
+          </div>
+        </div>
+        
+        <!-- Current photo display -->
+        <% if staff_member.photo.attached? && staff_member.persisted? %>
+          <div class="mt-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 bg-white rounded-lg border">
+            <div class="flex-shrink-0">
+              <% begin %>
+                <%= image_tag rails_public_blob_url(staff_member.photo.variant(:thumb)), 
+                      class: "h-20 w-20 rounded-full object-cover shadow-sm border-2 border-gray-200" %>
+              <% rescue => e %>
+                <div class="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span class="text-gray-500 text-xs text-center">Photo<br>Error</span>
+                </div>
+              <% end %>
+            </div>
+            <div class="text-center sm:text-left">
+              <p class="text-sm font-medium text-gray-700">Current Photo</p>
+              <p class="text-xs text-gray-500 mt-1">
+                <%= staff_member.photo.filename if staff_member.photo.respond_to?(:filename) %>
+              </p>
+            </div>
           </div>
         <% end %>
+        
+        <!-- Help text -->
+        <div class="mt-4 p-3 bg-blue-50 rounded-md">
+          <p class="text-sm text-blue-700">
+            <strong>📸 Photo Guidelines:</strong><br>
+            • Formats: PNG, JPEG, GIF, WebP<br>
+            • Max size: 15MB<br>
+            • Recommended: Professional headshot, square aspect ratio
+          </p>
+        </div>
       </div>
 
       <script>
-        function validatePhoto(input) {
+        document.addEventListener('DOMContentLoaded', function() {
+          // Handle custom photo button click
+          const photoButton = document.getElementById('staff-photo-button');
+          const photoInput = document.getElementById('staff_member_photo_input');
+          const photoDisplay = document.getElementById('photo-selection-display');
+          
+          if (photoButton && photoInput) {
+            photoButton.addEventListener('click', function() {
+              photoInput.click();
+            });
+          }
+        });
+
+        function validateStaffPhoto(input) {
           const file = input.files[0];
-          if (!file) return;
+          const photoButton = document.getElementById('staff-photo-button');
+          const photoDisplay = document.getElementById('photo-selection-display');
+          
+          // Remove any existing feedback
+          let existingFeedback = document.getElementById('photo-feedback');
+          if (existingFeedback) {
+            existingFeedback.remove();
+          }
+          
+          if (!file) {
+            // Reset styling if no file
+            if (photoButton) {
+              photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
+            }
+            if (photoDisplay) {
+              photoDisplay.className = 'mt-3 text-sm text-gray-600 font-medium';
+              photoDisplay.textContent = 'No photo selected';
+            }
+            return;
+          }
+          
+          let hasErrors = false;
           
           // Check file size (15MB = 15 * 1024 * 1024 bytes)
           if (file.size > 15 * 1024 * 1024) {
             alert('Photo must be less than 15MB. Please choose a smaller file.');
-            input.value = '';
-            return;
+            hasErrors = true;
           }
           
           // Check file type
           const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
           if (!allowedTypes.includes(file.type)) {
             alert('Photo must be PNG, JPEG, GIF, or WebP format.');
+            hasErrors = true;
+          }
+          
+          if (hasErrors) {
             input.value = '';
+            // Update button styling for error
+            if (photoButton) {
+              photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
+            }
+            if (photoDisplay) {
+              photoDisplay.className = 'mt-3 text-sm text-red-600 font-medium';
+              photoDisplay.textContent = 'Invalid photo file';
+            }
+            
+            // Add error feedback
+            const feedback = document.createElement('div');
+            feedback.id = 'photo-feedback';
+            feedback.className = 'mt-2 text-sm text-red-600 font-medium';
+            feedback.innerHTML = '❌ Please choose a valid photo file.';
+            input.parentElement.appendChild(feedback);
             return;
           }
+          
+          // Valid file - update UI to show success
+          if (photoButton) {
+            photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
+          }
+          if (photoDisplay) {
+            photoDisplay.className = 'mt-3 text-sm text-green-600 font-medium';
+            photoDisplay.textContent = `Selected: ${file.name}`;
+          }
+          
+          // Add success feedback
+          const feedback = document.createElement('div');
+          feedback.id = 'photo-feedback';
+          feedback.className = 'mt-2 text-sm text-green-600 font-medium';
+          feedback.innerHTML = '✅ Photo ready to upload.';
+          input.parentElement.appendChild(feedback);
         }
       </script>
 
