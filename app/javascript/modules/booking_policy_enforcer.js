@@ -106,7 +106,6 @@ export default class BookingPolicyEnforcer {
    */
   log(...args) {
     if (this.debug) {
-      console.log('[BookingPolicyEnforcer]', ...args);
     }
   }
 } 

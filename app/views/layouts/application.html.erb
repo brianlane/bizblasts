@@ -275,7 +275,6 @@
           setTimeout(function() {
             const modal = document.getElementById('policy-acceptance-modal');
             if (modal) {
-              console.log('[PolicyFallback] Checking if modal should be visible...');
               
               // Check if modal should be shown by calling the policy status
               fetch('/policy_status', {
@@ -288,18 +287,15 @@
                 if (response.ok) {
                   return response.json();
                 } else if (response.status === 401) {
-                  console.log('[PolicyFallback] User not authenticated');
                   return null;
                 }
                 throw new Error('Failed to check policy status');
               })
               .then(data => {
                 if (data && data.requires_policy_acceptance && data.missing_policies && data.missing_policies.length > 0) {
-                  console.log('[PolicyFallback] User needs policy acceptance - ensuring modal is visible');
                   
                   // Force modal to be visible if the main script failed
                   if (modal.classList.contains('hidden')) {
-                    console.log('[PolicyFallback] Main script failed - showing modal manually');
                     modal.classList.remove('hidden');
                     modal.style.display = 'block';
                     modal.style.zIndex = '9999';
@@ -328,11 +324,10 @@
                     }
                   }
                 } else {
-                  console.log('[PolicyFallback] No policy acceptance required');
                 }
               })
               .catch(error => {
-                console.log('[PolicyFallback] Error checking policy status:', error);
+                console.error('[PolicyFallback] Error checking policy status:', error);
               });
             }
           }, 500);

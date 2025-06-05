@@ -29,7 +29,8 @@ class Product < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
   # Validate attachments using built-in ActiveStorage validators
-  validates :images, content_type: ['image/png', 'image/jpeg'], size: { less_than: 5.megabytes }
+  validates :images, content_type: { in: ['image/png', 'image/jpeg'], message: 'must be PNG or JPEG format' }, 
+                     size: { less_than: 5.megabytes }
 
   # TODO: Add method or validation for primary image designation if needed
   # TODO: Add method for image ordering if needed
@@ -39,6 +40,9 @@ class Product < ApplicationRecord
 
   # Allows creating variants directly when creating/updating a product
   accepts_nested_attributes_for :product_variants, allow_destroy: true
+  
+  # Allow nested attributes for image attachments (for deletion, primary, positioning)
+  # Note: This is handled by the custom images_attributes= setter method above
 
   # Ensure products without explicit variants have a default variant for cart operations
   after_create :create_default_variant

@@ -86,7 +86,7 @@
     <% if @product.persisted? && @product.images.attached? %>
       <div id="existing-images" class="mb-6">
         <h4 class="text-md font-medium mb-3 text-gray-700">Current Images:</h4>
-        <%= form.fields_for :images, @product.images.ordered do |image_fields| %>
+        <%= form.fields_for :images_attributes, @product.images.ordered do |image_fields| %>
           <%= image_fields.hidden_field :id %>
           <%= image_fields.hidden_field :_destroy, value: 0, class: 'destroy-image' %>
           <%= image_fields.hidden_field :position, class: 'image-position' %>
@@ -94,7 +94,13 @@
           <div class="flex items-center mb-3 border border-gray-200 p-3 rounded-lg image-management-item" data-image-id="<%= image_fields.object.id %>">
             <div class="flex-shrink-0 mr-4">
               <% if image_fields.object.variable? %>
-                <%= image_tag image_fields.object.representation(resize_to_limit: [100, 100]), class: "rounded shadow-sm" %>
+                <% begin %>
+                  <%= image_tag image_fields.object.representation(resize_to_limit: [100, 100]), class: "rounded shadow-sm" %>
+                <% rescue ActiveStorage::UnrepresentableError %>
+                  <div class="w-24 h-24 bg-gray-200 rounded flex items-center justify-center">
+                    <span class="text-gray-500 text-xs text-center">Unsupported<br>Format</span>
+                  </div>
+                <% end %>
               <% else %>
                 <span class="text-gray-500 text-sm">Attachment</span>
               <% end %>
@@ -117,9 +123,16 @@
     
     <div class="mb-4">
       <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%= form.file_field :images, multiple: true, 
-            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
-      <p class="mt-1 text-sm text-gray-500">Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.</p>
+      <div class="relative">
+              <%= form.file_field :images, multiple: true, 
+            accept: "image/png,image/jpeg,image/jpg",
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500",
+            id: "product_images_input" %>
+      </div>
+      <p class="mt-1 text-sm text-gray-500">
+        <span class="text-blue-600 font-medium">Note:</span> New images will be added to your existing images, not replace them.
+        <br>Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.
+      </p>
     </div>
   </div>
 
@@ -226,14 +239,37 @@
       // Handle image deletion
       existingImagesDiv.addEventListener('click', function(event) {
         if (event.target.classList.contains('delete-image-button')) {
+          event.preventDefault();
+          
           const item = event.target.closest('.image-management-item');
           if (item) {
             // Find the hidden _destroy field and set its value to 1
             const destroyField = item.querySelector('.destroy-image');
             if (destroyField) {
-              destroyField.value = 1;
-              // Hide the element visually
-              item.style.display = 'none';
+              destroyField.value = '1';
+              
+              // Apply visual feedback to show it will be deleted
+              item.style.opacity = '0.6';
+              item.style.backgroundColor = '#FEF2F2';
+              item.style.border = '1px solid #FCA5A5';
+              
+              // Update the button
+              event.target.textContent = 'Marked for Deletion';
+              event.target.className = 'text-gray-500 text-sm font-medium cursor-not-allowed';
+              event.target.disabled = true;
+              
+              // Add visual indicator
+              const indicator = document.createElement('span');
+              indicator.className = 'ml-2 text-red-600 font-medium text-xs';
+              indicator.textContent = '(Will be removed when saved)';
+              event.target.parentNode.appendChild(indicator);
+              
+              // Also disable the primary checkbox if exists
+              const primaryCheckbox = item.querySelector('.primary-image-checkbox');
+              if (primaryCheckbox) {
+                primaryCheckbox.disabled = true;
+                primaryCheckbox.checked = false;
+              }
             }
           }
         }
@@ -250,6 +286,68 @@
               }
             });
           }
+        }
+      });
+    }
+    
+    // Handle file input change to validate file types and show feedback
+    const fileInput = document.getElementById('product_images_input');
+    if (fileInput) {
+      fileInput.addEventListener('change', function(event) {
+        const files = event.target.files;
+        
+        // Remove any existing feedback
+        let existingFeedback = document.getElementById('file-selection-feedback');
+        if (existingFeedback) {
+          existingFeedback.remove();
+        }
+        
+        if (files && files.length > 0) {
+          // Validate file types
+          const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+          const invalidFiles = [];
+          const validFiles = [];
+          
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (allowedTypes.includes(file.type)) {
+              validFiles.push(file);
+            } else {
+              invalidFiles.push(file);
+            }
+          }
+          
+          if (invalidFiles.length > 0) {
+            // Show error for invalid files
+            event.target.style.borderColor = '#EF4444'; // Red border
+            
+            const feedback = document.createElement('div');
+            feedback.id = 'file-selection-feedback';
+            feedback.className = 'mt-2 text-sm text-red-600 font-medium';
+            feedback.innerHTML = `❌ Invalid file type(s): ${invalidFiles.map(f => f.name).join(', ')}<br>Only PNG and JPEG files are allowed.`;
+            event.target.parentElement.appendChild(feedback);
+            
+            // Clear the input
+            event.target.value = '';
+            return;
+          }
+          
+          if (validFiles.length > 0) {
+            // Remove any placeholder styling or behavior
+            event.target.removeAttribute('placeholder');
+            event.target.style.color = '#374151';
+            event.target.style.borderColor = '#10B981'; // Green border
+            
+            // Show success message
+            const feedback = document.createElement('div');
+            feedback.id = 'file-selection-feedback';
+            feedback.className = 'mt-2 text-sm text-green-600 font-medium';
+            feedback.innerHTML = `✅ ${validFiles.length} valid image(s) selected for upload (will be added to existing images)`;
+            event.target.parentElement.appendChild(feedback);
+          }
+        } else {
+          // Reset styling if no files
+          event.target.style.borderColor = '#D1D5DB';
         }
       });
     }

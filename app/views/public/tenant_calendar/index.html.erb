@@ -521,9 +521,7 @@
                   if (counter) {
                     const newCount = availableSlots.length;
                     if (counter.textContent !== newCount.toString()) {
-                      counter.textContent = newCount;
-                      console.log(`[Real-time Update] Updated slot count for today: ${newCount} slots available`);
-                      
+                      counter.textContent = newCount;                      
                       // Update background color based on availability
                       const slotCountElement = dayElement.querySelector('.available-slots-count');
                       if (slotCountElement) {
@@ -599,7 +597,6 @@
           // Update slot display with real-time filtering
           if (filteredSlots.length !== slots.length) {
             const removedCount = slots.length - filteredSlots.length;
-            console.log(`[Real-time Filter] Removed ${removedCount} past slots for today`);
           }
         }
         

@@ -222,7 +222,6 @@
   <!-- Sidebar Toggle JavaScript -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('[Sidebar] Initializing sidebar toggle functionality...');
       
       const sidebar = document.getElementById('sidebar');
       const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -232,18 +231,7 @@
       const desktopToggleIcon = document.getElementById('desktop-toggle-icon');
       const mainContent = document.getElementById('main-content');
       
-      console.log('[Sidebar] Elements found:', {
-        sidebar: !!sidebar,
-        sidebarOverlay: !!sidebarOverlay,
-        sidebarToggle: !!sidebarToggle,
-        sidebarClose: !!sidebarClose,
-        desktopSidebarToggle: !!desktopSidebarToggle,
-        desktopToggleIcon: !!desktopToggleIcon,
-        mainContent: !!mainContent
-      });
-      
       let sidebarOpen = window.innerWidth >= 1024; // Default open on desktop
-      console.log('[Sidebar] Initial sidebar state:', sidebarOpen, 'Screen width:', window.innerWidth);
       
       // Set initial classes based on screen size and desired state
       function setInitialState() {
@@ -286,27 +274,14 @@
           sidebarOverlay.classList.remove('show');
         }
         document.body.style.overflow = '';
-        console.log('[Sidebar] Initial state set:', { sidebarOpen, isLargeScreen });
       }
       
       function updateSidebarState() {
         const isLargeScreen = window.innerWidth >= 1024;
-        console.log('[Sidebar] Updating state - Large screen:', isLargeScreen, 'Sidebar open:', sidebarOpen);
-        
-        // Debug current sidebar state before changes
-        console.log('[Sidebar] Before changes:', {
-          sidebarClasses: sidebar.className,
-          sidebarTransform: getComputedStyle(sidebar).transform,
-          mainContentMarginLeft: mainContent.style.marginLeft,
-          desktopToggleLeft: desktopSidebarToggle ? desktopSidebarToggle.style.left : 'N/A',
-          overlayClasses: sidebarOverlay ? sidebarOverlay.className : 'N/A',
-          bodyOverflow: document.body.style.overflow
-        });
         
         if (isLargeScreen) {
           // Desktop behavior
           if (sidebarOpen) {
-            console.log('[Sidebar] Desktop: Opening sidebar');
             sidebar.classList.remove('-translate-x-full');
             sidebar.classList.add('translate-x-0');
             if (desktopSidebarToggle) {
@@ -321,7 +296,6 @@
               sidebarToggle.style.display = 'none';
             }
           } else {
-            console.log('[Sidebar] Desktop: Closing sidebar');
             sidebar.classList.add('-translate-x-full');
             sidebar.classList.remove('translate-x-0');
             if (desktopSidebarToggle) {
@@ -342,13 +316,11 @@
           document.body.style.overflow = '';
         } else {
           // Mobile behavior
-          console.log('[Sidebar] Mobile behavior - Sidebar open:', sidebarOpen);
           if (desktopSidebarToggle) {
             desktopSidebarToggle.style.left = '16px';
             desktopSidebarToggle.classList.remove('sidebar-open');
           }
           if (sidebarOpen) {
-            console.log('[Sidebar] Mobile: Opening sidebar');
             sidebar.classList.remove('-translate-x-full');
             sidebar.classList.add('translate-x-0');
             sidebar.classList.add('show');
@@ -356,13 +328,11 @@
               sidebarToggle.style.display = 'none'; // Hide hamburger button when sidebar is open
             }
             if (sidebarOverlay) {
-              console.log('[Sidebar] Mobile: Showing overlay');
               sidebarOverlay.classList.remove('hidden');
               sidebarOverlay.classList.add('show');
             }
             document.body.style.overflow = 'hidden';
           } else {
-            console.log('[Sidebar] Mobile: Closing sidebar');
             sidebar.classList.add('-translate-x-full');
             sidebar.classList.remove('translate-x-0');
             sidebar.classList.remove('show');
@@ -370,7 +340,6 @@
               sidebarToggle.style.display = 'block'; // Show hamburger button when sidebar is closed
             }
             if (sidebarOverlay) {
-              console.log('[Sidebar] Mobile: Hiding overlay');
               sidebarOverlay.classList.add('hidden');
               sidebarOverlay.classList.remove('show');
             }
@@ -378,62 +347,43 @@
           }
         }
         
-        // Debug current sidebar state after changes
-        console.log('[Sidebar] After changes:', {
-          sidebarClasses: sidebar.className,
-          sidebarTransform: getComputedStyle(sidebar).transform,
-          mainContentMarginLeft: mainContent.style.marginLeft,
-          desktopToggleLeft: desktopSidebarToggle ? desktopSidebarToggle.style.left : 'N/A',
-          overlayClasses: sidebarOverlay ? sidebarOverlay.className : 'N/A',
-          overlayDisplay: sidebarOverlay ? getComputedStyle(sidebarOverlay).display : 'N/A',
-          bodyOverflow: document.body.style.overflow
-        });
+
       }
       
       function toggleSidebar() {
-        console.log('[Sidebar] Toggle clicked - current state:', sidebarOpen);
         sidebarOpen = !sidebarOpen;
         updateSidebarState();
       }
       
       function closeSidebar() {
-        console.log('[Sidebar] Close clicked');
         sidebarOpen = false;
         updateSidebarState();
       }
       
       // Event listeners with better error handling
       if (sidebarToggle) {
-        console.log('[Sidebar] Attaching mobile toggle listener');
         sidebarToggle.addEventListener('click', function(e) {
-          console.log('[Sidebar] Mobile toggle clicked');
           e.preventDefault();
           toggleSidebar();
         });
       }
       
       if (desktopSidebarToggle) {
-        console.log('[Sidebar] Attaching desktop toggle listener');
         desktopSidebarToggle.addEventListener('click', function(e) {
-          console.log('[Sidebar] Desktop toggle clicked');
           e.preventDefault();
           toggleSidebar();
         });
       }
       
       if (sidebarClose) {
-        console.log('[Sidebar] Attaching close listener');
         sidebarClose.addEventListener('click', function(e) {
-          console.log('[Sidebar] Close button clicked');
           e.preventDefault();
           closeSidebar();
         });
       }
       
       if (sidebarOverlay) {
-        console.log('[Sidebar] Attaching overlay listener');
         sidebarOverlay.addEventListener('click', function(e) {
-          console.log('[Sidebar] Overlay clicked');
           e.preventDefault();
           closeSidebar();
         });
@@ -441,11 +391,9 @@
       
       // Close sidebar when clicking on navigation links on mobile
       const navLinks = sidebar.querySelectorAll('a');
-      console.log('[Sidebar] Found', navLinks.length, 'navigation links');
       navLinks.forEach(link => {
         link.addEventListener('click', () => {
           if (window.innerWidth < 1024) {
-            console.log('[Sidebar] Nav link clicked on mobile, closing sidebar');
             closeSidebar();
           }
         });
@@ -453,18 +401,15 @@
       
       // Handle window resize
       window.addEventListener('resize', () => {
-        console.log('[Sidebar] Window resized to:', window.innerWidth);
         // Reinitialize state on screen size change to handle button visibility correctly
         setInitialState();
       });
       
       // Initial state
-      console.log('[Sidebar] Setting initial state');
       setInitialState();
       
       // Test function - you can call this in the console
       window.testSidebarToggle = function() {
-        console.log('Testing sidebar toggle...');
         toggleSidebar();
       };
     });
@@ -475,7 +420,6 @@
     <script>
       // Business Manager Policy modal check
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('[BusinessManager] Initializing policy acceptance...');
         
         // Try to initialize the PolicyAcceptance class if available
         if (typeof PolicyAcceptance !== 'undefined') {
@@ -486,7 +430,6 @@
         setTimeout(function() {
           const modal = document.getElementById('policy-acceptance-modal');
           if (modal) {
-            console.log('[BusinessManager PolicyFallback] Checking if modal should be visible...');
             
             // Check if modal should be shown by calling the policy status
             fetch('/policy_status', {
@@ -499,18 +442,15 @@
               if (response.ok) {
                 return response.json();
               } else if (response.status === 401) {
-                console.log('[BusinessManager PolicyFallback] User not authenticated');
                 return null;
               }
               throw new Error('Failed to check policy status');
             })
             .then(data => {
               if (data && data.requires_policy_acceptance && data.missing_policies && data.missing_policies.length > 0) {
-                console.log('[BusinessManager PolicyFallback] User needs policy acceptance - ensuring modal is visible');
                 
                 // Force modal to be visible if the main script failed
                 if (modal.classList.contains('hidden')) {
-                  console.log('[BusinessManager PolicyFallback] Main script failed - showing modal manually');
                   modal.classList.remove('hidden');
                   modal.style.display = 'block';
                   modal.style.zIndex = '9999';
@@ -539,7 +479,6 @@
                   }
                 }
               } else {
-                console.log('[BusinessManager PolicyFallback] No policy acceptance required');
               }
             })
             .catch(error => {
