@@ -228,6 +228,7 @@ Rails.application.routes.draw do
   get '/shippingpolicy', to: 'home#shippingpolicy'
   get '/returnpolicy', to: 'home#returnpolicy'
   get '/acceptableusepolicy', to: 'home#acceptableusepolicy'
+  get '/pricing', to: 'home#pricing'
 
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
