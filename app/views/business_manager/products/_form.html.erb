@@ -83,27 +83,44 @@
   <div class="mt-8 border-t pt-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Product Images</h3>
     
+    <% if @product.persisted? && @product.images.attached? %>
+      <div id="existing-images" class="mb-6">
+        <h4 class="text-md font-medium mb-3 text-gray-700">Current Images:</h4>
+        <%= form.fields_for :images, @product.images.ordered do |image_fields| %>
+          <%= image_fields.hidden_field :id %>
+          <%= image_fields.hidden_field :_destroy, value: 0, class: 'destroy-image' %>
+          <%= image_fields.hidden_field :position, class: 'image-position' %>
+          
+          <div class="flex items-center mb-3 border border-gray-200 p-3 rounded-lg image-management-item" data-image-id="<%= image_fields.object.id %>">
+            <div class="flex-shrink-0 mr-4">
+              <% if image_fields.object.variable? %>
+                <%= image_tag image_fields.object.representation(resize_to_limit: [100, 100]), class: "rounded shadow-sm" %>
+              <% else %>
+                <span class="text-gray-500 text-sm">Attachment</span>
+              <% end %>
+            </div>
+            <div class="flex-grow">
+              <p class="text-sm font-medium text-gray-700 mb-2"><%= image_fields.object.filename %></p>
+              <div class="flex items-center">
+                <%= image_fields.check_box :primary, class: "form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox mr-2" %>
+                <%= image_fields.label :primary, "Primary Image", class: "text-sm text-gray-700 mr-4" %>
+                
+                <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium delete-image-button">
+                  Remove Image
+                </button>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+    
     <div class="mb-4">
       <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
       <%= form.file_field :images, multiple: true, 
             class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
       <p class="mt-1 text-sm text-gray-500">Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.</p>
     </div>
-
-    <% if @product.persisted? && @product.images.attached? %>
-      <div class="mb-4">
-        <h4 class="text-md font-medium mb-2 text-gray-700">Current Images:</h4>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <% @product.images.each do |img| %>
-            <div class="bg-gray-50 rounded-lg p-2 text-center">
-              <%= image_tag img.representation(resize_to_limit: [150, 150]), 
-                    class: "w-full h-24 object-cover rounded mb-2" %>
-              <p class="text-xs text-gray-600 truncate"><%= img.filename %></p>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
   </div>
 
   <!-- Product Variants Section -->
@@ -202,5 +219,39 @@
         }
       }
     });
+    
+    // Image management functionality
+    const existingImagesDiv = document.getElementById('existing-images');
+    if (existingImagesDiv) {
+      // Handle image deletion
+      existingImagesDiv.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-image-button')) {
+          const item = event.target.closest('.image-management-item');
+          if (item) {
+            // Find the hidden _destroy field and set its value to 1
+            const destroyField = item.querySelector('.destroy-image');
+            if (destroyField) {
+              destroyField.value = 1;
+              // Hide the element visually
+              item.style.display = 'none';
+            }
+          }
+        }
+      });
+
+      // Handle primary image selection (ensure only one is selected)
+      existingImagesDiv.addEventListener('change', function(event) {
+        if (event.target.classList.contains('primary-image-checkbox')) {
+          if (event.target.checked) {
+            // Uncheck all other primary checkboxes
+            existingImagesDiv.querySelectorAll('.primary-image-checkbox').forEach(checkbox => {
+              if (checkbox !== event.target) {
+                checkbox.checked = false;
+              }
+            });
+          }
+        }
+      });
+    }
   });
 </script> 
