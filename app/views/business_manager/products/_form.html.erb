@@ -87,39 +87,64 @@
       <div id="existing-images" class="mb-6">
         <h4 class="text-md font-medium mb-3 text-gray-700">Current Images:</h4>
         <% @product.images.ordered.each_with_index do |image, index| %>
-          <div class="flex items-center mb-3 border border-gray-200 p-3 rounded-lg image-management-item" data-image-id="<%= image.id %>">
+          <div class="mb-4 border border-gray-200 rounded-lg image-management-item bg-white shadow-sm" data-image-id="<%= image.id %>">
             <!-- Hidden fields for managing this image -->
             <input type="hidden" name="product[images_attributes][<%= index %>][id]" value="<%= image.id %>" />
             <input type="hidden" name="product[images_attributes][<%= index %>][_destroy]" value="0" class="destroy-image" />
             <input type="hidden" name="product[images_attributes][<%= index %>][position]" value="<%= index %>" class="image-position" />
             
-            <div class="flex-shrink-0 mr-4">
-              <% if image.variable? %>
-                <% begin %>
-                  <%= image_tag rails_public_blob_url(image.representation(resize_to_limit: [100, 100])), class: "rounded shadow-sm" %>
-                <% rescue ActiveStorage::UnrepresentableError %>
-                  <div class="w-24 h-24 bg-gray-200 rounded flex items-center justify-center">
-                    <span class="text-gray-500 text-xs text-center">Unsupported<br>Format</span>
+            <!-- Mobile-first responsive layout -->
+            <div class="flex flex-col sm:flex-row sm:items-center p-4 gap-4">
+              <!-- Image thumbnail -->
+              <div class="flex-shrink-0 self-center sm:self-start">
+                <% if image.variable? %>
+                  <% begin %>
+                    <%= image_tag rails_public_blob_url(image.representation(resize_to_limit: [120, 120])), 
+                          class: "w-20 h-20 sm:w-24 sm:h-24 rounded-lg shadow-sm object-cover" %>
+                  <% rescue ActiveStorage::UnrepresentableError %>
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <span class="text-gray-500 text-xs text-center">Unsupported<br>Format</span>
+                    </div>
+                  <% end %>
+                <% else %>
+                  <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <span class="text-gray-500 text-xs text-center">Attachment</span>
                   </div>
                 <% end %>
-              <% else %>
-                <span class="text-gray-500 text-sm">Attachment</span>
-              <% end %>
-            </div>
-            <div class="flex-grow">
-              <p class="text-sm font-medium text-gray-700 mb-2"><%= image.filename %></p>
-              <div class="flex items-center">
-                <input type="checkbox" 
-                       name="product[images_attributes][<%= index %>][primary]" 
-                       value="1" 
-                       class="form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox mr-2"
-                       <%= 'checked' if image.primary %>
-                       id="product_images_attributes_<%= index %>_primary" />
-                <label for="product_images_attributes_<%= index %>_primary" class="text-sm text-gray-700 mr-4">Primary Image</label>
+              </div>
+              
+              <!-- Image details and controls -->
+              <div class="flex-grow min-w-0">
+                <!-- Filename - truncated on mobile -->
+                <p class="text-sm font-medium text-gray-700 mb-3 truncate" title="<%= image.filename %>">
+                  <%= image.filename %>
+                </p>
                 
-                <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium delete-image-button">
-                  Remove Image
-                </button>
+                <!-- Controls stacked on mobile, inline on larger screens -->
+                <div class="space-y-3 sm:space-y-2">
+                  <!-- Primary checkbox -->
+                  <div class="flex items-center">
+                    <input type="checkbox" 
+                           name="product[images_attributes][<%= index %>][primary]" 
+                           value="1" 
+                           class="form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox mr-3"
+                           <%= 'checked' if image.primary %>
+                           id="product_images_attributes_<%= index %>_primary" />
+                    <label for="product_images_attributes_<%= index %>_primary" 
+                           class="text-sm text-gray-700 font-medium">Primary Image</label>
+                  </div>
+                  
+                  <!-- Remove button -->
+                  <div>
+                    <button type="button" 
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors delete-image-button">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                      Remove Image
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -127,9 +152,11 @@
       </div>
     <% end %>
     
-        <div class="mb-4">
-      <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <div class="relative">
+    <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+      <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-3" %>
+      
+      <!-- File upload area -->
+      <div class="text-center">
         <!-- Hidden file input -->
         <%= form.file_field :images, multiple: true, 
               accept: "image/*",
@@ -140,21 +167,31 @@
               class: "hidden",
               id: "product_images_input" %>
         
-        <!-- Custom styled button -->
+        <!-- Custom styled button with icon -->
         <button type="button" id="custom-file-button" 
-                class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
           </svg>
           Choose Files
         </button>
         
         <!-- File selection display -->
-        <span id="file-selection-display" class="ml-3 text-sm text-gray-600">No files selected</span>
+        <div id="file-selection-display" class="mt-3 text-sm text-gray-600 font-medium">
+          No files selected
+        </div>
       </div>
-      <p class="mt-1 text-sm text-gray-500">
-        <br>Accepted formats: PNG, JPG/JPEG, GIF, WebP. Max size: 15MB per file, 10 files max.
-      </p>
+      
+      <!-- Help text -->
+      <div class="mt-4 p-3 bg-blue-50 rounded-md">
+        <p class="text-sm text-blue-700">
+          <strong>📸 Image Guidelines:</strong><br>
+          • Formats: PNG, JPG/JPEG, GIF, WebP<br>
+          • Max size: 15MB per file<br>
+          • Max files: 10 images<br>
+          • Recommended: Square images work best
+        </p>
+      </div>
     </div>
   </div>
 
@@ -379,12 +416,12 @@
           if (invalidFiles.length > 0) {
             // Update button styling for error
             if (customFileButton) {
-              customFileButton.className = 'inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
+              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
             }
             
             // Update file selection display
             if (fileSelectionDisplay) {
-              fileSelectionDisplay.className = 'ml-3 text-sm text-red-600 font-medium';
+              fileSelectionDisplay.className = 'mt-3 text-sm text-red-600 font-medium';
               fileSelectionDisplay.textContent = `Invalid file type(s): ${invalidFiles.map(f => f.name).join(', ')}`;
             }
             
@@ -402,12 +439,12 @@
           if (validFiles.length > 0) {
             // Update button styling for success
             if (customFileButton) {
-              customFileButton.className = 'inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
+              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
             }
             
             // Update file selection display
             if (fileSelectionDisplay) {
-              fileSelectionDisplay.className = 'ml-3 text-sm text-green-600 font-medium';
+              fileSelectionDisplay.className = 'mt-3 text-sm text-green-600 font-medium';
               fileSelectionDisplay.textContent = `${validFiles.length} file(s) selected: ${validFiles.map(f => f.name).join(', ')}`;
             }
             
@@ -420,10 +457,10 @@
         } else {
           // Reset styling if no files
           if (customFileButton) {
-            customFileButton.className = 'inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
+            customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
           }
           if (fileSelectionDisplay) {
-            fileSelectionDisplay.className = 'ml-3 text-sm text-gray-600';
+            fileSelectionDisplay.className = 'mt-3 text-sm text-gray-600 font-medium';
             fileSelectionDisplay.textContent = 'No files selected';
           }
         }
