@@ -81,20 +81,9 @@ module BusinessManager
 
     # Optional: Handle image primary/ordering if form submits `images_attributes`
     def handle_image_attachments
-      # This logic depends heavily on how your form submits image data (e.g., direct uploads vs. using images_attributes for ordering/primary flags)
-      
-      # Example if using direct `images: []` param for uploads (simple case):
-      if params[:product][:images].present?
-         params[:product][:images].each do |image|
-           @product.images.attach(image)
-         end
-      end
-      
-      # If using images_attributes for metadata updates (like ActiveAdmin does):
-      # Need to ensure @product.images_attributes= method handles the submitted params correctly.
-      # This might already be handled by the model if `images_attributes=` setter exists.
-      # If params[:product][:images_attributes] is present, the model's setter should handle it during @product.update/save.
-      # No explicit call needed here unless model doesn't have the setter.
+      # The `images: []` param is already handled automatically by Rails during save/update
+      # Only handle images_attributes for managing existing images (primary, position, deletion)
+      # No need to manually attach new images here as Rails does this automatically
     end
   end
 end 
