@@ -45,7 +45,7 @@ pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
 worker_timeout 120
 
 # Set HTTP content length limit to 20MB (buffer above 15MB max file size)
-http_content_length_limit 20.megabytes
+http_content_length_limit 20971520  # 20MB in bytes
 
 # Increase first data timeout for large uploads (2 minutes)
 first_data_timeout 120
