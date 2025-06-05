@@ -138,12 +138,10 @@ const CustomerFormHelper = {
       const newCustomerFields = document.getElementById(pattern.newCustomerFieldsId);
       
       if (customerSelect && newCustomerFields) {
-        console.log(`CustomerFormHelper: Auto-initialized with pattern`, pattern);
         return this.initializeCustomerToggle(pattern);
       }
     }
     
-    console.log('CustomerFormHelper: No matching form pattern found');
     return null;
   }
 };

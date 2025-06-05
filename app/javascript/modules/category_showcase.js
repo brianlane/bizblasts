@@ -130,7 +130,6 @@ function populateExamples(container, examples, categoryName, itemBackgroundColor
     item.textContent = example; 
 
     item.addEventListener('click', () => {
-      console.log(`Checking existence for: ${example}...`);
       
       fetch(`/check_business_industry?industry=${encodeURIComponent(example)}`)
         .then(response => {
@@ -140,13 +139,9 @@ function populateExamples(container, examples, categoryName, itemBackgroundColor
           return response.json();
         })
         .then(data => {
-          console.log(`Received data for ${example}:`, data); 
           if (data.exists === true) { 
-            console.log(`Branch: data.exists is true for ${example}. Preparing to log specific navigation.`); 
-            console.log(`NAVIGATE TO: Specific industry page for "${example}"`);
             window.location.href = `/businesses?industry=${encodeURIComponent(example)}`;
           } else if (data.exists === false) { 
-            console.log(`Branch: data.exists is false for ${example}. Preparing to navigate to /businesses.`); 
             window.location.href = '/businesses'; 
           } else {
             console.warn(`Branch: data.exists is neither true nor false for ${example}. Received:`, data.exists, `Navigating to /businesses as a fallback.`); 
@@ -155,7 +150,6 @@ function populateExamples(container, examples, categoryName, itemBackgroundColor
         })
         .catch(error => {
           console.error('Error checking industry existence:', example, error);
-          console.log(`Error occurred. NAVIGATE TO: Browse all businesses`);
           window.location.href = '/businesses';
         });
     });
