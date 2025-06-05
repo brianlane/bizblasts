@@ -74,8 +74,8 @@ RSpec.describe Service, type: :model do
 
   describe 'image attachments' do
     it { is_expected.to have_many_attached(:images) }
-    it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg') }
-    it { should validate_size_of(:images).less_than(5.megabytes) }
+    it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg', 'image/gif', 'image/webp') }
+    it { should validate_size_of(:images).less_than(15.megabytes) }
 
     let(:business) { create(:business) }
     let(:service) { create(:service, business: business) }

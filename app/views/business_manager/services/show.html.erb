@@ -62,14 +62,14 @@
             <% if @service.primary_image.present? %>
               <div class="col-span-2 sm:col-span-1">
                 <p class="text-sm font-medium text-gray-500 mb-1">Primary:</p>
-                <%= image_tag @service.primary_image.representation(resize_to_limit: [200, 200]), class: "rounded shadow-md" %>
+                <%= image_tag @service.primary_image.variant(:medium), class: "rounded shadow-md" %>
               </div>
             <% end %>
             <%# Display other images %>
             <% @service.images.ordered.each do |img|
                  next if @service.primary_image.present? && img.id == @service.primary_image.id %>
               <div>
-                <%= image_tag img.representation(resize_to_limit: [100, 100]), class: "rounded shadow-md" %>
+                <%= image_tag img.variant(:thumb), class: "rounded shadow-md" %>
               </div>
             <% end %>
           </div>

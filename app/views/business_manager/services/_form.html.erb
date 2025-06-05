@@ -126,8 +126,15 @@
 
     <div class="mb-4">
       <%= form.label :images, "Add New Images", class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%= form.file_field :images, multiple: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-      <p class="mt-1 text-sm text-gray-500">Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.</p>
+      <%= form.file_field :images, 
+          multiple: true, 
+          accept: "image/*",
+          data: { 
+            max_file_size: 15728640,  # 15MB in bytes
+            max_files: 10 
+          },
+          class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+      <p class="mt-1 text-sm text-gray-500">Accepted formats: PNG, JPG/JPEG, GIF, WebP. Max size: 15MB per file, 10 files max.</p>
     </div>
 
   </div>
@@ -191,11 +198,36 @@
       });
     }
 
-    // Basic Image Ordering (Optional - requires UI like drag-and-drop)
-    // This is a placeholder. A real implementation needs a library.
-    // For now, rely on the backend position if set, otherwise arbitrary order.
-    // If implementing drag and drop, update the hidden .image-position fields here.
-    // Then trigger a form change event if needed.
+    // Client-side file validation for image uploads
+    const imageFileInput = document.querySelector('input[type="file"][data-max-file-size]');
+    if (imageFileInput) {
+      imageFileInput.addEventListener('change', function(e) {
+        const maxSize = parseInt(this.dataset.maxFileSize) || 15728640; // 15MB
+        const maxFiles = parseInt(this.dataset.maxFiles) || 10;
+        
+        if (this.files.length > maxFiles) {
+          alert(`Maximum ${maxFiles} files allowed`);
+          this.value = '';
+          return;
+        }
+        
+        let validFiles = true;
+        Array.from(this.files).forEach(file => {
+          if (file.size > maxSize) {
+            alert(`${file.name} is too large. Maximum size is 15MB.`);
+            validFiles = false;
+          }
+          if (!file.type.startsWith('image/')) {
+            alert(`${file.name} is not a valid image format.`);
+            validFiles = false;
+          }
+        });
+        
+        if (!validFiles) {
+          this.value = '';
+        }
+      });
+    }
 
   });
 </script>
