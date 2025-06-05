@@ -97,9 +97,9 @@ RSpec.describe "Business Registration", type: :system do
       
       # Standard plan features
       within('.subscription-plan[data-tier="standard"]') do
-        expect(page).to have_content("More features")
+        expect(page).to have_content("Text Reminders")
         expect(page).to have_content("Customizable pages")
-        expect(page).to have_content("BizBlasts subdomain")
+        expect(page).to have_content("Calendar Integrations")
         expect(page).to have_content("Advanced tools")
       end
       
