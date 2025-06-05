@@ -23,6 +23,7 @@ gem "tzinfo-data", platforms: %i[windows jruby]
 gem "solid_cache"
 gem "solid_queue"
 
+gem "aws-sdk-s3", require: false
 
 # Authentication
 gem "devise"
