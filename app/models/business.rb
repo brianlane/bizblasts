@@ -360,9 +360,12 @@ class Business < ApplicationRecord
     
     begin
       return unless logo.blob.byte_size > 2.megabytes
-      ProcessImageJob.perform_later(logo)
+      # Pass the attachment ID instead of the attached object
+      ProcessImageJob.perform_later(logo.attachment.id)
     rescue ActiveStorage::FileNotFoundError => e
       Rails.logger.warn "Logo blob not found for business #{id}: #{e.message}"
+    rescue => e
+      Rails.logger.error "Failed to enqueue logo processing job for business #{id}: #{e.message}"
     end
   end
   

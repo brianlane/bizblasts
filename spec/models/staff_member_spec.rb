@@ -449,13 +449,17 @@ RSpec.describe StaffMember, type: :model do
         allow(mock_attachment).to receive(:attached?).and_return(true)
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 123)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
         # Test various large file sizes
         large_sizes = [3.megabytes, 5.megabytes, 10.megabytes, 14.megabytes]
         
         large_sizes.each do |size|
           allow(mock_blob).to receive(:byte_size).and_return(size)
           
-          expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+          expect(ProcessImageJob).to receive(:perform_later).with(123)
           staff_member.send(:process_photo)
         end
       end
@@ -464,6 +468,10 @@ RSpec.describe StaffMember, type: :model do
         allow(mock_attachment).to receive(:attached?).and_return(true)
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 456)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
         # Test various small file sizes and boundary conditions
         small_sizes = [1.kilobyte, 500.kilobytes, 1.megabyte, 2.megabytes - 1, 2.megabytes]
         
@@ -471,7 +479,7 @@ RSpec.describe StaffMember, type: :model do
           allow(mock_blob).to receive(:byte_size).and_return(size)
           
           if size > 2.megabytes
-            expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+            expect(ProcessImageJob).to receive(:perform_later).with(456)
           else
             expect(ProcessImageJob).not_to receive(:perform_later)
           end
@@ -499,6 +507,7 @@ RSpec.describe StaffMember, type: :model do
       
       it 'handles complex error scenarios during processing' do
         allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(Rails.logger).to receive(:error) # Mock error logger as well
         
         # Test various error scenarios
         error_scenarios = [
@@ -514,12 +523,11 @@ RSpec.describe StaffMember, type: :model do
           
           if error.is_a?(ActiveStorage::FileNotFoundError)
             expect(Rails.logger).to receive(:warn).with(/Photo blob not found/)
-          end
-          
-          if error.is_a?(ActiveStorage::FileNotFoundError)
             expect { staff_member.send(:process_photo) }.not_to raise_error
           else
-            expect { staff_member.send(:process_photo) }.to raise_error(error.class)
+            # With updated error handling, all errors are now caught and logged
+            expect(Rails.logger).to receive(:error).with(/Failed to enqueue photo processing job/)
+            expect { staff_member.send(:process_photo) }.not_to raise_error
           end
         end
       end
@@ -529,14 +537,18 @@ RSpec.describe StaffMember, type: :model do
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         allow(mock_blob).to receive(:byte_size).and_return(5.megabytes)
         
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 999)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
         # Simulate multiple concurrent calls
         threads = []
         processed_count = 0
         
         # Mock ProcessImageJob to count calls
-        allow(ProcessImageJob).to receive(:perform_later) do |attachment|
+        allow(ProcessImageJob).to receive(:perform_later) do |attachment_id|
           processed_count += 1
-          attachment
+          attachment_id
         end
         
         5.times do

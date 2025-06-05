@@ -361,7 +361,7 @@ class User < ApplicationRecord
 
   # Helper method for conditional password validation (mimics Devise behavior)
   def password_required?
-    !persisted? || !password.nil? || !password_confirmation.nil?
+    !persisted? || password.present? || password_confirmation.present?
   end
 
   def email_uniqueness_by_role_type
