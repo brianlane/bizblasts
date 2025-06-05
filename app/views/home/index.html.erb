@@ -320,6 +320,11 @@
       <p class="text-sm text-gray-500">
         * Transaction fees are in addition to Stripe payment processing fees
       </p>
+      <div class="mt-6">
+        <%= link_to "How We Compare", 
+            "/pricing", 
+            class: "bg-primary hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors duration-200 inline-block" %>
+      </div>
     </div>
   </div>
 </div>
@@ -347,6 +352,8 @@
       <%= link_to "About", "/about", class: "hover:text-primary" %>
       <span>&bull;</span>
       <%= link_to "Contact", "/contact", class: "hover:text-primary" %>
+      <span>&bull;</span>
+      <%= link_to "Pricing", "/pricing", class: "hover:text-primary" %>
     </div>
   </div>
 </footer>

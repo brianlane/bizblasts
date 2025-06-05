@@ -4,9 +4,9 @@
 # It is designed to be resilient to database issues
 class HomeController < ApplicationController
   # Skip authentication for index page and new static pages
-  skip_before_action :authenticate_user!, only: [:index, :about, :contact, :cookies, :privacy, :terms, :disclaimer, :shippingpolicy, :returnpolicy, :acceptableusepolicy, :check_business_industry]
+  skip_before_action :authenticate_user!, only: [:index, :about, :contact, :cookies, :privacy, :terms, :disclaimer, :shippingpolicy, :returnpolicy, :acceptableusepolicy, :pricing, :check_business_industry]
   # Skip tenant setting for the home page since it's the main domain
-  skip_before_action :set_tenant, only: [:index, :about, :contact, :cookies, :privacy, :terms, :disclaimer, :shippingpolicy, :returnpolicy, :acceptableusepolicy, :check_business_industry]
+  skip_before_action :set_tenant, only: [:index, :about, :contact, :cookies, :privacy, :terms, :disclaimer, :shippingpolicy, :returnpolicy, :acceptableusepolicy, :pricing, :check_business_industry]
 
   def index
     # Simple landing page without database dependencies
@@ -98,6 +98,10 @@ class HomeController < ApplicationController
 
   def acceptableusepolicy
     render :acceptableusepolicy
+  end
+
+  def pricing
+    render :pricing
   end
 
   def check_business_industry
