@@ -38,6 +38,7 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
     params.require(:booking_policy).permit(
       :cancellation_window_mins,
       :buffer_time_mins,
+      :min_advance_mins,
       :max_daily_bookings,
       :max_advance_days,
       :min_duration_mins,

@@ -33,6 +33,15 @@
             </div>
           </div>
 
+          <%# Minimum Advance Time %>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+            <%= form.label :min_advance_mins, "Minimum Advance Booking (Minutes)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
+            <div class="mt-1 sm:mt-0 sm:col-span-2">
+              <%= form.number_field :min_advance_mins, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 30" %>
+              <p class="mt-2 text-sm text-gray-500">Minimum time required between booking creation and appointment start (in minutes). Set to 0 for no advance requirement.</p>
+            </div>
+          </div>
+
           <%# Max Daily Bookings %>
           <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
             <%= form.label :max_daily_bookings, "Max Daily Bookings", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>

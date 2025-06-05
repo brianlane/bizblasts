@@ -107,7 +107,9 @@
                 <% if @calendar_data[date.to_s]&.any? %>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <% @calendar_data[date.to_s].each do |slot| %>
-                      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors">
+                      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors slot-item"
+                           data-slot-date="<%= date.to_s %>"
+                           data-slot-start="<%= slot[:start_time].iso8601 %>">
                         <div class="flex items-center justify-between">
                           <div>
                             <div class="text-sm font-medium text-blue-900">
@@ -245,3 +247,96 @@
     </div>
   </div>
 </div> 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // PHASE 4, STEP 7: Real-time frontend time filtering for business manager
+  function filterPastSlots() {
+    const now = new Date();
+    const currentDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const currentTime = now.getTime();
+    
+    // Track updates for logging
+    let hiddenSlotsCount = 0;
+    let updatedDaysCount = 0;
+    
+    // Filter slots in both mobile and desktop views
+    document.querySelectorAll('.slot-item').forEach(slotElement => {
+      const slotDate = slotElement.getAttribute('data-slot-date');
+      const slotStartTime = slotElement.getAttribute('data-slot-start');
+      
+      // Only filter slots for today
+      if (slotDate === currentDateStr && slotStartTime) {
+        const slotTime = new Date(slotStartTime).getTime();
+        
+        // Hide slots that have passed
+        if (slotTime <= currentTime) {
+          if (slotElement.style.display !== 'none') {
+            slotElement.style.display = 'none';
+            slotElement.classList.add('past-slot-hidden');
+            hiddenSlotsCount++;
+          }
+        } else {
+          // Ensure future slots are visible
+          if (slotElement.style.display === 'none' && slotElement.classList.contains('past-slot-hidden')) {
+            slotElement.style.display = '';
+            slotElement.classList.remove('past-slot-hidden');
+          }
+        }
+      }
+    });
+    
+    // Update slot counts in mobile view
+    document.querySelectorAll('.bg-white.border.border-gray-200.rounded-lg.overflow-hidden').forEach(dayContainer => {
+      const dateHeaders = dayContainer.querySelectorAll('h3');
+      if (dateHeaders.length > 0) {
+        const dayName = dateHeaders[0].textContent.trim();
+        const visibleSlots = dayContainer.querySelectorAll('.slot-item:not([style*="display: none"])');
+        const slotCountElement = dayContainer.querySelector('.inline-flex.items-center.px-2\\.5.py-0\\.5');
+        
+        if (slotCountElement) {
+          const newCount = visibleSlots.length;
+          const currentText = slotCountElement.textContent.trim();
+          
+          // Update count if it has changed
+          if (!currentText.includes(newCount.toString())) {
+            slotCountElement.textContent = newCount === 1 ? '1 slot' : `${newCount} slots`;
+            slotCountElement.className = newCount > 0 ? 
+              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800' :
+              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+            updatedDaysCount++;
+          }
+        }
+      }
+    });
+    
+    // Update summary stats
+    const totalSlotsElement = document.querySelector('.text-2xl.font-bold.text-blue-600');
+    if (totalSlotsElement) {
+      const visibleSlots = document.querySelectorAll('.slot-item:not([style*="display: none"])');
+      const newTotal = visibleSlots.length;
+      if (totalSlotsElement.textContent !== newTotal.toString()) {
+        totalSlotsElement.textContent = newTotal;
+      }
+    }
+    
+    // Log updates if any occurred
+    if (hiddenSlotsCount > 0 || updatedDaysCount > 0) {
+      console.log(`[Business Manager Real-time Filter] Hidden ${hiddenSlotsCount} past slots, updated ${updatedDaysCount} day counts`);
+    }
+  }
+  
+  // Initial filtering after page load
+  setTimeout(filterPastSlots, 1000);
+  
+  // Set up interval to filter past slots every 5 minutes
+  setInterval(filterPastSlots, 5 * 60 * 1000); // 5 minutes
+  
+  // Also filter when user returns to tab (page visibility API)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      setTimeout(filterPastSlots, 500);
+    }
+  });
+});
+</script> 

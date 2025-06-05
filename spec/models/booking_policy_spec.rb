@@ -16,6 +16,7 @@ RSpec.describe BookingPolicy, type: :model do
     it { should validate_numericality_of(:max_advance_days).is_greater_than_or_equal_to(0).allow_nil }
     it { should validate_numericality_of(:min_duration_mins).is_greater_than_or_equal_to(0).allow_nil }
     it { should validate_numericality_of(:max_duration_mins).is_greater_than_or_equal_to(0).allow_nil }
+    it { should validate_numericality_of(:min_advance_mins).is_greater_than_or_equal_to(0).allow_nil }
   
     context 'custom validations' do
       it 'validates min_duration_mins is not greater than max_duration_mins' do
@@ -42,6 +43,29 @@ RSpec.describe BookingPolicy, type: :model do
       it 'is valid when only max_duration_mins is set' do
         policy = build(:booking_policy, business: business, min_duration_mins: nil, max_duration_mins: 60)
         expect(policy).to be_valid
+      end
+    end
+    
+    context 'min_advance_mins validations' do
+      it 'allows valid minimum advance time values' do
+        policy = build(:booking_policy, business: business, min_advance_mins: 30)
+        expect(policy).to be_valid
+      end
+      
+      it 'allows zero minimum advance time' do
+        policy = build(:booking_policy, business: business, min_advance_mins: 0)
+        expect(policy).to be_valid
+      end
+      
+      it 'allows nil minimum advance time' do
+        policy = build(:booking_policy, business: business, min_advance_mins: nil)
+        expect(policy).to be_valid
+      end
+      
+      it 'rejects negative minimum advance time' do
+        policy = build(:booking_policy, business: business, min_advance_mins: -15)
+        expect(policy).not_to be_valid
+        expect(policy.errors[:min_advance_mins]).to include('must be greater than or equal to 0')
       end
     end
   end
