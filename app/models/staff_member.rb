@@ -163,9 +163,12 @@ class StaffMember < ApplicationRecord
     
     begin
       return unless photo.blob.byte_size > 2.megabytes
-      ProcessImageJob.perform_later(photo)
+      # Pass the attachment ID instead of the attached object
+      ProcessImageJob.perform_later(photo.attachment.id)
     rescue ActiveStorage::FileNotFoundError => e
       Rails.logger.warn "Photo blob not found for staff member #{id}: #{e.message}"
+    rescue => e
+      Rails.logger.error "Failed to enqueue photo processing job for staff member #{id}: #{e.message}"
     end
   end
   

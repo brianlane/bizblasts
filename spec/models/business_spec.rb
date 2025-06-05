@@ -429,13 +429,17 @@ RSpec.describe Business, type: :model do
         allow(mock_attachment).to receive(:attached?).and_return(true)
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 789)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
         # Test various large file sizes for logos
         large_sizes = [2.5.megabytes, 5.megabytes, 8.megabytes, 12.megabytes, 14.megabytes]
         
         large_sizes.each do |size|
           allow(mock_blob).to receive(:byte_size).and_return(size)
           
-          expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+          expect(ProcessImageJob).to receive(:perform_later).with(789)
           business.send(:process_logo)
         end
       end
@@ -444,6 +448,10 @@ RSpec.describe Business, type: :model do
         allow(mock_attachment).to receive(:attached?).and_return(true)
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 890)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
         # Test various small file sizes and boundary conditions for logos
         small_sizes = [500.bytes, 50.kilobytes, 500.kilobytes, 1.megabyte, 2.megabytes - 1, 2.megabytes]
         
@@ -451,7 +459,7 @@ RSpec.describe Business, type: :model do
           allow(mock_blob).to receive(:byte_size).and_return(size)
           
           if size > 2.megabytes
-            expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+            expect(ProcessImageJob).to receive(:perform_later).with(890)
           else
             expect(ProcessImageJob).not_to receive(:perform_later)
           end
@@ -479,6 +487,7 @@ RSpec.describe Business, type: :model do
       
       it 'handles complex error scenarios during logo processing' do
         allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(Rails.logger).to receive(:error) # Mock error logger as well
         
         # Test various error scenarios specific to logo processing
         error_scenarios = [
@@ -495,12 +504,11 @@ RSpec.describe Business, type: :model do
           
           if error.is_a?(ActiveStorage::FileNotFoundError)
             expect(Rails.logger).to receive(:warn).with(/Logo blob not found/)
-          end
-          
-          if error.is_a?(ActiveStorage::FileNotFoundError)
             expect { business.send(:process_logo) }.not_to raise_error
           else
-            expect { business.send(:process_logo) }.to raise_error(error.class)
+            # With updated error handling, all errors are now caught and logged
+            expect(Rails.logger).to receive(:error).with(/Failed to enqueue logo processing job/)
+            expect { business.send(:process_logo) }.not_to raise_error
           end
         end
       end
@@ -512,7 +520,11 @@ RSpec.describe Business, type: :model do
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         allow(mock_blob).to receive(:byte_size).and_return(3.megabytes)
         
-        expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 111)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
+        expect(ProcessImageJob).to receive(:perform_later).with(111)
         business.send(:process_logo)
         
         # Reset for next test
@@ -535,7 +547,11 @@ RSpec.describe Business, type: :model do
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         allow(mock_blob).to receive(:byte_size).and_return(10.megabytes)
         
-        expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 222)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
+        expect(ProcessImageJob).to receive(:perform_later).with(222)
         business.send(:process_logo)
       end
       
@@ -544,15 +560,19 @@ RSpec.describe Business, type: :model do
         allow(mock_attachment).to receive(:blob).and_return(mock_blob)
         allow(mock_blob).to receive(:byte_size).and_return(8.megabytes)
         
+        # Mock the attachment record
+        mock_attachment_record = double('attachment_record', id: 333)
+        allow(mock_attachment).to receive(:attachment).and_return(mock_attachment_record)
+        
         # Simulate multiple concurrent logo processing calls
         threads = []
         processed_count = 0
         mutex = Mutex.new
         
         # Mock ProcessImageJob to count calls thread-safely
-        allow(ProcessImageJob).to receive(:perform_later) do |attachment|
+        allow(ProcessImageJob).to receive(:perform_later) do |attachment_id|
           mutex.synchronize { processed_count += 1 }
-          attachment
+          attachment_id
         end
         
         10.times do

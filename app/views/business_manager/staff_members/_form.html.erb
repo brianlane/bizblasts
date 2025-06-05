@@ -38,19 +38,77 @@
                 class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <%= uf.label :password, class: "block text-gray-700 text-sm font-bold mb-2" %>
-            <%= uf.password_field :password, required: staff_member.new_record?,
-                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        <% if staff_member.new_record? %>
+          <!-- Password fields for new staff member -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <%= uf.label :password, class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= uf.password_field :password, required: true,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
+            
+            <div>
+              <%= uf.label :password_confirmation, class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= uf.password_field :password_confirmation, required: true,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
           </div>
-          
-          <div>
-            <%= uf.label :password_confirmation, class: "block text-gray-700 text-sm font-bold mb-2" %>
-            <%= uf.password_field :password_confirmation, required: staff_member.new_record?,
-                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        <% else %>
+          <!-- Password change section for existing staff member -->
+          <div class="bg-gray-50 p-4 rounded-lg border">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-medium text-gray-900">Change Password</h4>
+              <button type="button" id="toggle-password-fields" 
+                      class="text-sm text-blue-600 hover:text-blue-800 focus:outline-none">
+                <span id="toggle-password-text">Show password fields</span>
+              </button>
+            </div>
+            
+            <div id="password-fields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <%= uf.label :password, "New Password", class: "block text-gray-700 text-xs font-bold mb-2" %>
+                <%= uf.password_field :password, placeholder: "Leave blank to keep current password",
+                      class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              </div>
+              
+              <div>
+                <%= uf.label :password_confirmation, "Confirm New Password", class: "block text-gray-700 text-xs font-bold mb-2" %>
+                <%= uf.password_field :password_confirmation, placeholder: "Confirm new password",
+                      class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              </div>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-2">
+              Leave password fields empty to keep the current password unchanged.
+            </p>
           </div>
-        </div>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const toggleButton = document.getElementById('toggle-password-fields');
+              const passwordFields = document.getElementById('password-fields');
+              const toggleText = document.getElementById('toggle-password-text');
+              
+              if (toggleButton && passwordFields && toggleText) {
+                toggleButton.addEventListener('click', function() {
+                  const isHidden = passwordFields.classList.contains('hidden');
+                  
+                  if (isHidden) {
+                    passwordFields.classList.remove('hidden');
+                    toggleText.textContent = 'Hide password fields';
+                  } else {
+                    passwordFields.classList.add('hidden');
+                    toggleText.textContent = 'Show password fields';
+                    
+                    // Clear password fields when hiding
+                    const passwordInputs = passwordFields.querySelectorAll('input[type="password"]');
+                    passwordInputs.forEach(input => input.value = '');
+                  }
+                });
+              }
+            });
+          </script>
+        <% end %>
       <% end %>
 
       <div>

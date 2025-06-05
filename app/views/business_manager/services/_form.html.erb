@@ -194,7 +194,7 @@
       <div class="mt-4 p-3 bg-blue-50 rounded-md">
         <p class="text-sm text-blue-700">
           <strong>📸 Image Guidelines:</strong><br>
-          • Formats: PNG, JPG/JPEG, GIF, WebP<br>
+          • Formats: PNG, JPEG, GIF, WebP<br>
           • Max size: 15MB per file<br>
           • Max files: 10 images<br>
           • Recommended: Square images work best
@@ -205,8 +205,12 @@
 
   <%# TODO: Add input for availability_settings if needed %>
 
-  <div class="actions">
-    <%= form.submit class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer" %>
+  <!-- Submit Button -->
+  <div class="mt-8 border-t pt-6">
+    <div class="flex justify-center">
+      <%= form.submit(service.new_record? ? 'Create Service' : 'Update Service', 
+            class: "inline-flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer") %>
+    </div>
   </div>
 <% end %>
 
