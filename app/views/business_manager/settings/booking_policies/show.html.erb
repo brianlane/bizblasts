@@ -28,6 +28,10 @@
             <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.buffer_time_mins.present? ? pluralize(@booking_policy.buffer_time_mins, 'minute') : "None" %></dd>
           </div>
           <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            <dt class="text-sm font-medium text-gray-500">Minimum Advance Booking Time</dt>
+            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.min_advance_mins.present? && @booking_policy.min_advance_mins > 0 ? pluralize(@booking_policy.min_advance_mins, 'minute') : "No minimum" %></dd>
+          </div>
+          <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
             <dt class="text-sm font-medium text-gray-500">Maximum Daily Bookings (per Staff)</dt> <%# Clarify if per staff or total %>
             <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @booking_policy.max_daily_bookings.present? ? @booking_policy.max_daily_bookings : "Unlimited" %></dd>
           </div>

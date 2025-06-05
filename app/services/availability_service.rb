@@ -11,11 +11,21 @@ class AvailabilityService
   # @return [Array<Hash>] an array of available slot data with start_time and end_time
   def self.available_slots(staff_member, date, service = nil, interval: 30)
     return [] unless staff_member.active?
+    
+    # Include current hour in cache key for same-day slots to handle time progression
+    time_component = date == Date.current ? Time.current.hour : 'static'
+    
     # Always cache available slots based on parameters, availability, and policy
     cache_key = ['availability_slots', staff_member.id, date.to_s, service&.id, interval,
-                 staff_member.availability, staff_member.business.booking_policy&.attributes].join('/')
-    Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
-      compute_available_slots(staff_member, date, service, interval)
+                 time_component, staff_member.availability, 
+                 staff_member.business.booking_policy&.attributes].join('/')
+    
+    # Reduce cache TTL for same-day slots for better real-time accuracy
+    cache_duration = date == Date.current ? 5.minutes : 15.minutes
+    
+    Rails.cache.fetch(cache_key, expires_in: cache_duration) do
+      raw_slots = compute_available_slots(staff_member, date, service, interval)
+      filter_past_slots(raw_slots, date, staff_member.business)
     end
   end
 
@@ -150,6 +160,7 @@ class AvailabilityService
     slot_duration = service&.duration || interval
     step_interval = interval
     time_slots = []
+    
     # Policy checks
     business = staff_member.business
     policy = business&.booking_policy
@@ -173,6 +184,7 @@ class AvailabilityService
         return [] if date > max_date
       end
     end
+    
     # Service capability
     # Check if staff member can perform this service
     if service.present? && !staff_member.services.include?(service)
@@ -188,6 +200,7 @@ class AvailabilityService
                   Array(availability_data[day_name])
                 end
     return [] unless intervals.any?
+    
     intervals.each do |interval_data|
       start_str, end_str = interval_data['start'], interval_data['end']
       next unless start_str && end_str
@@ -197,6 +210,7 @@ class AvailabilityService
       interval_end = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
       interval_end += 1.day if end_h < start_h
       current = interval_start
+      
       while current + slot_duration.minutes <= interval_end
         st = current
         en = current + slot_duration.minutes
@@ -204,6 +218,7 @@ class AvailabilityService
         current += step_interval.minutes
       end
     end
+    
     filter_booked_slots(time_slots, staff_member, date, slot_duration)
   end
 
@@ -362,5 +377,39 @@ class AvailabilityService
     query = query.where.not(id: exclude_booking_id) if exclude_booking_id
     
     query.count
+  end
+
+  # Filter out time slots that have already passed for today
+  # Respects business time zone and minimum advance booking time policy
+  #
+  # @param slots [Array<Hash>] array of time slots with :start_time and :end_time
+  # @param date [Date] the date being filtered
+  # @param business [Business] the business context for time zone and policy
+  # @return [Array<Hash>] filtered slots excluding past times
+  def self.filter_past_slots(slots, date, business)
+    return slots unless date == Date.current
+    
+    # Use business time zone for current time comparison
+    current_time = if business.time_zone.present?
+                     Time.current.in_time_zone(business.time_zone)
+                   else
+                     Time.current
+                   end
+    
+    # Apply minimum advance booking time if policy exists
+    policy = business.booking_policy
+    if policy&.min_advance_mins.present? && policy.min_advance_mins > 0
+      cutoff_time = current_time + policy.min_advance_mins.minutes
+    else
+      cutoff_time = current_time
+    end
+    
+    Rails.logger.debug("Filtering past slots for #{date}: current time #{current_time.strftime('%H:%M')}, cutoff #{cutoff_time.strftime('%H:%M')}")
+    
+    filtered_slots = slots.reject { |slot| slot[:start_time] <= cutoff_time }
+    
+    Rails.logger.debug("Past time filtering: #{slots.count} original slots, #{filtered_slots.count} after filtering")
+    
+    filtered_slots
   end
 end

@@ -623,4 +623,187 @@ RSpec.describe AvailabilityService, type: :service do
       end
     end
   end
+
+  describe '.available_slots with past time filtering' do
+    include ActiveSupport::Testing::TimeHelpers
+    
+    let(:customer) { create(:tenant_customer, business: business) }
+    let(:today) { Date.current }
+    
+    context 'when filtering past time slots for today' do
+      before do
+        travel_to Time.zone.local(today.year, today.month, today.day, 11, 30) # 11:30 AM
+        
+        # Set up availability for the whole day
+        availability_data = staff_member.availability.with_indifferent_access
+        availability_data[today.strftime('%A').downcase] = [{ 'start' => '09:00', 'end' => '17:00' }]
+        staff_member.update!(availability: availability_data)
+        
+        # Ensure the staff member is considered available for all test times
+        allow(staff_member).to receive(:available_at?).and_return(true)
+      end
+      
+      after { travel_back }
+      
+      it 'excludes slots that have already passed' do
+        slots = described_class.available_slots(staff_member, today, service, interval: 30)
+        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+        
+        # Should not include past times (before 11:30)
+        expect(slot_times).not_to include('09:00', '10:00', '11:00')
+        
+        # Should include future times (after 11:30)
+        expect(slot_times).to include('12:00', '13:00', '14:00')
+        
+        # Verify each slot has correct format
+        slots.each do |slot|
+          expect(slot).to have_key(:start_time)
+          expect(slot).to have_key(:end_time)
+          expect(slot[:start_time]).to be_a(Time)
+          expect(slot[:end_time]).to be_a(Time)
+        end
+      end
+      
+      it 'includes all slots for future dates' do
+        future_date = Date.current + 1.day
+        
+        # Set up availability for future date
+        availability_data = staff_member.availability.with_indifferent_access
+        availability_data[future_date.strftime('%A').downcase] = [{ 'start' => '09:00', 'end' => '17:00' }]
+        staff_member.update!(availability: availability_data)
+        
+        slots = described_class.available_slots(staff_member, future_date, service, interval: 30)
+        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+        
+        # Should include all available times for future dates
+        expect(slot_times).to include('09:00', '10:00', '11:00', '12:00')
+      end
+      
+      it 'has reduced cache duration for same-day slots' do
+        # Mock Rails.cache to verify cache duration
+        expect(Rails.cache).to receive(:fetch).with(
+          anything, 
+          hash_including(expires_in: 5.minutes)
+        ).and_call_original
+        
+        described_class.available_slots(staff_member, today, service)
+      end
+      
+      it 'has standard cache duration for future dates' do
+        future_date = Date.current + 1.day
+        
+        expect(Rails.cache).to receive(:fetch).with(
+          anything, 
+          hash_including(expires_in: 15.minutes)
+        ).and_call_original
+        
+        described_class.available_slots(staff_member, future_date, service)
+      end
+      
+      it 'includes current hour in cache key for same-day slots' do
+        # The cache key should include the current hour for same-day slots
+        allow(Rails.cache).to receive(:fetch) do |cache_key, options|
+          expect(cache_key).to include(Time.current.hour.to_s)
+          []
+        end
+        
+        described_class.available_slots(staff_member, today, service)
+      end
+      
+      it 'uses static cache key component for future dates' do
+        future_date = Date.current + 1.day
+        
+        allow(Rails.cache).to receive(:fetch) do |cache_key, options|
+          expect(cache_key).to include('static')
+          []
+        end
+        
+        described_class.available_slots(staff_member, future_date, service)
+      end
+    end
+    
+    context 'with business time zone considerations' do
+      let(:business_with_timezone) { create(:business, time_zone: 'America/New_York') }
+      let(:staff_with_timezone) { create(:staff_member, business: business_with_timezone) }
+      let(:service_with_timezone) { create(:service, business: business_with_timezone) }
+      
+      before do
+        create(:services_staff_member, service: service_with_timezone, staff_member: staff_with_timezone)
+        
+        # Set availability for the timezone test
+        availability_data = {
+          today.strftime('%A').downcase => [{ 'start' => '09:00', 'end' => '17:00' }]
+        }
+        staff_with_timezone.update!(availability: availability_data)
+        allow(staff_with_timezone).to receive(:available_at?).and_return(true)
+      end
+      
+      it 'respects business time zone when filtering past slots' do
+        # Mock current time to be 10:00 AM EST (15:00 UTC)
+        est_time = Time.zone.parse("#{today} 10:00").in_time_zone('America/New_York')
+        travel_to est_time.utc
+        
+        slots = described_class.available_slots(staff_with_timezone, today, service_with_timezone)
+        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+        
+        # Should filter based on EST time, not UTC
+        expect(slot_times).not_to include('09:00') # Past in EST
+        expect(slot_times).to include('11:00')      # Future in EST
+        
+        travel_back
+      end
+    end
+    
+    context 'with minimum advance booking time policy' do
+      let!(:policy) { create(:booking_policy, business: business, min_advance_mins: 30) }
+      
+      before do
+        travel_to Time.zone.local(today.year, today.month, today.day, 11, 0) # 11:00 AM
+        
+        # Set up availability
+        availability_data = staff_member.availability.with_indifferent_access
+        availability_data[today.strftime('%A').downcase] = [{ 'start' => '09:00', 'end' => '17:00' }]
+        staff_member.update!(availability: availability_data)
+        allow(staff_member).to receive(:available_at?).and_return(true)
+      end
+      
+      after { travel_back }
+      
+      it 'excludes slots within the minimum advance time window' do
+        slots = described_class.available_slots(staff_member, today, service)
+        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+        
+        # Should exclude slots within 30 minutes (before 11:30)
+        expect(slot_times).not_to include('11:00', '11:15')
+        
+        # Should include slots after the advance window
+        expect(slot_times).to include('12:00', '13:00')
+      end
+      
+      it 'applies no advance time filter when policy is not set' do
+        policy.update!(min_advance_mins: nil)
+        
+        slots = described_class.available_slots(staff_member, today, service)
+        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+        
+        # Should only filter exactly current time (11:00), not future times
+        expect(slot_times).not_to include('10:30') # Past
+        expect(slot_times).to include('11:30', '12:00') # Current and future
+      end
+      
+      it 'applies zero advance time when policy is set to 0' do
+        policy.update!(min_advance_mins: 0)
+        
+        slots = described_class.available_slots(staff_member, today, service)
+        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+        
+        # Should filter only past times, include current and future
+        expect(slot_times).not_to include('10:30') # Past
+        expect(slot_times).to include('11:30', '12:00') # Current and future
+      end
+    end
+  end
+
+  describe '.available_slots with booking policies' do
+  end
 end
