@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :service do
-    name { Faker::Commerce.product_name }
+    sequence(:name) { |n| "#{Faker::Commerce.product_name} #{n}" }
     description { Faker::Lorem.paragraph }
     duration { [30, 60, 90, 120].sample }
     price { Faker::Commerce.price(range: 20..200.0) }
