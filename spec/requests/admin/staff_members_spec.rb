@@ -7,10 +7,14 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
   
   let!(:admin_user) { create(:admin_user) }
   let!(:business) { create(:business) }
-  let!(:staff_member) { create(:staff_member, business: business, name: "Regular Staff", photo_url: "http://example.com/photo.jpg") }
+  let!(:staff_member) { 
+    staff = create(:staff_member, business: business, name: "Regular Staff")
+    staff.photo.attach(io: StringIO.new("fake image data"), filename: "photo.jpg", content_type: "image/jpeg")
+    staff
+  }
   let!(:staff_empty_avail) { create(:staff_member, business: business, name: "Empty Avail Staff", availability: {}) }
   let!(:staff_no_except) { create(:staff_member, business: business, name: "No Except Staff", availability: { monday: [] }) }
-  let!(:staff_no_photo) { create(:staff_member, business: business, name: "No Photo Staff", photo_url: nil) }
+  let!(:staff_no_photo) { create(:staff_member, business: business, name: "No Photo Staff") }
 
   # Use around block for tenant context where needed
   around do |example|
@@ -62,8 +66,8 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
       expect(response).to be_successful
       body = response.body
       expect(body).to include("Staff Member Details")
-      # Check for img tag containing the photo URL 
-      expect(body).to match(/<img[^>]*src=["']#{Regexp.escape(staff_member.photo_url)}["'][^>]*>/)
+      # Check for img tag containing the ActiveStorage photo URL 
+      expect(body).to match(/<img[^>]*src=["'][^"']*rails\/active_storage[^"']*["'][^>]*>/)
       # Check availability details are shown
       # Check for link text - look for it in the action items section
       expect(body).to match(/class="action_item".*Manage Availability/m)

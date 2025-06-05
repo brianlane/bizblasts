@@ -34,7 +34,7 @@ class StaffMember < ApplicationRecord
   before_validation :process_availability
   
   # Background processing for photo
-  after_commit :process_photo, if: -> { photo.attached? && photo_previously_changed? }
+  after_commit :process_photo, if: -> { photo.attached? }
   
   scope :active, -> { where(active: true) }
   

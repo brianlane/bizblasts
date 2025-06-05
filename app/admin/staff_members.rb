@@ -134,11 +134,11 @@ ActiveAdmin.register StaffMember do
         end
       end
       row :color
-      row :photo_url do |staff|
-        if staff.photo_url.present?
-          image_tag staff.photo_url, alt: staff.name, style: "max-width: 200px; max-height: 200px;"
+      row :photo do |staff|
+        if staff.photo.attached?
+          image_tag rails_public_blob_url(staff.photo.representation(resize_to_limit: [200, 200])), alt: staff.name, style: "max-width: 200px; max-height: 200px;"
         else
-          span "Empty", class: "empty"
+          span "No photo", class: "empty"
         end
       end
     end
@@ -166,7 +166,13 @@ ActiveAdmin.register StaffMember do
           end
         end
         row :color
-        row :photo_url
+        row :photo do |staff|
+          if staff.photo.attached?
+            image_tag rails_public_blob_url(staff.photo.representation(resize_to_limit: [200, 200])), alt: staff.name, style: "max-width: 200px; max-height: 200px;"
+          else
+            span "No photo", class: "empty"
+          end
+        end
       end
     end
     

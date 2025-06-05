@@ -351,7 +351,7 @@ class Business < ApplicationRecord
                    size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
   
   # Background processing for logo
-  after_commit :process_logo, if: -> { logo.attached? && logo_previously_changed? }
+  after_commit :process_logo, if: -> { logo.attached? }
   
   private
   
