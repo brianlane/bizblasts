@@ -386,4 +386,18 @@ Rails.application.routes.draw do
     resources :orders, only: [:index, :show] # Add :edit, :update if business users can modify orders
     # ... other business resources
   end
+
+  # CloudFront CDN support for Active Storage
+  direct :rails_public_blob do |blob|
+    if ENV.fetch("ACTIVE_STORAGE_ASSET_HOST", false) && blob&.key
+      File.join(ENV.fetch("ACTIVE_STORAGE_ASSET_HOST"), blob.key)
+    else
+      route = if blob.is_a?(ActiveStorage::Variant) || blob.is_a?(ActiveStorage::VariantWithRecord)
+                :rails_representation
+              else
+                :rails_blob
+              end
+      route_for(route, blob)
+    end
+  end
 end

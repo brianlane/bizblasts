@@ -40,3 +40,12 @@ plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
+
+# Increase timeout for large file uploads (2 minutes)
+worker_timeout 120
+
+# Set HTTP content length limit to 20MB (buffer above 15MB max file size)
+http_content_length_limit 20.megabytes
+
+# Increase first data timeout for large uploads (2 minutes)
+first_data_timeout 120

@@ -9,7 +9,11 @@ class Product < ApplicationRecord
   # has_many :line_items, dependent: :destroy # Use this if products DON'T have variants
   has_many :line_items, through: :product_variants # Use this if products MUST have variants
 
-  has_many_attached :images
+  has_many_attached :images do |attachable|
+    attachable.variant :thumb, resize_to_limit: [300, 300]
+    attachable.variant :medium, resize_to_limit: [800, 800] 
+    attachable.variant :large, resize_to_limit: [1200, 1200]
+  end
 
   # Ensure `images.ordered` is available on the ActiveStorage proxy
   def images
@@ -28,9 +32,13 @@ class Product < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  # Validate attachments using built-in ActiveStorage validators
-  validates :images, content_type: { in: ['image/png', 'image/jpeg'], message: 'must be PNG or JPEG format' }, 
-                     size: { less_than: 5.megabytes }
+  # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
+  validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
+                                     message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
+                     size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  validate :image_size_validation
+  validate :image_format_validation
 
   # TODO: Add method or validation for primary image designation if needed
   # TODO: Add method for image ordering if needed
@@ -46,6 +54,9 @@ class Product < ApplicationRecord
 
   # Ensure products without explicit variants have a default variant for cart operations
   after_create :create_default_variant
+  
+  # Process images after commit for optimization
+  after_commit :process_images, on: [:create, :update]
 
   # --- Add Ransack methods --- 
   def self.ransackable_attributes(auth_object = nil)
@@ -161,6 +172,29 @@ class Product < ApplicationRecord
   end
 
   private
+
+  def image_size_validation
+    images.each do |image|
+      if image.blob.byte_size > 15.megabytes
+        errors.add(:images, "must be less than 15MB")
+      end
+    end
+  end
+  
+  def image_format_validation
+    images.each do |image|
+      unless image.blob.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+        errors.add(:images, "must be a valid image format (JPEG, PNG, GIF, WebP)")
+      end
+    end
+  end
+
+  def process_images
+    images.each do |image|
+      # Create optimized variants after upload in background
+      ProcessImageJob.perform_later(image.id)
+    end
+  end
 
   def create_default_variant
     return if product_variants.exists?

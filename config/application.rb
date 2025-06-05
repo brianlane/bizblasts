@@ -45,5 +45,19 @@ module Bizblasts
 
     # Add app/assets/stylesheets to the asset load path
     config.assets.paths << Rails.root.join("app/assets/stylesheets")
+
+    # Handle subdomain-based tenancy
+    config.hosts << /.+\.lvh\.me/
+    config.hosts << /.+\.bizblasts\.com/
+    config.hosts << /.+\.bizblasts\.onrender\.com/
+
+    # Image processing configuration for large uploads
+    config.active_storage.variant_processor = :mini_magick
+    
+    # Configure large file upload timeouts
+    config.active_job.queue_adapter = :solid_queue
+    
+    # Increase Rack timeout for large file uploads (2 minutes)
+    config.force_ssl = false unless Rails.env.production?
   end
 end

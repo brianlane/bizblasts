@@ -23,9 +23,9 @@ RSpec.describe Product, type: :model do
 
     # Active Storage validations (ensure test helper is configured)
     # it { should validate_attached_of(:images) } # Attachment is optional
-    it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg') }
+    it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg', 'image/gif', 'image/webp') }
     it { should validate_content_type_of(:images).rejecting('text/plain', 'application/pdf') }
-    it { should validate_size_of(:images).less_than(5.megabytes) }
+    it { should validate_size_of(:images).less_than(15.megabytes) }
   end
 
   describe 'scopes' do

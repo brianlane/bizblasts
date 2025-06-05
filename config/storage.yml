@@ -12,6 +12,14 @@ amazon:
   secret_access_key: <%= ENV['IAM_AWS_SECRET_ACCESS_KEY'] %>
   region: <%= ENV['AWS_REGION'] %>
   bucket: <%= ENV['AWS_BUCKET'] %>
+  # Enable public access for CDN
+  public: true
+  # CloudFront CDN configuration
+  <% if ENV['ACTIVE_STORAGE_ASSET_HOST'].present? %>
+  asset_host: <%= ENV['ACTIVE_STORAGE_ASSET_HOST'] %>
+  <% end %>
+  upload:
+    cache_control: "public, max-age=31536000, immutable"
 
 mirror:
   service: Mirror

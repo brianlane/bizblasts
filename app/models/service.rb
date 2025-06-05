@@ -16,7 +16,11 @@ class Service < ApplicationRecord
   has_many :add_on_products, through: :product_service_add_ons, source: :product
   
   # Image attachments
-  has_many_attached :images
+  has_many_attached :images do |attachable|
+    attachable.variant :thumb, resize_to_limit: [300, 300]
+    attachable.variant :medium, resize_to_limit: [800, 800] 
+    attachable.variant :large, resize_to_limit: [1200, 1200]
+  end
 
   # Ensure `images.ordered` is available on the ActiveStorage proxy
   def images
@@ -33,6 +37,9 @@ class Service < ApplicationRecord
   # Callbacks
   # before_destroy :orphan_bookings  # Removed - Business model handles orphaning
   
+  # Process images after commit for optimization
+  after_commit :process_images, on: [:create, :update]
+  
   validates :name, presence: true
   validates :name, uniqueness: { scope: :business_id }
   validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
@@ -40,8 +47,13 @@ class Service < ApplicationRecord
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
 
-  # Validations for images
-  validates :images, content_type: ['image/png', 'image/jpeg'], size: { less_than: 5.megabytes }
+  # Validations for images - Updated for 15MB max
+  validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
+                                     message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
+                     size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  validate :image_size_validation
+  validate :image_format_validation
   
   # Validations for min/max bookings and spots based on type
   validates :min_bookings, numericality: { only_integer: true, greater_than_or_equal_to: 1 }, if: :experience?
@@ -165,6 +177,29 @@ class Service < ApplicationRecord
   # end
 
   private
+
+  def image_size_validation
+    images.each do |image|
+      if image.blob.byte_size > 15.megabytes
+        errors.add(:images, "must be less than 15MB")
+      end
+    end
+  end
+  
+  def image_format_validation
+    images.each do |image|
+      unless image.blob.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+        errors.add(:images, "must be a valid image format (JPEG, PNG, GIF, WebP)")
+      end
+    end
+  end
+
+  def process_images
+    images.each do |image|
+      # Create optimized variants after upload in background
+      ProcessImageJob.perform_later(image.id)
+    end
+  end
 
   def set_initial_spots
     # For 'Experience' services, initialize spots with max_bookings if not already set

@@ -126,7 +126,11 @@
       <div class="relative">
         <!-- Hidden file input -->
         <%= form.file_field :images, multiple: true, 
-              accept: "image/png,image/jpeg,image/jpg",
+              accept: "image/*",
+              data: { 
+                max_file_size: 15728640,  # 15MB in bytes
+                max_files: 10 
+              },
               class: "hidden",
               id: "product_images_input" %>
         
@@ -143,7 +147,7 @@
         <span id="file-selection-display" class="ml-3 text-sm text-gray-600">No files selected</span>
       </div>
       <p class="mt-1 text-sm text-gray-500">
-        <br>Accepted formats: PNG, JPG/JPEG. Max size: 5MB per file.
+        <br>Accepted formats: PNG, JPG/JPEG, GIF, WebP. Max size: 15MB per file, 10 files max.
       </p>
     </div>
   </div>
@@ -317,6 +321,33 @@
     if (fileInput) {
       fileInput.addEventListener('change', function(event) {
         const files = event.target.files;
+        const maxSize = parseInt(fileInput.dataset.maxFileSize) || 15728640; // 15MB
+        const maxFiles = parseInt(fileInput.dataset.maxFiles) || 10;
+        
+        if (files.length > maxFiles) {
+          alert(`Maximum ${maxFiles} files allowed`);
+          fileInput.value = '';
+          fileSelectionDisplay.textContent = 'No files selected';
+          return;
+        }
+        
+        let validFiles = true;
+        Array.from(files).forEach(file => {
+          if (file.size > maxSize) {
+            alert(`${file.name} is too large. Maximum size is 15MB.`);
+            validFiles = false;
+          }
+          if (!file.type.startsWith('image/')) {
+            alert(`${file.name} is not a valid image format.`);
+            validFiles = false;
+          }
+        });
+        
+        if (!validFiles) {
+          fileInput.value = '';
+          fileSelectionDisplay.textContent = 'No files selected';
+          return;
+        }
         
         // Remove any existing feedback
         let existingFeedback = document.getElementById('file-selection-feedback');
