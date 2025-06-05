@@ -129,10 +129,72 @@
 
       <div>
         <%= f.label :user_role, "User Role", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= f.select :user_role,
-             [['Staff Member','staff'], ['Manager','manager']],
-             { prompt: 'Select role' },
-             class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        
+        <!-- Custom Role Dropdown -->
+        <div class="role-dropdown relative">
+          <button type="button" 
+                  class="role-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                  data-role-dropdown-target="button">
+            <span class="role-dropdown-text text-gray-900">
+              <% if staff_member.user_role.present? %>
+                <%= staff_member.user_role == 'staff' ? 'Staff Member' : 'Manager' %>
+              <% else %>
+                Select role
+              <% end %>
+            </span>
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </span>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div class="role-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+               data-role-dropdown-target="menu">
+            
+            <div class="role-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-role-value="staff"
+                 data-role-name="Staff Member"
+                 data-role-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900">Staff Member</div>
+                  <div class="text-sm text-gray-500 mt-1">Can manage appointments and basic customer interactions</div>
+                </div>
+              </div>
+              <% if staff_member.user_role == 'staff' %>
+                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              <% end %>
+            </div>
+            
+            <div class="role-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-role-value="manager"
+                 data-role-name="Manager"
+                 data-role-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900">Manager</div>
+                  <div class="text-sm text-gray-500 mt-1">Full access to business management and settings</div>
+                </div>
+              </div>
+              <% if staff_member.user_role == 'manager' %>
+                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Hidden field to store the selected role -->
+        <%= f.hidden_field :user_role, id: "staff_member_user_role" %>
       </div>
     </div>
 
@@ -238,6 +300,75 @@
           if (photoButton && photoInput) {
             photoButton.addEventListener('click', function() {
               photoInput.click();
+            });
+          }
+          
+          // Role Dropdown Functionality
+          const roleDropdownButton = document.querySelector('[data-role-dropdown-target="button"]');
+          const roleDropdownMenu = document.querySelector('[data-role-dropdown-target="menu"]');
+          const roleDropdownOptions = document.querySelectorAll('[data-role-dropdown-target="option"]');
+          const roleDropdownText = document.querySelector('.role-dropdown-text');
+          const roleDropdownArrow = roleDropdownButton?.querySelector('svg');
+          const roleHiddenField = document.getElementById('staff_member_user_role');
+          
+          if (roleDropdownButton && roleDropdownMenu) {
+            // Toggle dropdown
+            roleDropdownButton.addEventListener('click', function(e) {
+              e.preventDefault();
+              const isHidden = roleDropdownMenu.classList.contains('hidden');
+              
+              if (isHidden) {
+                roleDropdownMenu.classList.remove('hidden');
+                roleDropdownArrow?.classList.add('rotate-180');
+              } else {
+                roleDropdownMenu.classList.add('hidden');
+                roleDropdownArrow?.classList.remove('rotate-180');
+              }
+            });
+            
+            // Handle option selection
+            roleDropdownOptions.forEach(option => {
+              option.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const roleValue = this.getAttribute('data-role-value');
+                const roleName = this.getAttribute('data-role-name');
+                
+                // Update hidden field
+                if (roleHiddenField) {
+                  roleHiddenField.value = roleValue;
+                }
+                
+                // Update button text
+                if (roleDropdownText) {
+                  roleDropdownText.textContent = roleName;
+                }
+                
+                // Update selection indicators
+                roleDropdownOptions.forEach(opt => {
+                  const checkmark = opt.querySelector('svg');
+                  if (checkmark) {
+                    checkmark.classList.add('hidden');
+                  }
+                });
+                
+                const selectedCheckmark = this.querySelector('svg');
+                if (selectedCheckmark) {
+                  selectedCheckmark.classList.remove('hidden');
+                }
+                
+                // Close dropdown
+                roleDropdownMenu.classList.add('hidden');
+                roleDropdownArrow?.classList.remove('rotate-180');
+              });
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+              if (!roleDropdownButton.contains(e.target) && !roleDropdownMenu.contains(e.target)) {
+                roleDropdownMenu.classList.add('hidden');
+                roleDropdownArrow?.classList.remove('rotate-180');
+              }
             });
           }
         });
