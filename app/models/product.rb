@@ -194,12 +194,14 @@ class Product < ApplicationRecord
     end
     
     # Check if we're trying to reorder images and have all image IDs
+    # Only validate completeness if NO images are being destroyed (pure reordering)
+    being_destroyed = attrs_list.any? { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
     positions = attrs_list
       .reject { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
       .map { |attrs| attrs[:position] }
       .compact
     
-    if positions.any? && image_ids.sort != existing_attachment_ids.sort
+    if positions.any? && !being_destroyed && image_ids.sort != existing_attachment_ids.sort
       errors << "Image IDs are incomplete"
     end
     
