@@ -41,8 +41,8 @@ RSpec.describe "Business Manager Order Invoice Creation", type: :system do
       first("a", text: "Generate New Order").click
       
       # Fill in the order form
-      select "#{tenant_customer.name} (#{tenant_customer.email})", from: "Customer"
-      select tax_rate.name, from: "Tax Rate"
+      select_from_custom_dropdown "#{tenant_customer.name} (#{tenant_customer.email})", "Customer"
+      select_from_custom_dropdown tax_rate.name, "Tax Rate"
       fill_in "Notes", with: "Test service order for past work"
       
       # Add a service line item by clicking the Add Service button
@@ -96,8 +96,8 @@ RSpec.describe "Business Manager Order Invoice Creation", type: :system do
       first("a", text: "Generate New Order").click
       
       # Fill in the order form
-      select "#{tenant_customer.name} (#{tenant_customer.email})", from: "Customer"
-      select tax_rate.name, from: "Tax Rate"
+      select_from_custom_dropdown "#{tenant_customer.name} (#{tenant_customer.email})", "Customer"
+      select_from_custom_dropdown tax_rate.name, "Tax Rate"
       fill_in "Notes", with: "Test product order"
       
       # Add a product line item by clicking the Add Product button
@@ -140,8 +140,8 @@ RSpec.describe "Business Manager Order Invoice Creation", type: :system do
       first("a", text: "Generate New Order").click
       
       # Fill in the order form
-      select "#{tenant_customer.name} (#{tenant_customer.email})", from: "Customer"
-      select tax_rate.name, from: "Tax Rate"
+      select_from_custom_dropdown "#{tenant_customer.name} (#{tenant_customer.email})", "Customer"
+      select_from_custom_dropdown tax_rate.name, "Tax Rate"
       fill_in "Notes", with: "Test mixed order"
       
       # Add a product line item first
