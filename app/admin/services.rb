@@ -232,14 +232,14 @@ ActiveAdmin.register Service do
           if service.primary_image.present?
             li "Primary Image:"
             li do
-              image_tag url_for(service.primary_image.representation(resize_to_limit: [200, 200]))
+              image_tag rails_public_blob_url(service.primary_image.representation(resize_to_limit: [200, 200]))
             end
           end
           # Display other images in order
           service.images.ordered.each do |img|
              next if service.primary_image.present? && img.id == service.primary_image.id
             li do 
-              image_tag url_for(img.representation(resize_to_limit: [100, 100]))
+              image_tag rails_public_blob_url(img.representation(resize_to_limit: [100, 100]))
             end
           end
         end
@@ -255,84 +255,22 @@ ActiveAdmin.register Service do
     # Override update action to handle nested image attributes
     def update
       service = resource
-      # Extract and remove images_attributes from params if present
-      attrs = permitted_params[:service].dup
-      image_params = attrs.delete(:images_attributes) || attrs.delete('images_attributes')
-
-      # Assign remaining attributes
-      service.assign_attributes(attrs)
-
-      # Apply nested image changes if provided
-      if image_params.present?
-         # Process existing and new images
-         image_params.each do |i, image_data|
-           if image_data[:id].present?
-             # Existing image: handle destroy, primary, position
-             attachment = service.images.attachments.find_by(id: image_data[:id])
-             if attachment
-               if image_data[:_destroy].present? && ActiveModel::Type::Boolean.new.cast(image_data[:_destroy])
-                 attachment.purge # Delete the attachment
-               else
-                 # Update primary and position (position is expected in image_params for reordering)
-                 update_attrs = {}
-                 update_attrs[:primary] = ActiveModel::Type::Boolean.new.cast(image_data[:primary]) if image_data.key?(:primary)
-                 update_attrs[:position] = image_data[:position] if image_data.key?(:position)
-                 attachment.update(update_attrs) if update_attrs.any?
-               end
-             end
-           elsif image_data[:io].present? # Check for new file upload (io or tempfile)
-              # New image upload - handled by `has_many_attached` and form `multiple: true`
-              # Active Admin handles appending new files automatically when passed in the main `:images` param
-              # We don't need explicit logic here for NEW files, only for managing existing ones.
-              # However, Active Admin form passes *all* files (existing and new) under `:images` param
-              # We need to permit `:images` as an array in permit_params for new uploads.
-              # The `images_attributes` setter is primarily for managing existing attachments (destroy, primary, position).
-
-              # Re-add the new image data to the main images param for ActiveStorage to process
-              # This seems counter-intuitive, but ActiveStorage's `attach` expects this structure
-              attrs[:images] ||= []
-              attrs[:images] << image_data
-           end
-         end
-
-         # Need to re-assign the filtered attrs to the service for ActiveStorage to attach new files
-         service.assign_attributes(attrs)
-
-         # After processing existing images (destroy, primary, position), handle reordering of remaining images
-         # This requires collecting the ordered IDs from image_params (if provided) and calling a reorder method
-         # Assuming image_params contains position for all *remaining* images for reordering
-         ordered_image_ids = image_params.values
-                                       .reject { |data| ActiveModel::Type::Boolean.new.cast(data[:_destroy]) || data[:id].blank? }
-                                       .sort_by { |data| data[:position].to_i }
-                                       .map { |data| data[:id].to_i }
-
-         if ordered_image_ids.present? && ordered_image_ids.size == service.images.attachments.count
-            # Ensure we only try to reorder if the number of ordered IDs matches current attachments
-            # This prevents errors if some attachments were just destroyed
-            service.images.attachments.each do |attachment|
-               new_position = ordered_image_ids.index(attachment.id)
-               attachment.update(position: new_position) if new_position.present?
-            end
-         end
-
-      end # if image_params.present?
-
-      # Attempt save; capture any errors from images_attributes setter or validations
-      if service.errors.any? || !service.save
-        # If saving fails, manually re-render the form with errors
-        # Need to reload associations for the form to render correctly
-        # service.reload # Might be needed depending on how errors affect associations
+      
+      # Use Rails' standard update method which will automatically handle:
+      # - images_attributes for existing image management (via our custom setter)  
+      # - images for new image uploads (via our custom images= method)
+      if service.update(permitted_params[:service])
+        redirect_to resource_path(service), notice: "Service was successfully updated."
+      else
         flash.now[:error] = service.errors.full_messages.join(', ')
         render :edit, status: :unprocessable_entity
-      else
-        redirect_to resource_path(service), notice: "Service was successfully updated."
       end
     end
 
-    # Override create action as well to handle potential image errors
+    # Override create action to handle potential image errors
     def create
       service = Service.new(permitted_params[:service])
-      service.business = current_business # Assuming current_business helper is available
+      service.business = current_business if respond_to?(:current_business)
 
       if service.save
         redirect_to resource_path(service), notice: "Service was successfully created."

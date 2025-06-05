@@ -48,7 +48,7 @@
   <%# Display Service Image if available %>
   <% if booking.service.present? && booking.service.primary_image&.attached? %>
     <div class="mb-4">
-      <%= image_tag booking.service.primary_image.representation(resize_to_limit: [150, 150]), class: "rounded shadow-md" %>
+              <%= image_tag rails_public_blob_url(booking.service.primary_image.representation(resize_to_limit: [150, 150])), class: "rounded shadow-md" %>
     </div>
   <% end %>
 

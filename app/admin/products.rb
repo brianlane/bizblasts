@@ -122,13 +122,13 @@ ActiveAdmin.register Product do
           if product.primary_image.present?
             li "Primary Image:"
             li do
-              image_tag url_for(product.primary_image.representation(resize_to_limit: [200, 200]))
+              image_tag rails_public_blob_url(product.primary_image.representation(resize_to_limit: [200, 200]))
             end
           end
           product.images.order(:position).each do |img|
             next if img == product.primary_image
             li do 
-              image_tag url_for(img.representation(resize_to_limit: [100, 100]))
+              image_tag rails_public_blob_url(img.representation(resize_to_limit: [100, 100]))
             end
           end
         end
@@ -192,18 +192,14 @@ ActiveAdmin.register Product do
     # Override update to handle image attribute errors without rendering the form
     def update
       product = resource
-      # Extract and remove images_attributes from params
-      attrs = permitted_params[:product].dup
-      image_params = attrs.delete(:images_attributes) || attrs.delete('images_attributes')
-      # Assign remaining attributes
-      product.assign_attributes(attrs)
-      # Apply nested image changes if provided
-      product.images_attributes = image_params if image_params.present?
-      # Attempt save; capture any errors from images_attributes setter or validations
-      if product.errors.any? || !product.save
-        render plain: product.errors.full_messages.join(', '), status: :unprocessable_entity
-      else
+      
+      # Use Rails' standard update method which will automatically handle:
+      # - images_attributes for existing image management (via our custom setter)  
+      # - images for new image uploads (via our custom images= method)
+      if product.update(permitted_params[:product])
         redirect_to resource_path, notice: "Product was successfully updated."
+      else
+        render plain: product.errors.full_messages.join(', '), status: :unprocessable_entity
       end
     end
   end

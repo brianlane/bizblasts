@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_04_234331) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -786,7 +786,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_04_234331) do
     t.string "timezone", default: "UTC"
     t.jsonb "availability"
     t.string "color"
-    t.string "photo_url"
     t.index ["business_id"], name: "index_staff_members_on_business_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
   end

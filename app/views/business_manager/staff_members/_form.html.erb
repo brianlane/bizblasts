@@ -94,11 +94,40 @@
       </div>
       
       <div>
-        <%= f.label :photo_url, "Profile Photo URL", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= f.text_field :photo_url, placeholder: "https://example.com/photo.jpg",
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
-        <p class="mt-1 text-sm text-gray-500">Optional: Link to a professional headshot or profile photo</p>
+        <%= f.label :photo, "Profile Photo", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.file_field :photo, accept: "image/png,image/jpeg,image/gif,image/webp",
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500",
+              onchange: "validatePhoto(this)" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Upload a professional headshot or profile photo (PNG, JPEG, GIF, WebP - max 15MB)</p>
+        <% if staff_member.photo.attached? %>
+          <div class="mt-2">
+            <p class="text-sm text-gray-600 mb-2">Current photo:</p>
+            <%= image_tag rails_public_blob_url(staff_member.photo.variant(:thumb)), class: "h-16 w-16 rounded-full object-cover" %>
+          </div>
+        <% end %>
       </div>
+
+      <script>
+        function validatePhoto(input) {
+          const file = input.files[0];
+          if (!file) return;
+          
+          // Check file size (15MB = 15 * 1024 * 1024 bytes)
+          if (file.size > 15 * 1024 * 1024) {
+            alert('Photo must be less than 15MB. Please choose a smaller file.');
+            input.value = '';
+            return;
+          }
+          
+          // Check file type
+          const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+          if (!allowedTypes.includes(file.type)) {
+            alert('Photo must be PNG, JPEG, GIF, or WebP format.');
+            input.value = '';
+            return;
+          }
+        }
+      </script>
 
       <!-- Status Toggle -->
       <div class="flex items-center">

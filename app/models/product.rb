@@ -104,70 +104,52 @@ class Product < ApplicationRecord
 
   # Custom setter to handle nested image attributes (primary flags & ordering)
   def images_attributes=(attrs)
-    # Normalize to array
+    return if attrs.blank?
+    
+    # Normalize to array of attribute hashes
     attrs_list = attrs.is_a?(Hash) ? attrs.values : Array(attrs)
+    return if attrs_list.empty?
 
-    # Primary-only update if no positions are provided
-    unless attrs_list.any? { |h| h.key?(:position) }
-      # Expect exactly one record for primary-only
-      if attrs_list.size != 1
-        errors.add(:images, "Image IDs are incomplete")
-        return
+    # Process deletions first
+    attrs_list.each do |image_attrs|
+      next unless image_attrs[:id].present? && ActiveModel::Type::Boolean.new.cast(image_attrs[:_destroy])
+      
+      attachment = images.attachments.find_by(id: image_attrs[:id])
+      if attachment
+        attachment.purge_later # Use purge_later for better performance
+      else
+        Rails.logger.warn("Attempted to delete non-existent image attachment: #{image_attrs[:id]}")
       end
-      data = attrs_list.first
-      id = data[:id].to_i
-      # Must exist globally
-      unless ActiveStorage::Attachment.exists?(id)
-        errors.add(:images, "Image must exist")
-        return
-      end
-      # Unset all, then set primary
-      images.update_all(primary: false)
-      images.find(id).update(primary: ActiveModel::Type::Boolean.new.cast(data[:primary]))
-      return
     end
 
-    # Reorder and primary simultaneous flow
-    current_ids = images.pluck(:id)
-    attrs_count = attrs_list.size
-    # Must provide full set for reorder
-    if attrs_count != current_ids.size
-      errors.add(:images, "Image IDs are incomplete")
-      return
-    end
-    provided_ids = attrs_list.map { |h| h[:id].to_i }
-    # Global existence check
-    missing_global = provided_ids.reject { |i| ActiveStorage::Attachment.exists?(i) }
-    if missing_global.any?
-      errors.add(:images, "Image must exist")
-      return
-    end
-    # Belonging check
-    extra_ids = provided_ids - current_ids
-    if extra_ids.any?
-      errors.add(:images, "Image must belong to the product")
-      return
-    end
-    # Uniqueness
-    if provided_ids.uniq.size != provided_ids.size
-      errors.add(:images, "Image IDs must be unique")
-      return
-    end
-
-    # Process each attribute
-    attrs_list.each do |h|
-      id = h[:id].to_i
-      attachment = images.find(id)
-      # Purge if requested
-      if ActiveModel::Type::Boolean.new.cast(h[:_destroy])
-        attachment.purge
+    # Process remaining updates (primary flags and positions)
+    remaining_attrs = attrs_list.reject { |attrs| ActiveModel::Type::Boolean.new.cast(attrs[:_destroy]) }
+    
+    remaining_attrs.each do |image_attrs|
+      next unless image_attrs[:id].present?
+      
+      attachment = images.attachments.find_by(id: image_attrs[:id])
+      unless attachment
+        errors.add(:images, "Image with ID #{image_attrs[:id]} not found")
         next
       end
-      # Apply primary and position updates
-      changes = {}
-      changes[:primary] = ActiveModel::Type::Boolean.new.cast(h[:primary]) if h.key?(:primary)
-      changes[:position] = h[:position] if h.key?(:position)
-      attachment.update(changes) if changes.any?
+
+      # Update primary flag
+      if image_attrs.key?(:primary)
+        is_primary = ActiveModel::Type::Boolean.new.cast(image_attrs[:primary])
+        if is_primary
+          # Unset all other primary flags first
+          images.attachments.where.not(id: attachment.id).update_all(primary: false)
+          attachment.update(primary: true)
+        else
+          attachment.update(primary: false)
+        end
+      end
+
+      # Update position
+      if image_attrs.key?(:position)
+        attachment.update(position: image_attrs[:position].to_i)
+      end
     end
   end
 
