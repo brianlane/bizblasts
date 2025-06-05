@@ -90,19 +90,35 @@
               const toggleText = document.getElementById('toggle-password-text');
               
               if (toggleButton && passwordFields && toggleText) {
+                const passwordInputs = passwordFields.querySelectorAll('input[type="password"]');
+                
+                // Store original names for restoration
+                const originalNames = {};
+                passwordInputs.forEach(input => {
+                  originalNames[input.id] = input.name;
+                  // Initially remove name attribute so fields won't be submitted
+                  input.removeAttribute('name');
+                });
+                
                 toggleButton.addEventListener('click', function() {
                   const isHidden = passwordFields.classList.contains('hidden');
                   
                   if (isHidden) {
                     passwordFields.classList.remove('hidden');
                     toggleText.textContent = 'Hide password fields';
+                    // Restore name attributes so fields can be submitted
+                    passwordInputs.forEach(input => {
+                      input.name = originalNames[input.id];
+                    });
                   } else {
                     passwordFields.classList.add('hidden');
                     toggleText.textContent = 'Show password fields';
                     
-                    // Clear password fields when hiding
-                    const passwordInputs = passwordFields.querySelectorAll('input[type="password"]');
-                    passwordInputs.forEach(input => input.value = '');
+                    // Clear fields and remove name attributes so they won't be submitted
+                    passwordInputs.forEach(input => {
+                      input.value = '';
+                      input.removeAttribute('name');
+                    });
                   }
                 });
               }

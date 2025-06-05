@@ -66,7 +66,18 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
     # @staff_member is set by before_action
     # authorize @staff_member # Add Pundit authorization later
 
-    if @staff_member.update(staff_member_params)
+    # Filter out blank password fields to prevent unnecessary validation
+    update_params = staff_member_params
+    if update_params[:user_attributes].present?
+      user_attrs = update_params[:user_attributes]
+      # Remove password fields if they're blank (user doesn't want to change password)
+      if user_attrs[:password].blank? && user_attrs[:password_confirmation].blank?
+        user_attrs.delete(:password)
+        user_attrs.delete(:password_confirmation)
+      end
+    end
+
+    if @staff_member.update(update_params)
       redirect_to business_manager_staff_member_path(@staff_member), notice: 'Staff member was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
