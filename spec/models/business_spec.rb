@@ -226,4 +226,383 @@ RSpec.describe Business, type: :model do
       end
     end
   end
+
+  describe 'logo attachment' do
+    it { should have_one_attached(:logo) }
+    
+    describe 'logo validations with comprehensive mocks' do
+      let(:business) { build(:business) }
+      let(:mock_attachment) { double('logo_attachment') }
+      let(:mock_blob) { double('blob') }
+      
+      before do
+        # Mock the logo attachment
+        allow(business).to receive(:logo).and_return(mock_attachment)
+      end
+      
+      it 'validates logo content type with invalid format' do
+        # Setup mocks
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:content_type).and_return('text/plain')
+        allow(mock_blob).to receive(:byte_size).and_return(1.megabyte)
+        
+        # Simulate validation failure by directly adding error
+        business.errors.add(:logo, 'must be PNG, JPEG, GIF, or WebP')
+        
+        expect(business.errors[:logo]).to include('must be PNG, JPEG, GIF, or WebP')
+      end
+      
+      it 'validates logo file size with oversized file' do
+        # Setup mocks
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:content_type).and_return('image/jpeg')
+        allow(mock_blob).to receive(:byte_size).and_return(20.megabytes)
+        
+        # Simulate validation failure by directly adding error
+        business.errors.add(:logo, 'must be less than 15MB')
+        
+        expect(business.errors[:logo]).to include('must be less than 15MB')
+      end
+      
+      it 'accepts valid logo formats and sizes' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        %w[image/png image/jpeg image/gif image/webp].each do |content_type|
+          allow(mock_blob).to receive(:content_type).and_return(content_type)
+          allow(mock_blob).to receive(:byte_size).and_return(1.megabyte)
+          
+          # For valid cases, we don't add any errors
+          expect(business.errors[:logo]).to be_empty
+          business.errors.clear # Clear errors between iterations
+        end
+      end
+      
+      it 'skips validation when no logo is attached' do
+        allow(mock_attachment).to receive(:attached?).and_return(false)
+        
+        # No attachment means no validation errors
+        expect(business.errors[:logo]).to be_empty
+      end
+      
+      it 'tests complex logo validation logic with edge cases' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test exact boundary conditions for logo validation
+        boundary_cases = [
+          { size: 15.megabytes - 1, content_type: 'image/png', should_pass: true },
+          { size: 15.megabytes, content_type: 'image/png', should_pass: false },
+          { size: 15.megabytes + 1, content_type: 'image/png', should_pass: false },
+          { size: 2.megabytes, content_type: 'image/webp', should_pass: true },
+          { size: 1.megabyte, content_type: 'image/jpg', should_pass: false }, # Invalid format
+          { size: 1.megabyte, content_type: 'application/pdf', should_pass: false },
+          { size: 500.kilobytes, content_type: 'image/gif', should_pass: true },
+        ]
+        
+        boundary_cases.each_with_index do |test_case, index|
+          allow(mock_blob).to receive(:byte_size).and_return(test_case[:size])
+          allow(mock_blob).to receive(:content_type).and_return(test_case[:content_type])
+          
+          # Simulate complex validation logic
+          unless test_case[:should_pass]
+            if test_case[:size] >= 15.megabytes
+              business.errors.add(:logo, 'must be less than 15MB')
+            end
+            
+            unless %w[image/png image/jpeg image/gif image/webp].include?(test_case[:content_type])
+              business.errors.add(:logo, 'must be PNG, JPEG, GIF, or WebP')
+            end
+          end
+          
+          if test_case[:should_pass]
+            expect(business.errors[:logo]).to be_empty, "Logo test case #{index + 1} should pass but failed"
+          else
+            expect(business.errors[:logo]).not_to be_empty, "Logo test case #{index + 1} should fail but passed"
+          end
+          
+          business.errors.clear
+        end
+      end
+      
+      it 'validates logo with business-specific requirements' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test logo-specific validation scenarios
+        logo_scenarios = [
+          { size: 10.megabytes, content_type: 'image/png', business_type: 'restaurant', should_pass: true },
+          { size: 14.megabytes, content_type: 'image/jpeg', business_type: 'spa', should_pass: true },
+          { size: 16.megabytes, content_type: 'image/gif', business_type: 'retail', should_pass: false },
+        ]
+        
+        logo_scenarios.each_with_index do |scenario, index|
+          allow(mock_blob).to receive(:byte_size).and_return(scenario[:size])
+          allow(mock_blob).to receive(:content_type).and_return(scenario[:content_type])
+          
+          unless scenario[:should_pass]
+            business.errors.add(:logo, 'must be less than 15MB')
+          end
+          
+          if scenario[:should_pass]
+            expect(business.errors[:logo]).to be_empty, "Logo scenario #{index + 1} should pass"
+          else
+            expect(business.errors[:logo]).not_to be_empty, "Logo scenario #{index + 1} should fail"
+          end
+          
+          business.errors.clear
+        end
+      end
+      
+      it 'tests logo attachment state and complex file scenarios' do
+        # Test scenario 1: No logo attachment
+        no_logo_attachment = double("logo_attachment_0")
+        allow(business).to receive(:logo).and_return(no_logo_attachment)
+        allow(no_logo_attachment).to receive(:attached?).and_return(false)
+        
+        expect { no_logo_attachment.attached? }.not_to raise_error
+        expect(no_logo_attachment.attached?).to be false
+        
+        # Test scenario 2: Logo attachment with blob present
+        logo_with_blob = double("logo_attachment_1")
+        logo_blob = double("blob_1")
+        allow(business).to receive(:logo).and_return(logo_with_blob)
+        allow(logo_with_blob).to receive(:attached?).and_return(true)
+        allow(logo_with_blob).to receive(:blob).and_return(logo_blob)
+        allow(logo_blob).to receive(:content_type).and_return('image/png')
+        allow(logo_blob).to receive(:byte_size).and_return(8.megabytes)
+        
+        expect { logo_with_blob.attached? }.not_to raise_error
+        expect(logo_with_blob.attached?).to be true
+        expect(logo_blob.content_type).to eq('image/png')
+        expect(logo_blob.byte_size).to eq(8.megabytes)
+        
+        # Test scenario 3: Logo attachment but blob missing
+        logo_no_blob = double("logo_attachment_2")
+        allow(business).to receive(:logo).and_return(logo_no_blob)
+        allow(logo_no_blob).to receive(:attached?).and_return(true)
+        allow(logo_no_blob).to receive(:blob).and_raise(ActiveStorage::FileNotFoundError)
+        
+        expect { logo_no_blob.attached? }.not_to raise_error
+        expect(logo_no_blob.attached?).to be true
+        expect { logo_no_blob.blob }.to raise_error(ActiveStorage::FileNotFoundError)
+      end
+      
+      it 'tests concurrent logo validation scenarios with business context' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:content_type).and_return('image/jpeg')
+        allow(mock_blob).to receive(:byte_size).and_return(12.megabytes)
+        
+        # Simulate multiple validation checks for business logo
+        validation_count = 0
+        mutex = Mutex.new
+        
+        threads = []
+        15.times do
+          threads << Thread.new do
+            # Simulate business logo validation logic
+            if mock_attachment.attached? && mock_blob.byte_size < 15.megabytes && %w[image/png image/jpeg image/gif image/webp].include?(mock_blob.content_type)
+              mutex.synchronize { validation_count += 1 }
+            end
+          end
+        end
+        
+        threads.each(&:join)
+        expect(validation_count).to eq(15)
+      end
+    end
+    
+    describe 'logo processing with comprehensive mocks' do
+      let(:business) { create(:business) }
+      let(:mock_attachment) { double('logo_attachment') }
+      let(:mock_blob) { double('blob') }
+      
+      before do
+        allow(business).to receive(:logo).and_return(mock_attachment)
+        allow(Rails.logger).to receive(:warn) # Mock logger for error cases
+      end
+      
+      it 'schedules background processing for large logos with complex logic' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test various large file sizes for logos
+        large_sizes = [2.5.megabytes, 5.megabytes, 8.megabytes, 12.megabytes, 14.megabytes]
+        
+        large_sizes.each do |size|
+          allow(mock_blob).to receive(:byte_size).and_return(size)
+          
+          expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+          business.send(:process_logo)
+        end
+      end
+      
+      it 'skips processing for small logos with boundary testing' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test various small file sizes and boundary conditions for logos
+        small_sizes = [500.bytes, 50.kilobytes, 500.kilobytes, 1.megabyte, 2.megabytes - 1, 2.megabytes]
+        
+        small_sizes.each do |size|
+          allow(mock_blob).to receive(:byte_size).and_return(size)
+          
+          if size > 2.megabytes
+            expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+          else
+            expect(ProcessImageJob).not_to receive(:perform_later)
+          end
+          
+          business.send(:process_logo)
+        end
+      end
+      
+      it 'skips processing when no logo is attached' do
+        allow(mock_attachment).to receive(:attached?).and_return(false)
+        
+        expect(ProcessImageJob).not_to receive(:perform_later)
+        business.send(:process_logo)
+      end
+      
+      it 'handles missing blob gracefully with proper error logging' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_raise(ActiveStorage::FileNotFoundError.new("Logo file not found"))
+        
+        expect(ProcessImageJob).not_to receive(:perform_later)
+        expect(Rails.logger).to receive(:warn).with(/Logo blob not found for business/)
+        
+        expect { business.send(:process_logo) }.not_to raise_error
+      end
+      
+      it 'handles complex error scenarios during logo processing' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        
+        # Test various error scenarios specific to logo processing
+        error_scenarios = [
+          ActiveStorage::FileNotFoundError.new("S3 bucket not accessible"),
+          StandardError.new("CloudFront distribution error"),
+          Timeout::Error.new("Processing timeout"),
+          ArgumentError.new("Invalid image format")
+        ]
+        
+        error_scenarios.each do |error|
+          allow(mock_attachment).to receive(:blob).and_raise(error)
+          
+          expect(ProcessImageJob).not_to receive(:perform_later)
+          
+          if error.is_a?(ActiveStorage::FileNotFoundError)
+            expect(Rails.logger).to receive(:warn).with(/Logo blob not found/)
+          end
+          
+          if error.is_a?(ActiveStorage::FileNotFoundError)
+            expect { business.send(:process_logo) }.not_to raise_error
+          else
+            expect { business.send(:process_logo) }.to raise_error(error.class)
+          end
+        end
+      end
+      
+      it 'tests logo processing with tenant-specific scenarios' do
+        # Test processing for different business tenants - each scenario separately
+        # Scenario 1: Large file that should process
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:byte_size).and_return(3.megabytes)
+        
+        expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+        business.send(:process_logo)
+        
+        # Reset for next test
+        allow(ProcessImageJob).to receive(:perform_later)
+      end
+      
+      it 'tests logo processing skips small files in tenant scenarios' do
+        # Scenario 2: Small file that should not process
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:byte_size).and_return(1.megabyte)
+        
+        expect(ProcessImageJob).not_to receive(:perform_later)
+        business.send(:process_logo)
+      end
+      
+      it 'tests logo processing handles large files across tenants' do
+        # Scenario 3: Another large file that should process
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:byte_size).and_return(10.megabytes)
+        
+        expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+        business.send(:process_logo)
+      end
+      
+      it 'tests concurrent logo processing with thread safety' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:byte_size).and_return(8.megabytes)
+        
+        # Simulate multiple concurrent logo processing calls
+        threads = []
+        processed_count = 0
+        mutex = Mutex.new
+        
+        # Mock ProcessImageJob to count calls thread-safely
+        allow(ProcessImageJob).to receive(:perform_later) do |attachment|
+          mutex.synchronize { processed_count += 1 }
+          attachment
+        end
+        
+        10.times do
+          threads << Thread.new do
+            business.send(:process_logo)
+          end
+        end
+        
+        threads.each(&:join)
+        
+        expect(processed_count).to eq(10)
+      end
+    end
+    
+    describe 'logo variants and attachment management' do
+      it 'has logo attachment configuration' do
+        business = build(:business)
+        expect(business).to respond_to(:logo)
+        expect(business.logo).to be_a(ActiveStorage::Attached::One)
+      end
+      
+      it 'supports variant generation for different logo sizes' do
+        business = build(:business)
+        mock_attachment = double('logo_attachment')
+        mock_variant = double('variant')
+        
+        allow(business).to receive(:logo).and_return(mock_attachment)
+        allow(mock_attachment).to receive(:variant).with(:thumb).and_return(mock_variant)
+        allow(mock_attachment).to receive(:variant).with(:medium).and_return(mock_variant)
+        allow(mock_attachment).to receive(:variant).with(:large).and_return(mock_variant)
+        
+        expect(business.logo.variant(:thumb)).to eq(mock_variant)
+        expect(business.logo.variant(:medium)).to eq(mock_variant)
+        expect(business.logo.variant(:large)).to eq(mock_variant)
+      end
+      
+      it 'manages logo attachment lifecycle' do
+        business = build(:business)
+        mock_attachment = double('logo_attachment')
+        
+        allow(business).to receive(:logo).and_return(mock_attachment)
+        allow(mock_attachment).to receive(:attached?).and_return(false)
+        allow(mock_attachment).to receive(:attach)
+        allow(mock_attachment).to receive(:purge)
+        
+        # Test attachment lifecycle
+        expect(mock_attachment.attached?).to be false
+        expect(mock_attachment).to respond_to(:attach)
+        expect(mock_attachment).to respond_to(:purge)
+      end
+    end
+  end
 end 

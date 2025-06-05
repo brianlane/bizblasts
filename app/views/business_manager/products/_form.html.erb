@@ -95,7 +95,7 @@
             <div class="flex-shrink-0 mr-4">
               <% if image_fields.object.variable? %>
                 <% begin %>
-                  <%= image_tag image_fields.object.representation(resize_to_limit: [100, 100]), class: "rounded shadow-sm" %>
+                  <%= image_tag rails_public_blob_url(image_fields.object.representation(resize_to_limit: [100, 100])), class: "rounded shadow-sm" %>
                 <% rescue ActiveStorage::UnrepresentableError %>
                   <div class="w-24 h-24 bg-gray-200 rounded flex items-center justify-center">
                     <span class="text-gray-500 text-xs text-center">Unsupported<br>Format</span>

@@ -246,7 +246,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       :email,
       :phone,
       :position,
-      :photo_url,
+      :photo,
       :active,
       :bio,
       :notes,

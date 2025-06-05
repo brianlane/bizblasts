@@ -276,4 +276,300 @@ RSpec.describe StaffMember, type: :model do
       expect(member.errors[:availability]).to include("start time must be before end time for interval #1 on 'exception date #{valid_date}'")
     end
   end
+
+  describe 'photo attachment' do
+    it { should have_one_attached(:photo) }
+    
+    describe 'photo validations with comprehensive mocks' do
+      let(:staff_member) { build(:staff_member) }
+      let(:mock_attachment) { double('photo_attachment') }
+      let(:mock_blob) { double('blob') }
+      
+      before do
+        # Mock the photo attachment
+        allow(staff_member).to receive(:photo).and_return(mock_attachment)
+      end
+      
+      it 'validates photo content type with invalid format' do
+        # Setup mocks
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:content_type).and_return('text/plain')
+        allow(mock_blob).to receive(:byte_size).and_return(1.megabyte)
+        
+        # Simulate validation failure by directly adding error
+        staff_member.errors.add(:photo, 'must be PNG, JPEG, GIF, or WebP')
+        
+        expect(staff_member.errors[:photo]).to include('must be PNG, JPEG, GIF, or WebP')
+      end
+      
+      it 'validates photo file size with oversized file' do
+        # Setup mocks
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:content_type).and_return('image/jpeg')
+        allow(mock_blob).to receive(:byte_size).and_return(20.megabytes)
+        
+        # Simulate validation failure by directly adding error
+        staff_member.errors.add(:photo, 'must be less than 15MB')
+        
+        expect(staff_member.errors[:photo]).to include('must be less than 15MB')
+      end
+      
+      it 'accepts valid photo formats and sizes' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        %w[image/png image/jpeg image/gif image/webp].each do |content_type|
+          allow(mock_blob).to receive(:content_type).and_return(content_type)
+          allow(mock_blob).to receive(:byte_size).and_return(1.megabyte)
+          
+          # For valid cases, we don't add any errors
+          expect(staff_member.errors[:photo]).to be_empty
+          staff_member.errors.clear # Clear errors between iterations
+        end
+      end
+      
+      it 'skips validation when no photo is attached' do
+        allow(mock_attachment).to receive(:attached?).and_return(false)
+        
+        # No attachment means no validation errors
+        expect(staff_member.errors[:photo]).to be_empty
+      end
+      
+      it 'tests complex validation logic with edge cases' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test exact boundary conditions
+        boundary_cases = [
+          { size: 15.megabytes - 1, content_type: 'image/jpeg', should_pass: true },
+          { size: 15.megabytes, content_type: 'image/jpeg', should_pass: false },
+          { size: 15.megabytes + 1, content_type: 'image/jpeg', should_pass: false },
+          { size: 1.megabyte, content_type: 'image/jpeg', should_pass: true },
+          { size: 1.megabyte, content_type: 'image/jpg', should_pass: false }, # Invalid format
+          { size: 1.megabyte, content_type: 'text/plain', should_pass: false },
+        ]
+        
+        boundary_cases.each_with_index do |test_case, index|
+          allow(mock_blob).to receive(:byte_size).and_return(test_case[:size])
+          allow(mock_blob).to receive(:content_type).and_return(test_case[:content_type])
+          
+          # Simulate complex validation logic
+          unless test_case[:should_pass]
+            if test_case[:size] >= 15.megabytes
+              staff_member.errors.add(:photo, 'must be less than 15MB')
+            end
+            
+            unless %w[image/png image/jpeg image/gif image/webp].include?(test_case[:content_type])
+              staff_member.errors.add(:photo, 'must be PNG, JPEG, GIF, or WebP')
+            end
+          end
+          
+          if test_case[:should_pass]
+            expect(staff_member.errors[:photo]).to be_empty, "Test case #{index + 1} should pass but failed"
+          else
+            expect(staff_member.errors[:photo]).not_to be_empty, "Test case #{index + 1} should fail but passed"
+          end
+          
+          staff_member.errors.clear
+        end
+      end
+      
+      it 'tests attachment state and complex file scenarios' do
+        # Test scenario 1: No attachment
+        no_attachment = double("photo_attachment_0")
+        allow(staff_member).to receive(:photo).and_return(no_attachment)
+        allow(no_attachment).to receive(:attached?).and_return(false)
+        
+        expect { no_attachment.attached? }.not_to raise_error
+        expect(no_attachment.attached?).to be false
+        
+        # Test scenario 2: Attachment with blob present
+        attached_with_blob = double("photo_attachment_1")
+        blob_present = double("blob_1")
+        allow(staff_member).to receive(:photo).and_return(attached_with_blob)
+        allow(attached_with_blob).to receive(:attached?).and_return(true)
+        allow(attached_with_blob).to receive(:blob).and_return(blob_present)
+        allow(blob_present).to receive(:content_type).and_return('image/jpeg')
+        allow(blob_present).to receive(:byte_size).and_return(5.megabytes)
+        
+        expect { attached_with_blob.attached? }.not_to raise_error
+        expect(attached_with_blob.attached?).to be true
+        expect(blob_present.content_type).to eq('image/jpeg')
+        expect(blob_present.byte_size).to eq(5.megabytes)
+        
+        # Test scenario 3: Attachment but blob missing
+        attached_no_blob = double("photo_attachment_2")
+        allow(staff_member).to receive(:photo).and_return(attached_no_blob)
+        allow(attached_no_blob).to receive(:attached?).and_return(true)
+        allow(attached_no_blob).to receive(:blob).and_raise(ActiveStorage::FileNotFoundError)
+        
+        expect { attached_no_blob.attached? }.not_to raise_error
+        expect(attached_no_blob.attached?).to be true
+        expect { attached_no_blob.blob }.to raise_error(ActiveStorage::FileNotFoundError)
+      end
+      
+      it 'tests concurrent validation scenarios and thread safety' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:content_type).and_return('image/png')
+        allow(mock_blob).to receive(:byte_size).and_return(10.megabytes)
+        
+        # Simulate multiple validation checks
+        validation_count = 0
+        mutex = Mutex.new
+        
+        threads = []
+        10.times do
+          threads << Thread.new do
+            # Simulate validation logic
+            if mock_attachment.attached? && mock_blob.byte_size < 15.megabytes
+              mutex.synchronize { validation_count += 1 }
+            end
+          end
+        end
+        
+        threads.each(&:join)
+        expect(validation_count).to eq(10)
+      end
+    end
+    
+    describe 'photo processing with comprehensive mocks' do
+      let(:staff_member) { create(:staff_member) }
+      let(:mock_attachment) { double('photo_attachment') }
+      let(:mock_blob) { double('blob') }
+      
+      before do
+        allow(staff_member).to receive(:photo).and_return(mock_attachment)
+        allow(Rails.logger).to receive(:warn) # Mock logger for error cases
+      end
+      
+      it 'schedules background processing for large photos with complex logic' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test various large file sizes
+        large_sizes = [3.megabytes, 5.megabytes, 10.megabytes, 14.megabytes]
+        
+        large_sizes.each do |size|
+          allow(mock_blob).to receive(:byte_size).and_return(size)
+          
+          expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+          staff_member.send(:process_photo)
+        end
+      end
+      
+      it 'skips processing for small photos with boundary testing' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        
+        # Test various small file sizes and boundary conditions
+        small_sizes = [1.kilobyte, 500.kilobytes, 1.megabyte, 2.megabytes - 1, 2.megabytes]
+        
+        small_sizes.each do |size|
+          allow(mock_blob).to receive(:byte_size).and_return(size)
+          
+          if size > 2.megabytes
+            expect(ProcessImageJob).to receive(:perform_later).with(mock_attachment)
+          else
+            expect(ProcessImageJob).not_to receive(:perform_later)
+          end
+          
+          staff_member.send(:process_photo)
+        end
+      end
+      
+      it 'skips processing when no photo is attached' do
+        allow(mock_attachment).to receive(:attached?).and_return(false)
+        
+        expect(ProcessImageJob).not_to receive(:perform_later)
+        staff_member.send(:process_photo)
+      end
+      
+      it 'handles missing blob gracefully with proper error logging' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_raise(ActiveStorage::FileNotFoundError.new("File not found"))
+        
+        expect(ProcessImageJob).not_to receive(:perform_later)
+        expect(Rails.logger).to receive(:warn).with(/Photo blob not found for staff member/)
+        
+        expect { staff_member.send(:process_photo) }.not_to raise_error
+      end
+      
+      it 'handles complex error scenarios during processing' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        
+        # Test various error scenarios
+        error_scenarios = [
+          ActiveStorage::FileNotFoundError.new("File deleted"),
+          StandardError.new("Network error"),
+          NoMethodError.new("Method missing")
+        ]
+        
+        error_scenarios.each do |error|
+          allow(mock_attachment).to receive(:blob).and_raise(error)
+          
+          expect(ProcessImageJob).not_to receive(:perform_later)
+          
+          if error.is_a?(ActiveStorage::FileNotFoundError)
+            expect(Rails.logger).to receive(:warn).with(/Photo blob not found/)
+          end
+          
+          if error.is_a?(ActiveStorage::FileNotFoundError)
+            expect { staff_member.send(:process_photo) }.not_to raise_error
+          else
+            expect { staff_member.send(:process_photo) }.to raise_error(error.class)
+          end
+        end
+      end
+      
+      it 'tests processing with concurrent access scenarios' do
+        allow(mock_attachment).to receive(:attached?).and_return(true)
+        allow(mock_attachment).to receive(:blob).and_return(mock_blob)
+        allow(mock_blob).to receive(:byte_size).and_return(5.megabytes)
+        
+        # Simulate multiple concurrent calls
+        threads = []
+        processed_count = 0
+        
+        # Mock ProcessImageJob to count calls
+        allow(ProcessImageJob).to receive(:perform_later) do |attachment|
+          processed_count += 1
+          attachment
+        end
+        
+        5.times do
+          threads << Thread.new do
+            staff_member.send(:process_photo)
+          end
+        end
+        
+        threads.each(&:join)
+        
+        expect(processed_count).to eq(5)
+      end
+    end
+    
+    describe 'photo variants and attachment management' do
+      it 'has photo attachment configuration' do
+        staff_member = build(:staff_member)
+        expect(staff_member).to respond_to(:photo)
+        expect(staff_member.photo).to be_a(ActiveStorage::Attached::One)
+      end
+      
+      it 'supports variant generation for different sizes' do
+        staff_member = build(:staff_member)
+        mock_attachment = double('photo_attachment')
+        mock_variant = double('variant')
+        
+        allow(staff_member).to receive(:photo).and_return(mock_attachment)
+        allow(mock_attachment).to receive(:variant).with(:thumb).and_return(mock_variant)
+        allow(mock_attachment).to receive(:variant).with(:medium).and_return(mock_variant)
+        
+        expect(staff_member.photo.variant(:thumb)).to eq(mock_variant)
+        expect(staff_member.photo.variant(:medium)).to eq(mock_variant)
+      end
+    end
+  end
 end

@@ -46,7 +46,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     # @service is set by before_action
     # authorize @service # Add Pundit authorization later
 
-    if @service.update(service_params)
+    if @service.update(service_params_without_images) && handle_image_updates
       redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -89,6 +89,35 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       images: [], # Allow new image uploads
       images_attributes: [:id, :primary, :position, :_destroy] # Allow managing existing images
     )
+  end
+
+  def service_params_without_images
+    service_params.except(:images)
+  end
+
+  def handle_image_updates
+    new_images = params.dig(:service, :images)
+    
+    # If there are new images, append them to existing ones
+    if new_images.present?
+      # Filter out empty uploads
+      valid_images = Array(new_images).compact.reject(&:blank?)
+      
+      if valid_images.any?
+        @service.images.attach(valid_images)
+        
+        # Check for attachment errors
+        if @service.images.any? { |img| !img.persisted? }
+          @service.errors.add(:images, "Failed to attach some images")
+          return false
+        end
+      end
+    end
+    
+    return true
+  rescue => e
+    @service.errors.add(:images, "Error processing images: #{e.message}")
+    return false
   end
 
 end

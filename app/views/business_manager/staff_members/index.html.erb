@@ -88,8 +88,8 @@
                 <!-- Staff Header -->
                 <div class="flex items-start justify-between mb-3">
                   <div class="flex items-center flex-1 min-w-0">
-                    <% if staff_member.photo_url.present? %>
-                      <%= image_tag staff_member.photo_url, class: "h-12 w-12 rounded-full object-cover mr-3" %>
+                                  <% if staff_member.photo.attached? %>
+                <%= image_tag rails_public_blob_url(staff_member.photo.variant(:thumb)), class: "h-12 w-12 rounded-full object-cover mr-3" %>
                     <% else %>
                       <div class="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center mr-3">
                         <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,8 +174,8 @@
                   <tr id="staff_member_<%= staff_member.id %>" class="hover:bg-gray-50">
                     <td class="px-4 py-3">
                       <div class="flex items-center">
-                        <% if staff_member.photo_url.present? %>
-                          <%= image_tag staff_member.photo_url, class: "h-8 w-8 rounded-full object-cover mr-3 flex-shrink-0" %>
+                                        <% if staff_member.photo.attached? %>
+                  <%= image_tag rails_public_blob_url(staff_member.photo.variant(:thumb)), class: "h-8 w-8 rounded-full object-cover mr-3 flex-shrink-0" %>
                         <% else %>
                           <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center mr-3 flex-shrink-0">
                             <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

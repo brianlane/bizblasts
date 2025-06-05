@@ -18,11 +18,11 @@
     </div>
     <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
       <dl class="sm:divide-y sm:divide-gray-200">
-        <% if @staff_member.photo_url.present? %>
+        <% if @staff_member.photo.attached? %>
           <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
             <dt class="text-sm font-medium text-gray-500">Photo</dt>
             <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-              <%= image_tag @staff_member.photo_url, class: "h-24 w-24 rounded-full object-cover" %>
+              <%= image_tag rails_public_blob_url(@staff_member.photo.variant(:medium)), class: "h-24 w-24 rounded-full object-cover" %>
             </dd>
           </div>
         <% end %>

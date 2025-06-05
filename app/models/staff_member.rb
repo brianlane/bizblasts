@@ -4,6 +4,12 @@ class StaffMember < ApplicationRecord
   belongs_to :business
   validates :business, presence: true
   belongs_to :user, optional: true
+  
+  # Active Storage attachment for photo
+  has_one_attached :photo do |attachable|
+    attachable.variant :thumb, resize_to_limit: [150, 150], quality: 80
+    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
+  end
   # Virtual attribute for selecting user role (staff or manager)
   attr_accessor :user_role
   accepts_nested_attributes_for :user, reject_if: :all_blank
@@ -19,8 +25,16 @@ class StaffMember < ApplicationRecord
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, presence: true, format: { with: /\A(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\z/, message: "must be a valid phone number" }, allow_blank: true
   
+  # Photo validations
+  validates :photo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
+                                   message: 'must be PNG, JPEG, GIF, or WebP' },
+                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
   validate :validate_availability_structure
   before_validation :process_availability
+  
+  # Background processing for photo
+  after_commit :process_photo, if: -> { photo.attached? && photo_previously_changed? }
   
   scope :active, -> { where(active: true) }
   
@@ -143,6 +157,17 @@ class StaffMember < ApplicationRecord
   end
   
   private
+  
+  def process_photo
+    return unless photo.attached?
+    
+    begin
+      return unless photo.blob.byte_size > 2.megabytes
+      ProcessImageJob.perform_later(photo)
+    rescue ActiveStorage::FileNotFoundError => e
+      Rails.logger.warn "Photo blob not found for staff member #{id}: #{e.message}"
+    end
+  end
   
   def delete_associated_user
     return unless user.present?

@@ -24,7 +24,6 @@ module BusinessManager
     def create
       @product = @current_business.products.new(product_params)
       if @product.save
-        handle_image_attachments # Handle potential primary/ordering updates if needed
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully created.'
       else
         flash.now[:alert] = @product.errors.full_messages.to_sentence
@@ -40,8 +39,7 @@ module BusinessManager
 
     # PATCH/PUT /manage/products/:id
     def update
-      if @product.update(product_params)
-        handle_image_attachments # Handle potential primary/ordering updates if needed
+      if @product.update(product_params_without_images) && handle_image_updates
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully updated.'
       else
         flash.now[:alert] = @product.errors.full_messages.to_sentence
@@ -79,11 +77,33 @@ module BusinessManager
       )
     end
 
-    # Optional: Handle image primary/ordering if form submits `images_attributes`
-    def handle_image_attachments
-      # The `images: []` param is already handled automatically by Rails during save/update
-      # Only handle images_attributes for managing existing images (primary, position, deletion)
-      # No need to manually attach new images here as Rails does this automatically
+    def product_params_without_images
+      product_params.except(:images)
+    end
+
+    def handle_image_updates
+      new_images = params.dig(:product, :images)
+      
+      # If there are new images, append them to existing ones
+      if new_images.present?
+        # Filter out empty uploads
+        valid_images = Array(new_images).compact.reject(&:blank?)
+        
+        if valid_images.any?
+          @product.images.attach(valid_images)
+          
+          # Check for attachment errors
+          if @product.images.any? { |img| !img.persisted? }
+            @product.errors.add(:images, "Failed to attach some images")
+            return false
+          end
+        end
+      end
+      
+      return true
+    rescue => e
+      @product.errors.add(:images, "Error processing images: #{e.message}")
+      return false
     end
   end
 end 

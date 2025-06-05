@@ -14,7 +14,7 @@
           <% if service.primary_image&.attached? %>
             <div class="mb-4">
               <%= link_to tenant_service_path(service) do %>
-                <%= image_tag service.primary_image.representation(resize_to_limit: [400, 300]), 
+                <%= image_tag rails_public_blob_url(service.primary_image.representation(resize_to_limit: [400, 300])), 
                             class: "w-full h-48 object-cover rounded-md shadow-sm" %>
               <% end %>
             </div>

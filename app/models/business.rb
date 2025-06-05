@@ -338,9 +338,33 @@ class Business < ApplicationRecord
   end
 
   
-  has_one_attached :logo
+  # Active Storage attachment for business logo with variants
+  has_one_attached :logo do |attachable|
+    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
+    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
+    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
+  end
+  
+  # Logo validations
+  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
+                                   message: 'must be PNG, JPEG, GIF, or WebP' },
+                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  # Background processing for logo
+  after_commit :process_logo, if: -> { logo.attached? && logo_previously_changed? }
   
   private
+  
+  def process_logo
+    return unless logo.attached?
+    
+    begin
+      return unless logo.blob.byte_size > 2.megabytes
+      ProcessImageJob.perform_later(logo)
+    rescue ActiveStorage::FileNotFoundError => e
+      Rails.logger.warn "Logo blob not found for business #{id}: #{e.message}"
+    end
+  end
   
   def normalize_hostname
     return if hostname.blank?

@@ -84,7 +84,7 @@
             <% @product.images.each do |img| %>
               <div class="bg-gray-50 rounded-lg p-2">
                 <% begin %>
-                  <%= image_tag img.representation(resize_to_limit: [200, 200]), 
+                  <%= image_tag rails_public_blob_url(img.representation(resize_to_limit: [200, 200])), 
                         class: "w-full h-32 object-cover rounded shadow-md" %>
                 <% rescue ActiveStorage::UnrepresentableError %>
                   <div class="w-full h-32 bg-gray-200 rounded flex items-center justify-center">
