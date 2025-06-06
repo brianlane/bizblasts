@@ -50,6 +50,8 @@ module Bizblasts
     config.hosts << /.+\.lvh\.me/
     config.hosts << /.+\.bizblasts\.com/
     config.hosts << /.+\.bizblasts\.onrender\.com/
+    # Allow Render PR preview URLs (format: bizblasts-pr-XX.onrender.com)
+    config.hosts << /bizblasts-pr-\d+\.onrender\.com/
 
     # Image processing configuration for large uploads
     config.active_storage.variant_processor = :mini_magick
