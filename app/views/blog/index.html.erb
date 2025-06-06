@@ -1,0 +1,73 @@
+<% content_for :title, "BizBlasts Blog - Latest Updates & Features" %>
+<% content_for :meta_description, "Stay up to date with the latest BizBlasts features, business tips, and platform updates. Learn how to grow your service business." %>
+
+<div class="bg-primary text-white py-12">
+  <div class="container mx-auto px-4">
+    <div class="text-center">
+      <h1 class="text-4xl lg:text-5xl font-bold mb-4">BizBlasts Blog</h1>
+      <p class="text-xl opacity-90 max-w-2xl mx-auto">
+        Stay updated with the latest features, business tips, and success stories 
+        to help grow your business.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="bg-gray-50 py-12">
+  <div class="container mx-auto px-4">
+    <!-- Category Filter -->
+    <% if @categories.any? %>
+      <div class="mb-8">
+        <div class="flex flex-wrap gap-2 justify-center">
+          <%= link_to "All Posts", blog_path, 
+              class: "px-4 py-2 rounded-full text-sm font-medium transition-colors #{params[:category].blank? ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}" %>
+          <% @categories.each do |category| %>
+            <%= link_to BlogPost.new(category: category).category_display_name, 
+                blog_path(category: category), 
+                class: "px-4 py-2 rounded-full text-sm font-medium transition-colors #{params[:category] == category ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Blog Posts Grid -->
+    <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-8">
+      <% @blog_posts.each do |post| %>
+        <%= render 'post_card', post: post %>
+      <% end %>
+    </div>
+
+    <!-- Empty State -->
+    <% if @blog_posts.empty? %>
+      <div class="text-center py-12">
+        <div class="max-w-md mx-auto">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No blog posts found</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            <% if params[:category].present? %>
+              No posts found in the "<%= BlogPost.new(category: params[:category]).category_display_name %>" category.
+            <% else %>
+              Check back soon for updates and insights!
+            <% end %>
+          </p>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Pagination -->
+    <% if @blog_posts.respond_to?(:current_page) && @blog_posts.total_pages > 1 %>
+      <div class="flex justify-center mt-8">
+        <%= paginate @blog_posts %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- RSS Feed Link -->
+<%= content_for :head do %>
+  <%= auto_discovery_link_tag :rss, blog_feed_path(format: :xml), title: "BizBlasts Blog RSS Feed" %>
+<% end %>
+
+<%= render 'shared/main_footer', current_page: 'blog' %> 

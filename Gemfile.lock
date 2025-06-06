@@ -382,6 +382,7 @@ GEM
       i18n
     rdoc (6.13.1)
       psych (>= 4.0.0)
+    redcarpet (3.6.1)
     regexp_parser (2.10.0)
     reline (0.6.1)
       io-console (~> 0.5)
@@ -391,6 +392,7 @@ GEM
       actionpack (>= 5.2)
       railties (>= 5.2)
     rexml (3.4.1)
+    rouge (4.5.2)
     rspec-core (3.13.3)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.3)
@@ -563,7 +565,9 @@ DEPENDENCIES
   pundit
   rails (~> 8.0.2)
   rails-controller-testing
+  redcarpet
   resend
+  rouge
   rspec-rails
   rubocop-rails-omakase
   shoulda-matchers (~> 6.5)

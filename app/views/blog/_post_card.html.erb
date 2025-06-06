@@ -1,0 +1,73 @@
+<article class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
+  <% if post.featured_image_for_display || post.featured_image_fallback_url %>
+    <div class="aspect-w-16 aspect-h-9">
+      <% if post.featured_image_for_display %>
+        <%= image_tag post.featured_image_for_display.variant(:thumb), 
+            alt: post.title, 
+            class: "w-full h-48 object-cover" %>
+      <% else %>
+        <img src="<%= post.featured_image_fallback_url %>" 
+             alt="<%= post.title %>" 
+             class="w-full h-48 object-cover">
+      <% end %>
+    </div>
+  <% end %>
+  
+  <div class="p-6 flex flex-col flex-grow">
+    <!-- Category & Date -->
+    <div class="flex items-center justify-between mb-3">
+      <% if post.category.present? %>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                     <%= case post.category
+                         when 'release' then 'bg-blue-100 text-blue-800'
+                         when 'feature' then 'bg-green-100 text-green-800'
+                         when 'tutorial' then 'bg-purple-100 text-purple-800'
+                         when 'announcement' then 'bg-red-100 text-red-800'
+                         when 'business-tips' then 'bg-yellow-100 text-yellow-800'
+                         when 'spotlight' then 'bg-pink-100 text-pink-800'
+                         when 'platform-updates' then 'bg-indigo-100 text-indigo-800'
+                         else 'bg-gray-100 text-gray-800'
+                         end %>">
+          <%= post.category_display_name %>
+        </span>
+      <% end %>
+      
+      <time datetime="<%= post.published_at&.iso8601 %>" class="text-sm text-gray-500">
+        <%= post.published_at&.strftime("%B %d, %Y") %>
+      </time>
+    </div>
+
+    <!-- Title -->
+    <h2 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+      <%= link_to post.title, post.url_path, class: "hover:text-primary transition-colors" %>
+    </h2>
+
+    <!-- Excerpt -->
+    <div class="text-gray-600 mb-4 line-clamp-3 markdown-content flex-grow">
+      <%= truncate(strip_tags(post.rendered_excerpt), length: 150) %>
+    </div>
+
+    <!-- Author & Read More -->
+    <div class="flex items-center justify-between mt-auto">
+      <% if post.author_name.present? %>
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+              <span class="text-sm font-medium text-white">
+                <%= post.author_name.split.map(&:first).join %>
+              </span>
+            </div>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-900">
+              <%= post.author_name %>
+            </p>
+          </div>
+        </div>
+      <% end %>
+
+      <%= link_to "Read more", post.url_path, 
+          class: "text-primary hover:text-blue-700 text-sm font-medium" %>
+    </div>
+  </div>
+</article> 

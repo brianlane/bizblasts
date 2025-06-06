@@ -120,20 +120,7 @@
   </div>
 </div>
 
-<!-- Footer -->
-<footer class="bg-light py-8">
-  <div class="container mx-auto px-4">
-    <div class="flex justify-center space-x-4 text-gray-600">
-      <%= link_to "About", "/about", class: "hover:text-primary" %>
-      <span>&bull;</span>
-      <%= link_to "Contact", "/contact", class: "hover:text-primary" %>
-      <span>&bull;</span>
-      <%= link_to "Docs", "/docs", class: "hover:text-primary text-primary font-semibold" %>
-      <span>&bull;</span>
-      <%= link_to "Pricing", "/pricing", class: "hover:text-primary" %>
-    </div>
-  </div>
-</footer>
+<%= render 'shared/main_footer', current_page: 'docs' %>
 
 <!-- Enhanced JavaScript for Reading Experience -->
 <script>

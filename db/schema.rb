@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_06_144548) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -88,6 +88,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_144548) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
+  end
+
+  create_table "blog_posts", force: :cascade do |t|
+    t.string "title", null: false
+    t.string "slug", null: false
+    t.text "excerpt", null: false
+    t.text "content", null: false
+    t.string "author_name"
+    t.string "author_email"
+    t.string "category"
+    t.string "featured_image_url"
+    t.boolean "published", default: false
+    t.datetime "published_at"
+    t.date "release_date"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_blog_posts_on_category"
+    t.index ["published"], name: "index_blog_posts_on_published"
+    t.index ["published_at"], name: "index_blog_posts_on_published_at"
+    t.index ["slug"], name: "index_blog_posts_on_slug", unique: true
   end
 
   create_table "booking_policies", force: :cascade do |t|
