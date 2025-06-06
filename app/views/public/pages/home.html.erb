@@ -32,10 +32,10 @@
 
   <%# Services Section %>
   <% if @business.show_services_section? %>
-    <div>
-      <h2 class="text-3xl font-semibold mb-6">Our Services</h2>
-      <% @services = @business.services.active.order(:name) %>
-      <% if @services.any? %>
+    <% @services = @business.services.active.order(:name) %>
+    <% if @services.any? %>
+      <div>
+        <h2 class="text-3xl font-semibold mb-6">Our Services</h2>
         <div class="space-y-4">
           <% @services.each do |service| %>
             <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -55,18 +55,16 @@
             </div>
           <% end %>
         </div>
-      <% else %>
-        <p>This business currently has no services available for booking.</p>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
   <% end %>
 
   <%# Products Section %>
   <% if @business.show_products_section? %>
-    <div class="mt-12">
-      <h2 class="text-3xl font-semibold mb-6">Our Products</h2>
-      <% @products = @business.products.active.order(:name) %>
-      <% if @products.any? %>
+    <% @products = @business.products.active.order(:name) %>
+    <% if @products.any? %>
+      <div class="mt-12">
+        <h2 class="text-3xl font-semibold mb-6">Our Products</h2>
         <div class="space-y-4">
           <% @products.each do |product| %>
             <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -86,10 +84,8 @@
             </div>
           <% end %>
         </div>
-      <% else %>
-        <p>This business currently has no products available.</p>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
   <% end %>
 
   <%# Links to other tenant pages (Optional Footer Section) %>
