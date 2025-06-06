@@ -1,0 +1,15 @@
+<footer class="bg-light py-8">
+  <div class="container mx-auto px-4">
+    <div class="flex flex-wrap justify-center items-center gap-x-2 gap-y-4 sm:gap-x-4 text-gray-600 text-sm sm:text-base">
+      <%= link_to "About", "/about", class: "hover:text-primary #{'text-primary font-semibold' if local_assigns[:current_page] == 'about'}" %>
+      <span class="hidden sm:inline">&bull;</span>
+      <%= link_to "Contact", "/contact", class: "hover:text-primary #{'text-primary font-semibold' if local_assigns[:current_page] == 'contact'}" %>
+      <span class="hidden sm:inline">&bull;</span>
+      <%= link_to "Blog", "/blog", class: "hover:text-primary #{'text-primary font-semibold' if local_assigns[:current_page] == 'blog'}" %>
+      <span class="hidden sm:inline">&bull;</span>
+      <%= link_to "Docs", "/docs", class: "hover:text-primary #{'text-primary font-semibold' if local_assigns[:current_page] == 'docs'}" %>
+      <span class="hidden sm:inline">&bull;</span>
+      <%= link_to "Pricing", "/pricing", class: "hover:text-primary #{'text-primary font-semibold' if local_assigns[:current_page] == 'pricing'}" %>
+    </div>
+  </div>
+</footer> 

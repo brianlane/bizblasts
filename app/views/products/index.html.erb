@@ -10,7 +10,6 @@
   <br>
   <br>
 
-
   <% if @products.any? %>
     <div class="space-y-4">
       <% @products.order(:name).each do |product| %>
@@ -26,6 +25,13 @@
         </div>
       <% end %>
     </div>
+
+    <!-- Pagination -->
+    <% if @products.respond_to?(:current_page) && @products.total_pages > 1 %>
+      <div class="flex justify-center mt-8">
+        <%= paginate @products %>
+      </div>
+    <% end %>
   <% else %>
     <p>We currently don't have any products listed. Please check back later!</p>
   <% end %>

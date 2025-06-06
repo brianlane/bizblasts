@@ -70,6 +70,18 @@ module ApplicationHelper
     end
   end
 
+  # Helper method to generate full URLs for blog post featured images
+  # Used for social media meta tags and other places that need absolute URLs
+  def blog_post_featured_image_url(blog_post)
+    if blog_post.featured_image.attached?
+      url_for(blog_post.featured_image)
+    elsif blog_post.featured_image_url.present?
+      blog_post.featured_image_url
+    else
+      nil
+    end
+  end
+
   # Safely render documentation content with explicit validation
   def render_doc_content(doc_id)
     case doc_id

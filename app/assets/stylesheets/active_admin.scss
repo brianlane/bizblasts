@@ -617,3 +617,146 @@ body.active_admin.logged_out div#login div.panel {
   -moz-box-shadow: none !important;
   padding: 0 !important;
 }
+
+// MARKDOWN EDITOR STYLES - ULTRA SPECIFIC FOR ACTIVE ADMIN
+// Using same ultra-high specificity approach as login styles
+
+// Container styles
+body.active_admin .markdown-editor-container,
+html body.active_admin .markdown-editor-container {
+  margin-bottom: 10px !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+// Toolbar styles with maximum specificity
+body.active_admin .markdown-editor-toolbar,
+html body.active_admin .markdown-editor-toolbar,
+body.active_admin form .markdown-editor-toolbar,
+body.active_admin .input .markdown-editor-toolbar {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  background: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 6px 6px 0 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0 !important;
+  align-items: center !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border-bottom: 1px solid #e9ecef !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+// Editor group styles
+body.active_admin .markdown-editor-toolbar .editor-group,
+html body.active_admin .markdown-editor-toolbar .editor-group {
+  display: flex !important;
+  gap: 4px !important;
+  padding-right: 8px !important;
+  margin-right: 8px !important;
+  border-right: 1px solid #dee2e6 !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+}
+
+body.active_admin .markdown-editor-toolbar .editor-group:last-child,
+html body.active_admin .markdown-editor-toolbar .editor-group:last-child {
+  border-right: none !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
+// Button styles
+body.active_admin .markdown-editor-toolbar .editor-btn,
+html body.active_admin .markdown-editor-toolbar .editor-btn,
+body.active_admin form .markdown-editor-toolbar .editor-btn {
+  padding: 6px 10px !important;
+  background: white !important;
+  border: 1px solid #ced4da !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #000000 !important;
+  transition: all 0.15s ease-in-out !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+  min-width: auto !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  text-shadow: none !important;
+}
+
+// Button hover states
+body.active_admin .markdown-editor-toolbar .editor-btn:hover,
+html body.active_admin .markdown-editor-toolbar .editor-btn:hover {
+  background: #e9ecef !important;
+  border-color: #adb5bd !important;
+  color: #000000 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  text-shadow: none !important;
+}
+
+body.active_admin .markdown-editor-toolbar .editor-btn:active,
+html body.active_admin .markdown-editor-toolbar .editor-btn:active {
+  background: #dee2e6 !important;
+  border-color: #6c757d !important;
+  color: #000000 !important;
+  transform: translateY(0) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  text-shadow: none !important;
+}
+
+// Textarea styles
+body.active_admin .markdown-editor,
+html body.active_admin .markdown-editor,
+body.active_admin form .markdown-editor,
+body.active_admin textarea.markdown-editor,
+body.active_admin .input textarea.markdown-editor {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 0 0 6px 6px !important;
+  border-top: none !important;
+  padding: 12px !important;
+  resize: vertical !important;
+  min-height: 200px !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  margin-top: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+// Focus states
+body.active_admin .markdown-editor:focus,
+html body.active_admin .markdown-editor:focus {
+  border-color: #007bff !important;
+  outline: 0 !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+// Preview area
+body.active_admin #content-preview,
+html body.active_admin #content-preview {
+  margin-top: 0 !important;
+  padding: 15px !important;
+  background: #ffffff !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 0 0 6px 6px !important;
+  border-top: none !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  line-height: 1.6 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}

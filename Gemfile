@@ -57,6 +57,10 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
 
+# Markdown processing with HTML support
+gem "redcarpet"
+gem "rouge" # For syntax highlighting
+
 # Stripe for payments
 gem "stripe", "~> 15.2"
 

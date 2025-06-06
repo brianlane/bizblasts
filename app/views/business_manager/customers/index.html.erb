@@ -233,6 +233,13 @@
             </tbody>
           </table>
         </div>
+        
+        <!-- Pagination -->
+        <% if respond_to?(:paginate) && @customers.respond_to?(:current_page) %>
+          <div class="px-4 py-4 sm:px-6 border-t border-gray-200 bg-white">
+            <%= paginate @customers %>
+          </div>
+        <% end %>
       <% else %>
         <!-- Empty State -->
         <div class="text-center py-16 px-4">

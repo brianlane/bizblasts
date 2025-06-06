@@ -234,6 +234,17 @@ Rails.application.routes.draw do
   get '/docs', to: 'docs#index'
   get '/docs/:doc_id', to: 'docs#show', as: :doc
 
+  # Blog section
+  get '/blog', to: 'blog#index', as: :blog
+  get '/blog/feed.xml', to: 'blog#feed', as: :blog_feed, defaults: { format: 'xml' }
+  get '/blog/:year/:month/:day/:slug', to: 'blog#show', as: :blog_post_by_date,
+      constraints: { 
+        year: /\d{4}/, 
+        month: /\d{1,2}/, 
+        day: /\d{1,2}/ 
+      }
+  get '/blog/:slug', to: 'blog#show', as: :blog_post
+
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
 
