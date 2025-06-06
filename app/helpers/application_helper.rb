@@ -70,5 +70,21 @@ module ApplicationHelper
     end
   end
 
+  # Safely render documentation content with explicit validation
+  def render_doc_content(doc_id)
+    case doc_id
+    when 'business-start-guide'
+      render partial: 'docs/content/business-start-guide'
+    when 'legal-setup-arizona'
+      render partial: 'docs/content/legal-setup-arizona'
+    when 'business-growth-strategies'
+      render partial: 'docs/content/business-growth-strategies'
+    else
+      content_tag :div, class: 'text-center py-12' do
+        content_tag :p, 'Documentation not available.', class: 'text-gray-500'
+      end
+    end
+  end
+
   # ... existing helper methods ...
 end
