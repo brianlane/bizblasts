@@ -34,17 +34,36 @@ class DocsController < ApplicationController
   end
 
   def show
-    @doc_id = params[:doc_id]
-    @doc = DOCS[@doc_id]
+    # Validate that the doc_id is in our allowed list to prevent path traversal attacks
+    @doc_id = validate_doc_id(params[:doc_id])
     
-    if @doc.nil?
+    unless @doc_id
       redirect_to docs_path, alert: 'Documentation not found'
       return
     end
+    
+    @doc = DOCS[@doc_id]
 
     @doc_keys = DOCS.keys
     @current_index = @doc_keys.index(@doc_id)
     @previous_doc = @current_index > 0 ? @doc_keys[@current_index - 1] : nil
     @next_doc = @current_index < @doc_keys.length - 1 ? @doc_keys[@current_index + 1] : nil
+  end
+
+  private
+
+  # Validates the doc_id parameter against allowed values
+  # Returns the validated doc_id or nil if invalid
+  def validate_doc_id(doc_id)
+    case doc_id
+    when 'business-start-guide'
+      'business-start-guide'
+    when 'legal-setup-arizona'
+      'legal-setup-arizona'
+    when 'business-growth-strategies'
+      'business-growth-strategies'
+    else
+      nil
+    end
   end
 end 
