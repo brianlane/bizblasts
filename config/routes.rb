@@ -229,6 +229,10 @@ Rails.application.routes.draw do
   get '/returnpolicy', to: 'home#returnpolicy'
   get '/acceptableusepolicy', to: 'home#acceptableusepolicy'
   get '/pricing', to: 'home#pricing'
+  
+  # Documentation section
+  get '/docs', to: 'docs#index'
+  get '/docs/:doc_id', to: 'docs#show', as: :doc
 
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
