@@ -109,7 +109,10 @@ Rails.application.configure do
     "https://www.bizblasts.com",
     "http://www.bizblasts.com",
     "https://bizblasts.com",
-    "http://bizblasts.com"
+    "http://bizblasts.com",
+    # Allow Render PR preview URLs
+    /https:\/\/bizblasts-pr-\d+\.onrender\.com/,
+    /http:\/\/bizblasts-pr-\d+\.onrender\.com/
   ]
   
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
@@ -130,7 +133,9 @@ Rails.application.configure do
     "*.bizblasts.com",
     "*.bizblasts.onrender.com",
     ".bizblasts.com",
-    ".*\.bizblasts\.com$/"
+    ".*\.bizblasts\.com$/",
+    # Allow Render PR preview URLs (format: bizblasts-pr-XX.onrender.com)
+    /bizblasts-pr-\d+\.onrender\.com/
   ]
   
   # Skip DNS rebinding protection for the default health check endpoint.
