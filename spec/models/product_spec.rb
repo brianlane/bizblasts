@@ -3,11 +3,11 @@ require 'rails_helper'
 
 RSpec.describe Product, type: :model do
   let(:business) { create(:business) }
-  let(:category) { create(:category, business: business) }
+
 
   describe 'associations' do
     it { should belong_to(:business) }
-    it { should belong_to(:category).optional }
+
     it { should have_many(:product_variants).dependent(:destroy) }
     it { should have_many(:line_items).through(:product_variants) }
     it { should have_many_attached(:images) }
@@ -15,7 +15,7 @@ RSpec.describe Product, type: :model do
   end
 
   describe 'validations' do
-    subject { build(:product, business: business, category: category) }
+    subject { build(:product, business: business) }
     it { should validate_presence_of(:name) }
     it { should validate_uniqueness_of(:name).scoped_to(:business_id) }
     it { should validate_presence_of(:price) }
@@ -50,8 +50,8 @@ RSpec.describe Product, type: :model do
 
   describe 'nested attributes' do
     it 'allows creation of product variants via nested attributes' do
-      # Create product first, without variants, ensuring it's valid (e.g., needs business, category)
-      product = create(:product, business: business, category: category)
+          # Create product first, without variants, ensuring it's valid (e.g., needs business)
+    product = create(:product, business: business)
       # Now update with nested attributes
       expect {
         product.update!({
@@ -69,7 +69,7 @@ RSpec.describe Product, type: :model do
   end
 
   describe 'images' do
-    let(:product) { create(:product, business: business, category: category) }
+    let(:product) { create(:product, business: business) }
     let(:image1) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }
     let(:image2) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }
     let(:image3) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }

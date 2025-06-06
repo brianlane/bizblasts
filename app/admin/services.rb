@@ -5,12 +5,12 @@ ActiveAdmin.register Service do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :duration, :active, :business_id, :category_id
+  permit_params :name, :description, :price, :duration, :active, :business_id
   #
   # or
   #
   # permit_params do
-  #   permitted = [:name, :description, :price, :duration, :active, :business_id, :category_id]
+  #   permitted = [:name, :description, :price, :duration, :active, :business_id]
   #   permitted << :other if params[:action] == 'create' && current_user.admin?
   #   permitted
   # end
@@ -85,7 +85,6 @@ ActiveAdmin.register Service do
   filter :duration
   filter :active
   filter :business
-  filter :category
 
   index do
     selectable_column
@@ -100,7 +99,6 @@ ActiveAdmin.register Service do
     end
     column :active
     column :business
-    column :category
     actions
   end
 
@@ -112,7 +110,6 @@ ActiveAdmin.register Service do
       f.input :duration, label: 'Duration (minutes)'
       f.input :active
       f.input :business, collection: Business.order(:name)
-      f.input :category, collection: Category.order(:name)
     end
     f.actions
   end

@@ -5,10 +5,8 @@ RSpec.describe ProductsController, type: :request do
   include Rails.application.routes.url_helpers
 
   let(:business) { create(:business) }
-  let(:category1) { create(:category, business: business) }
-  let(:category2) { create(:category, business: business) }
-  let!(:product1) { create(:product, business: business, category: category1, name: 'Product 1', description: 'Description 1') }
-  let!(:product2) { create(:product, business: business, category: category2, name: 'Product 2', description: 'Description 2') }
+  let!(:product1) { create(:product, business: business, name: 'Product 1', description: 'Description 1') }
+  let!(:product2) { create(:product, business: business, name: 'Product 2', description: 'Description 2') }
   let!(:variant1) { create(:product_variant, product: product1) }
   let!(:variant2) { create(:product_variant, product: product1) }
   # Default variant created by Product model when no variants are present
@@ -36,11 +34,7 @@ RSpec.describe ProductsController, type: :request do
       expect(response).to have_http_status(:success)
     end
 
-    it "filters products by category" do
-      get products_path(category_id: category1.id)
-      expect(response.body).to include(product1.name)
-      expect(response.body).not_to include(product2.name)
-    end
+
 
     it "searches products by name" do
       get products_path(q: { name_cont: 'Product 1' })
@@ -54,13 +48,7 @@ RSpec.describe ProductsController, type: :request do
       expect(response.body).to include(product2.name)
     end
 
-    context "with invalid category ID" do
-      it "redirects to index with flash message" do
-        get products_path(category_id: 'invalid')
-        expect(response).to redirect_to(products_path)
-        expect(flash[:alert]).to eq("Category not found")
-      end
-    end
+
 
     context "pagination" do
       let!(:products) { create_list(:product, 5, business: business) }

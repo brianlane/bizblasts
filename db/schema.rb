@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_06_144548) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -212,15 +212,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
     t.datetime "updated_at", null: false
     t.index ["marketing_campaign_id"], name: "index_campaign_recipients_on_marketing_campaign_id"
     t.index ["tenant_customer_id"], name: "index_campaign_recipients_on_tenant_customer_id"
-  end
-
-  create_table "categories", force: :cascade do |t|
-    t.string "name", null: false
-    t.bigint "business_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["business_id"], name: "index_categories_on_business_id"
-    t.index ["name", "business_id"], name: "index_categories_on_name_and_business_id", unique: true
   end
 
   create_table "client_businesses", force: :cascade do |t|
@@ -498,7 +489,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
     t.decimal "price", precision: 10, scale: 2, null: false
     t.boolean "active", default: true
     t.boolean "featured", default: false
-    t.bigint "category_id"
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -506,7 +496,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
     t.integer "stock_quantity", default: 0, null: false
     t.index ["active"], name: "index_products_on_active"
     t.index ["business_id"], name: "index_products_on_business_id"
-    t.index ["category_id"], name: "index_products_on_category_id"
     t.index ["featured"], name: "index_products_on_featured"
   end
 
@@ -894,7 +883,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
   add_foreign_key "businesses", "service_templates"
   add_foreign_key "campaign_recipients", "marketing_campaigns"
   add_foreign_key "campaign_recipients", "tenant_customers"
-  add_foreign_key "categories", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
@@ -927,7 +915,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_05_191831) do
   add_foreign_key "policy_acceptances", "users"
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses", on_delete: :cascade
-  add_foreign_key "products", "categories"
   add_foreign_key "promotion_redemptions", "bookings", on_delete: :cascade
   add_foreign_key "promotion_redemptions", "invoices"
   add_foreign_key "promotion_redemptions", "promotions"

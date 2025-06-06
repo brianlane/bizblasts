@@ -5,12 +5,12 @@ ActiveAdmin.register Product do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :active, :featured, :category_id, :product_type, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :name, :description, :price, :active, :featured, :product_type, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
   #
   # or
   #
   # permit_params do
-  #   permitted = [:name, :description, :price, :active, :featured, :category_id, :business_id]
+  #   permitted = [:name, :description, :price, :active, :featured, :business_id]
   #   permitted << :other if params[:action] == 'create' && current_user.admin?
   #   permitted
   # end
@@ -80,9 +80,6 @@ ActiveAdmin.register Product do
   end
 
   filter :name
-  filter :category, collection: -> {
-    Category.order(:name)
-  }
   filter :active
   filter :featured
   filter :price
@@ -93,7 +90,6 @@ ActiveAdmin.register Product do
     selectable_column
     id_column
     column :name
-    column :category
     column :price
     column :product_type
     column :active
@@ -110,7 +106,6 @@ ActiveAdmin.register Product do
       row :price
       row :active
       row :featured
-      row :category
       row :business
       row :created_at
       row :updated_at
@@ -153,7 +148,6 @@ ActiveAdmin.register Product do
 
   form do |f|
     f.inputs 'Product Details' do
-      f.input :category, collection: Category.order(:name)
       f.input :business, as: :select, collection: Business.all.order(:name)
       f.input :name
       f.input :description

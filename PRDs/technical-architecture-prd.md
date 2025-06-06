@@ -108,7 +108,7 @@ A single admin interface manages all client websites:
 - **Admin**: Configurable via ActiveAdmin.
 
 ### Product Management (Custom)
-- **Models**: `Product`, `Order`, `LineItem` (potentially `ProductVariant`, `Category`). All tenant-scoped.
+- **Models**: `Product`, `Order`, `LineItem` (potentially `ProductVariant`). All tenant-scoped.
 - **Controllers**: `ProductsController`, `OrdersController`, `CartController` (handling both standalone orders and booking add-ons).
 - **Logic**: Custom logic for cart management, order creation, adding products to invoices.
 - **Admin**: Integration into ActiveAdmin for `Product` and `Order` management.
@@ -299,7 +299,7 @@ products
 ├── stock_quantity (basic inventory)
 ├── active
 ├── featured
-├── category_id (optional)
+
 ├── created_at
 ├── updated_at
 

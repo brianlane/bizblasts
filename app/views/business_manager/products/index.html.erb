@@ -25,9 +25,7 @@
                 <div class="flex-1">
                   <%= link_to product.name, business_manager_product_path(product), 
                         class: "text-lg font-medium text-blue-600 hover:text-blue-800 transition-colors" %>
-                  <div class="text-sm text-gray-600 mt-1">
-                    <%= product.category&.name || 'No category' %>
-                  </div>
+
                 </div>
                 <div class="ml-4 flex gap-2">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= product.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
@@ -91,7 +89,6 @@
               <thead class="bg-gray-100">
                 <tr>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
@@ -106,9 +103,7 @@
                       <%= link_to product.name, business_manager_product_path(product), 
                             class: "text-blue-600 hover:text-blue-800 font-medium transition-colors" %>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-900">
-                      <%= product.category&.name || '-' %>
-                    </td>
+
                     <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600">
                       <%= number_to_currency(product.price) %>
                     </td>

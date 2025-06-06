@@ -4,7 +4,7 @@ module BusinessManager
 
     # GET /manage/products
     def index
-      @products = @current_business.products.includes(:category, :product_variants).order(:name)
+      @products = @current_business.products.includes(:product_variants).order(:name)
       # Add pagination if needed: e.g., @products = @products.page(params[:page])
     end
 
@@ -57,16 +57,16 @@ module BusinessManager
 
     def set_product
       # Eager load associations needed for show/edit views here
-      @product = @current_business.products
-                   .includes(:category, :product_variants, images_attachments: :blob)
-                   .find(params[:id])
+            @product = @current_business.products
+        .includes(:product_variants, images_attachments: :blob)
+        .find(params[:id])
     rescue ActiveRecord::RecordNotFound
       redirect_to business_manager_products_path, alert: 'Product not found.'
     end
 
     def product_params
       params.require(:product).permit(
-        :name, :description, :price, :active, :featured, :category_id, :product_type,
+        :name, :description, :price, :active, :featured, :product_type,
         :stock_quantity, # If product can be sold without variants
         add_on_service_ids: [], 
         # Allow multiple images to be uploaded
