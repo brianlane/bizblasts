@@ -5,7 +5,6 @@ FactoryBot.define do
     price { rand(10.0..100.0).round(2) }
     active { true }
     featured { false }
-    association :category
     association :business # Assuming you have a business factory
     product_type { :standard }
 

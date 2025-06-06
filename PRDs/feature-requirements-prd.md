@@ -109,7 +109,7 @@
 | Core Product System | High | Create and manage products, separate from services (using custom `Product` model). |
 | Standalone & Add-on Products | High | Support products sold independently (via `Order`) and as add-ons during service booking (via `Invoice`/`LineItem`). |
 | Basic Inventory | Medium | Basic stock tracking per product (potential for future `ProductVariant` model). |
-| Product Categories | Medium | Organize products using simple categories (e.g., string tags or separate `Category` model). |
+
 | Standalone Order Cart | High | Cart functionality for standalone product purchases, leading to an `Order` record. |
 | Standalone Order Checkout | High | Basic checkout flow for standalone product `Order`s (Payment integration TBD). |
 | Add-on Selection (Booking) | High | Interface to add products to a service `Booking`, updating the associated `Invoice`'s `LineItem`s. |
@@ -122,7 +122,7 @@
 | Tax Info Capture | High | Allow businesses to manually input tax amounts per order/invoice. |
 | Admin Product Management | High | CRUD operations for `Product` model in ActiveAdmin (mirroring `Service` admin). |
 | Admin Inventory Management | Medium | Admin interface for managing basic stock levels per `Product`. |
-| Admin Category Management | Medium | Admin interface for managing product categories. |
+
 | Admin Order Viewing | High | Admins can view/manage standalone product `Order`s across tenants. |
 | Admin Invoice Viewing | High | Admins can view/manage `Invoice`s (including products) across tenants. |
 | Business Owner Product Mgmt | High | Interface for business owners to manage their own `Product`s. |

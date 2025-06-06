@@ -130,7 +130,6 @@ class Business < ApplicationRecord
   has_many :loyalty_programs
   has_many :products, dependent: :destroy
   has_many :orders  # Orphaned, not deleted
-  has_many :categories, dependent: :destroy
   has_many :shipping_methods, dependent: :destroy
   has_many :tax_rates, dependent: :destroy
   

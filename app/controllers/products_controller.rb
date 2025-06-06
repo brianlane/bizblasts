@@ -8,18 +8,8 @@ class ProductsController < ApplicationController
     @q = base_scope.ransack(params[:q])
     result = @q.result(distinct: true).order(:id)
 
-    # Category filter
-    if params[:category_id].present?
-      @category = Category.find_by(id: params[:category_id])
-      unless @category
-        flash[:alert] = "Category not found"
-        redirect_to products_path and return
-      end
-      result = result.where(category: @category)
-    end
-
     per_page = Kaminari.config.default_per_page
-    if params[:q].blank? && params[:category_id].blank? && result.count > per_page
+    if params[:q].blank? && result.count > per_page
       min_id = result.minimum(:id) || 0
       threshold = min_id + per_page - 1
       result = result.where("#{result.klass.table_name}.id > ?", threshold)

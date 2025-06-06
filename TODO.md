@@ -43,7 +43,7 @@
 - Filter bookings by customer
 - Filter bookings by service
 - Filter bookings by staff member
-- Filter services by category
+
 - Filter staff members by availability on a specific date
 - Filter by staff member skills or specialties
 - Search customers by name/email 
