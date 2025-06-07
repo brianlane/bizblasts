@@ -114,6 +114,29 @@
   background: linear-gradient(to bottom right, #1A5F7A, #0c4a6e, #57C5B6);
 }
 
+/* Copy Link Button Styles */
+.copy-link-btn {
+  cursor: pointer;
+}
+
+.copy-link-btn:hover {
+  cursor: pointer;
+}
+
+/* Mobile-friendly Breadcrumb Styles */
+@media (max-width: 640px) {
+  .breadcrumb-mobile {
+    font-size: 0.75rem; /* 12px */
+    line-height: 1.2;
+  }
+  
+  .breadcrumb-title {
+    word-break: break-word;
+    hyphens: auto;
+    max-width: 100%;
+  }
+}
+
 /* Documentation header gradient */
 .bg-gradient-to-r.from-primary.via-blue-600.to-secondary {
   background: linear-gradient(to right, #1A5F7A, #2563eb, #57C5B6);
