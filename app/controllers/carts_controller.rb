@@ -7,7 +7,13 @@ class CartsController < ApplicationController
     puts "DEBUG: Current tenant: #{ActsAsTenant.current_tenant.inspect}"
     puts "DEBUG: Current request subdomain: #{request.subdomain}"
     @cart = CartManager.new(session).retrieve
-    puts "DEBUG: Cart content: #{@cart.inspect}"
+    
+    # Format cart content for better readability
+    formatted_cart = @cart.map do |variant, quantity|
+      price_mod = variant.price_modifier&.to_f || 'nil'
+      "#{variant.name} (price_modifier: #{price_mod}) => #{quantity}"
+    end.join(', ')
+    puts "DEBUG: Cart content: {#{formatted_cart}}"
     
     # If we're in a test environment and the cart is empty but should have items, log it
     if Rails.env.test? && session[:cart].present? && @cart.empty?
