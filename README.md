@@ -180,6 +180,12 @@ Ensure your `render.yaml` calls `./bin/render-build.sh` as the `buildCommand` so
 
 ---
 
+#Slogan
+Simpler is Better
+
+#Tagline
+Starting a Business? Biz blast your business with booking scheduling, payment processing, and its own website all for free
+
 *The tailwindcss gem uses `tailwindcss-ruby` under the hood for blazing-fast compilation in development and production.
 
 ### Brand & Functional Colors
