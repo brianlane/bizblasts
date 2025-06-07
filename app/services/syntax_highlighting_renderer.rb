@@ -68,10 +68,17 @@ class SyntaxHighlightingRenderer < Redcarpet::Render::HTML
 
   def list(contents, list_type)
     tag = list_type == :ordered ? 'ol' : 'ul'
-    %(<#{tag} class="markdown-list markdown-#{tag}">#{contents}</#{tag}>)
+    %(<#{tag} class="markdown-list markdown-#{tag}">
+#{contents}
+</#{tag}>)
   end
 
   def list_item(text, list_type)
     %(<li class="markdown-list-item">#{text.strip}</li>)
+  end
+
+  def paragraph(text)
+    # Ensure proper paragraph spacing
+    %(<p>#{text}</p>)
   end
 end 

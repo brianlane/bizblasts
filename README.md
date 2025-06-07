@@ -207,4 +207,13 @@ Example usage:
 <div class="text-error font-bold">Error occurred</div>
 <p class="bg-light p-3">Subtle background</p>
 ```
+
+## Markdown Styling Troubleshooting
+
+**Problem**: `@apply` directives in SCSS files not working  
+**Solution**: Use actual CSS properties instead of `@apply` in `app/assets/stylesheets/custom.css`
+
+**Problem**: Markdown content displaying as plain text  
+**Solution**: Add styles to `custom.css` (already imported via application layout) rather than separate SCSS files
+
 # Migration deployment Wed May 28 09:06:48 MST 2025
