@@ -24,7 +24,7 @@ class BlogController < ApplicationController
     @blog_posts = BlogPost.published.recent.limit(20)
     
     respond_to do |format|
-      format.xml { render template: 'blog/feed.xml.builder', layout: false }
+      format.xml { render 'feed', layout: false }
     end
   end
 

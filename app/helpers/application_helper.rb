@@ -74,7 +74,8 @@ module ApplicationHelper
   # Used for social media meta tags and other places that need absolute URLs
   def blog_post_featured_image_url(blog_post)
     if blog_post.featured_image.attached?
-      url_for(blog_post.featured_image)
+      # Use medium variant for social media sharing (optimal for Open Graph)
+      url_for(blog_post.featured_image.variant(:medium))
     elsif blog_post.featured_image_url.present?
       blog_post.featured_image_url
     else

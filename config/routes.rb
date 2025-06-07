@@ -234,6 +234,9 @@ Rails.application.routes.draw do
   get '/docs', to: 'docs#index'
   get '/docs/:doc_id', to: 'docs#show', as: :doc
 
+  # Sitemap
+  get '/sitemap.xml', to: 'sitemap#index', defaults: { format: 'xml' }
+
   # Blog section
   get '/blog', to: 'blog#index', as: :blog
   get '/blog/feed.xml', to: 'blog#feed', as: :blog_feed, defaults: { format: 'xml' }

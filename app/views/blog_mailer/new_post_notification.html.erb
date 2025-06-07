@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Blog Post - <%= @blog_post.title %></title>
+  <style>
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background: white;
+      padding: 30px 20px;
+      border: 1px solid #e5e7eb;
+    }
+    .post-preview {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #667eea;
+    }
+    .cta-button {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+    .cta-button:hover {
+      background: #5a67d8;
+    }
+    .footer {
+      background: #f9fafb;
+      padding: 20px;
+      text-align: center;
+      border-radius: 0 0 8px 8px;
+      border: 1px solid #e5e7eb;
+      border-top: none;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .category-badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 20px; background-color: #f3f4f6;">
+  <div class="email-container">
+    <!-- Header -->
+    <div class="header">
+      <h1 style="margin: 0; font-size: 28px; font-weight: bold;">📝 New Blog Post</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Fresh insights from the BizBlasts team</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <p>Hi <%= @user.first_name || @user.email.split('@').first.capitalize %>,</p>
+      
+      <p>We've just published a new blog post that we think you'll find valuable:</p>
+
+      <div class="post-preview">
+        <div class="category-badge"><%= @blog_post.category_display_name %></div>
+        <h2 style="margin: 10px 0; color: #1f2937; font-size: 24px;"><%= @blog_post.title %></h2>
+        
+        <% if @blog_post.author_name.present? %>
+        <p style="margin: 10px 0; color: #6b7280; font-size: 14px;">
+          By <%= @blog_post.author_name %> • <%= @blog_post.published_at.strftime("%B %d, %Y") %>
+        </p>
+        <% end %>
+        
+        <p style="color: #4b5563; margin: 15px 0;"><%= @blog_post.excerpt %></p>
+        
+        <div style="text-align: center;">
+          <a href="<%= request.protocol + request.host + @blog_post.url_path %>" class="cta-button">
+            Read Full Post →
+          </a>
+        </div>
+      </div>
+
+      <p>This post covers topics that can help you grow your business and make the most of the BizBlasts platform.</p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+      
+      <p style="font-size: 14px; color: #6b7280;">
+        <strong>💡 Tip:</strong> Don't miss future updates! You can also subscribe to our 
+        <a href="<%= request.protocol + request.host %>/blog/feed.xml" style="color: #667eea;">RSS feed</a> 
+        to get all our blog posts in your favorite RSS reader.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p style="margin: 0 0 10px 0;">
+        <strong>Thanks for being part of the BizBlasts community!</strong><br>
+        The BizBlasts Team
+      </p>
+      <p style="margin: 10px 0; font-size: 12px;">
+        You're receiving this because you have blog notifications enabled.<br>
+        <% if @user.client? %>
+          <a href="<%= edit_client_settings_url %>" style="color: #667eea;">Manage email preferences</a>
+        <% elsif @user.manager? || @user.staff? %>
+          <a href="<%= edit_business_manager_settings_profile_url %>" style="color: #667eea;">Manage email preferences</a>
+        <% end %>
+      </p>
+    </div>
+  </div>
+  
+  <%= render 'shared/email_footer' %>
+</body>
+</html> 

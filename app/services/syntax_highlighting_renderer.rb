@@ -1,7 +1,7 @@
 class SyntaxHighlightingRenderer < Redcarpet::Render::HTML
   def initialize(options = {})
     super(options.merge(
-      filter_html: false,
+      filter_html: true,
       no_intra_emphasis: true,
       tables: true,
       fenced_code_blocks: true,

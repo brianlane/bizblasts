@@ -1501,4 +1501,62 @@ input[type="checkbox"]:focus {
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
   }
+}
+
+/* Admin textarea improvements to prevent scroll jumping */
+.active_admin textarea#blog_post_content,
+.active_admin textarea[name*="content"] {
+  resize: none !important; /* Disable manual resize to prevent conflicts */
+  overflow-y: auto !important;
+  scroll-behavior: auto !important; /* Disable smooth scrolling */
+  transition: none !important; /* Remove any height transitions */
+}
+
+/* Prevent scroll restoration issues */
+.active_admin textarea:focus {
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+}
+
+/* Improve textarea container stability */
+.active_admin .input.text textarea {
+  box-sizing: border-box !important;
+  min-height: 200px !important;
+}
+
+/* File removal styling for admin forms */
+.active_admin .input.file .current-file-info {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.active_admin .input.file .current-file-info strong {
+  color: #495057;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.active_admin .input.file .file-meta {
+  color: #6c757d;
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.active_admin .input.file .remove-file-option {
+  border-top: 1px solid #e9ecef;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.active_admin .input.file .remove-file-option input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.active_admin .input.file .remove-file-option label {
+  font-weight: normal !important;
+  color: #dc3545;
+  cursor: pointer;
 } 

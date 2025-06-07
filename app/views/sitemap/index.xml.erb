@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <% @static_pages.each do |page| %>
+    <url>
+      <loc><%= html_escape(@base_url) %><%= html_escape(page[:url]) %></loc>
+      <priority><%= page[:priority] %></priority>
+      <changefreq><%= html_escape(page[:changefreq]) %></changefreq>
+      <lastmod><%= Date.current.strftime('%Y-%m-%d') %></lastmod>
+    </url>
+  <% end %>
+  
+  <% @blog_posts.each do |post| %>
+    <url>
+      <loc><%= html_escape(@base_url) %><%= html_escape(post[:url]) %></loc>
+      <priority><%= post[:priority] %></priority>
+      <changefreq><%= html_escape(post[:changefreq]) %></changefreq>
+      <lastmod><%= post[:lastmod].strftime('%Y-%m-%d') %></lastmod>
+    </url>
+  <% end %>
+  
+  <% @businesses.each do |business| %>
+    <url>
+      <loc><%= html_escape(@base_url) %><%= html_escape(business[:url]) %></loc>
+      <priority><%= business[:priority] %></priority>
+      <changefreq><%= html_escape(business[:changefreq]) %></changefreq>
+      <lastmod><%= business[:lastmod].strftime('%Y-%m-%d') %></lastmod>
+    </url>
+  <% end %>
+</urlset> 

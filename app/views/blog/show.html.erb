@@ -78,7 +78,7 @@
   <% if @blog_post.featured_image_for_display || @blog_post.featured_image_fallback_url %>
     <div class="mb-8">
       <% if @blog_post.featured_image_for_display %>
-        <%= image_tag @blog_post.featured_image_for_display, 
+        <%= image_tag @blog_post.featured_image_for_display.variant(:large), 
             alt: @blog_post.title, 
             class: "w-full h-64 lg:h-96 object-cover rounded-lg shadow-lg" %>
       <% else %>

@@ -1,6 +1,6 @@
 ActiveAdmin.register BlogPost do
   permit_params :title, :slug, :excerpt, :content, :author_name, :author_email,
-                :category, :featured_image_url, :featured_image, :published, :published_at, :release_date
+                :category, :featured_image_url, :featured_image, :published, :published_at, :release_date, :remove_featured_image
 
   index do
     selectable_column
@@ -62,6 +62,24 @@ ActiveAdmin.register BlogPost do
     end
     
     f.inputs "Featured Image" do
+      # Show current uploaded file if it exists
+      if f.object.featured_image.attached?
+        li class: 'input file optional' do
+          label 'Current Uploaded Image', class: 'label'
+          div class: 'current-file-info' do
+            strong "Currently uploaded: #{f.object.featured_image.filename}"
+            div class: 'file-meta' do
+              "Size: #{number_to_human_size(f.object.featured_image.byte_size)} | " +
+              "Type: #{f.object.featured_image.content_type}"
+            end
+            div class: 'remove-file-option' do
+              f.check_box :remove_featured_image
+              f.label :remove_featured_image, 'Remove this uploaded image'
+            end
+          end
+        end
+      end
+      
       f.input :featured_image, as: :file, 
               hint: raw("Upload an image file. Supports PNG, JPEG, GIF, WebP. Max size: 15MB.<br/>
                         <strong>Note:</strong> If both upload and URL are provided, the uploaded file takes priority.")
