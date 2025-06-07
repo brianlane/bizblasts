@@ -1,4 +1,7 @@
 class SitemapController < ApplicationController
+  # Skip authentication - sitemap must be publicly accessible for search engines
+  skip_before_action :authenticate_user!
+  
   # Add basic security headers and rate limiting
   before_action :set_security_headers
   before_action :check_rate_limit
