@@ -1582,4 +1582,153 @@ input[type="checkbox"]:focus {
   font-weight: normal !important;
   color: #dc3545;
   cursor: pointer;
+}
+
+/* Futuristic Website Hover Effect */
+.website-hover-container {
+  position: relative;
+  display: inline-block;
+  color: #1A5F7A;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.website-hover-container:visited {
+  color: #1A5F7A;
+}
+
+.website-hover-container::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #1A5F7A, #57C5B6);
+  transition: width 0.4s ease;
+}
+
+.website-hover-container:hover::before {
+  width: 100%;
+}
+
+.website-hover-container:hover {
+  color: #1A5F7A;
+  text-shadow: 0 0 8px rgba(26, 95, 122, 0.3);
+}
+
+/* Futuristic Popup Link */
+.futuristic-popup {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: linear-gradient(135deg, rgba(26, 95, 122, 0.95), rgba(87, 197, 182, 0.95));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 20px;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(26, 95, 122, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.futuristic-popup::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: rgba(26, 95, 122, 0.95);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.futuristic-popup.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.futuristic-popup-content {
+  display: flex;
+  align-items: center;
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.futuristic-popup-content:hover {
+  color: white;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+.futuristic-popup-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  opacity: 0.9;
+  transition: transform 0.2s ease;
+}
+
+.futuristic-popup-content:hover .futuristic-popup-icon {
+  transform: translateX(2px);
+}
+
+.futuristic-popup-text {
+  background: linear-gradient(45deg, #ffffff, #e0f2fe);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Anchor positioning for smooth scrolling with proper offset */
+#subdomain-explanation {
+  scroll-margin-top: 170px; /* Desktop offset */
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .futuristic-popup {
+    top: -55px;
+    padding: 10px 16px;
+    border-radius: 10px;
+  }
+  
+  .futuristic-popup-content {
+    font-size: 13px;
+  }
+  
+  .futuristic-popup-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+  }
+  
+  /* Smaller offset for mobile */
+  #subdomain-explanation {
+    scroll-margin-top: 150px;
+  }
 } 
