@@ -1,0 +1,442 @@
+Run options: include {focus: true}
+
+All examples were filtered out; ignoring {focus: true}
+
+Randomized with seed 23945
+
+Website Pages Settings
+  shows and updates website pages settings
+
+Guest Booking Flow
+  allows a guest to book a service without logging in
+  allows a guest to book and create an account
+  email confirmation functionality
+    requires email confirmation for new user accounts created during guest booking
+
+Admin Domain Coverage Management
+  Domain Coverage in Business Show Page
+    for premium business with coverage
+      displays comprehensive coverage information
+    for non-premium business
+      does not show domain coverage panel
+    for premium business without coverage
+      shows available coverage status
+  Domain Coverage in Business Index
+    shows domain coverage status for all businesses
+    shows coverage amounts in status
+    filters businesses by domain coverage status
+  Domain Coverage in Business Forms
+    creating new premium business with coverage
+      allows setting domain coverage fields
+    editing existing business coverage
+      allows updating domain coverage information
+  Domain Coverage Workflow
+    Admin applies coverage to premium business
+  Domain Coverage Form Sections
+    shows domain coverage section in forms
+    includes helpful hints for coverage fields
+  Domain Coverage Validation
+    validates coverage amount within limit
+
+Stripe Payment Flows
+  Guest customer purchases product and redirects to Stripe
+DEBUG: CartManager#add called with variant_id: 2, quantity: 1
+DEBUG: Cart content after add: {"2" => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "228-003-0173", email: "business1@example.com", website: "http://thiel-howell.example/larry", address: "31399 Hagenes Plaza", city: "Jeanmouth", state: "VA", zip: "77475", description: "Right-sized holistic extranet", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:34.261021000 +0000", updated_at: "2025-06-07 18:59:34.261021000 +0000", service_template_id: nil, tier: "free", hostname: "testbiz", host_type: "subdomain", subdomain: "testbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: "acct_test123", status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Regular", price_modifier: nil, stock_quantity: 5, created_at: "2025-06-07 18:59:34.286748000 +0000", updated_at: "2025-06-07 18:59:34.286748000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "228-003-0173", email: "business1@example.com", website: "http://thiel-howell.example/larry", address: "31399 Hagenes Plaza", city: "Jeanmouth", state: "VA", zip: "77475", description: "Right-sized holistic extranet", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:34.261021000 +0000", updated_at: "2025-06-07 18:59:34.261021000 +0000", service_template_id: nil, tier: "free", hostname: "testbiz", host_type: "subdomain", subdomain: "testbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: "acct_test123", status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Regular", price_modifier: nil, stock_quantity: 5, created_at: "2025-06-07 18:59:34.286748000 +0000", updated_at: "2025-06-07 18:59:34.286748000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+    redirects guest product orders directly to Stripe Checkout
+  Guest customer books a service and redirects to Stripe
+    creates guest booking and redirects to confirmation for standard services
+  Client user books a service and redirects to Stripe
+    creates booking and redirects to confirmation for standard services
+  Client user purchases product and redirects to Stripe
+DEBUG: CartManager#add called with variant_id: 2, quantity: 2
+DEBUG: Cart content after add: {"2" => 2}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "586-884-6537", email: "business1@example.com", website: "http://lindgren-huel.example/angel", address: "2025 Kautzer Knoll", city: "Lake Daltonburgh", state: "MO", zip: "81572-2175", description: "Synergized web-enabled artificial intelligence", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:44.425489000 +0000", updated_at: "2025-06-07 18:59:44.425489000 +0000", service_template_id: nil, tier: "standard", hostname: "testbiz", host_type: "subdomain", subdomain: "testbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: "acct_test123", status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Large", price_modifier: -0.5e1, stock_quantity: 10, created_at: "2025-06-07 18:59:44.435925000 +0000", updated_at: "2025-06-07 18:59:44.435925000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 2}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "586-884-6537", email: "business1@example.com", website: "http://lindgren-huel.example/angel", address: "2025 Kautzer Knoll", city: "Lake Daltonburgh", state: "MO", zip: "81572-2175", description: "Synergized web-enabled artificial intelligence", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:44.425489000 +0000", updated_at: "2025-06-07 18:59:44.425489000 +0000", service_template_id: nil, tier: "standard", hostname: "testbiz", host_type: "subdomain", subdomain: "testbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: "acct_test123", status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Large", price_modifier: -0.5e1, stock_quantity: 10, created_at: "2025-06-07 18:59:44.435925000 +0000", updated_at: "2025-06-07 18:59:44.435925000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 2}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+    redirects directly to Stripe Checkout for product orders
+
+Product Cart and Checkout Flow
+DEBUG: All Products in DB:
+  id=1, name=Test Product, business_id=1, active=true, product_type=standard
+DEBUG: CartManager#add called with variant_id: 2, quantity: 2
+DEBUG: Cart content after add: {"2" => 2}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(953) 421 8078", email: "business1@example.com", website: "http://brown-rogahn.test/harley.kilback", address: "5193 Mills Ville", city: "West Leonardamouth", state: "RI", zip: "11306-7106", description: "Self-enabling holistic initiative", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:48.622697000 +0000", updated_at: "2025-06-07 18:59:48.622697000 +0000", service_template_id: nil, tier: "premium", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.1e2, stock_quantity: 2, created_at: "2025-06-07 18:59:48.629953000 +0000", updated_at: "2025-06-07 18:59:48.629953000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 2}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(953) 421 8078", email: "business1@example.com", website: "http://brown-rogahn.test/harley.kilback", address: "5193 Mills Ville", city: "West Leonardamouth", state: "RI", zip: "11306-7106", description: "Self-enabling holistic initiative", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:48.622697000 +0000", updated_at: "2025-06-07 18:59:48.622697000 +0000", service_template_id: nil, tier: "premium", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.1e2, stock_quantity: 2, created_at: "2025-06-07 18:59:48.629953000 +0000", updated_at: "2025-06-07 18:59:48.629953000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 2}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+  allows a user to browse, add to cart, checkout, and redirects to Stripe
+DEBUG: CartManager#add called with variant_id: 2, quantity: 3
+DEBUG: Cart content after add: {"2" => 3}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "626.301.7723", email: "business1@example.com", website: "http://denesik.example/onie_hermann", address: "98343 Mueller Views", city: "New Faustinobury", state: "MA", zip: "57180", description: "Multi-tiered content-based local area network", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:48.890943000 +0000", updated_at: "2025-06-07 18:59:48.890943000 +0000", service_template_id: nil, tier: "free", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.0, stock_quantity: 2, created_at: "2025-06-07 18:59:48.897942000 +0000", updated_at: "2025-06-07 18:59:48.897942000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 3}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "626.301.7723", email: "business1@example.com", website: "http://denesik.example/onie_hermann", address: "98343 Mueller Views", city: "New Faustinobury", state: "MA", zip: "57180", description: "Multi-tiered content-based local area network", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:48.890943000 +0000", updated_at: "2025-06-07 18:59:48.890943000 +0000", service_template_id: nil, tier: "free", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.0, stock_quantity: 2, created_at: "2025-06-07 18:59:48.897942000 +0000", updated_at: "2025-06-07 18:59:48.897942000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 3}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+  shows an error if user tries to order more than available stock
+DEBUG: CartManager#add called with variant_id: 2, quantity: 1
+DEBUG: Cart content after add: {"2" => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(939) 557 8872", email: "business1@example.com", website: "http://rolfson.example/anjelica", address: "656 Vernita Flats", city: "Anniehaven", state: "MD", zip: "55813-1542", description: "Customizable tertiary pricing structure", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:49.146280000 +0000", updated_at: "2025-06-07 18:59:49.146280000 +0000", service_template_id: nil, tier: "standard", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: nil, stock_quantity: 2, created_at: "2025-06-07 18:59:49.155324000 +0000", updated_at: "2025-06-07 18:59:49.155324000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(939) 557 8872", email: "business1@example.com", website: "http://rolfson.example/anjelica", address: "656 Vernita Flats", city: "Anniehaven", state: "MD", zip: "55813-1542", description: "Customizable tertiary pricing structure", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:49.146280000 +0000", updated_at: "2025-06-07 18:59:49.146280000 +0000", service_template_id: nil, tier: "standard", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: nil, stock_quantity: 2, created_at: "2025-06-07 18:59:49.155324000 +0000", updated_at: "2025-06-07 18:59:49.155324000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+  allows a guest to checkout and create an account
+DEBUG: CartManager#add called with variant_id: 2, quantity: 2
+DEBUG: Cart content after add: {"2" => 2}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(252) 733-5642", email: "business1@example.com", website: "http://swift-ward.example/britt_lind", address: "1719 Wilfredo Glens", city: "Dominicchester", state: "VA", zip: "11346", description: "Synergistic cohesive customer loyalty", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:49.374547000 +0000", updated_at: "2025-06-07 18:59:49.374547000 +0000", service_template_id: nil, tier: "standard", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: nil, stock_quantity: 2, created_at: "2025-06-07 18:59:49.381314000 +0000", updated_at: "2025-06-07 18:59:49.381314000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 2}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(252) 733-5642", email: "business1@example.com", website: "http://swift-ward.example/britt_lind", address: "1719 Wilfredo Glens", city: "Dominicchester", state: "VA", zip: "11346", description: "Synergistic cohesive customer loyalty", time_zone: "UTC", active: true, created_at: "2025-06-07 18:59:49.374547000 +0000", updated_at: "2025-06-07 18:59:49.374547000 +0000", service_template_id: nil, tier: "standard", hostname: "testtenant", host_type: "subdomain", subdomain: "testtenant", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: testtenant
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: nil, stock_quantity: 2, created_at: "2025-06-07 18:59:49.381314000 +0000", updated_at: "2025-06-07 18:59:49.381314000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 2}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: testtenant
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+  allows a guest to browse, add to cart, checkout, and redirects to Stripe
+
+Business Manager Policy Enforcement
+  policy page redirects
+    redirects policy pages to main domain
+  policy modal in business manager layout
+    allows navigation to business manager pages when policy acceptance is required
+    includes policy modal HTML in business manager dashboard
+    provides access to policy status endpoint from subdomain
+  policy acceptance flow on subdomain
+    can record policy acceptance for business user on subdomain
+    no longer shows missing policies after acceptance
+
+Business Manager Dashboard
+  when signed in as staff of the current business
+    allows access to the dashboard
+  when not signed in
+    redirects to the login page
+  when signed in as a client of the current business
+    redirects to the client dashboard
+  when signed in as a manager of the current business
+    allows access to the dashboard
+  when signed in as a manager of a different business
+    redirects away and shows an authorization error
+
+Business Manager Order Invoice Creation
+  creating a product order
+    does not create an invoice
+  creating a mixed order
+    automatically creates an invoice and sends email to customer
+  creating a service order
+    automatically creates an invoice and sends email to customer
+
+Client Settings Management
+  allows a client to update their notification preferences
+  allows a client to update their profile information
+  allows a client to view their settings page
+  shows errors for invalid password change (e.g., wrong current password)
+  shows errors for mismatched new passwords
+
+Business Manager Account Deletion
+  sole manager account deletion
+    shows detailed business deletion warnings
+    shows business deletion warning for sole manager
+    deletes manager and business when business deletion is confirmed
+    prevents deletion without business deletion confirmation
+  staff member account deletion
+    shows warnings about future bookings
+    successfully deletes staff account
+    shows the account deletion section in profile settings
+  manager account deletion with other managers
+    successfully deletes manager account when other managers exist
+
+Policy Acceptance Modal
+  policy enforcement on dashboard access
+    allows access to dashboard when user needs policy acceptance
+    shows policy acceptance modal HTML is present
+  when user has already accepted policies
+    allows normal dashboard access
+    shows no missing policies in status endpoint
+  policy acceptance recording
+    can create individual policy acceptance
+    marks user as not requiring policy acceptance when all policies accepted
+  policy status endpoint
+    returns missing policies for users who need acceptance
+    shows client users do not need return policy
+  business user on subdomain
+    shows policy modal for business user on subdomain
+    can complete policy acceptance flow on subdomain
+    allows policy acceptance via subdomain routes
+    includes all required policies for business user on subdomain
+  bulk policy acceptance
+    records policy acceptances via bulk endpoint
+  business user requirements
+    allows business user to access their dashboard
+    includes return policy for business users
+
+BusinessManager::Services
+  when logged in as a user from another business
+    redirects and denies access
+  when logged in as staff
+    allows viewing services but not managing them
+  when logged in as a manager
+    allows managing services
+    allows deleting services through direct database access
+  when not logged in
+    redirects to login page
+
+Admin Configuration
+  has expected ActiveAdmin resources registered
+  has AdminUser model defined
+  has ActiveAdmin configured correctly
+
+Guest Authentication Bypass
+  Public::BookingController authentication bypass
+    allows guests to create bookings without signing in
+    allows guests to access booking forms without signing in
+  Public::OrdersController authentication bypass
+DEBUG: CartManager#add called with variant_id: 2, quantity: 1
+DEBUG: Cart content after add: {"2" => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "159 918 1671", email: "business1@example.com", website: "http://bechtelar.test/kristine", address: "6504 Lily Shore", city: "Lorettamouth", state: "MT", zip: "12098-8078", description: "Compatible real-time budgetary management", time_zone: "UTC", active: true, created_at: "2025-06-07 19:00:08.900674000 +0000", updated_at: "2025-06-07 19:00:08.900674000 +0000", service_template_id: nil, tier: "free", hostname: "guestbiz", host_type: "subdomain", subdomain: "guestbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: guestbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: guestbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.1e2, stock_quantity: 5, created_at: "2025-06-07 19:00:08.915796000 +0000", updated_at: "2025-06-07 19:00:08.915796000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "159 918 1671", email: "business1@example.com", website: "http://bechtelar.test/kristine", address: "6504 Lily Shore", city: "Lorettamouth", state: "MT", zip: "12098-8078", description: "Compatible real-time budgetary management", time_zone: "UTC", active: true, created_at: "2025-06-07 19:00:08.900674000 +0000", updated_at: "2025-06-07 19:00:08.900674000 +0000", service_template_id: nil, tier: "free", hostname: "guestbiz", host_type: "subdomain", subdomain: "guestbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: guestbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: guestbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.1e2, stock_quantity: 5, created_at: "2025-06-07 19:00:08.915796000 +0000", updated_at: "2025-06-07 19:00:08.915796000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: guestbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+    allows guests to view cart and proceed to checkout
+DEBUG: CartManager#add called with variant_id: 2, quantity: 1
+DEBUG: Cart content after add: {"2" => 1}
+DEBUG: CartsController#show called
+DEBUG: Current tenant: #<Business id: 1, name: "Business 1", industry: "other", phone: "(334) 251 7006", email: "business1@example.com", website: "http://effertz-kassulke.test/luciano.blick", address: "65301 Hauck Mountain", city: "South Jacque", state: "MN", zip: "08148-6532", description: "Balanced web-enabled emulation", time_zone: "UTC", active: true, created_at: "2025-06-07 19:00:09.765378000 +0000", updated_at: "2025-06-07 19:00:09.765378000 +0000", service_template_id: nil, tier: "standard", hostname: "guestbiz", host_type: "subdomain", subdomain: "guestbiz", hours: nil, stripe_customer_id: nil, show_services_section: true, show_products_section: true, show_estimate_page: true, facebook_url: nil, twitter_url: nil, instagram_url: nil, pinterest_url: nil, linkedin_url: nil, tiktok_url: nil, youtube_url: nil, stripe_account_id: nil, status: "pending", payment_reminders_enabled: false, domain_coverage_applied: false, domain_cost_covered: nil, domain_renewal_date: nil, domain_coverage_notes: nil, domain_auto_renewal_enabled: false, domain_coverage_expires_at: nil, domain_registrar: nil, domain_registration_date: nil>
+DEBUG: Current request subdomain: guestbiz
+DEBUG: CartManager#retrieve called
+DEBUG: Current tenant in retrieve: guestbiz
+DEBUG: Variant IDs in session: ["2"]
+DEBUG: Variants found by query: [2]
+DEBUG: Cart content: {#<ProductVariant id: 2, product_id: 1, name: "Default", price_modifier: 0.25e1, stock_quantity: 5, created_at: "2025-06-07 19:00:09.783819000 +0000", updated_at: "2025-06-07 19:00:09.783819000 +0000", reserved_quantity: 0, sku: nil, options: nil> => 1}
+    allows guests to access product pages and add to cart
+  Authentication bypass configuration
+    correctly allows guest access to booking and cart functionality
+
+Admin Template Management
+  Creating a new template
+    allows admin to create a template with pages
+  Editing a template
+    allows admin to update template details and pages
+  Deleting a template
+    allows admin to delete a template
+
+Business Manager Customers
+  index page
+    allows creating a new customer
+    allows viewing a customer
+    allows deleting a customer
+    displays a list of customers
+    allows editing a customer
+
+Admin Blog Posts Markdown Editor
+  Form validation and submission
+{class: "inline-hints"}
+    can save a blog post with markdown content
+  Editing existing blog post
+{class: "inline-hints"}
+    loads existing content in the markdown editor
+  Creating a new blog post with markdown editor
+{class: "inline-hints"}
+    validates all toolbar buttons are clickable
+{class: "inline-hints"}
+    can type markdown syntax directly in the editor
+{class: "inline-hints"}
+    displays the markdown editor toolbar and textarea
+
+Client Account Deletion
+  account deletion flow
+    validates current password
+    handles client with business associations
+    requires deletion confirmation text
+    shows the account deletion section in settings
+    successfully deletes account with valid inputs
+    requires current password for deletion
+  account deletion warnings
+    shows warnings about data that will be affected
+
+Business Manager Orders
+  orders index page
+    combines status and type filters
+    filters orders by status
+    returns to dashboard when clicking back link
+    filters orders by type
+    displays a list of all orders
+  order details page
+    displays order details correctly
+    navigates to order details from index
+    navigates back to the orders list
+  viewing orders from dashboard
+    navigates to orders index from dashboard
+
+Booking Flow
+  successfully completes a booking and shows it in my-bookings
+
+BookingPolicyEnforcer
+  Client-side policy enforcement on public booking page
+    enforces duration constraints on the duration input field
+    restricts date selection beyond max_advance_days
+
+Authentication
+  client sign out
+    allows a signed-in client to sign out
+  client sign up
+    shows errors with invalid registration information
+    allows a new client to sign up
+  business sign out
+    allows a signed-in business to sign out
+  user sign in
+    redirects manager/staff to their business dashboard after sign in
+    allows a registered user to sign in
+    shows errors when login information is invalid
+  user sign in
+    shows an error with incorrect credentials
+    allows a user to sign in with correct credentials
+  user sign out
+    allows a signed-in user to sign out
+
+Business User Redirection
+
+Top 0 slowest examples (0 seconds, 0.0% of total time):
+
+Finished in 1 minute 47.11 seconds (files took 2.66 seconds to load)
+122 examples, 0 failures
+
+Randomized with seed 23945
+
+Coverage report generated for RSpec-main to /Users/brianlane/bizblasts/coverage.
+Line Coverage: 42.62% (3984 / 9347)
+Branch Coverage: 17.78% (524 / 2947)
+Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected
