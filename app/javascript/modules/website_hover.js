@@ -83,14 +83,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Touch support for mobile
+  // Touch support for mobile - just show popup briefly, then allow normal navigation
   websiteHoverTrigger.addEventListener('touchstart', function(e) {
-    e.preventDefault();
-    if (popup && popup.classList.contains('show')) {
+    // Show popup briefly on touch, but don't prevent navigation
+    showPopup();
+    
+    // Auto-hide popup after a short delay to not interfere with navigation
+    setTimeout(() => {
       hidePopup();
-    } else {
-      showPopup();
-    }
+    }, 1500);
   });
   
   // Close popup when clicking outside on mobile
