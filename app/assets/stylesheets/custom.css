@@ -1101,9 +1101,16 @@ input[type="checkbox"]:focus {
 }
 
 /* Paragraphs */
-.markdown-content p {
-  margin-bottom: 1rem;
-  line-height: 1.625;
+.markdown-content p,
+.article-content p {
+  margin-bottom: 1rem !important;
+  line-height: 1.625 !important;
+  margin-top: 0 !important;
+}
+
+.markdown-content p:last-child,
+.article-content p:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* Links */
@@ -1126,37 +1133,129 @@ input[type="checkbox"]:focus {
 }
 
 /* Lists */
-.markdown-content .markdown-ul {
-  list-style-type: disc;
-  list-style-position: inside;
-  margin-bottom: 1rem;
+.markdown-content .markdown-ul,
+.markdown-content ul.markdown-ul,
+.article-content .markdown-ul,
+.article-content ul.markdown-ul {
+  list-style-type: disc !important;
+  list-style-position: inside !important;
+  margin-bottom: 1rem !important;
+  padding-left: 0 !important;
 }
 
-.markdown-content .markdown-ul li {
-  margin-bottom: 0.25rem;
+.markdown-content .markdown-ul li,
+.markdown-content ul.markdown-ul li,
+.article-content .markdown-ul li,
+.article-content ul.markdown-ul li {
+  margin-bottom: 0.25rem !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  list-style-type: disc !important;
+  display: list-item !important;
 }
 
-.markdown-content .markdown-ol {
-  list-style-type: decimal;
-  list-style-position: inside;
-  margin-bottom: 1rem;
+.markdown-content .markdown-ol,
+.markdown-content ol.markdown-ol,
+.article-content .markdown-ol,
+.article-content ol.markdown-ol {
+  list-style-type: decimal !important;
+  list-style-position: inside !important;
+  margin-bottom: 1rem !important;
+  padding-left: 0 !important;
 }
 
-.markdown-content .markdown-ol li {
-  margin-bottom: 0.25rem;
+.markdown-content .markdown-ol li,
+.markdown-content ol.markdown-ol li,
+.article-content .markdown-ol li,
+.article-content ol.markdown-ol li {
+  margin-bottom: 0.25rem !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  list-style-type: decimal !important;
+  display: list-item !important;
 }
 
+/* Nested lists */
 .markdown-content .markdown-ul .markdown-ul,
 .markdown-content .markdown-ol .markdown-ol,
 .markdown-content .markdown-ul .markdown-ol,
-.markdown-content .markdown-ol .markdown-ul {
-  margin-left: 1.5rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
+.markdown-content .markdown-ol .markdown-ul,
+.article-content .markdown-ul .markdown-ul,
+.article-content .markdown-ol .markdown-ol,
+.article-content .markdown-ul .markdown-ol,
+.article-content .markdown-ol .markdown-ul {
+  margin-left: 1.5rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
 }
 
-.markdown-content .markdown-list-item {
-  margin-bottom: 0.25rem;
+.markdown-content .markdown-list-item,
+.article-content .markdown-list-item {
+  margin-bottom: 0.25rem !important;
+}
+
+/* Additional fallback for any ul/ol within markdown content that doesn't have the class */
+.markdown-content ul:not(.markdown-ul),
+.article-content ul:not(.markdown-ul) {
+  list-style-type: disc !important;
+  list-style-position: inside !important;
+  margin-bottom: 1rem !important;
+  padding-left: 0 !important;
+}
+
+.markdown-content ul:not(.markdown-ul) li,
+.article-content ul:not(.markdown-ul) li {
+  margin-bottom: 0.25rem !important;
+  list-style-type: disc !important;
+  display: list-item !important;
+}
+
+.markdown-content ol:not(.markdown-ol),
+.article-content ol:not(.markdown-ol) {
+  list-style-type: decimal !important;
+  list-style-position: inside !important;
+  margin-bottom: 1rem !important;
+  padding-left: 0 !important;
+}
+
+.markdown-content ol:not(.markdown-ol) li,
+.article-content ol:not(.markdown-ol) li {
+  margin-bottom: 0.25rem !important;
+  list-style-type: decimal !important;
+  display: list-item !important;
+}
+
+/* Spacing around lists */
+.markdown-content ul + p,
+.markdown-content ol + p,
+.article-content ul + p,
+.article-content ol + p {
+  margin-top: 1rem !important;
+}
+
+.markdown-content p + ul,
+.markdown-content p + ol,
+.article-content p + ul,
+.article-content p + ol {
+  margin-top: 0.5rem !important;
+}
+
+/* Better handling for line breaks in content */
+.markdown-content br,
+.article-content br {
+  line-height: 1.5 !important;
+}
+
+/* Ensure text flow in list items */
+.markdown-content li p,
+.article-content li p {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+.markdown-content li p:last-child,
+.article-content li p:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* Blockquotes */
