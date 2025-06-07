@@ -101,6 +101,11 @@
         <%= prefs_fields.label :email_promotions, "Email Promotional Offers & News", class: "ml-2 text-gray-700" %>
         <small class="notification-description">Receive special offers and business news</small>
       </div>
+      <div class="mb-2">
+        <%= prefs_fields.check_box :email_blog_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+        <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications", class: "ml-2 text-gray-700" %>
+        <small class="notification-description">Get notified when we publish new blog posts</small>
+      </div>
       <div class="mb-4">
         <%= prefs_fields.check_box :sms_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
         <%= prefs_fields.label :sms_promotions, "SMS Promotional Offers", class: "ml-2 text-gray-700" %>

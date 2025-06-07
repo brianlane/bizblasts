@@ -123,6 +123,14 @@
                 <%= prefs_fields.label :email_marketing_updates, "Marketing & Feature Updates" %>
                 <small>New features, tips, and promotional content from BizBlasts</small>
               </div>
+              
+              <div class="checkbox-field">
+                <%= prefs_fields.check_box :email_blog_updates,
+                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_blog_updates', false) : false) },
+                    '1', '0' %>
+                <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications" %>
+                <small>Get notified when new blog posts are published</small>
+              </div>
             </div>
           <% end %>
         </div>

@@ -188,11 +188,56 @@ class MarkdownEditor {
   
   setupAutoResize() {
     const autoResize = () => {
+      // Store current scroll position and cursor position
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const cursorPosition = this.editor.selectionStart;
+      
+      // Store the current height to check if resize is needed
+      const currentHeight = this.editor.offsetHeight;
+      
+      // Temporarily set height to auto to get the required height
       this.editor.style.height = 'auto';
-      this.editor.style.height = this.editor.scrollHeight + 'px';
+      const newHeight = this.editor.scrollHeight;
+      
+      // Only resize if there's a significant difference (avoids constant micro-adjustments)
+      if (Math.abs(newHeight - currentHeight) > 5) {
+        this.editor.style.height = newHeight + 'px';
+      } else {
+        // Restore original height if no significant change needed
+        this.editor.style.height = currentHeight + 'px';
+      }
+      
+      // Restore scroll position to prevent jumping
+      window.scrollTo(0, scrollTop);
+      
+      // Restore cursor position
+      this.editor.setSelectionRange(cursorPosition, cursorPosition);
     };
     
-    this.editor.addEventListener('input', autoResize);
+    // Use a debounced version to avoid too frequent resizing
+    let resizeTimeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(autoResize, 100);
+    };
+    
+    this.editor.addEventListener('input', debouncedResize);
+    
+    // Prevent scroll jumping on focus/click
+    this.editor.addEventListener('focus', (e) => {
+      e.preventDefault();
+      // Don't scroll to show cursor when focusing
+    });
+    
+    // Prevent scroll jumping when clicking to position cursor
+    this.editor.addEventListener('click', (e) => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setTimeout(() => {
+        window.scrollTo(0, scrollTop);
+      }, 1);
+    });
+    
+    // Initial resize without debouncing
     autoResize();
   }
 }

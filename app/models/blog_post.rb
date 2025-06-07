@@ -1,7 +1,8 @@
 class BlogPost < ApplicationRecord
   # Featured image attachment
   has_one_attached :featured_image do |attachable|
-    attachable.variant :thumb, resize_to_limit: [300, 300]
+    attachable.variant :thumb, resize_to_limit: [600, 400]
+    attachable.variant :card, resize_to_limit: [800, 400]
     attachable.variant :medium, resize_to_limit: [800, 800] 
     attachable.variant :large, resize_to_limit: [1200, 1200]
   end
@@ -29,8 +30,13 @@ class BlogPost < ApplicationRecord
     []
   end
 
+  # Virtual attribute for removing featured image
+  attr_accessor :remove_featured_image
+  
   before_validation :generate_slug, if: -> { slug.blank? && title.present? }
   before_save :set_published_at, if: -> { published && (published_changed? || published_at.blank?) }
+  before_save :handle_featured_image_removal
+  after_commit :send_publication_notifications, if: -> { saved_change_to_published? && published? }
 
   scope :published, -> { where(published: true).where.not(published_at: nil) }
   scope :recent, -> { order(published_at: :desc) }
@@ -99,5 +105,16 @@ class BlogPost < ApplicationRecord
 
   def set_published_at
     self.published_at = Time.current if published_at.blank?
+  end
+
+  def handle_featured_image_removal
+    if remove_featured_image == '1' || remove_featured_image == true
+      featured_image.purge if featured_image.attached?
+    end
+  end
+
+  def send_publication_notifications
+    # Send email notifications to subscribed users
+    BlogNotificationJob.perform_later(id)
   end
 end 
