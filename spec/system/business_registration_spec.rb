@@ -106,8 +106,9 @@ RSpec.describe "Business Registration", type: :system do
       # Premium plan features
       within('.subscription-plan[data-tier="premium"]') do
         expect(page).to have_content("All features")
-        expect(page).to have_content("SEO optimization")
         expect(page).to have_content("Lower fees")
+        expect(page).to have_content("Multi-location support")
+        expect(page).to have_content("Remove BizBlasts branding")
         expect(page).to have_content("Custom domain")
       end
     end
