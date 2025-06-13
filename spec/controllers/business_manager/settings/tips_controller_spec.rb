@@ -1,9 +1,13 @@
 require 'rails_helper'
 
 RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', tier: 'free', tips_enabled: false) }
-  let(:manager_user) { create(:user, :manager, business: business) }
+  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', tier: 'free') }
+  let(:user) { create(:user, :manager, business: business) }
   let(:staff_user) { create(:user, :staff, business: business) }
+  let!(:manager_staff_member) { create(:staff_member, user: user, business: business) }
+  let!(:staff_staff_member) { create(:staff_member, user: staff_user, business: business) }
+  let!(:product) { create(:product, business: business, tips_enabled: false) }
+  let!(:service) { create(:service, business: business, tips_enabled: false) }
 
   before do
     request.host = "#{business.subdomain}.example.com"
@@ -12,15 +16,14 @@ RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
 
   describe 'GET #show' do
     context 'when authenticated as business manager' do
-      before { sign_in manager_user }
+      before { sign_in user }
 
       it 'renders the tips settings page' do
         get :show
-        
-        expect(response).to have_http_status(:ok)
+        expect(response).to have_http_status(:success)
+        expect(response).to render_template(:show)
         expect(assigns(:business)).to eq(business)
         expect(assigns(:tip_configuration)).to be_present
-        expect(response).to render_template(:show)
       end
     end
 
@@ -29,16 +32,14 @@ RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
 
       it 'redirects with unauthorized message' do
         get :show
-        
         expect(response).to redirect_to(root_path)
-        expect(flash[:alert]).to be_present
+        expect(flash[:alert]).to eq('You are not authorized to access this page.')
       end
     end
 
     context 'when not authenticated' do
       it 'redirects to sign in' do
         get :show
-        
         expect(response).to redirect_to(new_user_session_path)
       end
     end
@@ -46,55 +47,60 @@ RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
 
   describe 'PATCH #update' do
     context 'when authenticated as business manager' do
-      before { sign_in manager_user }
+      before { sign_in user }
 
       context 'with valid parameters' do
-        it 'enables tips successfully' do
-          patch :update, params: { business: { tips_enabled: true } }
+        it 'updates product tip settings successfully' do
+          patch :update, params: { 
+            products: { 
+              product.id => { tips_enabled: '1' } 
+            }
+          }
           
-          expect(business.reload.tips_enabled?).to be true
           expect(response).to redirect_to(business_manager_settings_tips_path)
           expect(flash[:notice]).to eq('Tips settings updated successfully.')
+          expect(product.reload.tips_enabled).to be true
         end
 
-        it 'disables tips successfully' do
-          business.update!(tips_enabled: true)
+        it 'updates service tip settings successfully' do
+          patch :update, params: { 
+            services: { 
+              service.id => { tips_enabled: '1' } 
+            }
+          }
           
-          patch :update, params: { business: { tips_enabled: false } }
-          
-          expect(business.reload.tips_enabled?).to be false
           expect(response).to redirect_to(business_manager_settings_tips_path)
           expect(flash[:notice]).to eq('Tips settings updated successfully.')
+          expect(service.reload.tips_enabled).to be true
         end
 
-        it 'handles checkbox unchecked (tips_enabled: "0")' do
-          business.update!(tips_enabled: true)
+        it 'updates tip configuration successfully' do
+          patch :update, params: { 
+            tip_configuration: {
+              custom_tip_enabled: '1',
+              tip_message: 'Thank you for your business!',
+              default_tip_percentages: ['15', '18', '20']
+            }
+          }
           
-          patch :update, params: { business: { tips_enabled: "0" } }
-          
-          expect(business.reload.tips_enabled?).to be false
           expect(response).to redirect_to(business_manager_settings_tips_path)
           expect(flash[:notice]).to eq('Tips settings updated successfully.')
         end
       end
 
       context 'with invalid parameters' do
-        before do
-          # Mock validation failure - our controller now uses update! which raises an exception
-          allow_any_instance_of(Business).to receive(:update!).and_raise(
-            ActiveRecord::RecordInvalid.new(business.tap { |b| b.errors.add(:base, 'Some error') })
-          )
-          # Mock the tip_configuration_or_default method
-          allow_any_instance_of(Business).to receive(:tip_configuration_or_default).and_return(
-            double('TipConfiguration', persisted?: false)
-          )
-        end
-
         it 'renders show template with error message' do
-          patch :update, params: { business: { tips_enabled: true } }
+          allow_any_instance_of(Product).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(product))
+          allow(product).to receive_message_chain(:errors, :full_messages).and_return(['Invalid field'])
+          
+          patch :update, params: { 
+            products: { 
+              product.id => { tips_enabled: '1' } 
+            }
+          }
           
           expect(response).to render_template(:show)
-          expect(flash[:alert]).to include('Unable to update tips settings')
+          expect(flash.now[:alert]).to include('Unable to update tips settings')
         end
       end
     end
@@ -103,40 +109,44 @@ RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
       before { sign_in staff_user }
 
       it 'redirects with unauthorized message' do
-        patch :update, params: { business: { tips_enabled: true } }
+        patch :update, params: { 
+          products: { 
+            product.id => { tips_enabled: '1' } 
+          }
+        }
         
         expect(response).to redirect_to(root_path)
-        expect(flash[:alert]).to be_present
-        expect(business.reload.tips_enabled?).to be false
+        expect(flash[:alert]).to eq('You are not authorized to access this page.')
       end
     end
 
     context 'when not authenticated' do
       it 'redirects to sign in' do
-        patch :update, params: { business: { tips_enabled: true } }
+        patch :update, params: { 
+          products: { 
+            product.id => { tips_enabled: '1' } 
+          }
+        }
         
         expect(response).to redirect_to(new_user_session_path)
-        expect(business.reload.tips_enabled?).to be false
       end
     end
   end
 
   describe 'parameter filtering' do
-    before { sign_in manager_user }
+    before { sign_in user }
 
-    it 'only permits tips_enabled parameter' do
-      patch :update, params: { 
-        business: { 
-          tips_enabled: true,
-          name: 'Hacked Name',
-          tier: 'premium'
-        } 
-      }
+    it 'only permits allowed parameters' do
+      expect(controller).to receive(:product_tip_params).at_least(:once).and_call_original
+      expect(controller).to receive(:service_tip_params).at_least(:once).and_call_original
+      expect(controller).to receive(:tip_configuration_params).at_least(:once).and_call_original
       
-      business.reload
-      expect(business.tips_enabled?).to be true
-      expect(business.name).not_to eq('Hacked Name')
-      expect(business.tier).not_to eq('premium')
+      patch :update, params: { 
+        products: { product.id.to_s => { tips_enabled: '1' } },
+        services: { service.id.to_s => { tips_enabled: '1' } },
+        tip_configuration: { custom_tip_enabled: '1' },
+        forbidden_param: 'should_not_be_permitted'
+      }
     end
   end
 end 

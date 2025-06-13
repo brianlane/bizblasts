@@ -205,7 +205,7 @@
   <% end %>
 
   <!-- Tips Section -->
-  <% if !admin_mode && booking.business.tips_enabled? && booking.eligible_for_tips? && !booking.tip_processed? %>
+  <% if !admin_mode && booking.eligible_for_tips? && !booking.tip_processed? %>
     <div class="<%= condensed ? 'mt-2' : 'mt-6' %> p-4 bg-blue-50 border border-blue-200 rounded">
       <h3 class="text-lg font-semibold mb-2 text-blue-800">Add a Tip</h3>
       <p class="text-blue-700 text-sm mb-3">

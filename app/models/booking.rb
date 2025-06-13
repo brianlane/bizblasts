@@ -47,11 +47,12 @@ class Booking < ApplicationRecord
   
   # Check if tips are enabled and booking is eligible for tips
   def eligible_for_tips?
-    return false unless business&.tips_enabled?
-    return false unless service&.experience?
+    return false unless completed?
     return false unless service&.tips_enabled?
+    return false if tip_processed?
     
-    true
+    # Tips are only available for experience services
+    service.experience?
   end
   
   # Check if tip has already been processed
@@ -81,7 +82,6 @@ class Booking < ApplicationRecord
   # Schedule experience tip reminder after completion
   def schedule_experience_tip_reminder
     return unless completed? && service&.experience? && service&.tips_enabled?
-    return unless business.tips_enabled?
     return if tip.present? # Don't send if tip already collected
     
     # Schedule reminder for 2 hours after completion

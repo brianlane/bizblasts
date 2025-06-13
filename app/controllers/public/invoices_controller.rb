@@ -22,13 +22,8 @@ module Public
       # Extract tip amount if provided
       tip_amount = params[:tip_amount].to_f if params[:tip_amount].present?
       
-      # Check if tips are enabled and validate tip amount
+      # Validate tip amount if provided
       if tip_amount.present? && tip_amount > 0
-        unless current_tenant.tips_enabled?
-          flash[:alert] = "Tips are not enabled for this business."
-          redirect_to tenant_invoice_path(@invoice, access_token: @access_token) and return
-        end
-        
         if tip_amount < 0.50
           flash[:alert] = "Minimum tip amount is $0.50."
           redirect_to tenant_invoice_path(@invoice, access_token: @access_token) and return

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Tips Flow', type: :system, js: true do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain', tips_enabled: true) }
+  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain') }
   let!(:tip_configuration) { create(:tip_configuration, business: business) }
   let!(:user) { create(:user, :client, email: 'customer@example.com', password: 'password123') }
   let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
@@ -155,34 +155,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
   end
 
-  context 'Tips disabled for business' do
-    let!(:completed_booking) do
-      create(:booking, 
-        business: business, 
-        service: experience_service, 
-        staff_member: staff_member,
-        tenant_customer: tenant_customer,
-        start_time: 3.hours.ago,
-        status: :confirmed
-      )
-    end
-    let(:tip_token) { completed_booking.generate_tip_token }
 
-    before do
-      business.update!(tips_enabled: false)
-      sign_in user
-    end
-
-    it 'does not show tip option when tips are disabled' do
-      with_subdomain('tipstest') do
-        # Direct access should redirect with error
-        visit new_tip_path(booking_id: completed_booking.id, token: tip_token)
-        
-        expect(page).to have_content('Tips are not enabled for this business')
-        expect(current_path).to eq(tenant_my_booking_path(completed_booking))
-      end
-    end
-  end
 
   context 'Tip payment success flow' do
     let!(:completed_booking) do

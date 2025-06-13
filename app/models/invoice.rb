@@ -136,7 +136,7 @@ class Invoice < ApplicationRecord
   end
 
   def tip_enabled?
-    business.tips_enabled? && has_tip_eligible_items?
+    has_tip_eligible_items?
   end
 
   private

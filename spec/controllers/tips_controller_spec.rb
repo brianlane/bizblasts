@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Public::TipsController, type: :controller do
-  let(:business) { create(:business, tips_enabled: true, subdomain: 'testtip', hostname: 'testtip', stripe_account_id: 'acct_test123') }
+  let(:business) { create(:business, subdomain: 'testtip', hostname: 'testtip', stripe_account_id: 'acct_test123') }
   let(:user) { create(:user, :client, email: 'customer@example.com') }
   let(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
   let(:experience_service) { create(:service, business: business, service_type: :experience, duration: 60, min_bookings: 1, max_bookings: 10, spots: 5, tips_enabled: true) }
@@ -30,14 +30,16 @@ RSpec.describe Public::TipsController, type: :controller do
       end
     end
 
-    context 'when tips are disabled' do
-      before { business.update!(tips_enabled: false) }
+    context 'when service has tips disabled' do
+      let(:no_tip_service) { create(:service, business: business, service_type: :experience, tips_enabled: false, min_bookings: 1, max_bookings: 10, spots: 5) }
+      let(:no_tip_booking) { create(:booking, business: business, service: no_tip_service, tenant_customer: tenant_customer, start_time: 2.hours.ago, status: :completed) }
+      let(:no_tip_token) { no_tip_booking.generate_tip_token }
 
       it 'redirects with error message' do
-        get :new, params: { booking_id: booking.id, token: token }
+        get :new, params: { booking_id: no_tip_booking.id, token: no_tip_token }
         
-        expect(response).to redirect_to(tenant_my_booking_path(booking))
-        expect(flash[:alert]).to eq('Tips are not enabled for this business.')
+        expect(response).to redirect_to(tenant_my_booking_path(no_tip_booking))
+        expect(flash[:alert]).to eq('This service is not eligible for tips.')
       end
     end
 
@@ -139,16 +141,18 @@ RSpec.describe Public::TipsController, type: :controller do
       end
     end
 
-    context 'when tips are disabled' do
-      before { business.update!(tips_enabled: false) }
+    context 'when service has tips disabled' do
+      let(:no_tip_service) { create(:service, business: business, service_type: :experience, tips_enabled: false, min_bookings: 1, max_bookings: 10, spots: 5) }
+      let(:no_tip_booking) { create(:booking, business: business, service: no_tip_service, tenant_customer: tenant_customer, start_time: 2.hours.ago, status: :completed) }
+      let(:no_tip_token) { no_tip_booking.generate_tip_token }
 
       it 'redirects without creating tip' do
         expect {
-          post :create, params: { booking_id: booking.id, token: token, tip_amount: '10.00' }
+          post :create, params: { booking_id: no_tip_booking.id, token: no_tip_token, tip_amount: '10.00' }
         }.not_to change(Tip, :count)
         
-        expect(response).to redirect_to(tenant_my_booking_path(booking))
-        expect(flash[:alert]).to eq('Tips are not enabled for this business.')
+        expect(response).to redirect_to(tenant_my_booking_path(no_tip_booking))
+        expect(flash[:alert]).to eq('This service is not eligible for tips.')
       end
     end
   end

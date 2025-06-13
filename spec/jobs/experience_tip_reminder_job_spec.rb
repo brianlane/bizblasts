@@ -4,15 +4,19 @@ RSpec.describe ExperienceTipReminderJob, type: :job do
   include ActiveJob::TestHelper
   include ActiveSupport::Testing::TimeHelpers
 
-  let(:business) { create(:business, tips_enabled: true) }
+  let(:business) { create(:business) }
   let(:service) { create(:service, business: business, service_type: :experience, tips_enabled: true, min_bookings: 1, max_bookings: 10, spots: 10) }
-  let(:booking) { create(:booking, business: business, service: service, status: :completed) }
+  let(:tenant_customer) { create(:tenant_customer, business: business) }
+  let(:booking) { create(:booking, business: business, service: service, tenant_customer: tenant_customer, status: :completed, start_time: 3.hours.ago, end_time: 2.hours.ago) }
+
+  before do
+    ActsAsTenant.current_tenant = business
+  end
 
   describe "#perform" do
     context "with eligible booking" do
       it "sends tip reminder email" do
-        expect(ExperienceMailer).to receive(:tip_reminder).with(booking).and_call_original
-        expect_any_instance_of(ActionMailer::MessageDelivery).to receive(:deliver_now)
+        expect(ExperienceMailer).to receive(:tip_reminder).with(booking).and_return(double(deliver_now: true))
         
         perform_enqueued_jobs do
           ExperienceTipReminderJob.perform_later(booking.id)
@@ -43,8 +47,8 @@ RSpec.describe ExperienceTipReminderJob, type: :job do
 
     context "with ineligible booking" do
       context "when booking is not completed" do
+        let(:booking) { create(:booking, business: business, service: service, tenant_customer: tenant_customer, status: :confirmed, start_time: 1.hour.from_now, end_time: 2.hours.from_now) }
         let(:service) { create(:service, business: business, service_type: :experience, tips_enabled: true, min_bookings: 1, max_bookings: 10, spots: 10) }
-        let(:booking) { create(:booking, business: business, service: service, status: :confirmed) }
 
         it "does not send reminder" do
           expect(ExperienceMailer).not_to receive(:tip_reminder)
@@ -79,21 +83,9 @@ RSpec.describe ExperienceTipReminderJob, type: :job do
         end
       end
 
-      context "when business has tips disabled" do
-        let(:business) { create(:business, tips_enabled: false) }
-
-        it "does not send reminder" do
-          expect(ExperienceMailer).not_to receive(:tip_reminder)
-          
-          perform_enqueued_jobs do
-            ExperienceTipReminderJob.perform_later(booking.id)
-          end
-        end
-      end
-
       context "when tip already exists" do
         before do
-          create(:tip, booking: booking, business: business)
+          create(:tip, business: business, booking: booking, tenant_customer: tenant_customer)
         end
 
         it "does not send reminder" do
@@ -107,7 +99,7 @@ RSpec.describe ExperienceTipReminderJob, type: :job do
 
       context "when reminder was sent recently" do
         before do
-          booking.update_column(:tip_reminder_sent_at, 24.hours.ago)
+          booking.update!(tip_reminder_sent_at: 1.hour.ago)
         end
 
         it "does not send reminder" do

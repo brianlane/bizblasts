@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Product Tipping Flow', type: :system do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain', tips_enabled: true, stripe_account_id: 'acct_test123') }
+  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain', stripe_account_id: 'acct_test123') }
   let!(:product) { create(:product, name: 'Premium Coffee Beans', price: 25.00, business: business, tips_enabled: true) }
   let!(:product_variant) { create(:product_variant, product: product, name: 'Medium Roast', stock_quantity: 10, price_modifier: 0.0) }
   let!(:shipping_method) { create(:shipping_method, name: 'Standard Shipping', cost: 5.0, business: business) }
@@ -260,46 +260,14 @@ RSpec.describe 'Product Tipping Flow', type: :system do
   end
 
   describe 'Tips disabled scenarios' do
-    context 'when business has tips disabled' do
-      before do
-        business.update!(tips_enabled: false)
-      end
-      
-      it 'does not show tip option and rejects tip attempts' do
-        with_subdomain('tipstest') do
-          sign_in user
-          
-          # Add product to cart
-          visit products_path
-          click_link 'Premium Coffee Beans'
-          page.driver.post line_items_path, { product_variant_id: product_variant.id, quantity: 1 }
-          
-          # Go to checkout
-          visit cart_path
-          click_link 'Proceed to Checkout'
-          
-          # Should not show tip option
-          expect(page).not_to have_content('Add a Tip (Optional)')
-          expect(page).not_to have_field('tip_amount', visible: false)
-          
-          select 'Standard Shipping', from: 'order_shipping_method_id'
-          click_button 'Complete Order'
-          
-          # Should redirect to Stripe
-          expect(current_url).to include('checkout.stripe.com')
-          
-          order = Order.last
-          expect(order.tip_amount).to eq(0.0)
-        end
-      end
-    end
     
-    context 'when product has tips disabled' do
+    context 'when all products have tips disabled' do
       before do
         product.update!(tips_enabled: false)
+        product_no_tips.update!(tips_enabled: false)
       end
       
-      it 'does not show tip option for products with tips disabled' do
+      it 'does not show tip option when no products have tips enabled' do
         with_subdomain('tipstest') do
           sign_in user
           
@@ -312,7 +280,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           visit cart_path
           click_link 'Proceed to Checkout'
           
-          # Should not show tip option
+          # Should not show tip option since no products have tips enabled
           expect(page).not_to have_content('Add a Tip (Optional)')
           
           select 'Standard Shipping', from: 'order_shipping_method_id'

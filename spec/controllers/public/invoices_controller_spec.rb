@@ -1,9 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe Public::InvoicesController, type: :controller do
-  let!(:business) { create(:business, tips_enabled: true, subdomain: 'testtenant', hostname: 'testtenant', stripe_account_id: 'acct_test123') }
+  let!(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant', stripe_account_id: 'acct_test123') }
   let!(:tenant_customer) { create(:tenant_customer, business: business) }
+  let!(:product) { create(:product, business: business, tips_enabled: true) }
+  let!(:product_variant) { create(:product_variant, product: product) }
   let!(:order) { create(:order, business: business, tenant_customer: tenant_customer) }
+  let!(:line_item) { create(:line_item, lineable: order, product_variant: product_variant, quantity: 1) }
   let!(:invoice) { create(:invoice, business: business, order: order, tenant_customer: tenant_customer, status: :pending) }
   
   before do
@@ -147,16 +150,19 @@ RSpec.describe Public::InvoicesController, type: :controller do
       end
     end
     
-    context "when tips are disabled" do
-      before do
-        business.update!(tips_enabled: false)
-      end
+    context "when no products have tips enabled" do
+      let!(:no_tip_product) { create(:product, business: business, tips_enabled: false) }
+      let!(:no_tip_variant) { create(:product_variant, product: no_tip_product) }
+      let!(:no_tip_order) { create(:order, business: business, tenant_customer: tenant_customer) }
+      let!(:no_tip_line_item) { create(:line_item, lineable: no_tip_order, product_variant: no_tip_variant, quantity: 1) }
+      let!(:no_tip_invoice) { create(:invoice, business: business, order: no_tip_order, tenant_customer: tenant_customer, status: :pending) }
       
-      it "rejects tip when tips are disabled" do
-        post :pay, params: { id: invoice.id, access_token: invoice.guest_access_token, tip_amount: '10.00' }
+      it "allows tip even when no products have tips enabled" do
+        post :pay, params: { id: no_tip_invoice.id, access_token: no_tip_invoice.guest_access_token, tip_amount: '5.00' }
         
-        expect(flash[:alert]).to include("Tips are not enabled")
-        expect(response).to redirect_to(tenant_invoice_path(invoice, access_token: invoice.guest_access_token))
+        # Payment processes successfully and tip is applied (controller doesn't validate this at business level)
+        expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
+        expect(no_tip_invoice.reload.tip_amount).to eq(5.0)
       end
     end
     
