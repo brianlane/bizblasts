@@ -521,8 +521,11 @@ RSpec.describe "Business Manager Bookings", type: :request do
       describe "buffer_time_mins policy" do
         it "prevents creating a booking that violates buffer time" do
           business.booking_policy.update!(buffer_time_mins: 30)
-          # Create an existing booking at 9:00
+          # Clean up any existing bookings that might interfere
           date = (Time.current + 1.day).to_date
+          Booking.where(staff_member: staff_member, start_time: date.all_day).delete_all
+          
+          # Create an existing booking at 9:00
           existing_booking_start = Time.zone.local(date.year, date.month, date.day, 9, 0)
           create(:booking,
             business: business,
