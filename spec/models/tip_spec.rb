@@ -57,16 +57,17 @@ RSpec.describe Tip, type: :model do
   end
 
   describe '#mark_as_completed!' do
+    include ActiveSupport::Testing::TimeHelpers
+    
     let(:tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer, status: :pending) }
 
     it 'updates status to completed and sets paid_at' do
-          current_time = Time.current
-    allow(Time).to receive(:current).and_return(current_time)
-    
-    tip.mark_as_completed!
-    
-    expect(tip.reload.status).to eq('completed')
-    expect(tip.paid_at).to eq(current_time)
+      travel_to Time.current do
+        tip.mark_as_completed!
+        
+        expect(tip.reload.status).to eq('completed')
+        expect(tip.paid_at).to be_within(1.second).of(Time.current)
+      end
     end
   end
 

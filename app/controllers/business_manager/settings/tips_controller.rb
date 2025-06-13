@@ -54,13 +54,13 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
   def product_tip_params
     return {} unless params[:products].present?
     
-    params.require(:products).permit!
+    params.require(:products).permit(params[:products].keys.map { |key| { key => [:tips_enabled] } })
   end
   
   def service_tip_params
     return {} unless params[:services].present?
     
-    params.require(:services).permit!
+    params.require(:services).permit(params[:services].keys.map { |key| { key => [:tips_enabled] } })
   end
   
   def update_product_tip_settings
