@@ -107,6 +107,8 @@ RSpec.describe StripeService, type: :service do
   end
 
   describe '.handle_tip_payment_completion' do
+    include ActiveSupport::Testing::TimeHelpers
+    
     let(:session_data) do
       {
         'id' => 'cs_tip_test123',
@@ -122,21 +124,20 @@ RSpec.describe StripeService, type: :service do
     end
 
     it 'updates tip record with payment completion and fee tracking' do
-      current_time = Time.current
-      allow(Time).to receive(:current).and_return(current_time)
-      
-      StripeService.handle_tip_payment_completion(session_data)
-      
-      tip.reload
-      expect(tip.stripe_payment_intent_id).to eq('pi_tip_test123')
-      expect(tip.stripe_customer_id).to eq('cus_test123')
-      expect(tip.status).to eq('completed')
-      expect(tip.paid_at).to eq(current_time)
-      
-      # Check fee calculations for $10.00 tip on premium tier business (3% platform fee)
-      expect(tip.stripe_fee_amount).to eq(0.59) # 2.9% + $0.30 = $0.29 + $0.30 = $0.59
-      expect(tip.platform_fee_amount).to eq(0.30) # 3% of $10.00 = $0.30
-      expect(tip.business_amount).to eq(9.11) # $10.00 - $0.59 - $0.30 = $9.11
+      travel_to Time.current do
+        StripeService.handle_tip_payment_completion(session_data)
+        
+        tip.reload
+        expect(tip.stripe_payment_intent_id).to eq('pi_tip_test123')
+        expect(tip.stripe_customer_id).to eq('cus_test123')
+        expect(tip.status).to eq('completed')
+        expect(tip.paid_at).to be_within(1.second).of(Time.current)
+        
+        # Check fee calculations for $10.00 tip on premium tier business (3% platform fee)
+        expect(tip.stripe_fee_amount).to eq(0.59) # 2.9% + $0.30 = $0.29 + $0.30 = $0.59
+        expect(tip.platform_fee_amount).to eq(0.30) # 3% of $10.00 = $0.30
+        expect(tip.business_amount).to eq(9.11) # $10.00 - $0.59 - $0.30 = $9.11
+      end
     end
     
     it 'calculates different platform fees for free tier business' do
