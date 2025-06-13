@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_13_053813) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -222,7 +222,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_053813) do
     t.decimal "points_per_product", precision: 8, scale: 2, default: "0.0", null: false
     t.integer "platform_loyalty_points", default: 0, null: false
     t.string "platform_referral_code"
-    t.boolean "tips_enabled", default: false, null: false
+    t.boolean "tips_enabled", default: true, null: false
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"

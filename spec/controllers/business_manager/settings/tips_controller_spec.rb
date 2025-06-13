@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', tier: 'free') }
+  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz', tier: 'free', tips_enabled: false) }
   let(:manager_user) { create(:user, :manager, business: business) }
   let(:staff_user) { create(:user, :staff, business: business) }
 

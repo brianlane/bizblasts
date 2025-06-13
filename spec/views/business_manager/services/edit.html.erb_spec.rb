@@ -5,7 +5,7 @@ RSpec.describe "business_manager/services/edit.html.erb", type: :view do
   let(:manager_user) { FactoryBot.create(:user, :manager, business: business) }
   let!(:staff1) { FactoryBot.create(:user, :staff, business: business, first_name: "Staff", last_name: "One") }
   # Create a persisted service record for editing
-  let!(:service) { FactoryBot.create(:service, business: business, name: "Existing Service", price: 99.99, duration: 45, description: "Old description") }
+  let!(:service) { FactoryBot.create(:service, business: business, name: "Existing Service", price: 99.99, duration: 45, description: "Old description", tips_enabled: true) }
 
   before(:each) do
     # Required for Pundit policies used in the view/form
@@ -34,9 +34,28 @@ RSpec.describe "business_manager/services/edit.html.erb", type: :view do
       expect(form).to have_field('service[description]', with: service.description)
       expect(form).to have_field('service[featured]', type: 'checkbox')
       expect(form).to have_field('service[active]', type: 'checkbox')
+      expect(form).to have_field('service[tips_enabled]', type: 'checkbox', checked: true)
       expect(form).to have_field('service[staff_member_ids][]', type: 'checkbox')
       
       expect(form).to have_button('Update Service') # Corrected submit button text for edit record
+    end
+  end
+
+  it "includes the tips_enabled checkbox with proper labeling" do
+    expect(rendered).to have_field('service[tips_enabled]', type: 'checkbox')
+    expect(rendered).to have_content('Enable tips')
+  end
+
+  it "renders the tips_enabled checkbox as checked when service has tips enabled" do
+    expect(rendered).to have_field('service[tips_enabled]', type: 'checkbox', checked: true)
+  end
+
+  context "when service has tips disabled" do
+    let!(:service) { FactoryBot.create(:service, business: business, tips_enabled: false) }
+
+    it "renders the tips_enabled checkbox as unchecked" do
+      render
+      expect(rendered).to have_field('service[tips_enabled]', type: 'checkbox', checked: false)
     end
   end
 end

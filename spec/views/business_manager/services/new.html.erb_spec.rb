@@ -30,8 +30,14 @@ RSpec.describe "business_manager/services/new.html.erb", type: :view do
       expect(form).to have_field('service[description]')
       expect(form).to have_field('service[featured]', type: 'checkbox')
       expect(form).to have_field('service[active]', type: 'checkbox')
+      expect(form).to have_field('service[tips_enabled]', type: 'checkbox')
       expect(form).to have_field('service[staff_member_ids][]', type: 'checkbox')
       expect(form).to have_button('Create Service') # Default submit button text for new record
     end
+  end
+
+  it "includes the tips_enabled checkbox with proper labeling" do
+    expect(rendered).to have_field('service[tips_enabled]', type: 'checkbox')
+    expect(rendered).to have_content('Enable tips')
   end
 end

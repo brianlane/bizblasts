@@ -43,6 +43,11 @@
   </div>
 
   <div class="mb-4">
+    <%= form.check_box :tips_enabled %>
+    <%= form.label :tips_enabled, "Enable tips", class: "ml-2 text-gray-700 text-sm font-bold" %>
+  </div>
+
+  <div class="mb-4">
     <h3 class="text-lg font-semibold mb-2">Assign Staff Members</h3>
     <%= form.collection_check_boxes :staff_member_ids, @current_business.staff_members.order(:name), :id, :name do |b|
       b.label(class: "inline-flex items-center mr-4 mb-2") do

@@ -102,10 +102,10 @@ if defined?(Devise)
   Warden::Manager.after_failed_fetch do |user, auth, opts|
     # Skip logging for health check endpoints to avoid false security warnings
     health_check_paths = ['/healthcheck', '/up', '/db-check', '/maintenance']
-    return if health_check_paths.include?(auth.request.path)
+    next if health_check_paths.include?(auth.request.path)
     
     # Skip logging for Render's health check user agent
-    return if auth.request.user_agent&.include?('Render/1.0')
+    next if auth.request.user_agent&.include?('Render/1.0')
     
     SecurityLogging.log_auth_event(
       nil,

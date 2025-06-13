@@ -66,7 +66,7 @@ module BusinessManager
 
     def product_params
       params.require(:product).permit(
-        :name, :description, :price, :active, :featured, :product_type,
+        :name, :description, :price, :active, :featured, :product_type, :tips_enabled,
         :stock_quantity, # If product can be sold without variants
         add_on_service_ids: [], 
         # Allow multiple images to be uploaded
