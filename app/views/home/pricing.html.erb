@@ -405,42 +405,7 @@
   </div>
 </div>
 
-<!-- FAQ Section -->
-<div class="py-20 bg-light">
-  <div class="container mx-auto px-4">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-dark mb-4">Frequently Asked Questions</h2>
-      <p class="text-xl text-gray-600">Get answers to common pricing questions</p>
-    </div>
-    
-    <div class="max-w-4xl mx-auto">
-      <div class="space-y-6">
-        <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold text-dark mb-3">What payment methods do you accept?</h3>
-          <p class="text-gray-600">We accept all major credit cards (Visa, MasterCard, American Express) and ACH bank transfers for monthly subscriptions. All payments are processed securely through Stripe.</p>
-        </div>
-        
-        <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold text-dark mb-3">Do you offer discounts for annual payments?</h3>
-          <p class="text-gray-600">Yes! Save 10% when you pay annually instead of monthly. Annual subscriptions are coming soon.</p>
-        </div>
-        
-        <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold text-dark mb-3">Is there a cancellation fee?</h3>
-          <p class="text-gray-600">No, there are no cancellation fees. You can cancel your subscription at any time, and you'll continue to have access until the end of your current billing period.</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Question Button Section -->
-    <div class="text-center mt-12">
-      <p class="text-lg text-gray-600 mb-6">Still have questions about our pricing?</p>
-      <%= link_to "Ask a Question Here", 
-          "/contact", 
-          class: "bg-secondary hover:bg-teal-600 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 inline-block" %>
-    </div>
-  </div>
-</div>
+<%= render 'shared/comprehensive_faq' %>
 
 <!-- CTA Section -->
 <div class="bg-primary text-white py-16">

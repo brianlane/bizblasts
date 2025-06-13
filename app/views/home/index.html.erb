@@ -1,50 +1,237 @@
-<% content_for :meta_description, "Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform." %>
+<% set_seo_meta(
+  title: "BizBlasts - Complete Business Website & Booking Platform | Professional Online Presence",
+  description: "Transform your service business with BizBlasts: professional websites, online booking systems, payment processing, and customer management. Free plan available. Perfect for salons, contractors, consultants, and more.",
+  canonical: "https://www.bizblasts.com"
+) %>
 
-<!-- Hero Section -->
-<section class="relative bg-cover bg-center text-white flex items-center h-auto md:h-[600px]" style="background-image: url('<%= asset_path 'hero-image.png' %>');">
-  <div class="absolute inset-0 bg-black opacity-50"></div>
-  <div class="container relative z-10 mx-auto px-4 py-12 md:py-0">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-6 lg:gap-8">
-      <!-- Left Side: Logo 
-      <div class="w-full md:w-3/5 lg:w-2/3 flex items-center justify-center md:justify-start">
-        <% begin %>
-          <%= image_tag "bizblasts-logo-white.svg", 
-              alt: "BizBlasts Logo", 
-              class: "max-w-full max-h-full",
-              style: "width: 100% !important; height: auto !important; object-fit: contain !important; max-width: 700px !important;" %>
-        <% rescue => e %>
-          <img src="<%= asset_path('bizblasts-logo-white.svg') rescue '/bizblasts-logo-white.svg' %>" 
-               alt="BizBlasts Logo" 
-               class="max-w-full max-h-full"
-               style="width: 100% !important; height: auto !important; object-fit: contain !important; max-width: 700px !important;" />
-        <% end %>
-      </div>
-      -->
-      
-      <!-- Right Side: Tagline -->
-      <div class="w-full flex items-center justify-center">
-        <div class="text-center max-w-3xl mx-auto">
-          <h1 class="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold leading-tight" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
-            <span class="block whitespace-nowrap">Your website,</span>
-            <span class="block whitespace-nowrap">booking system,</span>
-            <span class="block whitespace-nowrap">and growth engine</span>
-            <span class="block whitespace-nowrap">—all in one.</span>
-          </h1>
+<!-- JSON-LD Structured Data for AI/LLM Discovery -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "BizBlasts",
+  "description": "Complete business platform providing professional websites, online booking systems, and payment processing for service-based businesses",
+  "url": "https://www.bizblasts.com",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web-based",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Free Plan",
+      "description": "Professional website, online booking system, payment processing",
+      "price": "0",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "0",
+        "priceCurrency": "USD",
+        "billingDuration": "P1M",
+        "additionalProperty": {
+          "@type": "PropertyValue",
+          "name": "Transaction Fee",
+          "value": "5%"
+        }
+      }
+    },
+    {
+      "@type": "Offer", 
+      "name": "Standard Plan",
+      "description": "Everything in Free plus SMS reminders, calendar integration, advanced features",
+      "price": "49",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "49",
+        "priceCurrency": "USD",
+        "billingDuration": "P1M"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Premium Plan", 
+      "description": "Everything in Standard plus multi-location, custom domain, white-label",
+      "price": "99",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "99",
+        "priceCurrency": "USD",
+        "billingDuration": "P1M"
+      }
+    }
+  ],
+  "featureList": [
+    "Professional website creation",
+    "Online booking and scheduling system",
+    "Payment processing via Stripe",
+    "Customer management and CRM",
+    "Staff management and scheduling", 
+    "Email and SMS notifications",
+    "Calendar integration",
+    "Multi-location support",
+    "Analytics and reporting",
+    "Mobile-responsive design",
+    "SEO optimization",
+    "Custom domain support"
+  ],
+  "audience": {
+    "@type": "BusinessAudience",
+    "audienceType": "Service-based businesses that take appointments",
+    "geographicArea": {
+      "@type": "Country",
+      "name": "United States"
+    }
+  },
+  "provider": {
+    "@type": "Organization",
+    "name": "BizBlasts",
+    "url": "https://www.bizblasts.com",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer support",
+      "url": "https://www.bizblasts.com/contact"
+    }
+  },
+  "applicationSubCategory": [
+    "Booking System",
+    "Website Builder", 
+    "Business Management",
+    "Payment Processing",
+    "Customer Management"
+  ],
+  "keywords": "business website, online booking, appointment scheduling, service business, payment processing, customer management, professional website, booking system, small business software"
+}
+</script>
+
+<!-- Organization Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "BizBlasts",
+  "url": "https://www.bizblasts.com",
+  "logo": "https://www.bizblasts.com/assets/bizblasts-logo.png",
+  "description": "BizBlasts provides complete business solutions including professional websites, online booking systems, and payment processing for service-based businesses.",
+  "founder": {
+    "@type": "Person", 
+    "name": "BizBlasts Team"
+  },
+  "foundingDate": "2023",
+  "industry": "Business Software",
+  "numberOfEmployees": "1-50",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "US"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer support",
+    "url": "https://www.bizblasts.com/contact",
+    "availableLanguage": "English"
+  },
+  "sameAs": [
+    "https://www.bizblasts.com"
+  ],
+  "areaServed": "US",
+  "knowsAbout": [
+    "Website Development",
+    "Online Booking Systems", 
+    "Payment Processing",
+    "Business Management Software",
+    "Customer Relationship Management",
+    "Service Business Operations"
+  ]
+}
+</script>
+
+<!-- Service Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": "BizBlasts Business Platform",
+  "description": "Complete business platform that provides professional websites, online booking systems, and payment processing for service-based businesses",
+  "provider": {
+    "@type": "Organization",
+    "name": "BizBlasts",
+    "url": "https://www.bizblasts.com"
+  },
+  "serviceType": "Business Software Platform",
+  "audience": {
+    "@type": "BusinessAudience",
+    "audienceType": "Service-based businesses"
+  },
+  "areaServed": "United States",
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "BizBlasts Plans",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "BizBlasts Free Plan",
+          "description": "Professional website, online booking, payment processing"
+        },
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer", 
+        "itemOffered": {
+          "@type": "Service",
+          "name": "BizBlasts Standard Plan",
+          "description": "Enhanced features including SMS, calendar integration, advanced reporting"
+        },
+        "price": "49",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service", 
+          "name": "BizBlasts Premium Plan",
+          "description": "Full-featured plan with multi-location, custom domain, white-label"
+        },
+        "price": "99",
+        "priceCurrency": "USD"
+      }
+    ]
+  }
+}
+</script>
+
+<!-- Hero Section with Semantic HTML5 -->
+<main role="main">
+  <header class="hero-section relative bg-cover bg-center text-white flex items-center h-auto md:h-[600px]" style="background-image: url('<%= asset_path 'hero-image.png' %>');">
+    <div class="absolute inset-0 bg-black opacity-50" aria-hidden="true"></div>
+    <div class="container relative z-10 mx-auto px-4 py-12 md:py-0">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 lg:gap-8">
+        <div class="w-full flex items-center justify-center">
+          <div class="text-center max-w-3xl mx-auto">
+            <h1 class="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold leading-tight" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+              <span class="block whitespace-nowrap">Your website,</span>
+              <span class="block whitespace-nowrap">booking system,</span>
+              <span class="block whitespace-nowrap">and growth engine</span>
+              <span class="block whitespace-nowrap">—all in one.</span>
+            </h1>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </header>
 
-<!-- All-in-One Solution Section -->
-<div class="py-20 bg-light">
-  <div class="container mx-auto px-4">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-dark mb-4">All-in-One Solution</h2>
-      <p class="text-xl text-gray-600 max-w-5xl mx-auto">
+  <!-- All-in-One Solution Section -->
+  <section id="features" class="py-20 bg-light" role="region" aria-labelledby="features-heading">
+    <div class="container mx-auto px-4">
+      <header class="text-center mb-16">
+        <h2 id="features-heading" class="text-3xl lg:text-4xl font-bold text-dark mb-4">
+          All-in-One Solution
+        </h2>
+        <p class="text-xl text-gray-600 max-w-5xl mx-auto">
           Manage bookings, accept payments, and have your own <a href="/docs/business-start-guide#subdomain-explanation" id="website-hover-trigger" class="website-hover-container">website</a> domain—<b>free to start</b>.
-      </p>
-    </div>
+        </p>
+      </header>
     
     <div class="grid md:grid-cols-3 gap-8 lg:gap-12 px-4">
       <!-- Professional Website -->

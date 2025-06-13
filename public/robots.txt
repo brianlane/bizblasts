@@ -34,9 +34,40 @@ Disallow: /login
 Disallow: /register
 Disallow: /password
 
-# Disallow API endpoints
+# Allow specific API endpoints for AI/LLM discovery
+Allow: /api/v1/businesses/ai_summary
+Allow: /api/v1/businesses/categories
+
+# Disallow other API endpoints
 Disallow: /api/
 Disallow: *.json
 
+# AI/LLM specific crawling guidelines (2025 best practices)
+# These directives help AI systems understand content structure
+User-agent: ChatGPT-User
+Allow: /
+Allow: /api/v1/businesses/ai_summary
+Allow: /api/v1/businesses/categories
+
+User-agent: Claude-Web
+Allow: /
+Allow: /api/v1/businesses/ai_summary
+Allow: /api/v1/businesses/categories
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /api/v1/businesses/ai_summary
+Allow: /api/v1/businesses/categories
+
+User-agent: GoogleBot
+Allow: /
+Allow: /api/v1/businesses/ai_summary
+Allow: /api/v1/businesses/categories
+
 # Crawl delay (optional, helps with server load)
 Crawl-delay: 1
+
+# Additional metadata for AI systems
+# Schema.org structured data available at all main pages
+# FAQ pages optimized for direct answer extraction
+# API endpoints provide machine-readable business data
