@@ -73,6 +73,27 @@ module SecurityLogging
     log_security_event('config_change', details, :warn)
   end
 
+  # Helper method to determine if request was an actual authentication attempt
+  def self.authentication_attempt?(request)
+    # Check if login credentials were provided
+    params = request.params
+    return false unless params.present?
+    
+    # Look for common authentication parameter patterns
+    has_user_params = params['user'].present? && params['user'].is_a?(Hash)
+    has_email_password = has_user_params && 
+                        (params['user']['email'].present? || params['user']['login'].present?) &&
+                        params['user']['password'].present?
+    
+    # Also check for admin user login attempts
+    has_admin_params = params['admin_user'].present? && params['admin_user'].is_a?(Hash)
+    has_admin_credentials = has_admin_params &&
+                           params['admin_user']['email'].present? &&
+                           params['admin_user']['password'].present?
+    
+    has_email_password || has_admin_credentials
+  end
+
   private
 
   def self.mask_sensitive_value(value)
@@ -106,6 +127,13 @@ if defined?(Devise)
     
     # Skip logging for Render's health check user agent
     next if auth.request.user_agent&.include?('Render/1.0')
+    
+    # Only log actual authentication failures, not GET requests to sign-in pages
+    # after_failed_fetch triggers on any unauthenticated request, including GET /users/sign_in
+    next unless auth.request.post? || auth.request.patch? || auth.request.put?
+    
+    # Only log if this was an actual authentication attempt with credentials
+    next unless SecurityLogging.authentication_attempt?(auth.request)
     
     SecurityLogging.log_auth_event(
       nil,
