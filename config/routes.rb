@@ -3,6 +3,17 @@
 require Rails.root.join('lib/constraints/subdomain_constraint')
 
 Rails.application.routes.draw do
+  # Web manifest for PWA support - must be before domain redirects
+  get '/site.webmanifest', to: proc { |env|
+    file_path = Rails.root.join('public', 'site.webmanifest')
+    if File.exist?(file_path)
+      content = File.read(file_path)
+      [200, {"Content-Type" => "application/manifest+json", "Cache-Control" => "public, max-age=86400"}, [content]]
+    else
+      [404, {"Content-Type" => "text/plain"}, ["Manifest not found"]]
+    end
+  }
+  
   post '/webhooks/stripe', to: 'stripe_webhooks#create'
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
@@ -327,17 +338,6 @@ Rails.application.routes.draw do
 
   # Sitemap
   get '/sitemap.xml', to: 'sitemap#index', defaults: { format: 'xml' }
-  
-  # Web manifest for PWA support
-  get '/site.webmanifest', to: proc { |env|
-    file_path = Rails.root.join('public', 'site.webmanifest')
-    if File.exist?(file_path)
-      content = File.read(file_path)
-      [200, {"Content-Type" => "application/manifest+json", "Cache-Control" => "public, max-age=86400"}, [content]]
-    else
-      [404, {"Content-Type" => "text/plain"}, ["Manifest not found"]]
-    end
-  }
 
   # Blog section
   get '/blog', to: 'blog#index', as: :blog
