@@ -55,7 +55,14 @@
   <%# Service Type fields %>
    <div class="mb-4">
      <%= form.label :service_type, class: "block text-gray-700 text-sm font-bold mb-2" %>
-     <%= form.select :service_type, options_for_select(Service.service_types.keys.map { |k| [k.humanize, k] }, service.service_type), {}, { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", id: 'service_type_select' } %>
+     <%= render 'shared/rich_dropdown',
+         collection: Service.service_types.keys.map { |k| OpenStruct.new(id: k, name: k.humanize) },
+         field_name: "#{form.object_name}[service_type]",
+         selected_value: service.service_type,
+         prompt_text: "Select service type",
+         value_method: :id,
+         text_method: :name,
+         dropdown_id: "service_type_dropdown" %>
    </div>
 
    <div id="experience_fields" class="<%= service.experience? ? '' : 'hidden' %>">
@@ -218,7 +225,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Toggle Experience specific fields
-    const serviceTypeSelect = document.getElementById('service_type_select');
+    const serviceTypeSelect = document.getElementById('service_type_dropdown_hidden');
     const experienceFields = document.getElementById('experience_fields');
 
     if (serviceTypeSelect && experienceFields) {

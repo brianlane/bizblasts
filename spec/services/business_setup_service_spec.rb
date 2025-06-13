@@ -140,6 +140,38 @@ RSpec.describe BusinessSetupService, type: :service do
       tax_item = service.todo_items.find { |item| item[:text].include?("tax rates") }
       expect(tax_item).to be_nil
     end
+
+    it 'includes loyalty program setup when not enabled' do
+      expect(service.todo_items).to include(
+        hash_including(
+          text: "Set up a loyalty program to reward repeat customers",
+          priority: :low
+        )
+      )
+    end
+
+    it 'excludes loyalty program setup when enabled' do
+      business.update!(loyalty_program_enabled: true)
+      
+      loyalty_item = service.todo_items.find { |item| item[:text].include?("loyalty program") }
+      expect(loyalty_item).to be_nil
+    end
+
+    it 'includes referral program setup when not enabled' do
+      expect(service.todo_items).to include(
+        hash_including(
+          text: "Create a referral program to grow through word-of-mouth",
+          priority: :low
+        )
+      )
+    end
+
+    it 'excludes referral program setup when enabled' do
+      business.update!(referral_program_enabled: true)
+      
+      referral_item = service.todo_items.find { |item| item[:text].include?("referral program") }
+      expect(referral_item).to be_nil
+    end
   end
 
   describe '#high_priority_items' do

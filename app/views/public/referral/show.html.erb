@@ -1,0 +1,273 @@
+<% content_for :title, "#{@business.name} - Referral Program" %>
+
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <% if current_user&.client? %>
+        <h1 class="text-3xl font-bold text-gray-900">Refer Friends to <%= @business.name %></h1>
+        <p class="mt-2 text-lg text-gray-600">Share your code and earn rewards when friends book services</p>
+      <% else %>
+        <h1 class="text-3xl font-bold text-gray-900">Referral Program Preview - <%= @business.name %></h1>
+        <p class="mt-2 text-lg text-gray-600">This is how the referral program appears to your customers</p>
+      <% end %>
+      
+      <!-- Back to business link -->
+      <div class="mt-4">
+        <%= link_to "← Back to #{@business.name}", tenant_root_path, 
+            class: "text-blue-600 hover:text-blue-800 text-sm" %>
+      </div>
+    </div>
+
+    <!-- Referral Program Benefits -->
+    <% if @business.referral_program&.persisted? %>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-blue-900 mb-4">How It Works</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="font-medium text-blue-800 mb-2">You Earn:</h3>
+            <p class="text-blue-700">
+              <strong><%= @business.referral_program.referrer_reward_value.to_i %> 
+              <%= @business.referral_program.referrer_reward_type.humanize %></strong>
+              for each successful referral
+            </p>
+          </div>
+          <div>
+            <h3 class="font-medium text-blue-800 mb-2">Your Friends Get:</h3>
+            <p class="text-blue-700">
+              <strong>$<%= @business.referral_program.referral_code_discount_amount.to_i %> off</strong>
+              their first purchase
+              <% if @business.referral_program.min_purchase_amount > 0 %>
+                (minimum $<%= @business.referral_program.min_purchase_amount.to_i %> purchase)
+              <% end %>
+            </p>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Referral Code Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+      <div class="text-center">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Unique Referral Code</h2>
+        <% if current_user&.client? %>
+          <% if @referral_code %>
+            <div class="bg-gray-100 rounded-lg p-4 mb-4">
+              <span class="text-3xl font-mono font-bold text-blue-600"><%= @referral_code %></span>
+            </div>
+            <p class="text-gray-600 mb-4">Share this code with friends to earn rewards!</p>
+            
+            <!-- Copy Button -->
+            <button onclick="copyToClipboard('<%= @referral_code %>')" 
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mr-2">
+              📋 Copy Code
+            </button>
+          <% else %>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p class="text-yellow-800">Unable to generate referral code at this time. Please try again later.</p>
+            </div>
+          <% end %>
+        <% else %>
+          <!-- Preview for business users -->
+          <div class="bg-gray-100 rounded-lg p-4 mb-4">
+            <span class="text-3xl font-mono font-bold text-gray-400">ABC123XYZ</span>
+          </div>
+          <p class="text-gray-500 mb-4">This is how customer referral codes will appear</p>
+          <div class="bg-gray-200 text-gray-600 px-6 py-2 rounded-lg cursor-not-allowed">
+            📋 Copy Code (Client Only)
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Referral URL Section -->
+    <% if current_user&.client? && @referral_url %>
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">🔗 Share Your Referral Link</h3>
+        <div class="bg-gray-100 rounded-lg p-3 mb-4 break-all">
+          <span class="text-sm text-gray-700"><%= @referral_url %></span>
+        </div>
+        <button onclick="copyToClipboard('<%= @referral_url %>')" 
+                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+          📋 Copy Link
+        </button>
+      </div>
+    <% elsif !current_user&.client? %>
+      <!-- Preview for business users -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">🔗 Share Your Referral Link</h3>
+        <div class="bg-gray-100 rounded-lg p-3 mb-4 break-all">
+          <span class="text-sm text-gray-500">https://<%= @business.hostname %>.bizblasts.com?ref=ABC123XYZ</span>
+        </div>
+        <div class="bg-gray-200 text-gray-600 px-6 py-2 rounded-lg cursor-not-allowed">
+          📋 Copy Link (Client Only)
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Referral Stats -->
+    <% if current_user&.client? && @referral_stats %>
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Your Referral Stats</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center p-3 bg-blue-50 rounded-lg">
+            <div class="text-2xl font-bold text-blue-600"><%= @referral_stats[:total_referrals] %></div>
+            <div class="text-sm text-blue-800">Total Referrals</div>
+          </div>
+          <div class="text-center p-3 bg-green-50 rounded-lg">
+            <div class="text-2xl font-bold text-green-600"><%= @referral_stats[:qualified_referrals] %></div>
+            <div class="text-sm text-green-800">Qualified</div>
+          </div>
+          <div class="text-center p-3 bg-yellow-50 rounded-lg">
+            <div class="text-2xl font-bold text-yellow-600"><%= @referral_stats[:pending_referrals] %></div>
+            <div class="text-sm text-yellow-800">Pending</div>
+          </div>
+          <div class="text-center p-3 bg-purple-50 rounded-lg">
+            <div class="text-2xl font-bold text-purple-600"><%= @referral_stats[:total_rewards_earned] %></div>
+            <div class="text-sm text-purple-800">Points Earned</div>
+          </div>
+        </div>
+      </div>
+    <% elsif !current_user&.client? %>
+      <!-- Preview for business users -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Customer Referral Stats (Preview)</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center p-3 bg-blue-50 rounded-lg opacity-75">
+            <div class="text-2xl font-bold text-blue-600">5</div>
+            <div class="text-sm text-blue-800">Total Referrals</div>
+          </div>
+          <div class="text-center p-3 bg-green-50 rounded-lg opacity-75">
+            <div class="text-2xl font-bold text-green-600">3</div>
+            <div class="text-sm text-green-800">Qualified</div>
+          </div>
+          <div class="text-center p-3 bg-yellow-50 rounded-lg opacity-75">
+            <div class="text-2xl font-bold text-yellow-600">2</div>
+            <div class="text-sm text-yellow-800">Pending</div>
+          </div>
+          <div class="text-center p-3 bg-purple-50 rounded-lg opacity-75">
+            <div class="text-2xl font-bold text-purple-600">300</div>
+            <div class="text-sm text-purple-800">Points Earned</div>
+          </div>
+        </div>
+        <p class="text-sm text-gray-500 mt-4 text-center">This is how customer stats will appear</p>
+      </div>
+    <% end %>
+
+    <!-- My Referrals List -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <% if current_user&.client? %>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Your Referral Activity</h3>
+        <% if @my_referrals.any? %>
+          <div class="space-y-3">
+            <% @my_referrals.each do |referral| %>
+              <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900">
+                    Referral Code: <%= referral.referral_code %>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    Status: <span class="capitalize font-medium 
+                      <%= referral.status == 'qualified' ? 'text-green-600' : 
+                          referral.status == 'pending' ? 'text-yellow-600' : 'text-gray-600' %>">
+                      <%= referral.status.humanize %>
+                    </span>
+                    <% if referral.referred_tenant_customer %>
+                      • Last used by <%= referral.referred_tenant_customer.full_name.presence || referral.referred_tenant_customer.email %>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm text-gray-600">
+                    Created <%= referral.created_at.strftime('%m/%d/%Y') %>
+                  </div>
+                  <% if referral.qualified? %>
+                    <div class="text-xs text-green-600 font-medium">
+                      Reward Earned! 🎉
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-8">
+            <div class="text-6xl mb-4">🎯</div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">Your Referral Code is Ready!</h4>
+            <p class="text-gray-600 mb-4">Share your code above to start earning rewards!</p>
+          </div>
+        <% end %>
+      <% else %>
+        <!-- Preview for business users -->
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Customer Referral Activity (Preview)</h3>
+        <div class="space-y-3 opacity-75">
+          <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <div class="flex-1">
+              <div class="font-medium text-gray-900">
+                Referral Code: ABC123XYZ
+              </div>
+              <div class="text-sm text-gray-500">
+                Status: <span class="capitalize font-medium text-green-600">Qualified</span>
+                • Last used by John Doe
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-600">
+                Created 01/15/2024
+              </div>
+              <div class="text-xs text-green-600 font-medium">
+                Reward Earned! 🎉
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <div class="flex-1">
+              <div class="font-medium text-gray-900">
+                Referral Code: DEF456ABC
+              </div>
+              <div class="text-sm text-gray-500">
+                Status: <span class="capitalize font-medium text-yellow-600">Pending</span>
+                • Last used by Jane Smith
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-600">
+                Created 01/10/2024
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="text-sm text-gray-500 mt-4 text-center">This is how customer referral activity will appear</p>
+      <% end %>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-8 text-center space-y-4">
+      <%= link_to tenant_root_path, 
+          class: "inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors" do %>
+        ← Back to <%= @business.name %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    // Show success message
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = '✅ Copied!';
+    button.classList.remove('bg-blue-600', 'bg-green-600');
+    button.classList.add('bg-green-500');
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.classList.remove('bg-green-500');
+      button.classList.add(originalText.includes('Code') ? 'bg-blue-600' : 'bg-green-600');
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+    alert('Failed to copy to clipboard');
+  });
+}
+</script> 

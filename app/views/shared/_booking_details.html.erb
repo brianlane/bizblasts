@@ -204,6 +204,20 @@
     </div>
   <% end %>
 
+  <!-- Tips Section -->
+  <% if !admin_mode && booking.business.tips_enabled? && booking.eligible_for_tips? && !booking.tip_processed? %>
+    <div class="<%= condensed ? 'mt-2' : 'mt-6' %> p-4 bg-blue-50 border border-blue-200 rounded">
+      <h3 class="text-lg font-semibold mb-2 text-blue-800">Add a Tip</h3>
+      <p class="text-blue-700 text-sm mb-3">
+        Enjoyed your experience? Show your appreciation with a tip for your service provider.
+      </p>
+      <div class="flex justify-start">
+        <%= link_to "Add Tip", new_booking_tip_path(booking), 
+            class: "bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded" %>
+      </div>
+    </div>
+  <% end %>
+
   <% if show_actions && booking.can_cancel? %>
     <div class="<%= condensed ? 'mt-2' : 'mt-6' %>">
       <% if booking.status == 'pending' %>

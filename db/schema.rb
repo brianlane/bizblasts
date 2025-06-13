@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_13_053813) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -154,13 +154,21 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.decimal "discount_amount", precision: 10, scale: 2
     t.decimal "amount", precision: 10, scale: 2
     t.text "cancellation_reason"
+    t.string "applied_promo_code"
+    t.decimal "promo_discount_amount", precision: 10, scale: 2
+    t.string "promo_code_type"
+    t.datetime "tip_reminder_sent_at"
+    t.index ["applied_promo_code"], name: "index_bookings_on_applied_promo_code"
+    t.index ["business_id", "start_time"], name: "index_bookings_on_business_id_and_start_time"
     t.index ["business_id"], name: "index_bookings_on_business_id"
+    t.index ["promo_code_type"], name: "index_bookings_on_promo_code_type"
     t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
     t.index ["staff_member_id"], name: "index_bookings_on_staff_member_id"
     t.index ["start_time", "end_time"], name: "index_bookings_on_start_time_and_end_time", using: :gist
     t.index ["start_time"], name: "index_bookings_on_start_time"
     t.index ["status"], name: "index_bookings_on_status"
+    t.index ["tenant_customer_id", "start_time"], name: "index_bookings_on_tenant_customer_id_and_start_time"
     t.index ["tenant_customer_id"], name: "index_bookings_on_tenant_customer_id"
   end
 
@@ -207,6 +215,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.date "domain_coverage_expires_at"
     t.string "domain_registrar"
     t.date "domain_registration_date"
+    t.boolean "referral_program_enabled", default: false, null: false
+    t.boolean "loyalty_program_enabled", default: false, null: false
+    t.decimal "points_per_dollar", precision: 8, scale: 2, default: "1.0", null: false
+    t.decimal "points_per_service", precision: 8, scale: 2, default: "0.0", null: false
+    t.decimal "points_per_product", precision: 8, scale: 2, default: "0.0", null: false
+    t.integer "platform_loyalty_points", default: 0, null: false
+    t.string "platform_referral_code"
+    t.boolean "tips_enabled", default: false, null: false
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -215,10 +231,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
+    t.index ["platform_referral_code"], name: "index_businesses_on_platform_referral_code", unique: true
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
     t.index ["status"], name: "index_businesses_on_status"
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
+    t.index ["tips_enabled"], name: "index_businesses_on_tips_enabled"
   end
 
   create_table "campaign_recipients", force: :cascade do |t|
@@ -242,6 +260,34 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.index ["business_id"], name: "index_client_businesses_on_business_id"
     t.index ["user_id", "business_id"], name: "index_client_businesses_on_user_id_and_business_id", unique: true
     t.index ["user_id"], name: "index_client_businesses_on_user_id"
+  end
+
+  create_table "discount_codes", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "code", null: false
+    t.string "discount_type", null: false
+    t.decimal "discount_value", precision: 10, scale: 2, null: false
+    t.boolean "single_use", default: true, null: false
+    t.bigint "used_by_customer_id"
+    t.datetime "expires_at"
+    t.boolean "active", default: true, null: false
+    t.integer "usage_count", default: 0, null: false
+    t.integer "max_usage", default: 1
+    t.bigint "generated_by_referral_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "points_redeemed", default: 0, null: false
+    t.string "stripe_coupon_id"
+    t.bigint "tenant_customer_id"
+    t.index ["active"], name: "index_discount_codes_on_active"
+    t.index ["business_id"], name: "index_discount_codes_on_business_id"
+    t.index ["code"], name: "index_discount_codes_on_code"
+    t.index ["expires_at"], name: "index_discount_codes_on_expires_at"
+    t.index ["generated_by_referral_id"], name: "index_discount_codes_on_generated_by_referral_id"
+    t.index ["points_redeemed"], name: "index_discount_codes_on_points_redeemed"
+    t.index ["stripe_coupon_id"], name: "index_discount_codes_on_stripe_coupon_id"
+    t.index ["tenant_customer_id"], name: "index_discount_codes_on_tenant_customer_id"
+    t.index ["used_by_customer_id"], name: "index_discount_codes_on_used_by_customer_id"
   end
 
   create_table "friendly_id_slugs", id: :serial, force: :cascade do |t|
@@ -294,6 +340,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.bigint "tax_rate_id"
     t.bigint "order_id"
     t.string "guest_access_token"
+    t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
     t.index ["booking_id"], name: "index_invoices_on_booking_id"
     t.index ["business_id"], name: "index_invoices_on_business_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
@@ -303,6 +350,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.index ["status"], name: "index_invoices_on_status"
     t.index ["tax_rate_id"], name: "index_invoices_on_tax_rate_id"
     t.index ["tenant_customer_id"], name: "index_invoices_on_tenant_customer_id"
+    t.index ["tip_amount"], name: "index_invoices_on_tip_amount"
   end
 
   create_table "line_items", force: :cascade do |t|
@@ -333,6 +381,80 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["business_id"], name: "index_locations_on_business_id"
+  end
+
+  create_table "loyalty_programs", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "name", null: false
+    t.string "points_name", default: "points", null: false
+    t.integer "points_for_booking", default: 0, null: false
+    t.integer "points_for_referral", default: 0, null: false
+    t.decimal "points_per_dollar", precision: 8, scale: 2, default: "0.0", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_loyalty_programs_on_active"
+    t.index ["business_id"], name: "index_loyalty_programs_on_business_id"
+  end
+
+  create_table "loyalty_redemptions", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "loyalty_reward_id", null: false
+    t.bigint "booking_id"
+    t.bigint "order_id"
+    t.integer "points_redeemed", null: false
+    t.string "status", default: "active", null: false
+    t.decimal "discount_amount_applied", precision: 10, scale: 2
+    t.string "discount_code", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_loyalty_redemptions_on_booking_id"
+    t.index ["business_id"], name: "index_loyalty_redemptions_on_business_id"
+    t.index ["created_at"], name: "index_loyalty_redemptions_on_created_at"
+    t.index ["discount_code"], name: "index_loyalty_redemptions_on_discount_code", unique: true
+    t.index ["loyalty_reward_id"], name: "index_loyalty_redemptions_on_loyalty_reward_id"
+    t.index ["order_id"], name: "index_loyalty_redemptions_on_order_id"
+    t.index ["status"], name: "index_loyalty_redemptions_on_status"
+    t.index ["tenant_customer_id"], name: "index_loyalty_redemptions_on_tenant_customer_id"
+  end
+
+  create_table "loyalty_rewards", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "loyalty_program_id", null: false
+    t.string "name", null: false
+    t.text "description", null: false
+    t.integer "points_required", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_loyalty_rewards_on_active"
+    t.index ["business_id"], name: "index_loyalty_rewards_on_business_id"
+    t.index ["loyalty_program_id"], name: "index_loyalty_rewards_on_loyalty_program_id"
+    t.index ["points_required"], name: "index_loyalty_rewards_on_points_required"
+  end
+
+  create_table "loyalty_transactions", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.string "transaction_type", null: false
+    t.integer "points_amount", null: false
+    t.text "description"
+    t.datetime "expires_at"
+    t.bigint "related_booking_id"
+    t.bigint "related_order_id"
+    t.bigint "related_referral_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_loyalty_transactions_on_business_id"
+    t.index ["created_at"], name: "index_loyalty_transactions_on_created_at"
+    t.index ["expires_at"], name: "index_loyalty_transactions_on_expires_at"
+    t.index ["related_booking_id"], name: "index_loyalty_transactions_on_related_booking_id"
+    t.index ["related_order_id"], name: "index_loyalty_transactions_on_related_order_id"
+    t.index ["related_referral_id"], name: "index_loyalty_transactions_on_related_referral_id"
+    t.index ["tenant_customer_id", "transaction_type"], name: "idx_on_tenant_customer_id_transaction_type_ddac95c67b"
+    t.index ["tenant_customer_id"], name: "index_loyalty_transactions_on_tenant_customer_id"
+    t.index ["transaction_type"], name: "index_loyalty_transactions_on_transaction_type"
   end
 
   create_table "marketing_campaigns", force: :cascade do |t|
@@ -385,14 +507,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.datetime "updated_at", null: false
     t.integer "order_type", default: 0
     t.bigint "booking_id"
+    t.string "applied_promo_code"
+    t.decimal "promo_discount_amount", precision: 10, scale: 2
+    t.string "promo_code_type"
+    t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.index ["applied_promo_code"], name: "index_orders_on_applied_promo_code"
     t.index ["booking_id"], name: "index_orders_on_booking_id"
+    t.index ["business_id", "created_at"], name: "index_orders_on_business_id_and_created_at"
     t.index ["business_id"], name: "index_orders_on_business_id"
     t.index ["order_number"], name: "index_orders_on_order_number", unique: true
+    t.index ["promo_code_type"], name: "index_orders_on_promo_code_type"
     t.index ["shipping_method_id"], name: "index_orders_on_shipping_method_id"
     t.index ["status"], name: "index_orders_on_status"
     t.index ["tax_rate_id"], name: "index_orders_on_tax_rate_id"
+    t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.index ["tip_amount"], name: "index_orders_on_tip_amount"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -442,6 +573,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.text "refund_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
     t.index ["business_id", "paid_at"], name: "index_payments_on_business_id_and_paid_at"
     t.index ["business_id", "status"], name: "index_payments_on_business_id_and_status"
     t.index ["business_id"], name: "index_payments_on_business_id"
@@ -450,6 +582,53 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.index ["stripe_charge_id"], name: "index_payments_on_stripe_charge_id"
     t.index ["stripe_payment_intent_id"], name: "index_payments_on_stripe_payment_intent_id", unique: true, where: "(stripe_payment_intent_id IS NOT NULL)"
     t.index ["tenant_customer_id"], name: "index_payments_on_tenant_customer_id"
+    t.index ["tip_amount"], name: "index_payments_on_tip_amount"
+  end
+
+  create_table "platform_discount_codes", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "code", null: false
+    t.integer "points_redeemed", null: false
+    t.decimal "discount_amount", precision: 10, scale: 2, null: false
+    t.string "status", default: "active", null: false
+    t.datetime "expires_at"
+    t.string "stripe_coupon_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_platform_discount_codes_on_business_id"
+    t.index ["code"], name: "index_platform_discount_codes_on_code", unique: true
+    t.index ["expires_at"], name: "index_platform_discount_codes_on_expires_at"
+    t.index ["status"], name: "index_platform_discount_codes_on_status"
+    t.index ["stripe_coupon_id"], name: "index_platform_discount_codes_on_stripe_coupon_id"
+  end
+
+  create_table "platform_loyalty_transactions", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "transaction_type", null: false
+    t.integer "points_amount", null: false
+    t.text "description", null: false
+    t.bigint "related_platform_referral_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_platform_loyalty_transactions_on_business_id"
+    t.index ["created_at"], name: "index_platform_loyalty_transactions_on_created_at"
+    t.index ["related_platform_referral_id"], name: "idx_on_related_platform_referral_id_cfb4a77d6f"
+    t.index ["transaction_type"], name: "index_platform_loyalty_transactions_on_transaction_type"
+  end
+
+  create_table "platform_referrals", force: :cascade do |t|
+    t.bigint "referrer_business_id", null: false
+    t.bigint "referred_business_id", null: false
+    t.string "referral_code", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "qualification_met_at"
+    t.datetime "reward_issued_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["referral_code"], name: "index_platform_referrals_on_referral_code", unique: true
+    t.index ["referred_business_id"], name: "index_platform_referrals_on_referred_business_id"
+    t.index ["referrer_business_id"], name: "index_platform_referrals_on_referrer_business_id"
+    t.index ["status"], name: "index_platform_referrals_on_status"
   end
 
   create_table "policy_acceptances", force: :cascade do |t|
@@ -514,9 +693,21 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.datetime "updated_at", null: false
     t.integer "product_type"
     t.integer "stock_quantity", default: 0, null: false
+    t.boolean "tips_enabled", default: false, null: false
     t.index ["active"], name: "index_products_on_active"
     t.index ["business_id"], name: "index_products_on_business_id"
     t.index ["featured"], name: "index_products_on_featured"
+    t.index ["tips_enabled"], name: "index_products_on_tips_enabled"
+  end
+
+  create_table "promotion_products", force: :cascade do |t|
+    t.bigint "promotion_id", null: false
+    t.bigint "product_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_promotion_products_on_product_id"
+    t.index ["promotion_id", "product_id"], name: "index_promotion_products_on_promotion_id_and_product_id", unique: true
+    t.index ["promotion_id"], name: "index_promotion_products_on_promotion_id"
   end
 
   create_table "promotion_redemptions", force: :cascade do |t|
@@ -533,9 +724,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.index ["tenant_customer_id"], name: "index_promotion_redemptions_on_tenant_customer_id"
   end
 
+  create_table "promotion_services", force: :cascade do |t|
+    t.bigint "promotion_id", null: false
+    t.bigint "service_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["promotion_id", "service_id"], name: "index_promotion_services_on_promotion_id_and_service_id", unique: true
+    t.index ["promotion_id"], name: "index_promotion_services_on_promotion_id"
+    t.index ["service_id"], name: "index_promotion_services_on_service_id"
+  end
+
   create_table "promotions", force: :cascade do |t|
     t.string "name", null: false
-    t.string "code", null: false
+    t.string "code"
     t.text "description"
     t.integer "discount_type", default: 0
     t.decimal "discount_value", precision: 10, scale: 2, null: false
@@ -547,8 +748,50 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "applicable_to_products", default: true, null: false
+    t.boolean "applicable_to_services", default: true, null: false
+    t.boolean "public_dates", default: false, null: false
+    t.boolean "allow_discount_codes", default: true, null: false
+    t.index ["applicable_to_products"], name: "index_promotions_on_applicable_to_products"
+    t.index ["applicable_to_services"], name: "index_promotions_on_applicable_to_services"
     t.index ["business_id"], name: "index_promotions_on_business_id"
-    t.index ["code", "business_id"], name: "index_promotions_on_code_and_business_id", unique: true
+    t.index ["code", "business_id"], name: "index_promotions_on_code_and_business_id", unique: true, where: "(code IS NOT NULL)"
+    t.index ["public_dates"], name: "index_promotions_on_public_dates"
+  end
+
+  create_table "referral_programs", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.boolean "active", default: true, null: false
+    t.string "referrer_reward_type", default: "points", null: false
+    t.decimal "referrer_reward_value", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "referral_code_discount_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "min_purchase_amount", precision: 10, scale: 2, default: "0.0"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_referral_programs_on_active"
+    t.index ["business_id"], name: "index_referral_programs_on_business_id"
+  end
+
+  create_table "referrals", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "referrer_id", null: false
+    t.string "referral_code", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "reward_issued_at"
+    t.datetime "qualification_met_at"
+    t.bigint "qualifying_booking_id"
+    t.bigint "qualifying_order_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "referred_tenant_customer_id"
+    t.index ["business_id", "referral_code"], name: "index_referrals_on_business_id_and_referral_code", unique: true
+    t.index ["business_id"], name: "index_referrals_on_business_id"
+    t.index ["qualifying_booking_id"], name: "index_referrals_on_qualifying_booking_id"
+    t.index ["qualifying_order_id"], name: "index_referrals_on_qualifying_order_id"
+    t.index ["referral_code"], name: "index_referrals_on_referral_code"
+    t.index ["referred_tenant_customer_id"], name: "index_referrals_on_referred_tenant_customer_id"
+    t.index ["referrer_id"], name: "index_referrals_on_referrer_id"
+    t.index ["status"], name: "index_referrals_on_status"
   end
 
   create_table "service_templates", force: :cascade do |t|
@@ -582,8 +825,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.integer "min_bookings"
     t.integer "max_bookings"
     t.integer "spots"
+    t.boolean "tips_enabled", default: false, null: false
     t.index ["business_id"], name: "index_services_on_business_id"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
+    t.index ["tips_enabled"], name: "index_services_on_tips_enabled"
   end
 
   create_table "services_staff_members", force: :cascade do |t|
@@ -844,15 +1089,55 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "stripe_customer_id"
+    t.bigint "user_id"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
+    t.index ["user_id"], name: "index_tenant_customers_on_user_id"
   end
 
   create_table "test_models", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "tip_configurations", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.json "default_tip_percentages", default: [15, 18, 20], null: false
+    t.boolean "custom_tip_enabled", default: true, null: false
+    t.text "tip_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_tip_configurations_on_business_id"
+  end
+
+  create_table "tips", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "booking_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "stripe_payment_intent_id"
+    t.string "stripe_charge_id"
+    t.string "stripe_customer_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "paid_at"
+    t.text "failure_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "stripe_fee_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "platform_fee_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "business_amount", precision: 10, scale: 2, null: false
+    t.index ["booking_id"], name: "index_tips_on_booking_id"
+    t.index ["business_amount"], name: "index_tips_on_business_amount"
+    t.index ["business_id", "status"], name: "index_tips_on_business_id_and_status"
+    t.index ["business_id"], name: "index_tips_on_business_id"
+    t.index ["paid_at"], name: "index_tips_on_paid_at"
+    t.index ["platform_fee_amount"], name: "index_tips_on_platform_fee_amount"
+    t.index ["stripe_fee_amount"], name: "index_tips_on_stripe_fee_amount"
+    t.index ["stripe_payment_intent_id"], name: "index_tips_on_stripe_payment_intent_id", unique: true, where: "(stripe_payment_intent_id IS NOT NULL)"
+    t.index ["tenant_customer_id"], name: "index_tips_on_tenant_customer_id"
+    t.check_constraint "amount > 0::numeric", name: "tips_amount_positive"
   end
 
   create_table "users", force: :cascade do |t|
@@ -882,8 +1167,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
     t.datetime "last_sign_in_at"
     t.string "current_sign_in_ip"
     t.string "last_sign_in_ip"
+    t.string "referral_source_code"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
+    t.index ["email", "role"], name: "index_users_on_email_and_role"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["last_sign_in_at"], name: "index_users_on_last_sign_in_at"
     t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
@@ -905,6 +1192,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
   add_foreign_key "campaign_recipients", "tenant_customers"
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
+  add_foreign_key "discount_codes", "businesses", on_delete: :cascade
+  add_foreign_key "discount_codes", "referrals", column: "generated_by_referral_id"
+  add_foreign_key "discount_codes", "tenant_customers"
+  add_foreign_key "discount_codes", "tenant_customers", column: "used_by_customer_id", on_delete: :nullify
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "bookings", on_delete: :nullify
@@ -918,6 +1209,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
   add_foreign_key "line_items", "services", on_delete: :nullify
   add_foreign_key "line_items", "staff_members", on_delete: :nullify
   add_foreign_key "locations", "businesses", on_delete: :cascade
+  add_foreign_key "loyalty_programs", "businesses", on_delete: :cascade
+  add_foreign_key "loyalty_redemptions", "bookings", on_delete: :nullify
+  add_foreign_key "loyalty_redemptions", "businesses", on_delete: :cascade
+  add_foreign_key "loyalty_redemptions", "loyalty_rewards", on_delete: :cascade
+  add_foreign_key "loyalty_redemptions", "orders", on_delete: :nullify
+  add_foreign_key "loyalty_redemptions", "tenant_customers", on_delete: :cascade
+  add_foreign_key "loyalty_rewards", "businesses", on_delete: :cascade
+  add_foreign_key "loyalty_rewards", "loyalty_programs", on_delete: :cascade
+  add_foreign_key "loyalty_transactions", "bookings", column: "related_booking_id"
+  add_foreign_key "loyalty_transactions", "businesses", on_delete: :cascade
+  add_foreign_key "loyalty_transactions", "orders", column: "related_order_id"
+  add_foreign_key "loyalty_transactions", "referrals", column: "related_referral_id"
+  add_foreign_key "loyalty_transactions", "tenant_customers", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "businesses", on_delete: :cascade
   add_foreign_key "marketing_campaigns", "promotions"
   add_foreign_key "notification_templates", "businesses", on_delete: :cascade
@@ -932,14 +1236,29 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
   add_foreign_key "payments", "invoices", on_delete: :nullify
   add_foreign_key "payments", "orders", on_delete: :nullify
   add_foreign_key "payments", "tenant_customers", on_delete: :nullify
+  add_foreign_key "platform_discount_codes", "businesses", on_delete: :cascade
+  add_foreign_key "platform_loyalty_transactions", "businesses", on_delete: :cascade
+  add_foreign_key "platform_loyalty_transactions", "platform_referrals", column: "related_platform_referral_id"
+  add_foreign_key "platform_referrals", "businesses", column: "referred_business_id", on_delete: :cascade
+  add_foreign_key "platform_referrals", "businesses", column: "referrer_business_id", on_delete: :cascade
   add_foreign_key "policy_acceptances", "users"
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses", on_delete: :cascade
+  add_foreign_key "promotion_products", "products", on_delete: :cascade
+  add_foreign_key "promotion_products", "promotions", on_delete: :cascade
   add_foreign_key "promotion_redemptions", "bookings", on_delete: :cascade
   add_foreign_key "promotion_redemptions", "invoices"
   add_foreign_key "promotion_redemptions", "promotions"
   add_foreign_key "promotion_redemptions", "tenant_customers"
+  add_foreign_key "promotion_services", "promotions", on_delete: :cascade
+  add_foreign_key "promotion_services", "services", on_delete: :cascade
   add_foreign_key "promotions", "businesses", on_delete: :cascade
+  add_foreign_key "referral_programs", "businesses", on_delete: :cascade
+  add_foreign_key "referrals", "bookings", column: "qualifying_booking_id"
+  add_foreign_key "referrals", "businesses", on_delete: :cascade
+  add_foreign_key "referrals", "orders", column: "qualifying_order_id"
+  add_foreign_key "referrals", "tenant_customers", column: "referred_tenant_customer_id"
+  add_foreign_key "referrals", "users", column: "referrer_id"
   add_foreign_key "services", "businesses", on_delete: :cascade
   add_foreign_key "services_staff_members", "services", on_delete: :cascade
   add_foreign_key "services_staff_members", "staff_members", on_delete: :cascade
@@ -963,6 +1282,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_06_192532) do
   add_foreign_key "subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "tax_rates", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
+  add_foreign_key "tenant_customers", "users"
+  add_foreign_key "tip_configurations", "businesses"
+  add_foreign_key "tips", "bookings"
+  add_foreign_key "tips", "businesses"
+  add_foreign_key "tips", "tenant_customers"
   add_foreign_key "users", "businesses"
   add_foreign_key "users", "staff_members"
 end

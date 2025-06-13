@@ -45,8 +45,7 @@ class HealthController < ApplicationController
       database: {
         connected: true,
         timestamp: Time.current.iso8601
-      },
-      env: limited_environment_info
+      }
     }
   end
 
@@ -73,11 +72,8 @@ class HealthController < ApplicationController
   end
 
   def limited_environment_info
-    # Security: Limit information exposure
-    {
-      rails_env: Rails.env,
-      healthy: true
-    }
+    # SECURITY FIX: Remove environment information disclosure
+    { status: 'ok' }
   end
 
   def environment_info

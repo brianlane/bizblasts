@@ -1,0 +1,115 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-md mx-auto">
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+      <!-- Success Header -->
+      <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-8 text-white text-center">
+        <div class="flex justify-center mb-4">
+          <div class="bg-white bg-opacity-20 rounded-full p-3">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="text-2xl font-bold mb-2">Thank You!</h1>
+        <p class="text-green-100">Your tip has been processed successfully</p>
+      </div>
+
+      <!-- Business Info -->
+      <div class="px-6 py-4 bg-green-50 border-b">
+        <div class="text-center">
+          <% if @booking.business.logo.attached? %>
+            <%= image_tag @booking.business.logo, class: "h-10 w-auto mx-auto mb-2", alt: @booking.business.name %>
+          <% end %>
+          <h2 class="text-lg font-semibold text-gray-800"><%= @booking.business.name %></h2>
+        </div>
+      </div>
+
+      <!-- Tip Details -->
+      <div class="px-6 py-6 space-y-4">
+        <!-- Service Info -->
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="font-medium text-gray-800 mb-2">Service Details</h3>
+          <div class="space-y-1 text-sm text-gray-600">
+            <p><span class="font-medium">Service:</span> <%= @booking.service.name %></p>
+            <p><span class="font-medium">Date:</span> <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
+            <% if @booking.staff_member %>
+              <p><span class="font-medium">Staff:</span> <%= @booking.staff_member.name %></p>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Tip Amount -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div class="flex justify-between items-center">
+            <span class="font-medium text-green-800">Tip Amount:</span>
+            <span class="text-green-800 font-bold text-xl">
+              <%= number_to_currency(@tip.amount) %>
+            </span>
+          </div>
+        </div>
+
+        <!-- Appreciation Message -->
+        <div class="text-center py-4">
+          <div class="flex justify-center mb-3">
+            <svg class="w-12 h-12 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Your Appreciation Means Everything!</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">
+            Your tip will go directly to the service team who provided your experience. 
+            Thank you for supporting our team and helping us continue to provide excellent service.
+          </p>
+        </div>
+
+        <!-- Receipt Info -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <h4 class="text-sm font-medium text-blue-800">Receipt Information</h4>
+              <p class="text-sm text-blue-700 mt-1">
+                A receipt for your tip has been sent to your email address. 
+                You can also contact us if you need any additional documentation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="px-6 py-4 bg-gray-50 border-t space-y-3">
+        <%= link_to "Visit Our Website", 
+                    tenant_root_path, 
+                    class: "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg text-center block transition duration-200" %>
+        
+        <div class="text-center">
+          <p class="text-xs text-gray-500">
+            Thank you for choosing <%= @booking.business.name %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Social Sharing (Optional) -->
+    <div class="mt-6 text-center">
+      <p class="text-sm text-gray-500 mb-3">Loved your experience? Share it with others!</p>
+      <div class="flex justify-center space-x-4">
+        <!-- Add social sharing buttons if needed -->
+        <% if @booking.business.social_media_links.present? %>
+          <!-- Social media links can be added here -->
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Optional: Auto-redirect after a certain time
+setTimeout(function() {
+  // Uncomment if you want to auto-redirect after 30 seconds
+  // window.location.href = '<%= tenant_root_path %>';
+}, 30000);
+</script> 

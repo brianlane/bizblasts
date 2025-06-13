@@ -4,7 +4,13 @@ module BusinessManager
     before_action :load_collections, only: [:new, :edit, :create, :update]
 
     def index
-      @orders = @current_business.orders.includes(:tenant_customer, :line_items)
+      @orders = @current_business.orders.includes(
+                  :tenant_customer, 
+                  :shipping_method, 
+                  :tax_rate,
+                  :invoice,
+                  line_items: { product_variant: :product }
+                )
       
       # Handle status filter
       if params[:status].present?
@@ -23,12 +29,7 @@ module BusinessManager
     end
 
     def show
-      @order = @current_business.orders.includes(
-        line_items: { product_variant: :product }, 
-        tenant_customer: {}, 
-        shipping_method: {}, 
-        tax_rate: {}
-      ).find(params[:id])
+      # @order is already set by set_order before_action with proper eager loading
     end
 
     def new
@@ -119,7 +120,13 @@ module BusinessManager
     private
 
     def set_order
-      @order = @current_business.orders.find(params[:id])
+      @order = @current_business.orders.includes(
+                 :tenant_customer, 
+                 :shipping_method, 
+                 :tax_rate,
+                 :invoice,
+                 line_items: { product_variant: :product }
+               ).find(params[:id])
     end
 
     def load_collections

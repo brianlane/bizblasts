@@ -10,6 +10,10 @@ class TenantCustomer < ApplicationRecord
   has_many :orders, dependent: :destroy
   has_many :payments, dependent: :destroy
   
+  # Loyalty and referral system associations
+  has_many :loyalty_transactions, dependent: :destroy
+  has_many :loyalty_redemptions, dependent: :destroy
+  
   # Allow access to User accounts associated with this customer's business
   has_many :users, through: :business, source: :clients
   
@@ -41,6 +45,64 @@ class TenantCustomer < ApplicationRecord
   
   def current_business
     Business.find(business_id)
+  end
+  
+  # Cached loyalty points methods for better performance
+  def current_loyalty_points
+    Rails.cache.fetch("tenant_customer_#{id}_loyalty_points", expires_in: 1.hour) do
+      loyalty_transactions.sum(:points_amount)
+    end
+  end
+  
+  def loyalty_points_earned
+    Rails.cache.fetch("tenant_customer_#{id}_loyalty_points_earned", expires_in: 1.hour) do
+      loyalty_transactions.earned.sum(:points_amount)
+    end
+  end
+  
+  def loyalty_points_redeemed
+    Rails.cache.fetch("tenant_customer_#{id}_loyalty_points_redeemed", expires_in: 1.hour) do
+      loyalty_transactions.redeemed.sum(:points_amount).abs
+    end
+  end
+  
+  def loyalty_points_history
+    loyalty_transactions.recent.limit(20)
+  end
+  
+  def can_redeem_points?(points_required)
+    current_loyalty_points >= points_required
+  end
+  
+  def add_loyalty_points!(points, description, related_record = nil)
+    loyalty_transactions.create!(
+      business: business,
+      transaction_type: 'earned',
+      points_amount: points,
+      description: description,
+      related_booking: related_record.is_a?(Booking) ? related_record : nil,
+      related_order: related_record.is_a?(Order) ? related_record : nil
+    )
+  end
+  
+  def redeem_loyalty_points!(points, description, related_record = nil)
+    return false unless can_redeem_points?(points)
+    
+    loyalty_transactions.create!(
+      business: business,
+      transaction_type: 'redeemed',
+      points_amount: -points,
+      description: description,
+      related_booking: related_record.is_a?(Booking) ? related_record : nil,
+      related_order: related_record.is_a?(Order) ? related_record : nil
+    )
+  end
+  
+  # Clear loyalty cache when transactions change
+  def clear_loyalty_cache
+    Rails.cache.delete("tenant_customer_#{id}_loyalty_points")
+    Rails.cache.delete("tenant_customer_#{id}_loyalty_points_earned")
+    Rails.cache.delete("tenant_customer_#{id}_loyalty_points_redeemed")
   end
   
   # Define ransackable attributes for ActiveAdmin

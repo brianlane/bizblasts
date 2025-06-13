@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :promotion do
     association :business
     name { "Summer Sale" }
-    sequence(:code) { |n| "SUMMER#{n}" }
+    code { nil } # Default to automatic promotion (no code)
     start_date { 1.week.ago }
     end_date { 1.month.from_now }
     discount_type { :percentage } 
@@ -10,6 +10,17 @@ FactoryBot.define do
     usage_limit { nil } # Unlimited unless specified
     current_usage { 0 }
     active { true }
+    allow_discount_codes { true } # Can be true for automatic promotions
+    
+    trait :automatic do
+      code { nil }
+      allow_discount_codes { true }
+    end
+    
+    trait :code_based do
+      sequence(:code) { |n| "PROMO#{n}" }
+      allow_discount_codes { false } # Code-based promotions cannot stack
+    end
     
     trait :percentage do
       discount_type { :percentage }

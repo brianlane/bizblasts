@@ -117,8 +117,8 @@ RSpec.describe 'Policy Acceptance Modal', type: :system do
       
       expect(page).to have_content('Dashboard').or have_content('My Bookings').or have_content('BizBlasts')
       
-      # Modal should still be present in HTML but not triggered
-      expect(page).to have_css('#policy-acceptance-modal', visible: false)
+      # With our optimization, modal HTML is NOT rendered for users who don't need policy acceptance
+      expect(page).not_to have_css('#policy-acceptance-modal')
     end
   end
   

@@ -148,11 +148,33 @@ module Public
       attrs     = booking_params.except(
                     :tenant_customer_id, :tenant_customer_attributes,
                     :create_account, :password, :password_confirmation,
-                    :date, :duration
+                    :date, :duration, :promo_code
                  )
       @booking = current_tenant.bookings.new(attrs)
       @booking.tenant_customer = customer
       @booking.end_time        = @booking.start_time + @service.duration.minutes
+      
+      # Process promo code if provided
+      if booking_params[:promo_code].present?
+        promo_result = PromoCodeService.validate_code(
+          booking_params[:promo_code], 
+          current_tenant, 
+          customer
+        )
+        
+        if promo_result[:valid]
+          @booking.applied_promo_code = booking_params[:promo_code]
+          @booking.promo_code_type = promo_result[:type]
+          @booking.promo_discount_amount = PromoCodeService.calculate_discount(
+            booking_params[:promo_code], 
+            current_tenant, 
+            @booking.amount || @service.price, 
+            customer
+          )
+        else
+          @booking.errors.add(:promo_code, promo_result[:error])
+        end
+      end
 
       # Early validation for account creation errors
       if @booking.errors.any?
@@ -164,6 +186,21 @@ module Public
       if current_user.present? && (current_user.staff? || current_user.manager?)
         # Business users creating bookings for clients - create booking immediately
         if @booking.save
+          # Apply promo code if valid
+          if @booking.applied_promo_code.present?
+            PromoCodeService.apply_code(
+              @booking.applied_promo_code,
+              current_tenant,
+              @booking,
+              customer
+            )
+          end
+          
+          # Award loyalty points for booking
+          if current_tenant.loyalty_program_active?
+            LoyaltyPointsService.award_booking_points(@booking)
+          end
+          
           generate_or_update_invoice_for_booking(@booking)
           
           # Send business notification email
@@ -255,6 +292,21 @@ module Public
         else
           # Standard services allow flexible payment - create booking immediately
           if @booking.save
+            # Apply promo code if valid
+            if @booking.applied_promo_code.present?
+              PromoCodeService.apply_code(
+                @booking.applied_promo_code,
+                current_tenant,
+                @booking,
+                customer
+              )
+            end
+            
+            # Award loyalty points for booking
+            if current_tenant.loyalty_program_active?
+              LoyaltyPointsService.award_booking_points(@booking)
+            end
+            
             # Generate invoice for the booking
             generate_or_update_invoice_for_booking(@booking)
             
@@ -352,7 +404,7 @@ module Public
         :service_id, :staff_member_id, :start_time,
         :'start_time(1i)', :'start_time(2i)', :'start_time(3i)',
         :'start_time(4i)', :'start_time(5i)', :quantity,
-        :notes, :tenant_customer_id, :date, :duration,
+        :notes, :tenant_customer_id, :date, :duration, :promo_code,
         :create_account, :password, :password_confirmation,
         booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy],
         tenant_customer_attributes: [:first_name, :last_name, :email, :phone]

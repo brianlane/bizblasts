@@ -10,9 +10,9 @@ RSpec.describe StripeService, type: :service do
   end
 
   describe '.calculate_stripe_fee_cents' do
-    it 'calculates 3% plus 30¢ correctly' do
-      # For $10.00 = 1000 cents: 3% = 30 cents + 30 cents = 60 cents
-      expect(described_class.send(:calculate_stripe_fee_cents, 1000)).to eq(60)
+    it 'calculates 2.9% plus 30¢ correctly' do
+      # For $10.00 = 1000 cents: 2.9% = 29 cents + 30 cents = 59 cents
+      expect(described_class.send(:calculate_stripe_fee_cents, 1000)).to eq(59)
     end
   end
 
@@ -293,6 +293,246 @@ RSpec.describe StripeService, type: :service do
       }.not_to change(Booking, :count)
 
       expect(Rails.logger).to have_received(:error).with(/Could not find business/)
+    end
+  end
+
+  describe ".handle_payment_completion with tips" do
+    let(:business) { create(:business, stripe_account_id: "acct_test123") }
+    let(:customer) { create(:tenant_customer, business: business) }
+    let(:service) { create(:service, business: business, service_type: :experience, min_bookings: 1, max_bookings: 10, spots: 5) }
+    let(:staff_member) { create(:staff_member, business: business) }
+    let(:booking) { create(:booking, business: business, service: service, staff_member: staff_member, tenant_customer: customer) }
+    let(:order) { create(:order, business: business, tenant_customer: customer, booking: booking) }
+    let(:invoice) { create(:invoice, business: business, order: order, tenant_customer: customer, tip_amount: 10.0) }
+    
+    let(:session) do
+      double(
+        id: "cs_test_session123",
+        client_reference_id: invoice.id.to_s,
+        payment_intent: "pi_test123",
+        metadata: { "tip_amount" => "10.0" }
+      )
+    end
+    
+    let(:payment_intent) do
+      double(
+        amount_received: 5000, # $50.00 in cents
+        charges: double(data: [double(balance_transaction: double(fee: 145))]) # $1.45 fee
+      )
+    end
+
+    before do
+      allow(Stripe::PaymentIntent).to receive(:retrieve).and_return(payment_intent)
+      allow(StripeService).to receive(:calculate_platform_fee).and_return(1.0)
+    end
+
+    context "with order tip" do
+      it "creates payment with tip amount" do
+        result = StripeService.handle_payment_completion(session)
+        
+        puts "Result: #{result.inspect}" if result[:success] == false
+        expect(result[:success]).to be true
+        payment = result[:payment]
+        expect(payment.tip_amount).to eq(10.0)
+        expect(payment.amount).to eq(50.0)
+      end
+
+      it "updates order with tip amount" do
+        StripeService.handle_payment_completion(session)
+        
+        expect(order.reload.tip_amount).to eq(10.0)
+        expect(order.status).to eq("paid")
+      end
+
+      it "creates tip record" do
+        expect {
+          StripeService.handle_payment_completion(session)
+        }.to change(Tip, :count).by(1)
+        
+        tip = Tip.last
+        expect(tip.amount).to eq(10.0)
+        expect(tip.status).to eq("completed")
+      end
+
+      it "sends confirmation email with tip" do
+        expect(InvoiceMailer).to receive(:payment_confirmation).with(invoice, anything).and_return(double(deliver_later: true))
+        
+        StripeService.handle_payment_completion(session)
+      end
+    end
+
+    context 'with booking tip' do
+      let(:service) { create(:service, business: business, service_type: :experience, min_bookings: 1, max_bookings: 10, spots: 5) }
+      let(:staff_member) { create(:staff_member, business: business) }
+      let(:booking) { create(:booking, business: business, service: service, staff_member: staff_member, tenant_customer: customer) }
+      let(:invoice) { create(:invoice, business: business, booking: booking, tenant_customer: customer) }
+      let(:session) do
+        double('Stripe::Checkout::Session',
+          id: 'cs_test_booking_tip_123',
+          client_reference_id: invoice.id.to_s,
+          payment_intent: 'pi_test_booking_tip_456',
+          metadata: { 'tip_amount' => '15.0' }
+        )
+      end
+
+      it 'creates booking tip record' do
+        expect {
+          StripeService.handle_payment_completion(session)
+        }.to change(Tip, :count).by(1)
+
+        tip = Tip.last
+        expect(tip.booking).to eq(booking)
+        expect(tip.amount).to eq(15.0)
+        expect(tip.status).to eq('completed')
+      end
+    end
+
+    context 'without tip' do
+      let(:invoice) { create(:invoice, business: business, order: order, tenant_customer: customer, tip_amount: 0.0) }
+      let(:session) do
+        double('Stripe::Checkout::Session',
+          id: 'cs_test_no_tip_123',
+          client_reference_id: invoice.id.to_s,
+          payment_intent: 'pi_test_no_tip_456',
+          metadata: {}
+        )
+      end
+
+      it 'does not create tip record' do
+        expect {
+          StripeService.handle_payment_completion(session)
+        }.not_to change(Tip, :count)
+      end
+
+      it 'sends regular confirmation email' do
+        expect(InvoiceMailer).to receive(:payment_confirmation).with(invoice, anything).and_return(double(deliver_later: true))
+        
+        StripeService.handle_payment_completion(session)
+      end
+    end
+  end
+
+  describe ".create_tip_payment_session" do
+    let(:business) { create(:business, stripe_account_id: "acct_test123") }
+    let(:booking) { create(:booking, business: business) }
+    let(:tip) { create(:tip, business: business, booking: booking, amount: 25.0) }
+    
+    let(:stripe_session) do
+      double(
+        id: "cs_test_tip_session",
+        url: "https://checkout.stripe.com/pay/test"
+      )
+    end
+
+    before do
+      allow(Stripe::Checkout::Session).to receive(:create).and_return(stripe_session)
+    end
+
+    it "creates Stripe checkout session for tip" do
+      result = StripeService.create_tip_payment_session(
+        tip: tip,
+        success_url: "http://example.com/success",
+        cancel_url: "http://example.com/cancel"
+      )
+
+      expect(result[:success]).to be true
+      expect(result[:session]).to eq(stripe_session)
+    end
+
+    it "returns success with session" do
+      result = StripeService.create_tip_payment_session(
+        tip: tip,
+        success_url: "http://example.com/success",
+        cancel_url: "http://example.com/cancel"
+      )
+
+      expect(result[:success]).to be true
+      expect(result[:session]).to eq(stripe_session)
+    end
+
+    it "creates session with correct parameters" do
+      StripeService.create_tip_payment_session(
+        tip: tip,
+        success_url: "http://example.com/success",
+        cancel_url: "http://example.com/cancel"
+      )
+
+      expect(Stripe::Checkout::Session).to have_received(:create).with(
+        hash_including(
+          line_items: array_including(
+            hash_including(
+              price_data: hash_including(
+                unit_amount: 2500, # $25.00 in cents
+                product_data: hash_including(
+                  name: "Tip for #{business.name}"
+                )
+              )
+            )
+          ),
+          client_reference_id: tip.id.to_s,
+          metadata: hash_including(
+            tip_id: tip.id.to_s,
+            business_id: business.id.to_s
+          )
+        ),
+        { stripe_account: business.stripe_account_id }
+      )
+    end
+
+    context "with invalid tip amount" do
+      let(:tip) { create(:tip, business: business, booking: booking, amount: 0.25) }
+
+      it "raises error for amount below minimum" do
+        expect {
+          StripeService.create_tip_payment_session(
+            tip: tip,
+            success_url: "http://example.com/success",
+            cancel_url: "http://example.com/cancel"
+          )
+        }.to raise_error(ArgumentError, "Tip amount must be at least $0.50")
+      end
+    end
+
+    context "without Stripe Connect account" do
+      let(:business) { create(:business, stripe_account_id: nil) }
+
+      it "raises error" do
+        expect {
+          StripeService.create_tip_payment_session(
+            tip: tip,
+            success_url: "http://example.com/success",
+            cancel_url: "http://example.com/cancel"
+          )
+        }.to raise_error(ArgumentError, "Business must have a connected Stripe account to process tips")
+      end
+    end
+  end
+
+  describe "tip fee calculations" do
+    describe ".calculate_tip_stripe_fee" do
+      it "calculates 2.9% Stripe fee" do
+        fee = StripeService.calculate_tip_stripe_fee(100.0)
+        expect(fee).to eq(2.90)
+      end
+
+      it "rounds to 2 decimal places" do
+        fee = StripeService.calculate_tip_stripe_fee(33.33)
+        expect(fee).to eq(0.97)
+      end
+    end
+
+    describe ".calculate_tip_platform_fee" do
+      it "returns zero platform fee for tips" do
+        fee = StripeService.calculate_tip_platform_fee(100.0)
+        expect(fee).to eq(0.0)
+      end
+    end
+
+    describe ".calculate_tip_business_amount" do
+      it "calculates business amount after Stripe fee" do
+        amount = StripeService.calculate_tip_business_amount(100.0)
+        expect(amount).to eq(97.10) # 100 - 2.90 stripe fee
+      end
     end
   end
 end 

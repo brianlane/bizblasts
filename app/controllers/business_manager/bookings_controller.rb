@@ -359,8 +359,13 @@ module BusinessManager
     end
     
     def set_booking
-      @booking = current_business.bookings.includes(booking_product_add_ons: {product_variant: :product})
-                                .find(params[:id])
+      @booking = current_business.bookings.includes(
+                   :service, 
+                   :staff_member, 
+                   :tenant_customer, 
+                   :business,
+                   booking_product_add_ons: { product_variant: :product }
+                 ).find(params[:id])
     rescue ActiveRecord::RecordNotFound
       flash[:alert] = "Booking not found."
       redirect_to business_manager_bookings_path

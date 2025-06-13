@@ -18,7 +18,15 @@
 
   <div class="field">
     <%= form.label :channel %>
-    <%= form.select :channel, NotificationTemplate.channels.keys.map { |key| [key.humanize, key] } %>
+    <%= render 'shared/rich_dropdown',
+        collection: NotificationTemplate.channels.keys.map { |key| [key.humanize, key] },
+        field_name: "#{form.object_name}[channel]",
+        selected_value: form.object.channel,
+        prompt_text: "Select Channel",
+        value_method: :last,
+        text_method: :first,
+        required: true,
+        dropdown_id: "notification_channel_dropdown" %>
   </div>
 
   <div class="field">

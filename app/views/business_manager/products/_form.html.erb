@@ -33,10 +33,15 @@
 
       <div>
         <%= form.label :product_type, "Product Type", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= form.select :product_type, 
-              Product.product_types.keys.map { |pt| [pt.titleize, pt] }, 
-              { include_blank: 'Select Type' }, 
-              { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+        <%= render 'shared/rich_dropdown',
+            collection: Product.product_types.keys.map { |pt| [pt.titleize, pt] },
+            field_name: "#{form.object_name}[product_type]",
+            selected_value: form.object.product_type,
+            prompt_text: "Select Type",
+            value_method: :last,
+            text_method: :first,
+            required: false,
+            dropdown_id: "product_type_dropdown" %>
       </div>
     </div>
 
@@ -200,7 +205,7 @@
         <%= render 'variant_fields', form: variant_form %>
       <% end %>
       
-      <div class="flex justify-start">
+      <div id="add-variant-container" class="flex justify-start">
         <%= link_to '+ Add Variant', '#', id: 'add-variant', 
               class: "inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
       </div>
@@ -217,59 +222,175 @@
 <% end %>
 
 <!-- Template for new variant fields (hidden) -->
-<div id="variant-template" class="hidden">
-  <%= form_with model: Product.new, local: true do |temp_form| %>
-    <%= temp_form.fields_for :product_variants, Product.new.product_variants.build, child_index: 'NEW_RECORD' do |variant_form| %>
-      <%= render 'variant_fields', form: variant_form %>
-    <% end %>
-  <% end %>
-</div>
+<template id="variant-template">
+  <div class="variant-field bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+    <div class="flex items-center justify-between mb-4">
+      <h4 class="text-md font-medium text-gray-900">Product Variant</h4>
+      <button type="button" class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
+        Remove Variant
+      </button>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-gray-700 text-sm font-bold mb-2">Variant Name</label>
+        <input type="text" name="product[product_variants_attributes][NEW_RECORD][name]" required placeholder="e.g., Large, Red" 
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 text-sm font-bold mb-2">SKU</label>
+        <input type="text" name="product[product_variants_attributes][NEW_RECORD][sku]" placeholder="Stock Keeping Unit" 
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 text-sm font-bold mb-2">Price Modifier ($)</label>
+        <input type="number" name="product[product_variants_attributes][NEW_RECORD][price_modifier]" step="0.01" placeholder="0.00" 
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+        <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 text-sm font-bold mb-2">Stock Quantity</label>
+        <input type="number" name="product[product_variants_attributes][NEW_RECORD][stock_quantity]" required min="0" placeholder="0" 
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+      </div>
+    </div>
+    
+    <div class="mt-4">
+      <label class="block text-gray-700 text-sm font-bold mb-2">Options (JSON)</label>
+      <textarea name="product[product_variants_attributes][NEW_RECORD][options]" rows="2" 
+                placeholder='e.g., {"size": "Large", "color": "Red"}' 
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"></textarea>
+      <p class="mt-1 text-xs text-gray-500">Enter as valid JSON for additional variant properties</p>
+    </div>
+  </div>
+</template>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    let variantCounter = 0;
+    
     // Handle Add Variant button click
     const addVariantBtn = document.getElementById('add-variant');
     if (addVariantBtn) {
       addVariantBtn.addEventListener('click', function(e) {
         e.preventDefault();
         
-        // Get the template HTML
-        const template = document.getElementById('variant-template');
-        if (!template) return;
-        
-        let templateHTML = template.innerHTML;
-        
-        // Replace placeholder index with timestamp to ensure uniqueness
-        const timestamp = new Date().getTime();
-        templateHTML = templateHTML.replace(/NEW_RECORD/g, timestamp);
-        
-        // Insert the new variant fields
+        // Get the variants container
         const variantsContainer = document.getElementById('product-variants');
-        const addButtonContainer = variantsContainer.querySelector('.flex');
+        if (!variantsContainer) {
+          console.error('Product variants container not found');
+          return;
+        }
         
-        // Create a temporary div to hold the new content
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = templateHTML;
+        // Create unique timestamp for this variant
+        const timestamp = Date.now() + variantCounter++;
         
-        // Find the actual variant fields in the template and insert before add button
-        const variantField = tempDiv.querySelector('.variant-field');
-        if (variantField && addButtonContainer) {
-          variantsContainer.insertBefore(variantField, addButtonContainer);
+        // Create the variant using the manual approach (most reliable)
+        const newVariant = createVariantManually(timestamp);
+        
+        // Find the add button container - use specific ID to avoid any confusion
+        const addButtonContainer = document.getElementById('add-variant-container');
+        
+        // IMPROVED APPROACH: Use insertAdjacentElement instead of DOM manipulation
+        // This preserves existing elements and their event handlers
+        if (addButtonContainer) {
+          // Insert the new variant right before the button container
+          // This doesn't disrupt existing DOM elements or their event handlers
+          addButtonContainer.insertAdjacentElement('beforebegin', newVariant);
+        } else {
+          console.warn('Add button container not found, appending to end');
+          // Fallback: just append to the end
+          variantsContainer.appendChild(newVariant);
+        }
+        
+        // Focus on the first input of the new variant
+        const firstInput = newVariant.querySelector('input[type="text"]');
+        if (firstInput) {
+          firstInput.focus();
         }
       });
     }
     
+    // Fallback function to create variant manually
+    function createVariantManually(timestamp) {
+      const variantDiv = document.createElement('div');
+      variantDiv.className = 'variant-field bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4';
+      variantDiv.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-md font-medium text-gray-900">Product Variant</h4>
+          <button type="button" class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
+            Remove Variant
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2">Variant Name</label>
+            <input type="text" name="product[product_variants_attributes][${timestamp}][name]" required placeholder="e.g., Large, Red" 
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2">SKU</label>
+            <input type="text" name="product[product_variants_attributes][${timestamp}][sku]" placeholder="Stock Keeping Unit" 
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2">Price Modifier ($)</label>
+            <input type="number" name="product[product_variants_attributes][${timestamp}][price_modifier]" step="0.01" placeholder="0.00" 
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+            <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2">Stock Quantity</label>
+            <input type="number" name="product[product_variants_attributes][${timestamp}][stock_quantity]" required min="0" placeholder="0" 
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2">Options (JSON)</label>
+          <textarea name="product[product_variants_attributes][${timestamp}][options]" rows="2" 
+                    placeholder='e.g., {"size": "Large", "color": "Red"}' 
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"></textarea>
+          <p class="mt-1 text-xs text-gray-500">Enter as valid JSON for additional variant properties</p>
+        </div>
+      `;
+      return variantDiv;
+    }
+    
     // Handle Remove Variant links (with event delegation)
     document.addEventListener('click', function(e) {
-      if (e.target.matches('.remove-variant') || e.target.closest('.remove-variant')) {
+      // More robust detection for remove variant elements
+      let removeButton = null;
+      
+      // Check if the clicked element itself has the remove-variant class
+      if (e.target.classList.contains('remove-variant')) {
+        removeButton = e.target;
+      }
+      // Check if the clicked element is inside a remove-variant element
+      else if (e.target.closest('.remove-variant')) {
+        removeButton = e.target.closest('.remove-variant');
+      }
+      
+      if (removeButton) {
         e.preventDefault();
-        const button = e.target.matches('.remove-variant') ? e.target : e.target.closest('.remove-variant');
-        const variantFields = button.closest('.variant-field');
         
-        if (!variantFields) return;
+        const variantFields = removeButton.closest('.variant-field');
         
-        // Check if this is an existing record
+        if (!variantFields) {
+          console.error('No variant-field parent found for Remove button');
+          return;
+        }
+        
+        // Check if this is an existing record (has an id field)
         const idField = variantFields.querySelector('input[name*="[id]"]');
+        
         if (idField && idField.value) {
           // Create hidden field for _destroy
           const destroyField = document.createElement('input');

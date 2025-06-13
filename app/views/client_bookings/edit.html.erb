@@ -33,9 +33,6 @@
 
   <%# Product Add-ons Section %>
   <h2>Modify Optional Products:</h2>
-  <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
-    Only service and mixed type products can be added to bookings. Standard product types are not shown.
-  </p>
   
   <% if @available_products.any? %>
     <div id="product-add-ons">
@@ -51,7 +48,6 @@
             <%# Calculate current stock correctly for editing an existing item %>
             <% current_item_stock = variant.stock_quantity + addOnFields.object.quantity_was.to_i %>
             <%= addOnFields.number_field :quantity, min: 0, in: 0..current_item_stock, value: addOnFields.object.quantity %>
-            <small>(Available: <%= current_item_stock %>)</small>
           </div>
           <div>
             <%= addOnFields.check_box :_destroy %>
@@ -71,7 +67,6 @@
               <div>
                 <%= newAddOnFields.label :quantity, "Quantity:" %>
                 <%= newAddOnFields.number_field :quantity, min: 0, in: 0..variant.stock_quantity, value: 0, class: 'addon-quantity-input' %>
-                <small>(Available: <%= variant.stock_quantity %>)</small>
               </div>
             </div>
           <% end %>

@@ -94,7 +94,8 @@ class Business::RegistrationsController < Users::RegistrationsController
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
         :description, :tier, 
-        :hostname # Permit the single hostname field
+        :hostname, # Permit the single hostname field
+        :platform_referral_code # Permit platform referral code
         # Removed :subdomain, :domain
       ],
       policy_acceptances: {}
@@ -251,6 +252,11 @@ class Business::RegistrationsController < Users::RegistrationsController
       # Record policy acceptances after successful creation
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
       
+      # Process platform referral code if provided
+      if business_params[:platform_referral_code].present?
+        process_platform_referral_signup(@business, business_params[:platform_referral_code])
+      end
+      
       if resource.active_for_authentication?
         set_flash_message! :notice, :signed_up
         sign_up(resource_name, resource)
@@ -390,5 +396,21 @@ class Business::RegistrationsController < Users::RegistrationsController
         Rails.logger.error "[REGISTRATION] Failed to record policy acceptance for #{policy_type}: #{e.message}"
       end
     end
+  end
+
+  # Process platform referral code during business signup
+  def process_platform_referral_signup(business, referral_code)
+    return unless referral_code.present?
+    
+    result = PlatformLoyaltyService.process_business_referral_signup(business, referral_code)
+    
+    if result[:success]
+      Rails.logger.info "[PLATFORM_REFERRAL] Processed platform referral signup: #{business.name} via #{referral_code}"
+      Rails.logger.info "[PLATFORM_REFERRAL] #{result[:message]}"
+    else
+      Rails.logger.warn "[PLATFORM_REFERRAL] Failed to process platform referral signup: #{business.name} via #{referral_code} - #{result[:error]}"
+    end
+  rescue => e
+    Rails.logger.error "[PLATFORM_REFERRAL] Error processing platform referral signup: #{e.message}"
   end
 end 

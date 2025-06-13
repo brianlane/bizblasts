@@ -1,0 +1,135 @@
+<div class="bg-gray-50 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-white shadow-sm rounded-lg mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-dark">Referral Program Settings</h1>
+            <p class="mt-1 text-sm text-gray-600">Configure your referral program rewards and requirements</p>
+          </div>
+          <div>
+            <%= link_to business_manager_referrals_path, 
+                        class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              Back to Overview
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Form -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-dark">Program Configuration</h3>
+        <p class="text-sm text-gray-600 mt-1">Set up rewards for referrers and discount amount for referral codes</p>
+      </div>
+      
+      <%= form_with model: [:business_manager, @referral_program], url: business_manager_referral_path(@referral_program), method: :patch, local: true, class: "p-6" do |form| %>
+        <% if @referral_program.errors.any? %>
+          <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+            <div class="flex">
+              <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+              </svg>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                  There were <%= pluralize(@referral_program.errors.count, "error") %> with your submission:
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc list-inside space-y-1">
+                    <% @referral_program.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Referrer Reward Section -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-medium text-gray-900 border-b border-gray-200 pb-2">Referrer Reward</h4>
+            <p class="text-sm text-gray-600 -mt-2">Loyalty points awarded to customers who refer others</p>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Loyalty Points</label>
+              <p class="text-xs text-gray-500 mt-1">Referrers always receive loyalty points as their reward</p>
+            </div>
+            
+            <div>
+              <%= form.label :referrer_reward_value, "Points Awarded", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= form.number_field :referrer_reward_value, 
+                  step: 1, 
+                  min: 1,
+                  value: @referral_program.referrer_reward_value.to_i,
+                  class: "block w-full pl-8 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm",
+                  placeholder: "100" %>
+              <p class="text-xs text-gray-500 mt-1">Number of loyalty points awarded to the referrer</p>
+            </div>
+          </div>
+
+          <!-- Referral Code Discount Section -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-medium text-gray-900 border-b border-gray-200 pb-2">Referral Code Discount</h4>
+            <p class="text-sm text-gray-600 -mt-2">Discount amount when someone uses a referral code</p>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fixed Dollar Amount</label>
+              <p class="text-xs text-gray-500 mt-1">Referral codes provide a fixed dollar discount</p>
+            </div>
+            
+            <div>
+              <%= form.label :referral_code_discount_amount, "Discount Amount", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <%= form.number_field :referral_code_discount_amount, 
+                    step: 1, 
+                    min: 1,
+                    value: @referral_program.referral_code_discount_amount.to_i,
+                    class: "block w-full pl-8 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm",
+                    placeholder: "10" %>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Dollar amount discounted when someone uses a referral code</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Requirements Section -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <h4 class="text-sm font-medium text-gray-900 mb-4">Program Requirements</h4>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <%= form.label :min_purchase_amount, "Minimum Purchase Amount", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <%= form.number_field :min_purchase_amount, 
+                    step: 1, 
+                    min: 0,
+                    value: @referral_program.min_purchase_amount.to_i,
+                    class: "block w-full pl-8 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm",
+                    placeholder: "0" %>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Minimum amount the referred customer must spend to qualify the referral (set to 0 for no minimum)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+          <%= link_to "Cancel", business_manager_referrals_path, 
+                      class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
+          
+          <%= form.submit "Save Settings", 
+                          class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 

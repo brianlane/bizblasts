@@ -117,7 +117,8 @@
                       <%= number_to_currency(variant.final_price) %>
                     </div>
                     <div class="text-xs text-gray-500">
-                      <%= variant.price_modifier.zero? ? "Base price" : "#{number_to_currency(variant.price_modifier)} modifier" %>
+                      <% price_modifier = variant.price_modifier || 0 %>
+                      <%= price_modifier.zero? ? "Base price" : "#{number_to_currency(price_modifier)} modifier" %>
                     </div>
                   </div>
                 </div>
@@ -162,7 +163,7 @@
                         <%= variant.sku || '-' %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-gray-900">
-                        <%= number_to_currency(variant.price_modifier) %>
+                        <%= number_to_currency(variant.price_modifier || 0) %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600">
                         <%= number_to_currency(variant.final_price) %>

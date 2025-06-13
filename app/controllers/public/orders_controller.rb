@@ -17,9 +17,25 @@ module Public
       @order.build_tenant_customer
     end
 
-    # POST /orders
-    def create
-      @cart = CartManager.new(session).retrieve
+      # POST /orders
+  def create
+    # Extract tip amount if provided
+    tip_amount = params[:tip_amount].to_f if params[:tip_amount].present?
+    
+    # Check if we have tip-eligible items and validate tip amount
+    if tip_amount.present? && tip_amount > 0
+      unless current_tenant.tips_enabled?
+        flash[:alert] = "Tips are not enabled for this business."
+        redirect_to new_order_path and return
+      end
+      
+      if tip_amount < 0.50
+        flash[:alert] = "Minimum tip amount is $0.50."
+        redirect_to new_order_path and return
+      end
+    end
+
+    @cart = CartManager.new(session).retrieve
 
       # Determine tenant_customer for this order
       if current_user&.client?
@@ -125,6 +141,50 @@ module Public
       # Order creation happens here, outside the customer save conditional
       @order = OrderCreator.create_from_cart(@cart, creation_params)
       if @order.persisted? && @order.errors.empty?
+        # Process promo code if provided
+        if order_params[:promo_code].present?
+          promo_result = PromoCodeService.validate_code(
+            order_params[:promo_code], 
+            current_tenant, 
+            customer
+          )
+          
+          if promo_result[:valid]
+            @order.update!(
+              applied_promo_code: order_params[:promo_code],
+              promo_code_type: promo_result[:type],
+              promo_discount_amount: PromoCodeService.calculate_discount(
+                order_params[:promo_code], 
+                current_tenant, 
+                @order.total_amount, 
+                customer
+              )
+            )
+            
+            # Apply the promo code
+            PromoCodeService.apply_code(
+              order_params[:promo_code],
+              current_tenant,
+              @order,
+              customer
+            )
+          else
+            @order.errors.add(:promo_code, promo_result[:error])
+            flash.now[:alert] = @order.errors.full_messages.to_sentence
+            render :new, status: :unprocessable_entity and return
+          end
+        end
+        
+        # Award loyalty points for order
+        if current_tenant.loyalty_program_active?
+          LoyaltyPointsService.award_order_points(@order)
+        end
+        
+        # Update order with tip amount if provided
+        if tip_amount.present? && tip_amount > 0
+          @order.update!(tip_amount: tip_amount)
+        end
+        
         session[:cart] = {}
         
         # Create an invoice immediately
@@ -134,11 +194,22 @@ module Public
           due_date:       Date.today,
           status:         :pending
         )
+        # Add tip amount to invoice if provided
+        if tip_amount.present? && tip_amount > 0
+          invoice.tip_amount = tip_amount
+        end
         invoice.save!
         
         # Redirect directly to Stripe Checkout instead of payment page
         begin
-          success_url = order_url(@order, payment_success: true, host: request.host_with_port)
+          # Determine if this order has tip-eligible items
+          tip_eligible_items = @order.tip_eligible_items
+          
+          success_url = if tip_eligible_items.any? && (invoice.tip_amount || 0) > 0
+                          order_url(@order, payment_success: true, tip_included: true, host: request.host_with_port)
+                        else
+                          order_url(@order, payment_success: true, host: request.host_with_port)
+                        end
           cancel_url = order_url(@order, payment_cancelled: true, host: request.host_with_port)
           
           result = StripeService.create_payment_checkout_session(
@@ -214,6 +285,7 @@ module Public
         :shipping_address,
         :billing_address,
         :notes,
+        :promo_code,
         :create_account,
         :password,
         :password_confirmation,

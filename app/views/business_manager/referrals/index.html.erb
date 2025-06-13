@@ -1,0 +1,329 @@
+<div class="min-h-screen bg-light">
+  <!-- Header -->
+  <div class="bg-white shadow-sm border-b border-gray-200">
+    <div class="px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-dark">Referral Program</h1>
+          <p class="mt-1 text-sm text-gray-600">Manage your referral program and track performance</p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2 justify-center sm:justify-end">
+          <%= button_to toggle_status_business_manager_referrals_path, 
+                      method: :patch,
+                      class: "cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white #{ current_business.referral_program_enabled? ? 'bg-error hover:bg-red-700' : 'bg-success hover:bg-green-700' } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" do %>
+            <% if current_business.referral_program_enabled? %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Disable Program
+            <% else %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Enable Program
+            <% end %>
+          <% end %>
+            
+          <% if current_business.referral_program_enabled? %>
+            <%= link_to edit_business_manager_referral_path(@referral_program), 
+                        class: "inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              Settings
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Status Banner -->
+    <div class="mb-6">
+      <% if current_business.referral_program_enabled? %>
+        <div class="bg-success/10 border border-success/20 rounded-lg p-4">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+              <h3 class="text-sm font-medium text-success">Referral Program Active</h3>
+              <p class="text-sm text-success/80">Your customers can now refer others and earn rewards</p>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="bg-warning/10 border border-warning/20 rounded-lg p-4">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-warning mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+              <h3 class="text-sm font-medium text-warning">Referral Program Disabled</h3>
+              <p class="text-sm text-warning/80">Enable your referral program to start growing your business</p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Referrals Generated</p>
+            <p class="text-2xl font-bold text-dark"><%= @referral_stats[:total_referrals] %></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Pending</p>
+            <p class="text-2xl font-bold text-dark"><%= @referral_stats[:pending_referrals] %></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Qualified</p>
+            <p class="text-2xl font-bold text-dark"><%= @referral_stats[:qualified_referrals] %></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Revenue Generated</p>
+            <p class="text-2xl font-bold text-dark">$<%= number_with_precision(@referral_stats[:total_revenue_from_referrals], precision: 0) %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Program Configuration or Setup -->
+    <% if @referral_program.persisted? %>
+      <!-- Program Details -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <h3 class="text-lg font-medium text-dark">Program Configuration</h3>
+          <% if current_business.referral_program_enabled? %>
+            <%= link_to tenant_referral_program_path, 
+                        class: "mt-2 sm:mt-0 inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+                        target: "_blank" do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              View Referral Preview
+            <% end %>
+          <% end %>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 class="text-sm font-medium text-gray-900 mb-2">Referrer Reward</h4>
+              <p class="text-sm text-gray-600">
+                Loyalty Points: 
+                <span class="font-medium">
+                  <%= @referral_program.referrer_reward_value.to_i %> points
+                </span>
+              </p>
+            </div>
+            <div>
+              <h4 class="text-sm font-medium text-gray-900 mb-2">Referral Code Discount</h4>
+              <p class="text-sm text-gray-600">
+                Fixed Amount: 
+                <span class="font-medium">
+                  $<%= @referral_program.referral_code_discount_amount.to_i %>
+                </span>
+              </p>
+            </div>
+            <% if @referral_program.min_purchase_amount > 0 %>
+              <div>
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Minimum Purchase</h4>
+                <p class="text-sm text-gray-600">$<%= @referral_program.min_purchase_amount.to_i %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <!-- Setup Form -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-dark">Set Up Your Referral Program</h3>
+          <p class="text-sm text-gray-600 mt-1">Configure rewards and requirements for your referral program</p>
+        </div>
+        
+        <%= form_with model: @referral_program, url: business_manager_referrals_path, local: true, class: "p-6" do |form| %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Referrer Reward -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium text-gray-900">Referrer Reward</h4>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Reward Type</label>
+                <div class="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm px-3 py-2 text-sm text-gray-700">
+                  Loyalty Points
+                </div>
+              </div>
+              
+              <div>
+                <%= form.label :referrer_reward_value, "Points Awarded", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                <%= form.number_field :referrer_reward_value, 
+                    step: 1, 
+                    min: 1,
+                    class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm",
+                    placeholder: "100" %>
+              </div>
+            </div>
+
+            <!-- Referral Code Discount -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium text-gray-900">Referral Code Discount</h4>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
+                <div class="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm px-3 py-2 text-sm text-gray-700">
+                  Fixed Dollar Amount
+                </div>
+              </div>
+              
+              <div>
+                <%= form.label :referral_code_discount_amount, "Discount Amount", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                  <%= form.number_field :referral_code_discount_amount, 
+                      step: 1, 
+                      min: 1,
+                      class: "block w-full pl-8 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm",
+                      placeholder: "10" %>
+                </div>
+              </div>
+            </div>
+
+            <!-- Minimum Purchase -->
+            <div class="md:col-span-2">
+              <div>
+                <%= form.label :min_purchase_amount, "Minimum Purchase Amount (Optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                <div class="relative max-w-xs">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                  <%= form.number_field :min_purchase_amount, 
+                      step: 1, 
+                      min: 0,
+                      class: "block w-full pl-8 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm",
+                      placeholder: "0" %>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Leave blank or 0 for no minimum purchase requirement</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <%= form.submit "Create Referral Program", 
+                class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Recent Referrals -->
+    <% if @referrals.any? %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <h3 class="text-lg font-medium text-dark">Generated Referrals</h3>
+          <%= link_to business_manager_referral_path(@referral_program), 
+              class: "mt-2 sm:mt-0 inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" do %>
+            View all referrals
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          <% end %>
+        </div>
+        
+        <div class="overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referrer</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <% @referrals.each do |referral| %>
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900"><%= referral.referrer.full_name %></div>
+                      <div class="text-sm text-gray-500"><%= referral.referrer.email %></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <% if referral.referred_tenant_customer %>
+                        <div class="text-sm font-medium text-gray-900"><%= referral.referred_tenant_customer.name %></div>
+                        <div class="text-sm text-gray-500"><%= referral.referred_tenant_customer.email %></div>
+                      <% else %>
+                        <div class="text-sm font-medium text-gray-500">Pending</div>
+                        <div class="text-sm text-gray-400">Not yet qualified</div>
+                      <% end %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                        <%= case referral.status
+                            when 'pending' then 'bg-warning/10 text-warning'
+                            when 'qualified' then 'bg-info/10 text-info'
+                            when 'rewarded' then 'bg-success/10 text-success'
+                            else 'bg-gray-100 text-gray-800'
+                            end %>">
+                        <%= referral.status.humanize %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <%= time_ago_in_words(referral.created_at) %> ago
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div> 

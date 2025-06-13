@@ -15,6 +15,10 @@ class Service < ApplicationRecord
   has_many :product_service_add_ons, dependent: :destroy
   has_many :add_on_products, through: :product_service_add_ons, source: :product
   
+  # Promotion associations
+  has_many :promotion_services, dependent: :destroy
+  has_many :promotions, through: :promotion_services
+  
   # Image attachments
   has_many_attached :images do |attachable|
     attachable.variant :thumb, resize_to_limit: [300, 300]
@@ -46,6 +50,7 @@ class Service < ApplicationRecord
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
+  validates :tips_enabled, inclusion: { in: [true, false] }
 
   # Validations for images - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
@@ -87,6 +92,51 @@ class Service < ApplicationRecord
     add_on_products.active.where(product_type: [:service, :mixed])
                        .includes(:product_variants) # Eager load variants for the form
                        .where.not(product_variants: { id: nil }) # Ensure they have variants
+  end
+  
+  # Promotional pricing methods
+  def current_promotion
+    Promotion.active_promotion_for_service(self)
+  end
+  
+  def on_promotion?
+    current_promotion.present?
+  end
+  
+  def promotional_price
+    return price unless on_promotion?
+    current_promotion.calculate_promotional_price(price)
+  end
+  
+  def promotion_discount_amount
+    return 0 unless on_promotion?
+    current_promotion.calculate_discount(price)
+  end
+  
+  def promotion_display_text
+    return nil unless on_promotion?
+    current_promotion.display_text
+  end
+  
+  def savings_percentage
+    return 0 unless on_promotion? && price > 0
+    ((promotion_discount_amount / price) * 100).round
+  end
+  
+  # Tip eligibility methods
+  def tip_eligible?
+    tips_enabled?
+  end
+  
+  def tip_timing
+    case service_type
+    when 'standard'
+      :after_service  # Tips on invoice payment
+    when 'experience'
+      :after_experience  # Special handling - pay now, tip later
+    else
+      :immediate  # Default behavior
+    end
   end
 
   # Custom setter to handle nested image attributes (primary flags & ordering)

@@ -35,6 +35,9 @@ gem "resend"
 # Authorization
 gem "pundit"
 
+# SECURITY FIX: Add rate limiting
+gem "rack-attack"
+
 # Admin interface
 gem "activeadmin"
 # gem "sassc-rails" # REMOVED - Conflicts with Propshaft
@@ -106,6 +109,8 @@ end
 # For time-of-day calculations in availability logic
 gem 'tod'
 gem 'simple_calendar'
+# For date grouping in analytics
+gem 'groupdate'
 gem 'parallel_tests', group: [:development, :test]
 gem 'ostruct'
 gem "kaminari", "~> 1.2"

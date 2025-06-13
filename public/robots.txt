@@ -17,10 +17,26 @@ Allow: /about
 Allow: /pricing
 Allow: /docs
 
-# Disallow private areas
+# Disallow private areas and authentication pages
 Disallow: /manage/
 Disallow: /users/
 Disallow: /rails/
+Disallow: /business_manager/
+Disallow: /client/
+Disallow: /dashboard
+Disallow: /cart
+Disallow: /carts/
+
+# Disallow authentication related pages
+Disallow: /sign_in
+Disallow: /sign_up
+Disallow: /login
+Disallow: /register
+Disallow: /password
+
+# Disallow API endpoints
+Disallow: /api/
+Disallow: *.json
 
 # Crawl delay (optional, helps with server load)
 Crawl-delay: 1

@@ -14,21 +14,22 @@ class User < ApplicationRecord
   has_many :businesses, through: :client_businesses
   has_many :staff_assignments, dependent: :destroy
   has_many :assigned_services, through: :staff_assignments, source: :service
-  has_many :staff_memberships, class_name: 'StaffMember'
-  has_many :staffed_businesses, through: :staff_memberships, source: :business
+  has_many :staff_memberships, class_name: 'StaffMember', foreign_key: 'user_id', dependent: :destroy
+  has_many :businesses_as_staff, through: :staff_memberships, source: :business
   has_many :policy_acceptances, dependent: :destroy
   # Track which setup reminder tasks the user has dismissed
   has_many :setup_reminder_dismissals, dependent: :destroy
-
-  # Allow creating business via user form during sign-up
-  # accepts_nested_attributes_for :business # Removed - Business creation handled explicitly in controller
-
+  
+  # Referral system associations
+  has_many :referrals_made, class_name: 'Referral', foreign_key: 'referrer_id', dependent: :destroy
+  
   # Devise modules - Removed :validatable to use custom email uniqueness
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :confirmable, :trackable # Added :confirmable for email verification and :trackable for login tracking
 
   # Callbacks
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
+  after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
 
   # Validations
   validates :email, presence: true,
@@ -148,6 +149,11 @@ class User < ApplicationRecord
     roles_to_check.any? { |role_sym| self.role == role_sym.to_s }
   end
 
+  # Check if user is a business manager for a specific business
+  def business_manager?(business)
+    manager? && self.business_id == business.id
+  end
+
   # Find the StaffMember record for a specific business
   def staff_member_for(business)
     staff_memberships.find_by(business: business)
@@ -159,25 +165,48 @@ class User < ApplicationRecord
   end
   
   def missing_required_policies
-    required_policies = case role
-    when 'client'
-      %w[privacy_policy terms_of_service acceptable_use_policy]
-    when 'manager', 'staff'
-      %w[terms_of_service privacy_policy acceptable_use_policy return_policy]
+    # Cache during request cycle, but not across requests in test environment
+    if Rails.env.test?
+      # Always calculate fresh in tests for immediate feedback
+      calculate_missing_required_policies
     else
-      %w[privacy_policy terms_of_service acceptable_use_policy]
-    end
-    
-    required_policies.reject do |policy_type|
-      current_version = PolicyVersion.current_version(policy_type)
-      next true unless current_version # Skip if no current version
-      
-      PolicyAcceptance.has_accepted_policy?(self, policy_type, current_version.version)
+      # Use instance variable caching for production/development
+      @missing_required_policies ||= calculate_missing_required_policies
     end
   end
   
   def mark_policies_accepted!
+    # Clear all policy-related caches
+    clear_policy_caches
     update!(requires_policy_acceptance: false, last_policy_notification_at: Time.current)
+  end
+
+  # Cache tenant customer IDs for efficient cross-business user lookups
+  def tenant_customer_ids
+    return [] unless client?
+    @tenant_customer_ids ||= Rails.cache.fetch("user_#{id}_tenant_customers", expires_in: 30.minutes) do
+      TenantCustomer.where(email: email).pluck(:id)
+    end
+  end
+
+  # Clear tenant customer cache when email changes
+  def clear_tenant_customer_cache
+    Rails.cache.delete("user_#{id}_tenant_customers")
+    @tenant_customer_ids = nil
+  end
+  
+  # Clear all policy-related caches
+  def clear_policy_caches
+    @missing_required_policies = nil
+    
+    # Clear individual policy acceptance caches
+    %w[terms_of_service privacy_policy acceptable_use_policy return_policy].each do |policy_type|
+      Rails.cache.delete("user_#{id}_policy_acceptance_#{policy_type}")
+    end
+    
+    # Clear policy status response cache
+    Rails.cache.delete("policy_status_response_#{id}")
+    Rails.cache.delete("policy_status_check_#{id}")
   end
 
   private # Ensure private keyword exists or add it if needed
@@ -385,6 +414,24 @@ class User < ApplicationRecord
     #     errors.add(:email, "has already been taken by another business owner or staff member")
     #   end
     # end
+  end
+
+  def calculate_missing_required_policies
+    required_policies = case role
+    when 'client'
+      %w[privacy_policy terms_of_service acceptable_use_policy]
+    when 'manager', 'staff'
+      %w[terms_of_service privacy_policy acceptable_use_policy return_policy]
+    else
+      %w[privacy_policy terms_of_service acceptable_use_policy]
+    end
+    
+    required_policies.reject do |policy_type|
+      current_version = PolicyVersion.current_version(policy_type)
+      next true unless current_version # Skip if no current version
+      
+      PolicyAcceptance.has_accepted_policy?(self, policy_type, current_version.version)
+    end
   end
 
 end

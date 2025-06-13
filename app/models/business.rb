@@ -133,6 +133,19 @@ class Business < ApplicationRecord
   has_many :shipping_methods, dependent: :destroy
   has_many :tax_rates, dependent: :destroy
   
+  # Referral and Loyalty system associations
+  has_one :referral_program, dependent: :destroy
+  has_many :referrals, dependent: :destroy
+  has_many :loyalty_transactions, dependent: :destroy
+  has_many :loyalty_redemptions, dependent: :destroy
+  has_many :discount_codes, dependent: :destroy
+  
+  # Platform (BizBlasts) referral and loyalty associations
+  has_many :platform_referrals_made, class_name: 'PlatformReferral', foreign_key: 'referrer_business_id', dependent: :destroy
+  has_many :platform_referrals_received, class_name: 'PlatformReferral', foreign_key: 'referred_business_id', dependent: :destroy
+  has_many :platform_loyalty_transactions, dependent: :destroy
+  has_many :platform_discount_codes, dependent: :destroy
+  
   # For Client relationships (many-to-many with User)
   has_many :client_businesses
   has_many :clients, through: :client_businesses, source: :user
@@ -150,7 +163,21 @@ class Business < ApplicationRecord
   has_one :subscription, dependent: :destroy # Added for Module 7
   has_many :integrations, dependent: :destroy # Added for Module 9
   
-  # Validations
+  # Tips associations
+  has_many :tips, dependent: :destroy
+  has_one :tip_configuration, dependent: :destroy
+  
+  # Tip configuration helper methods
+  def tip_configuration_or_default
+    tip_configuration || build_tip_configuration
+  end
+  
+  def ensure_tip_configuration!
+    return tip_configuration if tip_configuration.present?
+    create_tip_configuration!
+  end
+  
+  # Validations 
   validates :name, presence: true
   validates :industry, presence: true, inclusion: { in: industries.keys }
   validates :phone, presence: true # Consider adding format validation
@@ -236,14 +263,131 @@ class Business < ApplicationRecord
     locations.first
   end
   
+  # Referral and Loyalty program methods
+  def referral_program_active?
+    referral_program_enabled? && referral_program&.active?
+  end
+  
+  def loyalty_program_active?
+    loyalty_program_enabled?
+  end
+  
+  def calculate_loyalty_points(amount_spent, service: nil, product: nil)
+    return 0 unless loyalty_program_active?
+    
+    points = 0
+    
+    # Points per dollar spent
+    points += (amount_spent * points_per_dollar).to_i if amount_spent.present?
+    
+    # Fixed points per service
+    points += points_per_service.to_i if service.present? && points_per_service > 0
+    
+    # Fixed points per product  
+    points += points_per_product.to_i if product.present? && points_per_product > 0
+    
+    points
+  end
+  
+  def ensure_referral_program!
+    return referral_program if referral_program.present?
+    
+    create_referral_program!(
+      active: true,
+      referrer_reward_type: 'points',
+      referrer_reward_value: 100,
+      referral_code_discount_amount: 10.0,
+      min_purchase_amount: 0.0
+    )
+  end
+  
+  # Platform (BizBlasts) loyalty methods
+  def current_platform_loyalty_points
+    platform_loyalty_points || 0
+  end
+  
+  def platform_points_earned
+    platform_loyalty_transactions.earned.sum(:points_amount)
+  end
+  
+  def platform_points_redeemed
+    platform_loyalty_transactions.redeemed.sum(:points_amount).abs
+  end
+  
+  def can_redeem_platform_points?(points_required)
+    current_platform_loyalty_points >= points_required
+  end
+  
+  def generate_platform_referral_code
+    return platform_referral_code if platform_referral_code.present?
+    
+    # Generate format: BIZ-BUSINESS_INITIALS-RANDOM
+    business_initials = name.split.map(&:first).join.upcase
+    random_string = SecureRandom.alphanumeric(6).upcase
+    
+    code = "BIZ-#{business_initials}-#{random_string}"
+    
+    # Ensure uniqueness
+    while Business.exists?(platform_referral_code: code)
+      random_string = SecureRandom.alphanumeric(6).upcase
+      code = "BIZ-#{business_initials}-#{random_string}"
+    end
+    
+    update!(platform_referral_code: code)
+    code
+  end
+  
+  def add_platform_loyalty_points!(points, description, related_referral = nil)
+    platform_loyalty_transactions.create!(
+      transaction_type: 'earned',
+      points_amount: points,
+      description: description,
+      related_platform_referral: related_referral
+    )
+    
+    # Update cached points
+    increment!(:platform_loyalty_points, points)
+  end
+  
+  def redeem_platform_loyalty_points!(points, description)
+    return false unless can_redeem_platform_points?(points)
+    
+    platform_loyalty_transactions.create!(
+      transaction_type: 'redeemed',
+      points_amount: -points,
+      description: description
+    )
+    
+    # Update cached points
+    decrement!(:platform_loyalty_points, points)
+    
+    true
+  end
+  
+  def platform_loyalty_summary
+    {
+      current_points: current_platform_loyalty_points,
+      total_earned: platform_points_earned,
+      total_redeemed: platform_points_redeemed,
+      total_referrals_made: platform_referrals_made.count,
+      qualified_referrals: platform_referrals_made.qualified.count,
+      available_redemptions: PlatformDiscountCode.available_redemptions_for_business(self)
+    }
+  end
+  
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id stripe_status payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date]
   end
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
     %w[staff_members services bookings tenant_customers users clients client_businesses subscription integrations]
+  end
+  
+  # Custom ransacker for Stripe status filtering
+  ransacker :stripe_status do
+    Arel.sql("CASE WHEN stripe_customer_id IS NOT NULL AND stripe_customer_id != '' THEN 'connected' ELSE 'not_connected' END")
   end
   
   # Domain coverage methods for Premium tier

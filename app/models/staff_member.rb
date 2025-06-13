@@ -32,6 +32,8 @@ class StaffMember < ApplicationRecord
   
   validate :validate_availability_structure
   before_validation :process_availability
+  before_validation :set_default_name_from_user
+
   
   # Background processing for photo
   after_commit :process_photo, if: -> { photo.attached? }
@@ -157,6 +159,12 @@ class StaffMember < ApplicationRecord
   end
   
   private
+
+  def set_default_name_from_user
+    if name.blank? && user.present? && user.first_name.present?
+      self.name = "#{user.first_name} #{user.last_name}".strip
+    end
+  end
   
   def process_photo
     return unless photo.attached?
@@ -177,7 +185,7 @@ class StaffMember < ApplicationRecord
     
     # Temporarily store the user and remove the association to prevent infinite loops
     user_to_delete = self.user
-    self.user = nil
+    self.update_column(:user_id, nil)  # Use update_column to persist the change without callbacks
     user_to_delete.destroy
   end
 

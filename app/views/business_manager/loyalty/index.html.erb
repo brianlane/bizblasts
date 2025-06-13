@@ -1,0 +1,376 @@
+<% content_for :title, "Loyalty Program" %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Mobile-First Header -->
+  <div class="bg-gradient-to-r from-primary to-secondary shadow-lg">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 sm:py-6 space-y-4 sm:space-y-0">
+        <!-- Title Section - Mobile Optimized -->
+        <div class="text-center sm:text-left">
+          <h1 class="text-2xl sm:text-3xl font-bold text-white">Loyalty Program</h1>
+          <p class="mt-1 text-sm text-white/80">Manage your customer loyalty program and rewards</p>
+        </div>
+        
+        <!-- Action Buttons - Mobile Stack -->
+<div class="flex flex-col sm:flex-row gap-3 sm:gap-3 items-center sm:items-center">
+          <%= button_to toggle_status_business_manager_loyalty_index_path, 
+                      method: :patch,
+                      class: "cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white #{ current_business.loyalty_program_enabled? ? 'bg-red-600 hover:bg-red-700 active:bg-red-800' : 'bg-green-600 hover:bg-green-700 active:bg-green-800' } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors shadow-sm" do %>
+            <% if current_business.loyalty_program_enabled? %>
+              <svg class="-ml-1 mr-2 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="truncate">Disable Program</span>
+            <% else %>
+              <svg class="-ml-1 mr-2 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              <span class="truncate">Enable Program</span>
+            <% end %>
+          <% end %>
+          
+          <% if current_business.loyalty_program_enabled? && @loyalty_program&.persisted? %>
+            <%= link_to edit_business_manager_loyalty_path(@loyalty_program), 
+                        class: "inline-flex items-center justify-center px-4 py-2 border border-white/30 text-sm font-medium rounded-lg text-white bg-white/20 hover:bg-white/30 active:bg-white/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors backdrop-blur-sm shadow-sm" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              <span class="truncate">Settings</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <% if current_business.loyalty_program_enabled? %>
+      <!-- Stats Overview - Mobile First Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100">
+          <div class="p-3 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center text-center sm:text-left">
+              <div class="flex-shrink-0 mx-auto sm:mx-0 mb-2 sm:mb-0">
+                <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <svg class="h-4 w-4 sm:h-5 sm:w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="sm:ml-3 sm:w-0 sm:flex-1">
+                <dl>
+                  <dt class="text-xs sm:text-sm font-medium text-gray-500 truncate">Active Customers</dt>
+                  <dd class="text-lg sm:text-xl font-bold text-gray-900"><%= @loyalty_stats[:total_customers] %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100">
+          <div class="p-3 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center text-center sm:text-left">
+              <div class="flex-shrink-0 mx-auto sm:mx-0 mb-2 sm:mb-0">
+                <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                  <svg class="h-4 w-4 sm:h-5 sm:w-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="sm:ml-3 sm:w-0 sm:flex-1">
+                <dl>
+                  <dt class="text-xs sm:text-sm font-medium text-gray-500 truncate">Points Issued</dt>
+                  <dd class="text-lg sm:text-xl font-bold text-gray-900"><%= number_with_delimiter(@loyalty_stats[:total_points_issued]) %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100">
+          <div class="p-3 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center text-center sm:text-left">
+              <div class="flex-shrink-0 mx-auto sm:mx-0 mb-2 sm:mb-0">
+                <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-accent/10 flex items-center justify-center">
+                  <svg class="h-4 w-4 sm:h-5 sm:w-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="sm:ml-3 sm:w-0 sm:flex-1">
+                <dl>
+                  <dt class="text-xs sm:text-sm font-medium text-gray-500 truncate">Points Redeemed</dt>
+                  <dd class="text-lg sm:text-xl font-bold text-gray-900"><%= number_with_delimiter(@loyalty_stats[:total_points_redeemed]) %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100">
+          <div class="p-3 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center text-center sm:text-left">
+              <div class="flex-shrink-0 mx-auto sm:mx-0 mb-2 sm:mb-0">
+                <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-success/10 flex items-center justify-center">
+                  <svg class="h-4 w-4 sm:h-5 sm:w-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="sm:ml-3 sm:w-0 sm:flex-1">
+                <dl>
+                  <dt class="text-xs sm:text-sm font-medium text-gray-500 truncate">Redemption Rate</dt>
+                  <dd class="text-lg sm:text-xl font-bold text-gray-900"><%= @loyalty_stats[:redemption_rate] %>%</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-md mb-8">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+          <div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Loyalty Activity</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest point transactions from your customers</p>
+          </div>
+          <%= link_to customers_business_manager_loyalty_index_path, 
+                      class: "text-indigo-600 hover:text-indigo-900 text-sm font-medium" do %>
+            View all customers →
+          <% end %>
+        </div>
+        <ul class="divide-y divide-gray-200">
+          <% @recent_transactions.each do |transaction| %>
+            <li class="px-4 py-4 sm:px-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <% if transaction.earned? %>
+                      <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                      </div>
+                    <% else %>
+                      <div class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6"></path>
+                        </svg>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">
+                      <%= transaction.tenant_customer.name %>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      <%= transaction.description %>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center">
+                  <div class="text-sm text-gray-900 mr-4">
+                    <span class="<%= transaction.earned? ? 'text-green-600' : 'text-red-600' %>">
+                      <%= transaction.earned? ? '+' : '' %><%= transaction.points_amount %> points
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= time_ago_in_words(transaction.created_at) %> ago
+                  </div>
+                </div>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <div class="ml-5">
+                <h3 class="text-lg font-medium text-gray-900">Analytics</h3>
+                <p class="mt-1 text-sm text-gray-500">View detailed loyalty program analytics and trends</p>
+                <div class="mt-3">
+                  <%= link_to analytics_business_manager_loyalty_index_path, 
+                              class: "text-indigo-600 hover:text-indigo-500 text-sm font-medium" do %>
+                    View Analytics →
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </div>
+              <div class="ml-5">
+                <h3 class="text-lg font-medium text-gray-900">Customers</h3>
+                <p class="mt-1 text-sm text-gray-500">Manage customer loyalty accounts and point balances</p>
+                <div class="mt-3">
+                  <%= link_to customers_business_manager_loyalty_index_path, 
+                              class: "text-indigo-600 hover:text-indigo-500 text-sm font-medium" do %>
+                    Manage Customers →
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <div class="ml-5">
+                <h3 class="text-lg font-medium text-gray-900">Program Settings</h3>
+                <p class="mt-1 text-sm text-gray-500">Configure point earning rates and reward options</p>
+                <div class="mt-3">
+                  <% if @loyalty_program&.persisted? %>
+                    <%= link_to edit_business_manager_loyalty_path(@loyalty_program), 
+                                class: "text-indigo-600 hover:text-indigo-500 text-sm font-medium" do %>
+                      Edit Settings →
+                    <% end %>
+                  <% else %>
+                    <span class="text-gray-400 text-sm font-medium">
+                      Settings unavailable
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <% else %>
+      <!-- Mobile-First Program Setup -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <!-- Header Section -->
+        <div class="bg-gradient-to-r from-primary to-secondary px-4 sm:px-6 py-6 sm:py-8 text-center">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+            <svg class="h-8 w-8 sm:h-10 sm:w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-bold text-white mb-2">No loyalty program</h3>
+          <p class="text-sm sm:text-base text-white/90 max-w-md mx-auto">Get started by creating a loyalty program for your customers.</p>
+        </div>
+
+        <!-- Form Section -->
+        <div class="p-4 sm:p-6 lg:p-8">
+          <%= form_with model: @loyalty_program, url: business_manager_loyalty_index_path, method: :post, local: true, class: "loyalty-program-form space-y-6" do |form| %>
+            <!-- Program Name -->
+            <div class="space-y-2">
+              <%= form.label :name, class: "block text-sm font-semibold text-gray-700" do %>
+                <span class="flex items-center">
+                  <svg class="h-4 w-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                  </svg>
+                  Name
+                </span>
+              <% end %>
+              <%= form.text_field :name, value: "#{current_business.name} Loyalty Program", 
+                                 class: "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm sm:text-base bg-gray-50 focus:bg-white",
+                                 placeholder: "Enter your loyalty program name" %>
+            </div>
+            
+            <!-- Points Name -->
+            <div class="space-y-2">
+              <%= form.label :points_name, "Points Name", class: "block text-sm font-semibold text-gray-700" do %>
+                <span class="flex items-center">
+                  <svg class="h-4 w-4 mr-2 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                  </svg>
+                  Points Name
+                </span>
+              <% end %>
+              <%= form.text_field :points_name, value: "points", 
+                                 class: "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors text-sm sm:text-base bg-gray-50 focus:bg-white",
+                                 placeholder: "e.g., points, stars, coins" %>
+            </div>
+            
+            <!-- Points Configuration - Mobile Stack -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-semibold text-gray-700 flex items-center">
+                <svg class="h-4 w-4 mr-2 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Points Configuration
+              </h4>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <%= form.label :points_per_dollar, "Points per $1", class: "block text-xs font-medium text-gray-600 mb-2" %>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span class="text-gray-500 text-sm">$</span>
+                    </div>
+                    <%= form.number_field :points_per_dollar, value: 1, step: 0.1, min: 0,
+                                         class: "block w-full pl-7 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm font-medium bg-white" %>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">Points earned per dollar spent</p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <%= form.label :points_for_booking, "Points per Booking", class: "block text-xs font-medium text-gray-600 mb-2" %>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
+                    <%= form.number_field :points_for_booking, value: 10, min: 0,
+                                         class: "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors text-sm font-medium bg-white" %>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">Bonus points per booking</p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <%= form.label :points_for_referral, "Points per Referral", class: "block text-xs font-medium text-gray-600 mb-2" %>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                      </svg>
+                    </div>
+                    <%= form.number_field :points_for_referral, value: 100, min: 0,
+                                         class: "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-accent focus:border-accent transition-colors text-sm font-medium bg-white" %>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">Points for referring friends</p>
+                </div>
+              </div>
+            </div>
+            
+            <%= form.hidden_field :active, value: true %>
+            
+            <!-- Submit Button -->
+            <div class="pt-2">
+              <%= form.submit "Create Loyalty Program", 
+                             class: "w-full flex items-center justify-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all transform hover:scale-[1.02] active:scale-[0.98]" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div> 

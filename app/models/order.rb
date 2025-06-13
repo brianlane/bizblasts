@@ -51,6 +51,9 @@ class Order < ApplicationRecord
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
   accepts_nested_attributes_for :tenant_customer
+  
+  # Virtual attribute for promo code form submission
+  attr_accessor :promo_code
 
   scope :products, -> { where(order_type: order_types[:product]) }
   scope :services, -> { where(order_type: order_types[:service]) }
@@ -91,10 +94,30 @@ class Order < ApplicationRecord
   end
 
   # Check if order contains both products and services
+  
+  # Check if order contains tip-eligible items
+  def has_tip_eligible_items?
+    line_items.any? { |item| item.tip_eligible? }
+  end
+  
+  # Get tip-eligible items
+  def tip_eligible_items
+    line_items.select { |item| item.tip_eligible? }
+  end
+
+  def tip_enabled?
+    business.tips_enabled? && has_tip_eligible_items?
+  end
+
   def is_mixed_order?
     has_products = line_items.any?(&:product?)
     has_services = line_items.any?(&:service?)
     has_products && has_services
+  end
+
+  # Calculate subtotal (line items total before tax, shipping, and tips)
+  def subtotal_amount
+    line_items.sum { |item| item.total_amount.to_f }
   end
 
   # Get product line items only
@@ -144,6 +167,8 @@ class Order < ApplicationRecord
     end
     self.tax_amount = current_tax_amount if tax_amount.nil?
     current_total_amount = items_total + current_shipping_amount + current_tax_amount
+    # Subtract promo discount if present
+    current_total_amount -= (promo_discount_amount || 0)
     self.total_amount = current_total_amount if total_amount.nil?
   end
 
@@ -161,6 +186,10 @@ class Order < ApplicationRecord
     end
     self.tax_amount = current_tax_amount
     current_total_amount = items_total + current_shipping_amount + current_tax_amount
+    # Subtract promo discount if present
+    current_total_amount -= (promo_discount_amount || 0)
+    # Add tip amount if present
+    current_total_amount += (tip_amount || 0)
     self.total_amount = current_total_amount
   end
 

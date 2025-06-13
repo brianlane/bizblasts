@@ -37,10 +37,17 @@
                   <% end %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-dark"><%= number_to_currency(variant.final_price) %></div>
+                  <% 
+                    # Use promotional pricing if available, otherwise use final price
+                    price_modifier = variant.price_modifier || 0
+                    display_price = variant.product.on_promotion? ? 
+                                    variant.product.promotional_price + price_modifier :
+                                    variant.final_price
+                  %>
+                  <div class="text-sm font-medium text-dark"><%= number_to_currency(display_price) %></div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-bold text-primary"><%= number_to_currency(variant.final_price * quantity) %></div>
+                  <div class="text-sm font-bold text-primary"><%= number_to_currency(display_price * quantity) %></div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <%= button_to 'Remove', line_item_path(variant.id), method: :delete, remote: true, 
@@ -48,7 +55,7 @@
                       data: { confirm: 'Are you sure you want to remove this item?' } %>
                 </td>
               </tr>
-              <% total += variant.final_price * quantity %>
+              <% total += display_price * quantity %>
             <% end %>
           </tbody>
         </table>

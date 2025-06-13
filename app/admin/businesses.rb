@@ -27,6 +27,7 @@ ActiveAdmin.register Business do
                 :address, :city, :state, :zip, :description, :time_zone,
                 :active, :tier, :service_template_id, 
                 :hostname, :host_type, # Added new fields
+                :stripe_customer_id, # Stripe integration
                 :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
                 :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date # Auto-renewal tracking
 
@@ -101,6 +102,7 @@ ActiveAdmin.register Business do
   filter :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }
   filter :industry
   filter :active
+  filter :stripe_status, as: :select, collection: [['Connected', 'connected'], ['Not Connected', 'not_connected']], label: "Stripe Status"
   filter :domain_coverage_applied, as: :select, collection: [['Yes', true], ['No', false]]
   filter :domain_renewal_date
   filter :created_at
@@ -113,6 +115,13 @@ ActiveAdmin.register Business do
     column :hostname
     column :host_type
     column :tier
+    column "Stripe Status", :stripe_customer_id do |business|
+      if business.stripe_customer_id.present?
+        status_tag "Connected", class: "ok"
+      else
+        status_tag "Not Connected", class: "error"
+      end
+    end
     column "Domain Coverage", :domain_coverage_applied do |business|
       if business.eligible_for_domain_coverage?
         if business.domain_coverage_applied?
@@ -147,6 +156,13 @@ ActiveAdmin.register Business do
       row :hostname
       row :host_type
       row :tier
+      row "Stripe Status" do |business|
+        if business.stripe_customer_id.present?
+          status_tag("Connected", class: "ok") + " (Customer ID: #{business.stripe_customer_id})".html_safe
+        else
+          status_tag "Not Connected", class: "error"
+        end
+      end
       row :industry do |business|
         Business.industries[business.industry]
       end
@@ -162,6 +178,26 @@ ActiveAdmin.register Business do
       row :active
       row :created_at
       row :updated_at
+    end
+    
+    # Stripe Integration Panel
+    panel "Stripe Integration" do
+      attributes_table_for business do
+        row "Connection Status" do |b|
+          if b.stripe_customer_id.present?
+            status_tag "Connected", class: "ok"
+          else
+            status_tag "Not Connected", class: "error"
+          end
+        end
+        row "Stripe Customer ID" do |b|
+          b.stripe_customer_id.present? ? b.stripe_customer_id : "Not set"
+        end
+        row "Connected At" do |b|
+          # This would need to be tracked separately if needed
+          "Not tracked"
+        end
+      end
     end
     
     # Domain Coverage Panel for Premium businesses
@@ -260,6 +296,11 @@ ActiveAdmin.register Business do
       f.input :time_zone, as: :select, collection: ActiveSupport::TimeZone.all.map { |tz| [tz.to_s, tz.name] }
       f.input :active
       f.input :service_template # Assuming this is the correct association name
+    end
+    
+    # Stripe Integration section
+    f.inputs "Stripe Integration" do
+      f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "The Stripe customer ID for this business (automatically set when connected)"
     end
     
     # Domain Coverage section (only for Premium tier businesses)

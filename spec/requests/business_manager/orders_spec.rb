@@ -139,7 +139,11 @@ RSpec.describe "Business Manager Orders", type: :request do
       it "includes line items and their products in the query" do
         # This tests that the eager loading works properly
         expect_any_instance_of(ActiveRecord::Relation).to receive(:includes).with(
-          hash_including(line_items: { product_variant: :product })
+          :tenant_customer, 
+          :shipping_method, 
+          :tax_rate,
+          :invoice,
+          { line_items: { product_variant: :product } }
         ).and_call_original
         
         get business_manager_order_path(product_order)

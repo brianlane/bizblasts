@@ -171,6 +171,42 @@
           </li>
           
           <li>
+            <%= link_to business_manager_referrals_path, class: "flex items-center px-4 py-3 text-white rounded-lg hover:bg-gray-700 transition-colors #{current_page?(business_manager_referrals_path) ? 'bg-gray-700' : ''}" do %>
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              <span class="font-medium">Referrals</span>
+            <% end %>
+          </li>
+          
+          <li>
+            <%= link_to business_manager_loyalty_index_path, class: "flex items-center px-4 py-3 text-white rounded-lg hover:bg-gray-700 transition-colors #{current_page?(business_manager_loyalty_index_path) ? 'bg-gray-700' : ''}" do %>
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+              </svg>
+              <span class="font-medium">Loyalty</span>
+            <% end %>
+          </li>
+          
+          <li>
+            <%= link_to business_manager_platform_index_path, class: "flex items-center px-4 py-3 text-white rounded-lg hover:bg-gray-700 transition-colors #{current_page?(business_manager_platform_index_path) ? 'bg-gray-700' : ''}" do %>
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              <span class="font-medium">BizBlasts Rewards</span>
+            <% end %>
+          </li>
+          
+          <li>
+            <%= link_to business_manager_promotions_path, class: "flex items-center px-4 py-3 text-white rounded-lg hover:bg-gray-700 transition-colors #{current_page?(business_manager_promotions_path) ? 'bg-gray-700' : ''}" do %>
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+              </svg>
+              <span class="font-medium">Promotions</span>
+            <% end %>
+          </li>
+          
+          <li>
             <%= link_to business_manager_settings_path, class: "flex items-center px-4 py-3 text-white rounded-lg hover:bg-gray-700 transition-colors #{current_page?(business_manager_settings_path) ? 'bg-gray-700' : ''}" do %>
               <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -185,7 +221,7 @@
       <div class="p-4 border-t border-gray-700 flex-shrink-0">
         <p class="text-sm text-gray-400 mb-3">Signed in as <%= current_user.email %> (<%= current_user.role.humanize %>)</p>
         <%= button_to "Sign Out", destroy_user_session_path, method: :delete, 
-              class: "w-full py-3 px-4 text-center bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800",
+              class: "w-full py-3 px-4 text-center bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 cursor-pointer",
               form: { class: "w-full" } %>
       </div>
     </div>
@@ -415,77 +451,17 @@
     });
   </script>
 
-  <% if user_signed_in? %>
-    <%# Fallback script to ensure modal shows when needed %>
+  <% if user_signed_in? && current_user.requires_policy_acceptance? %>
+    <%# Only initialize PolicyAcceptance if not already running and user needs policy acceptance %>
     <script>
-      // Business Manager Policy modal check
       document.addEventListener('DOMContentLoaded', function() {
-        
-        // Try to initialize the PolicyAcceptance class if available
-        if (typeof PolicyAcceptance !== 'undefined') {
+        // Only initialize the PolicyAcceptance class if available and not already running
+        if (typeof PolicyAcceptance !== 'undefined' && !window.policyAcceptanceInstance) {
+          console.log('[BusinessManager] Initializing PolicyAcceptance for user requiring policy acceptance');
           new PolicyAcceptance();
+        } else if (window.policyAcceptanceInstance) {
+          console.log('[BusinessManager] PolicyAcceptance already running, skipping initialization');
         }
-        
-        // Small delay to let other scripts initialize
-        setTimeout(function() {
-          const modal = document.getElementById('policy-acceptance-modal');
-          if (modal) {
-            
-            // Check if modal should be shown by calling the policy status
-            fetch('/policy_status', {
-              headers: {
-                'Accept': 'application/json',
-                'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content || ''
-              }
-            })
-            .then(response => {
-              if (response.ok) {
-                return response.json();
-              } else if (response.status === 401) {
-                return null;
-              }
-              throw new Error('Failed to check policy status');
-            })
-            .then(data => {
-              if (data && data.requires_policy_acceptance && data.missing_policies && data.missing_policies.length > 0) {
-                
-                // Force modal to be visible if the main script failed
-                if (modal.classList.contains('hidden')) {
-                  modal.classList.remove('hidden');
-                  modal.style.display = 'block';
-                  modal.style.zIndex = '9999';
-                  document.body.style.overflow = 'hidden';
-                  
-                  // Add emergency styling to ensure visibility
-                  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                  modal.style.position = 'fixed';
-                  modal.style.top = '0';
-                  modal.style.left = '0';
-                  modal.style.width = '100%';
-                  modal.style.height = '100%';
-                  
-                  // Show a simple message if the dynamic content failed to load
-                  const container = document.getElementById('policies-to-accept');
-                  if (container && container.children.length === 0) {
-                    container.innerHTML = `
-                      <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded">
-                        <h3 class="text-lg font-medium text-yellow-800 mb-4">Policy Acceptance Required</h3>
-                        <p class="text-yellow-700 mb-4">You need to accept our updated policies to continue using BizBlasts.</p>
-                        <a href="/policy_acceptances" class="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                          Accept Policies →
-                        </a>
-                      </div>
-                    `;
-                  }
-                }
-              } else {
-              }
-            })
-            .catch(error => {
-              console.error('[BusinessManager PolicyFallback] Error checking policy status:', error);
-            });
-          }
-        }, 1000);
       });
     </script>
   <% end %>

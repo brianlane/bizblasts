@@ -27,8 +27,8 @@ class SitemapController < ApplicationController
     # Add blog posts if they exist - only published and public posts
     @blog_posts = fetch_public_blog_posts
     
-    # Add business listings if they exist - only active and public businesses
-    @businesses = fetch_public_businesses
+    # Add business subdomain URLs - these help with discoverability
+    @businesses = fetch_business_subdomains
     
     respond_to do |format|
       format.xml { render layout: false }
@@ -104,30 +104,36 @@ class SitemapController < ApplicationController
     []
   end
   
-  def fetch_public_businesses
+  def fetch_business_subdomains
     return [] unless defined?(Business)
     
-    # Only include active, public businesses with proper slugs
-    scope = Business.where.not(slug: nil)
+    # Only include active businesses with valid hostnames
+    scope = Business.where.not(hostname: nil)
     
     # Add additional filters if these columns exist
     scope = scope.where(active: true) if Business.column_names.include?('active')
-    scope = scope.where(public: true) if Business.column_names.include?('public')
-    scope = scope.where(published: true) if Business.column_names.include?('published')
     
     scope.order(updated_at: :desc)
          .limit(100)
-         .pluck(:slug, :updated_at)
-         .map do |slug, updated_at|
+         .pluck(:hostname, :host_type, :updated_at)
+         .map do |hostname, host_type, updated_at|
+           # Generate the correct URL based on host type
+           if host_type == 'custom_domain'
+             full_url = "https://#{hostname}"
+           else
+             # Subdomain on bizblasts.com
+             full_url = "https://#{hostname}.bizblasts.com"
+           end
+           
            {
-             url: "/businesses/#{ERB::Util.url_encode(slug)}",
-             priority: 0.7,
+             url: full_url,
+             priority: 0.8,
              changefreq: 'weekly',
              lastmod: updated_at
            }
          end
   rescue => e
-    Rails.logger.error "Error fetching businesses for sitemap: #{e.message}"
+    Rails.logger.error "Error fetching business subdomains for sitemap: #{e.message}"
     []
   end
 end 

@@ -1,0 +1,127 @@
+<div class="bg-gray-50 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-white shadow-sm rounded-lg mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-dark">Loyalty Program Settings</h1>
+            <p class="mt-1 text-sm text-gray-600">Configure your loyalty program rules and rewards</p>
+          </div>
+          <div>
+            <%= link_to business_manager_loyalty_index_path, 
+                        class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Back to Overview
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Form -->
+    <div class="bg-white shadow rounded-lg">
+      <%= form_with model: [:business_manager, @loyalty_program], 
+                    url: business_manager_loyalty_path(@loyalty_program), 
+                    method: :patch, 
+                    local: true, class: "p-6" do |form| %>
+        <% if @loyalty_program.errors.any? %>
+          <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.5 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc pl-5 space-y-1">
+                    <% @loyalty_program.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <!-- Program Information -->
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Program Information</h3>
+              
+              <div class="space-y-4">
+                <div>
+                  <%= form.label :name, "Program Name", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.text_field :name, 
+                                      class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+                  <p class="mt-1 text-sm text-gray-500">Name of your loyalty program</p>
+                </div>
+
+                <div>
+                  <%= form.label :points_name, "Points Name", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.text_field :points_name, 
+                                      class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+                  <p class="mt-1 text-sm text-gray-500">What to call your points (e.g., "points", "stars", "credits")</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Point Earning Rules -->
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Point Earning Rules</h3>
+              
+              <div class="space-y-4">
+                <div>
+                  <%= form.label :points_per_dollar, "Points per Dollar Spent", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.number_field :points_per_dollar, 
+                                        step: 1, 
+                                        min: 0,
+                                        value: @loyalty_program.points_per_dollar.to_i,
+                                        class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+                  <p class="mt-1 text-sm text-gray-500">How many points customers earn for each dollar spent</p>
+                </div>
+
+                <div>
+                  <%= form.label :points_for_booking, "Points for Booking", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.number_field :points_for_booking, 
+                                        min: 0,
+                                        value: @loyalty_program.points_for_booking.to_i,
+                                        class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+                  <p class="mt-1 text-sm text-gray-500">Base points awarded for each booking</p>
+                </div>
+
+                <div>
+                  <%= form.label :points_for_referral, "Points for Referral", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.number_field :points_for_referral, 
+                                        min: 0,
+                                        value: @loyalty_program.points_for_referral.to_i,
+                                        class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+                  <p class="mt-1 text-sm text-gray-500">Points awarded when referring new customers</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+          <%= link_to business_manager_loyalty_index_path, 
+                      class: "bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" do %>
+            Cancel
+          <% end %>
+          
+          <%= form.submit "Update Loyalty Program", 
+                          class: "cursor-pointer inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 

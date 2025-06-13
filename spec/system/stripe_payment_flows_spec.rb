@@ -175,7 +175,11 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Add product to cart
         visit products_path
         click_link 'Shampoo'
-        select 'Large', from: 'variant'
+        
+        # Use the new JavaScript dropdown structure
+        find('#product_variant_dropdown [data-dropdown-target="button"]').click
+        find('#product_variant_dropdown [data-dropdown-target="option"]', text: 'Large').click
+        
         fill_in 'quantity', with: 2
         click_button 'Add to Cart'
         
@@ -183,7 +187,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         visit cart_path
         click_link 'Checkout'
         select 'Standard', from: 'Select shipping method'
-        click_button 'Place Order'
+        click_button 'Complete Order'
         
         # Should redirect to Stripe (mocked)
         expect(current_url).to eq('https://checkout.stripe.com/pay/cs_product_order_789')
@@ -224,7 +228,11 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         end
 
         click_link 'Conditioner'
-        select 'Regular', from: 'variant'
+        
+        # Use the new JavaScript dropdown structure
+        find('#product_variant_dropdown [data-dropdown-target="button"]').click
+        find('#product_variant_dropdown [data-dropdown-target="option"]', text: 'Regular').click
+        
         fill_in 'quantity', with: 1
         click_button 'Add to Cart'
         
@@ -258,7 +266,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
           # Banner might not appear - continue with test
         end
         
-        click_button 'Place Order'
+        click_button 'Complete Order'
         
         # Should redirect to Stripe (mocked)
         expect(current_url).to eq('https://checkout.stripe.com/pay/cs_guest_order_999')

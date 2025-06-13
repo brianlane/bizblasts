@@ -38,7 +38,15 @@
       <% if @service.staff_members.any? %>
         <div class="mb-4">
           <%= form.label :staff_member_id, "Select Staff Member", class: "block text-gray-700 text-sm font-bold mb-2" %>
-          <%= form.collection_select :staff_member_id, @service.staff_members.active.order(:name), :id, :name, { include_blank: 'Any Staff' }, { required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" } %>
+          <%= render 'shared/rich_dropdown',
+              collection: @service.staff_members.active.order(:name),
+              field_name: "booking[staff_member_id]",
+              selected_value: @booking.staff_member_id,
+              prompt_text: "Any Staff",
+              value_method: :id,
+              text_method: :name,
+              required: true,
+              dropdown_id: "public_booking_staff_dropdown" %>
         </div>
       <% else %>
         <p class="text-red-600 mb-4">Note: This service currently has no staff assigned and cannot be booked.</p>
@@ -242,7 +250,6 @@
     <% if @available_products.present? && @available_products.any? %>
       <div class="mb-8">
         <h2 class="text-xl font-semibold mb-2">Add Products to Your Booking (Optional)</h2>
-        <p class="text-sm text-gray-500 mb-3">Only service and mixed type products can be added to bookings.</p>
         <table class="min-w-full divide-y divide-gray-200 mb-4">
           <thead>
             <tr>
@@ -271,7 +278,6 @@
                       <div>
                         <%= addOnFields.label :quantity, "Quantity:" %>
                         <%= addOnFields.number_field :quantity, min: 0, in: 0..(variant.stock_quantity + (existing_add_on&.quantity || 0) ), value: addOnFields.object.quantity || 0 %>
-                        <small>(Available: <%= variant.stock_quantity + (existing_add_on&.quantity || 0) %>)</small>
                       </div>
                     </td>
                   </tr>
@@ -283,6 +289,30 @@
         <p class="text-sm text-gray-500">Set quantity for any add-on product you wish to include. Leave at 0 to skip.</p>
       </div>
     <% end %>
+
+    <%# Promo Code Section %>
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
+      <h3 class="text-lg font-semibold mb-3 text-blue-900">
+        <svg class="inline w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+        </svg>
+        Have a Promo Code?
+      </h3>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <%= form.text_field :promo_code, 
+                           placeholder: "Enter promo code", 
+                           class: "flex-1 shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500",
+                           id: "promo_code_field" %>
+        <button type="button" 
+                id="apply_promo_code" 
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors">
+          Apply Code
+        </button>
+      </div>
+      <div id="promo_code_result" class="mt-3 hidden">
+        <!-- Promo code validation result will appear here -->
+      </div>
+    </div>
 
     <div class="flex items-center justify-between">
       <%# Show submit button if user is client or staff members are available %>

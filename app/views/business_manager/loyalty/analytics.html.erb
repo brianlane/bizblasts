@@ -1,0 +1,203 @@
+<div class="bg-gray-50 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-white shadow-sm rounded-lg mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-dark">Loyalty Analytics</h1>
+            <p class="mt-1 text-sm text-gray-600">Comprehensive insights into your loyalty program performance</p>
+          </div>
+          <div>
+            <%= link_to business_manager_loyalty_index_path, 
+                        class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Back to Loyalty
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Points Earned -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-sm font-medium text-gray-500">Points Earned</div>
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @analytics[:total_points_earned] || 0 %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Points Redeemed -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-red-100 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-sm font-medium text-gray-500">Points Redeemed</div>
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @analytics[:total_points_redeemed] || 0 %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Users -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-sm font-medium text-gray-500">Active Users</div>
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @analytics[:active_users] || 0 %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Engagement Rate -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-sm font-medium text-gray-500">Engagement Rate</div>
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @engagement_rate.round(1) %>%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Daily Points Breakdown Chart -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900">Daily Points Activity</h3>
+          <span class="text-sm text-gray-500">Last 30 days</span>
+        </div>
+        <div class="h-64 flex items-center justify-center border border-gray-200 rounded">
+          <div class="text-center">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <p class="text-gray-500">Chart visualization would go here</p>
+            <p class="text-xs text-gray-400 mt-1">Points earned vs redeemed over time</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Redemption Trends Chart -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900">Redemption Trends</h3>
+          <span class="text-sm text-gray-500">Last 30 days</span>
+        </div>
+        <div class="h-64 flex items-center justify-center border border-gray-200 rounded">
+          <div class="text-center">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+            <p class="text-gray-500">Redemption trend chart would go here</p>
+            <p class="text-xs text-gray-400 mt-1">Daily redemption patterns</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Point Earners -->
+    <div class="bg-white rounded-lg shadow-sm mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Top Point Earners</h3>
+        <p class="text-sm text-gray-500">Your most engaged loyalty customers</p>
+      </div>
+      <div class="flow-root">
+        <% if @top_earners.present? %>
+          <ul class="divide-y divide-gray-200">
+            <% @top_earners.each_with_index do |earner, index| %>
+              <li class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-indigo-800">
+                          #<%= index + 1 %>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= earner[0] %> <!-- name -->
+                      </div>
+                      <div class="text-sm text-gray-500">
+                        <%= earner[1] %> <!-- email -->
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">
+                    <%= earner[2] %> points <!-- points -->
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <div class="px-6 py-12 text-center">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+            </svg>
+            <p class="text-gray-500">No loyalty activity yet</p>
+            <p class="text-xs text-gray-400 mt-1">Top earners will appear here as customers use your loyalty program</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Detailed Analytics Data (for debugging) -->
+    <% if Rails.env.development? %>
+      <div class="bg-white rounded-lg shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Debug Analytics Data</h3>
+          <p class="text-sm text-gray-500">Development mode analytics data</p>
+        </div>
+        <div class="px-6 py-4">
+          <div class="bg-gray-50 rounded p-4">
+            <pre class="text-xs text-gray-700 whitespace-pre-wrap"><%= @analytics.to_yaml if @analytics %></pre>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div> 

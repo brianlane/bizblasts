@@ -173,6 +173,64 @@ class StripeService
     { session: session, payment: nil }
   end
 
+  # Create a Stripe Checkout session for tip payment
+  def self.create_tip_checkout_session(tip:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = tip.business
+    customer = ensure_stripe_customer_for_tenant(tip.tenant_customer)
+
+    tip_amount = tip.amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if tip_amount < 0.50
+      raise ArgumentError, "Tip amount must be at least $0.50 USD. Current amount: $#{tip_amount}"
+    end
+    
+    amount_cents = (tip_amount * 100).to_i
+    # Calculate platform fee for tips based on business tier
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    # Create the checkout session for tip
+    session = Stripe::Checkout::Session.create(
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: "Tip for #{business.name}",
+            description: "Thank you for your experience with #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: success_url,
+      cancel_url: cancel_url,
+      customer: customer.id,
+      payment_intent_data: {
+        application_fee_amount: platform_fee_cents,
+        transfer_data: { destination: business.stripe_account_id },
+        metadata: { 
+          business_id: business.id, 
+          tip_id: tip.id,
+          tenant_customer_id: tip.tenant_customer.id,
+          payment_type: 'tip'
+        }
+      },
+      metadata: { 
+        business_id: business.id, 
+        tip_id: tip.id,
+        tenant_customer_id: tip.tenant_customer.id,
+        payment_type: 'tip'
+      }
+    )
+
+    # Don't create payment record here - it will be created by the webhook
+    # when the payment is actually processed by Stripe
+    { session: session, tip: tip }
+  end
+
   # Create a payment intent for an invoice or order
   def self.create_payment_intent(invoice:, order: nil, payment_method_id: nil)
     configure_stripe_api_key
@@ -265,11 +323,65 @@ class StripeService
     end
   end
 
+  def self.create_tip_payment_session(tip:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = tip.business
+    
+    # Ensure business has Stripe Connect account
+    unless business.stripe_account_id.present?
+      raise ArgumentError, "Business must have a connected Stripe account to process tips"
+    end
+    
+    # Calculate amount in cents
+    amount_cents = (tip.amount * 100).to_i
+    
+    # Minimum amount check
+    if amount_cents < 50 # $0.50 minimum
+      raise ArgumentError, "Tip amount must be at least $0.50"
+    end
+    
+    begin
+      session = Stripe::Checkout::Session.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: "Tip for #{business.name}",
+              description: "Thank you for showing your appreciation!"
+            },
+            unit_amount: amount_cents
+          },
+          quantity: 1
+        }],
+        mode: 'payment',
+        success_url: success_url,
+        cancel_url: cancel_url,
+        client_reference_id: tip.id.to_s,
+        metadata: {
+          tip_id: tip.id.to_s,
+          booking_id: tip.booking&.id.to_s,
+          business_id: business.id.to_s,
+          tip_context: "Tip for #{tip.booking&.service&.name || 'service'}"
+        }
+      }, {
+        stripe_account: business.stripe_account_id
+      })
+      
+      Rails.logger.info "Created Stripe tip session #{session.id} for tip #{tip.id}"
+      
+      { success: true, session: session }
+    rescue Stripe::StripeError => e
+      Rails.logger.error "Stripe error creating tip session: #{e.message}"
+      raise e
+    end
+  end
+
   private
 
-  # Calculate Stripe's fee in cents (3% + 30¢)
+  # Calculate Stripe's fee in cents (2.9% + 30¢)
   def self.calculate_stripe_fee_cents(amount_cents)
-    (amount_cents * 0.03).round + 30
+    (amount_cents * 0.029).round + 30
   end
 
   # Calculate platform fee in cents based on business tier
@@ -308,6 +420,12 @@ class StripeService
     # Check if this is a booking payment
     if session.dig('metadata', 'booking_type') == 'service_booking'
       handle_booking_payment_completion(session)
+      return
+    end
+
+    # Check if this is a tip payment
+    if session.dig('metadata', 'payment_type') == 'tip'
+      handle_tip_payment_completion(session)
       return
     end
 
@@ -436,6 +554,57 @@ class StripeService
       return unless record
       record.update!(status: sub['status'], current_period_end: Time.at(sub['current_period_end']).to_datetime)
     end
+  end
+
+  # Handle tip payment completion
+  def self.handle_tip_payment_completion(session)
+    Rails.logger.info "[TIP] Processing tip payment completion for session #{session['id']}"
+    
+    business_id = session.dig('metadata', 'business_id')
+    tip_id = session.dig('metadata', 'tip_id')
+    tenant_customer_id = session.dig('metadata', 'tenant_customer_id')
+    
+    unless business_id && tip_id && tenant_customer_id
+      Rails.logger.error "[TIP] Missing required metadata in session #{session['id']}"
+      return
+    end
+    
+    business = Business.find_by(id: business_id)
+    unless business
+      Rails.logger.error "[TIP] Could not find business #{business_id} for session #{session['id']}"
+      return
+    end
+    
+    ActsAsTenant.with_tenant(business) do
+      tip = business.tips.find_by(id: tip_id)
+      tenant_customer = business.tenant_customers.find_by(id: tenant_customer_id)
+      
+      unless tip && tenant_customer
+        Rails.logger.error "[TIP] Could not find tip #{tip_id} or customer #{tenant_customer_id} for session #{session['id']}"
+        return
+      end
+      
+      # Calculate fees for the tip payment
+      amount_cents = (tip.amount * 100).to_i
+      stripe_fee_cents = calculate_stripe_fee_cents(amount_cents)
+      platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+      
+      # Update tip record with Stripe payment details and fees
+      tip.update!(
+        stripe_payment_intent_id: session['payment_intent'],
+        stripe_customer_id: session['customer'],
+        stripe_fee_amount: stripe_fee_cents / 100.0,
+        platform_fee_amount: platform_fee_cents / 100.0,
+        business_amount: (tip.amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
+        status: :completed,
+        paid_at: Time.current
+      )
+      
+      Rails.logger.info "[TIP] Successfully processed tip payment #{tip.id} for booking #{tip.booking_id} with fees: Stripe: $#{stripe_fee_cents / 100.0}, Platform: $#{platform_fee_cents / 100.0}"
+    end
+  rescue => e
+    Rails.logger.error "[TIP] Error processing tip payment for session #{session['id']}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
   end
 
   # Handle booking creation after successful payment
@@ -701,5 +870,182 @@ class StripeService
     return unless business
     Rails.logger.info "Stripe Connect account updated for business id=#{business.id}"  
     # Optionally, you could update a business flag here once onboarding is complete
+  end
+
+  def self.handle_payment_completion(session)
+    Rails.logger.info "Processing Stripe checkout session completion: #{session.id}"
+    
+    # Find the invoice based on client_reference_id
+    invoice = Invoice.find_by(id: session.client_reference_id)
+    unless invoice
+      Rails.logger.error "Invoice not found for session: #{session.id}"
+      return { success: false, error: "Invoice not found" }
+    end
+
+    # Get the payment intent from the session
+    payment_intent_id = session.payment_intent
+    payment_intent = Stripe::PaymentIntent.retrieve(
+      payment_intent_id,
+      stripe_account: invoice.business.stripe_account_id
+    )
+
+    # Calculate amounts and fees
+    amount_received = payment_intent.amount_received / 100.0
+    stripe_fee = (payment_intent.charges.data.first&.balance_transaction&.fee || 0) / 100.0
+    
+    # Extract tip amount from metadata or calculate from difference
+    tip_amount = if session.metadata&.dig('tip_amount')
+                   session.metadata['tip_amount'].to_f
+                 elsif invoice.tip_amount && invoice.tip_amount > 0
+                   invoice.tip_amount
+                 else
+                   0.0
+                 end
+
+    # Calculate platform fee (if applicable)
+    platform_fee_amount = calculate_platform_fee(amount_received - tip_amount)
+    business_amount = amount_received - stripe_fee - platform_fee_amount
+
+    # Create payment record
+    payment = invoice.payments.build(
+      stripe_payment_intent_id: payment_intent_id,
+      amount: amount_received,
+      tip_amount: tip_amount,
+      stripe_fee_amount: stripe_fee,
+      platform_fee_amount: platform_fee_amount,
+      business_amount: business_amount,
+      status: :completed,
+      payment_method: :credit_card,
+      business: invoice.business,
+      tenant_customer: invoice.tenant_customer
+    )
+
+    ActiveRecord::Base.transaction do
+      # Save the payment
+      payment.save!
+
+      # Update invoice status
+      invoice.update!(
+        status: :paid
+      )
+
+      # Update order if present
+      if invoice.order
+        invoice.order.update!(
+          status: :paid,
+          tip_amount: tip_amount
+        )
+      end
+
+      # Create tip record if tip amount exists
+      if tip_amount > 0
+        create_tip_record_from_payment(payment, invoice)
+      end
+
+      # Send confirmation emails
+      if invoice.tenant_customer&.email
+        InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
+      end
+
+      Rails.logger.info "Payment processed successfully for invoice #{invoice.id}"
+    end
+
+    { success: true, payment: payment }
+  rescue => e
+    Rails.logger.error "Error processing payment: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    { success: false, error: e.message }
+  end
+
+  # Create tip record from completed payment
+  def self.create_tip_record_from_payment(payment, invoice)
+    return unless payment.tip_amount && payment.tip_amount > 0
+    
+    # Determine the context for the tip
+    if invoice.order
+      # Order-based tip
+      create_order_tip(payment, invoice)
+    elsif invoice.booking
+      # Booking-based tip (experience service)
+      create_booking_tip(payment, invoice)
+    else
+      # General invoice tip
+      create_invoice_tip(payment, invoice)
+    end
+  end
+
+  def self.create_order_tip(payment, invoice)
+    # For order tips, we need a booking - use the booking associated with the order
+    booking = invoice.order&.booking
+    return unless booking
+    
+    tip = Tip.create!(
+      business: invoice.business,
+      tenant_customer: invoice.tenant_customer,
+      booking: booking,
+      amount: payment.tip_amount,
+      status: :completed
+    )
+    
+    Rails.logger.info "Created order tip #{tip.id} for amount #{payment.tip_amount}"
+    tip
+  end
+
+  def self.create_booking_tip(payment, invoice)
+    return unless invoice.booking
+    
+    tip = Tip.create!(
+      business: invoice.business,
+      tenant_customer: invoice.tenant_customer,
+      booking: invoice.booking,
+      amount: payment.tip_amount,
+      status: :completed
+    )
+    
+    Rails.logger.info "Created booking tip #{tip.id} for amount #{payment.tip_amount}"
+    tip
+  end
+
+  def self.create_invoice_tip(payment, invoice)
+    # For invoice tips, we need a booking - skip if no booking available
+    return unless invoice.booking
+    
+    tip = Tip.create!(
+      business: invoice.business,
+      tenant_customer: invoice.tenant_customer,
+      booking: invoice.booking,
+      amount: payment.tip_amount,
+      status: :completed
+    )
+    
+    Rails.logger.info "Created invoice tip #{tip.id} for amount #{payment.tip_amount}"
+    tip
+  end
+
+  # Calculate tip-specific fees
+  def self.calculate_tip_stripe_fee(tip_amount)
+    # Stripe fee: 2.9% + $0.30 per transaction (prorated for tip portion)
+    (tip_amount * 0.029).round(2)
+  end
+
+  def self.calculate_tip_platform_fee(tip_amount)
+    # Platform takes no fee from tips - they go directly to business
+    0.0
+  end
+
+  def self.calculate_tip_business_amount(tip_amount)
+    tip_amount - calculate_tip_stripe_fee(tip_amount)
+  end
+
+  # Calculate platform fee for general use (used by tests)
+  def self.calculate_platform_fee(amount)
+    # Convert to cents if needed and calculate, then convert back
+    if amount < 100 # Assume it's in dollars if less than 100
+      amount_cents = (amount * 100).to_i
+      fee_cents = calculate_platform_fee_cents(amount_cents, ActsAsTenant.current_tenant)
+      fee_cents / 100.0
+    else # Assume it's already in cents
+      calculate_platform_fee_cents(amount, ActsAsTenant.current_tenant) / 100.0
+    end
   end
 end
