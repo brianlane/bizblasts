@@ -327,6 +327,17 @@ Rails.application.routes.draw do
 
   # Sitemap
   get '/sitemap.xml', to: 'sitemap#index', defaults: { format: 'xml' }
+  
+  # Web manifest for PWA support
+  get '/site.webmanifest', to: proc { |env|
+    file_path = Rails.root.join('public', 'site.webmanifest')
+    if File.exist?(file_path)
+      content = File.read(file_path)
+      [200, {"Content-Type" => "application/manifest+json", "Cache-Control" => "public, max-age=86400"}, [content]]
+    else
+      [404, {"Content-Type" => "text/plain"}, ["Manifest not found"]]
+    end
+  }
 
   # Blog section
   get '/blog', to: 'blog#index', as: :blog

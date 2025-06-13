@@ -133,12 +133,6 @@ class Public::TipsController < ApplicationController
   end
 
   def validate_tip_eligibility
-    # Check business tips enabled first
-    unless @booking.business.tips_enabled?
-      flash[:alert] = "Tips are not enabled for this business."
-      redirect_to tenant_my_booking_path(@booking) and return
-    end
-
     # Check if service is eligible for tips
     unless @booking.service.experience? && @booking.service.tips_enabled?
       flash[:alert] = "This service is not eligible for tips."

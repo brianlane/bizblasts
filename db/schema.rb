@@ -222,7 +222,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.decimal "points_per_product", precision: 8, scale: 2, default: "0.0", null: false
     t.integer "platform_loyalty_points", default: 0, null: false
     t.string "platform_referral_code"
-    t.boolean "tips_enabled", default: true, null: false
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -236,7 +235,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.index ["status"], name: "index_businesses_on_status"
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
-    t.index ["tips_enabled"], name: "index_businesses_on_tips_enabled"
   end
 
   create_table "campaign_recipients", force: :cascade do |t|

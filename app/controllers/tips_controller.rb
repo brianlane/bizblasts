@@ -1,7 +1,6 @@
 class TipsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_booking
-  before_action :check_tips_enabled
   before_action :check_tip_eligibility
   
   def new
@@ -57,13 +56,6 @@ class TipsController < ApplicationController
   
   def set_booking
     @booking = current_business.bookings.find(params[:booking_id])
-  end
-  
-  def check_tips_enabled
-    unless current_business.tips_enabled?
-      flash[:alert] = "Tips are not enabled for this business."
-      redirect_to tenant_booking_path(@booking)
-    end
   end
   
   def check_tip_eligibility

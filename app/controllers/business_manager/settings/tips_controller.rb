@@ -11,9 +11,6 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
     @tip_configuration = @business.tip_configuration_or_default
     
     ActiveRecord::Base.transaction do
-      # Update business tips_enabled setting
-      @business.update!(tips_params)
-      
       # Update or create tip configuration if provided
       if tip_configuration_params.present?
         if @tip_configuration.persisted?
@@ -35,11 +32,7 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
     render :show
   end
   
-    private
-
-  def tips_params
-    params.require(:business).permit(:tips_enabled)
-  end
+  private
   
   def tip_configuration_params
     return {} unless params[:tip_configuration].present?

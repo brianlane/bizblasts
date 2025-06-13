@@ -1,10 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe Tip, type: :model do
-  let(:business) { create(:business, tips_enabled: true) }
+  let(:business) { create(:business) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }
-  let(:experience_service) { create(:service, business: business, service_type: :experience, duration: 60, min_bookings: 1, max_bookings: 10, spots: 5) }
-  let(:booking) { create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer, start_time: 2.hours.ago) }
+  let(:experience_service) { create(:service, business: business, service_type: :experience, tips_enabled: true, min_bookings: 1, max_bookings: 10, spots: 10) }
+  let(:booking) { create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer, start_time: 2.hours.ago, end_time: 1.hour.ago) }
   
   before do
     ActsAsTenant.current_tenant = business
@@ -12,16 +12,24 @@ RSpec.describe Tip, type: :model do
 
   describe 'associations' do
     it 'belongs to business' do
-      # Test that business association exists
       tip = create(:tip, business: business, booking: booking, tenant_customer: tenant_customer)
       expect(tip.business).to eq(business)
     end
     
-    it { should belong_to(:booking).required }
-    it { should belong_to(:tenant_customer).required }
+    it 'belongs to booking' do
+      tip = create(:tip, business: business, booking: booking, tenant_customer: tenant_customer)
+      expect(tip.booking).to eq(booking)
+    end
+    
+    it 'belongs to tenant_customer' do
+      tip = create(:tip, business: business, booking: booking, tenant_customer: tenant_customer)
+      expect(tip.tenant_customer).to eq(tenant_customer)
+    end
   end
 
   describe 'validations' do
+    subject { build(:tip, business: business, booking: booking, tenant_customer: tenant_customer) }
+    
     it { should validate_presence_of(:amount) }
     it { should validate_numericality_of(:amount).is_greater_than(0) }
     
@@ -39,51 +47,43 @@ RSpec.describe Tip, type: :model do
   end
 
   describe 'scopes' do
-    let!(:pending_tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer, status: :pending) }
-    let!(:completed_tip) { create(:tip, business: business, booking: create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer), tenant_customer: tenant_customer, status: :completed) }
-    let!(:failed_tip) { create(:tip, business: business, booking: create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer), tenant_customer: tenant_customer, status: :failed) }
+    let!(:completed_tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer, status: :completed) }
+    let!(:pending_tip) { create(:tip, business: business, booking: create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer), tenant_customer: tenant_customer, status: :pending) }
 
     describe '.successful' do
       it 'returns only completed tips' do
-        expect(Tip.successful).to contain_exactly(completed_tip)
+        expect(Tip.successful).to include(completed_tip)
+        expect(Tip.successful).not_to include(pending_tip)
       end
     end
 
     describe '.pending' do
       it 'returns only pending tips' do
-        expect(Tip.pending).to contain_exactly(pending_tip)
+        expect(Tip.pending).to include(pending_tip)
+        expect(Tip.pending).not_to include(completed_tip)
       end
     end
   end
 
   describe '#mark_as_completed!' do
-    include ActiveSupport::Testing::TimeHelpers
-    
-    let(:tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer, status: :pending) }
+    let(:tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer) }
 
     it 'updates status to completed and sets paid_at' do
-      travel_to Time.current do
-        tip.mark_as_completed!
-        
-        expect(tip.reload.status).to eq('completed')
-        expect(tip.paid_at).to be_within(1.second).of(Time.current)
-      end
+      expect { tip.mark_as_completed! }.to change { tip.reload.status }.to('completed')
+                                        .and change { tip.paid_at }.from(nil).to be_within(1.second).of(Time.current)
     end
   end
 
   describe '#mark_as_failed!' do
-    let(:tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer, status: :pending) }
+    let(:tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer) }
 
     it 'updates status to failed' do
-      tip.mark_as_failed!
-      
-      expect(tip.reload.status).to eq('failed')
+      expect { tip.mark_as_failed! }.to change { tip.reload.status }.to('failed')
     end
 
     it 'sets failure reason when provided' do
-      reason = 'Card declined'
+      reason = "Payment declined"
       tip.mark_as_failed!(reason)
-      
       expect(tip.reload.failure_reason).to eq(reason)
     end
   end

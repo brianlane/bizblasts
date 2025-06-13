@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe StripeService, type: :service do
-  let(:business) { create(:business, tips_enabled: true, stripe_account_id: 'acct_test123', tier: 'premium') }
+  let(:business) { create(:business, stripe_account_id: 'acct_test123', tier: 'premium') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:experience_service) { create(:service, business: business, service_type: :experience, duration: 60, min_bookings: 1, max_bookings: 10, spots: 5) }
   let(:booking) { create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer, start_time: 2.hours.ago) }

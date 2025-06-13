@@ -136,7 +136,7 @@
       </div>
       
       <!-- Tip Collection Section -->
-      <% if current_tenant.tips_enabled? && @order.has_tip_eligible_items? %>
+      <% if @order.has_tip_eligible_items? %>
         <%= render 'shared/tip_collection', order: @order, base_amount: @order.subtotal_amount, context: 'checkout' %>
       <% end %>
 

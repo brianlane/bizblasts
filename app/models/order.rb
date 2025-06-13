@@ -106,7 +106,7 @@ class Order < ApplicationRecord
   end
 
   def tip_enabled?
-    business.tips_enabled? && has_tip_eligible_items?
+    has_tip_eligible_items?
   end
 
   def is_mixed_order?

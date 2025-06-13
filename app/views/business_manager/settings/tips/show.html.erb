@@ -10,22 +10,8 @@
 
       <%= form_with model: @business, url: business_manager_settings_tips_path, method: :patch, local: true, class: "space-y-8" do |form| %>
         
-        <!-- Global Tips Setting -->
-        <div class="border-b border-gray-200 pb-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-lg font-medium text-gray-900">Enable Tips</h3>
-              <p class="text-sm text-gray-600">Allow customers to add tips to their orders</p>
-            </div>
-            <div class="flex items-center">
-              <%= form.check_box :tips_enabled, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
-              <%= form.label :tips_enabled, "Enable tips for this business", class: "ml-2 text-sm text-gray-700" %>
-            </div>
-          </div>
-        </div>
-
         <!-- Tip Configuration -->
-        <div class="border-b border-gray-200 pb-6" id="tip-configuration" style="<%= 'display: none;' unless @business.tips_enabled? %>">
+        <div class="border-b border-gray-200 pb-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Tip Configuration</h3>
           
           <%= fields_for :tip_configuration, @tip_configuration do |config_form| %>
@@ -64,7 +50,7 @@
         </div>
 
         <!-- Product Tips Settings -->
-        <div class="border-b border-gray-200 pb-6" id="product-tips" style="<%= 'display: none;' unless @business.tips_enabled? %>">
+        <div class="border-b border-gray-200 pb-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Product Tips Settings</h3>
           <div class="space-y-3">
             <% @business.products.active.each do |product| %>
@@ -87,7 +73,7 @@
         </div>
 
         <!-- Service Tips Settings -->
-        <div class="border-b border-gray-200 pb-6" id="service-tips" style="<%= 'display: none;' unless @business.tips_enabled? %>">
+        <div class="border-b border-gray-200 pb-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Service Tips Settings</h3>
           <div class="space-y-3">
             <% @business.services.active.each do |service| %>
@@ -145,22 +131,4 @@
       <% end %>
     </div>
   </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const tipsEnabledCheckbox = document.getElementById('business_tips_enabled');
-  const tipConfiguration = document.getElementById('tip-configuration');
-  const productTips = document.getElementById('product-tips');
-  const serviceTips = document.getElementById('service-tips');
-  
-  function toggleTipSections() {
-    const isEnabled = tipsEnabledCheckbox.checked;
-    tipConfiguration.style.display = isEnabled ? 'block' : 'none';
-    productTips.style.display = isEnabled ? 'block' : 'none';
-    serviceTips.style.display = isEnabled ? 'block' : 'none';
-  }
-  
-  tipsEnabledCheckbox.addEventListener('change', toggleTipSections);
-});
-</script> 
+</div> 
