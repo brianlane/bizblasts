@@ -84,6 +84,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :duration,
       :featured,
       :active,
+      :tips_enabled,
       :availability_settings,
       staff_member_ids: [], # Allow staff assignment via new association
       images: [], # Allow new image uploads
