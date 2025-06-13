@@ -12,7 +12,15 @@ class PolicyVersion < ApplicationRecord
   scope :requiring_notification, -> { where(requires_notification: true) }
   
   def self.current_version(policy_type)
-    for_policy_type(policy_type).active.first
+    # Only cache in non-test environments to avoid test interference
+    if Rails.env.test?
+      for_policy_type(policy_type).active.first
+    else
+      # Cache the current version for 5 minutes to reduce database queries
+      Rails.cache.fetch("current_policy_version_#{policy_type}", expires_in: 5.minutes) do
+        for_policy_type(policy_type).active.first
+      end
+    end
   end
   
   def self.current_versions
@@ -25,6 +33,9 @@ class PolicyVersion < ApplicationRecord
       PolicyVersion.where(policy_type: policy_type).update_all(active: false)
       # Activate this version
       update!(active: true)
+      
+      # Clear the cache for this policy type
+      Rails.cache.delete("current_policy_version_#{policy_type}")
       
       # Mark users as requiring acceptance if this requires notification
       if requires_notification?

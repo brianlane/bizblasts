@@ -1,11 +1,21 @@
 // Policy Acceptance Modal Handler
 class PolicyAcceptance {
   constructor() {
+    // Prevent multiple instances from running simultaneously
+    if (window.policyAcceptanceInstance) {
+      return window.policyAcceptanceInstance;
+    }
+    window.policyAcceptanceInstance = this;
+    
     this.modal = document.getElementById('policy-acceptance-modal');
     this.acceptAllBtn = document.getElementById('accept-all-policies');
     this.policiesContainer = document.getElementById('policies-to-accept');
     this.acceptedPolicies = new Set();
     this.debugMode = window.location.search.includes('debug_policy=true');
+    this.isCheckingStatus = false; // Flag to prevent duplicate checks
+    this.statusCache = null; // Cache policy status
+    this.cacheTimeout = 30000; // 30 seconds cache
+    this.lastCheck = null;
     
     if (this.modal) {
       this.bindEvents();
@@ -60,6 +70,23 @@ class PolicyAcceptance {
   }
   
   async checkPolicyStatus() {
+    // Prevent duplicate simultaneous checks
+    if (this.isCheckingStatus) {
+      console.log('[PolicyAcceptance] Policy status check already in progress, skipping');
+      return;
+    }
+    
+    // Check cache first
+    const now = Date.now();
+    if (this.statusCache && this.lastCheck && (now - this.lastCheck) < this.cacheTimeout) {
+      console.log('[PolicyAcceptance] Using cached policy status');
+      if (this.statusCache.requires_policy_acceptance && this.statusCache.missing_policies.length > 0) {
+        this.showPolicyModal(this.statusCache.missing_policies);
+      }
+      return;
+    }
+    
+    this.isCheckingStatus = true;
     
     try {
       const token = this.getCSRFToken();
@@ -80,9 +107,14 @@ class PolicyAcceptance {
       
       const data = await response.json();
       
+      // Cache the response
+      this.statusCache = data;
+      this.lastCheck = now;
+      
       if (data.requires_policy_acceptance && data.missing_policies.length > 0) {
         this.showPolicyModal(data.missing_policies);
       } else {
+        console.log('[PolicyAcceptance] No policies need acceptance');
       }
     } catch (error) {
       console.error('[PolicyAcceptance] Error checking policy status:', error);
@@ -93,6 +125,8 @@ class PolicyAcceptance {
           { policy_type: 'privacy_policy', policy_name: 'Privacy Policy', policy_path: '/privacypolicy', version: 'v1.0' }
         ]);
       }
+    } finally {
+      this.isCheckingStatus = false;
     }
   }
   
@@ -293,15 +327,5 @@ class PolicyAcceptance {
     return token ? token.content : '';
   }
 }
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  new PolicyAcceptance();
-});
-
-// Also initialize on Turbo navigation
-document.addEventListener('turbo:load', () => {
-  new PolicyAcceptance();
-});
 
 export default PolicyAcceptance; 

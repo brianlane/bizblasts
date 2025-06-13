@@ -69,8 +69,7 @@ class TenantManager
     # Create default pages
     create_default_pages(business)
     
-    # Set up default loyalty program
-    create_default_loyalty_program(business)
+    # Note: Loyalty program creation removed - businesses can enable and configure this manually
     
     true
   end
@@ -93,18 +92,5 @@ class TenantManager
         business: business
       )
     end
-  end
-  
-  def self.create_default_loyalty_program(business)
-    # Create a basic loyalty program
-    LoyaltyProgram.create(
-      name: "#{business.name} Rewards",
-      points_name: "Points",
-      points_for_booking: 10,
-      points_for_referral: 50,
-      points_per_dollar: 1,
-      active: true,
-      business: business
-    )
   end
 end

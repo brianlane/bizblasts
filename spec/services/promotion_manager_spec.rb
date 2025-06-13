@@ -15,18 +15,18 @@ RSpec.describe PromotionManager, type: :service do
 
   describe '.validate_promotion_code' do
     let!(:active_promo) { 
-      create(:promotion, :percentage, business: tenant, code: 'VALID10') 
+      create(:promotion, :code_based, :percentage, business: tenant, code: 'VALID10') 
     }
     let!(:inactive_promo) { 
-      create(:promotion, :inactive, business: tenant, code: 'INACTIVE') 
+      create(:promotion, :code_based, :inactive, business: tenant, code: 'INACTIVE') 
     }
     let!(:limited_promo) { 
       # Create promo with limit and usage equal to limit
-      create(:promotion, :fixed_amount, business: tenant, code: 'LIMIT1', usage_limit: 1, current_usage: 1) 
+      create(:promotion, :code_based, :fixed_amount, business: tenant, code: 'LIMIT1', usage_limit: 1, current_usage: 1) 
     }
     let!(:single_use_promo) { 
       # Create promo with usage_limit = 1 to signify single use per customer
-      create(:promotion, :single_use_by_limit, business: tenant, code: 'SINGLE')
+      create(:promotion, :code_based, :single_use_by_limit, business: tenant, code: 'SINGLE')
     }
     let!(:redemption_for_single_use) { 
       # Customer already redeemed the single_use_promo
@@ -52,7 +52,7 @@ RSpec.describe PromotionManager, type: :service do
     end
 
     context 'with an inactive code (by date)' do
-      let!(:inactive_by_date) { create(:promotion, business: tenant, code: 'DATEINACTIVE', active: true, start_date: 2.months.ago, end_date: 1.month.ago) }
+      let!(:inactive_by_date) { create(:promotion, :code_based, business: tenant, code: 'DATEINACTIVE', active: true, start_date: 2.months.ago, end_date: 1.month.ago) }
       it 'returns valid: false and an error message' do
         result = described_class.validate_promotion_code('DATEINACTIVE', tenant.id)
         expect(result[:valid]).to be false
@@ -61,7 +61,7 @@ RSpec.describe PromotionManager, type: :service do
     end
     
     context 'with an inactive code (by flag)' do
-      let!(:inactive_by_flag) { create(:promotion, :inactive, business: tenant, code: 'FLAGINACTIVE', start_date: 1.week.ago, end_date: 1.month.from_now) }
+      let!(:inactive_by_flag) { create(:promotion, :code_based, :inactive, business: tenant, code: 'FLAGINACTIVE', start_date: 1.week.ago, end_date: 1.month.from_now) }
       it 'returns valid: false and an error message' do
         result = described_class.validate_promotion_code('FLAGINACTIVE', tenant.id)
         expect(result[:valid]).to be false
@@ -116,13 +116,13 @@ RSpec.describe PromotionManager, type: :service do
       create(:booking, business: tenant, tenant_customer: customer, service: service, staff_member: staff_member, amount: service.price)
     }
     let!(:percent_promo) { 
-      create(:promotion, :percentage, business: tenant, code: 'PERCENT20', discount_value: 20)
+      create(:promotion, :code_based, :percentage, business: tenant, code: 'PERCENT20', discount_value: 20)
     }
     let!(:fixed_promo) { 
-      create(:promotion, :fixed_amount, business: tenant, code: 'FIXED10', discount_value: 10)
+      create(:promotion, :code_based, :fixed_amount, business: tenant, code: 'FIXED10', discount_value: 10)
     }
     let!(:limited_promo_apply) { 
-      create(:promotion, :percentage, business: tenant, code: 'LIMITAPPLY', discount_value: 5, usage_limit: 1, current_usage: 0)
+      create(:promotion, :code_based, :percentage, business: tenant, code: 'LIMITAPPLY', discount_value: 5, usage_limit: 1, current_usage: 0)
     }
 
     context 'with a valid percentage promotion' do
@@ -213,7 +213,7 @@ RSpec.describe PromotionManager, type: :service do
     end
     
     context 'when fixed discount is greater than booking amount' do
-      let!(:expensive_fixed_promo) { create(:promotion, :fixed_amount, business: tenant, code: 'OVER150', discount_value: 150.00) }
+      let!(:expensive_fixed_promo) { create(:promotion, :code_based, :fixed_amount, business: tenant, code: 'OVER150', discount_value: 150.00) }
       it 'discounts amount to 0 and records correct discount amount' do
         expect { 
           result = described_class.apply_promotion_to_booking(booking, 'OVER150')
@@ -281,10 +281,10 @@ RSpec.describe PromotionManager, type: :service do
       create(:invoice, business: tenant, tenant_customer: customer, booking: booking_for_invoice, amount: booking_for_invoice.amount, total_amount: booking_for_invoice.amount, tax_rate: default_tax_rate)
     }
     let!(:percent_promo_inv) { 
-      create(:promotion, :percentage, business: tenant, code: 'INVPERCENT15', discount_value: 15)
+      create(:promotion, :code_based, :percentage, business: tenant, code: 'INVPERCENT15', discount_value: 15)
     }
     let!(:fixed_promo_inv) { 
-      create(:promotion, :fixed_amount, business: tenant, code: 'INVFIXED25', discount_value: 25)
+      create(:promotion, :code_based, :fixed_amount, business: tenant, code: 'INVFIXED25', discount_value: 25)
     }
 
     context 'with a valid percentage promotion' do
@@ -349,7 +349,7 @@ RSpec.describe PromotionManager, type: :service do
     
     context 'when fixed discount is greater than invoice amount' do
       let!(:expensive_fixed_promo_inv) { 
-        create(:promotion, :fixed_amount, business: tenant, code: 'INV_OVER150', discount_value: 150.00)
+        create(:promotion, :code_based, :fixed_amount, business: tenant, code: 'INV_OVER150', discount_value: 150.00)
       }
       
       it 'discounts amount to 0 and records correct discount amount' do
@@ -406,7 +406,7 @@ RSpec.describe PromotionManager, type: :service do
 
     context 'when usage limit is reached between validation and application' do
       let!(:limited_promo_inv_apply) { 
-        create(:promotion, :percentage, business: tenant, code: 'INV_LIMIT_APPLY', discount_value: 5, usage_limit: 1, current_usage: 0)
+        create(:promotion, :code_based, :percentage, business: tenant, code: 'INV_LIMIT_APPLY', discount_value: 5, usage_limit: 1, current_usage: 0)
       }
 
       it 'returns an error and does not apply the promotion' do

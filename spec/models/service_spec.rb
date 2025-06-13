@@ -391,4 +391,199 @@ RSpec.describe Service, type: :model do
       service.images.attach(files)
     end
   end
+
+  describe 'promotional pricing methods' do
+    let(:business) { create(:business) }
+    let(:service) { create(:service, business: business, price: 150.00) }
+    
+    before do
+      ActsAsTenant.current_tenant = business
+    end
+
+    describe '#current_promotion' do
+      context 'with active promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 25,
+            applicable_to_services: true,
+            start_date: 1.week.ago,
+            end_date: 1.week.from_now,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns the active promotion' do
+          expect(service.current_promotion).to eq(promotion)
+        end
+      end
+
+      context 'with expired promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_services: true,
+            start_date: 2.weeks.ago,
+            end_date: 1.week.ago,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns nil for expired promotion' do
+          expect(service.current_promotion).to be_nil
+        end
+      end
+    end
+
+    describe '#on_promotion?' do
+      context 'with active promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 40.00,
+            applicable_to_services: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns true when service has active promotion' do
+          expect(service.on_promotion?).to be true
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns false when service has no promotion' do
+          expect(service.on_promotion?).to be false
+        end
+      end
+    end
+
+    describe '#promotional_price' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 30,
+            applicable_to_services: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns discounted price for percentage promotion' do
+          expect(service.promotional_price).to eq(105.00) # 150 - 30% = 105
+        end
+      end
+
+      context 'with fixed amount discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 25.00,
+            applicable_to_services: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns discounted price for fixed amount promotion' do
+          expect(service.promotional_price).to eq(125.00) # 150 - 25 = 125
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns original price when no promotion is active' do
+          expect(service.promotional_price).to eq(150.00)
+        end
+      end
+    end
+
+    describe '#promotion_discount_amount' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_services: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns discount amount for percentage promotion' do
+          expect(service.promotion_discount_amount).to eq(30.00) # 20% of 150 = 30
+        end
+      end
+    end
+
+    describe '#promotion_display_text' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 25,
+            applicable_to_services: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns percentage display text' do
+          expect(service.promotion_display_text).to eq('25% OFF')
+        end
+      end
+
+      context 'with fixed amount discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 50.00,
+            applicable_to_services: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_services.create!(service: service)
+        end
+
+        it 'returns fixed amount display text' do
+          expect(service.promotion_display_text).to eq('$50.0 OFF')
+        end
+      end
+    end
+  end
 end

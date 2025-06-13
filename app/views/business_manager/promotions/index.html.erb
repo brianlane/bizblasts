@@ -1,0 +1,173 @@
+<% content_for :title, "Promotions" %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Promotions</h1>
+          <p class="mt-1 text-sm text-gray-500">Create and manage promotional discounts for your products and services</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to new_business_manager_promotion_path, 
+                      class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" do %>
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            New Promotion
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Active Promotions</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @active_promotions.count %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Upcoming Promotions</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @upcoming_promotions.count %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Usage</dt>
+                <dd class="text-lg font-medium text-gray-900"><%= @promotions.sum(:current_usage) %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Promotions List -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">All Promotions</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">Manage your promotional campaigns</p>
+      </div>
+      
+      <% if @promotions.any? %>
+        <ul class="divide-y divide-gray-200">
+          <% @promotions.each do |promotion| %>
+            <li class="px-4 py-4 sm:px-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <% if promotion.currently_active? %>
+                      <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                    <% elsif promotion.start_date > Time.current %>
+                      <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                    <% else %>
+                      <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">
+                      <%= link_to promotion.name, business_manager_promotion_path(promotion), class: "hover:text-indigo-600" %>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      <%= promotion.display_text %> • Code: <%= promotion.code %>
+                    </div>
+                    <div class="text-xs text-gray-400">
+                      <%= promotion.start_date.strftime("%b %d") %> - <%= promotion.end_date.strftime("%b %d, %Y") %>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="text-sm text-gray-900">
+                    <% if promotion.usage_limit %>
+                      <%= promotion.current_usage %>/<%= promotion.usage_limit %> used
+                    <% else %>
+                      <%= promotion.current_usage %> used
+                    <% end %>
+                  </div>
+                  <div class="flex space-x-1">
+                    <%= link_to edit_business_manager_promotion_path(promotion), 
+                                class: "text-indigo-600 hover:text-indigo-900 text-sm" do %>
+                      Edit
+                    <% end %>
+                    <%= button_to toggle_status_business_manager_promotion_path(promotion), 
+                                  method: :patch,
+                                  class: "text-sm #{promotion.active? ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}" do %>
+                      <%= promotion.active? ? 'Deactivate' : 'Activate' %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No promotions</h3>
+          <p class="mt-1 text-sm text-gray-500">Get started by creating your first promotion.</p>
+          <div class="mt-6">
+            <%= link_to new_business_manager_promotion_path, 
+                        class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              New Promotion
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 

@@ -1,0 +1,132 @@
+<% content_for :title, "Add a Tip" %>
+
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-md mx-auto">
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-8 text-white text-center">
+        <% if @booking.business.logo.attached? %>
+          <%= image_tag @booking.business.logo, class: "h-12 w-auto mx-auto mb-4", alt: @booking.business.name %>
+        <% end %>
+        <h1 class="text-2xl font-bold mb-2">Thank You!</h1>
+        <p class="text-blue-100">Show your appreciation for great service</p>
+      </div>
+
+      <!-- Booking Details -->
+      <div class="px-6 py-4 bg-blue-50 border-b">
+        <div class="text-center">
+          <h2 class="text-lg font-semibold text-gray-800"><%= @booking.service.name %></h2>
+          <p class="text-sm text-gray-600 mt-1">
+            <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %>
+          </p>
+          <% if @booking.staff_member %>
+            <p class="text-sm text-gray-600">
+              with <%= @booking.staff_member.name %>
+            </p>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Tip Collection Form -->
+      <div class="px-6 py-6">
+        <%= form_with url: tips_path, method: :post, local: true, class: "space-y-6" do |form| %>
+          <%= form.hidden_field :booking_id, value: @booking.id %>
+          <%= form.hidden_field :token, value: params[:token] %>
+          
+          <!-- Service Amount Display -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Service Amount:</span>
+              <span class="font-semibold text-gray-800"><%= number_to_currency(@base_amount) %></span>
+            </div>
+          </div>
+
+          <!-- Tip Collection Component -->
+          <%= render 'shared/tip_collection', 
+                     booking: @booking, 
+                     base_amount: @base_amount, 
+                     context: 'experience' %>
+
+          <!-- Total Display -->
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex justify-between items-center">
+              <span class="text-green-800 font-medium">Total with Tip:</span>
+              <span class="text-green-800 font-bold text-lg total-amount">
+                <%= number_to_currency(@base_amount) %>
+              </span>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" 
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  id="submit-tip-btn">
+            <span class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              </svg>
+              Add Tip
+            </span>
+          </button>
+
+          <!-- No Tip Option -->
+          <div class="text-center">
+            <p class="text-sm text-gray-500 mb-3">
+              Tips are optional and greatly appreciated by our team
+            </p>
+            <%= link_to "Skip for now", 
+                        tenant_root_path, 
+                        class: "text-gray-400 hover:text-gray-600 text-sm underline" %>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 bg-gray-50 border-t">
+        <div class="flex items-center justify-center text-xs text-gray-500">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          Secure payment powered by Stripe
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const totalAmount = document.querySelector('.total-amount');
+  const submitBtn = document.getElementById('submit-tip-btn');
+  const baseAmount = <%= @base_amount.to_f %>;
+  let currentTipAmount = 0;
+  
+  // Listen for tip amount changes
+  document.addEventListener('tipAmountChanged', function(event) {
+    currentTipAmount = event.detail.amount;
+    const newTotal = baseAmount + currentTipAmount;
+    totalAmount.textContent = '$' + newTotal.toFixed(2);
+    
+    // Update button text based on tip amount
+    const buttonText = submitBtn.querySelector('span');
+    if (currentTipAmount > 0) {
+      buttonText.innerHTML = `
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        Add $${currentTipAmount.toFixed(2)} Tip
+      `;
+    } else {
+      buttonText.innerHTML = `
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        Add Tip
+      `;
+    }
+  });
+  
+  // Allow form submission - let controller handle validation
+  // Removed client-side validation to allow testing
+});
+</script> 

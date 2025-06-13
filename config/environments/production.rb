@@ -3,12 +3,8 @@
 require "active_support/core_ext/integer/time"
 require "securerandom"
 
-# Debug output for database configuration
-puts "DATABASE_URL environment variable: #{ENV['DATABASE_URL'] ? 'Set (value hidden for security)' : 'NOT SET'}"
-puts "DATABASE_HOST environment variable: #{ENV['DATABASE_HOST'] || 'NOT SET'}"
-puts "DATABASE_PORT environment variable: #{ENV['DATABASE_PORT'] ? ENV['DATABASE_PORT'] : 'NOT SET (using default 5432)'}"
-puts "SECRET_KEY_BASE set: #{ENV['SECRET_KEY_BASE'] ? 'Yes' : 'No'}"
-puts "RAILS_MASTER_KEY set: #{ENV['RAILS_MASTER_KEY'] ? 'Yes' : 'No'}"
+# SECURITY FIX: Remove debug output that exposes sensitive information
+# Debug output removed for security in production
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.

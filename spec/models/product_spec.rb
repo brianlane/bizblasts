@@ -129,9 +129,366 @@ RSpec.describe Product, type: :model do
           image.update(position: index)
         end
         expect(product.images.ordered.map(&:id)).to eq(product.images.map(&:id))
+          end
+  end
+
+  describe 'promotional pricing methods' do
+    let(:product) { create(:product, business: business, price: 100.00) }
+    
+    before do
+      ActsAsTenant.current_tenant = business
+    end
+
+    describe '#current_promotion' do
+      context 'with active promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_products: true,
+            start_date: 1.week.ago,
+            end_date: 1.week.from_now,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns the active promotion' do
+          expect(product.current_promotion).to eq(promotion)
+        end
+      end
+
+      context 'with expired promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_products: true,
+            start_date: 2.weeks.ago,
+            end_date: 1.week.ago,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns nil for expired promotion' do
+          expect(product.current_promotion).to be_nil
+        end
+      end
+
+      context 'with inactive promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_products: true,
+            active: false
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns nil for inactive promotion' do
+          expect(product.current_promotion).to be_nil
+        end
+      end
+
+      context 'with usage limit reached' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_products: true,
+            usage_limit: 5,
+            current_usage: 5,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns nil when usage limit is reached' do
+          expect(product.current_promotion).to be_nil
+        end
+      end
+    end
+
+    describe '#on_promotion?' do
+      context 'with active promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 25,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns true when product has active promotion' do
+          expect(product.on_promotion?).to be true
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns false when product has no promotion' do
+          expect(product.on_promotion?).to be false
+        end
+      end
+    end
+
+    describe '#promotional_price' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 20,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns discounted price for percentage promotion' do
+          expect(product.promotional_price).to eq(80.00) # 100 - 20% = 80
+        end
+      end
+
+      context 'with fixed amount discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 15.00,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns discounted price for fixed amount promotion' do
+          expect(product.promotional_price).to eq(85.00) # 100 - 15 = 85
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns original price when no promotion is active' do
+          expect(product.promotional_price).to eq(100.00)
+        end
+      end
+    end
+
+    describe '#promotion_discount_amount' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 30,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns discount amount for percentage promotion' do
+          expect(product.promotion_discount_amount).to eq(30.00) # 30% of 100 = 30
+        end
+      end
+
+      context 'with fixed amount discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 25.00,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns discount amount for fixed amount promotion' do
+          expect(product.promotion_discount_amount).to eq(25.00)
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns zero when no promotion is active' do
+          expect(product.promotion_discount_amount).to eq(0)
+        end
+      end
+    end
+
+    describe '#savings_percentage' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 25,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns the discount percentage' do
+          expect(product.savings_percentage).to eq(25)
+        end
+      end
+
+      context 'with fixed amount discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 20.00,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'calculates percentage savings for fixed amount promotion' do
+          expect(product.savings_percentage).to eq(20) # 20/100 * 100 = 20%
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns zero when no promotion is active' do
+          expect(product.savings_percentage).to eq(0)
+        end
+      end
+    end
+
+    describe '#promotion_display_text' do
+      context 'with percentage discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'percentage',
+            discount_value: 35,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns percentage display text' do
+          expect(product.promotion_display_text).to eq('35% OFF')
+        end
+      end
+
+      context 'with fixed amount discount promotion' do
+        let!(:promotion) do
+          create(:promotion,
+            business: business,
+            discount_type: 'fixed_amount',
+            discount_value: 15.00,
+            applicable_to_products: true,
+            active: true
+          )
+        end
+        
+        before do
+          promotion.promotion_products.create!(product: product)
+        end
+
+        it 'returns fixed amount display text' do
+          expect(product.promotion_display_text).to eq('$15.0 OFF')
+        end
+      end
+
+      context 'without promotion' do
+        it 'returns nil when no promotion is active' do
+          expect(product.promotion_display_text).to be_nil
+        end
+      end
+    end
+
+    describe 'memoization behavior' do
+      let!(:promotion) do
+        create(:promotion,
+          business: business,
+          discount_type: 'percentage',
+          discount_value: 15,
+          applicable_to_products: true,
+          active: true
+        )
+      end
+      
+      before do
+        promotion.promotion_products.create!(product: product)
+      end
+
+      it 'memoizes current_promotion result' do
+        # First call should query the database
+        first_result = product.current_promotion
+        
+        # Mock the association to verify it's not called again
+        expect(product.promotion_products).not_to receive(:joins)
+        
+        # Second call should return memoized result
+        second_result = product.current_promotion
+        
+        expect(first_result).to eq(second_result)
+        expect(first_result).to eq(promotion)
+      end
+
+      it 'clears memoization when product is reloaded' do
+        # Get initial result
+        product.current_promotion
+        
+        # Reload product
+        product.reload
+        
+        # Should be able to get promotion again after reload
+        expect(product.current_promotion).to eq(promotion)
       end
     end
   end
+end
 
   describe 'image deletion functionality' do
     let(:product) { create(:product, business: business) }

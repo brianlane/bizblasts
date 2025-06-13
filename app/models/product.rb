@@ -26,11 +26,16 @@ class Product < ApplicationRecord
   # Add-ons association
   has_many :product_service_add_ons, dependent: :destroy
   has_many :add_on_services, through: :product_service_add_ons, source: :service
+  
+  # Promotion associations
+  has_many :promotion_products, dependent: :destroy
+  has_many :promotions, through: :promotion_products
 
   enum :product_type, { standard: 0, service: 1, mixed: 2 }
 
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :tips_enabled, inclusion: { in: [true, false] }
   # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
                                      message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
@@ -100,6 +105,40 @@ class Product < ApplicationRecord
     order.each_with_index do |id, index|
       images.find(id).update(position: index)
     end
+  end
+
+  # Promotional pricing methods
+  def current_promotion
+    Promotion.active_promotion_for_product(self)
+  end
+  
+  def on_promotion?
+    current_promotion.present?
+  end
+  
+  def promotional_price
+    return price unless on_promotion?
+    current_promotion.calculate_promotional_price(price)
+  end
+  
+  def promotion_discount_amount
+    return 0 unless on_promotion?
+    current_promotion.calculate_discount(price)
+  end
+  
+  def promotion_display_text
+    return nil unless on_promotion?
+    current_promotion.display_text
+  end
+  
+  def savings_percentage
+    return 0 unless on_promotion? && price > 0
+    ((promotion_discount_amount / price) * 100).round
+  end
+  
+  # Tip eligibility methods
+  def tip_eligible?
+    tips_enabled?
   end
 
   # Custom setter to handle nested image attributes (primary flags & ordering)

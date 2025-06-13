@@ -33,17 +33,20 @@ class TransactionsController < ApplicationController
       orders = []
       invoices = []
       
+      # Use cached tenant customer IDs for better performance
+      tenant_customer_ids = current_user.tenant_customer_ids
+      
       # Get orders if needed
       if @filter == 'orders' || @filter == 'both'
         orders = Order.joins(:tenant_customer)
-                      .where(tenant_customers: { email: current_user.email })
+                      .where(tenant_customers: { id: tenant_customer_ids })
                       .includes(:line_items, :shipping_method, :tax_rate, :business, :invoice)
       end
       
       # Get invoices if needed
       if @filter == 'invoices' || @filter == 'both'
         invoices = Invoice.joins(:tenant_customer)
-                          .where(tenant_customers: { email: current_user.email })
+                          .where(tenant_customers: { id: tenant_customer_ids })
                           .includes(:business, booking: [:service, :booking_product_add_ons])
       end
       
@@ -90,7 +93,7 @@ class TransactionsController < ApplicationController
       )&.find_by(id: id)
     else
       Order.joins(:tenant_customer)
-           .where(tenant_customers: { email: current_user.email })
+           .where(tenant_customers: { id: current_user.tenant_customer_ids })
            .includes(
              line_items: { product_variant: :product }, 
              shipping_method: {}, 
@@ -127,7 +130,7 @@ class TransactionsController < ApplicationController
       end
     else
       Invoice.joins(:tenant_customer)
-             .where(tenant_customers: { email: current_user.email })
+             .where(tenant_customers: { id: current_user.tenant_customer_ids })
              .includes(:business, booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
                        line_items: {product_variant: :product},
                        shipping_method: {}, tax_rate: {}, order: {})

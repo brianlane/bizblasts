@@ -111,12 +111,103 @@
         </div>
       </div>
       
-      <div class="flex flex-col sm:flex-row gap-4 justify-between pt-6 border-t">
-        <%= link_to 'Back to Cart', cart_path, 
-            class: 'inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200' %>
-        <%= f.submit 'Place Order', 
-            class: 'inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 shadow-lg' %>
+      <%# Promo Code Section %>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-900 flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          Have a Promo Code?
+        </h2>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <%= f.text_field :promo_code, 
+                          placeholder: "Enter promo code", 
+                          class: "flex-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                          id: "order_promo_code_field" %>
+          <button type="button" 
+                  id="apply_order_promo_code" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+            Apply Code
+          </button>
+        </div>
+        <div id="order_promo_code_result" class="mt-3 hidden">
+          <!-- Promo code validation result will appear here -->
+        </div>
+      </div>
+      
+      <!-- Tip Collection Section -->
+      <% if current_tenant.tips_enabled? && @order.has_tip_eligible_items? %>
+        <%= render 'shared/tip_collection', order: @order, base_amount: @order.subtotal_amount, context: 'checkout' %>
+      <% end %>
+
+      <!-- Order Summary -->
+      <div class="bg-gray-50 p-4 rounded-lg mt-6">
+        <h3 class="text-lg font-semibold mb-4">Order Summary</h3>
+        
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span class="order-subtotal"><%= number_to_currency(@order.subtotal_amount) %></span>
+          </div>
+          
+          <% if @order.shipping_amount&.positive? %>
+            <div class="flex justify-between">
+              <span>Shipping:</span>
+              <span><%= number_to_currency(@order.shipping_amount) %></span>
+            </div>
+          <% end %>
+          
+          <% if @order.tax_amount&.positive? %>
+            <div class="flex justify-between">
+              <span>Tax:</span>
+              <span><%= number_to_currency(@order.tax_amount) %></span>
+            </div>
+          <% end %>
+          
+          <div class="flex justify-between tip-amount-display" style="display: none;">
+            <span>Tip:</span>
+            <span class="tip-amount-value">$0.00</span>
+          </div>
+          
+          <hr class="my-2">
+          
+          <div class="flex justify-between text-lg font-bold">
+            <span>Total:</span>
+            <span class="order-total"><%= number_to_currency(@order.total_amount) %></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex space-x-4 mt-6">
+        <%= f.submit "Complete Order", class: "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" %>
+        <%= link_to "Back to Cart", cart_path, class: "flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-lg text-center transition duration-200" %>
       </div>
     <% end %>
   </div>
-</div> 
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const orderTotal = document.querySelector('.order-total');
+  const tipAmountDisplay = document.querySelector('.tip-amount-display');
+  const tipAmountValue = document.querySelector('.tip-amount-value');
+  const baseAmount = <%= @order.subtotal_amount.to_f %>;
+  
+  // Listen for tip amount changes from the tip collection component
+  document.addEventListener('tipAmountChanged', function(event) {
+    const tipAmount = event.detail.amount;
+    
+    if (tipAmount > 0) {
+      tipAmountDisplay.style.display = 'flex';
+      tipAmountValue.textContent = '$' + tipAmount.toFixed(2);
+      
+      const newTotal = baseAmount + tipAmount;
+      orderTotal.textContent = '$' + newTotal.toFixed(2);
+    } else {
+      tipAmountDisplay.style.display = 'none';
+      orderTotal.textContent = '$' + baseAmount.toFixed(2);
+    }
+  });
+});
+</script> 

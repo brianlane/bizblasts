@@ -104,7 +104,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect(new_user.email).to eq(params[:user][:email])
         expect(new_user.manager?).to be true
         expect(new_user.business).to eq(new_business)
-        expect(new_user.staffed_businesses).to include(new_business)
+        expect(new_user.businesses_as_staff).to include(new_business)
         expect(new_business.staff).to include(new_user)
 
         expect(new_business.name).to eq(params[:user][:business_attributes][:name])

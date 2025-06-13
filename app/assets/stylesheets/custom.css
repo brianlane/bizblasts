@@ -137,6 +137,81 @@
   }
 }
 
+/* Mobile-First Loyalty Program Styles */
+.loyalty-program-form {
+  /* Ensure form elements are touch-friendly */
+}
+
+.loyalty-program-form input[type="text"],
+.loyalty-program-form input[type="number"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+.loyalty-program-form input[type="number"]::-webkit-outer-spin-button,
+.loyalty-program-form input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Mobile-optimized form grid */
+@media (max-width: 640px) {
+  .loyalty-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .loyalty-stat-card {
+    padding: 0.75rem;
+  }
+  
+  .loyalty-stat-icon {
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .loyalty-stat-value {
+    font-size: 1.125rem;
+    line-height: 1.2;
+  }
+  
+  .loyalty-stat-label {
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
+  
+  .loyalty-form-section {
+    padding: 1rem;
+  }
+  
+  .loyalty-form-header {
+    padding: 1.5rem 1rem;
+  }
+  
+  .loyalty-form-fields {
+    gap: 1rem;
+  }
+  
+  .loyalty-points-config {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Enhanced touch targets for mobile */
+@media (max-width: 768px) {
+  .loyalty-program-form input,
+  .loyalty-program-form button {
+    min-height: 48px; /* Ensures touch-friendly size */
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .loyalty-program-form .form-group {
+    margin-bottom: 1.5rem;
+  }
+}
+
 /* Documentation header gradient */
 .bg-gradient-to-r.from-primary.via-blue-600.to-secondary {
   background: linear-gradient(to right, #1A5F7A, #2563eb, #57C5B6);

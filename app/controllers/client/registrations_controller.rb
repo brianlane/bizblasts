@@ -7,6 +7,11 @@ class Client::RegistrationsController < Users::RegistrationsController
   def create
     super do |resource|
       if resource.persisted?
+        # Process referral code if provided
+        if params[:user][:referral_code].present?
+          process_referral_signup(resource, params[:user][:referral_code])
+        end
+        
         # Record policy acceptances after successful creation
         record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
       end
@@ -18,7 +23,7 @@ class Client::RegistrationsController < Users::RegistrationsController
   # Permit additional parameters for client sign-up.
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
-      :first_name, :last_name, 
+      :first_name, :last_name, :referral_code,
       policy_acceptances: {}
     ])
     # Role is automatically set to client by default in the model
@@ -38,6 +43,30 @@ class Client::RegistrationsController < Users::RegistrationsController
   # end
 
   private
+
+  # Process referral code during signup
+  def process_referral_signup(user, referral_code)
+    # Store referral source on user
+    user.update!(referral_source_code: referral_code)
+    
+    # Find the referral and business from the code
+    referral = Referral.find_by(referral_code: referral_code)
+    return unless referral
+    
+    business = referral.business
+    return unless business&.referral_program_active?
+    
+    # Process the referral signup
+    result = ReferralService.process_referral_signup(referral_code, user, business)
+    
+    if result[:success]
+      Rails.logger.info "[REFERRAL] Processed referral signup: #{user.email} via #{referral_code}"
+    else
+      Rails.logger.warn "[REFERRAL] Failed to process referral signup: #{user.email} via #{referral_code} - #{result[:error]}"
+    end
+  rescue => e
+    Rails.logger.error "[REFERRAL] Error processing referral signup: #{e.message}"
+  end
 
   # Record policy acceptances for the user
   def record_policy_acceptances(user, policy_params)

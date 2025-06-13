@@ -53,6 +53,16 @@ class LineItem < ApplicationRecord
     service_id.nil? && staff_member_id.present?
   end
 
+  def tip_eligible?
+    if product?
+      product_variant.product.tip_eligible?
+    elsif service?
+      service.tip_eligible?
+    else
+      false
+    end
+  end
+
   # --- Add Ransack methods --- 
   def self.ransackable_attributes(auth_object = nil)
     %w[id lineable_type lineable_id product_variant_id quantity price total_amount created_at updated_at]
@@ -69,11 +79,16 @@ class LineItem < ApplicationRecord
     # Auto-set price and total for products and services
     return unless quantity.present?
     if product_variant.present?
-      self.price        ||= product_variant.final_price
+      # Use promotional pricing if available, otherwise use final price
+      product_price = product_variant.product.on_promotion? ? 
+                      product_variant.product.promotional_price + product_variant.price_modifier :
+                      product_variant.final_price
+      self.price        ||= product_price
       self.total_amount = (price * quantity).round(2)
     elsif service.present?
-      # Use service price for service line items
-      self.price        ||= service.price
+      # Use promotional pricing if available, otherwise use regular service price
+      service_price = service.on_promotion? ? service.promotional_price : service.price
+      self.price        ||= service_price
       self.total_amount = (price * quantity).round(2)
     end
   end

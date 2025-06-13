@@ -12,19 +12,31 @@
   <!-- Service selection -->
   <div class="form-group mb-4">
     <%= f.label :service_id, class: "block text-sm font-medium text-gray-700 mb-1" %>
-    <%= f.collection_select :service_id, services, :id, :display_name_with_price, 
-        { prompt: "Select a service" },
-        { required: true, class: "form-select rounded border px-3 py-2 w-full",
-          id: "booking_service_field" } %>
+    <%= render 'shared/rich_dropdown',
+        collection: services,
+        field_name: "#{f.object_name}[service_id]",
+        selected_value: f.object.service_id,
+        prompt_text: "Select a service",
+        value_method: :id,
+        text_method: :name,
+        price_method: :price,
+        duration_method: :duration,
+        required: true,
+        dropdown_id: "booking_service_dropdown" %>
   </div>
   
   <!-- Staff member selection -->
   <div class="form-group mb-4">
     <%= f.label :staff_member_id, class: "block text-sm font-medium text-gray-700 mb-1" %>
-    <%= f.collection_select :staff_member_id, staff_members, :id, :name, 
-        { prompt: "Select a staff member" },
-        { required: true, class: "form-select rounded border px-3 py-2 w-full",
-          id: "booking_staff_field" } %>
+    <%= render 'shared/rich_dropdown',
+        collection: staff_members,
+        field_name: "#{f.object_name}[staff_member_id]",
+        selected_value: f.object.staff_member_id,
+        prompt_text: "Select a staff member",
+        value_method: :id,
+        text_method: :name,
+        required: true,
+        dropdown_id: "booking_staff_dropdown" %>
   </div>
   
   <!-- Date and time selection with navigation -->
@@ -71,10 +83,14 @@
       <% if admin_mode && booking.tenant_customer_id.nil? %>
         <div class="form-group mb-4">
           <%= f.label :tenant_customer_id, "Select Existing Customer", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.collection_select :tenant_customer_id, TenantCustomer.order(:name), :id, :name_with_email, 
-              { prompt: "Create new customer" },
-              { class: "form-select rounded border px-3 py-2 w-full",
-                id: "booking_customer_id_field" } %>
+          <%= render 'shared/rich_dropdown',
+              collection: TenantCustomer.order(:name),
+              field_name: "#{f.object_name}[tenant_customer_id]",
+              selected_value: f.object.tenant_customer_id,
+              prompt_text: "Create new customer",
+              value_method: :id,
+              text_method: :name_with_email,
+              dropdown_id: "booking_customer_dropdown" %>
         </div>
       <% end %>
       
@@ -114,8 +130,14 @@
     <!-- Status (admin only) -->
     <div class="form-group mb-4">
       <%= f.label :status, class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.select :status, booking.class.statuses.keys.map { |status| [status.humanize, status] }, 
-                  {}, { class: "form-select rounded border px-3 py-2 w-full" } %>
+      <%= render 'shared/rich_dropdown',
+          collection: booking.class.statuses.keys.map { |status| OpenStruct.new(id: status, name: status.humanize) },
+          field_name: "#{f.object_name}[status]",
+          selected_value: booking.status,
+          prompt_text: "Select status",
+          value_method: :id,
+          text_method: :name,
+          dropdown_id: "booking_status_dropdown" %>
     </div>
     
     <!-- Amount (admin only) -->
@@ -145,7 +167,7 @@
 // Handle booking form dynamic behavior
 document.addEventListener('DOMContentLoaded', function() {
   // Handle customer field toggling in admin mode
-  const customerIdField = document.getElementById('booking_customer_id_field');
+  const customerIdField = document.getElementById('booking_customer_dropdown_hidden');
   const customerNameField = document.getElementById('booking_customer_name_field');
   const customerEmailField = document.getElementById('booking_customer_email_field');
   const customerPhoneField = document.getElementById('booking_customer_phone_field');

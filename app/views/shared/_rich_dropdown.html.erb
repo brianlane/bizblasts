@@ -1,0 +1,344 @@
+<%
+  # Rich Dropdown Partial - Visual Enhancement Only
+  # Maintains exact same form field names and data flow as collection_select
+  # Parameters:
+  # - collection: items to display
+  # - field_name: exact form field name (e.g., 'booking[service_id]')
+  # - selected_value: current selected value
+  # - prompt_text: placeholder text (default: 'Select an option')
+  # - value_method: method to get value (default: :id)
+  # - text_method: method to get display text (default: :name)
+  # - description_method: optional method for description
+  # - price_method: optional method for price display
+  # - duration_method: optional method for duration
+  # - required: whether field is required (default: false)
+  # - css_class: additional CSS classes
+  # - dropdown_id: unique ID for this dropdown instance
+
+  # Set defaults
+  prompt_text ||= 'Select an option'
+  value_method ||= :id
+  text_method ||= :name
+  required ||= false
+  css_class ||= ''
+  dropdown_id ||= "dropdown_#{SecureRandom.hex(4)}"
+  
+  # Find selected item
+  selected_item = collection.find { |item| item.send(value_method).to_s == selected_value.to_s } if selected_value.present?
+  
+  # Generate display text for selected item
+  selected_display_text = if selected_item
+    display_parts = [selected_item.send(text_method)]
+    display_parts << number_to_currency(selected_item.send(price_method)) if defined?(price_method) && price_method && selected_item.respond_to?(price_method)
+    display_parts << "#{selected_item.send(duration_method)} min" if defined?(duration_method) && duration_method && selected_item.respond_to?(duration_method)
+    display_parts.join(' - ')
+  else
+    prompt_text
+  end
+%>
+
+<!-- Rich Dropdown Component -->
+<!-- Maintains exact same form field names as original form.select for backward compatibility -->
+<div id="<%= dropdown_id %>" class="rich-dropdown relative" data-dropdown-id="<%= dropdown_id %>">
+  <!-- Dropdown button -->
+  <button 
+    type="button" 
+    class="dropdown-trigger w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-left cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:bg-gray-50 transition-colors"
+    data-dropdown-target="button"
+    aria-haspopup="listbox"
+    aria-expanded="false"
+    tabindex="0"
+  >
+    <span class="rich-dropdown-text block truncate text-gray-900">
+      <% if selected_value.present? %>
+        <% selected_item = collection.find { |item| (value_method ? item.send(value_method) : item.send(value_method || :last)) == selected_value } %>
+        <% if selected_item %>
+          <% display_text = text_method ? selected_item.send(text_method) : (selected_item.respond_to?(:first) ? selected_item.first : selected_item.to_s) %>
+          <%= display_text %>
+          <% if defined?(price_method) && price_method && selected_item.respond_to?(price_method) %>
+            <span class="text-blue-600 font-medium"> - $<%= selected_item.send(price_method) %></span>
+          <% end %>
+          <% if defined?(duration_method) && duration_method && selected_item.respond_to?(duration_method) %>
+            <span class="text-gray-500"> - <%= selected_item.send(duration_method) %> min</span>
+          <% end %>
+        <% else %>
+          <%= prompt_text %>
+        <% end %>
+      <% else %>
+        <%= prompt_text %>
+      <% end %>
+    </span>
+    
+    <!-- Arrow icon -->
+    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+      <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </span>
+  </button>
+  
+  <!-- Dropdown menu -->
+  <div 
+    class="dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-lg py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+    data-dropdown-target="menu"
+    role="listbox"
+  >
+    <% collection.each_with_index do |item, index| %>
+      <% item_id = value_method ? item.send(value_method) : (item.respond_to?(:last) ? item.last : item.id) %>
+      <% item_text = text_method ? item.send(text_method) : (item.respond_to?(:first) ? item.first : item.to_s) %>
+      
+      <div 
+        class="dropdown-option cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 transition-colors"
+        data-dropdown-target="option"
+        data-item-id="<%= item_id %>"
+        data-item-text="<%= item_text %>"
+        role="option"
+        tabindex="0"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex-grow">
+            <!-- Main text -->
+            <div class="block font-medium text-gray-900">
+              <%= item_text %>
+            </div>
+            
+            <!-- Additional info (price, duration, description) -->
+            <div class="flex items-center gap-2 mt-1">
+              <% if defined?(price_method) && price_method && item.respond_to?(price_method) %>
+                <span class="text-blue-600 font-semibold">$<%= item.send(price_method) %></span>
+              <% end %>
+              
+              <% if defined?(duration_method) && duration_method && item.respond_to?(duration_method) %>
+                <span class="text-xs text-gray-500"><%= item.send(duration_method) %> min</span>
+              <% end %>
+            </div>
+            
+            <% if defined?(description_method) && description_method && item.respond_to?(description_method) %>
+              <div class="text-sm text-gray-600 mt-1 line-clamp-2">
+                <%= truncate(item.send(description_method), length: 80) %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        
+        <!-- Check icon for selected item -->
+        <% if selected_value.present? && item_id.to_s == selected_value.to_s %>
+          <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+  
+  <!-- Hidden field for form submission - maintains exact same field name -->
+  <%= hidden_field_tag field_name, selected_value, id: "#{dropdown_id}_hidden", required: required %>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Rich Dropdown Functionality for <%= dropdown_id %>
+    const dropdownContainer = document.getElementById('<%= dropdown_id %>');
+    if (!dropdownContainer) return;
+    
+    const dropdownButton = dropdownContainer.querySelector('[data-dropdown-target="button"]');
+    const dropdownMenu = dropdownContainer.querySelector('[data-dropdown-target="menu"]');
+    const dropdownOptions = dropdownContainer.querySelectorAll('[data-dropdown-target="option"]');
+    const dropdownText = dropdownContainer.querySelector('.rich-dropdown-text');
+    const dropdownArrow = dropdownButton?.querySelector('svg');
+    const hiddenField = document.getElementById('<%= dropdown_id %>_hidden');
+    
+    if (!dropdownButton || !dropdownMenu || !hiddenField) return;
+    
+    let dropdownButtonTouched = false;
+    
+    // Toggle dropdown function
+    function toggleDropdown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const isHidden = dropdownMenu.classList.contains('hidden') || 
+                      dropdownMenu.style.display === 'none' || 
+                      dropdownMenu.style.display === '';
+      
+      if (isHidden) {
+        dropdownMenu.classList.remove('hidden');
+        dropdownArrow?.classList.add('rotate-180');
+        dropdownButton.setAttribute('aria-expanded', 'true');
+        
+        // Mobile positioning
+        if (window.innerWidth <= 640) {
+          dropdownMenu.style.display = 'block';
+          dropdownMenu.style.position = 'absolute';
+          dropdownMenu.style.top = '100%';
+          dropdownMenu.style.left = '0';
+          dropdownMenu.style.right = '0';
+          dropdownMenu.style.zIndex = '50';
+          dropdownMenu.style.marginTop = '0.25rem';
+        }
+        
+        // Viewport positioning
+        const rect = dropdownButton.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const dropdownHeight = dropdownMenu.scrollHeight;
+        
+        if (spaceBelow < dropdownHeight && rect.top > dropdownHeight && window.innerWidth > 640) {
+          dropdownMenu.style.bottom = '100%';
+          dropdownMenu.style.top = 'auto';
+          dropdownMenu.classList.add('mb-1');
+          dropdownMenu.classList.remove('mt-1');
+        } else if (window.innerWidth > 640) {
+          dropdownMenu.style.top = '100%';
+          dropdownMenu.style.bottom = 'auto';
+          dropdownMenu.classList.add('mt-1');
+          dropdownMenu.classList.remove('mb-1');
+        }
+      } else {
+        closeDropdown();
+      }
+    }
+    
+    // Close dropdown function
+    function closeDropdown() {
+      dropdownMenu.classList.add('hidden');
+      dropdownArrow?.classList.remove('rotate-180');
+      dropdownButton.setAttribute('aria-expanded', 'false');
+      
+      // Clear mobile styles
+      if (window.innerWidth <= 640) {
+        dropdownMenu.style.display = '';
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.right = '';
+        dropdownMenu.style.zIndex = '';
+        dropdownMenu.style.marginTop = '';
+      }
+    }
+    
+    // Button click/touch handlers
+    dropdownButton.addEventListener('click', function(e) {
+      dropdownButtonTouched = true;
+      toggleDropdown(e);
+      setTimeout(() => { dropdownButtonTouched = false; }, 100);
+    });
+    
+    dropdownButton.addEventListener('touchend', function(e) {
+      dropdownButtonTouched = true;
+      toggleDropdown(e);
+      setTimeout(() => { dropdownButtonTouched = false; }, 100);
+    });
+    
+    // Option selection function
+    function selectOption(element, e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const itemId = element.dataset.itemId;
+      const itemText = element.dataset.itemText;
+      
+      // Update hidden field (maintains exact same data submission)
+      hiddenField.value = itemId;
+      
+      // Update display text
+      <% if defined?(price_method) && price_method || defined?(duration_method) && duration_method %>
+        // Rebuild display text with additional info
+        let displayParts = [itemText];
+        <% if defined?(price_method) && price_method %>
+          const priceElement = element.querySelector('.text-blue-600');
+          if (priceElement) displayParts.push(priceElement.textContent);
+        <% end %>
+        <% if defined?(duration_method) && duration_method %>
+          const durationElement = element.querySelector('.text-xs.text-gray-500');
+          if (durationElement) displayParts.push(durationElement.textContent);
+        <% end %>
+        dropdownText.textContent = displayParts.join(' - ');
+      <% else %>
+        dropdownText.textContent = itemText;
+      <% end %>
+      
+      // Update selected state visuals
+      dropdownOptions.forEach(opt => {
+        const checkIcon = opt.querySelector('svg');
+        if (checkIcon) checkIcon.parentElement.remove();
+      });
+      
+      // Add check icon to selected option
+      const checkIcon = document.createElement('span');
+      checkIcon.className = 'absolute inset-y-0 right-2 flex items-center text-blue-600';
+      checkIcon.innerHTML = `
+        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+      `;
+      element.appendChild(checkIcon);
+      
+      // Close dropdown
+      closeDropdown();
+      
+      // Trigger change event for form validation
+      hiddenField.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    // Option click/touch handlers
+    dropdownOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        selectOption(this, e);
+      });
+      
+      option.addEventListener('touchend', function(e) {
+        selectOption(this, e);
+      });
+    });
+    
+    // Create a unique identifier for this dropdown's handlers
+    const dropdownId = '<%= dropdown_id %>';
+    
+    // Store reference to the handler so we can remove it if needed
+    function outsideClickHandler(event) {
+      // Only handle clicks that are NOT within this specific dropdown
+      if (!event.target.closest('#' + dropdownId)) {
+        if (!dropdownMenu.classList.contains('hidden')) {
+          closeDropdown();
+        }
+      }
+    }
+    
+    function outsideTouchHandler(event) {
+      if (dropdownButtonTouched) return;
+      
+      // Only handle touches that are NOT within this specific dropdown  
+      if (!event.target.closest('#' + dropdownId)) {
+        const isOpen = !dropdownMenu.classList.contains('hidden') && 
+                      dropdownMenu.style.display !== 'none' && 
+                      dropdownMenu.style.display !== '';
+        if (isOpen) {
+          closeDropdown();
+        }
+      }
+    }
+    
+    function escapeKeyHandler(event) {
+      if (event.key === 'Escape') {
+        if (!dropdownMenu.classList.contains('hidden')) {
+          closeDropdown();
+        }
+      }
+    }
+    
+    // Add event listeners with specific handler references
+    document.addEventListener('click', outsideClickHandler);
+    document.addEventListener('touchend', outsideTouchHandler);
+    document.addEventListener('keydown', escapeKeyHandler);
+    
+    // Clean up event listeners when the dropdown is removed (optional)
+    dropdownContainer.addEventListener('beforeunload', function() {
+      document.removeEventListener('click', outsideClickHandler);
+      document.removeEventListener('touchend', outsideTouchHandler); 
+      document.removeEventListener('keydown', escapeKeyHandler);
+    });
+  });
+</script> 

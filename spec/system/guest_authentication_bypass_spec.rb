@@ -73,7 +73,11 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       
       # Should be able to add to cart
       click_link 'Test Product'
-      find('#variant').find("option[value='#{variant.id}']").select_option
+      
+      # Use the new JavaScript dropdown structure - select first option to avoid ambiguity
+      find('#product_variant_dropdown [data-dropdown-target="button"]').click
+      find('#product_variant_dropdown [data-dropdown-target="option"]', match: :first).click
+      
       fill_in 'quantity', with: 1
       click_button 'Add to Cart'
       
@@ -85,7 +89,11 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       # Add item to cart first
       visit products_path
       click_link 'Test Product'
-      find('#variant').find("option[value='#{variant.id}']").select_option
+      
+      # Use the new JavaScript dropdown structure - select first option to avoid ambiguity
+      find('#product_variant_dropdown [data-dropdown-target="button"]').click
+      find('#product_variant_dropdown [data-dropdown-target="option"]', match: :first).click
+      
       fill_in 'quantity', with: 1
       click_button 'Add to Cart'
       

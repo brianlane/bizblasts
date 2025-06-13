@@ -118,13 +118,26 @@ class Invoice < ApplicationRecord
     end
     self.tax_amount = current_tax_amount || 0
     
-    self.total_amount = self.amount + (self.tax_amount || 0)
+    self.total_amount = self.amount + (self.tax_amount || 0) + (self.tip_amount || 0)
   end
 
   before_validation :calculate_totals
   before_validation :set_invoice_number, on: :create
   before_validation :set_guest_access_token, on: :create
   after_create :send_invoice_created_email
+
+  # Tip-related methods
+  def has_tip_eligible_items?
+    order&.has_tip_eligible_items? || false
+  end
+
+  def tip_eligible_items
+    order&.tip_eligible_items || []
+  end
+
+  def tip_enabled?
+    business.tips_enabled? && has_tip_eligible_items?
+  end
 
   private
 

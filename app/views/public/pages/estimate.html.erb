@@ -14,11 +14,18 @@
       </div>
       <div class="md:col-span-2">
         <%= f.label :email, 'Email Address', class: 'block text-sm font-medium' %>
-        <%= f.email_field :email, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+        <%= f.email_field :email,
+              pattern: "[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$",
+              title: "Please enter a valid email address",
+              class: 'mt-1 block w-full border rounded px-2 py-1' %>
       </div>
       <div class="md:col-span-2">
         <%= f.label :phone, 'Phone', class: 'block text-sm font-medium' %>
-        <%= f.telephone_field :phone, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+        <%= f.telephone_field :phone,
+              pattern: "^(\+1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$",
+              title: "Please enter a valid US phone number (e.g., (555) 123-4567 or 555-123-4567)",
+              placeholder: "(555) 123-4567",
+              class: 'mt-1 block w-full border rounded px-2 py-1' %>
       </div>
       <div class="md:col-span-2">
         <%= f.label :address, 'Street Address', class: 'block text-sm font-medium' %>
@@ -30,7 +37,11 @@
       </div>
       <div>
         <%= f.label :zip, 'Zip Code', class: 'block text-sm font-medium' %>
-        <%= f.text_field :zip, class: 'mt-1 block w-full border rounded px-2 py-1' %>
+        <%= f.text_field :zip,
+              pattern: "[0-9]{5}(-[0-9]{4})?",
+              title: "Please enter a valid ZIP code (5 digits or 5+4 format, e.g., 12345 or 12345-6789)",
+              maxlength: "10",
+              class: 'mt-1 block w-full border rounded px-2 py-1' %>
       </div>
       <div class="md:col-span-2">
         <%= f.label :service_needs, 'Service(s) Needed', class: 'block text-sm font-medium' %>
@@ -41,4 +52,114 @@
       <%= f.submit 'Submit', class: 'px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700' %>
     </div>
   <% end %>
-</div> 
+</div>
+
+<script type="text/javascript">
+  // Enhanced form validation functions
+  function validateField(input, isValid, errorMessage) {
+    const existingError = input.parentElement.querySelector('.field-error');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    if (!isValid) {
+      input.classList.add('border-red-500', 'ring-red-500');
+      input.classList.remove('border-gray-300');
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'field-error text-red-500 text-xs mt-1';
+      errorDiv.textContent = errorMessage;
+      input.parentElement.appendChild(errorDiv);
+    } else {
+      input.classList.remove('border-red-500', 'ring-red-500');
+      input.classList.add('border-gray-300');
+    }
+  }
+
+  function validateEmail(email) {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+    return emailRegex.test(email);
+  }
+
+  function validatePhone(phone) {
+    const phoneRegex = /^(\+1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/;
+    return phoneRegex.test(phone);
+  }
+
+  function validateZip(zip) {
+    const zipRegex = /^[0-9]{5}(-[0-9]{4})?$/;
+    return zipRegex.test(zip);
+  }
+
+  // Add real-time validation listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    // Email validation
+    const emailFields = document.querySelectorAll('input[type="email"]');
+    emailFields.forEach(field => {
+      field.addEventListener('blur', function() {
+        if (this.value) {
+          const isValid = validateEmail(this.value);
+          validateField(this, isValid, 'Please enter a valid email address');
+        }
+      });
+    });
+
+    // Phone validation
+    const phoneFields = document.querySelectorAll('input[type="tel"]');
+    phoneFields.forEach(field => {
+      field.addEventListener('blur', function() {
+        if (this.value) {
+          const isValid = validatePhone(this.value);
+          validateField(this, isValid, 'Please enter a valid US phone number (e.g., (555) 123-4567)');
+        }
+      });
+    });
+
+    // ZIP code validation
+    const zipFields = document.querySelectorAll('input[name*="zip"]');
+    zipFields.forEach(field => {
+      field.addEventListener('blur', function() {
+        if (this.value) {
+          const isValid = validateZip(this.value);
+          validateField(this, isValid, 'Please enter a valid ZIP code (5 digits or 5+4 format)');
+        }
+      });
+    });
+
+    // Phone number formatting
+    phoneFields.forEach(field => {
+      field.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, ''); // Remove non-digits
+        if (value.length >= 6) {
+          value = value.replace(/(\d{3})(\d{3})(\d+)/, '($1) $2-$3');
+        } else if (value.length >= 3) {
+          value = value.replace(/(\d{3})(\d+)/, '($1) $2');
+        }
+        this.value = value;
+      });
+    });
+
+    // ZIP code formatting
+    zipFields.forEach(field => {
+      field.addEventListener('input', function() {
+        // Remove all non-digits and hyphens, then remove any hyphens that aren't in the right place
+        let value = this.value.replace(/[^0-9-]/g, '').replace(/-+/g, '-');
+        
+        // Remove hyphens that aren't after exactly 5 digits
+        value = value.replace(/^(\d{1,4})-/, '$1').replace(/(\d{5})-+(\d)/, '$1-$2');
+        
+        // If we have more than 5 digits without a hyphen, add one
+        if (value.length > 5 && !value.includes('-')) {
+          value = value.replace(/(\d{5})(\d+)/, '$1-$2');
+        }
+        
+        // Limit to 10 characters max (12345-6789)
+        if (value.length > 10) {
+          value = value.substring(0, 10);
+        }
+        
+        this.value = value;
+      });
+    });
+  });
+</script> 

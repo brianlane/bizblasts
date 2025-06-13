@@ -23,6 +23,24 @@ Rails.application.routes.draw do
     sessions: 'businesses/sessions',
   }
 
+  # Redirect old signup URL to new business signup URL
+  get '/users/sign_up', to: redirect('/business/sign_up')
+
+  # Protocol and subdomain redirects for SEO indexing
+  # These handle the URLs that Google Search Console is finding as "pages with redirects"
+  constraints(host: /^bizblasts\.com$/) do
+    # Redirect non-www to www version
+    get '(*path)', to: redirect { |params, request|
+      protocol = request.ssl? ? 'https://' : 'http://'
+      # In production, force HTTPS and www
+      if Rails.env.production?
+        "https://www.bizblasts.com/#{params[:path]}"
+      else
+        "#{protocol}www.bizblasts.com/#{params[:path]}"
+      end
+    }
+  end
+
   devise_scope :user do
     get '/client/sign_up', to: 'client/registrations#new', as: :new_client_registration
     post '/client', to: 'client/registrations#create', as: :client_registration
@@ -116,7 +134,51 @@ Rails.application.routes.draw do
         # Integrations (Module 9)
         resources :integrations, controller: 'integrations'
         resource :website_pages, only: [:edit, :update]
+        
+        # Tips configuration
+        resource :tips, only: [:show, :update]
 
+      end
+      
+      # Referral and Loyalty Management
+      resources :referrals, only: [:index, :show, :edit, :update, :create] do
+        collection do
+          patch :toggle_status
+          get :analytics
+        end
+      end
+      
+      resources :loyalty, only: [:index, :show, :edit, :update, :create] do
+        collection do
+          patch :toggle_status
+          get :customers
+          get :analytics
+        end
+        member do
+          get :customer_detail
+          post :adjust_points
+        end
+      end
+      
+      # Platform (BizBlasts) Loyalty and Referrals
+      resources :platform, only: [:index] do
+        collection do
+          post :generate_referral_code
+          post :redeem_points
+          get :transactions
+          get :referrals
+          get :discount_codes
+        end
+      end
+      
+      # Promotion Management
+      resources :promotions do
+        collection do
+          patch :bulk_deactivate
+        end
+        member do
+          patch :toggle_status
+        end
       end
     end
 
@@ -193,14 +255,43 @@ Rails.application.routes.draw do
       get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
       patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
 
-      resources :invoices, only: [:index, :show], as: :tenant_invoices
+      resources :invoices, only: [:index, :show], as: :tenant_invoices do
+        member do
+          post :pay
+        end
+      end
       resources :payments, only: [:index, :new, :create], as: :tenant_payments
+      
+      # Tips for experience bookings
+      resources :bookings, only: [] do
+        resources :tips, only: [:new, :create] do
+          member do
+            get :success
+            get :cancel
+          end
+        end
+      end
       
       # Unified transactions view for subdomain
       resources :transactions, only: [:index, :show], as: :tenant_transactions
 
+      # Business-specific loyalty (on subdomain)
+      get '/loyalty', to: 'loyalty#show', as: :tenant_loyalty
+      post '/loyalty/redeem', to: 'loyalty#redeem_points', as: :tenant_loyalty_redeem
+
+      # Direct referral program access for current tenant
+      get '/referral', to: 'referral#show', as: :tenant_referral_program
+
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
+    end
+
+    # Tip collection routes (token-based for experiences)
+    resources :tips, only: [:new, :create, :show], controller: 'public/tips' do
+      member do
+        get :success
+        get :cancel
+      end
     end
   end
 
@@ -267,16 +358,25 @@ Rails.application.routes.draw do
     root 'home#index', as: :authenticated_root
   end
 
-  authenticated :user, ->(user) { user.client? } do
-    get 'dashboard', to: 'client_dashboard#index'
-    resources :client_bookings, path: 'my-bookings' do
-      member do
-        patch 'cancel'
-      end
-    end
+  # Cross-business loyalty overview (main domain only)
+  resources :loyalty, only: [:index], controller: 'public/loyalty'
+  
+  # Cross-business referral overview (main domain only)
+  resources :referral, only: [:index], controller: 'public/referral'
 
-    # New unified transactions view
-    resources :transactions, only: [:index, :show]
+  # Client dashboard and related routes (main domain only)
+  get 'dashboard', to: 'client_dashboard#index'
+  resources :client_bookings, path: 'my-bookings' do
+    member do
+      patch 'cancel'
+    end
+  end
+
+  # New unified transactions view
+  resources :transactions, only: [:index, :show]
+
+  authenticated :user, ->(user) { user.client? } do
+    # Keep this block for any future client-specific routes that need the constraint
   end
 
   # Client Settings - moved outside authenticated block to allow proper redirects
@@ -285,6 +385,8 @@ Rails.application.routes.draw do
       patch :unsubscribe_all, on: :member
     end
   end
+
+
 
   authenticated :user, ->(user) { user.admin? } do
     get 'dashboard', to: 'admin_dashboard#index'
@@ -416,6 +518,13 @@ Rails.application.routes.draw do
                 :rails_blob
               end
       route_for(route, blob)
+    end
+  end
+
+  # Tip collection routes (token-based for experiences)
+  resources :tips, only: [:new, :create, :show] do
+    member do
+      get :success
     end
   end
 end

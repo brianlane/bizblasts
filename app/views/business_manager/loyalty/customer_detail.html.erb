@@ -1,0 +1,254 @@
+<div class="bg-gray-50 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="bg-white shadow-sm rounded-lg mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-dark">Customer Loyalty Details</h1>
+            <p class="mt-1 text-sm text-gray-600">Manage loyalty points for <%= @customer.name || @customer.email %></p>
+          </div>
+          <div>
+            <%= link_to customers_business_manager_loyalty_index_path, 
+                        class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" do %>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Back to Customers
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Info & Stats -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Customer Profile -->
+      <div class="lg:col-span-1">
+        <div class="bg-white shadow rounded-lg">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">Customer Profile</h2>
+          </div>
+          <div class="px-6 py-4">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-16 w-16">
+                <div class="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
+                  <span class="text-xl font-medium text-gray-700">
+                    <%= @customer.name&.first&.upcase || @customer.email&.first&.upcase %>
+                  </span>
+                </div>
+              </div>
+              <div class="ml-4">
+                <div class="text-lg font-medium text-gray-900">
+                  <%= @customer.name.presence || "Customer ##{@customer.id}" %>
+                </div>
+                <div class="text-sm text-gray-500">
+                  Member since <%= @customer.created_at.strftime("%B %Y") %>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-6 space-y-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Email</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @customer.email %></dd>
+              </div>
+              
+              <% if @customer.phone.present? %>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                  <dd class="mt-1 text-sm text-gray-900"><%= @customer.phone %></dd>
+                </div>
+              <% end %>
+              
+              <% if @customer.address.present? %>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Address</dt>
+                  <dd class="mt-1 text-sm text-gray-900"><%= @customer.address %></dd>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Point Adjustment Form -->
+        <div class="bg-white shadow rounded-lg mt-6">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">Adjust Points</h2>
+          </div>
+          <div class="px-6 py-4">
+            <%= form_with url: adjust_points_business_manager_loyalty_path, method: :post, local: true, class: "space-y-4" do |form| %>
+              <%= form.hidden_field :customer_id, value: @customer.id %>
+              
+              <div>
+                <%= form.label :points, "Points to Add/Deduct", class: "block text-sm font-medium text-gray-700" %>
+                <%= form.number_field :points, placeholder: "Enter positive to add, negative to deduct", 
+                                      class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+              </div>
+              
+              <div>
+                <%= form.label :description, "Reason (optional)", class: "block text-sm font-medium text-gray-700" %>
+                <%= form.text_area :description, rows: 3, placeholder: "Enter reason for adjustment...", 
+                                   class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+              </div>
+              
+              <div>
+                <%= form.submit "Adjust Points", 
+                                class: "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loyalty Stats & History -->
+      <div class="lg:col-span-2">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Current Balance</dt>
+                    <dd class="text-lg font-medium text-gray-900"><%= @loyalty_summary[:current_points] %> points</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Total Earned</dt>
+                    <dd class="text-lg font-medium text-gray-900"><%= @loyalty_summary[:total_earned] %> points</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Total Redeemed</dt>
+                    <dd class="text-lg font-medium text-gray-900"><%= @loyalty_summary[:total_redeemed] %> points</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Redemption Options -->
+        <% if @redemption_options.any? %>
+          <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h2 class="text-lg font-medium text-gray-900">Available Redemptions</h2>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <% @redemption_options.each do |option| %>
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-900"><%= option[:description] %></h3>
+                        <p class="text-sm text-gray-500"><%= option[:points] %> points required</p>
+                      </div>
+                      <div class="text-lg font-medium text-green-600">
+                        $<%= option[:discount_amount] %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Transaction History -->
+        <div class="bg-white shadow rounded-lg">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">Recent Activity</h2>
+          </div>
+          <div class="px-6 py-4">
+            <% if @loyalty_history.any? %>
+              <div class="space-y-4">
+                <% @loyalty_history.each do |transaction| %>
+                  <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                        <% if transaction.earned? %>
+                          <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                          </div>
+                        <% else %>
+                          <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6"></path>
+                            </svg>
+                          </div>
+                        <% end %>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          <%= transaction.description %>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                          <%= transaction.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="text-sm font-medium">
+                      <span class="<%= transaction.earned? ? 'text-green-600' : 'text-red-600' %>">
+                        <%= transaction.earned? ? '+' : '' %><%= transaction.points_amount %> points
+                      </span>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No activity yet</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                  This customer hasn't earned or redeemed any loyalty points yet.
+                </p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

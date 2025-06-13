@@ -7,6 +7,12 @@
     <title><%= content_for(:title) || "BizBlasts" %></title>
     <meta name="description" content="<%= content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.' %>">
     
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<%= content_for(:canonical_url) || html_escape(request.original_url.split('?').first) %>">
+    
+    <!-- Robots Meta Tag -->
+    <meta name="robots" content="<%= content_for(:robots) || 'index, follow' %>">
+    
     <!-- Brand Recognition and Alternative Spellings -->
     <meta name="keywords" content="BizBlasts, Biz Blasts, Bizblast, Biz Blast, Bis Blasts, BisBlasts, Bis Blast, BisBlast, business websites, booking systems, business software, business management, business tools, business software, business management, business tools, service business software, product and products from business">
     <meta name="author" content="BizBlasts">
@@ -19,12 +25,18 @@
     <meta property="og:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.') %>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="<%= html_escape(request.original_url) %>">
+    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
+    <meta property="og:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@BizBlasts">
     <meta name="twitter:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems') %>">
     <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
+    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
+    <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
     
     <!-- Structured Data for Organization -->
     <script type="application/ld+json">
@@ -98,9 +110,12 @@
 
     <%= yield :head %>
 
-    <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png" %>
+    <!-- Favicons and Apple Touch Icons -->
     <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
+    <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
     <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#1A5F7A">
 
     <%# Stylesheet: Tailwind output then custom application styles %>
     <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
@@ -195,7 +210,7 @@
               <% end %>
               
               <!-- Sign Out Button -->
-              <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:text-red-700 px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm" do %>
+              <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:text-red-700 px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm cursor-pointer" do %>
                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                 </svg>
@@ -207,7 +222,7 @@
                 <% unless request.path == new_user_session_path %>
                   <%= link_to "Sign In", new_user_session_path, class: "bg-white border border-primary text-primary px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 text-center text-xs md:text-base" %>
                 <% end %>
-                <%= link_to "Client Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
+                <%= link_to "Customer Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
                 <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
               </div>
             <% end %>
@@ -263,6 +278,13 @@
                       My Transactions
                     <% end %>
                     
+                    <%= link_to main_domain_url_for('/loyalty'), class: "nav-link-professional" do %>
+                      <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                      </svg>
+                      My Loyalty Points
+                    <% end %>
+                    
                     <%= link_to tenant_calendar_path, class: "nav-link-professional" do %>
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -290,6 +312,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                       </svg>
                       My Transactions
+                    <% end %>
+                    
+                    <%= link_to loyalty_index_path, class: "nav-link-professional" do %>
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                      My Loyalty Points
                     <% end %>
                     
                     <%= link_to businesses_path, class: "nav-link-professional" do %>
@@ -350,74 +379,20 @@
       <a href="#" class="termly-display-preferences">Consent Preferences</a>
     </div>
 
-    <%# Policy Acceptance Modal %>
-    <% if user_signed_in? %>
+    <%# Policy Acceptance Modal - Only render for users who need policy acceptance %>
+    <% if user_signed_in? && current_user.requires_policy_acceptance? %>
       <%= render 'shared/policy_acceptance_modal' %>
       
-      <%# Fallback script to ensure modal shows when needed %>
+      <%# Only initialize PolicyAcceptance if not already running %>
       <script>
-        // Fallback policy modal check
         document.addEventListener('DOMContentLoaded', function() {
-          // Small delay to let other scripts initialize
-          setTimeout(function() {
-            const modal = document.getElementById('policy-acceptance-modal');
-            if (modal) {
-              
-              // Check if modal should be shown by calling the policy status
-              fetch('/policy_status', {
-                headers: {
-                  'Accept': 'application/json',
-                  'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content || ''
-                }
-              })
-              .then(response => {
-                if (response.ok) {
-                  return response.json();
-                } else if (response.status === 401) {
-                  return null;
-                }
-                throw new Error('Failed to check policy status');
-              })
-              .then(data => {
-                if (data && data.requires_policy_acceptance && data.missing_policies && data.missing_policies.length > 0) {
-                  
-                  // Force modal to be visible if the main script failed
-                  if (modal.classList.contains('hidden')) {
-                    modal.classList.remove('hidden');
-                    modal.style.display = 'block';
-                    modal.style.zIndex = '9999';
-                    document.body.style.overflow = 'hidden';
-                    
-                    // Add emergency styling to ensure visibility
-                    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100%';
-                    modal.style.height = '100%';
-                    
-                    // Show a simple message if the dynamic content failed to load
-                    const container = document.getElementById('policies-to-accept');
-                    if (container && container.children.length === 0) {
-                      container.innerHTML = `
-                        <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded">
-                          <h3 class="text-lg font-medium text-yellow-800 mb-4">Policy Acceptance Required</h3>
-                          <p class="text-yellow-700 mb-4">You need to accept our updated policies to continue using BizBlasts.</p>
-                          <a href="/policy_acceptances" class="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                            Accept Policies →
-                          </a>
-                        </div>
-                      `;
-                    }
-                  }
-                } else {
-                }
-              })
-              .catch(error => {
-                console.error('[PolicyFallback] Error checking policy status:', error);
-              });
-            }
-          }, 500);
+          // Only initialize the PolicyAcceptance class if available and not already running
+          if (typeof PolicyAcceptance !== 'undefined' && !window.policyAcceptanceInstance) {
+            console.log('[Application] Initializing PolicyAcceptance for user requiring policy acceptance');
+            new PolicyAcceptance();
+          } else if (window.policyAcceptanceInstance) {
+            console.log('[Application] PolicyAcceptance already running, skipping initialization');
+          }
         });
       </script>
     <% end %>

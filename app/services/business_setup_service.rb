@@ -121,6 +121,30 @@ class BusinessSetupService
       }
     end
 
+    # 8. Establish loyalty program (SUGGESTION)
+    unless has_loyalty_program_enabled?
+      items << {
+        key: :establish_loyalty_program,
+        text: "Set up a loyalty program to reward repeat customers",
+        action: "Set up Loyalty",
+        url: business_manager_loyalty_index_path,
+        priority: :low,
+        essential: false
+      }
+    end
+
+    # 9. Establish referral program (SUGGESTION)
+    unless has_referral_program_enabled?
+      items << {
+        key: :establish_referral_program,
+        text: "Create a referral program to grow through word-of-mouth",
+        action: "Set up Referrals",
+        url: business_manager_referrals_path,
+        priority: :low,
+        essential: false
+      }
+    end
+
     items
   end
 
@@ -190,5 +214,13 @@ class BusinessSetupService
     business.phone.present? && 
     business.email.present? &&
     business.address.present?
+  end
+
+  def has_loyalty_program_enabled?
+    business.loyalty_program_enabled?
+  end
+
+  def has_referral_program_enabled?
+    business.referral_program_enabled?
   end
 end 

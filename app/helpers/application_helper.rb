@@ -99,5 +99,67 @@ module ApplicationHelper
     end
   end
 
+  # SEO Helper Methods
+  def set_seo_meta(title: nil, description: nil, canonical: nil, robots: 'index, follow')
+    content_for :title, title if title.present?
+    content_for :meta_description, description if description.present?
+    content_for :canonical_url, canonical if canonical.present?
+    content_for :robots, robots
+  end
+
+  def noindex_page!
+    content_for :robots, 'noindex, nofollow'
+  end
+
+  def index_page!
+    content_for :robots, 'index, follow'
+  end
+
+  def set_canonical_url(url)
+    content_for :canonical_url, url
+  end
+
+  # Current page helpers for meta tags
+  def title(page_title)
+    content_for(:title, page_title)
+  end
+
+  def meta_description(description)
+    content_for(:meta_description, description)
+  end
+
+  def canonical_url(url)
+    content_for(:canonical_url, url)
+  end
+
+  def robots(content)
+    content_for(:robots, content)
+  end
+
+  # Lazy loading image helper for performance optimization
+  def lazy_image_tag(source, options = {})
+    # Add lazy loading attributes for better performance
+    options[:loading] ||= 'lazy'
+    options[:decoding] ||= 'async'
+    
+    # Add a default alt text if none provided
+    options[:alt] ||= ''
+    
+    image_tag(source, options)
+  end
+
+  # For Active Storage blobs with lazy loading
+  def lazy_blob_image_tag(blob, variant_options = {}, html_options = {})
+    html_options[:loading] ||= 'lazy'
+    html_options[:decoding] ||= 'async'
+    html_options[:alt] ||= ''
+    
+    if variant_options.present?
+      image_tag rails_public_blob_url(blob.variant(variant_options)), html_options
+    else
+      image_tag rails_public_blob_url(blob), html_options
+    end
+  end
+
   # ... existing helper methods ...
 end

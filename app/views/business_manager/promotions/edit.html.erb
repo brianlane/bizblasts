@@ -1,0 +1,377 @@
+<% content_for :title, "Edit #{@promotion.name}" %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+              <li>
+                <%= link_to business_manager_promotions_path, class: "text-gray-400 hover:text-gray-500" do %>
+                  Promotions
+                <% end %>
+              </li>
+              <li>
+                <div class="flex items-center">
+                  <svg class="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                  <%= link_to @promotion.name, business_manager_promotion_path(@promotion), class: "ml-4 text-gray-400 hover:text-gray-500" %>
+                </div>
+              </li>
+              <li>
+                <div class="flex items-center">
+                  <svg class="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                  <span class="ml-4 text-sm font-medium text-gray-500">Edit</span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+          <h1 class="text-3xl font-bold text-gray-900 mt-2">Edit Promotion</h1>
+          <p class="mt-1 text-sm text-gray-500">Update your promotional discount settings</p>
+        </div>
+        <div>
+          <%= link_to business_manager_promotion_path(@promotion), 
+                      class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" do %>
+            ← Back to Promotion
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <%= form_with model: [@promotion], url: business_manager_promotion_path(@promotion), method: :patch, local: true, class: "space-y-8" do |form| %>
+      <% if @promotion.errors.any? %>
+        <div class="bg-red-50 border border-red-200 rounded-md p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">There were errors with your submission:</h3>
+              <div class="mt-2 text-sm text-red-700">
+                <ul class="list-disc pl-5 space-y-1">
+                  <% @promotion.errors.full_messages.each do |message| %>
+                    <li><%= message %></li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Basic Information -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Basic Information</h3>
+          
+          <!-- Promotion Type Selection -->
+          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-900 mb-3">Promotion Type</h4>
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <input type="radio" id="code_promotion" name="promotion_type" value="code" 
+                   class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" <%= 'checked' if @promotion.code_based_promotion? %>>
+                <label for="code_promotion" class="ml-3 text-sm">
+                <span class="font-medium text-gray-700">Code-Based Promotion (Promo Codes)</span>
+                <p class="text-gray-500">Customers must enter a code at checkout to get the discount</p>
+              </label>
+              </div>
+              <div class="flex items-center">
+                <input type="radio" id="automatic_promotion" name="promotion_type" value="automatic" 
+                       class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" <%= 'checked' if @promotion.automatic_promotion? %>>
+                <label for="automatic_promotion" class="ml-3 text-sm">
+                  <span class="font-medium text-gray-700">Automatic Promotion (Sales Promotion)</span>
+                  <p class="text-gray-500">Applies automatically to qualifying items - customers see crossed-out prices</p>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <%= form.label :name, class: "block text-sm font-medium text-gray-700" %>
+              <%= form.text_field :name, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder: "Summer Sale 2024" %>
+            </div>
+
+            <div id="code-field" style="display: <%= @promotion.code_based_promotion? ? 'block' : 'none' %>;">
+              <%= form.label :code, "Promotion Code", class: "block text-sm font-medium text-gray-700" %>
+              <%= form.text_field :code, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder: "SUMMER2024" %>
+              <p class="mt-1 text-sm text-gray-500">Customers can use this code at checkout</p>
+            </div>
+
+            <div class="sm:col-span-2">
+              <%= form.label :description, class: "block text-sm font-medium text-gray-700" %>
+              <%= form.text_area :description, rows: 3, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm", placeholder: "Describe your promotion..." %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Discount Settings -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Discount Settings</h3>
+          
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <%= form.label :discount_type, "Discount Type", class: "block text-sm font-medium text-gray-700" %>
+              <%= render 'shared/rich_dropdown',
+                  collection: [
+                    ['Percentage Off', 'percentage'],
+                    ['Fixed Amount Off', 'fixed_amount']
+                  ],
+                  field_name: "#{form.object_name}[discount_type]",
+                  selected_value: form.object.discount_type,
+                  prompt_text: "Select Discount Type",
+                  value_method: :last,
+                  text_method: :first,
+                  required: true,
+                  dropdown_id: "promotion_discount_type_dropdown" %>
+            </div>
+
+            <div>
+              <%= form.label :discount_value, "Discount Value", class: "block text-sm font-medium text-gray-700" %>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500 sm:text-sm" id="discount-symbol"><%= @promotion.discount_type == 'percentage' ? '%' : '$' %></span>
+                </div>
+                <%= form.number_field :discount_value, 
+                                      step: 0.01, 
+                                      min: 0, 
+                                      class: "block w-full pl-7 pr-12 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm",
+                                      placeholder: "20" %>
+              </div>
+              <p class="mt-1 text-sm text-gray-500">Enter the discount amount</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Schedule</h3>
+          
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <%= form.label :start_date, class: "block text-sm font-medium text-gray-700" %>
+              <%= form.datetime_local_field :start_date, 
+                                            value: @promotion.start_date&.strftime("%Y-%m-%dT%H:%M"),
+                                            class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+            </div>
+
+            <div>
+              <%= form.label :end_date, class: "block text-sm font-medium text-gray-700" %>
+              <%= form.datetime_local_field :end_date, 
+                                            value: @promotion.end_date&.strftime("%Y-%m-%dT%H:%M"),
+                                            class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+            </div>
+
+            <div>
+              <%= form.label :usage_limit, "Usage Limit (Optional)", class: "block text-sm font-medium text-gray-700" %>
+              <%= form.number_field :usage_limit, 
+                                    min: 1, 
+                                    class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm",
+                                    placeholder: "Leave blank for unlimited" %>
+              <p class="mt-1 text-sm text-gray-500">Maximum number of times this promotion can be used</p>
+            </div>
+
+            <div class="flex items-center">
+              <div class="flex items-center h-5">
+                <%= form.check_box :active, class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" %>
+              </div>
+              <div class="ml-3 text-sm">
+                <%= form.label :active, "Active", class: "font-medium text-gray-700" %>
+                <p class="text-gray-500">Promotion will be active immediately if within date range</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Apply To -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Apply Promotion To</h3>
+          
+          <div class="space-y-6">
+            <!-- Products Section -->
+            <div>
+              <div class="flex items-center">
+                <div class="flex items-center h-5">
+                  <%= check_box_tag 'promotion[applicable_to_products]', '1', @promotion.applicable_to_products, 
+                                    class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded",
+                                    id: "applicable_to_products" %>
+                </div>
+                <div class="ml-3 text-sm">
+                  <label for="applicable_to_products" class="font-medium text-gray-700">Products</label>
+                  <p class="text-gray-500">Apply this promotion to products</p>
+                </div>
+              </div>
+              
+              <div id="products-selection" class="mt-4 ml-7" style="display: <%= @promotion.applicable_to_products? ? 'block' : 'none' %>">
+                <p class="text-sm text-gray-600 mb-2">Select specific products (leave empty to apply to all products):</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded p-3">
+                  <% @products.each do |product| %>
+                    <div class="flex items-center">
+                      <div class="flex items-center h-5">
+                        <%= check_box_tag 'promotion[product_ids][]', product.id, 
+                                          @promotion.products.include?(product),
+                                          class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded",
+                                          id: "product_#{product.id}" %>
+                      </div>
+                      <div class="ml-2 text-sm">
+                        <label for="product_<%= product.id %>" class="text-gray-700"><%= product.name %></label>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <!-- Services Section -->
+            <div>
+              <div class="flex items-center">
+                <div class="flex items-center h-5">
+                  <%= check_box_tag 'promotion[applicable_to_services]', '1', @promotion.applicable_to_services, 
+                                    class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded",
+                                    id: "applicable_to_services" %>
+                </div>
+                <div class="ml-3 text-sm">
+                  <label for="applicable_to_services" class="font-medium text-gray-700">Services</label>
+                  <p class="text-gray-500">Apply this promotion to services</p>
+                </div>
+              </div>
+              
+              <div id="services-selection" class="mt-4 ml-7" style="display: <%= @promotion.applicable_to_services? ? 'block' : 'none' %>">
+                <p class="text-sm text-gray-600 mb-2">Select specific services (leave empty to apply to all services):</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded p-3">
+                  <% @services.each do |service| %>
+                    <div class="flex items-center">
+                      <div class="flex items-center h-5">
+                        <%= check_box_tag 'promotion[service_ids][]', service.id, 
+                                          @promotion.services.include?(service),
+                                          class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded",
+                                          id: "service_#{service.id}" %>
+                      </div>
+                      <div class="ml-2 text-sm">
+                        <label for="service_<%= service.id %>" class="text-gray-700"><%= service.name %></label>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Options -->
+      <div id="advanced-options" class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Advanced Options</h3>
+          
+          <div class="space-y-4">
+            <div id="stacking-option" class="flex items-center">
+              <div class="flex items-center h-5">
+                <%= form.check_box :allow_discount_codes, class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" %>
+              </div>
+              <div class="ml-3 text-sm">
+                <%= form.label :allow_discount_codes, "Allow stacking with discount codes", class: "font-medium text-gray-700" %>
+                <p class="text-gray-500">Let customers use additional discount codes on top of this automatic promotion</p>
+              </div>
+            </div>
+
+            <div class="flex items-center">
+              <div class="flex items-center h-5">
+                <%= form.check_box :public_dates, class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" %>
+              </div>
+              <div class="ml-3 text-sm">
+                <%= form.label :public_dates, "Show promotion dates publicly", class: "font-medium text-gray-700" %>
+                <p class="text-gray-500">Display the promotion start and end dates to customers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="flex justify-end space-x-3">
+        <%= link_to business_manager_promotion_path(@promotion), 
+                    class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" do %>
+          Cancel
+        <% end %>
+        <%= form.submit "Update Promotion", 
+                        class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  // JavaScript to toggle products/services selection visibility
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle promotion type changes
+    const automaticRadio = document.getElementById('automatic_promotion');
+    const codeRadio = document.getElementById('code_promotion');
+    const codeField = document.getElementById('code-field');
+    const codeInput = document.getElementById('promotion_code');
+    
+    function handlePromotionTypeChange() {
+      const advancedOptions = document.getElementById('advanced-options');
+      const allowDiscountCodesCheckbox = document.getElementById('promotion_allow_discount_codes');
+      
+      if (automaticRadio.checked) {
+        codeField.style.display = 'none';
+        if (codeInput) codeInput.value = ''; // Clear code for automatic promotions
+        advancedOptions.style.display = 'block'; // Show advanced options for automatic promotions
+      } else {
+        codeField.style.display = 'block';
+        advancedOptions.style.display = 'none'; // Hide advanced options for code-based promotions
+        if (allowDiscountCodesCheckbox) allowDiscountCodesCheckbox.checked = false; // Uncheck stacking for code-based
+      }
+    }
+    
+    automaticRadio.addEventListener('change', handlePromotionTypeChange);
+    codeRadio.addEventListener('change', handlePromotionTypeChange);
+    
+    // Set initial state on page load
+    handlePromotionTypeChange();
+    
+    const productsCheckbox = document.getElementById('applicable_to_products');
+    const servicesCheckbox = document.getElementById('applicable_to_services');
+    const productsSelection = document.getElementById('products-selection');
+    const servicesSelection = document.getElementById('services-selection');
+    
+    if (productsCheckbox && productsSelection) {
+      productsCheckbox.addEventListener('change', function() {
+        productsSelection.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    if (servicesCheckbox && servicesSelection) {
+      servicesCheckbox.addEventListener('change', function() {
+        servicesSelection.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    // Update discount symbol based on type
+    const discountTypeSelect = document.querySelector('select[name="promotion[discount_type]"]');
+    const discountSymbol = document.getElementById('discount-symbol');
+    
+    if (discountTypeSelect && discountSymbol) {
+      discountTypeSelect.addEventListener('change', function() {
+        discountSymbol.textContent = this.value === 'percentage' ? '%' : '$';
+      });
+    }
+  });
+</script> 

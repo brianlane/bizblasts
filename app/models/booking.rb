@@ -6,6 +6,9 @@ class Booking < ApplicationRecord
   include BookingScopes
   include BookingValidations
   
+  # Callbacks
+  after_save :schedule_tip_reminder_if_needed
+  
   acts_as_tenant(:business)
   belongs_to :business, optional: true
   belongs_to :service, optional: true
@@ -14,6 +17,7 @@ class Booking < ApplicationRecord
   accepts_nested_attributes_for :tenant_customer
   belongs_to :promotion, optional: true
   has_one :invoice, dependent: :nullify
+  has_one :tip, dependent: :destroy
   has_many :booking_product_add_ons, dependent: :destroy
   has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant
   accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true,
@@ -39,6 +43,49 @@ class Booking < ApplicationRecord
     # Use database sum to safely handle nil values
     addons_cost = self.booking_product_add_ons.sum(:total_amount) || 0
     service_cost + addons_cost
+  end
+  
+  # Check if tips are enabled and booking is eligible for tips
+  def eligible_for_tips?
+    return false unless business&.tips_enabled?
+    return false unless service&.experience?
+    return false unless service&.tips_enabled?
+    
+    true
+  end
+  
+  # Check if tip has already been processed
+  def tip_processed?
+    tip&.completed?
+  end
+  
+  # Generate secure token for tip collection
+  def generate_tip_token
+    # Create a secure token that expires in 7 days
+    payload = {
+      booking_id: id,
+      exp: 7.days.from_now.to_i,
+      iat: Time.current.to_i
+    }
+    JWT.encode(payload, Rails.application.secret_key_base, 'HS256')
+  end
+
+  # Verify tip token
+  def self.verify_tip_token(token)
+    payload = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: 'HS256')[0]
+    find(payload['booking_id']) if payload['booking_id']
+  rescue JWT::DecodeError, JWT::ExpiredSignature
+    nil
+  end
+
+  # Schedule experience tip reminder after completion
+  def schedule_experience_tip_reminder
+    return unless completed? && service&.experience? && service&.tips_enabled?
+    return unless business.tips_enabled?
+    return if tip.present? # Don't send if tip already collected
+    
+    # Schedule reminder for 2 hours after completion
+    ExperienceTipReminderJob.set(wait: 2.hours).perform_later(id)
   end
   
   private
@@ -79,4 +126,11 @@ class Booking < ApplicationRecord
   # Example migration: create_index :bookings, :staff_member_id
   # Example migration: add_index :bookings, [:start_time, :end_time], using: :gist
   # --- End Database Indexes Recommendation ---
+
+  # Add callback for scheduling tip reminders
+  def schedule_tip_reminder_if_needed
+    if status_changed? && completed?
+      schedule_experience_tip_reminder
+    end
+  end
 end

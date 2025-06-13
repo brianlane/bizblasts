@@ -115,7 +115,7 @@ ActiveAdmin.register Service do
   end
 
   # Permit relevant parameters including the association and nested image attributes
-  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :availability_settings, staff_member_ids: [], add_on_product_ids: [], type: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :availability_settings, :service_type, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
 
   # Define index block to correctly display business link
   index do
@@ -162,7 +162,7 @@ ActiveAdmin.register Service do
       f.input :active
       f.input :featured
       
-      f.input :type, as: :select, collection: Service.types.keys.map { |k| [k.humanize, k] }, include_blank: false, input_html: { id: 'service_type_select' }
+      f.input :service_type, as: :select, collection: Service.service_types.keys.map { |k| [k.humanize, k] }, include_blank: false, input_html: { id: 'service_type_select' }
 
       f.input :min_bookings
       f.input :max_bookings
@@ -177,14 +177,7 @@ ActiveAdmin.register Service do
       
       # Only show service and mixed products from the selected business
       f.input :add_on_products, as: :check_boxes, 
-        collection: -> {
-          business_id = f.object.business_id
-          if business_id.present?
-            Product.where(business_id: business_id, product_type: [:service, :mixed]).order(:name)
-          else
-            Product.where(product_type: [:service, :mixed]).order(:name)
-          end
-        }
+        collection: Product.where(product_type: [:service, :mixed]).order(:name)
 
       # Image upload field
       f.input :images, as: :file, input_html: { multiple: true }
@@ -207,8 +200,8 @@ ActiveAdmin.register Service do
       end
       row :active
       row :featured
-      row :type do |service|
-        service.type.humanize if service.type
+      row :service_type do |service|
+        service.service_type.humanize if service.service_type
       end
       row :min_bookings if resource.experience?
       row :max_bookings if resource.experience?

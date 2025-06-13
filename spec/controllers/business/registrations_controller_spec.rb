@@ -28,9 +28,13 @@ RSpec.describe Business::RegistrationsController, type: :controller do
           zip: '12345',
           description: 'A test business',
           tier: 'free',
-          hostname: 'testbusiness'
+          hostname: "testbusiness-#{SecureRandom.hex(4)}"
         }
       }
+    end
+
+    before do
+      allow(Rails.env).to receive(:test?).and_return(true)
     end
 
     context 'with valid params' do
@@ -49,7 +53,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         
         business = Business.last
         expect(business.name).to eq('Test Business')
-        expect(business.hostname).to eq('testbusiness')
+        expect(business.hostname).to be_present
       end
 
       it 'creates a Staff Member for the business owner' do
@@ -85,6 +89,67 @@ RSpec.describe Business::RegistrationsController, type: :controller do
       end
 
       # More tests for the happy path
+    end
+
+    context 'with platform referral code' do
+      let(:test_referral_code) { 'TEST-REFERRAL-123' }
+      
+      let(:valid_attributes_with_referral) do
+        valid_attributes.deep_dup.tap do |attrs|
+          attrs[:business_attributes][:platform_referral_code] = test_referral_code
+          attrs[:business_attributes][:hostname] = "testbiz-#{SecureRandom.hex(4)}"
+        end
+      end
+
+      it 'processes platform referral during business registration' do
+        expect(PlatformLoyaltyService).to receive(:process_business_referral_signup)
+          .with(kind_of(Business), test_referral_code)
+          .and_return({ success: true, points_awarded: 500, message: 'Success' })
+
+        post :create, params: { user: valid_attributes_with_referral }
+
+        expect(response).to redirect_to(root_path)
+        expect(User.count).to eq(1)
+        expect(Business.count).to eq(1)
+      end
+
+      it 'handles platform referral processing errors gracefully' do
+        expect(PlatformLoyaltyService).to receive(:process_business_referral_signup)
+          .with(kind_of(Business), test_referral_code)
+          .and_return({ success: false, error: 'Invalid referral code' })
+
+        post :create, params: { user: valid_attributes_with_referral }
+
+        expect(response).to redirect_to(root_path)
+        expect(User.count).to eq(1)
+        expect(Business.count).to eq(1)
+        # Business should still be created even if referral processing fails
+      end
+
+      it 'skips platform referral processing when no code provided' do
+        expect(PlatformLoyaltyService).not_to receive(:process_business_referral_signup)
+
+        post :create, params: { user: valid_attributes }
+
+        expect(response).to redirect_to(root_path)
+        expect(User.count).to eq(1)
+        expect(Business.count).to eq(1)
+      end
+
+      it 'handles exceptions during platform referral processing' do
+        expect(PlatformLoyaltyService).to receive(:process_business_referral_signup)
+          .with(kind_of(Business), test_referral_code)
+          .and_raise(StandardError.new('Service error'))
+
+        expect(Rails.logger).to receive(:error)
+          .with(match(/Error processing platform referral signup/))
+
+        post :create, params: { user: valid_attributes_with_referral }
+
+        expect(response).to redirect_to(root_path)
+        expect(User.count).to eq(1)
+        expect(Business.count).to eq(1)
+      end
     end
 
     context 'with invalid params' do

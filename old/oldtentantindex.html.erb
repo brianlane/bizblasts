@@ -1,0 +1,1102 @@
+<div class="max-w-5xl mx-auto p-4" 
+     data-controller="calendar"
+     data-calendar-endpoint-value="<%= tenant_available_slots_path %>"
+     data-calendar-is-subdomain-value="true"
+     <% if @service.present? %>data-calendar-service-id-value="<%= @service.id %>"<% end %>>
+  
+  <!-- Mobile-optimized header -->
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
+    <h1 class="text-xl sm:text-2xl font-bold">Book at <%= @business.name %></h1>
+    <%= link_to "← Back to Business", tenant_root_path, class: "text-blue-600 hover:underline text-sm sm:text-base" %>
+  </div>
+  
+  <!-- Service selection section -->
+  <div class="mb-6 bg-white rounded-lg shadow p-4 sm:p-6">
+    <h2 class="text-lg sm:text-xl font-semibold mb-4">Select Service</h2>
+    
+    <!-- Custom Service Dropdown -->
+    <div class="space-y-4">
+      <div class="relative">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Service</label>
+        <div class="service-dropdown relative">
+          <button type="button" 
+                  class="service-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                  data-dropdown-target="button">
+            <span class="service-dropdown-text text-gray-900">
+              <% if @service.present? %>
+                <%= @service.name %>
+              <% else %>
+                Select a service
+              <% end %>
+            </span>
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </span>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div class="service-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+               data-dropdown-target="menu">
+            <% @services.each do |service| %>
+              <div class="service-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                   data-service-id="<%= service.id %>"
+                   data-service-name="<%= service.name %>"
+                   data-dropdown-target="option">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900"><%= service.name %></div>
+                    <% if service.description.present? %>
+                      <div class="text-sm text-gray-500 mt-1 line-clamp-2"><%= truncate(service.description, length: 80) %></div>
+                    <% end %>
+                  </div>
+                  <div class="ml-3 text-right">
+                    <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                    <div class="text-xs text-gray-500"><%= service.duration %> min</div>
+                  </div>
+                </div>
+                <% if @service&.id == service.id %>
+                  <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex justify-end">
+        <button id="view-availability-btn" 
+                class="w-full sm:w-auto inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                <% unless @service.present? %>disabled<% end %>>
+          View Availability
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <% if @service %>
+    <div class="bg-white rounded-lg shadow">
+      <!-- Calendar header with navigation -->
+      <div class="p-4 sm:p-6 border-b border-gray-200">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+          <h2 class="text-lg sm:text-xl font-semibold">Available Time Slots</h2>
+          <div class="flex items-center justify-center space-x-2">
+            <%= link_to tenant_calendar_path(service_id: @service.id, date: @date.prev_month), 
+                class: "flex items-center justify-center px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors min-w-[44px] min-h-[44px]" do %>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+              <span class="hidden sm:inline ml-1">Previous</span>
+            <% end %>
+            <span class="px-3 py-2 font-medium text-sm sm:text-base"><%= @date.strftime("%B %Y") %></span>
+            <%= link_to tenant_calendar_path(service_id: @service.id, date: @date.next_month), 
+                class: "flex items-center justify-center px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors min-w-[44px] min-h-[44px]" do %>
+              <span class="hidden sm:inline mr-1">Next</span>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mobile List View (visible on mobile) -->
+      <div class="block sm:hidden">
+        <% current_date = @calendar_start_date %>
+        <% today = Date.current %>
+        <% while current_date <= @calendar_end_date %>
+          <% slots_count = (@calendar_data[current_date.to_s] || []).length %>
+          <% is_past_date = current_date < today %>
+          <% next current_date += 1.day if is_past_date %>
+          <div class="border-b border-gray-200 last:border-b-0">
+            <button class="w-full p-4 text-left hover:bg-gray-50 transition-colors mobile-calendar-day"
+                    data-calendar-target="day" 
+                    data-date="<%= current_date.to_s %>"
+                    data-action="click->calendar#dayClick">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900">
+                    <%= current_date.strftime("%A") %>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= current_date.strftime("%B %-d, %Y") %>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= slots_count > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+                    <%= pluralize(slots_count, 'slot') %>
+                  </span>
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+            </button>
+          </div>
+          <% current_date += 1.day %>
+        <% end %>
+      </div>
+      
+      <!-- Desktop Calendar Grid (hidden on mobile) -->
+      <div class="hidden sm:block p-4 sm:p-6">
+        <div class="calendar-container">
+          <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @date) do |date| %>
+            <% is_past_date = date < Date.current %>
+            <div class="calendar-day <%= 'past-date' if is_past_date %>" 
+                 data-calendar-target="day" 
+                 data-date="<%= date.to_s %>"
+                 <% unless is_past_date %>data-action="click->calendar#dayClick"<% end %>
+                 <% if is_past_date %>style="pointer-events: none; cursor: not-allowed;"<% end %>>
+              <div class="calendar-date"><%= date.day %></div>
+              <% unless is_past_date %>
+                <div class="available-slots-count text-xs font-medium px-2 py-1 rounded-full inline-flex items-center justify-center" style="background-color: #4caf50; color: white;">
+                  <% slots_count = (@calendar_data[date.to_s] || []).length %>
+                  <span><%= slots_count %></span>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Service Details -->
+      <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
+        <h3 class="font-semibold mb-3">Service Details</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div>
+            <span class="font-medium text-gray-700">Service:</span>
+            <span class="block sm:inline sm:ml-1"><%= @service.name %></span>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700">Duration:</span>
+            <span class="block sm:inline sm:ml-1"><%= @service.duration %> minutes</span>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700">Price:</span>
+            <span class="block sm:inline sm:ml-1"><%= number_to_currency(@service.price) %></span>
+          </div>
+        </div>
+        <% if @service.description.present? %>
+          <div class="mt-3">
+            <span class="font-medium text-gray-700">Description:</span>
+            <p class="text-sm text-gray-600 mt-1"><%= @service.description %></p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+  
+  <!-- Mobile-optimized slot detail overlay -->
+  <div class="slot-detail-overlay hidden fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" 
+       data-calendar-target="overlay">
+    <div class="slot-detail-container bg-white rounded-t-lg sm:rounded-lg shadow-lg w-full sm:max-w-md sm:w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto"
+         data-calendar-target="slotDetail">
+      <!-- Slot details will be rendered here by the controller -->
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Service Dropdown Functionality (works on all calendar pages)
+    const dropdownButton = document.querySelector('[data-dropdown-target="button"]');
+    const dropdownMenu = document.querySelector('[data-dropdown-target="menu"]');
+    const dropdownOptions = document.querySelectorAll('[data-dropdown-target="option"]');
+    const dropdownText = document.querySelector('.service-dropdown-text');
+    const dropdownArrow = dropdownButton?.querySelector('svg');
+    const viewAvailabilityBtn = document.getElementById('view-availability-btn');
+    
+    let selectedServiceId = '<%= @service&.id || "" %>';
+    let dropdownButtonTouched = false;
+    
+    // Shared function to toggle dropdown
+    function toggleDropdown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Check current state by examining classes and inline styles
+      const isHidden = dropdownMenu.classList.contains('hidden') || 
+                      dropdownMenu.style.display === 'none' || 
+                      dropdownMenu.style.display === '';
+      
+      if (isHidden) {
+        dropdownMenu.classList.remove('hidden');
+        dropdownArrow?.classList.add('rotate-180');
+        
+        // Force display and positioning for mobile
+        if (window.innerWidth <= 640) {
+          dropdownMenu.style.display = 'block';
+          dropdownMenu.style.position = 'absolute';
+          dropdownMenu.style.top = '100%';
+          dropdownMenu.style.left = '0';
+          dropdownMenu.style.right = '0';
+          dropdownMenu.style.zIndex = '50';
+          dropdownMenu.style.marginTop = '0.25rem';
+        }
+        
+        // Position dropdown to ensure it stays within viewport
+        const rect = dropdownButton.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const dropdownHeight = dropdownMenu.scrollHeight;
+        
+        if (spaceBelow < dropdownHeight && rect.top > dropdownHeight && window.innerWidth > 640) {
+          dropdownMenu.style.bottom = '100%';
+          dropdownMenu.style.top = 'auto';
+          dropdownMenu.classList.add('mb-1');
+          dropdownMenu.classList.remove('mt-1');
+        } else if (window.innerWidth > 640) {
+          dropdownMenu.style.top = '100%';
+          dropdownMenu.style.bottom = 'auto';
+          dropdownMenu.classList.add('mt-1');
+          dropdownMenu.classList.remove('mb-1');
+        }
+      } else {
+        dropdownMenu.classList.add('hidden');
+        dropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear inline styles on close
+        if (window.innerWidth <= 640) {
+          dropdownMenu.style.display = '';
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.right = '';
+          dropdownMenu.style.zIndex = '';
+          dropdownMenu.style.marginTop = '';
+        }
+      }
+    }
+    
+    // Toggle dropdown on click
+    dropdownButton?.addEventListener('click', function(e) {
+      dropdownButtonTouched = true;
+      toggleDropdown(e);
+      setTimeout(() => { dropdownButtonTouched = false; }, 100);
+    });
+    
+    // Toggle dropdown on touch (for mobile)
+    dropdownButton?.addEventListener('touchend', function(e) {
+      dropdownButtonTouched = true;
+      toggleDropdown(e);
+      setTimeout(() => { dropdownButtonTouched = false; }, 100);
+    });
+    
+    // Shared function for option selection
+    function selectOption(element, e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const serviceId = element.dataset.serviceId;
+      const serviceName = element.dataset.serviceName;
+      
+      // Update button text
+      dropdownText.textContent = serviceName;
+      selectedServiceId = serviceId;
+      
+      // Update selected state
+      dropdownOptions.forEach(opt => {
+        const checkIcon = opt.querySelector('svg');
+        if (checkIcon) checkIcon.remove();
+      });
+      
+      // Add check icon to selected option
+      const checkIcon = document.createElement('span');
+      checkIcon.className = 'absolute inset-y-0 right-2 flex items-center text-blue-600';
+      checkIcon.innerHTML = `
+        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+      `;
+      element.appendChild(checkIcon);
+      
+      // Enable view availability button
+      viewAvailabilityBtn.disabled = false;
+      
+      // Close dropdown properly
+      dropdownMenu.classList.add('hidden');
+      dropdownArrow?.classList.remove('rotate-180');
+      
+      // Clear mobile-specific inline styles (critical for mobile)
+      if (window.innerWidth <= 640) {
+        dropdownMenu.style.display = '';
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.right = '';
+        dropdownMenu.style.zIndex = '';
+        dropdownMenu.style.marginTop = '';
+      }
+    }
+    
+    // Handle option selection
+    dropdownOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        selectOption(this, e);
+      });
+      
+      // Handle touch for mobile options
+      option.addEventListener('touchend', function(e) {
+        selectOption(this, e);
+      });
+    });
+    
+    // Handle view availability button
+    viewAvailabilityBtn?.addEventListener('click', function() {
+      if (selectedServiceId) {
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('service_id', selectedServiceId);
+        window.location.href = currentUrl.toString();
+      }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('.service-dropdown')) {
+        if (!dropdownMenu?.classList.contains('hidden')) {
+          dropdownMenu?.classList.add('hidden');
+          dropdownArrow?.classList.remove('rotate-180');
+          
+          // Clear mobile styles if needed
+          if (window.innerWidth <= 640) {
+            dropdownMenu.style.display = '';
+            dropdownMenu.style.position = '';
+            dropdownMenu.style.top = '';
+            dropdownMenu.style.left = '';
+            dropdownMenu.style.right = '';
+            dropdownMenu.style.zIndex = '';
+            dropdownMenu.style.marginTop = '';
+          }
+        }
+      }
+    });
+    
+    // Handle touch outside for mobile
+    document.addEventListener('touchend', function(event) {
+      // Don't close if button was just touched
+      if (dropdownButtonTouched) {
+        return;
+      }
+      
+      if (!event.target.closest('.service-dropdown')) {
+        const isOpen = !dropdownMenu?.classList.contains('hidden') && 
+                      dropdownMenu?.style.display !== 'none' && 
+                      dropdownMenu?.style.display !== '';
+        if (isOpen) {
+          dropdownMenu?.classList.add('hidden');
+          dropdownArrow?.classList.remove('rotate-180');
+          
+          // Clear mobile styles if needed
+          if (window.innerWidth <= 640) {
+            dropdownMenu.style.display = '';
+            dropdownMenu.style.position = '';
+            dropdownMenu.style.top = '';
+            dropdownMenu.style.left = '';
+            dropdownMenu.style.right = '';
+            dropdownMenu.style.zIndex = '';
+            dropdownMenu.style.marginTop = '';
+          }
+        }
+      }
+    });
+    
+    // Handle escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        if (!dropdownMenu?.classList.contains('hidden')) {
+          dropdownMenu?.classList.add('hidden');
+          dropdownArrow?.classList.remove('rotate-180');
+          
+          // Clear mobile styles if needed
+          if (window.innerWidth <= 640) {
+            dropdownMenu.style.display = '';
+            dropdownMenu.style.position = '';
+            dropdownMenu.style.top = '';
+            dropdownMenu.style.left = '';
+            dropdownMenu.style.right = '';
+            dropdownMenu.style.zIndex = '';
+            dropdownMenu.style.marginTop = '';
+          }
+        }
+      }
+    });
+  });
+</script>
+
+<% if @service.present? && @calendar_data.present? %>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      // Ensure calendar counters are set immediately
+      <% @calendar_data.each do |date, slots| %>
+        try {
+          const dayElement = document.querySelector('[data-date="<%= date %>"]');
+          if (dayElement) {
+            const counter = dayElement.querySelector('.available-slots-count span');
+            if (counter) {
+              counter.textContent = '<%= slots.length %>';
+              dayElement.classList.add('has-available-slots');
+              
+              const slotCountElement = dayElement.querySelector('.available-slots-count');
+              if (slotCountElement) {
+                slotCountElement.style.backgroundColor = '<%= slots.length > 0 ? "#4caf50" : "#999999" %>';
+                slotCountElement.style.color = 'white';
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error updating day element for date <%= date %>:", e);
+        }
+      <% end %>
+      
+      // Set up click handlers for days
+      document.querySelectorAll('[data-calendar-target="day"]').forEach(day => {
+        day.addEventListener('click', function(event) {
+          // Check if this is a past date
+          const date = this.dataset.date;
+          const clickedDate = new Date(date + 'T00:00:00');
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset time to start of day
+          
+          // Prevent clicking on past dates
+          if (clickedDate < today) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+          
+          // Move the blue highlight to the clicked cell
+          document.querySelectorAll('.calendar-container .today').forEach(el => el.classList.remove('today'));
+          const cell = this.closest('td');
+          if (cell) cell.classList.add('today');
+          
+          // Fetch the day's slots directly
+          fetch(`<%= tenant_available_slots_path %>?service_id=<%= @service&.id %>&date=${date}`, {
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            // Show a popup with the available slots
+            showSlotDetail(date, data);
+          })
+          .catch(error => {
+            console.error('Error fetching day slots:', error);
+          });
+        });
+      });
+      
+      // PHASE 4, STEP 7: Real-time calendar slot count updates
+      // Update slot counts every 5 minutes to account for slots that have passed
+      function updateRealTimeSlotCounts() {
+        const now = new Date();
+        const currentDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Only update today's slot count in real-time
+        <% @calendar_data.each do |date, slots| %>
+          <% if date %>
+            try {
+              const slotDate = '<%= date %>';
+              if (slotDate === currentDateStr) {
+                const dayElement = document.querySelector('[data-date="<%= date %>"]');
+                if (dayElement) {
+                  // Get original slots for this date
+                  const originalSlots = <%= raw slots.to_json %>;
+                  
+                  // Filter out slots that have passed
+                  const currentTime = now.getTime();
+                  const availableSlots = originalSlots.filter(slot => {
+                    const slotTime = new Date(slot.start_time).getTime();
+                    return slotTime > currentTime;
+                  });
+                  
+                  // Update the counter display
+                  const counter = dayElement.querySelector('.available-slots-count span');
+                  if (counter) {
+                    const newCount = availableSlots.length;
+                    if (counter.textContent !== newCount.toString()) {
+                      counter.textContent = newCount;                      
+                      // Update background color based on availability
+                      const slotCountElement = dayElement.querySelector('.available-slots-count');
+                      if (slotCountElement) {
+                        slotCountElement.style.backgroundColor = newCount > 0 ? "#4caf50" : "#999999";
+                        slotCountElement.style.color = 'white';
+                      }
+                      
+                      // Update mobile view if exists
+                      const mobileCounter = document.querySelector(`[data-date="${slotDate}"] .inline-flex span`);
+                      if (mobileCounter && mobileCounter.textContent.includes('slot')) {
+                        mobileCounter.textContent = `${newCount} ${newCount === 1 ? 'slot' : 'slots'}`;
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Error updating real-time slot count for date <%= date %>:", e);
+            }
+          <% end %>
+        <% end %>
+      }
+      
+      // Initial real-time update after page load
+      setTimeout(updateRealTimeSlotCounts, 1000);
+      
+      // Set up interval to update slot counts every 5 minutes
+      setInterval(updateRealTimeSlotCounts, 5 * 60 * 1000); // 5 minutes
+      
+      // Function to show slot detail popup
+      function showSlotDetail(date, data) {
+        const slots = data[date] || [];
+        // Parse the calendar date as a local date (avoid UTC shift)
+        const [year, month, day] = date.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day);
+        const formattedDate = dateObj.toLocaleDateString(undefined, { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        // Create overlay if it doesn't exist
+        let overlay = document.querySelector('.slot-detail-overlay');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.className = 'slot-detail-overlay fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50';
+          document.body.appendChild(overlay);
+        }
+        
+        // Create container for slot details
+        let slotDetail = document.querySelector('.slot-detail-container');
+        if (!slotDetail) {
+          slotDetail = document.createElement('div');
+          slotDetail.className = 'slot-detail-container bg-white rounded-t-lg sm:rounded-lg shadow-lg w-full sm:max-w-md sm:w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto';
+          overlay.appendChild(slotDetail);
+        }
+        
+        // PHASE 4, STEP 7: Real-time frontend time filtering
+        // Filter out slots that have passed since page load
+        const now = new Date();
+        const currentDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Apply real-time filtering for today's slots only
+        let filteredSlots = slots;
+        if (date === currentDateStr) {
+          const currentTime = now.getTime();
+          filteredSlots = slots.filter(slot => {
+            const slotTime = new Date(slot.start_time).getTime();
+            return slotTime > currentTime;
+          });
+          
+          // Update slot display with real-time filtering
+          if (filteredSlots.length !== slots.length) {
+            const removedCount = slots.length - filteredSlots.length;
+          }
+        }
+        
+        // Use filtered slots for rendering
+        const finalAvailableSlots = filteredSlots.filter(slot => !slot.booked);
+        const finalAvailableCount = finalAvailableSlots.length;
+        
+        // Build HTML for the slots
+        let html = `
+          <div class="slot-detail-header p-4 sm:p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="text-lg sm:text-xl font-bold">Available Time Slots</h3>
+                <p class="text-sm sm:text-base text-gray-600 mt-1">${formattedDate}</p>
+              </div>
+              <button class="close-button p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="slot-list p-4 sm:p-6 space-y-3">
+        `;
+        
+        if (filteredSlots.length > 0) {
+          filteredSlots.forEach(slot => {
+            // Parse the UTC time and adjust for the user's local timezone
+            const startTimeUTC = new Date(slot.start_time);
+            
+            // Skip if slot has passed (additional safety check)
+            if (date === currentDateStr && startTimeUTC.getTime() <= now.getTime()) {
+              return; // Skip this slot
+            }
+            
+            // Format the times in the user's local timezone
+            const formattedStartTime = startTimeUTC.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'UTC',
+              hour12: true
+            });
+            
+            // Add Staff Member Name if available in slot data
+            const staffNameHtml = slot.staff_member_name ? `<div class="text-xs text-gray-600 mt-1">Staff: ${slot.staff_member_name}</div>` : '';
+            
+            html += `
+              <div class="slot-item border rounded-lg overflow-hidden">
+                <div class="flex justify-between items-center p-4 ${slot.booked ? 'bg-red-100' : 'bg-green-100'}">
+                  <div>
+                    <span class="time text-base sm:text-lg font-medium">${formattedStartTime}</span>
+                    ${staffNameHtml}
+                  </div>
+                  <span class="status font-medium px-2 sm:px-3 py-1 rounded text-xs sm:text-sm ${slot.booked ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}">${slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+                ${!slot.booked ? `
+                <a 
+                  href="<%= new_tenant_booking_path %>?service_id=<%= @service&.id %>&date=${date}&start_time=${startTimeUTC.getUTCHours()}:${startTimeUTC.getUTCMinutes()}&staff_member_id=${slot.staff_member_id}"
+                  class="book-slot-button block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 text-center transition-colors"
+                >Book This Slot</a>
+                ` : ''}
+              </div>
+            `;
+          });
+        } else {
+          html += `
+            <div class="no-slots bg-gray-100 p-6 rounded-lg text-gray-600 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <p class="font-medium">No available slots</p>
+              <p class="text-sm mt-1">Please select a different date</p>
+            </div>
+          `;
+        }
+        
+        // Create dynamic footer message using filtered counts
+        let footerMessage;
+        if (filteredSlots.length === 0) {
+          if (date === currentDateStr && slots.length > 0) {
+            footerMessage = 'All time slots for today have passed';
+          } else {
+            footerMessage = 'No time slots available for this date';
+          }
+        } else if (finalAvailableCount === 0) {
+          footerMessage = 'All time slots are booked for this date';
+        } else if (finalAvailableCount === 1) {
+          footerMessage = '1 available time slot for booking';
+        } else {
+          footerMessage = `${finalAvailableCount} available time slots for booking`;
+        }
+        
+        html += `</div>
+          <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
+            <div class="flex items-center justify-center text-xs sm:text-sm text-gray-600">
+              <span class="inline-block w-3 h-3 ${finalAvailableCount > 0 ? 'bg-green-600' : 'bg-gray-400'} rounded-full mr-2"></span>
+              ${footerMessage}
+            </div>
+          </div>`;
+        slotDetail.innerHTML = html;
+        
+        // Show the overlay and prevent body scroll
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Add event listener to close button
+        const closeButton = slotDetail.querySelector('.close-button');
+        if (closeButton) {
+          closeButton.addEventListener('click', function() {
+            overlay.classList.add('hidden');
+            document.body.style.overflow = '';
+          });
+        }
+        
+        // Close on overlay click (outside the container)
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) {
+            overlay.classList.add('hidden');
+            document.body.style.overflow = '';
+          }
+        });
+      }
+    });
+  </script>
+<% end %>
+
+<style>
+  /* Mobile-first responsive calendar styles */
+  .calendar-container .simple-calendar {
+    width: 100%;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .calendar-container table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  .calendar-container th {
+    padding: 8px;
+    text-align: center;
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+  }
+  
+  .calendar-container .day {
+    height: 80px;
+    padding: 4px;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+    transition: background-color 0.2s;
+    cursor: pointer;
+  }
+  
+  .calendar-container .day:hover {
+    background-color: #f0f9ff;
+  }
+  
+  .calendar-container .wday-0,
+  .calendar-container .wday-6 {
+    background-color: #f9fafb;
+  }
+  
+  .calendar-container .today {
+    background-color: #e0f2fe;
+  }
+  
+  .calendar-container .prev-month,
+  .calendar-container .next-month {
+    color: #9ca3af;
+    opacity: 0.6;
+  }
+  
+  .calendar-day {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px;
+  }
+  
+  .calendar-date {
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .available-slots-count {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  
+  /* Mobile calendar day styles */
+  .mobile-calendar-day {
+    min-height: 60px;
+    border: none;
+    background: none;
+  }
+  
+  .mobile-calendar-day:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+  }
+  
+  /* Slot detail overlay styles */
+  .slot-detail-overlay {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  
+  .slot-detail-container {
+    position: relative;
+  }
+  
+  /* Book button improvements */
+  .book-slot-button {
+    min-height: 44px;
+    font-size: 1rem;
+    touch-action: manipulation;
+  }
+  
+  /* Navigation button improvements for mobile */
+  @media (max-width: 640px) {
+    .calendar-container th {
+      padding: 6px 2px;
+      font-size: 0.75rem;
+    }
+    
+    .calendar-container .day {
+      height: 60px;
+      padding: 2px;
+    }
+    
+    .calendar-day {
+      padding: 2px;
+    }
+    
+    .calendar-date {
+      font-size: 0.75rem;
+      margin-bottom: 0.125rem;
+    }
+    
+    .available-slots-count {
+      width: 16px;
+      height: 16px;
+      font-size: 0.625rem;
+    }
+    
+    /* Better touch targets */
+    .slot-detail-container {
+      margin: 0;
+      border-radius: 1rem 1rem 0 0;
+    }
+    
+    /* Adjust modal for mobile keyboards */
+    .slot-detail-overlay {
+      padding-bottom: env(keyboard-inset-height, 0px);
+    }
+  }
+  
+  /* Navigation buttons */
+  .calendar-container .simple-calendar nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: white;
+    align-items: center;
+  }
+  
+  .calendar-container .simple-calendar nav a {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .calendar-container .simple-calendar nav a:hover {
+    background-color: #2563eb;
+  }
+  
+  .calendar-container .simple-calendar nav span {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  
+  /* Grey out past days */
+  .calendar-container td.past-day .calendar-day {
+    opacity: 0.5;
+  }
+  
+  .calendar-container td.past-day .available-slots-count {
+    background-color: #cccccc !important;
+  }
+  
+  /* Past date styling */
+  .calendar-container .past-date {
+    opacity: 0.4;
+    background-color: #f5f5f5;
+    cursor: not-allowed !important;
+  }
+  
+  .calendar-container .past-date:hover {
+    background-color: #f5f5f5 !important;
+  }
+  
+  .calendar-container .past-date .calendar-date {
+    color: #9ca3af;
+  }
+  
+  /* Mobile past date styling */
+  @media (max-width: 640px) {
+    .mobile-calendar-day.past-date {
+      opacity: 0.4;
+      background-color: #f9fafb;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    
+    .mobile-calendar-day.past-date:hover {
+      background-color: #f9fafb !important;
+    }
+  }
+  
+  /* Improved accessibility */
+  .calendar-container .day:focus-visible,
+  .mobile-calendar-day:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+  
+  /* Loading states */
+  .calendar-loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  
+  /* Animation for slot details */
+  .slot-detail-overlay {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .slot-detail-container {
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+  }
+  
+  /* Service Dropdown Styles */
+  .service-dropdown {
+    position: relative;
+  }
+  
+  .service-dropdown-button {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .service-dropdown-button:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .service-dropdown-menu {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .service-option {
+    transition: all 0.15s ease-in-out;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .service-option:active {
+    background-color: #dbeafe;
+    transform: scale(0.98);
+  }
+  
+  .service-option:last-child {
+    border-bottom: none;
+  }
+  
+  /* Arrow rotation animation */
+  .service-dropdown-button svg {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .rotate-180 {
+    transform: rotate(180deg);
+  }
+  
+  /* Text truncation utility */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Mobile improvements */
+  @media (max-width: 640px) {
+    .service-dropdown-menu {
+      position: absolute !important;
+      left: 0 !important;
+      right: 0 !important;
+      top: 100% !important;
+      bottom: auto !important;
+      width: 100% !important;
+      max-height: 60vh !important;
+      z-index: 50 !important;
+      margin-top: 0.25rem !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      border: 1px solid #e5e7eb !important;
+    }
+    
+    .service-dropdown {
+      position: relative !important;
+      z-index: 40 !important;
+    }
+    
+    .service-option {
+      min-height: 70px;
+      padding: 1rem;
+    }
+    
+    .service-dropdown-button {
+      font-size: 1rem;
+      padding: 1rem;
+    }
+    
+    /* Ensure dropdown appears above other content */
+    .service-dropdown-menu:not(.hidden) {
+      display: block !important;
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+  }
+  
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: reduce) {
+    .service-dropdown-button svg,
+    .service-option {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Remove any server-side today highlights
+    document.querySelectorAll('.calendar-container .today').forEach(element => element.classList.remove('today'));
+    // Compute YYYY-MM-DD using the client's local date
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    // Find the calendar-day div for that date and mark its table cell as today
+    const dayDiv = document.querySelector(`[data-date="${today}"]`);
+    if (dayDiv) {
+      const cell = dayDiv.closest('td');
+      if (cell) cell.classList.add('today');
+    }
+  });
+</script> 

@@ -28,7 +28,7 @@
       </button>
       
       <!-- Dropdown Menu -->
-      <div class="customer-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+      <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
            data-customer-dropdown-target="menu">
         
         <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
@@ -146,7 +146,7 @@
         </button>
         
         <!-- Dropdown Menu -->
-        <div class="shipping-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+        <div class="shipping-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-shipping-dropdown-target="menu">
           
           <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
@@ -219,7 +219,7 @@
         </button>
         
         <!-- Dropdown Menu -->
-        <div class="tax-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+        <div class="tax-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-tax-dropdown-target="menu">
           
           <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
@@ -286,105 +286,288 @@
 
   <!-- Product Line Items -->
   <h3 class="text-lg font-bold mb-2">Products</h3>
-  <button type="button" id="add-product-btn" class="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+  <button type="button" id="add-product-btn" class="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
     Add Product
   </button>
-  <table class="min-w-full mb-4" id="line-items-table">
+  <div class="overflow-x-auto mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+    <table class="min-w-full whitespace-nowrap" id="line-items-table">
     <thead>
       <tr>
-        <th class="border px-4 py-2">Product Variant</th>
-        <th class="border px-4 py-2">Quantity</th>
-        <th class="border px-4 py-2">Price</th>
-        <th class="border px-4 py-2">Total</th>
-        <th class="border px-4 py-2">Actions</th>
+        <th class="border px-4 py-2 min-w-[200px]">Product Variant</th>
+        <th class="border px-4 py-2 min-w-[100px]">Quantity</th>
+        <th class="border px-4 py-2 min-w-[80px]">Price</th>
+        <th class="border px-4 py-2 min-w-[80px]">Total</th>
+        <th class="border px-4 py-2 min-w-[100px]">Actions</th>
       </tr>
     </thead>
     <tbody>
       <% @order.line_items.reject(&:marked_for_destruction?).select(&:product?).each_with_index do |item, index| %>
         <tr data-index="<%= index %>">
-          <td class="border px-4 py-2">
-            <select name="order[line_items_attributes][<%= index %>][product_variant_id]" class="form-select rounded border px-3 py-2 w-full product-select" data-price="<%= item.price %>">
-              <option value="">Select Variant</option>
-              <% @product_variants.each do |variant| %>
-                <option value="<%= variant.id %>" data-price="<%= variant.final_price %>" <%= 'selected' if item.product_variant_id == variant.id %>>
-                  <%= variant.product.name %> - <%= variant.name %>
-                </option>
-              <% end %>
-            </select>
+          <td class="border px-4 py-2 min-w-[200px]">
+            <div class="rich-dropdown relative" id="product_dropdown_<%= index %>">
+              <button type="button" 
+                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                      data-dropdown-target="button">
+                <span class="rich-dropdown-text text-gray-900">
+                  <% if item.product_variant_id.present? %>
+                    <% variant = @product_variants.find { |v| v.id == item.product_variant_id } %>
+                    <%= variant ? "#{variant.product.name} - #{variant.name}" : 'Select Variant' %>
+                  <% else %>
+                    Select Variant
+                  <% end %>
+                </span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </span>
+              </button>
+              
+              <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+                   data-dropdown-target="menu">
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                     data-item-id=""
+                     data-item-text="Select Variant"
+                     data-item-price="0"
+                     data-dropdown-target="option">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-500">Select Variant</div>
+                    </div>
+                  </div>
+                  <% if item.product_variant_id.blank? %>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  <% end %>
+                </div>
+                
+                <% @product_variants.each do |variant| %>
+                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                       data-item-id="<%= variant.id %>"
+                       data-item-text="<%= variant.product.name %> - <%= variant.name %>"
+                       data-item-price="<%= variant.final_price %>"
+                       data-dropdown-target="option">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900"><%= variant.product.name %> - <%= variant.name %></div>
+                      </div>
+                      <div class="ml-3 text-right">
+                        <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.final_price) %></div>
+                      </div>
+                    </div>
+                    <% if item.product_variant_id == variant.id %>
+                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              
+              <input type="hidden" name="order[line_items_attributes][<%= index %>][product_variant_id]" class="product-select" value="<%= item.product_variant_id %>" data-price="<%= item.price %>" />
+            </div>
             <input type="hidden" name="order[line_items_attributes][<%= index %>][id]" value="<%= item.id %>" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[100px]">
             <input type="number" name="order[line_items_attributes][<%= index %>][quantity]" value="<%= item.quantity %>" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[80px]">
             <span class="price-display"><%= number_to_currency(item.price) %></span>
             <input type="hidden" name="order[line_items_attributes][<%= index %>][price]" class="price-input" value="<%= item.price %>" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[80px]">
             <span class="total-display"><%= number_to_currency(item.total_amount) %></span>
             <input type="hidden" name="order[line_items_attributes][<%= index %>][total_amount]" class="total-input" value="<%= item.total_amount %>" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[100px]">
             <input type="hidden" name="order[line_items_attributes][<%= index %>][_destroy]" class="destroy-input" value="false" />
-            <button type="button" class="remove-product-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+            <button type="button" class="remove-product-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded cursor-pointer">Remove</button>
           </td>
         </tr>
       <% end %>
     </tbody>
-  </table>
+    </table>
+  </div>
 
   <!-- Service Line Items -->
   <% product_count = @order.line_items.reject(&:marked_for_destruction?).select(&:product?).size %>
   <h3 class="text-lg font-bold mb-2">Services</h3>
-  <button type="button" id="add-service-btn" class="mb-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+  <button type="button" id="add-service-btn" class="mb-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
     Add Service
   </button>
-  <table class="min-w-full mb-4" id="service-line-items-table">
+  <div class="overflow-x-auto mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+    <table class="min-w-full whitespace-nowrap" id="service-line-items-table">
     <thead>
       <tr>
-        <th class="border px-4 py-2">Service</th>
-        <th class="border px-4 py-2">Staff Member</th>
-        <th class="border px-4 py-2">Quantity</th>
-        <th class="border px-4 py-2">Price</th>
-        <th class="border px-4 py-2">Total</th>
-        <th class="border px-4 py-2">Actions</th>
+        <th class="border px-4 py-2 min-w-[150px]">Service</th>
+        <th class="border px-4 py-2 min-w-[150px]">Staff Member</th>
+        <th class="border px-4 py-2 min-w-[100px]">Quantity</th>
+        <th class="border px-4 py-2 min-w-[80px]">Price</th>
+        <th class="border px-4 py-2 min-w-[80px]">Total</th>
+        <th class="border px-4 py-2 min-w-[100px]">Actions</th>
       </tr>
     </thead>
     <tbody>
       <% @order.line_items.reject(&:marked_for_destruction?).select(&:service?).each_with_index do |item, idx| %>
         <% index = idx + product_count %>
         <tr data-index="<%= index %>">
-          <td class="border px-4 py-2">
-            <select name="order[line_items_attributes][<%= index %>][service_id]" class="form-select rounded border px-3 py-2 w-full service-select" data-price="<%= item.price %>">
-              <option value="">Select Service</option>
-              <% @services.each do |service| %>
-                <option value="<%= service.id %>" data-price="<%= service.price %>" <%= 'selected' if item.service_id == service.id %>><%= service.name %> (<%= service.duration %>m)</option>
-              <% end %>
-            </select>
+          <td class="border px-4 py-2 min-w-[150px]">
+            <div class="rich-dropdown relative" id="service_dropdown_<%= index %>">
+              <button type="button" 
+                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                      data-dropdown-target="button">
+                <span class="rich-dropdown-text text-gray-900">
+                  <% if item.service_id.present? %>
+                    <% service = @services.find { |s| s.id == item.service_id } %>
+                    <%= service ? "#{service.name} (#{service.duration}m)" : 'Select Service' %>
+                  <% else %>
+                    Select Service
+                  <% end %>
+                </span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </span>
+              </button>
+              
+              <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+                   data-dropdown-target="menu">
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                     data-item-id=""
+                     data-item-text="Select Service"
+                     data-item-price="0"
+                     data-dropdown-target="option">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-500">Select Service</div>
+                    </div>
+                  </div>
+                  <% if item.service_id.blank? %>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  <% end %>
+                </div>
+                
+                <% @services.each do |service| %>
+                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                       data-item-id="<%= service.id %>"
+                       data-item-text="<%= service.name %> (<%= service.duration %>m)"
+                       data-item-price="<%= service.price %>"
+                       data-dropdown-target="option">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900"><%= service.name %></div>
+                        <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
+                      </div>
+                      <div class="ml-3 text-right">
+                        <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                      </div>
+                    </div>
+                    <% if item.service_id == service.id %>
+                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              
+              <input type="hidden" name="order[line_items_attributes][<%= index %>][service_id]" class="service-select" value="<%= item.service_id %>" data-price="<%= item.price %>" />
+            </div>
             <input type="hidden" name="order[line_items_attributes][<%= index %>][id]" value="<%= item.id %>" />
           </td>
-          <td class="border px-4 py-2">
-            <select name="order[line_items_attributes][<%= index %>][staff_member_id]" class="form-select rounded border px-3 py-2 w-full staff-select">
-              <option value="">Select Staff</option>
-              <% @staff_members.each do |sm| %>
-                <option value="<%= sm.id %>" <%= 'selected' if item.staff_member_id == sm.id %>><%= sm.name %></option>
-              <% end %>
-            </select>
+          <td class="border px-4 py-2 min-w-[150px]">
+            <div class="rich-dropdown relative" id="staff_dropdown_<%= index %>">
+              <button type="button" 
+                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                      data-dropdown-target="button">
+                <span class="rich-dropdown-text text-gray-900">
+                  <% if item.staff_member_id.present? %>
+                    <% staff_member = @staff_members.find { |sm| sm.id == item.staff_member_id } %>
+                    <%= staff_member ? staff_member.name : 'Select Staff' %>
+                  <% else %>
+                    Select Staff
+                  <% end %>
+                </span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </span>
+              </button>
+              
+              <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+                   data-dropdown-target="menu">
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                     data-item-id=""
+                     data-item-text="Select Staff"
+                     data-dropdown-target="option">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-500">Select Staff</div>
+                    </div>
+                  </div>
+                  <% if item.staff_member_id.blank? %>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  <% end %>
+                </div>
+                
+                <% @staff_members.each do |sm| %>
+                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                       data-item-id="<%= sm.id %>"
+                       data-item-text="<%= sm.name %>"
+                       data-dropdown-target="option">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900"><%= sm.name %></div>
+                        <% if sm.email.present? %>
+                          <div class="text-sm text-gray-500"><%= sm.email %></div>
+                        <% end %>
+                      </div>
+                    </div>
+                    <% if item.staff_member_id == sm.id %>
+                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              
+              <input type="hidden" name="order[line_items_attributes][<%= index %>][staff_member_id]" class="staff-select" value="<%= item.staff_member_id %>" />
+            </div>
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[100px]">
             <input type="number" name="order[line_items_attributes][<%= index %>][quantity]" value="<%= item.quantity %>" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[80px]">
             <span class="price-display"><%= number_to_currency(item.price) %></span>
             <input type="hidden" name="order[line_items_attributes][<%= index %>][price]" class="price-input" value="<%= item.price %>" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[80px]">
             <span class="total-display"><%= number_to_currency(item.total_amount) %></span>
             <input type="hidden" name="order[line_items_attributes][<%= index %>][total_amount]" class="total-input" value="<%= item.total_amount %>" />
           </td>
-          <td class="border px-4 py-2">
+          <td class="border px-4 py-2 min-w-[100px]">
             <input type="hidden" name="order[line_items_attributes][<%= index %>][_destroy]" class="destroy-input" value="false" />
-            <button type="button" class="remove-service-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+            <button type="button" class="remove-service-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded cursor-pointer">Remove</button>
           </td>
         </tr>
       <% end %>
@@ -396,76 +579,206 @@
       </tr>
     </tfoot>
     </tbody>
+    </table>
+  </div>
 
-  </table>
-
-  <%= f.submit (@order.new_record? ? 'Create Order' : 'Update Order'), class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded' %>
+  <%= f.submit (@order.new_record? ? 'Create Order' : 'Update Order'), class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
 <% end %>
 
 <template id="line-item-template">
   <tr data-index="NEW_INDEX">
-    <td class="border px-4 py-2">
-      <select name="order[line_items_attributes][NEW_INDEX][product_variant_id]" class="form-select rounded border px-3 py-2 w-full product-select">
-        <option value="">Select Variant</option>
-        <% @product_variants.each do |variant| %>
-          <option value="<%= variant.id %>" data-price="<%= variant.final_price %>">
-            <%= variant.product.name %> - <%= variant.name %>
-          </option>
-        <% end %>
-      </select>
+    <td class="border px-4 py-2 min-w-[200px]">
+      <div class="rich-dropdown relative" id="product_dropdown_NEW_INDEX">
+        <button type="button" 
+                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                data-dropdown-target="button">
+          <span class="rich-dropdown-text text-gray-900">Select Variant</span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        
+        <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-dropdown-target="menu">
+          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="Select Variant"
+               data-item-price="0"
+               data-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-500">Select Variant</div>
+              </div>
+            </div>
+            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          </div>
+          
+          <% @product_variants.each do |variant| %>
+            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= variant.id %>"
+                 data-item-text="<%= variant.product.name %> - <%= variant.name %>"
+                 data-item-price="<%= variant.final_price %>"
+                 data-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900"><%= variant.product.name %> - <%= variant.name %></div>
+                </div>
+                <div class="ml-3 text-right">
+                  <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.final_price) %></div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        
+        <input type="hidden" name="order[line_items_attributes][NEW_INDEX][product_variant_id]" class="product-select" value="" />
+      </div>
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[100px]">
       <input type="number" name="order[line_items_attributes][NEW_INDEX][quantity]" value="1" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[80px]">
       <span class="price-display">$0.00</span>
       <input type="hidden" name="order[line_items_attributes][NEW_INDEX][price]" class="price-input" value="0.00" />
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[80px]">
       <span class="total-display">$0.00</span>
       <input type="hidden" name="order[line_items_attributes][NEW_INDEX][total_amount]" class="total-input" value="0.00" />
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[100px]">
       <input type="hidden" name="order[line_items_attributes][NEW_INDEX][_destroy]" class="destroy-input" value="false" />
-      <button type="button" class="remove-product-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+      <button type="button" class="remove-product-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded cursor-pointer">Remove</button>
     </td>
   </tr>
 </template>
 
 <template id="service-line-item-template">
   <tr data-index="NEW_INDEX">
-    <td class="border px-4 py-2">
-      <select name="order[line_items_attributes][NEW_INDEX][service_id]" class="form-select rounded border px-3 py-2 w-full service-select">
-        <option value="">Select Service</option>
-        <% @services.each do |service| %>
-          <option value="<%= service.id %>" data-price="<%= service.price %>">
-            <%= service.name %> (<%= service.duration %>m)
-          </option>
-        <% end %>
-      </select>
+    <td class="border px-4 py-2 min-w-[150px]">
+      <div class="rich-dropdown relative" id="service_dropdown_NEW_INDEX">
+        <button type="button" 
+                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                data-dropdown-target="button">
+          <span class="rich-dropdown-text text-gray-900">Select Service</span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        
+        <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-dropdown-target="menu">
+          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="Select Service"
+               data-item-price="0"
+               data-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-500">Select Service</div>
+              </div>
+            </div>
+            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          </div>
+          
+          <% @services.each do |service| %>
+            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= service.id %>"
+                 data-item-text="<%= service.name %> (<%= service.duration %>m)"
+                 data-item-price="<%= service.price %>"
+                 data-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900"><%= service.name %></div>
+                  <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
+                </div>
+                <div class="ml-3 text-right">
+                  <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        
+        <input type="hidden" name="order[line_items_attributes][NEW_INDEX][service_id]" class="service-select" value="" />
+      </div>
     </td>
-    <td class="border px-4 py-2">
-      <select name="order[line_items_attributes][NEW_INDEX][staff_member_id]" class="form-select rounded border px-3 py-2 w-full staff-select">
-        <option value="">Select Staff</option>
-        <% @staff_members.each do |sm| %>
-          <option value="<%= sm.id %>"><%= sm.name %></option>
-        <% end %>
-      </select>
+    <td class="border px-4 py-2 min-w-[150px]">
+      <div class="rich-dropdown relative" id="staff_dropdown_NEW_INDEX">
+        <button type="button" 
+                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                data-dropdown-target="button">
+          <span class="rich-dropdown-text text-gray-900">Select Staff</span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        
+        <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-dropdown-target="menu">
+          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="Select Staff"
+               data-dropdown-target="option">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-500">Select Staff</div>
+              </div>
+            </div>
+            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          </div>
+          
+          <% @staff_members.each do |sm| %>
+            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= sm.id %>"
+                 data-item-text="<%= sm.name %>"
+                 data-dropdown-target="option">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900"><%= sm.name %></div>
+                  <% if sm.email.present? %>
+                    <div class="text-sm text-gray-500"><%= sm.email %></div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        
+        <input type="hidden" name="order[line_items_attributes][NEW_INDEX][staff_member_id]" class="staff-select" value="" />
+      </div>
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[100px]">
       <input type="number" name="order[line_items_attributes][NEW_INDEX][quantity]" value="1" min="1" class="form-input rounded border px-3 py-2 w-full qty-input" />
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[80px]">
       <span class="price-display">$0.00</span>
       <input type="hidden" name="order[line_items_attributes][NEW_INDEX][price]" class="price-input" value="0.00" />
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[80px]">
       <span class="total-display">$0.00</span>
       <input type="hidden" name="order[line_items_attributes][NEW_INDEX][total_amount]" class="total-input" value="0.00" />
     </td>
-    <td class="border px-4 py-2">
+    <td class="border px-4 py-2 min-w-[100px]">
       <input type="hidden" name="order[line_items_attributes][NEW_INDEX][_destroy]" class="destroy-input" value="false" />
-      <button type="button" class="remove-service-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded">Remove</button>
+      <button type="button" class="remove-service-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded cursor-pointer">Remove</button>
     </td>
   </tr>
 </template>
@@ -526,8 +839,7 @@
       const removeBtn = row.querySelector('.remove-product-btn');
 
       function updateRow() {
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
-        const price = parseFloat(selectedOption.dataset.price) || 0;
+        const price = parseFloat(productSelect.dataset.price) || 0;
         const priceInput = row.querySelector('.price-input');
         const priceDisplay = row.querySelector('.price-display');
         priceInput.value = price.toFixed(2);
@@ -554,6 +866,9 @@
           recalcOrderTotal();
         });
       }
+      
+      // Initialize rich dropdown for this row
+      initializeRichDropdown(row);
     }
 
     // Initialize existing rows
@@ -613,8 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeBtn = row.querySelector('.remove-service-btn');
 
     function updateSvcRow() {
-      const opt = svcSelect.options[svcSelect.selectedIndex];
-      const price = parseFloat(opt.dataset.price) || 0;
+      const price = parseFloat(svcSelect.dataset.price) || 0;
       const priceInput = row.querySelector('.price-input');
       const priceDisplay = row.querySelector('.price-display');
       priceInput.value = price.toFixed(2);
@@ -640,10 +954,219 @@ document.addEventListener('DOMContentLoaded', () => {
       row.style.display = 'none';
       recalcOrderTotal();
     });
+    
+    // Initialize rich dropdown for this service row
+    initializeRichDropdown(row);
   }
 
   // Initialize existing service rows
   svcBody.querySelectorAll('tr').forEach(bindSvcRow);
+});
+
+// Rich Dropdown Functionality for Order Form Line Items
+function initializeRichDropdown(container) {
+  if (!container) return;
+  
+  const dropdowns = container.querySelectorAll('.rich-dropdown');
+  
+  dropdowns.forEach(dropdown => {
+    const button = dropdown.querySelector('[data-dropdown-target="button"]');
+    const menu = dropdown.querySelector('[data-dropdown-target="menu"]');
+    const options = dropdown.querySelectorAll('[data-dropdown-target="option"]');
+    const text = dropdown.querySelector('.rich-dropdown-text');
+    const arrow = dropdown.querySelector('svg');
+    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    
+    if (!button || !menu || !options.length) return;
+    
+    // Toggle dropdown
+    function toggleDropdown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.rich-dropdown-menu').forEach(otherMenu => {
+        if (otherMenu !== menu) {
+          otherMenu.classList.add('hidden');
+          const otherArrow = otherMenu.parentElement.querySelector('svg');
+          if (otherArrow) otherArrow.classList.remove('rotate-180');
+          // Reset mobile positioning
+          otherMenu.style.position = '';
+          otherMenu.style.left = '';
+          otherMenu.style.right = '';
+          otherMenu.style.top = '';
+        }
+      });
+      
+      const isHidden = menu.classList.contains('hidden');
+      
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        if (arrow) arrow.classList.add('rotate-180');
+        
+        // Position menu properly on mobile
+        if (window.innerWidth <= 768) {
+          const rect = button.getBoundingClientRect();
+          const scrollContainer = button.closest('.overflow-x-auto');
+          
+          if (scrollContainer) {
+            // Position relative to the scroll container
+            menu.style.position = 'fixed';
+            menu.style.left = Math.max(16, rect.left) + 'px';
+            menu.style.right = 'auto';
+            menu.style.width = Math.min(300, window.innerWidth - 32) + 'px';
+            menu.style.top = Math.min(rect.bottom + 4, window.innerHeight - 250) + 'px';
+            menu.style.maxHeight = '40vh';
+            menu.style.zIndex = '9999';
+          } else {
+            // Fallback for non-scrollable containers
+            menu.style.position = 'fixed';
+            menu.style.left = '0.5rem';
+            menu.style.right = '0.5rem';
+            menu.style.top = Math.min(rect.bottom + 4, window.innerHeight - 300) + 'px';
+            menu.style.maxHeight = '50vh';
+            menu.style.zIndex = '9999';
+          }
+        } else {
+          // Reset mobile positioning for desktop
+          menu.style.position = '';
+          menu.style.left = '';
+          menu.style.right = '';
+          menu.style.top = '';
+          menu.style.width = '';
+          menu.style.zIndex = '';
+        }
+      } else {
+        menu.classList.add('hidden');
+        if (arrow) arrow.classList.remove('rotate-180');
+        // Reset positioning
+        menu.style.position = '';
+        menu.style.left = '';
+        menu.style.right = '';
+        menu.style.top = '';
+        menu.style.zIndex = '';
+      }
+    }
+    
+    button.addEventListener('click', toggleDropdown);
+    button.addEventListener('touchend', toggleDropdown);
+    
+    // Handle option selection
+    function selectOption(option, e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      const itemId = option.getAttribute('data-item-id');
+      const itemText = option.getAttribute('data-item-text');
+      const itemPrice = option.getAttribute('data-item-price');
+      
+      // Update hidden field
+      if (hiddenInput) {
+        hiddenInput.value = itemId;
+        if (itemPrice) {
+          hiddenInput.dataset.price = itemPrice;
+        }
+      }
+      
+      // Update button text
+      if (text) {
+        text.textContent = itemText;
+      }
+      
+      // Update selection indicators
+      options.forEach(opt => {
+        const checkmark = opt.querySelector('svg');
+        if (checkmark) {
+          checkmark.parentElement.style.display = 'none';
+        }
+      });
+      
+      const selectedCheckmark = option.querySelector('svg');
+      if (selectedCheckmark) {
+        selectedCheckmark.parentElement.style.display = 'flex';
+      }
+      
+      // Close dropdown and reset positioning
+      menu.classList.add('hidden');
+      if (arrow) arrow.classList.remove('rotate-180');
+      menu.style.position = '';
+      menu.style.left = '';
+      menu.style.right = '';
+      menu.style.top = '';
+      menu.style.zIndex = '';
+      
+      // Trigger change event for form calculations
+      if (hiddenInput) {
+        const changeEvent = new Event('change', { bubbles: true });
+        hiddenInput.dispatchEvent(changeEvent);
+      }
+    }
+    
+    options.forEach(option => {
+      // Handle click events
+      option.addEventListener('click', function(e) {
+        selectOption(this, e);
+      });
+      
+      // Handle touch events for mobile - use touchend to avoid conflicts
+      option.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        selectOption(this, e);
+      });
+    });
+  });
+}
+
+// Initialize rich dropdowns for existing rows on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize for existing product rows
+  document.querySelectorAll('#line-items-table tbody tr').forEach(row => {
+    initializeRichDropdown(row);
+  });
+  
+  // Initialize for existing service rows
+  document.querySelectorAll('#service-line-items-table tbody tr').forEach(row => {
+    initializeRichDropdown(row);
+  });
+});
+
+// Close dropdowns when clicking outside
+function closeAllDropdowns() {
+  document.querySelectorAll('.rich-dropdown-menu').forEach(menu => {
+    menu.classList.add('hidden');
+    const arrow = menu.parentElement.querySelector('svg');
+    if (arrow) arrow.classList.remove('rotate-180');
+    // Reset mobile positioning
+    menu.style.position = '';
+    menu.style.left = '';
+    menu.style.right = '';
+    menu.style.top = '';
+    menu.style.zIndex = '';
+  });
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.rich-dropdown')) {
+    closeAllDropdowns();
+  }
+});
+
+// Also handle touch events for better mobile support
+document.addEventListener('touchend', function(e) {
+  if (!e.target.closest('.rich-dropdown')) {
+    closeAllDropdowns();
+  }
+});
+
+// Handle new rows added dynamically - make sure rich dropdowns are initialized
+document.addEventListener('DOMNodeInserted', function(e) {
+  if (e.target.nodeType === 1 && e.target.matches('tr')) {
+    setTimeout(() => {
+      initializeRichDropdown(e.target);
+    }, 100);
+  }
 });
 
 // Shipping and Tax Rate Dropdown Functionality

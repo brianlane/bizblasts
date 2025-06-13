@@ -61,5 +61,8 @@ module Bizblasts
     
     # Increase Rack timeout for large file uploads (2 minutes)
     config.force_ssl = false unless Rails.env.production?
+
+    # SECURITY FIX: Add rack-attack middleware for rate limiting
+    config.middleware.use Rack::Attack
   end
 end

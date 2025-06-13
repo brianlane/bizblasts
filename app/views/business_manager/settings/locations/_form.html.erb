@@ -33,7 +33,10 @@
 
   <div class="field">
     <%= form.label :zip %>
-    <%= form.text_field :zip %>
+    <%= form.text_field :zip,
+          pattern: "[0-9]{5}(-[0-9]{4})?",
+          title: "Please enter a valid ZIP code (5 digits or 5+4 format, e.g., 12345 or 12345-6789)",
+          maxlength: "10" %>
   </div>
 
   <%# Assuming hours is a JSON structure %>
@@ -66,4 +69,70 @@
   <div class="actions">
     <%= form.submit %>
   </div>
-<% end %> 
+<% end %>
+
+<script type="text/javascript">
+  // Enhanced form validation functions
+  function validateField(input, isValid, errorMessage) {
+    const existingError = input.parentElement.querySelector('.field-error');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    if (!isValid) {
+      input.style.borderColor = '#ef4444';
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'field-error';
+      errorDiv.style.color = '#ef4444';
+      errorDiv.style.fontSize = '12px';
+      errorDiv.style.marginTop = '4px';
+      errorDiv.textContent = errorMessage;
+      input.parentElement.appendChild(errorDiv);
+    } else {
+      input.style.borderColor = '';
+    }
+  }
+
+  function validateZip(zip) {
+    const zipRegex = /^[0-9]{5}(-[0-9]{4})?$/;
+    return zipRegex.test(zip);
+  }
+
+  // Add real-time validation listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    // ZIP code validation
+    const zipFields = document.querySelectorAll('input[name*="[zip]"]');
+    zipFields.forEach(field => {
+      field.addEventListener('blur', function() {
+        if (this.value) {
+          const isValid = validateZip(this.value);
+          validateField(this, isValid, 'Please enter a valid ZIP code (5 digits or 5+4 format)');
+        }
+      });
+    });
+
+    // ZIP code formatting
+    zipFields.forEach(field => {
+      field.addEventListener('input', function() {
+        // Remove all non-digits and hyphens, then remove any hyphens that aren't in the right place
+        let value = this.value.replace(/[^0-9-]/g, '').replace(/-+/g, '-');
+        
+        // Remove hyphens that aren't after exactly 5 digits
+        value = value.replace(/^(\d{1,4})-/, '$1').replace(/(\d{5})-+(\d)/, '$1-$2');
+        
+        // If we have more than 5 digits without a hyphen, add one
+        if (value.length > 5 && !value.includes('-')) {
+          value = value.replace(/(\d{5})(\d+)/, '$1-$2');
+        }
+        
+        // Limit to 10 characters max (12345-6789)
+        if (value.length > 10) {
+          value = value.substring(0, 10);
+        }
+        
+        this.value = value;
+      });
+    });
+  });
+</script> 

@@ -13,12 +13,41 @@
   <% if @products.any? %>
     <div class="space-y-4">
       <% @products.order(:name).each do |product| %>
-        <div class="border rounded-lg p-4 shadow-sm">
-          <h2 class="text-xl font-semibold"><%= link_to product.name, product_path(product) %></h2>
+        <div class="border rounded-lg p-4 shadow-sm" data-product-id="<%= product.id %>">
+          <div class="flex justify-between items-start mb-2">
+            <h2 class="text-xl font-semibold">
+              <%= link_to product.name, product_path(product), class: "text-blue-600 hover:text-blue-800" %>
+            </h2>
+            <% if product.on_promotion? %>
+              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <%= product.promotion_display_text %>
+              </span>
+            <% end %>
+          </div>
+          
           <p class="text-gray-700 mt-1"><%= product.description %></p>
-          <p class="text-gray-900 font-medium mt-2">
-            Price: <%= number_to_currency(product.price) %>
-          </p>
+          
+          <!-- Promotional Pricing Display -->
+          <div class="pricing-section mt-3">
+            <% if product.on_promotion? %>
+              <div class="price-display">
+                <span class="text-lg font-bold text-green-600">
+                  <%= number_to_currency(product.promotional_price) %>
+                </span>
+                <span class="text-sm text-gray-500 line-through ml-2">
+                  <%= number_to_currency(product.price) %>
+                </span>
+                <span class="text-xs text-green-600 ml-1">
+                  (Save <%= product.savings_percentage %>%)
+                </span>
+              </div>
+            <% else %>
+              <p class="text-gray-900 font-medium">
+                Price: <%= number_to_currency(product.price) %>
+              </p>
+            <% end %>
+          </div>
+          
           <div class="mt-4">
             <%= link_to "View Product", product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" %>
           </div>

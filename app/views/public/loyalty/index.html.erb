@@ -1,0 +1,150 @@
+<% content_for :title, "My Loyalty Points" %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">My Loyalty Points</h1>
+          <p class="mt-1 text-sm text-gray-500">Loyalty points across all businesses</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "My Dashboard", dashboard_path, 
+                      class: "inline-flex items-center px-3 py-2 sm:px-4 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <% if @businesses_with_points.present? %>
+      <!-- Total Points Overview -->
+      <div class="bg-white overflow-hidden shadow rounded-lg mb-6 sm:mb-8">
+        <div class="p-4 sm:p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-indigo-100 flex items-center justify-center">
+                <svg class="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="ml-4 sm:ml-6 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Points Across All Businesses</dt>
+                <dd class="text-2xl sm:text-3xl font-bold text-gray-900"><%= number_with_delimiter(@total_points_across_businesses) %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Businesses with Points -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Your Loyalty Points by Business</h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">Click on any business to view detailed loyalty information</p>
+        </div>
+        <ul class="divide-y divide-gray-200">
+          <% @businesses_with_points.each do |business_data| %>
+            <li>
+              <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="h-10 w-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">
+                          <%= business_data[:business_name].first %>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= business_data[:business_name] %>
+                      </div>
+                      <div class="text-sm text-gray-500">
+                        <% if business_data[:customer] %>
+                          Last activity: <%= business_data[:customer].loyalty_points_history.first&.created_at&.strftime("%b %d, %Y") || "No recent activity" %>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= number_with_delimiter(business_data[:current_points]) %> points
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        <% points = business_data[:current_points] %>
+                        <% if points >= 100 %>
+                          ~$<%= (points / 100).floor %> in rewards
+                        <% else %>
+                          <%= 100 - points %> more for $1 reward
+                        <% end %>
+                      </div>
+                    </div>
+                    <div>
+                      <%= link_to "#{Rails.env.development? ? 'http://' : 'https://'}#{business_data[:business_hostname]}.#{Rails.env.development? ? 'lvh.me:' + request.port.to_s : 'bizblasts.com'}/loyalty", 
+                                  target: "_blank",
+                                  class: "inline-flex items-center px-3 py-2 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" do %>
+                        <svg class="-ml-1 mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        View Details
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="mt-6 sm:mt-8 bg-white shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Quick Actions</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
+          <%= link_to businesses_path, 
+                      class: "flex items-center p-4 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <div>
+              <div class="text-sm font-medium">Find More Businesses</div>
+              <div class="text-xs text-gray-500">Discover new places to earn points</div>
+            </div>
+          <% end %>
+
+          <%= link_to referral_index_path, 
+                      class: "flex items-center p-4 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+            </svg>
+            <div>
+              <div class="text-sm font-medium">My Referrals</div>
+              <div class="text-xs text-gray-500">Track your referral rewards</div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+    <% else %>
+      <!-- No Loyalty Points -->
+      <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No loyalty points yet</h3>
+        <p class="mt-1 text-sm text-gray-500">Start booking services or purchasing products to earn your first loyalty points!</p>
+        <div class="mt-6">
+          <%= link_to "Discover Businesses", businesses_path, 
+                      class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div> 

@@ -1,0 +1,166 @@
+<% content_for :title, "Tips Settings" %>
+
+<div class="max-w-6xl mx-auto">
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <div class="border-b border-gray-200 pb-4 mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900">Tips Settings</h1>
+        <p class="mt-1 text-sm text-gray-600">Configure tip options for your business, products, and services</p>
+      </div>
+
+      <%= form_with model: @business, url: business_manager_settings_tips_path, method: :patch, local: true, class: "space-y-8" do |form| %>
+        
+        <!-- Global Tips Setting -->
+        <div class="border-b border-gray-200 pb-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900">Enable Tips</h3>
+              <p class="text-sm text-gray-600">Allow customers to add tips to their orders</p>
+            </div>
+            <div class="flex items-center">
+              <%= form.check_box :tips_enabled, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+              <%= form.label :tips_enabled, "Enable tips for this business", class: "ml-2 text-sm text-gray-700" %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tip Configuration -->
+        <div class="border-b border-gray-200 pb-6" id="tip-configuration" style="<%= 'display: none;' unless @business.tips_enabled? %>">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Tip Configuration</h3>
+          
+          <%= fields_for :tip_configuration, @tip_configuration do |config_form| %>
+            <div class="space-y-4">
+              <!-- Default Tip Percentages -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Default Tip Percentages</label>
+                <div class="flex space-x-2">
+                  <% @tip_configuration.tip_percentage_options.each_with_index do |percentage, index| %>
+                    <%= config_form.number_field "default_tip_percentages][#{index}", 
+                        value: percentage, 
+                        class: "w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                        min: 0, max: 100, step: 1 %>
+                    <span class="flex items-center text-gray-500">%</span>
+                  <% end %>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">These percentages will be shown as quick options to customers</p>
+              </div>
+
+              <!-- Custom Tip Option -->
+              <div class="flex items-center">
+                <%= config_form.check_box :custom_tip_enabled, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                <%= config_form.label :custom_tip_enabled, "Allow custom tip amounts", class: "ml-2 text-sm text-gray-700" %>
+              </div>
+
+              <!-- Tip Message -->
+              <div>
+                <%= config_form.label :tip_message, "Custom tip message (optional)", class: "block text-sm font-medium text-gray-700" %>
+                <%= config_form.text_area :tip_message, 
+                    class: "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                    rows: 3,
+                    placeholder: "Thank you for your business! Tips are greatly appreciated." %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Product Tips Settings -->
+        <div class="border-b border-gray-200 pb-6" id="product-tips" style="<%= 'display: none;' unless @business.tips_enabled? %>">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Product Tips Settings</h3>
+          <div class="space-y-3">
+            <% @business.products.active.each do |product| %>
+              <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                <div>
+                  <span class="font-medium text-gray-900"><%= product.name %></span>
+                  <span class="text-sm text-gray-500 ml-2">$<%= product.price %></span>
+                </div>
+                <div class="flex items-center">
+                  <%= check_box_tag "products[#{product.id}][tips_enabled]", "1", product.tips_enabled?, 
+                      class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                  <%= label_tag "products[#{product.id}][tips_enabled]", "Enable tips", class: "ml-2 text-sm text-gray-700" %>
+                </div>
+              </div>
+            <% end %>
+            <% if @business.products.active.empty? %>
+              <p class="text-sm text-gray-500 italic">No active products found.</p>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Service Tips Settings -->
+        <div class="border-b border-gray-200 pb-6" id="service-tips" style="<%= 'display: none;' unless @business.tips_enabled? %>">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Service Tips Settings</h3>
+          <div class="space-y-3">
+            <% @business.services.active.each do |service| %>
+              <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                <div>
+                  <span class="font-medium text-gray-900"><%= service.name %></span>
+                  <span class="text-sm text-gray-500 ml-2">$<%= service.price %></span>
+                  <% if service.service_type.present? %>
+                    <span class="text-xs text-blue-600 ml-2 px-2 py-1 bg-blue-100 rounded-full"><%= service.service_type.humanize %></span>
+                  <% end %>
+                </div>
+                <div class="flex items-center">
+                  <%= check_box_tag "services[#{service.id}][tips_enabled]", "1", service.tips_enabled?, 
+                      class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                  <%= label_tag "services[#{service.id}][tips_enabled]", "Enable tips", class: "ml-2 text-sm text-gray-700" %>
+                </div>
+              </div>
+            <% end %>
+            <% if @business.services.active.empty? %>
+              <p class="text-sm text-gray-500 italic">No active services found.</p>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800">Important Information</h3>
+              <div class="mt-2 text-sm text-blue-700">
+                <ul class="list-disc pl-5 space-y-1">
+                  <li><strong>Experience Services:</strong> Tips are only available after service completion</li>
+                  <li><strong>Standard Services:</strong> Tips can be added during invoice payment</li>
+                  <li><strong>Products:</strong> Tips can be added during checkout</li>
+                  <li>Customers will need to re-enter payment information for tips</li>
+                  <li><strong>Fee Structure:</strong> Tips are subject to both Stripe and platform fees</li>
+                  <li class="ml-4">• Stripe processing fee: 2.9% + $0.30 per transaction</li>
+                  <li class="ml-4">• Platform fee: <%= current_business.tier == 'premium' ? '3%' : '5%' %> (based on your <%= current_business.tier.titleize %> tier)</li>
+                  <li>You receive the tip amount minus all applicable fees</li>
+                  <li>Minimum tip amount is $0.50 (Stripe requirement)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <%= form.submit "Save Settings", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tipsEnabledCheckbox = document.getElementById('business_tips_enabled');
+  const tipConfiguration = document.getElementById('tip-configuration');
+  const productTips = document.getElementById('product-tips');
+  const serviceTips = document.getElementById('service-tips');
+  
+  function toggleTipSections() {
+    const isEnabled = tipsEnabledCheckbox.checked;
+    tipConfiguration.style.display = isEnabled ? 'block' : 'none';
+    productTips.style.display = isEnabled ? 'block' : 'none';
+    serviceTips.style.display = isEnabled ? 'block' : 'none';
+  }
+  
+  tipsEnabledCheckbox.addEventListener('change', toggleTipSections);
+});
+</script> 

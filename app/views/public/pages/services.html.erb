@@ -12,26 +12,64 @@
         <div class="border rounded-lg p-4 shadow-sm flex flex-col">
           <%# Display Primary Image if available %>
           <% if service.primary_image&.attached? %>
-            <div class="mb-4">
+            <div class="mb-4 relative">
               <%= link_to tenant_service_path(service) do %>
                 <%= image_tag rails_public_blob_url(service.primary_image.representation(resize_to_limit: [400, 300])), 
                             class: "w-full h-48 object-cover rounded-md shadow-sm" %>
               <% end %>
+              <% if service.on_promotion? %>
+                <div class="absolute top-2 right-2">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 shadow-sm">
+                    <%= service.promotion_display_text %>
+                  </span>
+                </div>
+              <% end %>
+            </div>
+          <% elsif service.on_promotion? %>
+            <div class="mb-2">
+              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <%= service.promotion_display_text %>
+              </span>
             </div>
           <% end %>
 
-          <h2 class="text-xl font-semibold mb-2"><%= link_to service.name, tenant_service_path(service), class: "hover:underline" %></h2>
+          <h2 class="text-xl font-semibold mb-2">
+            <%= link_to service.name, tenant_service_path(service), class: "hover:underline text-blue-600" %>
+          </h2>
 
           <p class="text-gray-700 text-sm flex-grow mb-4"><%= truncate(service.description, length: 150) %></p>
 
-          <p class="text-gray-900 font-medium text-sm mb-4">
-            Duration: <%= service.duration %> mins | Price: <%= number_to_currency(service.price) %>
-            <% if service.experience? %>
-              | Type: Experience
-            <% else %>
-              | Type: Standard
-            <% end %>
-          </p>
+          <!-- Promotional Pricing Display -->
+          <div class="pricing-info mb-4">
+            <div class="text-sm">
+              <span class="text-gray-600">Duration: <%= service.duration %> mins</span>
+              <% if service.experience? %>
+                <span class="text-gray-600"> | Type: Experience</span>
+              <% else %>
+                <span class="text-gray-600"> | Type: Standard</span>
+              <% end %>
+            </div>
+            
+            <div class="pricing-section mt-1">
+              <% if service.on_promotion? %>
+                <div class="price-display">
+                  <span class="text-lg font-bold text-green-600">
+                    <%= number_to_currency(service.promotional_price) %>
+                  </span>
+                  <span class="text-sm text-gray-500 line-through ml-1">
+                    <%= number_to_currency(service.price) %>
+                  </span>
+                  <span class="text-xs text-green-600 ml-1">
+                    (Save <%= service.savings_percentage %>%)
+                  </span>
+                </div>
+              <% else %>
+                <p class="text-gray-900 font-medium text-sm">
+                  Price: <%= number_to_currency(service.price) %>
+                </p>
+              <% end %>
+            </div>
+          </div>
 
           <div class="mt-auto">
             <%= link_to "View Details", 

@@ -54,9 +54,14 @@
           <div>
             <h3 class="text-base font-medium text-gray-700 mb-2">Staff Member</h3>
             <div class="mt-1">
-              <%= select_tag "staff_member_id", 
-                           options_from_collection_for_select(@staff_members, :id, :name, @booking.staff_member_id),
-                           class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" %>
+              <%= render 'shared/rich_dropdown',
+                  collection: @staff_members,
+                  field_name: "staff_member_id",
+                  selected_value: @booking.staff_member_id,
+                  prompt_text: "Select staff member",
+                  value_method: :id,
+                  text_method: :name,
+                  dropdown_id: "reschedule_staff_dropdown" %>
             </div>
           </div>
           
@@ -132,7 +137,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const dateField = document.getElementById('date');
-    const staffSelect = document.getElementById('staff_member_id');
+    const staffSelect = document.getElementById('reschedule_staff_dropdown_hidden');
     const form = document.querySelector('form');
     const timeSelectionContainer = document.querySelector('.mb-6 .grid');
     

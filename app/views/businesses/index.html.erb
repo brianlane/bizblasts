@@ -47,10 +47,15 @@
           <%= form.label :sort, class: "block text-base font-semibold text-gray-800 mb-2" do %>
             📊 Sort by
           <% end %>
-          <%= form.select :sort, 
-                options_for_select([['Name', 'name'], ['Date Added', 'date']], params[:sort]), 
-                {}, 
-                class: "w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white" %>
+          <%= render 'shared/rich_dropdown',
+              collection: [['Name', 'name'], ['Date Added', 'date']],
+              field_name: "sort",
+              selected_value: params[:sort],
+              prompt_text: "Select sort option",
+              value_method: :last,
+              text_method: :first,
+              required: false,
+              dropdown_id: "businesses_sort_dropdown" %>
         </div>
         
         <%# Direction Options %>
@@ -58,10 +63,15 @@
           <%= form.label :direction, class: "block text-base font-semibold text-gray-800 mb-2" do %>
             ↕️ Direction
           <% end %>
-          <%= form.select :direction, 
-                options_for_select([['Ascending', 'asc'], ['Descending', 'desc']], params[:direction]), 
-                {}, 
-                class: "w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white" %>
+          <%= render 'shared/rich_dropdown',
+              collection: [['Ascending', 'asc'], ['Descending', 'desc']],
+              field_name: "direction",
+              selected_value: params[:direction],
+              prompt_text: "Select direction",
+              value_method: :last,
+              text_method: :first,
+              required: false,
+              dropdown_id: "businesses_direction_dropdown" %>
         </div>
       </div>
 
