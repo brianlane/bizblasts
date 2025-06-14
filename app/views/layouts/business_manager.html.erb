@@ -11,6 +11,13 @@
   <%= stylesheet_link_tag "custom", data: { "turbo-track" => "reload" } %>
   <%= javascript_include_tag "application", defer: true %>
   
+  <!-- Favicons and Apple Touch Icons -->
+  <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
+  <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
+  <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1A5F7A">
+  
   <style>
     /* Force all SVGs to a reasonable size */
     svg {

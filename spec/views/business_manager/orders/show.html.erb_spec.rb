@@ -59,15 +59,6 @@ RSpec.describe "business_manager/orders/show.html.erb", type: :view do
     stubbed_items.each { |item| allow(item).to receive(:total_amount).and_return(0) }
     allow(order).to receive(:line_items).and_return(stubbed_items)
     render
-    # Debug line items count
-    puts "Debug: Order has #{order.line_items.count} line items"
-    puts "Debug: Line items: #{order.line_items.inspect}"
-
-        # Debug the specific problematic line
-    puts "Debug: Status: #{order.status.inspect}"
-    puts "Debug: Status titleize: #{order.status&.titleize.inspect}"
-    puts "Debug: Order type: #{order.order_type.inspect}"
-    puts "Debug: Order type titleize: #{order.order_type&.titleize.inspect}"
 
     # Try with safer approach
     expect(rendered).to have_content(order.order_number.to_s)
@@ -80,11 +71,6 @@ RSpec.describe "business_manager/orders/show.html.erb", type: :view do
     # Type badge - try simplifying
     expect(rendered).to have_selector('span.type-badge')
     # expect(rendered).to have_content(order.order_type.titleize)
-    
-    # Debug: Output rendered HTML
-    puts "\n--- Rendered HTML (Show Spec) ---\n"
-    puts rendered
-    puts "---\n"
     
     expect(rendered).to have_content('Items:')
     expect(rendered).to have_selector('table')
