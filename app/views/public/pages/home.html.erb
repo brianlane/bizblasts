@@ -59,6 +59,35 @@
     <% end %>
   <% end %>
 
+  <%# Products Section %>
+  <% if @business.show_products_section? %>
+    <% @products = @business.products.active.where(product_type: [:standard, :mixed]).order(:name) %>
+    <% if @products.any? %>
+      <div class="mt-12">
+        <h2 class="text-3xl font-semibold mb-6">Our Products</h2>
+        <div class="space-y-4">
+          <% @products.each do |product| %>
+            <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div class="mb-3 md:mb-0">
+                <h3 class="text-xl font-semibold"><%= product.name %></h3>
+                <% if product.description.present? %>
+                  <p class="text-gray-700 mt-1 text-sm"><%= product.description %></p>
+                <% end %>
+                <p class="text-gray-900 font-medium mt-2 text-sm">
+                  Price: <%= number_to_currency(product.price) %>
+                </p>
+              </div>
+              <div class="mt-3 md:mt-0 flex-shrink-0">
+                <%# Use the product's name as the link text %>
+                <%= link_to "View Product", product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 whitespace-nowrap" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+
   <%# Referral Program Section %>
   <% if @business.referral_program_enabled? && user_signed_in? %>
     <% if current_user.client? %>
@@ -88,35 +117,6 @@
       </div>
     <% elsif current_user.manager? || current_user.staff? %>
       <%# Business users can preview the referral program by visiting the dedicated page %>
-    <% end %>
-  <% end %>
-
-  <%# Products Section %>
-  <% if @business.show_products_section? %>
-    <% @products = @business.products.active.where(product_type: [:standard, :mixed]).order(:name) %>
-    <% if @products.any? %>
-      <div class="mt-12">
-        <h2 class="text-3xl font-semibold mb-6">Our Products</h2>
-        <div class="space-y-4">
-          <% @products.each do |product| %>
-            <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
-              <div class="mb-3 md:mb-0">
-                <h3 class="text-xl font-semibold"><%= product.name %></h3>
-                <% if product.description.present? %>
-                  <p class="text-gray-700 mt-1 text-sm"><%= product.description %></p>
-                <% end %>
-                <p class="text-gray-900 font-medium mt-2 text-sm">
-                  Price: <%= number_to_currency(product.price) %>
-                </p>
-              </div>
-              <div class="mt-3 md:mt-0 flex-shrink-0">
-                <%# Use the product's name as the link text %>
-                <%= link_to "View Product", product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 whitespace-nowrap" %>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
     <% end %>
   <% end %>
 
