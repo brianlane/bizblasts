@@ -29,8 +29,6 @@
               class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
       </div>
 
-
-
       <div>
         <%= form.label :product_type, "Product Type", class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= render 'shared/rich_dropdown',
@@ -42,6 +40,11 @@
             text_method: :first,
             required: false,
             dropdown_id: "product_type_dropdown" %>
+        <p class="mt-1 text-sm text-gray-500">
+          <strong>Standard:</strong> Independent products sold individually from services (displayed on products page) <br>
+          <strong>Service:</strong> Add-on products for your services (not displayed on products page - displayed with booking page) <br>
+          <strong>Mixed:</strong> Products that can be both sold and booked as add-ons (displayed on products & booking page)
+        </p>
       </div>
     </div>
 
