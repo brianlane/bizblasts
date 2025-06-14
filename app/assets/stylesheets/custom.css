@@ -1806,4 +1806,159 @@ input[type="checkbox"]:focus {
   #subdomain-explanation {
     scroll-margin-top: 150px;
   }
+}
+
+/* Mobile-First Product Add-On Table Styles */
+.product-addon-table {
+  min-width: 100%;
+}
+
+/* Touch-friendly quantity controls */
+.quantity-btn {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+  background-color: #f9fafb;
+  color: #374151;
+}
+
+.quantity-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #6b7280;
+  color: #1f2937;
+}
+
+.quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+}
+
+.quantity-input {
+  font-size: 16px; /* Prevents zoom on iOS */
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* Mobile responsive table improvements */
+@media (max-width: 640px) {
+  .product-addon-table th,
+  .product-addon-table td {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  /* Ensure quantity controls remain accessible */
+  .quantity-btn {
+    min-width: 48px;
+    min-height: 48px;
+    border-width: 2px;
+    background-color: #ffffff;
+    border-color: #374151;
+    color: #000000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Much larger, more visible icons on mobile */
+  .quantity-btn svg {
+    width: 28px;
+    height: 28px;
+    stroke-width: 4;
+  }
+  
+  .quantity-btn:hover:not(:disabled) {
+    background-color: #f9fafb;
+    border-color: #374151;
+  }
+  
+  .quantity-input {
+    width: 3.5rem;
+    min-height: 48px;
+    border-width: 2px;
+    font-weight: 600;
+    font-size: 18px;
+    border-color: #374151;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Product name text wrapping */
+  .product-name {
+    word-break: break-word;
+    hyphens: auto;
+  }
+  
+  /* Better spacing for mobile */
+  .product-addon-section {
+    margin-bottom: 2rem;
+  }
+}
+
+/* Improved focus states for accessibility */
+.quantity-btn:focus-visible {
+  outline: 2px solid #1A5F7A;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(26, 95, 122, 0.1);
+}
+
+.quantity-input:focus-visible {
+  outline: 2px solid #1A5F7A;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(26, 95, 122, 0.1);
+}
+
+/* Stock indicator improvements */
+.stock-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stock-dot.in-stock {
+  background-color: #10B981;
+}
+
+.stock-dot.out-of-stock {
+  background-color: #EF4444;
+}
+
+/* Product link icon hover effects */
+.product-link-icon {
+  transition: all 0.2s ease;
+}
+
+.product-link-icon:hover {
+  transform: scale(1.1);
+  color: #1A5F7A;
+}
+
+/* Responsive table container */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E0 #F7FAFC;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #F7FAFC;
+  border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #CBD5E0;
+  border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #A0AEC0;
 } 

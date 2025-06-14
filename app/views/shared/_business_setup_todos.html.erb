@@ -16,7 +16,7 @@
         
         <ul class="space-y-3">
           <% setup_service.todo_items.each do |item| %>
-            <li class="bg-white rounded border border-gray-200 p-3">
+            <li class="bg-white rounded border border-gray-200 p-3" data-todo-key="<%= item[:key] %>">
               <!-- Mobile Layout: Stack everything vertically -->
               <div class="block sm:hidden">
                 <div class="flex items-start justify-between mb-2">
@@ -34,7 +34,11 @@
                 </div>
                 <div class="flex flex-col space-y-2">
                   <% if item[:url] %>
-                    <%= link_to item[:action], item[:url], class: "inline-flex items-center justify-center px-4 py-2 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
+                    <a href="<%= item[:url] %>" 
+                       class="inline-flex items-center justify-center px-4 py-2 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200"
+                       onclick="sessionStorage.setItem('hideTodo_<%= item[:key] %>', 'true'); this.closest('li').style.display='none'; return true;">
+                      <%= item[:action] %>
+                    </a>
                   <% end %>
                   <button
                     type="button"
@@ -63,7 +67,11 @@
                 
                 <div class="flex items-center flex-shrink-0 ml-4">
                   <% if item[:url] %>
-                    <%= link_to item[:action], item[:url], class: "inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200" %>
+                    <a href="<%= item[:url] %>" 
+                       class="inline-flex items-center px-3 py-1 border border-info text-info text-sm font-medium rounded-md hover:bg-info hover:text-white transition-colors duration-200"
+                       onclick="sessionStorage.setItem('hideTodo_<%= item[:key] %>', 'true'); this.closest('li').style.display='none'; return true;">
+                      <%= item[:action] %>
+                    </a>
                   <% end %>
                   <button
                     type="button"
@@ -87,4 +95,19 @@
       </svg>
     </button>
   </div>
-</div> 
+</div>
+
+<script>
+  // Hide todo items that were clicked in this session, then clear the hidden state
+  document.addEventListener('DOMContentLoaded', function() {
+    const todoItems = document.querySelectorAll('[data-todo-key]');
+    todoItems.forEach(function(item) {
+      const key = item.getAttribute('data-todo-key');
+      if (sessionStorage.getItem('hideTodo_' + key) === 'true') {
+        item.style.display = 'none';
+        // Clear the hidden state so it can show again on next page load if task is still incomplete
+        sessionStorage.removeItem('hideTodo_' + key);
+      }
+    });
+  });
+</script> 

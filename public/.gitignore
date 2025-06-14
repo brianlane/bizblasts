@@ -8,6 +8,3 @@
 # Allow essential static files
 !robots.txt
 !site.webmanifest
-!*.ico
-!*.png
-!*.svg 
