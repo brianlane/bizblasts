@@ -6,6 +6,7 @@ module Public
     skip_before_action :set_current_tenant, only: [:new, :create, :show]
     skip_before_action :set_tenant_customer,  only: [:new, :create, :show]
     before_action :set_tenant
+    include BusinessAccessProtection
 
     # GET /orders/new
     def new

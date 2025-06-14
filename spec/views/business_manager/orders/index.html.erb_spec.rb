@@ -50,9 +50,7 @@ RSpec.describe "business_manager/orders/index.html.erb", type: :view do
     
     # Orders content
     view.instance_variable_get(:@orders).each do |order|
-      # Debug: Output order number
-      puts "Debug: Checking order number: #{order.order_number.inspect}"
-      
+      # Debug: Output order number      
       # Check for the entire row content or specific cells
       # Checking for the link text within a td is a robust approach
       expect(rendered).to have_content(order.order_number)

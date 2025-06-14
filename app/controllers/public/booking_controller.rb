@@ -5,6 +5,7 @@ module Public
   class BookingController < ApplicationController
     # Ensure tenant is set based on subdomain
     before_action :set_tenant
+    include BusinessAccessProtection
     # Ensure user is logged in to book (or handle guest booking flow)
     skip_before_action :authenticate_user!, only: [:new, :create, :confirmation]
     before_action :set_form_data, only: [:new, :create]
