@@ -78,6 +78,29 @@
       <% end %>
     </div>
     
+    <%# Include booking policy information %>
+    <% policy = @business.booking_policy %>
+    <% if policy&.has_customer_visible_policies? %>
+      <div style="background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 3px;">
+        <h3 style="margin-top: 0; color: #1976D2; font-size: 16px;">📋 Booking Policy</h3>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <% policy.policy_summary_for_customers.each do |policy_text| %>
+            <li style="margin-bottom: 5px; color: #1565C0;"><%= policy_text %></li>
+          <% end %>
+        </ul>
+        <% if policy.cancellation_example_for_customers %>
+          <div style="background-color: #f0f8ff; padding: 10px; border-radius: 3px; margin-top: 10px;">
+            <p style="margin: 0; font-size: 14px; color: #0d47a1;">
+              <strong>Example:</strong> <%= policy.cancellation_example_for_customers %>
+            </p>
+          </div>
+        <% end %>
+        <p style="margin-bottom: 0; font-size: 14px; color: #1976D2;">
+          💙 We understand that plans can change. If you have questions about our policy, please don't hesitate to contact us.
+        </p>
+      </div>
+    <% end %>
+    
     <p>If you need to make any changes to your booking, please contact us or visit our website.</p>
     
     <% if @business.phone.present? %>

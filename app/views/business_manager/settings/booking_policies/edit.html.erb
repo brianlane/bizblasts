@@ -1,73 +1,255 @@
 <%# frozen_string_literal: true %>
-<div class="container mx-auto px-4 py-8">
-  <%= link_to "← Back to Settings", business_manager_settings_path, class: "text-blue-600 hover:underline mb-4 inline-block" %>
-
-  <h1 class="text-2xl font-semibold text-gray-800 mb-6">Edit Booking Policies</h1>
-
-  <%= form_with(model: [:settings, @booking_policy], url: business_manager_settings_booking_policy_path, method: :patch, class: "space-y-8 divide-y divide-gray-200") do |form| %>
-    <div class="space-y-8 divide-y divide-gray-200 sm:space-y-5">
-      <div>
-        <div>
-          <h3 class="text-lg leading-6 font-medium text-gray-900">Booking Rules</h3>
-          <p class="mt-1 max-w-2xl text-sm text-gray-500">
-            Define rules for cancellations, buffer times, and booking windows.
-          </p>
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+  <!-- Header Section -->
+  <div class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <%= link_to business_manager_settings_path, class: "inline-flex items-center text-primary hover:text-primary transition-colors duration-200" do %>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Settings
+          <% end %>
         </div>
-
-        <div class="mt-6 sm:mt-5 space-y-6 sm:space-y-5">
-          <%# Cancellation Window %>
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
-            <%= form.label :cancellation_window_mins, "Cancellation Window (Minutes)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
-            <div class="mt-1 sm:mt-0 sm:col-span-2">
-              <%= form.number_field :cancellation_window_mins, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 1440 (for 24 hours)" %>
-              <p class="mt-2 text-sm text-gray-500">Minimum time before booking start that a cancellation is allowed (in minutes). Leave blank for no restriction.</p>
-            </div>
-          </div>
-
-          <%# Buffer Time %>
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
-            <%= form.label :buffer_time_mins, "Buffer Time (Minutes)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
-            <div class="mt-1 sm:mt-0 sm:col-span-2">
-              <%= form.number_field :buffer_time_mins, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 15" %>
-              <p class="mt-2 text-sm text-gray-500">Time buffer automatically added after each booking (in minutes). Leave blank for no buffer.</p>
-            </div>
-          </div>
-
-          <%# Minimum Advance Time %>
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
-            <%= form.label :min_advance_mins, "Minimum Advance Booking (Minutes)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
-            <div class="mt-1 sm:mt-0 sm:col-span-2">
-              <%= form.number_field :min_advance_mins, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 30" %>
-              <p class="mt-2 text-sm text-gray-500">Minimum time required between booking creation and appointment start (in minutes). Set to 0 for no advance requirement.</p>
-            </div>
-          </div>
-
-          <%# Max Daily Bookings %>
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
-            <%= form.label :max_daily_bookings, "Max Daily Bookings", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
-            <div class="mt-1 sm:mt-0 sm:col-span-2">
-              <%= form.number_field :max_daily_bookings, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 10" %>
-              <p class="mt-2 text-sm text-gray-500">Maximum number of bookings allowed per day (per staff member?). Leave blank for unlimited.</p> <%# TODO: Clarify scope - per staff or total? %>
-            </div>
-          </div>
-
-          <%# Max Advance Days %>
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
-            <%= form.label :max_advance_days, "Max Advance Booking (Days)", class: "block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2" %>
-            <div class="mt-1 sm:mt-0 sm:col-span-2">
-              <%= form.number_field :max_advance_days, class: "max-w-lg block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md", placeholder: "e.g., 90" %>
-              <p class="mt-2 text-sm text-gray-500">How far in advance customers can book (in days). Leave blank for no limit.</p>
+        <div class="flex items-center space-x-3">
+          <div class="hidden sm:block">
+            <div class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+              Booking Rules
             </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="pt-5">
-      <div class="flex justify-end">
-        <%= link_to "Cancel", business_manager_settings_booking_policy_path, class: "bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
-        <%= form.submit "Save Policies", class: "ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" %>
+      
+      <div class="mt-4">
+        <h1 class="text-3xl font-bold text-gray-900">Edit Booking Policies</h1>
+        <p class="mt-2 text-lg text-gray-600">Configure rules that govern how customers can book appointments with your business.</p>
       </div>
     </div>
-  <% end %>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <%= form_with(model: [:settings, @booking_policy], url: business_manager_settings_booking_policy_path, method: :patch, class: "space-y-8") do |form| %>
+      
+      <!-- Policy Cards Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Cancellation Policy Card -->
+        <div class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-red-500 to-pink-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Cancellation Window</h3>
+                <p class="text-red-100 mt-1">When customers can cancel bookings</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="relative">
+              <%= form.label :cancellation_window_mins, class: "block text-sm font-semibold text-gray-700 mb-2" do %>
+                <span class="flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                  </svg>
+                  Time Before Booking (Minutes)
+                </span>
+              <% end %>
+              <%= form.number_field :cancellation_window_mins, 
+                  class: "w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-lg", 
+                  placeholder: "e.g., 1440 (24 hours)" %>
+              <div class="mt-2 flex items-start space-x-2">
+                <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-sm text-gray-500">Leave blank for no cancellation restrictions. Common values: 60 (1 hour), 1440 (24 hours).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buffer Time Policy Card -->
+        <div class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-500 to-cyan-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Buffer Time</h3>
+                <p class="text-blue-100 mt-1">Break time between appointments</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="relative">
+              <%= form.label :buffer_time_mins, class: "block text-sm font-semibold text-gray-700 mb-2" do %>
+                <span class="flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd"></path>
+                  </svg>
+                  Buffer Duration (Minutes)
+                </span>
+              <% end %>
+              <%= form.number_field :buffer_time_mins, 
+                  class: "w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg", 
+                  placeholder: "e.g., 15" %>
+              <div class="mt-2 flex items-start space-x-2">
+                <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-sm text-gray-500">Time added between bookings for preparation or cleanup. Leave blank for no buffer.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advance Booking Policy Card -->
+        <div class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-green-500 to-emerald-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Advance Booking</h3>
+                <p class="text-green-100 mt-1">Minimum booking lead time</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="relative">
+              <%= form.label :min_advance_mins, class: "block text-sm font-semibold text-gray-700 mb-2" do %>
+                <span class="flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                  </svg>
+                  Minimum Lead Time (Minutes)
+                </span>
+              <% end %>
+              <%= form.number_field :min_advance_mins, 
+                  class: "w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 text-lg", 
+                  placeholder: "e.g., 30" %>
+              <div class="mt-2 flex items-start space-x-2">
+                <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-sm text-gray-500">How far in advance customers must book. Set to 0 for no advance requirement.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Booking Limits Card -->
+        <div class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-purple-500 to-indigo-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Daily Limits</h3>
+                <p class="text-purple-100 mt-1">Maximum bookings per day</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="relative">
+              <%= form.label :max_daily_bookings, class: "block text-sm font-semibold text-gray-700 mb-2" do %>
+                <span class="flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Max Bookings Per Day
+                </span>
+              <% end %>
+              <%= form.number_field :max_daily_bookings, 
+                  class: "w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-lg", 
+                  placeholder: "e.g., 10" %>
+              <div class="mt-2 flex items-start space-x-2">
+                <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-sm text-gray-500">Maximum appointments per staff member per day. Leave blank for unlimited.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking Window Card -->
+        <div class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden lg:col-span-2">
+          <div class="bg-gradient-to-r from-orange-500 to-red-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Booking Window</h3>
+                <p class="text-orange-100 mt-1">How far in advance customers can book</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="relative">
+              <%= form.label :max_advance_days, class: "block text-sm font-semibold text-gray-700 mb-2" do %>
+                <span class="flex items-center">
+                  <svg class="w-4 h-4 mr-2 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                  </svg>
+                  Maximum Advance Booking (Days)
+                </span>
+              <% end %>
+              <%= form.number_field :max_advance_days, 
+                  class: "w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-lg", 
+                  placeholder: "e.g., 90" %>
+              <div class="mt-2 flex items-start space-x-2">
+                <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-sm text-gray-500">The furthest in advance customers can book appointments. Leave blank for no limit. Popular values: 30, 60, or 90 days.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div class="flex items-start space-x-3">
+            <div class="bg-blue-50 p-2 rounded-lg">
+              <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-gray-900">Ready to Save?</h3>
+              <p class="text-sm text-gray-600">These policies will be applied to all new bookings immediately.</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+            <%= link_to "Cancel", business_manager_settings_booking_policy_path, 
+                class: "inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200" %>
+            <%= form.submit "Save Policies", 
+                class: "inline-flex items-center justify-center px-8 py-3 border border-transparent rounded-xl text-sm font-bold text-white bg-gradient-to-r from-primary to-secondary hover:from-primary hover:to-primary shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 cursor-pointer" %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
 </div> 
