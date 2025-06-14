@@ -128,7 +128,7 @@ RSpec.describe Public::BookingController, type: :controller do
     end
 
     context 'when staff user creates booking for client' do
-      let(:staff_user) { create(:user, :staff) }
+      let(:staff_user) { create(:user, :staff, business: business) }
       let(:valid_staff_booking_params) do
         {
           booking: {
@@ -178,7 +178,7 @@ RSpec.describe Public::BookingController, type: :controller do
     end
 
     context 'when manager user creates booking for client' do
-      let(:manager_user) { create(:user, :manager) }
+      let(:manager_user) { create(:user, :manager, business: business) }
       let(:valid_manager_booking_params) do
         {
           booking: {
@@ -228,7 +228,7 @@ RSpec.describe Public::BookingController, type: :controller do
     end
 
     context 'when staff user does not select a customer' do
-      let(:staff_user) { create(:user, :staff) }
+      let(:staff_user) { create(:user, :staff, business: business) }
       let(:invalid_booking_params) do
         {
           booking: {

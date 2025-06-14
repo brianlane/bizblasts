@@ -16,6 +16,20 @@ Notes: <%= @booking.notes %>
 Price: <%= number_to_currency(@booking.amount) %>
 <% end %>
 
+<% policy = @business.booking_policy %>
+<% if policy&.has_customer_visible_policies? %>
+BOOKING POLICY:
+<% policy.policy_summary_for_customers.each do |policy_text| %>
+• <%= policy_text %>
+<% end %>
+<% if policy.cancellation_example_for_customers %>
+
+Example: <%= policy.cancellation_example_for_customers %>
+<% end %>
+
+We understand that plans can change. If you have questions about our policy, please don't hesitate to contact us.
+
+<% end %>
 If you need to make any changes to your booking, please contact us or visit our website.
 
 <% if @business.phone.present? %>

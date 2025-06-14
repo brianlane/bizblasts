@@ -1962,3 +1962,73 @@ input[type="checkbox"]:focus {
 .table-container::-webkit-scrollbar-thumb:hover {
   background: #A0AEC0;
 } 
+
+/* Booking Policy Display Styles */
+.booking-policy-card {
+  transition: all 0.3s ease;
+}
+
+.booking-policy-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.policy-icon-container {
+  transition: transform 0.2s ease;
+}
+
+.booking-policy-card:hover .policy-icon-container {
+  transform: scale(1.05);
+}
+
+/* Mobile optimizations for policy displays */
+@media (max-width: 640px) {
+  .booking-policy-card {
+    padding: 1rem;
+  }
+  
+  .booking-policy-card h3 {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  
+  .booking-policy-card p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  .policy-icon-container {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .policy-icon-container span {
+    font-size: 1rem;
+  }
+}
+
+/* Policy summary styles */
+.policy-summary-compact {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.policy-summary-compact:hover {
+  background-color: rgba(219, 234, 254, 0.8);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .booking-policy-card,
+  .policy-icon-container {
+    transition: none;
+  }
+  
+  .booking-policy-card:hover {
+    transform: none;
+  }
+  
+  .booking-policy-card:hover .policy-icon-container {
+    transform: none;
+  }
+}
