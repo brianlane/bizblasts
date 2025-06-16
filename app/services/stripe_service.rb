@@ -8,6 +8,11 @@ class StripeService
     stripe_credentials = Rails.application.credentials.stripe || {}
     Stripe.api_key = stripe_credentials[:secret_key] || ENV['STRIPE_SECRET_KEY']
   end
+  
+  def self.stripe_configured?
+    stripe_credentials = Rails.application.credentials.stripe || {}
+    (stripe_credentials[:secret_key] || ENV['STRIPE_SECRET_KEY']).present?
+  end
 
   # Create a Stripe Connect Express account for a business
   def self.create_connect_account(business)
@@ -66,7 +71,7 @@ class StripeService
   def self.create_payment_checkout_session_for_booking(invoice:, booking_data:, success_url:, cancel_url:)
     configure_stripe_api_key
     business = invoice.business
-    customer = ensure_stripe_customer_for_tenant(invoice.tenant_customer)
+    tenant_customer = invoice.tenant_customer
 
     total_amount = invoice.total_amount.to_f
     
@@ -78,8 +83,8 @@ class StripeService
     amount_cents = (total_amount * 100).to_i
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
-    # Create the checkout session with booking data in metadata
-    session = Stripe::Checkout::Session.create(
+    # Prepare session parameters
+    session_params = {
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
@@ -95,23 +100,35 @@ class StripeService
       mode: 'payment',
       success_url: success_url,
       cancel_url: cancel_url,
-      customer: customer.id,
+      customer_creation: 'always', # Let Stripe create the customer during checkout
+      customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
         application_fee_amount: platform_fee_cents,
         transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
-          tenant_customer_id: invoice.tenant_customer.id,
+          tenant_customer_id: tenant_customer.id,
           booking_type: 'service_booking'
         }
       },
       metadata: { 
         business_id: business.id, 
-        tenant_customer_id: invoice.tenant_customer.id,
+        tenant_customer_id: tenant_customer.id,
         booking_type: 'service_booking',
         booking_data: booking_data.to_json
       }
-    )
+    }
+    
+    # Ensure we have a valid Stripe customer for the tenant
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    if stripe_customer
+      session_params[:customer] = stripe_customer.id
+      session_params.delete(:customer_creation) # Don't create new customer if using existing
+      session_params.delete(:customer_email) # Don't pre-fill if using existing customer
+    end
+
+    # Create the checkout session with booking data in metadata
+    session = Stripe::Checkout::Session.create(session_params)
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -122,7 +139,7 @@ class StripeService
   def self.create_payment_checkout_session(invoice:, success_url:, cancel_url:)
     configure_stripe_api_key
     business = invoice.business
-    customer = ensure_stripe_customer_for_tenant(invoice.tenant_customer)
+    tenant_customer = invoice.tenant_customer
 
     total_amount = invoice.total_amount.to_f
     
@@ -134,8 +151,8 @@ class StripeService
     amount_cents = (total_amount * 100).to_i
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
-    # Create the checkout session
-    session = Stripe::Checkout::Session.create(
+    # Prepare session parameters
+    session_params = {
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
@@ -151,22 +168,34 @@ class StripeService
       mode: 'payment',
       success_url: success_url,
       cancel_url: cancel_url,
-      customer: customer.id,
+      customer_creation: 'always', # Let Stripe create the customer during checkout
+      customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
         application_fee_amount: platform_fee_cents,
         transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           invoice_id: invoice.id,
-          tenant_customer_id: invoice.tenant_customer.id
+          tenant_customer_id: tenant_customer.id
         }
       },
       metadata: { 
         business_id: business.id, 
         invoice_id: invoice.id,
-        tenant_customer_id: invoice.tenant_customer.id
+        tenant_customer_id: tenant_customer.id
       }
-    )
+    }
+    
+    # Ensure we have a valid Stripe customer for the tenant
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    if stripe_customer
+      session_params[:customer] = stripe_customer.id
+      session_params.delete(:customer_creation) # Don't create new customer if using existing
+      session_params.delete(:customer_email) # Don't pre-fill if using existing customer
+    end
+
+    # Create the checkout session
+    session = Stripe::Checkout::Session.create(session_params)
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -177,7 +206,7 @@ class StripeService
   def self.create_tip_checkout_session(tip:, success_url:, cancel_url:)
     configure_stripe_api_key
     business = tip.business
-    customer = ensure_stripe_customer_for_tenant(tip.tenant_customer)
+    tenant_customer = tip.tenant_customer
 
     tip_amount = tip.amount.to_f
     
@@ -190,8 +219,8 @@ class StripeService
     # Calculate platform fee for tips based on business tier
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
-    # Create the checkout session for tip
-    session = Stripe::Checkout::Session.create(
+    # Prepare session parameters
+    session_params = {
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
@@ -207,24 +236,36 @@ class StripeService
       mode: 'payment',
       success_url: success_url,
       cancel_url: cancel_url,
-      customer: customer.id,
+      customer_creation: 'always', # Let Stripe create the customer during checkout
+      customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
         application_fee_amount: platform_fee_cents,
         transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           tip_id: tip.id,
-          tenant_customer_id: tip.tenant_customer.id,
+          tenant_customer_id: tenant_customer.id,
           payment_type: 'tip'
         }
       },
       metadata: { 
         business_id: business.id, 
         tip_id: tip.id,
-        tenant_customer_id: tip.tenant_customer.id,
+        tenant_customer_id: tenant_customer.id,
         payment_type: 'tip'
       }
-    )
+    }
+    
+    # Ensure we have a valid Stripe customer for the tenant
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    if stripe_customer
+      session_params[:customer] = stripe_customer.id
+      session_params.delete(:customer_creation) # Don't create new customer if using existing
+      session_params.delete(:customer_email) # Don't pre-fill if using existing customer
+    end
+
+    # Create the checkout session for tip
+    session = Stripe::Checkout::Session.create(session_params)
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -235,8 +276,7 @@ class StripeService
   def self.create_payment_intent(invoice:, order: nil, payment_method_id: nil)
     configure_stripe_api_key
     business = invoice.business
-    # Ensure Stripe customer for tenant
-    customer = ensure_stripe_customer_for_tenant(invoice.tenant_customer)
+    tenant_customer = invoice.tenant_customer
 
     total_amount = invoice.total_amount.to_f
     
@@ -249,28 +289,38 @@ class StripeService
     stripe_fee_cents = calculate_stripe_fee_cents(amount_cents)
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
-    intent = Stripe::PaymentIntent.create(
+    # Prepare payment intent parameters
+    intent_params = {
       amount: amount_cents,
       currency: 'usd',
-      customer: customer.id,
       payment_method: payment_method_id,
       confirm: payment_method_id.present?,
       metadata: { business_id: business.id, invoice_id: invoice.id, order_id: order&.id },
       application_fee_amount: platform_fee_cents,
       transfer_data: { destination: business.stripe_account_id }
-    )
+    }
+    
+    # Ensure we have a valid Stripe customer for the tenant
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    customer_id = nil
+    if stripe_customer
+      intent_params[:customer] = stripe_customer.id
+      customer_id = stripe_customer.id
+    end
+
+    intent = Stripe::PaymentIntent.create(intent_params)
 
     payment = Payment.create!(
       business: business,
       invoice: invoice,
       order: order,
-      tenant_customer: invoice.tenant_customer,
+      tenant_customer: tenant_customer,
       amount: total_amount,
       stripe_fee_amount: stripe_fee_cents / 100.0,
       platform_fee_amount: platform_fee_cents / 100.0,
       business_amount: (total_amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
       stripe_payment_intent_id: intent.id,
-      stripe_customer_id: customer.id,
+      stripe_customer_id: customer_id, # Will be nil if no customer
       payment_method: payment_method_id.present? ? :credit_card : :other, # Set based on whether payment method is provided
       status: :pending
     )
@@ -295,6 +345,11 @@ class StripeService
       handle_checkout_session_completed(event['data']['object'])
     when 'customer.subscription.deleted', 'customer.subscription.updated', 'customer.subscription.created'
       handle_subscription_event(event['data']['object'])
+    when 'invoice.payment_succeeded'
+      handle_customer_subscription_payment_succeeded(event['data']['object'])
+    when 'invoice.payment_failed'
+      handle_customer_subscription_payment_failed(event['data']['object'])
+    
     else
       Rails.logger.info "Unhandled Stripe event: #{event['type']}"
     end
@@ -377,6 +432,124 @@ class StripeService
     end
   end
 
+  # Create a Stripe Checkout session for customer subscription signup
+  def self.create_subscription_checkout_session(subscription_data:, success_url:, cancel_url:)
+    # In development mode without Stripe keys, return a mock response immediately
+    if Rails.env.development? && !stripe_configured?
+      Rails.logger.info "[STRIPE] Development mode - mocking subscription checkout session"
+      return { 
+        success: false, 
+        error: "Stripe not configured for development. In production, this would redirect to Stripe Checkout." 
+      }
+    end
+    
+    configure_stripe_api_key
+    
+    business = Business.find(subscription_data[:business_id])
+    tenant_customer = TenantCustomer.find(subscription_data[:tenant_customer_id])
+    
+    # In development mode, if business doesn't have Stripe Connect account, return mock response
+    if Rails.env.development? && !business.stripe_account_id.present?
+      Rails.logger.info "[STRIPE] Development mode - business has no Stripe Connect account, mocking subscription checkout session"
+      return { 
+        success: false, 
+        error: "Stripe Connect not configured for this business in development. In production, this would redirect to Stripe Checkout." 
+      }
+    end
+    
+    # Ensure business has Stripe Connect account
+    unless business.stripe_account_id.present?
+      raise ArgumentError, "Business must have a connected Stripe account to process subscriptions"
+    end
+    
+    # Calculate subscription amount
+    subscription_price = subscription_data[:subscription_price].to_f
+    amount_cents = (subscription_price * 100).to_i
+    
+    # Minimum amount check
+    if amount_cents < 50 # $0.50 minimum
+      raise ArgumentError, "Subscription amount must be at least $0.50"
+    end
+    
+    begin
+      # Prepare customer data for Stripe Checkout (don't create customer yet)
+      customer_data = {
+        email: tenant_customer.email,
+        name: tenant_customer.name
+      }
+      
+      # Add phone if available
+      customer_data[:phone] = tenant_customer.phone if tenant_customer.phone.present?
+      
+      session_params = {
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: subscription_data[:item_name],
+              description: "#{subscription_data[:frequency].humanize} subscription"
+            },
+            unit_amount: amount_cents,
+            recurring: {
+              interval: 'month',
+              interval_count: 1
+            }
+          },
+          quantity: subscription_data[:quantity] || 1
+        }],
+        success_url: success_url,
+        cancel_url: cancel_url,
+        customer_creation: 'always', # Let Stripe create the customer during checkout
+        customer_email: tenant_customer.email, # Pre-fill email
+        metadata: {
+          business_id: business.id.to_s,
+          tenant_customer_id: tenant_customer.id.to_s,
+          subscription_type: subscription_data[:subscription_type],
+          item_id: subscription_data[:item_id].to_s,
+          subscription_data: subscription_data.to_json
+        }
+      }
+      
+      # Only set existing customer if we already have a Stripe customer ID
+      if tenant_customer.stripe_customer_id.present?
+        begin
+          # Verify the customer exists in Stripe before using it
+          Stripe::Customer.retrieve(tenant_customer.stripe_customer_id, { stripe_account: business.stripe_account_id })
+          session_params[:customer] = tenant_customer.stripe_customer_id
+          session_params.delete(:customer_creation) # Don't create new customer if using existing
+          session_params.delete(:customer_email) # Don't pre-fill if using existing customer
+        rescue Stripe::InvalidRequestError => e
+          # Customer doesn't exist in Stripe, clear the ID and let Stripe create a new one
+          Rails.logger.warn "Stripe customer #{tenant_customer.stripe_customer_id} not found, letting Stripe create new customer for tenant #{tenant_customer.id}"
+          tenant_customer.update!(stripe_customer_id: nil)
+        end
+      end
+      
+      session = Stripe::Checkout::Session.create(session_params, {
+        stripe_account: business.stripe_account_id
+      })
+      
+      Rails.logger.info "Created Stripe subscription session #{session.id} for customer #{tenant_customer.id}"
+      
+      { success: true, session: session }
+    rescue Stripe::StripeError => e
+      Rails.logger.error "Stripe error creating subscription session: #{e.message}"
+      
+      # In development mode, return a friendly mock response instead of raising the error
+      if Rails.env.development?
+        Rails.logger.info "[STRIPE] Development mode - Stripe API error caught, returning mock response"
+        return { 
+          success: false, 
+          error: "Stripe Connect account not properly configured in development. In production, this would redirect to Stripe Checkout." 
+        }
+      end
+      
+      raise e
+    end
+  end
+
   private
 
   # Calculate Stripe's fee in cents (2.9% + 30¢)
@@ -395,15 +568,50 @@ class StripeService
 
   # Retrieve or create Stripe Customer for tenant
   def self.ensure_stripe_customer_for_tenant(tenant)
-    return Stripe::Customer.retrieve(tenant.stripe_customer_id) if tenant.stripe_customer_id.present?
-    customer = Stripe::Customer.create(email: tenant.email, name: tenant.name, metadata: { tenant_customer_id: tenant.id })
+    # In development or test mode without Stripe keys, return a mock customer
+    if (Rails.env.development? || Rails.env.test?) && !stripe_configured?
+      Rails.logger.info "[STRIPE] #{Rails.env} mode - mocking customer creation for tenant #{tenant.id}"
+      return OpenStruct.new(id: "cus_#{Rails.env}_#{tenant.id}", email: tenant.email)
+    end
+    
+    if tenant.stripe_customer_id.present?
+      begin
+        return Stripe::Customer.retrieve(tenant.stripe_customer_id)
+      rescue Stripe::InvalidRequestError => e
+        # Customer doesn't exist in Stripe, clear the ID and create a new one
+        Rails.logger.warn "Stripe customer #{tenant.stripe_customer_id} not found, creating new customer for tenant #{tenant.id}"
+        tenant.update!(stripe_customer_id: nil)
+      end
+    end
+    
+    # Create new Stripe customer
+    customer = Stripe::Customer.create(
+      email: tenant.email, 
+      name: tenant.name, 
+      metadata: { tenant_customer_id: tenant.id }
+    )
     tenant.update!(stripe_customer_id: customer.id)
     customer
   end
 
   # Retrieve or create Stripe Customer for business (for subscription billing)
   def self.ensure_stripe_customer_for_business(business)
-    return Stripe::Customer.retrieve(business.stripe_customer_id) if business.stripe_customer_id.present?
+    # In development or test mode without Stripe keys, return a mock customer
+    if (Rails.env.development? || Rails.env.test?) && !stripe_configured?
+      Rails.logger.info "[STRIPE] #{Rails.env} mode - mocking customer creation for business #{business.id}"
+      return OpenStruct.new(id: "cus_#{Rails.env}_business_#{business.id}", email: business.email)
+    end
+    
+    if business.stripe_customer_id.present?
+      begin
+        return Stripe::Customer.retrieve(business.stripe_customer_id)
+      rescue Stripe::InvalidRequestError => e
+        # Customer doesn't exist in Stripe, clear the ID and create a new one
+        Rails.logger.warn "Stripe customer #{business.stripe_customer_id} not found, creating new customer for business #{business.id}"
+        business.update!(stripe_customer_id: nil)
+      end
+    end
+    
     customer = Stripe::Customer.create(email: business.email, name: business.name, metadata: { business_id: business.id })
     business.update!(stripe_customer_id: customer.id)
     customer
@@ -414,6 +622,12 @@ class StripeService
     # Check if this is a business registration
     if session.dig('metadata', 'registration_type') == 'business'
       handle_business_registration_completion(session)
+      return
+    end
+
+    # Check if this is a subscription signup
+    if session['mode'] == 'subscription' && session.dig('metadata', 'subscription_type').present?
+      handle_subscription_signup_completion(session)
       return
     end
 
@@ -439,6 +653,12 @@ class StripeService
 
     business = invoice.business
     tenant_customer = invoice.tenant_customer
+    
+    # Save the Stripe customer ID if we don't have it yet
+    if session['customer'].present? && tenant_customer.stripe_customer_id.blank?
+      tenant_customer.update!(stripe_customer_id: session['customer'])
+      Rails.logger.info "[PAYMENT] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
+    end
     
     # Check if payment record already exists
     payment = Payment.find_by(stripe_payment_intent_id: session['payment_intent'])
@@ -547,13 +767,146 @@ class StripeService
   end
 
   def self.handle_subscription_event(sub)
-    if sub['status'] == 'canceled'
-      handle_subscription_suspension(sub)
+    # Check if this is a business platform subscription (has business metadata)
+    if sub.dig('metadata', 'business_id') || Business.exists?(stripe_customer_id: sub['customer'])
+      # Handle business platform subscription
+      if sub['status'] == 'canceled'
+        handle_subscription_suspension(sub)
+      else
+        record = Subscription.find_by(stripe_subscription_id: sub['id'])
+        return unless record
+        record.update!(status: sub['status'], current_period_end: Time.at(sub['current_period_end']).to_datetime)
+      end
     else
-      record = Subscription.find_by(stripe_subscription_id: sub['id'])
-      return unless record
-      record.update!(status: sub['status'], current_period_end: Time.at(sub['current_period_end']).to_datetime)
+      # Handle customer subscription
+      handle_customer_subscription_event(sub)
     end
+  end
+
+  # Handle customer subscription events (product/service subscriptions)
+  def self.handle_customer_subscription_event(stripe_subscription)
+    Rails.logger.info "[CUSTOMER_SUB] Processing customer subscription event: #{stripe_subscription['id']} - #{stripe_subscription['status']}"
+    
+    # Find subscription across all tenants since webhooks don't have tenant context
+    customer_subscription = CustomerSubscription.unscoped.find_by(stripe_subscription_id: stripe_subscription['id'])
+    return unless customer_subscription
+    
+    # Set tenant context for the subscription's business
+    ActsAsTenant.with_tenant(customer_subscription.business) do
+      case stripe_subscription['status']
+      when 'active'
+        customer_subscription.update!(status: :active)
+        Rails.logger.info "[CUSTOMER_SUB] Activated subscription #{customer_subscription.id}"
+      when 'canceled'
+        customer_subscription.update!(status: :cancelled)
+        Rails.logger.info "[CUSTOMER_SUB] Cancelled subscription #{customer_subscription.id}"
+      when 'incomplete_expired'
+        customer_subscription.update!(status: :failed)
+        Rails.logger.info "[CUSTOMER_SUB] Failed subscription #{customer_subscription.id}"
+      when 'past_due'
+        customer_subscription.update!(status: :failed)
+        Rails.logger.info "[CUSTOMER_SUB] Failed subscription #{customer_subscription.id}"
+      else
+        Rails.logger.warn "[CUSTOMER_SUB] Unknown Stripe status: #{stripe_subscription['status']} for subscription #{customer_subscription.id}"
+      end
+    end
+  rescue => e
+    Rails.logger.error "[CUSTOMER_SUB] Error handling subscription event for #{stripe_subscription['id']}: #{e.message}"
+  end
+
+  # Handle successful subscription payment
+  def self.handle_customer_subscription_payment_succeeded(stripe_invoice)
+    Rails.logger.info "[CUSTOMER_SUB] Processing successful payment for invoice: #{stripe_invoice['id']}"
+    
+    # Find the subscription from the invoice
+    stripe_subscription_id = stripe_invoice['subscription']
+    return unless stripe_subscription_id
+    
+    # Find subscription across all tenants since webhooks don't have tenant context
+    customer_subscription = CustomerSubscription.unscoped.find_by(stripe_subscription_id: stripe_subscription_id)
+    return unless customer_subscription
+    
+    # Set tenant context for the subscription's business
+    ActsAsTenant.with_tenant(customer_subscription.business) do
+      # Create subscription transaction record
+      transaction = customer_subscription.subscription_transactions.create!(
+        business: customer_subscription.business,
+        tenant_customer: customer_subscription.tenant_customer,
+        amount: stripe_invoice['amount_paid'] / 100.0,
+        stripe_invoice_id: stripe_invoice['id'],
+        processed_date: Time.current,
+        status: :completed,
+        transaction_type: :billing
+      )
+      
+      # Update subscription status and next billing date
+      customer_subscription.update!(
+        status: :active,
+        next_billing_date: Time.at(stripe_invoice['period_end']).to_date
+      )
+      
+      # Process the subscription (create order/booking)
+      process_subscription_fulfillment(customer_subscription, transaction)
+      
+      Rails.logger.info "[CUSTOMER_SUB] Successfully processed payment for subscription #{customer_subscription.id}"
+    end
+  rescue => e
+    Rails.logger.error "[CUSTOMER_SUB] Error processing successful payment for invoice #{stripe_invoice['id']}: #{e.message}"
+  end
+
+  # Handle failed subscription payment
+  def self.handle_customer_subscription_payment_failed(stripe_invoice)
+    Rails.logger.info "[CUSTOMER_SUB] Processing failed payment for invoice: #{stripe_invoice['id']}"
+    
+    stripe_subscription_id = stripe_invoice['subscription']
+    return unless stripe_subscription_id
+    
+    # Find subscription across all tenants since webhooks don't have tenant context
+    customer_subscription = CustomerSubscription.unscoped.find_by(stripe_subscription_id: stripe_subscription_id)
+    return unless customer_subscription
+    
+    # Set tenant context for the subscription's business
+    ActsAsTenant.with_tenant(customer_subscription.business) do
+      # Create failed transaction record
+      customer_subscription.subscription_transactions.create!(
+        business: customer_subscription.business,
+        tenant_customer: customer_subscription.tenant_customer,
+        amount: stripe_invoice['amount_due'] / 100.0,
+        stripe_invoice_id: stripe_invoice['id'],
+        processed_date: Time.current,
+        status: :failed,
+        transaction_type: :billing,
+        failure_reason: 'Payment failed'
+      )
+      
+      # Update subscription status
+      customer_subscription.update!(status: :payment_failed)
+      
+      # Send payment failure notification
+      begin
+        SubscriptionMailer.payment_failed(customer_subscription).deliver_later
+      rescue => e
+        Rails.logger.error "[EMAIL] Failed to send payment failure email for subscription #{customer_subscription.id}: #{e.message}"
+      end
+      
+      Rails.logger.info "[CUSTOMER_SUB] Processed failed payment for subscription #{customer_subscription.id}"
+    end
+  rescue => e
+    Rails.logger.error "[CUSTOMER_SUB] Error processing failed payment for invoice #{stripe_invoice['id']}: #{e.message}"
+  end
+
+  # Process subscription fulfillment (create orders/bookings)
+  def self.process_subscription_fulfillment(customer_subscription, transaction)
+    if customer_subscription.product_subscription?
+      # Create order for product subscription
+      SubscriptionOrderService.new(customer_subscription).process_subscription!
+    elsif customer_subscription.service_subscription?
+      # Create booking for service subscription
+      SubscriptionBookingService.new(customer_subscription).process_subscription!
+    end
+  rescue => e
+    Rails.logger.error "[CUSTOMER_SUB] Error processing fulfillment for subscription #{customer_subscription.id}: #{e.message}"
+    # Don't re-raise - we don't want to fail the webhook for fulfillment issues
   end
 
   # Handle tip payment completion
@@ -582,6 +935,12 @@ class StripeService
       unless tip && tenant_customer
         Rails.logger.error "[TIP] Could not find tip #{tip_id} or customer #{tenant_customer_id} for session #{session['id']}"
         return
+      end
+      
+      # Save the Stripe customer ID if we don't have it yet
+      if session['customer'].present? && tenant_customer.stripe_customer_id.blank?
+        tenant_customer.update!(stripe_customer_id: session['customer'])
+        Rails.logger.info "[TIP] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
       end
       
       # Calculate fees for the tip payment
@@ -628,6 +987,12 @@ class StripeService
       Rails.logger.info "[BOOKING] Creating booking for customer #{tenant_customer.email} at business #{business.name}"
       
       ActiveRecord::Base.transaction do
+        # Save the Stripe customer ID if we don't have it yet
+        if session['customer'].present? && tenant_customer.stripe_customer_id.blank?
+          tenant_customer.update!(stripe_customer_id: session['customer'])
+          Rails.logger.info "[BOOKING] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
+        end
+        
         # Create the booking
         booking = business.bookings.create!(
           service_id: booking_data['service_id'],
@@ -1046,6 +1411,90 @@ class StripeService
       fee_cents / 100.0
     else # Assume it's already in cents
       calculate_platform_fee_cents(amount, ActsAsTenant.current_tenant) / 100.0
+    end
+  end
+
+  # Handle subscription signup completion after successful Stripe checkout
+  def self.handle_subscription_signup_completion(session)
+    Rails.logger.info "[SUBSCRIPTION] Processing subscription signup completion for session #{session['id']}"
+    
+    begin
+      # Extract subscription data from session metadata
+      subscription_data = JSON.parse(session.dig('metadata', 'subscription_data'))
+      business_id = session.dig('metadata', 'business_id')
+      tenant_customer_id = session.dig('metadata', 'tenant_customer_id')
+      
+      business = Business.find_by(id: business_id)
+      tenant_customer = TenantCustomer.find_by(id: tenant_customer_id)
+      
+      unless business && tenant_customer
+        Rails.logger.error "[SUBSCRIPTION] Could not find business (#{business_id}) or customer (#{tenant_customer_id})"
+        return
+      end
+      
+      Rails.logger.info "[SUBSCRIPTION] Creating subscription for customer #{tenant_customer.email} at business #{business.name}"
+      
+      ActiveRecord::Base.transaction do
+        # Save the Stripe customer ID if we don't have it yet
+        if session['customer'].present? && tenant_customer.stripe_customer_id.blank?
+          tenant_customer.update!(stripe_customer_id: session['customer'])
+          Rails.logger.info "[SUBSCRIPTION] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
+        end
+        
+        # Create the customer subscription record
+        customer_subscription = business.customer_subscriptions.create!(
+          tenant_customer: tenant_customer,
+          subscription_type: subscription_data['subscription_type'],
+          product_id: subscription_data['subscription_type'] == 'product' ? subscription_data['item_id'] : nil,
+          service_id: subscription_data['subscription_type'] == 'service' ? subscription_data['item_id'] : nil,
+          quantity: subscription_data['quantity'] || 1,
+          frequency: subscription_data['frequency'] || 'monthly',
+          subscription_price: subscription_data['subscription_price'],
+          status: :active,
+          stripe_subscription_id: session['subscription'],
+          customer_preferences: subscription_data['customer_preferences'] || {},
+          start_date: Date.current,
+          next_billing_date: Date.current + 1.month
+        )
+        
+        # Create initial transaction record
+        customer_subscription.subscription_transactions.create!(
+          amount: subscription_data['subscription_price'],
+          stripe_invoice_id: nil, # Will be updated by webhook
+          processed_date: Time.current,
+          status: :completed,
+          transaction_type: :signup
+        )
+        
+        Rails.logger.info "[SUBSCRIPTION] Successfully created subscription ##{customer_subscription.id}"
+        
+        # Send confirmation emails
+        begin
+          SubscriptionMailer.signup_confirmation(customer_subscription).deliver_later
+          Rails.logger.info "[EMAIL] Sent subscription confirmation email for subscription ##{customer_subscription.id}"
+        rescue => e
+          Rails.logger.error "[EMAIL] Failed to send subscription confirmation email for subscription ##{customer_subscription.id}: #{e.message}"
+          # Don't fail the whole transaction for email issues
+        end
+        
+        # Send business notification
+        begin
+          BusinessMailer.new_subscription_notification(customer_subscription).deliver_later
+          Rails.logger.info "[EMAIL] Scheduled business subscription notification for subscription ##{customer_subscription.id}"
+        rescue => e
+          Rails.logger.error "[EMAIL] Failed to schedule business subscription notification for subscription ##{customer_subscription.id}: #{e.message}"
+          # Don't fail the whole transaction for email issues
+        end
+      end
+      
+    rescue JSON::ParserError => e
+      Rails.logger.error "[SUBSCRIPTION] Failed to parse subscription data from session #{session['id']}: #{e.message}"
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "[SUBSCRIPTION] Database validation failed for session #{session['id']}: #{e.message}"
+    rescue => e
+      Rails.logger.error "[SUBSCRIPTION] Unexpected error processing subscription for session #{session['id']}: #{e.message}"
+      # Re-raise to ensure webhook fails and can be retried
+      raise e
     end
   end
 end

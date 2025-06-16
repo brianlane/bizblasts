@@ -1,0 +1,23 @@
+<h1>Subscription Payment Failed</h1>
+
+<p>Hello,</p>
+
+<p>A subscription payment has failed for customer <strong><%= @customer.name %></strong>.</p>
+
+<h2>Failed Payment Details:</h2>
+<ul>
+  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Item:</strong> <%= @item.name %></li>
+  <li><strong>Amount:</strong> $<%= @customer_subscription.subscription_price %></li>
+  <li><strong>Frequency:</strong> <%= @customer_subscription.frequency %></li>
+  <li><strong>Next Billing Date:</strong> <%= @customer_subscription.next_billing_date.strftime('%B %d, %Y') %></li>
+</ul>
+
+<p>The system will automatically retry the payment. You may want to reach out to the customer to ensure their payment method is up to date.</p>
+
+<p>
+  <a href="<%= business_manager_customer_subscriptions_url(subdomain: @business.subdomain) %>">Manage Subscriptions</a>
+</p>
+
+<p>Best regards,<br>
+BizBlasts Team</p> 

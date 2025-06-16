@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -222,6 +222,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.decimal "points_per_product", precision: 8, scale: 2, default: "0.0", null: false
     t.integer "platform_loyalty_points", default: 0, null: false
     t.string "platform_referral_code"
+    t.boolean "subscription_discount_enabled", default: false, null: false
+    t.string "subscription_discount_type", default: "percentage"
+    t.decimal "subscription_discount_value", precision: 10, scale: 2, default: "0.0"
+    t.text "subscription_discount_message"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -235,6 +239,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.index ["status"], name: "index_businesses_on_status"
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
+    t.index ["subscription_discount_enabled"], name: "index_businesses_on_subscription_discount_enabled"
+    t.check_constraint "subscription_discount_value >= 0::numeric", name: "businesses_subscription_discount_value_positive"
   end
 
   create_table "campaign_recipients", force: :cascade do |t|
@@ -258,6 +264,54 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.index ["business_id"], name: "index_client_businesses_on_business_id"
     t.index ["user_id", "business_id"], name: "index_client_businesses_on_user_id_and_business_id", unique: true
     t.index ["user_id"], name: "index_client_businesses_on_user_id"
+  end
+
+  create_table "customer_subscriptions", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "product_id"
+    t.bigint "service_id"
+    t.bigint "product_variant_id"
+    t.string "subscription_type", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "quantity", default: 1, null: false
+    t.date "next_billing_date", null: false
+    t.integer "billing_day_of_month", null: false
+    t.date "last_processed_date"
+    t.integer "service_rebooking_preference"
+    t.time "preferred_time_slot"
+    t.bigint "preferred_staff_member_id"
+    t.integer "out_of_stock_action", default: 0
+    t.decimal "subscription_price", precision: 10, scale: 2, null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "cancelled_at"
+    t.text "cancellation_reason"
+    t.string "stripe_subscription_id"
+    t.string "customer_out_of_stock_preference"
+    t.string "customer_rebooking_preference"
+    t.boolean "allow_customer_preferences", default: true, null: false
+    t.string "frequency", default: "monthly", null: false
+    t.string "customer_rebooking_option", default: "business_default"
+    t.json "customer_preferences"
+    t.text "failure_reason"
+    t.index ["business_id", "status"], name: "index_customer_subscriptions_on_business_id_and_status"
+    t.index ["business_id"], name: "index_customer_subscriptions_on_business_id"
+    t.index ["customer_out_of_stock_preference"], name: "idx_on_customer_out_of_stock_preference_0a07f79334"
+    t.index ["customer_rebooking_option"], name: "index_customer_subscriptions_on_customer_rebooking_option"
+    t.index ["customer_rebooking_preference"], name: "index_customer_subscriptions_on_customer_rebooking_preference"
+    t.index ["frequency"], name: "index_customer_subscriptions_on_frequency"
+    t.index ["next_billing_date", "status"], name: "index_customer_subscriptions_on_next_billing_date_and_status"
+    t.index ["preferred_staff_member_id"], name: "index_customer_subscriptions_on_preferred_staff_member_id"
+    t.index ["product_id"], name: "index_customer_subscriptions_on_product_id"
+    t.index ["product_variant_id"], name: "index_customer_subscriptions_on_product_variant_id"
+    t.index ["service_id"], name: "index_customer_subscriptions_on_service_id"
+    t.index ["stripe_subscription_id"], name: "index_customer_subscriptions_on_stripe_subscription_id", unique: true
+    t.index ["subscription_type", "status"], name: "index_customer_subscriptions_on_subscription_type_and_status"
+    t.index ["tenant_customer_id", "status"], name: "index_customer_subscriptions_on_tenant_customer_id_and_status"
+    t.index ["tenant_customer_id"], name: "index_customer_subscriptions_on_tenant_customer_id"
+    t.check_constraint "product_id IS NOT NULL AND service_id IS NULL OR product_id IS NULL AND service_id IS NOT NULL", name: "customer_subscriptions_product_or_service_check"
   end
 
   create_table "discount_codes", force: :cascade do |t|
@@ -692,7 +746,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.integer "product_type"
     t.integer "stock_quantity", default: 0, null: false
     t.boolean "tips_enabled", default: false, null: false
+    t.boolean "subscription_enabled", default: false, null: false
+    t.decimal "subscription_discount_percentage", precision: 5, scale: 2
+    t.string "subscription_billing_cycle", default: "monthly"
+    t.string "subscription_out_of_stock_action", default: "skip_billing_cycle"
+    t.boolean "allow_customer_preferences", default: true, null: false
     t.index ["active"], name: "index_products_on_active"
+    t.index ["allow_customer_preferences"], name: "index_products_on_allow_customer_preferences"
     t.index ["business_id"], name: "index_products_on_business_id"
     t.index ["featured"], name: "index_products_on_featured"
     t.index ["tips_enabled"], name: "index_products_on_tips_enabled"
@@ -824,6 +884,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.integer "max_bookings"
     t.integer "spots"
     t.boolean "tips_enabled", default: false, null: false
+    t.boolean "subscription_enabled", default: false, null: false
+    t.decimal "subscription_discount_percentage", precision: 5, scale: 2
+    t.string "subscription_billing_cycle", default: "monthly"
+    t.string "subscription_rebooking_preference", default: "same_day_next_month"
+    t.boolean "allow_customer_preferences", default: true, null: false
+    t.index ["allow_customer_preferences"], name: "index_services_on_allow_customer_preferences"
     t.index ["business_id"], name: "index_services_on_business_id"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
     t.index ["tips_enabled"], name: "index_services_on_tips_enabled"
@@ -1042,6 +1108,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.index ["user_id"], name: "index_staff_members_on_user_id"
   end
 
+  create_table "stock_movements", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.integer "quantity"
+    t.string "movement_type"
+    t.string "reference_id"
+    t.string "reference_type"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_stock_movements_on_product_id"
+  end
+
   create_table "stock_reservations", force: :cascade do |t|
     t.bigint "product_variant_id"
     t.bigint "order_id"
@@ -1049,6 +1127,41 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.datetime "expires_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "subscription_transactions", force: :cascade do |t|
+    t.bigint "customer_subscription_id", null: false
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "order_id"
+    t.bigint "booking_id"
+    t.bigint "invoice_id"
+    t.bigint "payment_id"
+    t.string "transaction_type", null: false
+    t.integer "status", default: 0, null: false
+    t.date "processed_date", null: false
+    t.decimal "amount", precision: 10, scale: 2
+    t.text "failure_reason"
+    t.integer "retry_count", default: 0
+    t.datetime "next_retry_at"
+    t.integer "loyalty_points_awarded", default: 0
+    t.jsonb "metadata"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "stripe_invoice_id"
+    t.index ["booking_id"], name: "index_subscription_transactions_on_booking_id"
+    t.index ["business_id", "status"], name: "index_subscription_transactions_on_business_id_and_status"
+    t.index ["business_id"], name: "index_subscription_transactions_on_business_id"
+    t.index ["customer_subscription_id", "processed_date"], name: "idx_on_customer_subscription_id_processed_date_6becfeb405"
+    t.index ["customer_subscription_id"], name: "index_subscription_transactions_on_customer_subscription_id"
+    t.index ["invoice_id"], name: "index_subscription_transactions_on_invoice_id"
+    t.index ["next_retry_at"], name: "index_subscription_transactions_on_next_retry_at"
+    t.index ["order_id"], name: "index_subscription_transactions_on_order_id"
+    t.index ["payment_id"], name: "index_subscription_transactions_on_payment_id"
+    t.index ["processed_date"], name: "index_subscription_transactions_on_processed_date"
+    t.index ["tenant_customer_id"], name: "index_subscription_transactions_on_tenant_customer_id"
+    t.index ["transaction_type", "status"], name: "index_subscription_transactions_on_transaction_type_and_status"
   end
 
   create_table "subscriptions", force: :cascade do |t|
@@ -1088,6 +1201,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.datetime "updated_at", null: false
     t.string "stripe_customer_id"
     t.bigint "user_id"
+    t.boolean "email_marketing_opt_out"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
@@ -1166,6 +1280,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
     t.string "current_sign_in_ip"
     t.string "last_sign_in_ip"
     t.string "referral_source_code"
+    t.boolean "email_marketing_opt_out"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
     t.index ["email", "role"], name: "index_users_on_email_and_role"
@@ -1190,6 +1305,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
   add_foreign_key "campaign_recipients", "tenant_customers"
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
+  add_foreign_key "customer_subscriptions", "businesses", on_delete: :cascade
+  add_foreign_key "customer_subscriptions", "product_variants"
+  add_foreign_key "customer_subscriptions", "products"
+  add_foreign_key "customer_subscriptions", "services"
+  add_foreign_key "customer_subscriptions", "staff_members", column: "preferred_staff_member_id"
+  add_foreign_key "customer_subscriptions", "tenant_customers"
   add_foreign_key "discount_codes", "businesses", on_delete: :cascade
   add_foreign_key "discount_codes", "referrals", column: "generated_by_referral_id"
   add_foreign_key "discount_codes", "tenant_customers"
@@ -1275,8 +1396,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_13_164740) do
   add_foreign_key "staff_assignments", "users"
   add_foreign_key "staff_members", "businesses", on_delete: :cascade
   add_foreign_key "staff_members", "users", on_delete: :nullify
+  add_foreign_key "stock_movements", "products"
   add_foreign_key "stock_reservations", "orders"
   add_foreign_key "stock_reservations", "product_variants", on_delete: :cascade
+  add_foreign_key "subscription_transactions", "bookings"
+  add_foreign_key "subscription_transactions", "businesses", on_delete: :cascade
+  add_foreign_key "subscription_transactions", "customer_subscriptions"
+  add_foreign_key "subscription_transactions", "invoices"
+  add_foreign_key "subscription_transactions", "orders"
+  add_foreign_key "subscription_transactions", "payments"
+  add_foreign_key "subscription_transactions", "tenant_customers"
   add_foreign_key "subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "tax_rates", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade

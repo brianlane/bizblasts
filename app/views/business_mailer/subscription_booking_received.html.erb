@@ -1,0 +1,25 @@
+<h1>Subscription Booking Received</h1>
+
+<p>Hello,</p>
+
+<p>A new booking has been created for a subscription from <strong><%= @customer.name %></strong>!</p>
+
+<h2>Booking Details:</h2>
+<ul>
+  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Service:</strong> <%= @service.name %></li>
+  <% if @staff_member %>
+    <li><strong>Staff Member:</strong> <%= @staff_member.name %></li>
+  <% end %>
+  <li><strong>Booking Date:</strong> <%= @booking.start_time.strftime('%B %d, %Y at %I:%M %p') %></li>
+  <li><strong>Subscription Frequency:</strong> <%= @customer_subscription.frequency %></li>
+</ul>
+
+<p>The booking has been created and is ready for confirmation.</p>
+
+<p>
+  <a href="<%= business_manager_bookings_url(subdomain: @business.subdomain) %>">View Bookings</a>
+</p>
+
+<p>Best regards,<br>
+BizBlasts Team</p> 

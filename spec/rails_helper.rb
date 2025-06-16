@@ -155,6 +155,15 @@ RSpec.configure do |config|
       Capybara.reset_sessions!
     end
 
+    # CRITICAL: Clear ActiveRecord association caches to prevent test pollution
+    # This prevents cached associations from causing test isolation issues
+    ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:clear_cache!)
+    
+    # For Rails < 7.1, use the older method
+    if defined?(ActiveRecord::Base.clear_active_connections!)
+      ActiveRecord::Base.clear_active_connections!
+    end
+
     # Optional: Reset strategy back to default if necessary, though usually not needed
     # DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Removed explicit reset
   end

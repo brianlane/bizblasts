@@ -1,0 +1,213 @@
+<%# app/views/business_manager/customer_subscriptions/analytics.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold">Subscription Analytics</h1>
+        <p class="text-sm text-gray-600 mt-1">Performance insights and metrics for your subscriptions</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <%= link_to 'Back to Subscriptions', business_manager_customer_subscriptions_path,
+              class: "inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Overview -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue Trend</h3>
+        <div class="space-y-3">
+          <% @analytics_data[:monthly_revenue].each do |month, revenue| %>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600"><%= month %></span>
+              <span class="text-lg font-medium text-green-600"><%= number_to_currency(revenue) %></span>
+            </div>
+          <% end %>
+        </div>
+        <% if @analytics_data[:monthly_revenue].empty? %>
+          <p class="text-gray-500 text-center py-8">No revenue data available yet</p>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Subscription Growth</h3>
+        <div class="space-y-3">
+          <% @analytics_data[:subscription_growth].each do |month, count| %>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600"><%= month %></span>
+              <span class="text-lg font-medium text-blue-600"><%= pluralize(count, 'subscription') %></span>
+            </div>
+          <% end %>
+        </div>
+        <% if @analytics_data[:subscription_growth].empty? %>
+          <p class="text-gray-500 text-center py-8">No growth data available yet</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Churn Analysis -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Churn Analysis (Last 6 Months)</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Subscriptions</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cancelled</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Net Change</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @analytics_data[:churn_analysis].each do |data| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <%= data[:month] %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                  +<%= data[:created] %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                  -<%= data[:cancelled] %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <% net_change = data[:created] - data[:cancelled] %>
+                  <span class="<%= net_change >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                    <%= net_change >= 0 ? '+' : '' %><%= net_change %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <% if @analytics_data[:churn_analysis].empty? %>
+          <p class="text-gray-500 text-center py-8">No churn data available yet</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance by Item -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Product Performance -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Subscription Products</h3>
+        <div class="space-y-3">
+          <% @analytics_data[:product_performance].each do |product_name, count| %>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-700 flex-1 truncate"><%= product_name %></span>
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-purple-600"><%= pluralize(count, 'subscription') %></span>
+                <div class="w-12 bg-gray-200 rounded-full h-2">
+                  <% percentage = @analytics_data[:product_performance].values.max > 0 ? (count.to_f / @analytics_data[:product_performance].values.max * 100).round : 0 %>
+                  <div class="bg-purple-600 h-2 rounded-full" style="width: <%= percentage %>%"></div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <% if @analytics_data[:product_performance].empty? %>
+          <p class="text-gray-500 text-center py-8">No product subscription data available</p>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Service Performance -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Subscription Services</h3>
+        <div class="space-y-3">
+          <% @analytics_data[:service_performance].each do |service_name, count| %>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-700 flex-1 truncate"><%= service_name %></span>
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-blue-600"><%= pluralize(count, 'subscription') %></span>
+                <div class="w-12 bg-gray-200 rounded-full h-2">
+                  <% percentage = @analytics_data[:service_performance].values.max > 0 ? (count.to_f / @analytics_data[:service_performance].values.max * 100).round : 0 %>
+                  <div class="bg-blue-600 h-2 rounded-full" style="width: <%= percentage %>%"></div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <% if @analytics_data[:service_performance].empty? %>
+          <p class="text-gray-500 text-center py-8">No service subscription data available</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+    <div class="bg-gradient-to-r from-green-400 to-green-600 overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-white truncate">Total Monthly Revenue</dt>
+              <dd class="text-lg font-medium text-white">
+                <%= number_to_currency(@analytics_data[:monthly_revenue].values.sum) %>
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-blue-400 to-blue-600 overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-white truncate">Active Subscriptions</dt>
+              <dd class="text-lg font-medium text-white">
+                <%= @analytics_data[:subscription_growth].values.last || 0 %>
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-purple-400 to-purple-600 overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-white truncate">Product + Service Types</dt>
+              <dd class="text-lg font-medium text-white">
+                <%= @analytics_data[:product_performance].count + @analytics_data[:service_performance].count %>
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 
+ 
+ 
+ 
+ 

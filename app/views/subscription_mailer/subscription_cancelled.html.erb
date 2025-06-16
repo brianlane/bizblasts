@@ -1,0 +1,24 @@
+<h1>Subscription Cancelled</h1>
+
+<p>Hi <%= @customer.name %>,</p>
+
+<p>Your subscription to <strong><%= @item.name %></strong> has been cancelled as of <%= @customer_subscription.cancelled_at.strftime('%B %d, %Y') %>.</p>
+
+<% if @customer_subscription.cancellation_reason.present? %>
+  <p><strong>Reason:</strong> <%= @customer_subscription.cancellation_reason %></p>
+<% end %>
+
+<h2>What this means:</h2>
+<ul>
+  <li>You will not be charged for future billing cycles</li>
+  <li>Your access will continue until your current billing period ends</li>
+  <li>You can reactivate your subscription anytime</li>
+</ul>
+
+<p>If you'd like to reactivate your subscription or have any questions, please contact us.</p>
+
+<p>
+  <a href="<%= client_subscriptions_url(subdomain: @business.subdomain) %>">View your subscriptions</a>
+</p>
+
+<p>Thank you for being a valued customer.</p> 

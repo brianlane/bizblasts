@@ -6,10 +6,13 @@ class BookingMailer < ApplicationMailer
     @booking = booking
     @business = booking.business
     @customer = booking.tenant_customer
+    @service = booking.service
+    @staff_member = booking.staff_member
     
     mail(
       to: @customer.email,
-      subject: "Booking Confirmation - #{@business.name}"
+      subject: "Booking Confirmation - #{@service.name}",
+      from: @business.email
     )
   end
   
@@ -79,6 +82,22 @@ class BookingMailer < ApplicationMailer
     mail(
       to: @customer.email,
       subject: subject
+    )
+  end
+
+  # Send subscription booking confirmation email to customer
+  def subscription_booking_created(booking)
+    @booking = booking
+    @business = booking.business
+    @customer = booking.tenant_customer
+    @service = booking.service
+    @staff_member = booking.staff_member
+    @subscription = booking.customer_subscription
+    
+    mail(
+      to: @customer.email,
+      subject: "Subscription Booking Scheduled - #{@service.name}",
+      from: @business.email
     )
   end
 

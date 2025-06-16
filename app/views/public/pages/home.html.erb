@@ -40,7 +40,17 @@
           <% @services.each do |service| %>
             <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
               <div class="mb-3 md:mb-0">
-                <h3 class="text-xl font-semibold"><%= service.name %></h3>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-xl font-semibold"><%= service.name %></h3>
+                  <% if service.subscription_enabled %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800" title="Subscription Available">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                      </svg>
+                      Subscription
+                    </span>
+                  <% end %>
+                </div>
                 <% if service.description.present? %>
                   <p class="text-gray-700 mt-1 text-sm"><%= service.description %></p>
                 <% end %>
@@ -48,9 +58,10 @@
                   Duration: <%= service.duration %> minutes | Price: <%= number_to_currency(service.price) %>
                 </p>
               </div>
-              <div class="mt-3 md:mt-0 flex-shrink-0">
+              <div class="mt-3 md:mt-0 flex-shrink-0 space-x-2">
+                <%= link_to "View Service", tenant_service_path(service), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700 whitespace-nowrap" %>
                 <% first_active_staff = service.staff_members.active.first %>
-                <%= link_to "Book Now", tenant_calendar_path(service_id: service.id, staff_member_id: first_active_staff&.id), class: "inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 whitespace-nowrap" %>
+                <%= link_to "Book Now", new_tenant_booking_path(service_id: service.id, staff_member_id: first_active_staff&.id), class: "inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 whitespace-nowrap" %>
               </div>
             </div>
           <% end %>
@@ -69,7 +80,17 @@
           <% @products.each do |product| %>
             <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
               <div class="mb-3 md:mb-0">
-                <h3 class="text-xl font-semibold"><%= product.name %></h3>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-xl font-semibold"><%= product.name %></h3>
+                  <% if product.subscription_enabled %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800" title="Subscription Available">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                      </svg>
+                      Subscription
+                    </span>
+                  <% end %>
+                </div>
                 <% if product.description.present? %>
                   <p class="text-gray-700 mt-1 text-sm"><%= product.description %></p>
                 <% end %>
@@ -77,9 +98,16 @@
                   Price: <%= number_to_currency(product.price) %>
                 </p>
               </div>
-              <div class="mt-3 md:mt-0 flex-shrink-0">
-                <%# Use the product's name as the link text %>
-                <%= link_to "View Product", product_path(product), class: "inline-block bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 whitespace-nowrap" %>
+              <div class="mt-3 md:mt-0 flex-shrink-0 space-x-2">
+                <%= link_to "View Product", product_path(product), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700 whitespace-nowrap" %>
+                <% if product.product_variants.any? %>
+                  <% default_variant = product.product_variants.first %>
+                  <%= form_with url: line_items_path, method: :post, local: false, class: "inline-block" do |f| %>
+                    <%= f.hidden_field :product_variant_id, value: default_variant.id %>
+                    <%= f.hidden_field :quantity, value: 1 %>
+                    <%= f.submit "Add to Cart", class: "bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 whitespace-nowrap cursor-pointer" %>
+                  <% end %>
+                <% end %>
               </div>
             </div>
           <% end %>

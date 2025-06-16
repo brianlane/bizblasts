@@ -27,6 +27,11 @@ RSpec.describe ReferralService, type: :service do
     ActsAsTenant.current_tenant = business
   end
 
+  # Clear association caches before each test to prevent test pollution
+  before do
+    business.association(:referral_program).reset if business.association(:referral_program).loaded?
+  end
+
   describe '#generate_referral_code' do
     let!(:client_user) { create(:user, :client) }
 
@@ -105,11 +110,15 @@ RSpec.describe ReferralService, type: :service do
     context 'when referral program is inactive' do
       before do
         referral_program.update!(active: false)
+        # Clear association cache after update
+        business.association(:referral_program).reset
       end
       
       after do
         # Reset back to original state to avoid state pollution
         referral_program.reload.update!(active: true)
+        # Clear association cache after reset
+        business.association(:referral_program).reset
       end
 
       it 'returns invalid result' do
@@ -205,11 +214,15 @@ RSpec.describe ReferralService, type: :service do
       before do 
         # Set the minimum purchase amount for this test
         referral_program.update!(min_purchase_amount: 25.00)
+        # CRITICAL: Clear the association cache so business.referral_program picks up the change
+        business.association(:referral_program).reset
       end
       
       after do
         # Reset back to original state to avoid state pollution
         referral_program.reload.update!(min_purchase_amount: 0.0)
+        # Clear association cache after reset
+        business.association(:referral_program).reset
       end
 
       it 'fails with minimum purchase error' do
@@ -244,11 +257,15 @@ RSpec.describe ReferralService, type: :service do
 
       before do
         referral_program.update!(active: false)
+        # Clear association cache after update
+        business.association(:referral_program).reset
       end
       
       after do
         # Reset back to original state to avoid state pollution
         referral_program.reload.update!(active: true)
+        # Clear association cache after reset
+        business.association(:referral_program).reset
       end
 
       it 'fails with program inactive error' do

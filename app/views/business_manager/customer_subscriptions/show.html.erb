@@ -1,0 +1,374 @@
+<%# app/views/business_manager/customer_subscriptions/show.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  
+  <!-- Header with Actions -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex-1">
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
+            <%= @customer_subscription.display_name %>
+          </h1>
+          <p class="text-sm text-gray-600 mt-1">
+            Subscription for <%= @customer_subscription.tenant_customer.name %>
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <%= link_to business_manager_customer_subscriptions_path, 
+                class: "inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Subscriptions
+          <% end %>
+          
+          <%= link_to edit_business_manager_customer_subscription_path(@customer_subscription), 
+                class: "inline-flex items-center justify-center px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Edit Subscription
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Main Details Column -->
+    <div class="lg:col-span-2 space-y-8">
+      
+      <!-- Subscription Overview -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Subscription Details</h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">Core subscription information</p>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= subscription_status_class(@customer_subscription.status) %>">
+                  <%= @customer_subscription.status.humanize %>
+                </span>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Subscription Type</dt>
+              <dd class="mt-1 text-sm text-gray-900 flex items-center">
+                <%= subscription_type_icon(@customer_subscription.subscription_type) %>
+                <span class="ml-2"><%= @customer_subscription.subscription_type.humanize %></span>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Monthly Price</dt>
+              <dd class="mt-1 text-lg font-semibold text-green-600">
+                <%= number_to_currency(@customer_subscription.subscription_price) %>
+                <% if @customer_subscription.discount_amount > 0 %>
+                  <span class="text-sm text-gray-500 line-through ml-2">
+                    <%= number_to_currency(@customer_subscription.original_price) %>
+                  </span>
+                  <span class="text-sm text-green-600 ml-1">
+                    (Save <%= number_to_currency(@customer_subscription.discount_amount) %>)
+                  </span>
+                <% end %>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Quantity</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @customer_subscription.quantity %></dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Next Billing Date</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= @customer_subscription.next_billing_date.strftime('%B %d, %Y') %>
+                <span class="text-gray-500">
+                  (<%= format_next_billing_date(@customer_subscription.next_billing_date) %>)
+                </span>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Billing Day</dt>
+              <dd class="mt-1 text-sm text-gray-900">Day <%= @customer_subscription.billing_day_of_month %> of each month</dd>
+            </div>
+            
+            <% if @customer_subscription.last_processed_date %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Last Processed</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= @customer_subscription.last_processed_date.strftime('%B %d, %Y') %>
+                </dd>
+              </div>
+            <% end %>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Created</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= @customer_subscription.created_at.strftime('%B %d, %Y at %I:%M %p') %>
+              </dd>
+            </div>
+            
+          </dl>
+        </div>
+      </div>
+      
+      <!-- Item Details -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            <%= @customer_subscription.product_subscription? ? 'Product' : 'Service' %> Details
+          </h3>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <% if @customer_subscription.product_subscription? %>
+            <% product = @customer_subscription.product %>
+            <% variant = @customer_subscription.product_variant %>
+            
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Product Name</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= link_to product.name, business_manager_product_path(product), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                </dd>
+              </div>
+              
+              <% if variant %>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Variant</dt>
+                  <dd class="mt-1 text-sm text-gray-900"><%= variant.name %></dd>
+                </div>
+              <% end %>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Original Price</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= number_to_currency(variant&.price || product.price) %>
+                </dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Out of Stock Action</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= @customer_subscription.out_of_stock_action&.humanize || 'Not set' %>
+                </dd>
+              </div>
+            </dl>
+            
+          <% else %>
+            <% service = @customer_subscription.service %>
+            
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Service Name</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= link_to service.name, business_manager_service_path(service), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                </dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Duration</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= service.duration %> minutes</dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Original Price</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= number_to_currency(service.price) %></dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Rebooking Preference</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= @customer_subscription.service_rebooking_preference&.humanize || 'Not set' %>
+                </dd>
+              </div>
+              
+              <% if @customer_subscription.preferred_time_slot %>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Preferred Time Slot</dt>
+                  <dd class="mt-1 text-sm text-gray-900"><%= @customer_subscription.preferred_time_slot %></dd>
+                </div>
+              <% end %>
+              
+              <% if @customer_subscription.preferred_staff_member %>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Preferred Staff Member</dt>
+                  <dd class="mt-1 text-sm text-gray-900">
+                    <%= @customer_subscription.preferred_staff_member.name %>
+                  </dd>
+                </div>
+              <% end %>
+            </dl>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Recent Transactions -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Transactions</h3>
+              <p class="mt-1 max-w-2xl text-sm text-gray-500">Last 10 subscription transactions</p>
+            </div>
+            <%= link_to billing_history_business_manager_customer_subscription_path(@customer_subscription), 
+                  class: "text-blue-600 hover:text-blue-800 text-sm font-medium" do %>
+              View Full History →
+            <% end %>
+          </div>
+        </div>
+        
+        <% if @subscription_transactions.any? %>
+          <div class="border-t border-gray-200">
+            <ul class="divide-y divide-gray-200">
+              <% @subscription_transactions.each do |transaction| %>
+                <li class="px-4 py-4 sm:px-6">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                     <%= transaction.success? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                          <%= transaction.transaction_type.humanize %>
+                        </span>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          <%= number_to_currency(transaction.amount) %>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                          <%= transaction.processed_date.strftime('%b %d, %Y') %>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-sm text-gray-900">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                     <%= transaction.success? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                          <%= transaction.status.humanize %>
+                        </span>
+                      </div>
+                      <% if transaction.notes.present? %>
+                        <div class="text-sm text-gray-500 mt-1">
+                          <%= transaction.notes %>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% else %>
+          <div class="border-t border-gray-200 px-4 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No transactions yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Transactions will appear here once billing begins.</p>
+          </div>
+        <% end %>
+      </div>
+      
+    </div>
+    
+    <!-- Sidebar Column -->
+    <div class="space-y-8">
+      
+      <!-- Customer Information -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Customer Information</h3>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <% customer = @customer_subscription.tenant_customer %>
+          
+          <dl class="space-y-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Name</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= link_to customer.name, business_manager_customer_path(customer), 
+                      class: "text-blue-600 hover:text-blue-800" %>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Email</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= mail_to customer.email, customer.email, 
+                      class: "text-blue-600 hover:text-blue-800" %>
+              </dd>
+            </div>
+            
+            <% if customer.phone.present? %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= link_to customer.phone, "tel:#{customer.phone}", 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                </dd>
+              </div>
+            <% end %>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Customer Since</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= customer.created_at.strftime('%B %Y') %>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      
+      <!-- Quick Actions -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Quick Actions</h3>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            
+
+            
+            <%= button_to cancel_business_manager_customer_subscription_path(@customer_subscription), 
+                  method: :patch,
+                  data: { confirm: 'Are you sure you want to cancel this subscription? This action cannot be undone.' },
+                  class: 'w-full flex items-center justify-center px-4 py-2 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors text-sm font-medium' do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              Cancel Subscription
+            <% end %>
+            
+          </div>
+        </div>
+      </div>
+      
+      <!-- Subscription Notes -->
+      <% if @customer_subscription.notes.present? %>
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Notes</h3>
+          </div>
+          <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+            <p class="text-sm text-gray-900"><%= simple_format(@customer_subscription.notes) %></p>
+          </div>
+        </div>
+      <% end %>
+      
+    </div>
+    
+  </div>
+</div> 
+ 
+ 
+ 
+ 

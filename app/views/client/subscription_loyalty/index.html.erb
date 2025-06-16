@@ -1,0 +1,296 @@
+<% content_for :title, "Subscription Loyalty Dashboard" %>
+
+<div class="subscription-loyalty-dashboard">
+  <div class="dashboard-header">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Subscription Loyalty Dashboard</h1>
+    <p class="text-gray-600">Manage your loyalty benefits across all your subscriptions</p>
+  </div>
+
+  <!-- Loyalty Summary Cards -->
+  <div class="loyalty-summary-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="summary-card bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm font-medium">Total Points Earned</p>
+          <p class="text-3xl font-bold"><%= number_with_delimiter(@loyalty_summary[:total_subscription_points_earned]) %></p>
+        </div>
+        <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm font-medium">Current Points</p>
+          <p class="text-3xl font-bold"><%= number_with_delimiter(@loyalty_summary[:current_total_points]) %></p>
+        </div>
+        <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm font-medium">Milestones Achieved</p>
+          <p class="text-3xl font-bold"><%= @loyalty_summary[:total_milestones_achieved] %></p>
+        </div>
+        <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-orange-100 text-sm font-medium">Active Subscriptions</p>
+          <p class="text-3xl font-bold"><%= @loyalty_summary[:active_loyalty_subscriptions] %></p>
+        </div>
+        <div class="bg-orange-400 bg-opacity-30 p-3 rounded-full">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tier Benefits Section -->
+  <% if @tier_benefits.any? %>
+    <div class="tier-benefits-section mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Loyalty Tiers</h2>
+      <div class="tier-benefits-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% @tier_benefits.each do |business_name, benefits| %>
+          <div class="tier-card bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <div class="tier-header mb-4">
+              <h3 class="text-lg font-semibold text-gray-900"><%= business_name %></h3>
+              <div class="tier-badge inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 mt-2">
+                <%= benefits[:tier_name] %> Tier
+              </div>
+            </div>
+            
+            <div class="tier-benefits space-y-2">
+              <div class="benefit-item flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-gray-600"><%= benefits[:benefits][:subscription_discount] %>% subscription discount</span>
+              </div>
+              
+              <div class="benefit-item flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-gray-600"><%= benefits[:benefits][:bonus_points_multiplier] %>x points multiplier</span>
+              </div>
+              
+              <% if benefits[:benefits][:priority_support] %>
+                <div class="benefit-item flex items-center">
+                  <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="text-sm text-gray-600">Priority support</span>
+                </div>
+              <% end %>
+            </div>
+
+            <% if benefits[:progress_to_next_tier] %>
+              <div class="tier-progress mt-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Progress to <%= SubscriptionLoyaltyService.new(@customer_subscriptions.first).send(:tier_name, benefits[:next_tier]) %></span>
+                  <span><%= benefits[:progress_to_next_tier][:progress_percentage] %>%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-purple-600 h-2 rounded-full" style="width: <%= benefits[:progress_to_next_tier][:progress_percentage] %>%"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Available Redemptions Section -->
+  <% if @available_redemptions.any? %>
+    <div class="redemptions-section mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Available Redemptions</h2>
+      <div class="redemptions-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% @available_redemptions.each do |redemption| %>
+          <div class="redemption-card bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="redemption-header mb-4">
+              <h3 class="text-lg font-semibold text-gray-900"><%= redemption[:description] %></h3>
+              <p class="text-sm text-gray-600"><%= redemption[:business_name] %> - <%= redemption[:subscription_name] %></p>
+            </div>
+            
+            <div class="redemption-details mb-4">
+              <div class="points-required flex items-center mb-2">
+                <svg class="w-5 h-5 text-purple-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span class="text-lg font-bold text-purple-600"><%= number_with_delimiter(redemption[:points_required]) %> points</span>
+              </div>
+              
+              <div class="benefit-value text-sm text-gray-600">
+                <% case redemption[:benefit_type] %>
+                <% when 'subscription_discount' %>
+                  <span><%= redemption[:benefit_value] %>% off next payment</span>
+                <% when 'free_month' %>
+                  <span>Skip one month's payment</span>
+                <% when 'upgrade_variant' %>
+                  <span>Premium variant upgrade</span>
+                <% end %>
+              </div>
+            </div>
+            
+            <%= link_to client_subscription_loyalty_path(redemption[:subscription_id]), 
+                        method: :post, 
+                        params: { 
+                          points: redemption[:points_required], 
+                          benefit_type: redemption[:benefit_type], 
+                          benefit_value: redemption[:benefit_value] 
+                        },
+                        class: "redeem-button w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors text-center block",
+                        confirm: "Are you sure you want to redeem #{number_with_delimiter(redemption[:points_required])} points for this benefit?" do %>
+              Redeem Now
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Subscriptions List -->
+  <div class="subscriptions-section">
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Subscriptions</h2>
+    <div class="subscriptions-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <% @customer_subscriptions.each do |subscription| %>
+        <div class="subscription-card bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div class="subscription-header mb-4">
+            <h3 class="text-lg font-semibold text-gray-900"><%= subscription.item_name %></h3>
+            <p class="text-sm text-gray-600"><%= subscription.business.name %></p>
+            <div class="status-badge inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
+              <%= subscription.status.humanize %>
+            </div>
+          </div>
+          
+          <div class="subscription-details mb-4">
+            <div class="detail-item flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Price:</span>
+              <span class="font-medium"><%= number_to_currency(subscription.subscription_price) %></span>
+            </div>
+            <div class="detail-item flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Frequency:</span>
+              <span class="font-medium"><%= subscription.frequency.humanize %></span>
+            </div>
+            <div class="detail-item flex justify-between text-sm">
+              <span class="text-gray-600">Next billing:</span>
+              <span class="font-medium"><%= subscription.next_billing_date&.strftime('%m/%d/%Y') %></span>
+            </div>
+          </div>
+          
+          <% if subscription.business.loyalty_program_enabled? %>
+            <%= link_to client_subscription_loyalty_path(subscription), 
+                        class: "view-loyalty-button w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block" do %>
+              View Loyalty Details
+            <% end %>
+          <% else %>
+            <div class="no-loyalty text-center py-2 px-4 bg-gray-100 text-gray-500 rounded-md text-sm">
+              Loyalty program not available
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions mt-8 bg-gray-50 rounded-lg p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+    <div class="actions-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+      <%= link_to tier_progress_client_subscription_loyalty_index_path, 
+                  class: "action-button bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-center" do %>
+        <svg class="w-8 h-8 text-purple-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <h4 class="font-medium text-gray-900">Tier Progress</h4>
+        <p class="text-sm text-gray-600">View your progress to next tier</p>
+      <% end %>
+      
+      <%= link_to milestones_client_subscription_loyalty_index_path, 
+                  class: "action-button bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-center" do %>
+        <svg class="w-8 h-8 text-green-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <h4 class="font-medium text-gray-900">Milestones</h4>
+        <p class="text-sm text-gray-600">Track your achievements</p>
+      <% end %>
+      
+      <%= link_to client_subscriptions_path, 
+                  class: "action-button bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-center" do %>
+        <svg class="w-8 h-8 text-blue-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <h4 class="font-medium text-gray-900">Manage Subscriptions</h4>
+        <p class="text-sm text-gray-600">View all subscriptions</p>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+  .subscription-loyalty-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .dashboard-header {
+    margin-bottom: 2rem;
+  }
+  
+  .loyalty-summary-grid,
+  .tier-benefits-grid,
+  .redemptions-grid,
+  .subscriptions-grid {
+    gap: 1.5rem;
+  }
+  
+  .summary-card,
+  .tier-card,
+  .redemption-card,
+  .subscription-card {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .summary-card:hover,
+  .tier-card:hover,
+  .redemption-card:hover,
+  .subscription-card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .redeem-button:hover,
+  .view-loyalty-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .action-button:hover {
+    border-color: #e5e7eb;
+  }
+</style> 
+ 
+ 
+ 
+ 

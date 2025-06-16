@@ -1,0 +1,296 @@
+<%# app/views/business_manager/customer_subscriptions/index.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  
+  <!-- Analytics Dashboard -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Active Subscriptions</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= @subscription_stats[:total_active] %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Monthly Revenue</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= number_to_currency(@subscription_stats[:total_revenue]) %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Product Subscriptions</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= @subscription_stats[:product_subscriptions] %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Service Subscriptions</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= @subscription_stats[:service_subscriptions] %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold">Customer Subscriptions</h1>
+          <p class="text-sm text-gray-600 mt-1">Manage your customer subscriptions</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <%= link_to analytics_business_manager_customer_subscriptions_path, 
+                class: "inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Analytics
+          <% end %>
+          <%= link_to 'New Subscription', new_business_manager_customer_subscription_path, 
+                class: "inline-flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="border-t border-gray-200 px-4 py-4 sm:px-6">
+      <%= form_with url: business_manager_customer_subscriptions_path, method: :get, local: true, class: "flex flex-col sm:flex-row gap-4 items-end" do |f| %>
+        <div class="flex-1">
+          <%= f.text_field :search, value: params[:search], placeholder: "Search by customer name or email...", 
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" %>
+        </div>
+        <div>
+          <%= f.select :status, 
+                options_for_select([
+                  ['All Statuses', ''],
+                  ['Active', 'active'],
+                  ['Cancelled', 'cancelled'],
+                  ['Expired', 'expired'],
+                  ['Failed', 'failed']
+                ], params[:status]),
+                {},
+                { class: "px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" } %>
+        </div>
+        <div>
+          <%= f.select :type, 
+                options_for_select([
+                  ['All Types', ''],
+                  ['Product Subscriptions', 'product_subscription'],
+                  ['Service Subscriptions', 'service_subscription']
+                ], params[:type]),
+                {},
+                { class: "px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" } %>
+        </div>
+        <div>
+          <%= f.submit "Filter", class: "px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors" %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <% if @customer_subscriptions.any? %>
+        <!-- Mobile Card Layout (hidden on lg+ screens) -->
+        <div class="lg:hidden space-y-4">
+          <% @customer_subscriptions.each do |subscription| %>
+            <div id="subscription_<%= subscription.id %>" class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+              <!-- Subscription Header -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <%= link_to subscription.display_name, business_manager_customer_subscription_path(subscription), 
+                        class: "text-lg font-medium text-blue-600 hover:text-blue-800 transition-colors" %>
+                  <div class="text-sm text-gray-600 mt-1">
+                    <%= subscription.tenant_customer.name %>
+                  </div>
+                </div>
+                <div class="ml-4 flex flex-col gap-2">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= subscription_status_class(subscription.status) %>">
+                    <%= subscription.status.humanize %>
+                  </span>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    <%= subscription.subscription_type.humanize %>
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Subscription Details -->
+              <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <div class="text-xs text-gray-500 uppercase tracking-wider">Price & Quantity</div>
+                  <div class="text-green-600 font-semibold text-lg">
+                    <%= number_to_currency(subscription.subscription_price) %>/mo
+                  </div>
+                  <div class="text-gray-900">
+                    Qty: <%= subscription.quantity %>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 uppercase tracking-wider">Next Billing</div>
+                  <div class="text-gray-900 font-medium">
+                    <%= subscription.next_billing_date.strftime('%b %d, %Y') %>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">
+                    Day <%= subscription.billing_day_of_month %>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="flex flex-wrap gap-2">
+                <%= link_to 'View', business_manager_customer_subscription_path(subscription), 
+                      class: "inline-flex items-center px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" %>
+                <%= link_to 'Edit', edit_business_manager_customer_subscription_path(subscription), 
+                      class: "inline-flex items-center px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors" %>
+                <% if subscription.active? %>
+
+                <% end %>
+                <%= button_to 'Cancel', cancel_business_manager_customer_subscription_path(subscription), method: :patch,
+                      data: { confirm: 'Are you sure you want to cancel this subscription?' },
+                      class: 'inline-flex items-center px-3 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors border-0' %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        
+        <!-- Desktop Table Layout (hidden on mobile) -->
+        <div class="hidden lg:block">
+          <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subscription</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Next Billing</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 border-b border-gray-200"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% @customer_subscriptions.each do |subscription| %>
+                  <tr id="subscription_<%= subscription.id %>" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <%= link_to subscription.display_name, business_manager_customer_subscription_path(subscription), 
+                            class: "text-blue-600 hover:text-blue-800 font-medium transition-colors" %>
+                      <div class="text-sm text-gray-500">
+                        <%= subscription.subscription_type.humanize %> • Qty: <%= subscription.quantity %>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900"><%= subscription.tenant_customer.name %></div>
+                      <div class="text-sm text-gray-500"><%= subscription.tenant_customer.email %></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600">
+                      <%= number_to_currency(subscription.subscription_price) %>/mo
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900"><%= subscription.next_billing_date.strftime('%b %d, %Y') %></div>
+                      <div class="text-sm text-gray-500">Day <%= subscription.billing_day_of_month %></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= subscription_status_class(subscription.status) %>">
+                        <%= subscription.status.humanize %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex items-center justify-end space-x-2">
+                        <%= link_to 'View', business_manager_customer_subscription_path(subscription), 
+                              class: "text-blue-600 hover:text-blue-900 transition-colors" %>
+                        <%= link_to 'Edit', edit_business_manager_customer_subscription_path(subscription), 
+                              class: "text-indigo-600 hover:text-indigo-900 transition-colors" %>
+
+                        <%= button_to 'Cancel', cancel_business_manager_customer_subscription_path(subscription), method: :patch,
+                              data: { confirm: 'Are you sure you want to cancel this subscription?' },
+                              class: 'text-red-600 hover:text-red-900 transition-colors bg-transparent border-0 p-0' %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <% if @customer_subscriptions.respond_to?(:current_page) %>
+          <div class="mt-6">
+            <%= paginate @customer_subscriptions, theme: 'twitter_bootstrap_4' %>
+          </div>
+        <% end %>
+        
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No subscriptions found</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            <% if params[:search].present? || params[:status].present? || params[:type].present? %>
+              Try adjusting your filters or search terms.
+            <% else %>
+              Get started by creating your first subscription.
+            <% end %>
+          </p>
+          <div class="mt-6">
+            <%= link_to 'Create Subscription', new_business_manager_customer_subscription_path, 
+                  class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<% content_for :javascript do %>
+<script>
+  // Add any subscription-specific JavaScript here
+</script>
+<% end %> 
+ 
+ 
+ 
+ 

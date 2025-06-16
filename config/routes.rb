@@ -152,6 +152,17 @@ Rails.application.routes.draw do
 
       end
       
+      # Customer Subscription Management for Business Managers
+      resources :customer_subscriptions, path: 'subscriptions' do
+        member do
+          patch :cancel
+          get :billing_history
+        end
+        collection do
+          get :analytics
+        end
+      end
+      
       # Referral and Loyalty Management
       resources :referrals, only: [:index, :show, :edit, :update, :create] do
         collection do
@@ -192,6 +203,26 @@ Rails.application.routes.draw do
           patch :toggle_status
         end
       end
+
+      # Subscription management
+      resources :customer_subscriptions, only: [:index, :show, :edit, :update, :destroy] do
+        member do
+          patch :cancel
+        end
+      end
+      
+      # Subscription loyalty management
+      resources :subscription_loyalty, only: [:index, :show] do
+        member do
+          post :award_points
+          patch :adjust_tier
+        end
+        collection do
+          get :customers
+          get :analytics
+          get :export_data
+        end
+      end
     end
 
     # Business-specific routes for business owners
@@ -202,8 +233,15 @@ Rails.application.routes.draw do
     # Add cart resource within the subdomain constraint
     resource :cart, only: [:show]
     resources :line_items, only: [:create, :update, :destroy]
-    # Subdomain checkout uses Public::OrdersController for guest flows
-    resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders'
+          # Subdomain checkout uses Public::OrdersController for guest flows
+      resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders'
+      
+      # Public subscription signup (for customers on business subdomains)
+      resources :subscriptions, only: [:new, :create], controller: 'public/subscriptions' do
+        member do
+          get :confirmation
+        end
+      end
 
     # Policy acceptance routes for subdomain users
     resources :policy_acceptances, only: [:create, :show]
@@ -406,6 +444,35 @@ Rails.application.routes.draw do
   namespace :client, path: '' do # path: '' to avoid /client/client/settings
     resource :settings, only: [:show, :update, :destroy], controller: 'settings' do
       patch :unsubscribe_all, on: :member
+    end
+    
+    # Client Subscription Management
+    resources :subscriptions, only: [:index, :show, :edit, :update] do
+      member do
+        get :cancel
+        post :cancel
+        get :preferences
+        patch :update_preferences
+        get :billing_history
+      end
+    end
+    
+    # Subscription loyalty routes
+    resources :subscription_loyalty, only: [:index, :show] do
+      member do
+        post :redeem_points
+      end
+      collection do
+        get :tier_progress
+        get :milestones
+      end
+    end
+    
+    resources :settings, only: [:index, :show, :edit, :update] do
+      collection do
+        get :subscriptions
+        patch :update_subscriptions
+      end
     end
   end
 

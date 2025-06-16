@@ -1,0 +1,236 @@
+<%- content_for :title, "My Subscriptions" %>
+
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Header with Statistics -->
+    <div class="mb-8">
+      <div class="md:flex md:items-center md:justify-between">
+        <div class="flex-1 min-w-0">
+          <h1 class="text-3xl font-bold leading-7 text-gray-900 sm:text-4xl sm:truncate">
+            My Subscriptions
+          </h1>
+          <p class="mt-1 text-sm text-gray-500">
+            Manage your subscription services and preferences
+          </p>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="ml-5 w-0 flex-1">
+                <dl>
+                  <dt class="text-sm font-medium text-gray-500 truncate">Active Subscriptions</dt>
+                  <dd class="text-lg font-medium text-gray-900"><%= @subscription_stats[:total_active] %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="ml-5 w-0 flex-1">
+                <dl>
+                  <dt class="text-sm font-medium text-gray-500 truncate">Monthly Total</dt>
+                  <dd class="text-lg font-medium text-gray-900">$<%= number_with_precision(@subscription_stats[:total_monthly_cost], precision: 2) %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="ml-5 w-0 flex-1">
+                <dl>
+                  <dt class="text-sm font-medium text-gray-500 truncate">Product Subscriptions</dt>
+                  <dd class="text-lg font-medium text-gray-900"><%= @subscription_stats[:product_subscriptions] %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="ml-5 w-0 flex-1">
+                <dl>
+                  <dt class="text-sm font-medium text-gray-500 truncate">Service Subscriptions</dt>
+                  <dd class="text-lg font-medium text-gray-900"><%= @subscription_stats[:service_subscriptions] %></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white shadow rounded-lg mb-6">
+      <div class="p-6">
+        <%= form_tag subscriptions_path, method: :get, local: true, class: "space-y-4 sm:space-y-0 sm:flex sm:items-end sm:space-x-4" do %>
+          <div class="flex-1">
+            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+            <%= select_tag :status, 
+                options_for_select([
+                  ['All Statuses', ''],
+                  ['Active', 'active'],
+                  ['Cancelled', 'cancelled'],
+                  ['Expired', 'expired'],
+                  ['Failed', 'failed']
+                ], params[:status]), 
+                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+          </div>
+          
+          <div class="flex-1">
+            <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
+            <%= select_tag :type, 
+                options_for_select([
+                  ['All Types', ''],
+                  ['Product Subscriptions', 'product_subscription'],
+                  ['Service Subscriptions', 'service_subscription']
+                ], params[:type]), 
+                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+          </div>
+          
+          <div class="flex-1">
+            <label for="business_id" class="block text-sm font-medium text-gray-700">Business</label>
+            <%= select_tag :business_id, 
+                options_from_collection_for_select(@businesses, :id, :name, params[:business_id]),
+                { include_blank: "All Businesses" },
+                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+          </div>
+          
+          <div>
+            <%= submit_tag "Filter", class: "w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Subscriptions List -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+      <% if @subscriptions.any? %>
+        <ul role="list" class="divide-y divide-gray-200">
+          <% @subscriptions.each do |subscription| %>
+            <li>
+              <div class="px-4 py-4 flex items-center justify-between sm:px-6">
+                <div class="flex items-center min-w-0 flex-1">
+                  <div class="flex-shrink-0">
+                    <% if subscription.product_subscription? %>
+                      <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                      </div>
+                    <% else %>
+                      <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                      </div>
+                    <% end %>
+                  </div>
+                  
+                  <div class="ml-4 flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-medium text-indigo-600 truncate">
+                        <%= link_to subscription.display_name, subscription_path(subscription), class: "hover:text-indigo-900" %>
+                      </p>
+                      <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= subscription.status == 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                          <%= subscription.status.humanize %>
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div class="mt-2 flex items-center text-sm text-gray-500">
+                      <p class="truncate">
+                        <span class="font-medium text-gray-900"><%= subscription.business.name %></span>
+                        • $<%= number_with_precision(subscription.subscription_price, precision: 2) %>/month
+                        • Next billing: <%= subscription.next_billing_date.strftime("%B %d, %Y") if subscription.next_billing_date %>
+                      </p>
+                    </div>
+                    
+                    <% if subscription.allow_customer_preferences? %>
+                      <div class="mt-2 flex items-center">
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          </svg>
+                          Customizable preferences
+                        </span>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                  <%= link_to "View", subscription_path(subscription), 
+                      class: "inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+                  
+                  <% if subscription.allow_customer_preferences? %>
+                    <%= link_to "Preferences", edit_subscription_path(subscription), 
+                        class: "inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+                  <% end %>
+                </div>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+        
+        <!-- Pagination -->
+        <%= paginate @subscriptions if respond_to?(:paginate) %>
+        
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No subscriptions</h3>
+          <p class="mt-1 text-sm text-gray-500">You don't have any active subscriptions yet.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 
+ 
+ 
+ 
+ 

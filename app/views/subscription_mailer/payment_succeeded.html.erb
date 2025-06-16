@@ -1,0 +1,18 @@
+<h1>Payment Processed Successfully</h1>
+
+<p>Hi <%= @customer.name %>,</p>
+
+<p>Your payment for <strong><%= @item.name %></strong> has been processed successfully!</p>
+
+<h2>Payment Details:</h2>
+<ul>
+  <li><strong>Item:</strong> <%= @item.name %></li>
+  <li><strong>Amount:</strong> $<%= @customer_subscription.subscription_price %></li>
+  <li><strong>Next Billing Date:</strong> <%= @customer_subscription.next_billing_date.strftime('%B %d, %Y') %></li>
+</ul>
+
+<p>Thank you for your continued subscription!</p>
+
+<p>
+  <a href="<%= client_subscriptions_url(subdomain: @business.subdomain) %>">Manage your subscription</a>
+</p> 
