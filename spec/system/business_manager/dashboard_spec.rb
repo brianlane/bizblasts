@@ -65,7 +65,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
 
       # Check for Quick Actions including Services link
       within('#quick-actions-widget') do
-        expect(page).to have_link("Manage Services", href: "/manage/services")
+        expect(page).to have_link("View Orders", href: "/manage/orders")
         expect(page).to have_link("Create Booking") # Placeholder check
         expect(page).to have_link("Edit Website", href: edit_business_manager_settings_website_pages_path)
       end

@@ -140,6 +140,10 @@ class Business < ApplicationRecord
   has_many :loyalty_redemptions, dependent: :destroy
   has_many :discount_codes, dependent: :destroy
   
+  # Customer subscription associations
+  has_many :customer_subscriptions, dependent: :destroy
+  has_many :subscription_transactions, dependent: :destroy
+  
   # Platform (BizBlasts) referral and loyalty associations
   has_many :platform_referrals_made, class_name: 'PlatformReferral', foreign_key: 'referrer_business_id', dependent: :destroy
   has_many :platform_referrals_received, class_name: 'PlatformReferral', foreign_key: 'referred_business_id', dependent: :destroy
@@ -272,6 +276,10 @@ class Business < ApplicationRecord
     loyalty_program_enabled?
   end
   
+  def loyalty_program_enabled?
+    read_attribute(:loyalty_program_enabled) || false
+  end
+  
   def calculate_loyalty_points(amount_spent, service: nil, product: nil)
     return 0 unless loyalty_program_active?
     
@@ -299,6 +307,43 @@ class Business < ApplicationRecord
       referral_code_discount_amount: 10.0,
       min_purchase_amount: 0.0
     )
+  end
+
+  # Subscription methods
+  def subscription_discount_enabled?
+    # For now, enable subscriptions for all businesses
+    # This could be enhanced to check a business setting or tier
+    true
+  end
+
+  def subscription_discount_percentage
+    # Default subscription discount percentage
+    # This could be made configurable per business
+    10.0
+  end
+  
+  def default_service_rebooking_preference
+    'same_day_next_month'
+  end
+  
+  def default_subscription_out_of_stock_action
+    'skip_month'
+  end
+  
+  def default_subscription_fallback
+    'skip_month'
+  end
+  
+  def default_subscription_partial_stock_action
+    'accept_partial'
+  end
+  
+  def default_booking_days
+    %w[monday tuesday wednesday thursday friday]
+  end
+  
+  def default_booking_times
+    %w[09:00 10:00 11:00 14:00 15:00 16:00]
   end
   
   # Platform (BizBlasts) loyalty methods

@@ -50,6 +50,30 @@ class ProductVariant < ApplicationRecord
     (base_price + modifier).round(2)
   end
 
+  # Subscription pricing methods
+  def subscription_price
+    return final_price unless product&.subscription_enabled?
+    final_price - subscription_discount_amount
+  end
+  
+  def subscription_discount_amount
+    return 0 unless product&.subscription_enabled? || product&.business&.subscription_discount_percentage.blank?
+    (final_price * (product.business.subscription_discount_percentage / 100.0)).round(2)
+  end
+  
+  def subscription_savings_percentage
+    return 0 if final_price.zero? || !product&.subscription_enabled?
+    ((subscription_discount_amount / final_price) * 100).round
+  end
+  
+  def can_be_subscribed?
+    product&.active? && product&.subscription_enabled? && in_stock?(1)
+  end
+  
+  def subscription_display_price
+    product&.subscription_enabled? ? subscription_price : final_price
+  end
+
   # --- Add Ransack methods --- 
   def self.ransackable_attributes(auth_object = nil)
     # Allowlist attributes for searching/filtering in ActiveAdmin
@@ -90,4 +114,4 @@ class ProductVariant < ApplicationRecord
     # Delete reservation
     reservation.destroy!
   end
-end 
+end

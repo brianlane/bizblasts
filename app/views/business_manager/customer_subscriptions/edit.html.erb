@@ -1,0 +1,168 @@
+<%# app/views/business_manager/customer_subscriptions/edit.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold">Edit Subscription</h1>
+          <p class="text-sm text-gray-600 mt-1">Update subscription details for <%= @customer_subscription.tenant_customer.name %></p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <%= link_to 'View Subscription', [:business_manager, @customer_subscription],
+                class: "inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+          <%= link_to 'Back to Subscriptions', business_manager_customer_subscriptions_path,
+                class: "inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <%= form_with(model: [:business_manager, @customer_subscription], local: true, class: "space-y-6") do |form| %>
+        <% if @customer_subscription.errors.any? %>
+          <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold"><%= pluralize(@customer_subscription.errors.count, "error") %> prohibited this subscription from being saved:</strong>
+            <ul class="mt-2 list-disc list-inside">
+              <% @customer_subscription.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Current Subscription Info -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Current Subscription</h3>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <dl class="space-y-2">
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Customer</dt>
+                  <dd class="text-sm text-gray-900"><%= @customer_subscription.tenant_customer.name %></dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Item</dt>
+                  <dd class="text-sm text-gray-900">
+                    <%= @customer_subscription.display_name %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                      <%= @customer_subscription.subscription_type.humanize %>
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Status</dt>
+                  <dd class="text-sm">
+                    <%= content_tag :span, @customer_subscription.status.humanize, 
+                          class: subscription_status_class(@customer_subscription.status) %>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Price</dt>
+                  <dd class="text-sm text-gray-900"><%= number_to_currency(@customer_subscription.subscription_price) %></dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Editable Settings -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Update Settings</h3>
+            
+            <div>
+              <%= form.label :quantity, "Quantity", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.number_field :quantity, min: 1, required: true,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
+
+            <div>
+              <%= form.label :next_billing_date, "Next Billing Date", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.date_field :next_billing_date, required: true,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
+
+            <div>
+              <%= form.label :billing_day_of_month, "Billing Day of Month", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.number_field :billing_day_of_month, min: 1, max: 28,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              <p class="mt-1 text-sm text-gray-500">Day of month for recurring billing (1-28)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Service-specific Settings -->
+        <% if @customer_subscription.service_subscription? %>
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Service Settings</h3>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <%= form.label :service_rebooking_preference, "Rebooking Preference", class: "block text-gray-700 text-sm font-bold mb-2" %>
+                <%= form.select :service_rebooking_preference, 
+                      options_for_select([
+                        ['Same day next month (or soonest available)', 'same_day_next_month'],
+                        ['Same day next month (or loyalty points if unavailable)', 'same_day_loyalty_fallback'],
+                        ['Use business default', 'business_default']
+                      ], @customer_subscription.service_rebooking_preference),
+                      { prompt: "Select rebooking preference" },
+                      { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              </div>
+
+              <div>
+                <%= form.label :preferred_time_slot, "Preferred Time Slot", class: "block text-gray-700 text-sm font-bold mb-2" %>
+                <%= form.text_field :preferred_time_slot, placeholder: "e.g., 10:00 AM - 12:00 PM",
+                      class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Product-specific Settings -->
+        <% if @customer_subscription.product_subscription? %>
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Product Settings</h3>
+            
+            <div>
+              <%= form.label :out_of_stock_action, "Out of Stock Action", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.select :out_of_stock_action, 
+                    options_for_select([
+                      ['Skip billing cycle', 'skip_billing_cycle'],
+                      ['Award loyalty points', 'award_loyalty_points'],
+                      ['Cancel subscription', 'cancel_subscription']
+                    ], @customer_subscription.out_of_stock_action),
+                    { prompt: "Select out of stock action" },
+                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Notes -->
+        <div>
+          <%= form.label :notes, "Notes", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= form.text_area :notes, rows: 3, placeholder: "Optional notes about this subscription",
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-between gap-4">
+          <div class="flex flex-col sm:flex-row gap-2">
+
+            
+            <% unless @customer_subscription.cancelled? %>
+              <%= link_to 'Cancel Subscription', [:cancel, :business_manager, @customer_subscription], 
+                    method: :patch,
+                    data: { confirm: 'Are you sure you want to cancel this subscription? This action cannot be undone.' },
+                    class: "inline-flex items-center justify-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2" %>
+            <% end %>
+          </div>
+
+          <div class="flex justify-end">
+            <%= form.submit "Update Subscription", 
+                  class: "inline-flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 
+ 
+ 

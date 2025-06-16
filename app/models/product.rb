@@ -30,12 +30,18 @@ class Product < ApplicationRecord
   # Promotion associations
   has_many :promotion_products, dependent: :destroy
   has_many :promotions, through: :promotion_products
+  
+  # Subscription associations
+  has_many :customer_subscriptions, dependent: :destroy
 
   enum :product_type, { standard: 0, service: 1, mixed: 2 }
 
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :tips_enabled, inclusion: { in: [true, false] }
+  validates :subscription_enabled, inclusion: { in: [true, false] }
+  validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
+  validates :allow_customer_preferences, inclusion: { in: [true, false] }
   # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
                                      message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
@@ -139,6 +145,40 @@ class Product < ApplicationRecord
   # Tip eligibility methods
   def tip_eligible?
     tips_enabled?
+  end
+
+  # Subscription methods
+  def subscription_price
+    return price unless subscription_enabled?
+    price - subscription_discount_amount
+  end
+  
+  def subscription_discount_amount
+    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
+    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+  end
+  
+  def subscription_savings_percentage
+    return 0 if price.zero? || !subscription_enabled?
+    ((subscription_discount_amount / price) * 100).round
+  end
+  
+  def can_be_subscribed?
+    active? && subscription_enabled? && in_stock?(1)
+  end
+  
+  def subscription_display_price
+    subscription_enabled? ? subscription_price : price
+  end
+  
+  def subscription_display_savings
+    return nil unless subscription_enabled? && business&.subscription_discount_percentage.present?
+    "Save #{subscription_savings_percentage}% with subscription"
+  end
+  
+  def allow_customer_preferences?
+    # Allow customers to set preferences for subscription products
+    subscription_enabled?
   end
 
   # Custom setter to handle nested image attributes (primary flags & ordering)

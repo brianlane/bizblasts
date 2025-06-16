@@ -14,6 +14,10 @@ class TenantCustomer < ApplicationRecord
   has_many :loyalty_transactions, dependent: :destroy
   has_many :loyalty_redemptions, dependent: :destroy
   
+  # Subscription associations
+  has_many :customer_subscriptions, dependent: :destroy
+  has_many :subscription_transactions, dependent: :destroy
+  
   # Allow access to User accounts associated with this customer's business
   has_many :users, through: :business, source: :clients
   
@@ -103,6 +107,31 @@ class TenantCustomer < ApplicationRecord
     Rails.cache.delete("tenant_customer_#{id}_loyalty_points")
     Rails.cache.delete("tenant_customer_#{id}_loyalty_points_earned")
     Rails.cache.delete("tenant_customer_#{id}_loyalty_points_redeemed")
+  end
+
+  # Subscription methods
+  def active_subscriptions
+    customer_subscriptions.active
+  end
+  
+  def has_active_subscriptions?
+    active_subscriptions.exists?
+  end
+  
+  def subscription_for(item)
+    if item.is_a?(Product)
+      customer_subscriptions.active.product_subscriptions.find_by(product: item)
+    elsif item.is_a?(Service)
+      customer_subscriptions.active.service_subscriptions.find_by(service: item)
+    end
+  end
+  
+  def subscribed_to?(item)
+    subscription_for(item).present?
+  end
+  
+  def total_monthly_subscription_cost
+    active_subscriptions.sum(:subscription_price)
   end
   
   # Define ransackable attributes for ActiveAdmin

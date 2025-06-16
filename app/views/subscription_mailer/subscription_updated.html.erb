@@ -1,0 +1,20 @@
+<h1>Subscription Updated</h1>
+
+<p>Hi <%= @customer.name %>,</p>
+
+<p>Your subscription to <strong><%= @item.name %></strong> has been updated.</p>
+
+<h2>Current Subscription Details:</h2>
+<ul>
+  <li><strong>Item:</strong> <%= @item.name %></li>
+  <li><strong>Price:</strong> $<%= @customer_subscription.subscription_price %></li>
+  <li><strong>Frequency:</strong> <%= @customer_subscription.frequency %></li>
+  <li><strong>Quantity:</strong> <%= @customer_subscription.quantity %></li>
+  <li><strong>Next Billing Date:</strong> <%= @customer_subscription.next_billing_date.strftime('%B %d, %Y') %></li>
+</ul>
+
+<p>
+  <a href="<%= client_subscriptions_url(subdomain: @business.subdomain) %>">Manage your subscription</a>
+</p>
+
+<p>Thank you for your continued subscription!</p> 

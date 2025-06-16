@@ -9,6 +9,7 @@ RSpec.describe StripeService, type: :service do
 
   before do
     allow(StripeService).to receive(:configure_stripe_api_key)
+    allow(StripeService).to receive(:stripe_configured?).and_return(true)
     ActsAsTenant.current_tenant = business
   end
 

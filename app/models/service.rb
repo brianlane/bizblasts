@@ -19,6 +19,9 @@ class Service < ApplicationRecord
   has_many :promotion_services, dependent: :destroy
   has_many :promotions, through: :promotion_services
   
+  # Subscription associations
+  has_many :customer_subscriptions, dependent: :destroy
+  
   # Image attachments
   has_many_attached :images do |attachable|
     attachable.variant :thumb, resize_to_limit: [300, 300]
@@ -51,6 +54,9 @@ class Service < ApplicationRecord
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
   validates :tips_enabled, inclusion: { in: [true, false] }
+  validates :subscription_enabled, inclusion: { in: [true, false] }
+  validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
+  validates :allow_customer_preferences, inclusion: { in: [true, false] }
 
   # Validations for images - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
@@ -137,6 +143,50 @@ class Service < ApplicationRecord
     else
       :immediate  # Default behavior
     end
+  end
+
+  # Subscription methods
+  def subscription_price
+    return price unless subscription_enabled?
+    price - subscription_discount_amount
+  end
+  
+  def subscription_discount_amount
+    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
+    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+  end
+  
+  def subscription_savings_percentage
+    return 0 if price.zero? || !subscription_enabled?
+    ((subscription_discount_amount / price) * 100).round
+  end
+  
+  def can_be_subscribed?
+    active? && subscription_enabled?
+  end
+  
+  def subscription_display_price
+    subscription_enabled? ? subscription_price : price
+  end
+  
+  def subscription_display_savings
+    return nil unless subscription_enabled? && business&.subscription_discount_percentage.present?
+    "Save #{subscription_savings_percentage}% with recurring bookings"
+  end
+  
+  def allow_customer_preferences?
+    # Allow customers to set preferences for subscription services
+    subscription_enabled?
+  end
+  
+  def allow_any_staff?
+    # Allow any staff member to perform this service if needed
+    # This could be made configurable per service
+    true
+  end
+  
+  def duration_minutes
+    duration
   end
 
   # Custom setter to handle nested image attributes (primary flags & ordering)

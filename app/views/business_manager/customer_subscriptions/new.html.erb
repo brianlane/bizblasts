@@ -1,0 +1,211 @@
+<%# app/views/business_manager/customer_subscriptions/new.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold">Create New Subscription</h1>
+          <p class="text-sm text-gray-600 mt-1">Set up a new customer subscription</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <%= link_to 'Back to Subscriptions', business_manager_customer_subscriptions_path,
+                class: "inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <%= form_with(model: [:business_manager, @customer_subscription], local: true, class: "space-y-6") do |form| %>
+        <% if @customer_subscription.errors.any? %>
+          <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold"><%= pluralize(@customer_subscription.errors.count, "error") %> prohibited this subscription from being saved:</strong>
+            <ul class="mt-2 list-disc list-inside">
+              <% @customer_subscription.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Customer Selection -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Customer Information</h3>
+            
+            <div>
+              <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.collection_select :tenant_customer_id, @tenant_customers, :id, :name, 
+                    { prompt: "Select a customer" },
+                    { required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <% if @tenant_customers.empty? %>
+                <p class="mt-1 text-sm text-gray-500">No customers found. <%= link_to "Create a customer first", business_manager_customers_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Subscription Item -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Subscription Item</h3>
+            
+            <div>
+              <label class="block text-gray-700 text-sm font-bold mb-2">Subscription Type</label>
+              <div class="space-y-2">
+                <label class="inline-flex items-center">
+                  <input type="radio" name="subscription_type" value="product" class="form-radio h-4 w-4 text-blue-600" id="subscription_type_product">
+                  <span class="ml-2">Product Subscription</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="radio" name="subscription_type" value="service" class="form-radio h-4 w-4 text-blue-600" id="subscription_type_service">
+                  <span class="ml-2">Service Subscription</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="product_selection" class="hidden">
+              <%= form.label :product_id, "Product", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.collection_select :product_id, @products.where(subscription_enabled: true), :id, :name, 
+                    { prompt: "Select a product" },
+                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <% if @products.where(subscription_enabled: true).empty? %>
+                <p class="mt-1 text-sm text-gray-500">No subscription-enabled products found. <%= link_to "Enable subscriptions on products", business_manager_products_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
+              <% end %>
+            </div>
+
+            <div id="service_selection" class="hidden">
+              <%= form.label :service_id, "Service", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.collection_select :service_id, @services.where(subscription_enabled: true), :id, :name, 
+                    { prompt: "Select a service" },
+                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <% if @services.where(subscription_enabled: true).empty? %>
+                <p class="mt-1 text-sm text-gray-500">No subscription-enabled services found. <%= link_to "Enable subscriptions on services", business_manager_services_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Subscription Settings -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Subscription Settings</h3>
+            
+            <div>
+              <%= form.label :quantity, "Quantity", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.number_field :quantity, min: 1, value: 1, required: true,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
+
+            <div>
+              <%= form.label :next_billing_date, "Next Billing Date", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.date_field :next_billing_date, value: 1.month.from_now.to_date, required: true,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
+
+            <div>
+              <%= form.label :billing_day_of_month, "Billing Day of Month", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.number_field :billing_day_of_month, min: 1, max: 28, value: Date.current.day,
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              <p class="mt-1 text-sm text-gray-500">Day of month for recurring billing (1-28)</p>
+            </div>
+          </div>
+
+          <!-- Service-specific Settings -->
+          <div class="space-y-4" id="service_settings" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Service Settings</h3>
+            
+            <div>
+              <%= form.label :service_rebooking_preference, "Rebooking Preference", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.select :service_rebooking_preference, 
+                    options_for_select([
+                      ['Same day next month (or soonest available)', 'same_day_next_month'],
+                      ['Same day next month (or loyalty points if unavailable)', 'same_day_loyalty_fallback'],
+                      ['Use business default', 'business_default']
+                    ], 'same_day_next_month'),
+                    { prompt: "Select rebooking preference" },
+                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+            </div>
+
+            <div>
+              <%= form.label :preferred_time_slot, "Preferred Time Slot", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.text_field :preferred_time_slot, placeholder: "e.g., 10:00 AM - 12:00 PM",
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            </div>
+          </div>
+
+          <!-- Product-specific Settings -->
+          <div class="space-y-4" id="product_settings" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Product Settings</h3>
+            
+            <div>
+              <%= form.label :out_of_stock_action, "Out of Stock Action", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.select :out_of_stock_action, 
+                    options_for_select([
+                      ['Skip billing cycle', 'skip_billing_cycle'],
+                      ['Award loyalty points', 'award_loyalty_points'],
+                      ['Cancel subscription', 'cancel_subscription']
+                    ], 'skip_billing_cycle'),
+                    { prompt: "Select out of stock action" },
+                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <%= form.label :notes, "Notes", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= form.text_area :notes, rows: 3, placeholder: "Optional notes about this subscription",
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+          <%= form.submit "Create Subscription", 
+                class: "inline-flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const productRadio = document.getElementById('subscription_type_product');
+    const serviceRadio = document.getElementById('subscription_type_service');
+    const productSelection = document.getElementById('product_selection');
+    const serviceSelection = document.getElementById('service_selection');
+    const productSettings = document.getElementById('product_settings');
+    const serviceSettings = document.getElementById('service_settings');
+
+    function toggleSubscriptionType() {
+      if (productRadio.checked) {
+        productSelection.classList.remove('hidden');
+        serviceSelection.classList.add('hidden');
+        productSettings.style.display = 'block';
+        serviceSettings.style.display = 'none';
+        
+        // Clear service fields
+        document.getElementById('customer_subscription_service_id').value = '';
+      } else if (serviceRadio.checked) {
+        serviceSelection.classList.remove('hidden');
+        productSelection.classList.add('hidden');
+        serviceSettings.style.display = 'block';
+        productSettings.style.display = 'none';
+        
+        // Clear product fields
+        document.getElementById('customer_subscription_product_id').value = '';
+      } else {
+        productSelection.classList.add('hidden');
+        serviceSelection.classList.add('hidden');
+        productSettings.style.display = 'none';
+        serviceSettings.style.display = 'none';
+      }
+    }
+
+    productRadio.addEventListener('change', toggleSubscriptionType);
+    serviceRadio.addEventListener('change', toggleSubscriptionType);
+    
+    // Initialize on page load
+    toggleSubscriptionType();
+  });
+</script> 
+ 
+ 

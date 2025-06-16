@@ -61,4 +61,18 @@ class OrderMailer < ApplicationMailer
       subject: "Refund Processed - Order ##{@order.order_number} - #{@business.name}"
     )
   end
+
+  # Send subscription order confirmation email to customer
+  def subscription_order_created(order)
+    @order = order
+    @business = order.business
+    @customer = order.tenant_customer
+    @subscription = order.customer_subscription
+    
+    mail(
+      to: @customer.email,
+      subject: "Subscription Order Created - #{@business.name}",
+      from: @business.email
+    )
+  end
 end 

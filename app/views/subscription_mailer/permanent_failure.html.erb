@@ -1,0 +1,23 @@
+<h1>Subscription Cancelled Due to Payment Issues</h1>
+
+<p>Hi <%= @customer.name %>,</p>
+
+<p>We're sorry to inform you that your subscription to <strong><%= @item.name %></strong> has been cancelled due to multiple payment attempts that could not be processed.</p>
+
+<h2>What happened?</h2>
+<p>After several automatic retry attempts, we were unable to process your payment. To protect your account and prevent further failed charges, we've cancelled your subscription.</p>
+
+<h2>Want to reactivate?</h2>
+<p>You can easily reactivate your subscription at any time by:</p>
+<ul>
+  <li>Updating your payment method</li>
+  <li>Creating a new subscription</li>
+</ul>
+
+<p>
+  <strong><a href="<%= client_subscriptions_url(subdomain: @business.subdomain) %>">Manage your subscription</a></strong>
+</p>
+
+<p>If you have any questions or need assistance, please contact us and we'll be happy to help.</p>
+
+<p>Thank you for your understanding.</p> 

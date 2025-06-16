@@ -1,0 +1,23 @@
+<h1>Subscription Order Received</h1>
+
+<p>Hello,</p>
+
+<p>A new order has been created for a subscription from <strong><%= @customer.name %></strong>!</p>
+
+<h2>Order Details:</h2>
+<ul>
+  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Order ID:</strong> #<%= @order.id %></li>
+  <li><strong>Subscription Item:</strong> <%= @customer_subscription.product&.name || @customer_subscription.service&.name %></li>
+  <li><strong>Amount:</strong> $<%= @customer_subscription.subscription_price %></li>
+  <li><strong>Frequency:</strong> <%= @customer_subscription.frequency %></li>
+</ul>
+
+<p>The order has been created and is ready for processing.</p>
+
+<p>
+  <a href="<%= business_manager_orders_url(subdomain: @business.subdomain) %>">View Orders</a>
+</p>
+
+<p>Best regards,<br>
+BizBlasts Team</p> 

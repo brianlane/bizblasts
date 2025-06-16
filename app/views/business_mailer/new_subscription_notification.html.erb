@@ -1,0 +1,22 @@
+<h1>New Subscription</h1>
+
+<p>Hello,</p>
+
+<p>You have a new subscription from <strong><%= @customer.name %></strong>!</p>
+
+<h2>Subscription Details:</h2>
+<ul>
+  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Item:</strong> <%= @item.name %></li>
+  <li><strong>Price:</strong> $<%= @customer_subscription.subscription_price %></li>
+  <li><strong>Frequency:</strong> <%= @customer_subscription.frequency %></li>
+  <li><strong>Quantity:</strong> <%= @customer_subscription.quantity %></li>
+  <li><strong>Next Billing Date:</strong> <%= @customer_subscription.next_billing_date.strftime('%B %d, %Y') %></li>
+</ul>
+
+<p>
+  <a href="<%= business_manager_customer_subscriptions_url(subdomain: @business.subdomain) %>">Manage Subscriptions</a>
+</p>
+
+<p>Best regards,<br>
+BizBlasts Team</p> 

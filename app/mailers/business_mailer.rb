@@ -169,6 +169,199 @@ class BusinessMailer < ApplicationMailer
     return nil
   end
 
+  # Send notification to business when a new subscription is created
+  def new_subscription_notification(customer_subscription)
+    @customer_subscription = customer_subscription
+    @business = customer_subscription.business
+    
+    # Handle case where business might be nil or deleted
+    return unless @business.present?
+    
+    @customer = customer_subscription.tenant_customer
+    @item = customer_subscription.product || customer_subscription.service
+    
+    # Get business manager
+    business_user = @business.users.where(role: [:manager]).first
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has subscription notifications enabled
+    unless notification_enabled?(business_user, 'email_subscription_notifications')
+      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
+      return
+    end
+    
+    # Check if the manager has opted out of marketing emails
+    if business_user.email_marketing_opt_out == true
+      Rails.logger.info "[BusinessMailer] Manager has opted out of marketing emails for Business ##{@business.id}"
+      return
+    end
+    
+    mail(
+      to: business_user.email,
+      subject: "New Subscription: #{@customer.name} - #{@item.name}"
+    )
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BusinessMailer] Business not found for subscription notification: #{e.message}"
+    return nil
+  end
+
+  # Send notification to business when a subscription order is created
+  def subscription_order_received(customer_subscription, order = nil)
+    # Handle both calling patterns
+    if order.nil?
+      # Old pattern: subscription_order_received(order)
+      @order = customer_subscription
+      @customer_subscription = @order.customer_subscription
+      @business = @order.business
+      @customer = @order.tenant_customer
+    else
+      # New pattern: subscription_order_received(subscription, order)
+      @customer_subscription = customer_subscription
+      @order = order
+      @business = @customer_subscription.business
+      @customer = @customer_subscription.tenant_customer
+    end
+    
+    # Handle case where business might be nil or deleted
+    return unless @business.present?
+    
+    # Get business manager
+    business_user = @business.users.where(role: [:manager]).first
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has subscription notifications enabled
+    unless notification_enabled?(business_user, 'email_subscription_notifications')
+      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
+      return
+    end
+    
+    mail(
+      to: business_user.email,
+      subject: "Subscription Order: #{@customer.name} - Order ##{@order.id}"
+    )
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BusinessMailer] Business not found for subscription order notification: #{e.message}"
+    return nil
+  end
+
+  # Send notification to business when a subscription booking is created
+  def subscription_booking_received(customer_subscription, booking = nil)
+    # Handle both calling patterns
+    if booking.nil?
+      # Old pattern: subscription_booking_received(booking)
+      @booking = customer_subscription
+      @customer_subscription = @booking.customer_subscription
+      @business = @booking.business
+      @customer = @booking.tenant_customer
+      @service = @booking.service
+      @staff_member = @booking.staff_member
+    else
+      # New pattern: subscription_booking_received(subscription, booking)
+      @customer_subscription = customer_subscription
+      @booking = booking
+      @business = @customer_subscription.business
+      @customer = @customer_subscription.tenant_customer
+      @service = @booking.service
+      @staff_member = @booking.staff_member
+    end
+    
+    # Handle case where business might be nil or deleted
+    return unless @business.present?
+    
+    # Get business manager
+    business_user = @business.users.where(role: [:manager]).first
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has subscription notifications enabled
+    unless notification_enabled?(business_user, 'email_subscription_notifications')
+      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
+      return
+    end
+    
+    mail(
+      to: business_user.email,
+      subject: "Subscription Booking: #{@customer.name} - #{@service.name}"
+    )
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BusinessMailer] Business not found for subscription booking notification: #{e.message}"
+    return nil
+  end
+
+  # Send notification to business when a subscription payment fails
+  def payment_failed(customer_subscription)
+    @customer_subscription = customer_subscription
+    @business = customer_subscription.business
+    
+    # Handle case where business might be nil or deleted
+    return unless @business.present?
+    
+    @customer = customer_subscription.tenant_customer
+    @item = customer_subscription.product || customer_subscription.service
+    
+    # Get business manager
+    business_user = @business.users.where(role: [:manager]).first
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has subscription notifications enabled
+    unless notification_enabled?(business_user, 'email_subscription_notifications')
+      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
+      return
+    end
+    
+    mail(
+      to: business_user.email,
+      subject: "Subscription Payment Failed: #{@customer.name} - #{@item.name}"
+    )
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BusinessMailer] Business not found for payment failed notification: #{e.message}"
+    return nil
+  end
+
+  # Send notification to business when a subscription is cancelled
+  def subscription_cancelled(customer_subscription)
+    @customer_subscription = customer_subscription
+    @business = customer_subscription.business
+    
+    # Handle case where business might be nil or deleted
+    return unless @business.present?
+    
+    @customer = customer_subscription.tenant_customer
+    @item = customer_subscription.product || customer_subscription.service
+    
+    # Get business manager
+    business_user = @business.users.where(role: [:manager]).first
+    return unless business_user.present?
+    
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+    
+    # Check if the manager has subscription notifications enabled
+    unless notification_enabled?(business_user, 'email_subscription_notifications')
+      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
+      return
+    end
+    
+    mail(
+      to: business_user.email,
+      subject: "Subscription Cancelled: #{@customer.name} - #{@item.name}"
+    )
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BusinessMailer] Business not found for subscription cancelled notification: #{e.message}"
+    return nil
+  end
+
   private
 
   def notification_enabled?(user, notification_type)

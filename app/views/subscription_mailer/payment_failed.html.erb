@@ -1,0 +1,16 @@
+<h1>Payment Failed</h1>
+
+<p>Hi <%= @customer.name %>,</p>
+
+<p>Unfortunately, your payment for <strong><%= @item.name %></strong> could not be processed.</p>
+
+<h2>What happens next?</h2>
+<p>We will automatically retry your payment in a few days. If you'd like to update your payment method or retry now, please visit your subscription management page.</p>
+
+<p>
+  <strong><a href="<%= client_subscriptions_url(subdomain: @business.subdomain) %>">Manage your subscription</a></strong>
+</p>
+
+<p>If you continue to experience issues, please contact us and we'll be happy to help.</p>
+
+<p>Thank you for your understanding.</p> 

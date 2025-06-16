@@ -1,0 +1,24 @@
+<h1>Subscription Cancelled</h1>
+
+<p>Hello,</p>
+
+<p>A subscription has been cancelled by <strong><%= @customer.name %></strong>.</p>
+
+<h2>Cancelled Subscription Details:</h2>
+<ul>
+  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Item:</strong> <%= @item.name %></li>
+  <li><strong>Price:</strong> $<%= @customer_subscription.subscription_price %></li>
+  <li><strong>Frequency:</strong> <%= @customer_subscription.frequency %></li>
+  <li><strong>Cancelled Date:</strong> <%= @customer_subscription.cancelled_at.strftime('%B %d, %Y') %></li>
+  <% if @customer_subscription.cancellation_reason.present? %>
+    <li><strong>Reason:</strong> <%= @customer_subscription.cancellation_reason %></li>
+  <% end %>
+</ul>
+
+<p>
+  <a href="<%= business_manager_customer_subscriptions_url(subdomain: @business.subdomain) %>">Manage Subscriptions</a>
+</p>
+
+<p>Best regards,<br>
+BizBlasts Team</p> 

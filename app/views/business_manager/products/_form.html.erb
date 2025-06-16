@@ -83,6 +83,114 @@
           <%= form.check_box :tips_enabled, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
           <%= form.label :tips_enabled, "Enable tips", class: "ml-2 text-gray-700 text-sm font-bold" %>
         </div>
+
+        <div class="flex items-center">
+          <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500", id: "product_subscription_enabled" %>
+          <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscription Settings Section -->
+  <div id="subscription-settings" class="mt-8 border-t pt-6" style="<%= @product.subscription_enabled? ? '' : 'display: none;' %>">
+    <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Subscription Settings</h3>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+      <!-- Subscription Pricing -->
+      <div class="space-y-4">
+        <h4 class="text-md font-medium text-gray-800">Pricing & Incentives</h4>
+        
+        <div>
+          <%= form.label :subscription_discount_percentage, "Subscription Discount (%)", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= form.number_field :subscription_discount_percentage, step: 0.01, min: 0, max: 100, 
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          <p class="mt-1 text-sm text-gray-500">Discount percentage for customers who subscribe (e.g., 10% off recurring orders)</p>
+        </div>
+
+        <div>
+          <%= form.label :subscription_billing_cycle, "Default Billing Cycle", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= render 'shared/rich_dropdown',
+              collection: CustomerSubscription.billing_cycles.map { |cycle| [cycle.humanize, cycle] },
+              field_name: "#{form.object_name}[subscription_billing_cycle]",
+              selected_value: @product.subscription_billing_cycle || 'monthly',
+              prompt_text: "Select Billing Cycle",
+              value_method: :last,
+              text_method: :first,
+              required: false,
+              dropdown_id: "subscription_billing_cycle_dropdown" %>
+        </div>
+      </div>
+
+      <!-- Out of Stock Handling -->
+      <div class="space-y-4">
+        <h4 class="text-md font-medium text-gray-800">Stock Management</h4>
+        
+        <div>
+          <%= form.label :subscription_out_of_stock_action, "When Out of Stock", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= render 'shared/rich_dropdown',
+              collection: CustomerSubscription.out_of_stock_actions.keys.map { |action| [action.humanize, action] },
+              field_name: "#{form.object_name}[subscription_out_of_stock_action]",
+              selected_value: @product.subscription_out_of_stock_action || 'skip_month',
+              prompt_text: "Select Action",
+              value_method: :last,
+              text_method: :first,
+              required: false,
+              dropdown_id: "subscription_out_of_stock_action_dropdown" %>
+          <p class="mt-1 text-sm text-gray-500">Action to take when product is out of stock during subscription billing</p>
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <h5 class="text-sm font-medium text-blue-800 mb-2">Stock Action Options:</h5>
+          <ul class="text-sm text-blue-700 space-y-1">
+            <li><strong>Skip month:</strong> Skip this month, try again next cycle</li>
+            <li><strong>Loyalty points:</strong> Give loyalty points instead (if loyalty enabled)</li>
+            
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Preferences Section -->
+    <div class="mt-6 border-t pt-6">
+      <h4 class="text-md font-medium text-gray-800 mb-4">Customer Preferences</h4>
+      
+      <div class="space-y-4">
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <%= form.check_box :allow_customer_preferences, 
+                  class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded",
+                  checked: @product.allow_customer_preferences != false %>
+          </div>
+          <div class="ml-3">
+            <%= form.label :allow_customer_preferences, "Allow customers to set their own subscription preferences", 
+                  class: "text-sm font-medium text-gray-700" %>
+            <p class="text-sm text-gray-500 mt-1">
+              When enabled, customers can choose their preferred out-of-stock actions instead of using your defaults.
+            </p>
+          </div>
+        </div>
+        
+        <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-amber-800">Customer Choice Benefits</h3>
+              <div class="mt-2 text-sm text-amber-700">
+                <ul class="list-disc list-inside space-y-1">
+                  <li>Improves customer satisfaction and control</li>
+                  <li>Reduces support requests about subscription handling</li>
+                  <li>Your settings above become the default fallback</li>
+                  <li>Customers can change preferences anytime in their account</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -279,6 +387,20 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     let variantCounter = 0;
+    
+    // Handle subscription toggle
+    const subscriptionCheckbox = document.getElementById('product_subscription_enabled');
+    const subscriptionSettings = document.getElementById('subscription-settings');
+    
+    if (subscriptionCheckbox && subscriptionSettings) {
+      subscriptionCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          subscriptionSettings.style.display = 'block';
+        } else {
+          subscriptionSettings.style.display = 'none';
+        }
+      });
+    }
     
     // Handle Add Variant button click
     const addVariantBtn = document.getElementById('add-variant');

@@ -41,42 +41,198 @@
           </p>
         <% end %>
       </div>
+
+      <!-- Subscription Options -->
+      <% if @product.subscription_enabled? %>
+        <div class="subscription-section mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <div class="flex items-center mb-3">
+            <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <h3 class="text-lg font-semibold text-purple-900">Subscribe & Save</h3>
+          </div>
+          
+          <div class="subscription-pricing mb-4">
+            <% 
+              subscription_price = @product.subscription_price
+              original_price = @product.on_promotion? ? @product.promotional_price : @product.price
+              discount_percentage = @product.subscription_discount_percentage || 0
+            %>
+            
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold text-purple-600">
+                <%= number_to_currency(subscription_price) %>
+              </span>
+              <span class="text-sm text-purple-700">
+                /<%= @product.subscription_billing_cycle&.singularize || 'month' %>
+              </span>
+              <% if discount_percentage > 0 %>
+                <span class="text-lg text-gray-500 line-through">
+                  <%= number_to_currency(original_price) %>
+                </span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  Save <%= discount_percentage %>%
+                </span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="subscription-benefits mb-4">
+            <h4 class="text-sm font-medium text-purple-900 mb-2">Subscription Benefits:</h4>
+            <ul class="text-sm text-purple-700 space-y-1">
+              <% if discount_percentage > 0 %>
+                <li class="flex items-center">
+                  <svg class="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <%= discount_percentage %>% discount on every delivery
+                </li>
+              <% end %>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Automatic <%= @product.subscription_billing_cycle&.singularize || 'monthly' %> delivery
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Cancel anytime
+              </li>
+              <% if @product.allow_customer_preferences? %>
+                <li class="flex items-center">
+                  <svg class="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Customize your preferences
+                </li>
+              <% end %>
+            </ul>
+          </div>
+
+          <!-- Subscription Form -->
+          <%= form_tag subscriptions_path, method: :post, class: "subscription-form" do %>
+            <%= hidden_field_tag :product_id, @product.id %>
+            <%= hidden_field_tag :subscription_type, 'product_subscription' %>
+            
+            <% if @product.product_variants.any? %>
+              <div class="mb-3">
+                <label for="subscription_variant" class="block text-sm font-medium text-purple-700 mb-1">Choose variant:</label>
+                <%
+                  variant_collection = @product.product_variants.map do |variant|
+                    subscription_variant_price = variant.subscription_price
+                    OpenStruct.new(
+                      id: variant.id,
+                      name: variant.name,
+                      price: subscription_variant_price,
+                      description: "subscription price"
+                    )
+                  end
+                %>
+                <%= render 'shared/rich_dropdown',
+                    collection: variant_collection,
+                    field_name: "product_variant_id",
+                    selected_value: nil,
+                    prompt_text: "Select a variant",
+                    value_method: :id,
+                    text_method: :name,
+                    price_method: :price,
+                    description_method: :description,
+                    dropdown_id: "subscription_variant_dropdown" %>
+              </div>
+            <% end %>
+            
+            <div class="mb-3">
+              <label for="subscription_quantity" class="block text-sm font-medium text-purple-700 mb-1">Quantity:</label>
+              <input type="number" name="quantity" id="subscription_quantity" value="1" min="1" max="10"
+                     class="w-20 border-purple-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
+            </div>
+            
+            <%= submit_tag 'Start Subscription', 
+                  class: 'w-full sm:w-auto px-6 py-3 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2' %>
+          <% end %>
+        </div>
+      <% end %>
       
       <% if @product.product_variants.any? %>
-        <%= form_tag line_items_path, method: :post do %>
-          <div class="mt-4">
-            <label for="variant" class="block text-sm font-medium text-gray-700">Choose a variant:</label>
-            <%
-              variant_collection = @product.product_variants.map do |variant|
-                price_modifier = variant.price_modifier || 0
-                variant_price = @product.on_promotion? ? @product.promotional_price + price_modifier : variant.final_price
-                OpenStruct.new(
-                  id: variant.id,
-                  name: variant.name,
-                  price: variant_price,
-                  description: @product.on_promotion? && price_modifier != 0 ? "promotional price" : nil
-                )
-              end
-            %>
-            <%= render 'shared/rich_dropdown',
-                collection: variant_collection,
-                field_name: "product_variant_id",
-                selected_value: nil,
-                prompt_text: "Select a variant",
-                value_method: :id,
-                text_method: :name,
-                price_method: :price,
-                description_method: :description,
-                dropdown_id: "product_variant_dropdown" %>
-          </div>
-          <div class="mt-4">
-            <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity:</label>
-            <input type="number" name="quantity" id="quantity" value="1" min="1" 
-                   class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
-          </div>
-          <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
+        <%= form_tag line_items_path, method: :post, class: "one-time-purchase-form #{'mt-6' if @product.subscription_enabled?}" do %>
+          <% unless @product.subscription_enabled? %>
+            <div class="mt-4">
+              <label for="variant" class="block text-sm font-medium text-gray-700">Choose a variant:</label>
+              <%
+                variant_collection = @product.product_variants.map do |variant|
+                  price_modifier = variant.price_modifier || 0
+                  variant_price = @product.on_promotion? ? @product.promotional_price + price_modifier : variant.final_price
+                  OpenStruct.new(
+                    id: variant.id,
+                    name: variant.name,
+                    price: variant_price,
+                    description: @product.on_promotion? && price_modifier != 0 ? "promotional price" : nil
+                  )
+                end
+              %>
+              <%= render 'shared/rich_dropdown',
+                  collection: variant_collection,
+                  field_name: "product_variant_id",
+                  selected_value: nil,
+                  prompt_text: "Select a variant",
+                  value_method: :id,
+                  text_method: :name,
+                  price_method: :price,
+                  description_method: :description,
+                  dropdown_id: "product_variant_dropdown" %>
+            </div>
+            <div class="mt-4">
+              <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity:</label>
+              <input type="number" name="quantity" id="quantity" value="1" min="1" 
+                     class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
+            </div>
+            <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
+          <% else %>
+            <!-- One-time purchase option when subscription is available -->
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 class="text-sm font-medium text-gray-900 mb-2">One-time purchase:</h4>
+              <div class="flex items-center gap-4">
+                <div class="flex-1">
+                  <label for="onetime_variant" class="block text-sm font-medium text-gray-700 mb-1">Choose variant:</label>
+                  <%
+                    variant_collection = @product.product_variants.map do |variant|
+                      price_modifier = variant.price_modifier || 0
+                      variant_price = @product.on_promotion? ? @product.promotional_price + price_modifier : variant.final_price
+                      OpenStruct.new(
+                        id: variant.id,
+                        name: variant.name,
+                        price: variant_price,
+                        description: @product.on_promotion? && price_modifier != 0 ? "promotional price" : nil
+                      )
+                    end
+                  %>
+                  <%= render 'shared/rich_dropdown',
+                      collection: variant_collection,
+                      field_name: "product_variant_id",
+                      selected_value: nil,
+                      prompt_text: "Select a variant",
+                      value_method: :id,
+                      text_method: :name,
+                      price_method: :price,
+                      description_method: :description,
+                      dropdown_id: "onetime_variant_dropdown" %>
+                </div>
+                <div>
+                  <label for="onetime_quantity" class="block text-sm font-medium text-gray-700 mb-1">Qty:</label>
+                  <input type="number" name="quantity" id="onetime_quantity" value="1" min="1" 
+                         class="w-16 border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div class="pt-6">
+                  <%= submit_tag 'Add to Cart', class: 'px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors' %>
+                </div>
+              </div>
+            </div>
+          <% end %>
         <% end %>
       <% end %>
+      
       <% if @product.product_type == 'service' || @product.product_type == 'mixed' %>
         <% if @product.add_on_services.any? %>
           <hr class="my-4" />

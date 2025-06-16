@@ -1,0 +1,9 @@
+<div class="subscription-cancel">
+  <h1>Cancel Subscription</h1>
+  <p>Are you sure you want to cancel your subscription to <strong><%= @customer_subscription.product.name %></strong>?</p>
+  <%= form_with url: cancel_client_subscription_path(@customer_subscription), method: :post, local: true do |form| %>
+    <%= form.hidden_field :confirmed, value: 'true' %>
+    <%= form.submit "Yes, Cancel Subscription", class: "btn btn-danger" %>
+  <% end %>
+  <%= link_to "No, Keep Subscription", client_subscription_path(@customer_subscription), class: "btn btn-secondary" %>
+</div> 

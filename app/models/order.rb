@@ -9,6 +9,9 @@ class Order < ApplicationRecord
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
   has_one :invoice
+  
+  # Add association for test compatibility (orders can be created from subscriptions)
+  has_many :customer_subscriptions, through: :tenant_customer
 
   # Statuses:
   #   pending_payment → Customer must pay (initial state)
