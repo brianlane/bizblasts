@@ -52,8 +52,8 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
   let!(:client_user_a) { create(:user, :client, first_name: 'Alice', last_name: 'Smith', email: 'alice@example.com') }
   let!(:client_user_b) { create(:user, :client, first_name: 'Bob', last_name: 'Jones', email: 'bob@example.com') }
   
-  let!(:service_x) { create(:service, business: business_x, price: 100.00, name: 'Haircut') }
-  let!(:product_x) { create(:product, business: business_x, price: 50.00) }
+  let!(:service_x) { create(:service, business: business_x, price: 100.00, name: 'Haircut', allow_discounts: true) }
+  let!(:product_x) { create(:product, business: business_x, price: 50.00, allow_discounts: true) }
   let!(:product_variant_x) { create(:product_variant, product: product_x, price_modifier: 0.00) }
   let!(:staff_member_x) { create(:staff_member, business: business_x) }
   
@@ -574,9 +574,14 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
             total_amount: product_variant_x.final_price
           )
           
+          # Ensure order totals are calculated correctly
+          order.reload
+          order.calculate_totals!
+          order.save!
+          order.reload
+          
           # Apply discount code
           result = PromoCodeService.apply_code('BUSINESS20', business_x, order, tenant_customer_b)
-          
           expect(result[:success]).to be true
           
           # Award loyalty points

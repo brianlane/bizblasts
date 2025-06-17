@@ -108,6 +108,7 @@ RSpec.describe ProductsController, type: :request do
           business: business,
           discount_type: 'percentage',
           discount_value: 15,
+          start_date: 2.weeks.ago,
           end_date: 1.week.ago,
           applicable_to_products: true,
           active: true

@@ -5,9 +5,9 @@ RSpec.describe 'Promotion and Discount Code Stacking', type: :service do
   let!(:customer) { create(:tenant_customer, business: business) }
   let!(:user) { create(:user, :client) }
   
-  let!(:product) { create(:product, business: business, price: 100.00, name: 'Test Product') }
+  let!(:product) { create(:product, business: business, price: 100.00, name: 'Test Product', allow_discounts: true) }
   let!(:product_variant) { create(:product_variant, product: product, price_modifier: 0.00) }
-  let!(:service) { create(:service, business: business, price: 150.00, name: 'Test Service') }
+  let!(:service) { create(:service, business: business, price: 150.00, name: 'Test Service', allow_discounts: true) }
   let!(:staff_member) { create(:staff_member, business: business) }
   
   # Create automatic promotion for products and services (allows stacking)
@@ -138,8 +138,8 @@ RSpec.describe 'Promotion and Discount Code Stacking', type: :service do
             tenant_customer: customer,
             order_type: 'mixed',
             total_amount: product.promotional_price + service.promotional_price,
-            applied_promo_code: 'EXTRA10',
-            promo_code_type: 'discount'
+            tax_rate: nil,
+            shipping_method: nil
           )
           
           # Add product line item with promotional pricing
@@ -162,14 +162,23 @@ RSpec.describe 'Promotion and Discount Code Stacking', type: :service do
             total_amount: service.promotional_price
           )
           
+          # Ensure order totals are calculated correctly
+          order.reload
+          order.calculate_totals!
+          order.save!
+          order.reload
+          
+          # Store total before discount for comparison
+          total_before_discount = order.total_amount
+          
           # Apply discount code
           result = PromoCodeService.apply_code('EXTRA10', business, order, customer)
-          
           expect(result[:success]).to be true
           
           order.reload
           # Check that discount was applied
-          expect(order.total_amount).to be < (product.promotional_price + service.promotional_price)
+          expect(order.promo_discount_amount).to eq(10.00)
+          expect(order.total_amount).to be < total_before_discount
         end
       end
   end
