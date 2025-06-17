@@ -94,7 +94,7 @@
         <p style="color: #4b5563; margin: 15px 0;"><%= @blog_post.excerpt %></p>
         
         <div style="text-align: center;">
-          <a href="<%= request.protocol + request.host + @blog_post.url_path %>" class="cta-button">
+          <a href="<%= root_url.chomp('/') + @blog_post.url_path %>" class="cta-button">
             Read Full Post →
           </a>
         </div>
@@ -106,7 +106,7 @@
       
       <p style="font-size: 14px; color: #6b7280;">
         <strong>💡 Tip:</strong> Don't miss future updates! You can also subscribe to our 
-        <a href="<%= request.protocol + request.host %>/blog/feed.xml" style="color: #667eea;">RSS feed</a> 
+        <a href="<%= root_url.chomp('/') %>/blog/feed.xml" style="color: #667eea;">RSS feed</a> 
         to get all our blog posts in your favorite RSS reader.
       </p>
     </div>

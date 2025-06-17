@@ -5,7 +5,7 @@ ActiveAdmin.register Product do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :active, :featured, :product_type, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :name, :description, :price, :active, :featured, :product_type, :allow_discounts, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
   #
   # or
   #
@@ -155,6 +155,7 @@ ActiveAdmin.register Product do
       f.input :product_type, as: :select, collection: Product.product_types.keys
       f.input :active
       f.input :featured
+      f.input :allow_discounts, label: 'Allow Discount Codes', hint: 'When unchecked, this product will be excluded from all discount codes and promo codes'
       f.input :images, as: :file, input_html: { multiple: true }
       
       # Filter add_on_services by the selected business

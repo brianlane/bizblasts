@@ -9,13 +9,24 @@ RSpec.describe PlatformLoyaltyService, type: :service do
   let(:referred_business) { create(:business, name: 'New Business') }
   
   before do
-    # Mock Stripe API calls - no API key configuration needed for tests
-    # Since we're mocking the actual Stripe calls, we don't need to configure the API key
+    # Reset any existing Stripe mocks to prevent interference from other tests
+    RSpec::Mocks.space.reset_all
+    
+    # Set up default Stripe coupon mock for all tests
+    allow(Stripe::Coupon).to receive(:create).and_return(
+      double('Stripe::Coupon', id: 'coupon_default_123')
+    )
   end
 
   after do
     # Reset the current tenant to prevent test pollution
     ActsAsTenant.current_tenant = nil
+    
+    # Clear Rails cache to prevent interference
+    Rails.cache.clear
+    
+    # Reset all mocks to ensure clean state for next test
+    RSpec::Mocks.space.reset_all
   end
 
   describe '.process_business_referral_signup' do
@@ -39,6 +50,9 @@ RSpec.describe PlatformLoyaltyService, type: :service do
       end
       
       it 'creates Stripe coupon for referral discount' do
+        # Clear any existing mocks and set up specific expectation for this test
+        RSpec::Mocks.space.reset_all
+        
         mock_stripe_coupon = double('Stripe::Coupon', id: 'coupon_test_referral_123')
         expect(Stripe::Coupon).to receive(:create).with(
           hash_including(

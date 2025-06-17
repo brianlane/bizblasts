@@ -234,7 +234,11 @@ Rails.application.routes.draw do
     resource :cart, only: [:show]
     resources :line_items, only: [:create, :update, :destroy]
           # Subdomain checkout uses Public::OrdersController for guest flows
-      resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders'
+      resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders' do
+        collection do
+          post :validate_promo_code
+        end
+      end
       
       # Public subscription signup (for customers on business subdomains)
       resources :subscriptions, only: [:new, :create], controller: 'public/subscriptions' do

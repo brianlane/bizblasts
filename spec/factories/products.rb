@@ -8,6 +8,7 @@ FactoryBot.define do
     association :business # Assuming you have a business factory
     product_type { :standard }
     stock_quantity { 100 } # Ensure products have sufficient stock for testing
+    allow_discounts { true }
 
     trait :inactive do
       active { false }

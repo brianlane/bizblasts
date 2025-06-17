@@ -66,7 +66,7 @@ module BusinessManager
 
     def product_params
       params.require(:product).permit(
-        :name, :description, :price, :active, :featured, :product_type, :tips_enabled,
+        :name, :description, :price, :active, :featured, :product_type, :tips_enabled, :allow_discounts,
         :stock_quantity, # If product can be sold without variants
         :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_out_of_stock_action, :allow_customer_preferences,
         add_on_service_ids: [], 

@@ -42,6 +42,7 @@ class Product < ApplicationRecord
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
+  validates :allow_discounts, inclusion: { in: [true, false] }
   # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
                                      message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
@@ -73,7 +74,7 @@ class Product < ApplicationRecord
   def self.ransackable_attributes(auth_object = nil)
     # Allowlist attributes for searching/filtering in ActiveAdmin
     # Include basic fields, foreign keys, flags, and timestamps
-    %w[id name description price active featured business_id created_at updated_at product_type]
+    %w[id name description price active featured business_id created_at updated_at product_type allow_discounts]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -145,6 +146,11 @@ class Product < ApplicationRecord
   # Tip eligibility methods
   def tip_eligible?
     tips_enabled?
+  end
+  
+  # Discount eligibility methods
+  def discount_eligible?
+    allow_discounts?
   end
 
   # Subscription methods

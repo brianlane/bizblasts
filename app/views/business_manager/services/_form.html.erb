@@ -50,6 +50,12 @@
   </div>
 
   <div class="mb-4">
+    <%= form.check_box :allow_discounts %>
+    <%= form.label :allow_discounts, "Allow discount codes", class: "ml-2 text-gray-700 text-sm font-bold" %>
+    <span class="ml-2 text-xs text-gray-500">(When unchecked, this service will be excluded from all discount codes)</span>
+  </div>
+
+  <div class="mb-4">
     <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500", id: "service_subscription_enabled" %>
     <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
   </div>

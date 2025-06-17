@@ -9,6 +9,7 @@ FactoryBot.define do
     active { true }
     featured { false }
     service_type { :standard }
+    allow_discounts { true }
     association :business
     
     availability_settings { {} }

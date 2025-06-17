@@ -129,7 +129,8 @@ RSpec.describe Product, type: :model do
           image.update(position: index)
         end
         expect(product.images.ordered.map(&:id)).to eq(product.images.map(&:id))
-          end
+      end
+    end
   end
 
   describe 'promotional pricing methods' do
@@ -488,7 +489,6 @@ RSpec.describe Product, type: :model do
       end
     end
   end
-end
 
   describe 'image deletion functionality' do
     let(:product) { create(:product, business: business) }
@@ -781,6 +781,18 @@ end
       expect(mock_images).to receive(:attach).with(files)
       
       product.images.attach(files)
+    end
+  end
+
+  describe '#discount_eligible?' do
+    it 'returns true when allow_discounts is true' do
+      product = build(:product, allow_discounts: true)
+      expect(product.discount_eligible?).to be true
+    end
+
+    it 'returns false when allow_discounts is false' do
+      product = build(:product, allow_discounts: false)
+      expect(product.discount_eligible?).to be false
     end
   end
 end 

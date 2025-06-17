@@ -751,8 +751,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
     t.string "subscription_billing_cycle", default: "monthly"
     t.string "subscription_out_of_stock_action", default: "skip_billing_cycle"
     t.boolean "allow_customer_preferences", default: true, null: false
+    t.boolean "allow_discounts", default: true, null: false
     t.index ["active"], name: "index_products_on_active"
     t.index ["allow_customer_preferences"], name: "index_products_on_allow_customer_preferences"
+    t.index ["allow_discounts"], name: "index_products_on_allow_discounts"
     t.index ["business_id"], name: "index_products_on_business_id"
     t.index ["featured"], name: "index_products_on_featured"
     t.index ["tips_enabled"], name: "index_products_on_tips_enabled"
@@ -889,7 +891,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
     t.string "subscription_billing_cycle", default: "monthly"
     t.string "subscription_rebooking_preference", default: "same_day_next_month"
     t.boolean "allow_customer_preferences", default: true, null: false
+    t.boolean "allow_discounts", default: true, null: false
     t.index ["allow_customer_preferences"], name: "index_services_on_allow_customer_preferences"
+    t.index ["allow_discounts"], name: "index_services_on_allow_discounts"
     t.index ["business_id"], name: "index_services_on_business_id"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
     t.index ["tips_enabled"], name: "index_services_on_tips_enabled"

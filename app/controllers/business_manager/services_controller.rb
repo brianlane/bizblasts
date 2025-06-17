@@ -85,6 +85,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :tips_enabled,
+      :allow_discounts,
       :availability_settings,
       :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_rebooking_preference, :allow_customer_preferences,
       staff_member_ids: [], # Allow staff assignment via new association
