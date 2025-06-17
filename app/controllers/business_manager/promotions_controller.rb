@@ -100,7 +100,8 @@ class BusinessManager::PromotionsController < BusinessManager::BaseController
       :name, :code, :description, :discount_type, :discount_value,
       :start_date, :end_date, :usage_limit, :active,
       :applicable_to_products, :applicable_to_services,
-      :public_dates, :allow_discount_codes
+      :public_dates, :allow_discount_codes,
+      product_ids: [], service_ids: []
     )
   end
   
