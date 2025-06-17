@@ -169,7 +169,7 @@
             <% first_active_staff = @service.staff_members.active.first %>
             <% if first_active_staff.present? || @service.standard? %>
               <%= link_to "Book Now", 
-                  new_tenant_booking_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
+                  tenant_calendar_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
                   class: "w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300" %>
             <% else %>
               <p class="text-red-600 text-sm">Currently unavailable (no active staff)</p>
@@ -311,7 +311,7 @@
              <% first_active_staff = @service.staff_members.active.first %>
        <% if first_active_staff.present? || @service.standard? %>
          <%= link_to "Book Now", 
-             new_tenant_booking_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
+             tenant_calendar_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
              class: "inline-block bg-green-600 text-white text-xl font-bold px-8 py-4 rounded-full hover:bg-green-700 transition duration-300" %>
       <% else %>
          <p class="text-red-600 text-lg">Booking currently unavailable for this service (no active staff).</p>

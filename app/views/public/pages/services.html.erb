@@ -88,7 +88,7 @@
             <% first_active_staff = service.staff_members.active.first %>
             <% if first_active_staff.present? || service.standard? %>
               <%= link_to "Book Now", 
-                  new_tenant_booking_path(service_id: service.id, staff_member_id: first_active_staff&.id), 
+                  tenant_calendar_path(service_id: service.id, staff_member_id: first_active_staff&.id), 
                   class: "inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm transition duration-200" %>
             <% end %>
           </div>
