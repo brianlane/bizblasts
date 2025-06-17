@@ -70,7 +70,8 @@
               <div>
                 <dt class="text-sm font-medium text-gray-500">Duration</dt>
                 <dd class="mt-1 text-sm text-gray-900">
-                  <%= @promotion.start_date.strftime("%B %d, %Y") %> - <%= @promotion.end_date.strftime("%B %d, %Y") %>
+                  <%= @promotion.start_date.strftime("%B %d, %Y") %> - 
+                  <%= @promotion.end_date ? @promotion.end_date.strftime("%B %d, %Y") : "Never expires" %>
                 </dd>
               </div>
               <div>
@@ -159,7 +160,8 @@
                   <p class="mt-1 text-sm text-gray-600"><%= @promotion.description %></p>
                 <% end %>
                 <p class="mt-2 text-xs text-gray-500">
-                  Valid from <%= @promotion.start_date.strftime("%b %d") %> to <%= @promotion.end_date.strftime("%b %d, %Y") %>
+                  Valid from <%= @promotion.start_date.strftime("%b %d") %> 
+                  <%= @promotion.end_date ? "to #{@promotion.end_date.strftime('%b %d, %Y')}" : "(never expires)" %>
                 </p>
               </div>
             </div>

@@ -12,8 +12,8 @@ xml.rss version: "2.0" do
         xml.title post.title
         xml.description post.excerpt
         xml.pubDate post.published_at.rfc822
-        xml.link request.protocol + request.host_with_port + post.url_path
-        xml.guid request.protocol + request.host_with_port + post.url_path, isPermaLink: true
+        xml.link root_url.chomp('/') + post.url_path
+        xml.guid root_url.chomp('/') + post.url_path, isPermaLink: true
         xml.category post.category_display_name if post.category.present?
         xml.author "#{post.author_email} (#{post.author_name})" if post.author_name.present?
       end

@@ -57,6 +57,7 @@ class Service < ApplicationRecord
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
+  validates :allow_discounts, inclusion: { in: [true, false] }
 
   # Validations for images - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
@@ -85,7 +86,7 @@ class Service < ApplicationRecord
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots]
+    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -132,6 +133,11 @@ class Service < ApplicationRecord
   # Tip eligibility methods
   def tip_eligible?
     tips_enabled?
+  end
+  
+  # Discount eligibility methods
+  def discount_eligible?
+    allow_discounts?
   end
   
   def tip_timing

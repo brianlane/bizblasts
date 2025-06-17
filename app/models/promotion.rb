@@ -14,26 +14,28 @@ class Promotion < ApplicationRecord
   
   validates :name, presence: true
   validates :code, uniqueness: { scope: :business_id }, allow_blank: true
-  validates :start_date, presence: true
-  validates :end_date, presence: true
   validates :discount_type, presence: true
   validates :discount_value, presence: true, numericality: { greater_than: 0 }
   validates :active, inclusion: { in: [true, false] }
   validates :current_usage, numericality: { greater_than_or_equal_to: 0 }
   validates :usage_limit, numericality: { greater_than: 0 }, allow_nil: true
   
+  # Custom validation for dates
+  validate :validate_date_logic
+  
   # Business rule: Code-based promotions cannot allow discount code stacking
   validate :code_based_promotions_cannot_allow_discount_codes
   before_save :enforce_stacking_rules
+  before_validation :set_default_dates
   
   enum :discount_type, {
     percentage: 0,
     fixed_amount: 1
   }
   
-  scope :active, -> { where(active: true).where('start_date <= ? AND end_date >= ?', Time.current, Time.current) }
+  scope :active, -> { where(active: true).where('start_date <= ? AND (end_date >= ? OR end_date IS NULL)', Time.current, Time.current) }
   scope :upcoming, -> { where(active: true).where('start_date > ?', Time.current) }
-  scope :expired, -> { where(active: false).or(where('end_date < ?', Time.current)) }
+  scope :expired, -> { where(active: false).or(where('end_date < ? AND end_date IS NOT NULL', Time.current)) }
   scope :current, -> { active } # Alias for currently active promotions
   scope :automatic, -> { where(code: [nil, '']) } # Promotions that apply automatically
   scope :code_based, -> { where.not(code: [nil, '']) } # Promotions that require codes
@@ -90,7 +92,7 @@ class Promotion < ApplicationRecord
   def currently_active?
     active? && 
     start_date <= Time.current && 
-    end_date >= Time.current && 
+    (end_date.nil? || end_date >= Time.current) && 
     !usage_limit_reached?
   end
 
@@ -191,6 +193,25 @@ class Promotion < ApplicationRecord
     # Automatically disable stacking for code-based promotions
     if code_based_promotion?
       self.allow_discount_codes = false
+    end
+  end
+  
+  def set_default_dates
+    # If start_date is blank, set it to now
+    if start_date.blank?
+      self.start_date = Time.current
+    end
+    
+    # If end_date is blank, leave it as nil (never expires)
+    # No action needed since nil means "never expires"
+  end
+  
+  def validate_date_logic
+    # Only validate if both dates are present
+    if start_date.present? && end_date.present?
+      if start_date >= end_date
+        errors.add(:end_date, "must be after the start date")
+      end
     end
   end
 end

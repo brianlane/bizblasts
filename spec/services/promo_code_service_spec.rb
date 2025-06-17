@@ -299,4 +299,150 @@ RSpec.describe PromoCodeService, type: :service do
       end
     end
   end
+
+  describe '#apply_code' do
+    context 'with products' do
+      let!(:product_eligible) { create(:product, business: business, allow_discounts: true, price: 100) }
+      let!(:product_ineligible) { create(:product, business: business, allow_discounts: false, price: 50) }
+      let!(:variant_eligible) { create(:product_variant, product: product_eligible, price_modifier: 0) }
+      let!(:variant_ineligible) { create(:product_variant, product: product_ineligible, price_modifier: 0) }
+      
+      let(:order) { create(:order, business: business, tenant_customer: customer) }
+      let!(:line_item_eligible) { create(:line_item, order: order, product_variant: variant_eligible, quantity: 1, unit_price: 100) }
+      let!(:line_item_ineligible) { create(:line_item, order: order, product_variant: variant_ineligible, quantity: 1, unit_price: 50) }
+      
+      context 'when order has eligible items' do
+        it 'applies discount only to eligible items' do
+          result = PromoCodeService.apply_code(discount_code.code, business, order, customer)
+          
+          expect(result[:success]).to be true
+          expect(result[:discount_amount]).to eq(10) # 10% of $100
+        end
+      end
+      
+      context 'when order has no eligible items' do
+        before do
+          line_item_eligible.destroy
+        end
+        
+        it 'rejects the discount code' do
+          result = PromoCodeService.apply_code(discount_code.code, business, order, customer)
+          
+          expect(result[:success]).to be false
+          expect(result[:error]).to include('None of the items in this order are eligible for discount codes')
+        end
+      end
+    end
+    
+    context 'with services' do
+      let!(:service_eligible) { create(:service, business: business, allow_discounts: true, price: 100) }
+      let!(:service_ineligible) { create(:service, business: business, allow_discounts: false, price: 100) }
+      
+      context 'when booking service allows discounts' do
+        let(:booking) { create(:booking, business: business, service: service_eligible, tenant_customer: customer, amount: 100) }
+        
+        it 'applies the discount' do
+          result = PromoCodeService.apply_code(discount_code.code, business, booking, customer)
+          
+          expect(result[:success]).to be true
+          expect(result[:discount_amount]).to eq(10) # 10% of $100
+        end
+      end
+      
+      context 'when booking service does not allow discounts' do
+        let(:booking) { create(:booking, business: business, service: service_ineligible, tenant_customer: customer, amount: 100) }
+        
+        it 'rejects the discount code' do
+          result = PromoCodeService.apply_code(discount_code.code, business, booking, customer)
+          
+          expect(result[:success]).to be false
+          expect(result[:error]).to include('None of the items in this order are eligible for discount codes')
+        end
+      end
+    end
+  end
+  
+  describe '#transaction_has_discount_eligible_items?' do
+    let(:service) { PromoCodeService.new }
+    
+    context 'with booking' do
+      it 'returns true when service allows discounts' do
+        service_model = create(:service, business: business, allow_discounts: true)
+        booking = create(:booking, business: business, service: service_model)
+        
+        expect(service.send(:transaction_has_discount_eligible_items?, booking)).to be true
+      end
+      
+      it 'returns false when service does not allow discounts' do
+        service_model = create(:service, business: business, allow_discounts: false)
+        booking = create(:booking, business: business, service: service_model)
+        
+        expect(service.send(:transaction_has_discount_eligible_items?, booking)).to be false
+      end
+    end
+    
+    context 'with order containing line items' do
+      let!(:product_eligible) { create(:product, business: business, allow_discounts: true) }
+      let!(:product_ineligible) { create(:product, business: business, allow_discounts: false) }
+      let!(:variant_eligible) { create(:product_variant, product: product_eligible) }
+      let!(:variant_ineligible) { create(:product_variant, product: product_ineligible) }
+      
+      it 'returns true when at least one item allows discounts' do
+        order = create(:order, business: business)
+        create(:line_item, order: order, product_variant: variant_eligible)
+        create(:line_item, order: order, product_variant: variant_ineligible)
+        
+        expect(service.send(:transaction_has_discount_eligible_items?, order)).to be true
+      end
+      
+      it 'returns false when no items allow discounts' do
+        order = create(:order, business: business)
+        create(:line_item, order: order, product_variant: variant_ineligible)
+        
+        expect(service.send(:transaction_has_discount_eligible_items?, order)).to be false
+      end
+    end
+  end
+  
+  describe '#calculate_discount_eligible_amount' do
+    let(:service) { PromoCodeService.new }
+    
+    context 'with booking' do
+      it 'returns full amount when service allows discounts' do
+        service_model = create(:service, business: business, allow_discounts: true)
+        booking = create(:booking, business: business, service: service_model, amount: 100)
+        
+        expect(service.send(:calculate_discount_eligible_amount, booking)).to eq(100)
+      end
+      
+      it 'returns zero when service does not allow discounts' do
+        service_model = create(:service, business: business, allow_discounts: false)
+        booking = create(:booking, business: business, service: service_model, amount: 100)
+        
+        expect(service.send(:calculate_discount_eligible_amount, booking)).to eq(0)
+      end
+    end
+    
+    context 'with order containing line items' do
+      let!(:product_eligible) { create(:product, business: business, allow_discounts: true) }
+      let!(:product_ineligible) { create(:product, business: business, allow_discounts: false) }
+      let!(:variant_eligible) { create(:product_variant, product: product_eligible) }
+      let!(:variant_ineligible) { create(:product_variant, product: product_ineligible) }
+      
+      it 'returns sum of only eligible line items' do
+        order = create(:order, business: business)
+        create(:line_item, order: order, product_variant: variant_eligible, quantity: 1, unit_price: 100, total_amount: 100)
+        create(:line_item, order: order, product_variant: variant_ineligible, quantity: 1, unit_price: 50, total_amount: 50)
+        
+        expect(service.send(:calculate_discount_eligible_amount, order)).to eq(100)
+      end
+      
+      it 'returns zero when no items are eligible' do
+        order = create(:order, business: business)
+        create(:line_item, order: order, product_variant: variant_ineligible, quantity: 1, unit_price: 50, total_amount: 50)
+        
+        expect(service.send(:calculate_discount_eligible_amount, order)).to eq(0)
+      end
+    end
+  end
 end 

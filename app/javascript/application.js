@@ -9,4 +9,5 @@ import "./modules/policy_acceptance";
 import "./modules/category_showcase";
 import "./modules/copy_link";
 import "./modules/website_hover";
+import "./modules/promo_code_handler";
 import "./cart";

@@ -78,6 +78,9 @@ class OrderCreator
           }
         end
       )
+      
+      # Calculate totals for display purposes (using ! to force calculation)
+      order.calculate_totals!
       order
     end
 

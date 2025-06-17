@@ -8,7 +8,7 @@ class PromotionManager
     return { valid: false, error: "Invalid promotion code" } unless promotion
     
     # Check if promotion is active (using the boolean column and dates)
-    unless promotion.active && promotion.start_date <= Time.current && promotion.end_date >= Time.current
+    unless promotion.active && promotion.start_date <= Time.current && (promotion.end_date.nil? || promotion.end_date >= Time.current)
       return { valid: false, error: "Promotion has expired or not yet active" }
     end
     

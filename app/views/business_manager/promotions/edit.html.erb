@@ -167,6 +167,7 @@
               <%= form.datetime_local_field :start_date, 
                                             value: @promotion.start_date&.strftime("%Y-%m-%dT%H:%M"),
                                             class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+              <p class="mt-1 text-sm text-gray-500">Leave blank to start immediately</p>
             </div>
 
             <div>
@@ -174,6 +175,7 @@
               <%= form.datetime_local_field :end_date, 
                                             value: @promotion.end_date&.strftime("%Y-%m-%dT%H:%M"),
                                             class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" %>
+              <p class="mt-1 text-sm text-gray-500">Leave blank to never expire (until manually deleted)</p>
             </div>
 
             <div>
@@ -365,13 +367,54 @@
     }
     
     // Update discount symbol based on type
-    const discountTypeSelect = document.querySelector('select[name="promotion[discount_type]"]');
     const discountSymbol = document.getElementById('discount-symbol');
     
-    if (discountTypeSelect && discountSymbol) {
-      discountTypeSelect.addEventListener('change', function() {
-        discountSymbol.textContent = this.value === 'percentage' ? '%' : '$';
+    // Function to update the discount symbol
+    function updateDiscountSymbol() {
+      // Try multiple ways to get the discount type value
+      const hiddenInput = document.querySelector('input[name="promotion[discount_type]"]');
+      const selectElement = document.querySelector('select[name="promotion[discount_type]"]');
+      
+      let discountType = '';
+      if (hiddenInput) {
+        discountType = hiddenInput.value;
+      } else if (selectElement) {
+        discountType = selectElement.value;
+      }
+      
+      if (discountSymbol) {
+        discountSymbol.textContent = discountType === 'percentage' ? '%' : '$';
+      }
+    }
+    
+    // Listen for changes on the rich dropdown
+    const dropdownContainer = document.getElementById('promotion_discount_type_dropdown');
+    if (dropdownContainer) {
+      // Use MutationObserver to watch for changes in the dropdown
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList' || mutation.type === 'attributes') {
+            updateDiscountSymbol();
+          }
+        });
+      });
+      
+      observer.observe(dropdownContainer, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-value', 'value']
       });
     }
+    
+    // Also listen for any input changes
+    document.addEventListener('change', function(e) {
+      if (e.target.name === 'promotion[discount_type]') {
+        updateDiscountSymbol();
+      }
+    });
+    
+    // Set initial state
+    updateDiscountSymbol();
   });
 </script> 

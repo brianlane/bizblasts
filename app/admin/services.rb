@@ -115,7 +115,7 @@ ActiveAdmin.register Service do
   end
 
   # Permit relevant parameters including the association and nested image attributes
-  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :availability_settings, :service_type, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :allow_discounts, :availability_settings, :service_type, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
 
   # Define index block to correctly display business link
   index do
@@ -161,6 +161,7 @@ ActiveAdmin.register Service do
       f.input :price
       f.input :active
       f.input :featured
+      f.input :allow_discounts, label: 'Allow Discount Codes', hint: 'When unchecked, this service will be excluded from all discount codes and promo codes'
       
       f.input :service_type, as: :select, collection: Service.service_types.keys.map { |k| [k.humanize, k] }, include_blank: false, input_html: { id: 'service_type_select' }
 

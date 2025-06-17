@@ -2,9 +2,10 @@
 
 module Public
   class OrdersController < ::OrdersController
-    skip_before_action :authenticate_user!, only: [:new, :create, :show]
-    skip_before_action :set_current_tenant, only: [:new, :create, :show]
-    skip_before_action :set_tenant_customer,  only: [:new, :create, :show]
+    skip_before_action :authenticate_user!, only: [:new, :create, :show, :validate_promo_code]
+    skip_before_action :set_current_tenant, only: [:new, :create, :show, :validate_promo_code]
+    skip_before_action :set_tenant_customer,  only: [:new, :create, :show, :validate_promo_code]
+    skip_before_action :verify_authenticity_token, only: [:validate_promo_code]
     before_action :set_tenant
     include BusinessAccessProtection
 
@@ -14,6 +15,8 @@ module Public
       @order = OrderCreator.build_from_cart(@cart)
       @order.business      = current_tenant
       @order.tax_rate      = current_tenant.default_tax_rate
+      # Recalculate totals after setting business and tax_rate
+      @order.calculate_totals!
       # Prepare nested customer for guest form
       @order.build_tenant_customer
     end
@@ -271,7 +274,64 @@ module Public
       # Renders public/orders/show which renders orders/show
     end
 
+    def validate_promo_code
+      begin
+        code = params[:promo_code]
+        customer = current_user&.tenant_customer_for(current_tenant) || 
+                   TenantCustomer.find_by(business: current_tenant, email: session[:guest_email])
+        
+        if code.blank?
+          render json: { valid: false, error: 'Please enter a promo code' }
+          return
+        end
+
+        result = PromoCodeService.validate_code(code, current_tenant, customer)
+        
+        if result[:valid]
+          # Create a temporary order object to check item eligibility
+          temp_order = build_temp_order_for_validation
+          
+          # Check if any items in the order are eligible for discounts
+          unless PromoCodeService.send(:transaction_has_discount_eligible_items?, temp_order)
+            render json: { valid: false, error: 'None of the items in this order are eligible for discount codes' }
+            return
+          end
+          
+          # Calculate discount amount based on eligible items only
+          eligible_amount = PromoCodeService.send(:calculate_discount_eligible_amount, temp_order)
+          if eligible_amount <= 0
+            render json: { valid: false, error: 'No eligible items for discount' }
+            return
+          end
+          
+          discount_amount = PromoCodeService.calculate_discount(code, current_tenant, eligible_amount, customer)
+          
+          render json: { 
+            valid: true, 
+            type: result[:type],
+            discount_amount: discount_amount,
+            formatted_discount: ActionController::Base.helpers.number_to_currency(discount_amount),
+            message: "Promo code applied! You'll save #{ActionController::Base.helpers.number_to_currency(discount_amount)}"
+          }
+        else
+          render json: { valid: false, error: result[:error] }
+        end
+      rescue => e
+        render json: { valid: false, error: 'An error occurred while validating the promo code. Please try again.' }
+      end
+    end
+
     private
+
+    # Build a temporary order object for promo code validation
+    def build_temp_order_for_validation
+      cart = CartManager.new(session).retrieve
+      temp_order = OrderCreator.build_from_cart(cart)
+      temp_order.business = current_tenant
+      temp_order.tax_rate = current_tenant.default_tax_rate
+      temp_order.calculate_totals!
+      temp_order
+    end
 
     # Extend permitted params for guest checkout
     def order_params

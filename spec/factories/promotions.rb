@@ -45,5 +45,15 @@ FactoryBot.define do
     trait :single_use_by_limit do
       usage_limit { 1 }
     end
+    
+    trait :never_expires do
+      start_date { Time.current }
+      end_date { nil }
+    end
+    
+    trait :starts_now do
+      start_date { nil } # Will be set to Time.current by model
+      end_date { 1.month.from_now }
+    end
   end
 end 

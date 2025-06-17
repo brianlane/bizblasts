@@ -586,4 +586,16 @@ RSpec.describe Service, type: :model do
       end
     end
   end
+
+  describe '#discount_eligible?' do
+    it 'returns true when allow_discounts is true' do
+      service = build(:service, allow_discounts: true)
+      expect(service.discount_eligible?).to be true
+    end
+
+    it 'returns false when allow_discounts is false' do
+      service = build(:service, allow_discounts: false)
+      expect(service.discount_eligible?).to be false
+    end
+  end
 end

@@ -102,7 +102,7 @@
                     <div class="text-sm font-medium text-dark"><%= number_to_currency(item.price) %></div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-bold text-primary"><%= number_to_currency(item.total_amount) %></div>
+                    <div class="text-sm font-bold text-primary" data-line-item-total="<%= item.total_amount %>"><%= number_to_currency(item.total_amount) %></div>
                   </td>
                 </tr>
               <% end %>
@@ -144,7 +144,7 @@
       <div class="bg-gray-50 p-4 rounded-lg mt-6">
         <h3 class="text-lg font-semibold mb-4">Order Summary</h3>
         
-        <div class="space-y-2">
+        <div class="space-y-2 order-summary">
           <div class="flex justify-between">
             <span>Subtotal:</span>
             <span class="order-subtotal"><%= number_to_currency(@order.subtotal_amount) %></span>
@@ -173,7 +173,7 @@
           
           <div class="flex justify-between text-lg font-bold">
             <span>Total:</span>
-            <span class="order-total"><%= number_to_currency(@order.total_amount) %></span>
+            <span class="order-total" data-order-total="<%= @order.total_amount %>"><%= number_to_currency(@order.total_amount) %></span>
           </div>
         </div>
       </div>
@@ -194,6 +194,151 @@ document.addEventListener('DOMContentLoaded', function() {
   const tipAmountValue = document.querySelector('.tip-amount-value');
   const baseAmount = <%= @order.subtotal_amount.to_f %>;
   
+  // Promo code functionality
+  const applyButton = document.getElementById('apply_order_promo_code');
+  const promoField = document.getElementById('order_promo_code_field');
+  const resultDiv = document.getElementById('order_promo_code_result');
+  
+  if (applyButton && promoField && resultDiv) {
+    applyButton.addEventListener('click', function() {
+      const code = promoField.value.trim();
+      if (!code) {
+        showError('Please enter a promo code');
+        return;
+      }
+      
+      showLoading();
+      
+      // Get CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      
+      // Make AJAX request
+      fetch('/orders/validate_promo_code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRF-Token': csrfToken
+        },
+        body: new URLSearchParams({
+          promo_code: code,
+          order_total: <%= @order.total_amount %>,
+          order_subtotal: <%= @order.subtotal_amount %>
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.valid) {
+          showSuccess(data.message);
+          updateOrderSummary(data.discount_amount, data.formatted_discount);
+        } else {
+          showError(data.error);
+        }
+      })
+      .catch(error => {
+        showError('Error validating promo code. Please try again.');
+      });
+    });
+    
+    // Also allow Enter key
+    promoField.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyButton.click();
+      }
+    });
+  }
+  
+  function showLoading() {
+    resultDiv.className = 'mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md';
+    resultDiv.innerHTML = `
+      <div class="flex items-center">
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-blue-700">Validating promo code...</span>
+      </div>
+    `;
+    resultDiv.classList.remove('hidden');
+  }
+  
+  function showSuccess(message) {
+    resultDiv.className = 'mt-3 p-3 bg-green-50 border border-green-200 rounded-md';
+    resultDiv.innerHTML = `
+      <div class="flex items-center">
+        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="text-green-700">${message}</span>
+      </div>
+    `;
+    resultDiv.classList.remove('hidden');
+  }
+  
+  function showError(message) {
+    resultDiv.className = 'mt-3 p-3 bg-red-50 border border-red-200 rounded-md';
+    resultDiv.innerHTML = `
+      <div class="flex items-center">
+        <svg class="h-5 w-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span class="text-red-700">${message}</span>
+      </div>
+    `;
+    resultDiv.classList.remove('hidden');
+  }
+  
+  function updateOrderSummary(discountAmount, formattedDiscount) {
+    // Add discount row to order summary if it doesn't exist
+    let discountRow = document.getElementById('promo-discount-row');
+    const orderSummary = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+    
+    if (!discountRow && orderSummary) {
+      discountRow = document.createElement('div');
+      discountRow.id = 'promo-discount-row';
+      discountRow.className = 'flex justify-between text-green-600';
+      discountRow.innerHTML = `
+        <span>Promo Code Discount:</span>
+        <span id="promo-discount-amount">-${formattedDiscount}</span>
+      `;
+      
+      // Insert before the hr and total line
+      const hrElement = orderSummary.querySelector('hr');
+      if (hrElement) {
+        orderSummary.insertBefore(discountRow, hrElement);
+      }
+    } else if (discountRow) {
+      // Update existing discount row
+      const discountAmountElement = document.getElementById('promo-discount-amount');
+      if (discountAmountElement) {
+        discountAmountElement.textContent = `-${formattedDiscount}`;
+      }
+    }
+    
+    // Calculate proper total with discount applied to subtotal and tax recalculated
+    const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
+    const originalTax = <%= @order.tax_amount.to_f %>;
+    const originalShipping = <%= @order.shipping_amount.to_f %>;
+    const discountValue = parseFloat(discountAmount);
+    
+    // Apply discount to subtotal
+    const discountedSubtotal = Math.max(0, originalSubtotal - discountValue);
+    
+    // Recalculate tax on discounted subtotal (assuming same tax rate)
+    const taxRate = originalSubtotal > 0 ? (originalTax / originalSubtotal) : 0;
+    const newTax = discountedSubtotal * taxRate;
+    
+    // Calculate new total
+    const newTotal = discountedSubtotal + newTax + originalShipping;
+    
+    // Update the total element
+    const totalElement = document.querySelector('.order-total');
+    if (totalElement) {
+      const formattedTotal = '$' + newTotal.toFixed(2);
+      totalElement.textContent = formattedTotal;
+    }
+  }
+  
   // Listen for tip amount changes from the tip collection component
   document.addEventListener('tipAmountChanged', function(event) {
     const tipAmount = event.detail.amount;
@@ -202,11 +347,33 @@ document.addEventListener('DOMContentLoaded', function() {
       tipAmountDisplay.style.display = 'flex';
       tipAmountValue.textContent = '$' + tipAmount.toFixed(2);
       
-      const newTotal = baseAmount + tipAmount;
+      // Update total to include tip
+      const currentTotal = parseFloat(orderTotal.textContent.replace('$', '')) || <%= @order.total_amount.to_f %>;
+      const newTotal = currentTotal + tipAmount;
       orderTotal.textContent = '$' + newTotal.toFixed(2);
     } else {
       tipAmountDisplay.style.display = 'none';
-      orderTotal.textContent = '$' + baseAmount.toFixed(2);
+      // Reset to base total (might have discount applied)
+      const discountRow = document.getElementById('promo-discount-row');
+      if (discountRow) {
+        // If there's a discount, recalculate without tip
+        const discountAmountText = document.getElementById('promo-discount-amount')?.textContent || '-$0.00';
+        const discountAmount = parseFloat(discountAmountText.replace(/[-$]/g, '')) || 0;
+        
+        const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
+        const originalTax = <%= @order.tax_amount.to_f %>;
+        const originalShipping = <%= @order.shipping_amount.to_f %>;
+        
+        const discountedSubtotal = Math.max(0, originalSubtotal - discountAmount);
+        const taxRate = originalSubtotal > 0 ? (originalTax / originalSubtotal) : 0;
+        const newTax = discountedSubtotal * taxRate;
+        const totalWithoutTip = discountedSubtotal + newTax + originalShipping;
+        
+        orderTotal.textContent = '$' + totalWithoutTip.toFixed(2);
+      } else {
+        // No discount, use original total
+        orderTotal.textContent = '$' + <%= @order.total_amount.to_f %>.toFixed(2);
+      }
     }
   });
 });

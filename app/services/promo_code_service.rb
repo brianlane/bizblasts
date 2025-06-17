@@ -192,9 +192,16 @@ class PromoCodeService
     end
     
     def apply_discount_code(discount_code, transaction_record, customer)
-      # Get the amount from the transaction record (Order has total_amount, Booking has amount)
-      amount = transaction_record.respond_to?(:total_amount) ? transaction_record.total_amount : transaction_record.amount
-      discount_amount = discount_code.calculate_discount(amount)
+      # Check if any items in the transaction are eligible for discounts
+      unless transaction_has_discount_eligible_items?(transaction_record)
+        return { success: false, error: 'None of the items in this order are eligible for discount codes' }
+      end
+      
+      # Get the discount-eligible amount from the transaction record
+      eligible_amount = calculate_discount_eligible_amount(transaction_record)
+      return { success: false, error: 'No eligible items for discount' } if eligible_amount <= 0
+      
+      discount_amount = discount_code.calculate_discount(eligible_amount)
       
       # Determine if this is a loyalty code or regular discount code
       code_type = discount_code.points_redeemed > 0 ? 'loyalty' : 'discount'
@@ -206,13 +213,13 @@ class PromoCodeService
         promo_code_type: code_type
       }
       
-      # For bookings, also update the amount to reflect the discount
-      if transaction_record.is_a?(Booking)
-        # Store original amount if not already set
-        update_attrs[:original_amount] = amount if transaction_record.original_amount.nil?
-        # Calculate final amount after discount
-        update_attrs[:amount] = [amount - discount_amount, 0].max
-      end
+              # For bookings, also update the amount to reflect the discount
+        if transaction_record.is_a?(Booking)
+          # Store original amount if not already set
+          update_attrs[:original_amount] = eligible_amount if transaction_record.original_amount.nil?
+          # Calculate final amount after discount
+          update_attrs[:amount] = [eligible_amount - discount_amount, 0].max
+        end
       
       transaction_record.update!(update_attrs)
       
@@ -220,6 +227,58 @@ class PromoCodeService
       discount_code.mark_used!(customer)
       
       { success: true, discount_amount: discount_amount, type: code_type }
+    end
+    
+    # Check if transaction has any items eligible for discounts
+    def transaction_has_discount_eligible_items?(transaction_record)
+      if transaction_record.is_a?(Booking)
+        # For bookings, check if the service allows discounts
+        return false unless transaction_record.service&.discount_eligible?
+        true
+      elsif transaction_record.respond_to?(:line_items)
+        # For orders with line items, check if any item allows discounts
+        transaction_record.line_items.any? do |line_item|
+          if line_item.product?
+            line_item.product_variant&.product&.discount_eligible?
+          elsif line_item.service?
+            line_item.service&.discount_eligible?
+          else
+            false
+          end
+        end
+      else
+        # Default to true for other transaction types
+        true
+      end
+    end
+    
+    # Calculate the total amount eligible for discounts
+    def calculate_discount_eligible_amount(transaction_record)
+      if transaction_record.is_a?(Booking)
+        # For bookings, return full amount if service allows discounts
+        return 0 unless transaction_record.service&.discount_eligible?
+        transaction_record.amount || 0
+      elsif transaction_record.respond_to?(:line_items)
+        # For orders, sum only eligible line items
+        eligible_amount = 0
+        
+        transaction_record.line_items.each do |line_item|
+          is_eligible = if line_item.product?
+            line_item.product_variant&.product&.discount_eligible?
+          elsif line_item.service?
+            line_item.service&.discount_eligible?
+          else
+            false
+          end
+          
+          eligible_amount += line_item.total_amount if is_eligible
+        end
+        
+        eligible_amount
+      else
+        # For other transaction types, return full amount
+        transaction_record.respond_to?(:total_amount) ? transaction_record.total_amount : transaction_record.amount
+      end
     end
   end
 end 

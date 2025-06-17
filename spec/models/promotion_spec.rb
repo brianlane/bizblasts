@@ -157,4 +157,69 @@ RSpec.describe Promotion, type: :model do
       end
     end
   end
+
+  describe 'date handling' do
+    context 'when start_date is blank' do
+      it 'sets start_date to current time before validation' do
+        promotion = build(:promotion, start_date: nil)
+        expect(promotion.valid?).to be true
+        expect(promotion.start_date).to be_within(1.second).of(Time.current)
+      end
+    end
+
+    context 'when end_date is blank' do
+      it 'leaves end_date as nil (never expires)' do
+        promotion = create(:promotion, end_date: nil)
+        expect(promotion.end_date).to be_nil
+        expect(promotion.currently_active?).to be true
+      end
+    end
+
+    context 'when both dates are blank' do
+      it 'sets start_date to now and leaves end_date as nil' do
+        promotion = build(:promotion, start_date: nil, end_date: nil)
+        expect(promotion.valid?).to be true
+        expect(promotion.start_date).to be_within(1.second).of(Time.current)
+        expect(promotion.end_date).to be_nil
+      end
+    end
+
+    context 'date validation' do
+      it 'validates end_date is after start_date when both are present' do
+        promotion = build(:promotion, 
+                         start_date: 1.day.from_now, 
+                         end_date: Time.current)
+        expect(promotion.valid?).to be false
+        expect(promotion.errors[:end_date]).to include('must be after the start date')
+      end
+
+      it 'does not validate dates when end_date is nil' do
+        promotion = build(:promotion, 
+                         start_date: 1.day.from_now, 
+                         end_date: nil)
+        expect(promotion.valid?).to be true
+      end
+    end
+  end
+
+  describe 'scopes with nil end_date' do
+    let!(:never_expires) { create(:promotion, :never_expires, active: true) }
+    let!(:expires_future) { create(:promotion, active: true, start_date: 1.week.ago, end_date: 1.week.from_now) }
+    let!(:expired) { create(:promotion, active: true, start_date: 2.weeks.ago, end_date: 1.week.ago) }
+
+    describe '.active' do
+      it 'includes promotions that never expire' do
+        expect(Promotion.active).to include(never_expires)
+        expect(Promotion.active).to include(expires_future)
+        expect(Promotion.active).not_to include(expired)
+      end
+    end
+
+    describe '.expired' do
+      it 'does not include promotions that never expire' do
+        expect(Promotion.expired).not_to include(never_expires)
+        expect(Promotion.expired).to include(expired)
+      end
+    end
+  end
 end 
