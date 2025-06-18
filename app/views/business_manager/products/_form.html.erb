@@ -94,6 +94,18 @@
           <%= form.label :allow_discounts, "Allow discount codes", class: "ml-2 text-gray-700 text-sm font-bold" %>
           <span class="ml-2 text-xs text-gray-500">(When unchecked, this product will be excluded from all discount codes)</span>
         </div>
+
+        <div class="flex items-center">
+          <%= form.check_box :show_stock_to_customers, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+          <%= form.label :show_stock_to_customers, "Show stock to customers", class: "ml-2 text-gray-700 text-sm font-bold" %>
+          <span class="ml-2 text-xs text-gray-500">(When unchecked, customers won't see stock quantities)</span>
+        </div>
+
+        <div class="flex items-center">
+          <%= form.check_box :hide_when_out_of_stock, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+          <%= form.label :hide_when_out_of_stock, "Hide when out of stock", class: "ml-2 text-gray-700 text-sm font-bold" %>
+          <span class="ml-2 text-xs text-gray-500">(When checked, product will be completely hidden from customers when out of stock)</span>
+        </div>
       </div>
     </div>
   </div>

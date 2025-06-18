@@ -28,9 +28,15 @@ class BookingManager
           booking_params[:customer_name].present? && 
           booking_params[:customer_email].present?
         
+        # Split customer name more intelligently
+        name_parts = booking_params[:customer_name].strip.split(' ', 2)
+        first_name = name_parts[0] || 'Unknown'
+        last_name = name_parts[1] || 'Customer'
+        
         customer = find_or_create_customer(
           business: business || booking.business,
-          name: booking_params[:customer_name],
+          first_name: first_name,
+          last_name: last_name,
           email: booking_params[:customer_email],
           phone: booking_params[:customer_phone]
         )
@@ -379,8 +385,8 @@ class BookingManager
   end
   
   # Find an existing customer or create a new one
-  def self.find_or_create_customer(business:, name:, email:, phone: nil)
-    return nil unless business && name.present? && email.present?
+  def self.find_or_create_customer(business:, first_name:, last_name:, email:, phone: nil)
+    return nil unless business && first_name.present? && last_name.present? && email.present?
     
     # Try to find an existing customer
     customer = business.tenant_customers.find_by(email: email)
@@ -388,7 +394,8 @@ class BookingManager
     # Create a new customer if none exists
     unless customer
       customer = business.tenant_customers.new(
-        name: name,
+        first_name: first_name,
+        last_name: last_name,
         email: email,
         phone: phone
       )

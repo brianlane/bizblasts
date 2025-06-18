@@ -211,4 +211,65 @@ RSpec.describe Public::OrdersController, type: :controller do
       end
     end
   end
+
+  describe 'business user checkout restrictions' do
+    let(:business_user) { create(:user, :staff, business: business) }
+    
+    context 'when business user tries to checkout without selecting customer' do
+      before do
+        sign_in business_user
+      end
+
+      it 'redirects with error when no customer is selected' do
+        post :create, params: {
+          order: {
+            shipping_method_id: shipping_method.id,
+            tax_rate_id: tax_rate.id,
+            notes: 'Test order',
+            tenant_customer_id: '',
+            tenant_customer_attributes: {}
+          }
+        }
+        
+        expect(response).to redirect_to(new_order_path)
+        expect(flash[:alert]).to include('Business users cannot checkout for themselves')
+      end
+      
+      it 'allows checkout when customer is selected' do
+        customer = create(:tenant_customer, business: business)
+        
+        post :create, params: {
+          order: {
+            shipping_method_id: shipping_method.id,
+            tax_rate_id: tax_rate.id,
+            notes: 'Test order',
+            tenant_customer_id: customer.id
+          }
+        }
+        
+        expect(response).to redirect_to(/checkout\.stripe\.com/)
+        expect(Order.last.tenant_customer).to eq(customer)
+      end
+      
+      it 'allows checkout when creating new customer' do
+        post :create, params: {
+          order: {
+            shipping_method_id: shipping_method.id,
+            tax_rate_id: tax_rate.id,
+            notes: 'Test order',
+            tenant_customer_id: 'new',
+            tenant_customer_attributes: {
+              first_name: 'New', last_name: 'Customer',
+              email: 'new@example.com',
+              phone: '555-1234'
+            }
+          }
+        }
+        
+        expect(response).to redirect_to(/checkout\.stripe\.com/)
+        expect(Order.last.tenant_customer.email).to eq('new@example.com')
+        expect(Order.last.tenant_customer.full_name).to eq('New Customer')
+      end
+    end
+  end
 end 

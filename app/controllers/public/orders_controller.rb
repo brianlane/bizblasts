@@ -8,6 +8,7 @@ module Public
     skip_before_action :verify_authenticity_token, only: [:validate_promo_code]
     before_action :set_tenant
     include BusinessAccessProtection
+    before_action :check_business_user_checkout_access, only: [:new, :create]
 
     # GET /orders/new
     def new
@@ -17,8 +18,15 @@ module Public
       @order.tax_rate      = current_tenant.default_tax_rate
       # Recalculate totals after setting business and tax_rate
       @order.calculate_totals!
-      # Prepare nested customer for guest form
-      @order.build_tenant_customer
+      
+      # Handle customer selection for business users
+      if current_user&.staff? || current_user&.manager?
+        # Prepare nested customer for business users to select or create
+        @order.build_tenant_customer
+      else
+        # Prepare nested customer for guest form
+        @order.build_tenant_customer
+      end
     end
 
       # POST /orders
@@ -35,29 +43,31 @@ module Public
     end
 
     @cart = CartManager.new(session).retrieve
-
-      # Determine tenant_customer for this order
-      if current_user&.client?
-        customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-          c.name  = current_user.full_name
-          c.phone = current_user.phone
-        end
-      elsif current_user.present? && (current_user.staff? || current_user.manager?)
-        if order_params[:tenant_customer_id].present?
-          customer = current_tenant.tenant_customers.find(order_params[:tenant_customer_id])
-        else
-          nested   = order_params[:tenant_customer_attributes] || {}
-          full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
-          customer  = current_tenant.tenant_customers.create!(
-            name:  full_name,
-            phone: nested[:phone],
-            email: nested[:email].presence
-          )
-        end
+    
+    # Handle customer identification based on user type (similar to booking logic)
+    if current_user&.client?
+      # Logged-in client: find or create their TenantCustomer by email
+      customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
+        c.first_name = current_user.first_name
+        c.last_name  = current_user.last_name
+        c.phone      = current_user.phone
+      end
+      
+      creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
+      creation_params[:tenant_customer_id] = customer.id
+      creation_params[:business_id]        = current_tenant.id
+      
+    elsif current_user.present? && (current_user.staff? || current_user.manager?)
+      # Staff or manager: select or create tenant customer based on form inputs
+      if order_params[:tenant_customer_id].present? && order_params[:tenant_customer_id] != 'new'
+        customer = current_tenant.tenant_customers.find(order_params[:tenant_customer_id])
       else
-        # Guest user - create or find customer
+        # Check if customer selection is required but missing
         nested = order_params[:tenant_customer_attributes] || {}
-        full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
+        if nested[:first_name].blank? && nested[:last_name].blank? && nested[:email].blank?
+          flash[:alert] = "Please select a customer or provide customer details to place this order."
+          redirect_to new_order_path and return
+        end
         
         # Try to find existing customer by email
         customer = current_tenant.tenant_customers.find_by(email: nested[:email])
@@ -65,180 +75,207 @@ module Public
         if customer
           # Update existing customer with new info if provided
           customer.update!(
-            name: full_name.present? ? full_name : customer.name,
+            first_name: nested[:first_name].present? ? nested[:first_name] : customer.first_name,
+            last_name: nested[:last_name].present? ? nested[:last_name] : customer.last_name,
             phone: nested[:phone].present? ? nested[:phone] : customer.phone
           )
         else
           # Create new customer
-          customer = current_tenant.tenant_customers.new(
-            name:  full_name,
+          customer = current_tenant.tenant_customers.create!(
+            first_name: nested[:first_name] || 'Unknown',
+            last_name: nested[:last_name] || 'Customer',
             phone: nested[:phone],
-            email: nested[:email]
+            email: nested[:email].presence
           )
         end
-
-        # Handle account creation if requested
-        if order_params[:create_account] == '1' && nested[:email].present?
-          password = order_params[:password]
-          password_confirmation = order_params[:password_confirmation]
-          
-          if password.present? && password == password_confirmation
-            # Try to create user account
-            user = User.new(
-              email: nested[:email],
-              password: password,
-              password_confirmation: password_confirmation,
-              first_name: nested[:first_name],
-              last_name: nested[:last_name],
-              phone: nested[:phone],
-              role: :client
-            )
-            
-            if user.save
-              # Sign in the newly created user
-              sign_in(user)
-              flash[:notice] = 'Account created successfully!'
-            else
-              # If user creation fails, add errors to order
-              user.errors.full_messages.each do |message|
-                (@order || Order.new).errors.add(:base, "Account creation error: #{message}")
-              end
-            end
-          else
-            (@order || Order.new).errors.add(:base, "Password confirmation doesn't match password") if password != password_confirmation
-            (@order || Order.new).errors.add(:base, "Password can't be blank") if password.blank?
-          end
-        end
-
-        # Save customer (either new or updated existing)
-        if customer.save
-          # Now that we have the correct customer object (either found or created)
-          # and optional user account is handled, proceed with order creation.
-          creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
-          creation_params[:tenant_customer_id] = customer.id # Assign the customer ID to the order params
-          creation_params[:business_id]        = current_tenant.id
-
-        else # Customer.save failed
-          # If customer save failed (e.g., validation error other than email uniqueness, though uniqueness should be handled by find_or_initialize_by)
-          # Add customer errors to order errors and re-render
-          customer.errors.full_messages.each do |message|
-            (@order || Order.new).errors.add(:base, "Customer error: #{message}")
-          end
-          @order ||= OrderCreator.build_from_cart(@cart) # Build order for re-render if not already done
-          @order.tenant_customer = customer # Assign the invalid customer to the order for form population
-          flash.now[:alert] = @order.errors.full_messages.to_sentence
-          render :new, status: :unprocessable_entity and return
-        end # End of customer.save if/else
-
-      end # End of guest user else block
-
-      # Ensure creation_params is defined for client and staff users
-      creation_params ||= order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
+      end
+      
+      creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
       creation_params[:tenant_customer_id] = customer.id
       creation_params[:business_id]        = current_tenant.id
+      
+    else
+      # Guest user: find or create TenantCustomer and optional account (existing logic)
+      nested = order_params[:tenant_customer_attributes] || {}
+      full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
+      
+      # Try to find existing customer by email
+      customer = current_tenant.tenant_customers.find_by(email: nested[:email])
+      
+      if customer
+        # Update existing customer with new info if provided
+        customer.update!(
+          first_name: nested[:first_name].present? ? nested[:first_name] : customer.first_name,
+          last_name: nested[:last_name].present? ? nested[:last_name] : customer.last_name,
+          phone: nested[:phone].present? ? nested[:phone] : customer.phone
+        )
+      else
+        # Create new customer
+        customer = current_tenant.tenant_customers.new(
+          first_name: nested[:first_name] || 'Unknown',
+          last_name: nested[:last_name] || 'Customer',
+          phone: nested[:phone],
+          email: nested[:email]
+        )
+      end
 
-      # Order creation happens here, outside the customer save conditional
-      @order = OrderCreator.create_from_cart(@cart, creation_params)
-      if @order.persisted? && @order.errors.empty?
-        # Process promo code if provided
-        if order_params[:promo_code].present?
-          promo_result = PromoCodeService.validate_code(
-            order_params[:promo_code], 
-            current_tenant, 
-            customer
+      # Handle account creation if requested
+      if order_params[:create_account] == '1' && nested[:email].present?
+        password = order_params[:password]
+        password_confirmation = order_params[:password_confirmation]
+        
+        if password.present? && password == password_confirmation
+          # Try to create user account
+          user = User.new(
+            email: nested[:email],
+            password: password,
+            password_confirmation: password_confirmation,
+            first_name: nested[:first_name],
+            last_name: nested[:last_name],
+            phone: nested[:phone],
+            role: :client
           )
           
-          if promo_result[:valid]
-            @order.update!(
-              applied_promo_code: order_params[:promo_code],
-              promo_code_type: promo_result[:type],
-              promo_discount_amount: PromoCodeService.calculate_discount(
-                order_params[:promo_code], 
-                current_tenant, 
-                @order.total_amount, 
-                customer
-              )
-            )
-            
-            # Apply the promo code
-            PromoCodeService.apply_code(
-              order_params[:promo_code],
-              current_tenant,
-              @order,
+          if user.save
+            # Sign in the newly created user
+            sign_in(user)
+            flash[:notice] = 'Account created successfully!'
+          else
+            # If user creation fails, add errors to order
+            user.errors.full_messages.each do |message|
+              (@order || Order.new).errors.add(:base, "Account creation error: #{message}")
+            end
+          end
+        else
+          (@order || Order.new).errors.add(:base, "Password confirmation doesn't match password") if password != password_confirmation
+          (@order || Order.new).errors.add(:base, "Password can't be blank") if password.blank?
+        end
+      end
+
+      # Save customer (either new or updated existing)
+      if customer.save
+        # Now that we have the correct customer object (either found or created)
+        # and optional user account is handled, proceed with order creation.
+        creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
+        creation_params[:tenant_customer_id] = customer.id # Assign the customer ID to the order params
+        creation_params[:business_id]        = current_tenant.id
+
+      else # Customer.save failed
+        # If customer save failed (e.g., validation error other than email uniqueness, though uniqueness should be handled by find_or_initialize_by)
+        # Add customer errors to order errors and re-render
+        customer.errors.full_messages.each do |message|
+          (@order || Order.new).errors.add(:base, "Customer error: #{message}")
+        end
+        @order ||= OrderCreator.build_from_cart(@cart) # Build order for re-render if not already done
+        @order.tenant_customer = customer # Assign the invalid customer to the order for form population
+        flash.now[:alert] = @order.errors.full_messages.to_sentence
+        render :new, status: :unprocessable_entity and return
+      end # End of customer.save if/else
+
+    end # End of guest user else block
+
+    # Order creation happens here, outside the customer save conditional
+    @order = OrderCreator.create_from_cart(@cart, creation_params)
+    if @order.persisted? && @order.errors.empty?
+      # Process promo code if provided
+      if order_params[:promo_code].present?
+        promo_result = PromoCodeService.validate_code(
+          order_params[:promo_code], 
+          current_tenant, 
+          customer
+        )
+        
+        if promo_result[:valid]
+          @order.update!(
+            applied_promo_code: order_params[:promo_code],
+            promo_code_type: promo_result[:type],
+            promo_discount_amount: PromoCodeService.calculate_discount(
+              order_params[:promo_code], 
+              current_tenant, 
+              @order.total_amount, 
               customer
             )
-          else
-            @order.errors.add(:promo_code, promo_result[:error])
-            flash.now[:alert] = @order.errors.full_messages.to_sentence
-            render :new, status: :unprocessable_entity and return
-          end
-        end
-        
-        # Award loyalty points for order
-        if current_tenant.loyalty_program_active?
-          LoyaltyPointsService.award_order_points(@order)
-        end
-        
-        # Update order with tip amount if provided
-        if tip_amount.present? && tip_amount > 0
-          @order.update!(tip_amount: tip_amount)
-        end
-        
-        session[:cart] = {}
-        
-        # Create an invoice immediately
-        invoice = @order.build_invoice(
-          tenant_customer: @order.tenant_customer,
-          business:       @order.business,
-          due_date:       Date.today,
-          status:         :pending
-        )
-        # Add tip amount to invoice if provided
-        if tip_amount.present? && tip_amount > 0
-          invoice.tip_amount = tip_amount
-        end
-        invoice.save!
-        
-        # Redirect directly to Stripe Checkout instead of payment page
-        begin
-          # Determine if this order has tip-eligible items
-          tip_eligible_items = @order.tip_eligible_items
-          
-          success_url = if tip_eligible_items.any? && (invoice.tip_amount || 0) > 0
-                          order_url(@order, payment_success: true, tip_included: true, host: request.host_with_port)
-                        else
-                          order_url(@order, payment_success: true, host: request.host_with_port)
-                        end
-          cancel_url = order_url(@order, payment_cancelled: true, host: request.host_with_port)
-          
-          result = StripeService.create_payment_checkout_session(
-            invoice: invoice,
-            success_url: success_url,
-            cancel_url: cancel_url
           )
           
-          redirect_to result[:session].url, allow_other_host: true
-        rescue ArgumentError => e
-          if e.message.include?("Payment amount must be at least")
-            flash[:alert] = "This order amount is too small for online payment. Please contact the business directly."
-            redirect_to order_path(@order)
-          else
-            raise e
-          end
-        rescue Stripe::StripeError => e
-          flash[:alert] = "Could not connect to Stripe: #{e.message}"
-          redirect_to order_path(@order)
+          # Apply the promo code
+          PromoCodeService.apply_code(
+            order_params[:promo_code],
+            current_tenant,
+            @order,
+            customer
+          )
+        else
+          @order.errors.add(:promo_code, promo_result[:error])
+          flash.now[:alert] = @order.errors.full_messages.to_sentence
+          render :new, status: :unprocessable_entity and return
         end
-      else
-        # If order creation failed, add order errors (which might include user/customer errors added above)
-        flash.now[:alert] = @order.errors.full_messages.to_sentence if @order.errors.any?
-        # Rebuild nested customer for re-render if needed (and not already assigned a found customer)
-        @order.build_tenant_customer unless @order.tenant_customer.present?
-        @order.tenant_customer ||= customer if customer.present? # Ensure customer is assigned back to the order for re-render
-
-        render :new, status: :unprocessable_entity
       end
+      
+      # Award loyalty points for order
+      if current_tenant.loyalty_program_active?
+        LoyaltyPointsService.award_order_points(@order)
+      end
+      
+      # Update order with tip amount if provided
+      if tip_amount.present? && tip_amount > 0
+        @order.update!(tip_amount: tip_amount)
+      end
+      
+      session[:cart] = {}
+      
+      # Create an invoice immediately
+      invoice = @order.build_invoice(
+        tenant_customer: @order.tenant_customer,
+        business:       @order.business,
+        due_date:       Date.today,
+        status:         :pending
+      )
+      # Add tip amount to invoice if provided
+      if tip_amount.present? && tip_amount > 0
+        invoice.tip_amount = tip_amount
+      end
+      invoice.save!
+      
+      # Redirect directly to Stripe Checkout instead of payment page
+      begin
+        # Determine if this order has tip-eligible items
+        tip_eligible_items = @order.tip_eligible_items
+        
+        success_url = if tip_eligible_items.any? && (invoice.tip_amount || 0) > 0
+                        order_url(@order, payment_success: true, tip_included: true, host: request.host_with_port)
+                      else
+                        order_url(@order, payment_success: true, host: request.host_with_port)
+                      end
+        cancel_url = order_url(@order, payment_cancelled: true, host: request.host_with_port)
+        
+        result = StripeService.create_payment_checkout_session(
+          invoice: invoice,
+          success_url: success_url,
+          cancel_url: cancel_url
+        )
+        
+        redirect_to result[:session].url, allow_other_host: true
+      rescue ArgumentError => e
+        if e.message.include?("Payment amount must be at least")
+          flash[:alert] = "This order amount is too small for online payment. Please contact the business directly."
+          redirect_to order_path(@order)
+        else
+          raise e
+        end
+      rescue Stripe::StripeError => e
+        flash[:alert] = "Could not connect to Stripe: #{e.message}"
+        redirect_to order_path(@order)
+      end
+    else
+      # If order creation failed, add order errors (which might include user/customer errors added above)
+      flash.now[:alert] = @order.errors.full_messages.to_sentence if @order.errors.any?
+      # Rebuild nested customer for re-render if needed (and not already assigned a found customer)
+      @order.build_tenant_customer unless @order.tenant_customer.present?
+      @order.tenant_customer ||= customer if customer.present? # Ensure customer is assigned back to the order for re-render
+
+      render :new, status: :unprocessable_entity
     end
+  end
 
     # GET /orders/:id  (guest view)
     def show
@@ -345,6 +382,7 @@ module Public
         :create_account,
         :password,
         :password_confirmation,
+        :tenant_customer_id,
         tenant_customer_attributes: [:id, :first_name, :last_name, :email, :phone],
         line_items_attributes:     [:id, :product_variant_id, :quantity, :_destroy]
       )
@@ -365,6 +403,29 @@ module Public
       end
       
       false
+    end
+
+    # Check if business user should be blocked from checkout unless acting on behalf of customer
+    def check_business_user_checkout_access
+      return unless current_user.present?
+      return unless current_tenant.present?
+      
+      guard = BusinessAccessGuard.new(current_user, current_tenant, session)
+      
+      if guard.should_block_own_business_checkout?
+        # For GET requests (new), show the form but with customer selection required
+        return if request.get?
+        
+        # For POST requests (create), check if customer was selected
+        if params[:order] && (params[:order][:tenant_customer_id].blank? || params[:order][:tenant_customer_id] == '') &&
+           (params[:order][:tenant_customer_attributes].blank? || 
+            params[:order][:tenant_customer_attributes].values.all?(&:blank?))
+          
+          guard.log_blocked_checkout
+          flash[:alert] = guard.checkout_flash_message
+          redirect_to new_order_path and return
+        end
+      end
     end
   end
 end

@@ -9,10 +9,16 @@ RSpec.describe TenantCustomer, type: :model do
   end
 
   describe 'validations' do
-    it 'validates presence of name' do
-      customer = TenantCustomer.new(email: 'test@example.com', phone: '555-123-4567')
+    it 'validates presence of first_name' do
+      customer = TenantCustomer.new(last_name: 'Smith', email: 'test@example.com', phone: '555-123-4567')
       expect(customer).not_to be_valid
-      expect(customer.errors[:name]).to include("can't be blank")
+      expect(customer.errors[:first_name]).to include("can't be blank")
+    end
+    
+    it 'validates presence of last_name' do
+      customer = TenantCustomer.new(first_name: 'John', email: 'test@example.com', phone: '555-123-4567')
+      expect(customer).not_to be_valid
+      expect(customer.errors[:last_name]).to include("can't be blank")
     end
     
     it 'validates uniqueness of email scoped to business_id' do
@@ -51,6 +57,18 @@ RSpec.describe TenantCustomer, type: :model do
       customer = build(:tenant_customer, phone: nil)
       customer.validate
       expect(customer.errors[:phone]).to be_empty
+    end
+  end
+  
+  describe '#full_name' do
+    it 'returns first and last name joined' do
+      customer = build(:tenant_customer, first_name: 'John', last_name: 'Smith')
+      expect(customer.full_name).to eq('John Smith')
+    end
+    
+    it 'returns email if names are blank' do
+      customer = build(:tenant_customer, first_name: '', last_name: '', email: 'test@example.com')
+      expect(customer.full_name).to eq('test@example.com')
     end
   end
 end 

@@ -90,7 +90,7 @@ ActiveAdmin.register CustomerSubscription do
       end
       row :customer do |subscription|
         div do
-          strong subscription.tenant_customer.name
+          strong subscription.tenant_customer.full_name
         end
         div do
           mail_to subscription.tenant_customer.email

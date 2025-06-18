@@ -230,9 +230,9 @@ RSpec.describe MarketingService, type: :service do
   end
 
   describe '.segment_customers' do
-    let!(:customer1) { create(:tenant_customer, name: "Recent Booker", business: tenant) }
-    let!(:customer2) { create(:tenant_customer, name: "Old Booker", business: tenant) }
-    let!(:customer3) { create(:tenant_customer, name: "Non Booker", business: tenant) }
+    let!(:customer1) { create(:tenant_customer, first_name: "Recent", last_name: "Booker", business: tenant) }
+    let!(:customer2) { create(:tenant_customer, first_name: "Old", last_name: "Booker", business: tenant) }
+    let!(:customer3) { create(:tenant_customer, first_name: "Non", last_name: "Booker", business: tenant) }
     let!(:service_a) { create(:service, name: "Service A", business: tenant) }
     let!(:service_b) { create(:service, name: "Service B", business: tenant) }
     let!(:staff1) { create(:staff_member, name: "Staff One", business: tenant) }

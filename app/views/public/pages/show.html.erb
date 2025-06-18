@@ -47,8 +47,8 @@
   <% end %>
   <br>
   <br>
-  <% products = @business.products.active.where(product_type: [:standard, :mixed]) %>
-  <% products = products.where('name ILIKE ?', "%#{params[:q]}%") if params[:q].present? %>
+  <% products = @business.products.active.where(product_type: [:standard, :mixed]).select(&:visible_to_customers?) %>
+  <% products = products.select { |p| p.name.downcase.include?(params[:q].downcase) } if params[:q].present? %>
   <% if products.any? %>
     <div class="space-y-4">
       <% products.order(:name).each do |product| %>

@@ -126,13 +126,13 @@
                         <div class="flex-shrink-0 h-10 w-10">
                           <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                             <span class="text-sm font-medium text-gray-700">
-                              <%= customer.name&.first&.upcase || customer.email&.first&.upcase %>
+                              <%= customer.full_name&.first&.upcase || customer.email&.first&.upcase %>
                             </span>
                           </div>
                         </div>
                         <div class="ml-4">
                           <div class="text-sm font-medium text-gray-900">
-                            <%= customer.name.presence || "Customer ##{customer.id}" %>
+                            <%= customer.full_name.presence || "Customer ##{customer.id}" %>
                           </div>
                           <div class="text-sm text-gray-500">
                             Member since <%= customer.created_at.strftime("%B %Y") %>

@@ -69,6 +69,8 @@ module BusinessManager
         :name, :description, :price, :active, :featured, :product_type, :tips_enabled, :allow_discounts,
         :stock_quantity, # If product can be sold without variants
         :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_out_of_stock_action, :allow_customer_preferences,
+        :show_stock_to_customers, # Allow customers to see stock quantities
+        :hide_when_out_of_stock, # Hide product when out of stock
         add_on_service_ids: [], 
         # Allow multiple images to be uploaded
         images: [], 

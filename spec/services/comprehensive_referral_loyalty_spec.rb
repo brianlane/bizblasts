@@ -206,7 +206,8 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
           new_customer = TenantCustomer.create!(
             business: business_x,
             email: 'newcustomer@example.com',
-            name: 'New Customer'
+            first_name: 'New',
+            last_name: 'Customer'
           )
           
           order = create(:order,
@@ -459,7 +460,7 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
           guest_customer = create(:tenant_customer, 
             business: business_x, 
             email: 'guest@example.com',
-            name: 'Guest Customer'
+            first_name: 'Guest', last_name: 'Customer'
           )
           
           guest_booking = create(:booking,
@@ -485,7 +486,8 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
           new_customer = TenantCustomer.create!(
             business: business_x,
             email: 'checkout@example.com',
-            name: 'Checkout Customer'
+            first_name: 'Checkout',
+            last_name: 'Customer'
           )
           
           booking = create(:booking,
@@ -600,7 +602,7 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
           guest_customer = create(:tenant_customer, 
             business: business_x, 
             email: 'guest@example.com',
-            name: 'Guest Customer'
+            first_name: 'Guest', last_name: 'Customer'
           )
           
           booking = create(:booking,
@@ -628,7 +630,8 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
           customer = TenantCustomer.create!(
             business: business_x,
             email: 'newaccount@example.com',
-            name: 'New Account Customer'
+            first_name: 'New',
+            last_name: 'Account'
           )
           
           booking = create(:booking,

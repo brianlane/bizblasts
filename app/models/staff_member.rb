@@ -67,7 +67,7 @@ class StaffMember < ApplicationRecord
     bookings.upcoming.map do |booking|
       {
         id: booking.id,
-        title: booking.tenant_customer.name,
+        title: booking.tenant_customer.full_name,
         start: booking.start_time,
         end: booking.end_time,
         status: booking.status

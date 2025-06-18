@@ -2,11 +2,11 @@
 
 <p>Hello,</p>
 
-<p>A new booking has been created for a subscription from <strong><%= @customer.name %></strong>!</p>
+<p>A new booking has been created for a subscription from <strong><%= @customer.full_name %></strong>!</p>
 
 <h2>Booking Details:</h2>
 <ul>
-  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Customer:</strong> <%= @customer.full_name %> (<%= @customer.email %>)</li>
   <li><strong>Service:</strong> <%= @service.name %></li>
   <% if @staff_member %>
     <li><strong>Staff Member:</strong> <%= @staff_member.name %></li>

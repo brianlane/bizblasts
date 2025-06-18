@@ -31,7 +31,7 @@ RSpec.describe Public::BookingController, type: :controller do
     end
 
     context 'when guest user creates booking with existing customer email' do
-      let!(:existing_customer) { create(:tenant_customer, business: business, email: 'john.doe@example.com', name: 'John Smith', phone: '555-999-8888') }
+      let!(:existing_customer) { create(:tenant_customer, business: business, email: 'john.doe@example.com', first_name: 'John', last_name: 'Smith', phone: '555-999-8888') }
 
       it 'finds existing customer instead of creating duplicate' do
         expect {
@@ -40,7 +40,7 @@ RSpec.describe Public::BookingController, type: :controller do
         
         # Should update existing customer with new info
         existing_customer.reload
-        expect(existing_customer.name).to eq('John Doe') # Updated from form
+        expect(existing_customer.full_name).to eq('John Doe') # Updated from form
         expect(existing_customer.phone).to eq('555-123-4567') # Updated from form
       end
 
@@ -62,7 +62,7 @@ RSpec.describe Public::BookingController, type: :controller do
         }.to change(TenantCustomer, :count).by(1)
         
         customer = TenantCustomer.last
-        expect(customer.name).to eq('John Doe')
+        expect(customer.full_name).to eq('John Doe')
         expect(customer.email).to eq('john.doe@example.com')
         expect(customer.phone).to eq('555-123-4567')
       end

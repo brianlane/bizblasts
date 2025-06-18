@@ -144,7 +144,7 @@
                   <%= link_to subscription.display_name, business_manager_customer_subscription_path(subscription), 
                         class: "text-lg font-medium text-blue-600 hover:text-blue-800 transition-colors" %>
                   <div class="text-sm text-gray-600 mt-1">
-                    <%= subscription.tenant_customer.name %>
+                    <%= subscription.tenant_customer.full_name %>
                   </div>
                 </div>
                 <div class="ml-4 flex flex-col gap-2">
@@ -221,7 +221,7 @@
                       </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm font-medium text-gray-900"><%= subscription.tenant_customer.name %></div>
+                      <div class="text-sm font-medium text-gray-900"><%= subscription.tenant_customer.full_name %></div>
                       <div class="text-sm text-gray-500"><%= subscription.tenant_customer.email %></div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600">

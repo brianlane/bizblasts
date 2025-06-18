@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe "Business Manager Order Invoice Creation", type: :system do
   include_context 'setup business context'
   
-  let!(:tenant_customer) { create(:tenant_customer, business: business, name: "Test Customer", email: "test@customer.com") }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, first_name: "Test", last_name: "Customer", email: "test@customer.com") }
   let!(:tax_rate) { create(:tax_rate, business: business, name: "Standard Tax", rate: 0.1) }
   let!(:product) { create(:product, business: business, name: "Test Product", price: 50.0) }
   let!(:variant) { create(:product_variant, product: product, stock_quantity: 10, name: "Default Variant") }

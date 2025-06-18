@@ -1,6 +1,6 @@
 <h1>Subscription Cancelled</h1>
 
-<p>Hi <%= @customer.name %>,</p>
+<p>Hi <%= @customer.full_name %>,</p>
 
 <p>Your subscription to <strong><%= @item.name %></strong> has been cancelled as of <%= @customer_subscription.cancelled_at.strftime('%B %d, %Y') %>.</p>
 

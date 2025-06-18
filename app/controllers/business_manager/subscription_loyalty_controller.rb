@@ -113,18 +113,18 @@ class BusinessManager::SubscriptionLoyaltyController < BusinessManager::BaseCont
                    .joins(:customer_subscriptions, :loyalty_transactions)
                    .where(customer_subscriptions: { status: 'active' })
                    .where('loyalty_transactions.description LIKE ?', '%Subscription%')
-                   .group('tenant_customers.id, tenant_customers.name, tenant_customers.email')
+                   .group('tenant_customers.id, tenant_customers.first_name, tenant_customers.last_name, tenant_customers.email')
                    .order('SUM(loyalty_transactions.points_amount) DESC')
                    .limit(10)
-                   .pluck('tenant_customers.id', 'tenant_customers.name', 'tenant_customers.email', 'SUM(loyalty_transactions.points_amount)')
-                   .map do |id, name, email, points|
+                   .pluck('tenant_customers.id', 'tenant_customers.first_name', 'tenant_customers.last_name', 'tenant_customers.email', 'SUM(loyalty_transactions.points_amount)')
+                   .map do |id, first_name, last_name, email, points|
                      customer = current_business.tenant_customers.find(id)
                      subscription = customer.customer_subscriptions.active.first
                      tier_info = subscription ? SubscriptionLoyaltyService.new(subscription).calculate_tier_benefits : {}
                      
                      {
                        customer_id: id,
-                       name: name,
+                       name: "#{first_name} #{last_name}".strip,
                        email: email,
                        subscription_points: points,
                        tier: tier_info[:tier_name] || 'Basic',
@@ -141,7 +141,7 @@ class BusinessManager::SubscriptionLoyaltyController < BusinessManager::BaseCont
                    .limit(20)
                    .map do |transaction|
                      {
-                       customer_name: transaction.tenant_customer.name,
+                       customer_name: transaction.tenant_customer.full_name,
                        customer_email: transaction.tenant_customer.email,
                        points: transaction.points_amount,
                        description: transaction.description,
@@ -215,7 +215,7 @@ class BusinessManager::SubscriptionLoyaltyController < BusinessManager::BaseCont
         subscription_points = loyalty_service.send(:calculate_total_subscription_points_earned)
         
         csv << [
-          customer.name,
+          customer.full_name,
           customer.email,
           customer.customer_subscriptions.active.count,
           subscription_points,

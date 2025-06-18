@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-dark">Customer Loyalty Details</h1>
-            <p class="mt-1 text-sm text-gray-600">Manage loyalty points for <%= @customer.name || @customer.email %></p>
+            <p class="mt-1 text-sm text-gray-600">Manage loyalty points for <%= @customer.full_name || @customer.email %></p>
           </div>
           <div>
             <%= link_to customers_business_manager_loyalty_index_path, 
@@ -34,13 +34,13 @@
               <div class="flex-shrink-0 h-16 w-16">
                 <div class="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
                   <span class="text-xl font-medium text-gray-700">
-                    <%= @customer.name&.first&.upcase || @customer.email&.first&.upcase %>
+                    <%= @customer.full_name&.first&.upcase || @customer.email&.first&.upcase %>
                   </span>
                 </div>
               </div>
               <div class="ml-4">
                 <div class="text-lg font-medium text-gray-900">
-                  <%= @customer.name.presence || "Customer ##{@customer.id}" %>
+                  <%= @customer.full_name.presence || "Customer ##{@customer.id}" %>
                 </div>
                 <div class="text-sm text-gray-500">
                   Member since <%= @customer.created_at.strftime("%B %Y") %>

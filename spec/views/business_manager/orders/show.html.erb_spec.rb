@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe "business_manager/orders/show.html.erb", type: :view do
   let(:business) { create(:business) }
-  let(:tenant_customer) { create(:tenant_customer, business: business, name: 'Test Customer', email: 'test@example.com', phone: '555-1234') }
+  let(:tenant_customer) { create(:tenant_customer, business: business, first_name: 'Test', last_name: 'Customer', email: 'test@example.com', phone: '555-1234') }
   let(:shipping_method) { create(:shipping_method, business: business, name: 'Standard Shipping', cost: 5.99) }
   let(:tax_rate) { create(:tax_rate, business: business, name: 'Sales Tax', rate: 0.08) }
   
@@ -48,7 +48,7 @@ RSpec.describe "business_manager/orders/show.html.erb", type: :view do
     expect(rendered).to have_content(order.order_type.titleize)
     
     # Customer info
-    expect(rendered).to have_content(tenant_customer.name)
+    expect(rendered).to have_content(tenant_customer.full_name)
     expect(rendered).to have_content(tenant_customer.email)
     expect(rendered).to have_content(tenant_customer.phone)
   end
@@ -62,7 +62,7 @@ RSpec.describe "business_manager/orders/show.html.erb", type: :view do
 
     # Try with safer approach
     expect(rendered).to have_content(order.order_number.to_s)
-    expect(rendered).to have_content(order.tenant_customer.name)
+    expect(rendered).to have_content(order.tenant_customer.full_name)
 
     # Status badge - try simplifying
     expect(rendered).to have_selector('span.status-badge')

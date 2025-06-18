@@ -159,7 +159,8 @@ class Public::SubscriptionsController < ApplicationController
       # Find existing tenant customer for this user's email and business
       current_business.tenant_customers.find_by(email: current_user.email) ||
         current_business.tenant_customers.build(
-          name: current_user.full_name,
+          first_name: current_user.first_name,
+          last_name: current_user.last_name,
           email: current_user.email
         )
     else
@@ -171,14 +172,16 @@ class Public::SubscriptionsController < ApplicationController
   def find_or_create_tenant_customer
     if user_signed_in?
       current_business.tenant_customers.find_or_create_by(email: current_user.email) do |tc|
-        tc.name = current_user.full_name
+        tc.first_name = current_user.first_name
+        tc.last_name = current_user.last_name
         tc.phone = current_user.phone if current_user.respond_to?(:phone)
       end
     else
       # Create tenant customer from form data
       customer_attrs = subscription_params[:tenant_customer_attributes] || {}
       customer = current_business.tenant_customers.create(
-        name: customer_attrs[:name],
+        first_name: customer_attrs[:first_name],
+        last_name: customer_attrs[:last_name],
         email: customer_attrs[:email],
         phone: customer_attrs[:phone],
         address: customer_attrs[:address]
@@ -236,7 +239,7 @@ class Public::SubscriptionsController < ApplicationController
         :product_variant_id, :quantity, :billing_day_of_month,
         :service_rebooking_preference, :preferred_time_slot, :preferred_staff_member_id,
         :out_of_stock_action, :notes, :customer_rebooking_preference,
-        tenant_customer_attributes: [:name, :email, :phone, :address]
+        tenant_customer_attributes: [:first_name, :last_name, :email, :phone, :address]
       )
     else
       # Handle direct parameters from the form

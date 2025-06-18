@@ -114,7 +114,7 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
     end
 
     context 'with new nested customer' do
-      let(:customer_attrs) { { name: 'New Customer', email: 'new@example.com', phone: '555-1234' } }
+      let(:customer_attrs) { { first_name: 'New', last_name: 'Customer', email: 'new@example.com', phone: '555-1234' } }
       let(:nested_params) do
         {
           order: {
@@ -133,7 +133,7 @@ RSpec.describe BusinessManager::OrdersController, type: :controller do
         }.to change(business.tenant_customers, :count).by(1).and change(business.orders, :count).by(1)
 
         order = business.orders.last
-        expect(order.tenant_customer.name).to eq('New Customer')
+        expect(order.tenant_customer.full_name).to eq('New Customer')
         expect(order.order_type).to eq('product')
         expect(response).to redirect_to(business_manager_order_path(order))
       end

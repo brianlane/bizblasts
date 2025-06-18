@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Public::TipsController, type: :controller do
   let(:business) { create(:business, subdomain: 'testtip', hostname: 'testtip', stripe_account_id: 'acct_test123') }
   let(:user) { create(:user, :client, email: 'customer@example.com') }
-  let(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
+  let(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
   let(:experience_service) { create(:service, business: business, service_type: :experience, duration: 60, min_bookings: 1, max_bookings: 10, spots: 5, tips_enabled: true) }
   let(:booking) { create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer, start_time: 2.hours.ago, status: :completed) }
   let(:token) { booking.generate_tip_token }

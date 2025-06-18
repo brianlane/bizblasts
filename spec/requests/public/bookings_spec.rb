@@ -7,7 +7,7 @@ RSpec.describe 'Bookings', type: :system do
   let!(:staff_member) { create(:staff_member, business: business, user: staff) }
   let!(:client) { create(:user, :client, email: 'client@test.com') }
   let!(:manager) { create(:user, :manager, business: business) }
-  let!(:customer) { create(:tenant_customer, business: business, name: 'Test Customer', email: 'customer@test.com') }
+  let!(:customer) { create(:tenant_customer, business: business, first_name: 'Test', last_name: 'Customer', email: 'customer@test.com') }
 
   before do
     # Use a JavaScript-enabled driver for UI interactions
@@ -55,7 +55,8 @@ RSpec.describe 'Bookings', type: :system do
       
       # Create a customer record for this client
       business.tenant_customers.find_or_create_by(email: client.email) do |c|
-        c.name = 'Test Client'
+        c.first_name = 'Test'
+        c.last_name = 'Client'
       end
       
       # Visit the public booking page with service and staff pre-selected

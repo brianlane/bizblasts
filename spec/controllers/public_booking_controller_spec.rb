@@ -5,7 +5,7 @@ RSpec.describe Public::BookingController, type: :controller do
   let!(:service) { create(:service, business: business, name: 'Test Service', price: 100.00, duration: 30) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Test Staff') }
   let!(:user) { create(:user, :client) }
-  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
 
   before do
     business.save! unless business.persisted?

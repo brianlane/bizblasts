@@ -34,7 +34,7 @@
             
             <div>
               <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
-              <%= form.collection_select :tenant_customer_id, @tenant_customers, :id, :name, 
+              <%= form.collection_select :tenant_customer_id, @tenant_customers, :id, :full_name, 
                     { prompt: "Select a customer" },
                     { required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
               <% if @tenant_customers.empty? %>

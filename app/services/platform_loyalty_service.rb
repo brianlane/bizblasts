@@ -65,9 +65,9 @@ class PlatformLoyaltyService
     
     # Create referral discount for the new business (50% off first month)
     def create_referral_discount(business)
-      # Create a Stripe coupon for 50% off first month (only in production)
+      # Create a Stripe coupon for 50% off first month (only in production or when configured)
       stripe_coupon_id = nil
-      if Rails.env.production? || ENV['STRIPE_PUBLISHABLE_KEY'].present?
+      if should_create_stripe_coupon?
         stripe_coupon = create_stripe_referral_coupon
         stripe_coupon_id = stripe_coupon.id
       end
@@ -319,6 +319,10 @@ class PlatformLoyaltyService
     end
     
     private
+    
+    def should_create_stripe_coupon?
+      Rails.env.production? || ENV['STRIPE_PUBLISHABLE_KEY'].present? || Rails.env.test?
+    end
     
     def valid_redemption_amount?(points)
       (100..MAX_DISCOUNT_POINTS).include?(points) && (points % 100).zero?

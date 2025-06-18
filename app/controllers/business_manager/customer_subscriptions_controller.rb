@@ -19,7 +19,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
     # Search by customer name or email
     if params[:search].present?
       @customer_subscriptions = @customer_subscriptions.joins(:tenant_customer)
-                                                       .where("tenant_customers.name ILIKE ? OR tenant_customers.email ILIKE ?", 
+                                                       .where("CONCAT(tenant_customers.first_name, ' ', tenant_customers.last_name) ILIKE ? OR tenant_customers.email ILIKE ?", 
                                                              "%#{params[:search]}%", "%#{params[:search]}%")
     end
 
@@ -44,7 +44,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
   # GET /manage/subscriptions/new
   def new
     @customer_subscription = current_business.customer_subscriptions.build
-    @tenant_customers = current_business.tenant_customers.active.order(:name)
+    @tenant_customers = current_business.tenant_customers.active.order(:first_name, :last_name)
     @products = current_business.products.active.order(:name)
     @services = current_business.services.active.order(:name)
   end
@@ -57,7 +57,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
       redirect_to [:business_manager, @customer_subscription], 
                   notice: 'Subscription was successfully created.'
     else
-      @tenant_customers = current_business.tenant_customers.active.order(:name)
+      @tenant_customers = current_business.tenant_customers.active.order(:first_name, :last_name)
       @products = current_business.products.active.order(:name)
       @services = current_business.services.active.order(:name)
       render :new, status: :unprocessable_entity
@@ -66,7 +66,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
 
   # GET /manage/subscriptions/1/edit
   def edit
-    @tenant_customers = current_business.tenant_customers.active.order(:name)
+    @tenant_customers = current_business.tenant_customers.active.order(:first_name, :last_name)
     @products = current_business.products.active.order(:name)
     @services = current_business.services.active.order(:name)
   end
@@ -77,7 +77,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
       redirect_to [:business_manager, @customer_subscription], 
                   notice: 'Subscription was successfully updated.'
     else
-      @tenant_customers = current_business.tenant_customers.active.order(:name)
+      @tenant_customers = current_business.tenant_customers.active.order(:first_name, :last_name)
       @products = current_business.products.active.order(:name)
       @services = current_business.services.active.order(:name)
       render :edit, status: :unprocessable_entity

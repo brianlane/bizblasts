@@ -89,7 +89,7 @@ RSpec.describe BusinessManager::CustomerSubscriptionsController, type: :controll
 
       context 'with search query' do
         it 'filters subscriptions by customer name' do
-          get :index, params: { search: tenant_customer.name }
+          get :index, params: { search: tenant_customer.full_name }
           
           expect(assigns(:customer_subscriptions)).to include(active_subscription, failed_subscription, cancelled_subscription)
         end

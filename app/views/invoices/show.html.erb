@@ -8,7 +8,7 @@
   <strong>Due Date:</strong> <%= l @invoice.due_date, format: :long if @invoice.due_date %><br>
   <strong>Business:</strong> <%= @invoice.business.name %><br>
   <% if @invoice.tenant_customer %>
-    <strong>Customer Name:</strong> <%= @invoice.tenant_customer.name %><br>
+    <strong>Customer Name:</strong> <%= @invoice.tenant_customer.full_name %><br>
     <strong>Customer Email:</strong> <%= @invoice.tenant_customer.email %><br>
   <% end %>
 </p>

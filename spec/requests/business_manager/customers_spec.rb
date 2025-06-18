@@ -82,7 +82,7 @@ RSpec.describe "Business Manager Customers", type: :request do
 
     describe "POST /manage/customers" do
       let(:valid_params) { { tenant_customer: attributes_for(:tenant_customer, email: 'unique@example.com') } }
-      let(:invalid_params) { { tenant_customer: { name: '', email: 'bad', phone: '' } } }
+      let(:invalid_params) { { tenant_customer: { first_name: '', last_name: '', email: 'bad', phone: '' } } }
 
       it "creates a new customer with valid parameters" do
         expect {
@@ -109,12 +109,12 @@ RSpec.describe "Business Manager Customers", type: :request do
     end
 
     describe "PATCH /manage/customers/:id" do
-      let(:update_params) { { tenant_customer: { name: 'New Name' } } }
+      let(:update_params) { { tenant_customer: { first_name: 'New', last_name: 'Name' } } }
 
       it "updates customer with valid data" do
         patch business_manager_customer_path(customer), params: update_params
         expect(response).to redirect_to(business_manager_customer_path(customer))
-        expect(customer.reload.name).to eq('New Name')
+        expect(customer.reload.full_name).to eq('New Name')
       end
 
       it "does not update with invalid data" do

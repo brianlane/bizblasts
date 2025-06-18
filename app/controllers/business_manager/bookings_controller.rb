@@ -26,11 +26,12 @@ module BusinessManager
     # GET /manage/bookings/:id/edit
     def edit
       # Load all available products for this business that have variants
-      # Only include service or mixed product types
+      # Only include service or mixed product types and products visible to customers
       @available_products = current_business.products.active.includes(:product_variants)
                                   .where(product_type: [:service, :mixed])
                                   .where.not(product_variants: { id: nil })
-                                  .order(:name)
+                                  .select(&:visible_to_customers?) # Filter out hidden products
+                                  .sort_by(&:name)
     end
     
     # PATCH /manage/bookings/:id
@@ -148,7 +149,8 @@ module BusinessManager
         @available_products = current_business.products.active.includes(:product_variants)
                                   .where(product_type: [:service, :mixed])
                                   .where.not(product_variants: { id: nil })
-                                  .order(:name)
+                                  .select(&:visible_to_customers?) # Filter out hidden products
+                                  .sort_by(&:name)
         
         render :edit
       end

@@ -83,7 +83,7 @@
             <span class="customer-dropdown-text text-gray-900">
               <% if @booking.tenant_customer_id.present? %>
                 <% customer = @business.tenant_customers.find(@booking.tenant_customer_id) %>
-                <%= customer.email.present? ? "#{customer.name} (#{customer.email})" : customer.name %>
+                <%= customer.email.present? ? "#{customer.full_name} (#{customer.email})" : customer.full_name %>
               <% else %>
                 Select existing customer
               <% end %>
@@ -120,11 +120,11 @@
             <% @business.tenant_customers.each do |customer| %>
               <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
                    data-customer-id="<%= customer.id %>"
-                   data-customer-name="<%= customer.email.present? ? "#{customer.name} (#{customer.email})" : customer.name %>"
+                   data-customer-name="<%= customer.email.present? ? "#{customer.full_name} (#{customer.email})" : customer.full_name %>"
                    data-customer-dropdown-target="option">
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <div class="font-medium text-gray-900"><%= customer.name %></div>
+                    <div class="font-medium text-gray-900"><%= customer.full_name %></div>
                     <% if customer.email.present? %>
                       <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
                     <% end %>
@@ -171,9 +171,15 @@
       <div id="new-tenant-customer-fields" class="hidden mb-4">
         <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
         <%= form.fields_for :tenant_customer_attributes, @booking.tenant_customer do |cust_fields| %>
-          <div class="mb-4">
-            <%= cust_fields.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
-            <%= cust_fields.text_field :name, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <%= cust_fields.label :first_name, "First Name", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= cust_fields.text_field :first_name, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+            </div>
+            <div>
+              <%= cust_fields.label :last_name, "Last Name", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= cust_fields.text_field :last_name, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+            </div>
           </div>
           <div class="mb-4">
             <%= cust_fields.label :email, class: "block text-gray-700 text-sm font-bold mb-2" %>
@@ -281,9 +287,11 @@
                 <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Price
                 </th>
-                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
+                <% if @available_products.any?(&:show_stock_to_customers?) %>
+                  <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stock
+                  </th>
+                <% end %>
                 <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Quantity
                 </th>
@@ -344,21 +352,29 @@
                       </td>
                       
                       <!-- Stock -->
-                      <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                          <% if variant.stock_quantity > 0 %>
+                      <% if @available_products.any?(&:show_stock_to_customers?) %>
+                        <% if product.show_stock_to_customers? %>
+                          <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                              <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                              <span class="text-sm text-gray-900"><%= variant.stock_quantity %></span>
+                              <% if variant.stock_quantity > 0 %>
+                                <div class="flex items-center">
+                                  <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                  <span class="text-sm text-gray-900"><%= variant.stock_quantity %></span>
+                                </div>
+                              <% else %>
+                                <div class="flex items-center">
+                                  <div class="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                                  <span class="text-sm text-gray-500">Out of stock</span>
+                                </div>
+                              <% end %>
                             </div>
-                          <% else %>
-                            <div class="flex items-center">
-                              <div class="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
-                              <span class="text-sm text-gray-500">Out of stock</span>
-                            </div>
-                          <% end %>
-                        </div>
-                      </td>
+                          </td>
+                        <% else %>
+                          <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                            <!-- Empty cell for products with hidden stock -->
+                          </td>
+                        <% end %>
+                      <% end %>
                       
                       <!-- Quantity Controls -->
                       <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -805,6 +821,20 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+
+  // Initialize customer form validation
+  if (window.CustomerFormValidation) {
+    const validator = CustomerFormValidation.initializeForm({
+      formSelector: 'form[action*="/bookings"]',
+      fieldPrefix: 'booking[tenant_customer_attributes]',
+      realTimeValidation: true,
+      showSuccessState: true
+    });
+    
+    if (validator) {
+      CustomerFormValidation.setupConditionalValidation(validator, '#new-tenant-customer-fields');
+    }
+  }
 });
 </script>
 

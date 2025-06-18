@@ -33,7 +33,7 @@ RSpec.describe "Admin Bookings", type: :request, admin: true do
     it "lists all bookings" do
       get "/admin/bookings"
       expect(response).to be_successful
-      expect(response.body).to include(ERB::Util.html_escape(tenant_customer.name))
+      expect(response.body).to include(ERB::Util.html_escape(tenant_customer.full_name))
       expect(response.body).to include(service.name)
     end
 
@@ -45,7 +45,7 @@ RSpec.describe "Admin Bookings", type: :request, admin: true do
     it "shows the booking details" do
       get "/admin/bookings/#{booking.id}"
       expect(response).to be_successful
-      expect(response.body).to include(ERB::Util.html_escape(tenant_customer.name))
+      expect(response.body).to include(ERB::Util.html_escape(tenant_customer.full_name))
       expect(response.body).to include(service.name)
       # Check for other fields displayed on the show page
     end

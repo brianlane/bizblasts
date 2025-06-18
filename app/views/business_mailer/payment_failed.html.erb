@@ -2,11 +2,11 @@
 
 <p>Hello,</p>
 
-<p>A subscription payment has failed for customer <strong><%= @customer.name %></strong>.</p>
+<p>A subscription payment has failed for customer <strong><%= @customer.full_name %></strong>.</p>
 
 <h2>Failed Payment Details:</h2>
 <ul>
-  <li><strong>Customer:</strong> <%= @customer.name %> (<%= @customer.email %>)</li>
+  <li><strong>Customer:</strong> <%= @customer.full_name %> (<%= @customer.email %>)</li>
   <li><strong>Item:</strong> <%= @item.name %></li>
   <li><strong>Amount:</strong> $<%= @customer_subscription.subscription_price %></li>
   <li><strong>Frequency:</strong> <%= @customer_subscription.frequency %></li>

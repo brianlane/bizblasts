@@ -43,6 +43,8 @@ class Product < ApplicationRecord
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
   validates :allow_discounts, inclusion: { in: [true, false] }
+  validates :show_stock_to_customers, inclusion: { in: [true, false] }
+  validates :hide_when_out_of_stock, inclusion: { in: [true, false] }
   # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
                                      message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
@@ -74,7 +76,7 @@ class Product < ApplicationRecord
   def self.ransackable_attributes(auth_object = nil)
     # Allowlist attributes for searching/filtering in ActiveAdmin
     # Include basic fields, foreign keys, flags, and timestamps
-    %w[id name description price active featured business_id created_at updated_at product_type allow_discounts]
+    %w[id name description price active featured business_id created_at updated_at product_type allow_discounts show_stock_to_customers hide_when_out_of_stock]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -97,6 +99,18 @@ class Product < ApplicationRecord
 
   def has_variants?
     product_variants.exists?  
+  end
+
+  # Check if product should be visible to customers
+  def visible_to_customers?
+    return false unless active? # Inactive products are never visible
+    
+    # If hide_when_out_of_stock is enabled and product is out of stock, hide it
+    if hide_when_out_of_stock?
+      return false unless in_stock?(1)
+    end
+    
+    true
   end
 
   def primary_image

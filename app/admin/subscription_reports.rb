@@ -283,7 +283,7 @@ ActiveAdmin.register_page "Subscription Reports" do
           h3 'Top Customers by Subscription Revenue'
           top_customers = TenantCustomer.joins(:customer_subscriptions)
                                       .where(customer_subscriptions: { status: 'active' })
-                                      .group('tenant_customers.id', 'tenant_customers.name', 'tenant_customers.email')
+                                      .group('tenant_customers.id', 'tenant_customers.first_name', 'tenant_customers.last_name', 'tenant_customers.email')
                                       .sum('customer_subscriptions.subscription_price')
                                       .sort_by { |_, revenue| -revenue }
                                       .first(20)
@@ -299,7 +299,7 @@ ActiveAdmin.register_page "Subscription Reports" do
               customer = TenantCustomer.find(customer_data[0])
               subscription_count = customer.customer_subscriptions.active.count
               tr do
-                td customer.name
+                td customer.full_name
                 td mail_to(customer.email)
                 td subscription_count
                 td number_to_currency(revenue)

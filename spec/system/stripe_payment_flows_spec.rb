@@ -34,7 +34,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:service) { create(:service, business: business, name: 'Haircut', price: 50.00, duration: 30) }
     let!(:staff_member) { create(:staff_member, business: business, name: 'John Stylist') }
     let!(:user) { create(:user, :client, email: 'client@example.com', password: 'password123') }
-    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
+    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
     
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
@@ -135,7 +135,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Verify customer was created
         customer = TenantCustomer.find_by(email: 'guest@example.com')
         expect(customer).to be_present
-        expect(customer.name).to eq('Guest Customer')
+        expect(customer.full_name).to eq('Guest Customer')
       end
     end
   end
@@ -145,7 +145,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:variant) { create(:product_variant, product: product, name: 'Large', stock_quantity: 10) }
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Standard', cost: 5.00) }
     let!(:user) { create(:user, :client, email: 'shopper@example.com', password: 'password123') }
-    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
+    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
 
     before do
       # Mock Stripe checkout session creation for product orders

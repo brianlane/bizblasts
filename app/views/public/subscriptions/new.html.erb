@@ -119,8 +119,14 @@
             <%= form.fields_for :tenant_customer, @tenant_customer do |customer_form| %>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <%= customer_form.label :name, class: "block text-sm font-medium text-gray-700" %>
-                  <%= customer_form.text_field :name, 
+                  <%= customer_form.label :first_name, "First Name", class: "block text-sm font-medium text-gray-700" %>
+                  <%= customer_form.text_field :first_name, 
+                        class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500",
+                        required: true %>
+                </div>
+                <div>
+                  <%= customer_form.label :last_name, "Last Name", class: "block text-sm font-medium text-gray-700" %>
+                  <%= customer_form.text_field :last_name, 
                         class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500",
                         required: true %>
                 </div>
@@ -154,9 +160,14 @@
             <% if @product_variants.any? %>
               <div>
                 <%= form.label :product_variant_id, "Choose Variant", class: "block text-sm font-medium text-gray-700" %>
+                <% 
+                  # Auto-select if only one variant
+                  auto_selected_value = @product_variants.count == 1 ? @product_variants.first.id : @customer_subscription.product_variant_id
+                  prompt_text = @product_variants.count == 1 ? "Selected variant" : "Select a variant"
+                %>
                 <%= form.select :product_variant_id, 
-                      options_from_collection_for_select(@product_variants, :id, :name, @customer_subscription.product_variant_id),
-                      { prompt: "Select a variant" },
+                      options_from_collection_for_select(@product_variants, :id, :name, auto_selected_value),
+                      { prompt: prompt_text },
                       { class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" } %>
               </div>
             <% end %>
@@ -288,4 +299,22 @@
     </div>
   </div>
 </div> 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize customer form validation for subscription form
+  // Only validate when customer fields are visible (user not signed in)
+  if (window.CustomerFormValidation) {
+    const customerFields = document.querySelector('input[name*="tenant_customer_attributes"]');
+    if (customerFields) {
+      CustomerFormValidation.initializeForm({
+        formSelector: 'form[action*="/subscriptions"]',
+        fieldPrefix: 'customer_subscription[tenant_customer_attributes]',
+        realTimeValidation: true,
+        showSuccessState: true
+      });
+    }
+  }
+});
+</script>
  

@@ -37,7 +37,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
         expect(response).to have_http_status(:redirect) # Should redirect to confirmation
         customer1 = business1.tenant_customers.find_by(email: 'john.doe@example.com')
         expect(customer1).to be_present
-        expect(customer1.name).to eq('John Doe')
+        expect(customer1.full_name).to eq('John Doe')
         
         # Create customer with same email in business2
         ActsAsTenant.current_tenant = business2
@@ -56,7 +56,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
         expect(response).to have_http_status(:redirect) # Should redirect to confirmation
         customer2 = business2.tenant_customers.find_by(email: 'john.doe@example.com')
         expect(customer2).to be_present
-        expect(customer2.name).to eq('John Doe')
+        expect(customer2.full_name).to eq('John Doe')
         
         # Verify they are different customers
         expect(customer1.id).not_to eq(customer2.id)
@@ -106,7 +106,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
         
         # Verify customer was updated with new info
         original_customer.reload
-        expect(original_customer.name).to eq('Johnny Doe') # Updated name
+        expect(original_customer.full_name).to eq('Johnny Doe') # Updated name
         expect(original_customer.phone).to eq('555-999-8888') # Updated phone
         expect(original_customer.email).to eq('john.doe@example.com') # Same email
       end
