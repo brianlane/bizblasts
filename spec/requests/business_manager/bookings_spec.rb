@@ -282,7 +282,7 @@ RSpec.describe "Business Manager Bookings", type: :request do
             patch cancel_business_manager_booking_path(imminent_booking), params: cancel_params
             expect(imminent_booking.reload.status).not_to eq("cancelled")
             expect(response).to redirect_to(business_manager_booking_path(imminent_booking)) # Still redirects to show
-            expect(flash[:alert]).to eq("Cannot cancel booking within 60 minutes of the start time.")
+            expect(flash[:alert]).to eq("Cannot cancel booking within 1 hour of the start time.")
           end
         end
       end

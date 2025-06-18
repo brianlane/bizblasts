@@ -86,13 +86,9 @@ RSpec.describe "Client::Bookings", type: :request do
         # Travel to a time inside the cancellation window (e.g., 20 minutes before start)
         travel_to imminent_booking.start_time - 20.minutes do
           patch cancel_client_booking_path(imminent_booking)
-          if imminent_booking.reload.status == "cancelled"
-            puts "DEBUG: Response body: #{response.body}"
-            puts "DEBUG: Flash: #{flash.inspect}"
-          end
           expect(imminent_booking.reload.status).not_to eq("cancelled")
           expect(response).to redirect_to(client_booking_path(imminent_booking))
-          expect(flash[:alert]).to eq("Unable to cancel this booking. Please try again.")
+          expect(flash[:alert]).to eq("Cannot cancel booking within 1 hour of the start time.")
         end
       end
     end

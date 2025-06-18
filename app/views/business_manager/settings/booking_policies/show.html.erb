@@ -55,11 +55,11 @@
               <div>
                 <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
                 <p class="text-2xl font-bold text-gray-900">
-                  <%= @booking_policy.cancellation_window_mins.present? ? "#{pluralize(@booking_policy.cancellation_window_mins, 'minute')} prior" : "No restriction" %>
+                  <%= @booking_policy.cancellation_window_mins.present? ? "#{(@booking_policy.cancellation_window_mins / 60).round} #{(@booking_policy.cancellation_window_mins / 60).round == 1 ? 'hour' : 'hours'} prior" : "No restriction" %>
                 </p>
                 <% if @booking_policy.cancellation_window_mins.present? %>
                   <p class="text-sm text-gray-600 mt-1">
-                    <%= @booking_policy.cancellation_window_mins >= 1440 ? "#{(@booking_policy.cancellation_window_mins / 1440).round(1)} days" : "#{(@booking_policy.cancellation_window_mins / 60.0).round(1)} hours" %> before appointment
+                    Customers must cancel at least <%= (@booking_policy.cancellation_window_mins / 60).round %> <%= (@booking_policy.cancellation_window_mins / 60).round == 1 ? 'hour' : 'hours' %> before appointment
                   </p>
                 <% end %>
               </div>

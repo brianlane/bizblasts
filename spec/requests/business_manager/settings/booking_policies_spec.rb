@@ -75,10 +75,10 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
 
   describe "PATCH /manage/settings/booking_policy" do # update
     let(:valid_attributes) do
-      { cancellation_window_mins: 60, buffer_time_mins: 15, max_daily_bookings: 10, max_advance_days: 30 }
+      { cancellation_window_hours: 1, buffer_time_mins: 15, max_daily_bookings: 10, max_advance_days: 30 }
     end
     let(:invalid_attributes) do
-      { cancellation_window_mins: -10 } # Example of invalid data based on model validation
+      { cancellation_window_hours: -1 } # Example of invalid data based on model validation
     end
 
     context "when logged in as a manager" do
@@ -110,7 +110,7 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
       
       context "with duration constraints" do
         let(:duration_attributes) do
-          { min_duration_mins: 30, max_duration_mins: 120, cancellation_window_mins: 10, buffer_time_mins: 5, max_daily_bookings: 10, max_advance_days: 365 }
+          { min_duration_mins: 30, max_duration_mins: 120, cancellation_window_hours: 1, buffer_time_mins: 5, max_daily_bookings: 10, max_advance_days: 365 }
         end
 
         it "updates the duration policy constraints" do

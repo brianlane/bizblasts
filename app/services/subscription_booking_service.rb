@@ -107,7 +107,7 @@ class SubscriptionBookingService
         
         # Use first available slot with time offset
         first_slot = available_slots.first
-        booking_time = Time.zone.parse("#{date} #{first_slot[:start_time].strftime('%H:%M')}") + time_offset
+        booking_time = first_slot[:start_time] + time_offset
         
         # Make sure the offset time is still within business hours
         if booking_time.hour >= 9 && booking_time.hour <= 17

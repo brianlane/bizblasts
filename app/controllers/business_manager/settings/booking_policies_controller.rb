@@ -19,7 +19,20 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
 
   def update
     authorize @booking_policy, policy_class: BusinessManager::Settings::BookingPolicyPolicy
-    if @booking_policy.update(booking_policy_params)
+    
+    # Convert hours to minutes for cancellation_window_hours before updating
+    processed_params = booking_policy_params.dup
+    if processed_params[:cancellation_window_hours].present?
+      hours = processed_params[:cancellation_window_hours].to_i
+      processed_params[:cancellation_window_mins] = hours * 60
+    else
+      processed_params[:cancellation_window_mins] = nil
+    end
+    
+    # Remove the virtual cancellation_window_hours parameter
+    processed_params.delete(:cancellation_window_hours)
+    
+    if @booking_policy.update(processed_params)
       redirect_to business_manager_settings_booking_policy_path, notice: 'Booking policies updated successfully.'
     else
       flash.now[:alert] = 'Error updating booking policies.'
@@ -42,7 +55,8 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
       :max_daily_bookings,
       :max_advance_days,
       :min_duration_mins,
-      :max_duration_mins
+      :max_duration_mins,
+      :cancellation_window_hours
     )
   end
 end 
