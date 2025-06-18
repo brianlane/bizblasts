@@ -339,7 +339,9 @@ RSpec.describe BookingManager, type: :service do
           
         # Travel to a time well before the cancellation window (e.g., 2 hours before)
         travel_to start_time - 2.hours do
-          expect(BookingManager.cancel_booking(booking)).to be true
+          success, error_message = BookingManager.cancel_booking(booking)
+          expect(success).to be true
+          expect(error_message).to be_nil
           expect(booking.reload.status).to eq('cancelled')
           expect(booking.errors).to be_empty
         end
@@ -356,7 +358,9 @@ RSpec.describe BookingManager, type: :service do
           status: :confirmed)
           
         travel_to start_time - 2.hours do
-          expect(BookingManager.cancel_booking(booking, "Client changed mind")).to be true
+          success, error_message = BookingManager.cancel_booking(booking, "Client changed mind")
+          expect(success).to be true
+          expect(error_message).to be_nil
           expect(booking.reload.cancellation_reason).to eq("Client changed mind")
         end
       end
@@ -377,8 +381,9 @@ RSpec.describe BookingManager, type: :service do
         travel_to start_time - 2.hours do
           # Instead of checking whether BookingMailer.cancellation is called,
           # Verify that the booking's status changes to cancelled which implies the method completed successfully
-          result = BookingManager.cancel_booking(booking)
-          expect(result).to be true
+          success, error_message = BookingManager.cancel_booking(booking)
+          expect(success).to be true
+          expect(error_message).to be_nil
           expect(booking.reload.status).to eq('cancelled')
         end
       end
@@ -413,7 +418,9 @@ RSpec.describe BookingManager, type: :service do
           
         # Travel to a time inside the cancellation window (e.g., 30 minutes before)
         travel_to start_time - 30.minutes do
-          expect(BookingManager.cancel_booking(booking)).to be false
+          success, error_message = BookingManager.cancel_booking(booking)
+          expect(success).to be false
+          expect(error_message).to eq("Cannot cancel booking within 1 hour of the start time.")
           expect(booking.reload.status).to eq('confirmed') # Status should not change
         end
       end
@@ -429,8 +436,10 @@ RSpec.describe BookingManager, type: :service do
           status: :confirmed)
           
         travel_to start_time - 30.minutes do
-          BookingManager.cancel_booking(booking)
-          expect(booking.errors[:base]).to include("Cannot cancel booking within 60 minutes of the start time.")
+          success, error_message = BookingManager.cancel_booking(booking)
+          expect(success).to be false
+          expect(error_message).to eq("Cannot cancel booking within 1 hour of the start time.")
+          expect(booking.errors[:base]).to include("Cannot cancel booking within 1 hour of the start time.")
         end
       end
       
@@ -466,7 +475,9 @@ RSpec.describe BookingManager, type: :service do
            
          # Travel to a time very close to the start (e.g., 5 minutes before)
          travel_to start_time - 5.minutes do
-           expect(BookingManager.cancel_booking(booking)).to be true
+           success, error_message = BookingManager.cancel_booking(booking)
+           expect(success).to be true
+           expect(error_message).to be_nil
            expect(booking.reload.status).to eq('cancelled')
            expect(booking.errors).to be_empty
          end
@@ -497,7 +508,9 @@ RSpec.describe BookingManager, type: :service do
          
          # Travel to a time very close to the start (e.g., 5 minutes before)
          travel_to start_time - 5.minutes do
-           expect(BookingManager.cancel_booking(booking)).to be true
+           success, error_message = BookingManager.cancel_booking(booking)
+           expect(success).to be true
+           expect(error_message).to be_nil
            expect(booking.reload.status).to eq('cancelled')
            expect(booking.errors).to be_empty
          end

@@ -270,18 +270,27 @@ class BookingManager
   end
   
   # Cancel a booking with optional reason and handle related tasks
+  # Returns [success, error_message] - success is boolean, error_message is string or nil
   def self.cancel_booking(booking, reason = nil, notify = true)
     # Check cancellation policy
     business = booking.business
     policy = business&.booking_policy
     cancellation_window_minutes = policy&.cancellation_window_mins
-
     if cancellation_window_minutes.present? && cancellation_window_minutes > 0
       cancellation_deadline = booking.start_time - cancellation_window_minutes.minutes
       if Time.current > cancellation_deadline
-        booking.errors.add(:base, "Cannot cancel booking within #{cancellation_window_minutes} minutes of the start time.")
+        # Convert minutes to hours for user-friendly display
+        error_message = if cancellation_window_minutes >= 60 && cancellation_window_minutes % 60 == 0
+          hours = cancellation_window_minutes / 60
+          time_unit = hours == 1 ? "hour" : "hours"
+          "Cannot cancel booking within #{hours} #{time_unit} of the start time."
+        else
+          "Cannot cancel booking within #{cancellation_window_minutes} minutes of the start time."
+        end
+        
+        booking.errors.add(:base, error_message)
         Rails.logger.warn "[BookingManager] Attempted to cancel Booking ##{booking.id} within cancellation window."
-        return false # Indicate cancellation failed due to policy
+        return [false, error_message] # Return both success status and error message
       end
     end
 
@@ -318,13 +327,13 @@ class BookingManager
       end
       # --- End increment spots logic ---
       
-      # Return true on successful cancellation
-      true
+      # Return success status and no error message on successful cancellation
+      [true, nil]
     end
   rescue ActiveRecord::RecordInvalid => e
-    # Log error and return false if updates fail
+    # Log error and return false with error message if updates fail
     Rails.logger.error "[BookingManager] Failed to cancel Booking ##{booking.id}: #{e.message}"
-    false
+    [false, "Failed to cancel booking: #{e.message}"]
   end
   
   # Check if a booking slot is available

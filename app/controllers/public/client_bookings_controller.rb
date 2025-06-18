@@ -37,10 +37,13 @@ module Public
       
       cancellation_reason = "Cancelled by client"
       
-      if BookingService.cancel_booking(@booking, cancellation_reason)
+      success, error_message = BookingService.cancel_booking(@booking, cancellation_reason)
+      
+      if success
         redirect_to tenant_my_booking_path(@booking), notice: "Your booking has been successfully cancelled."
       else
-        redirect_to tenant_my_booking_path(@booking), alert: "Unable to cancel this booking. Please try again."
+        alert_message = error_message || "Unable to cancel this booking. Please try again."
+        redirect_to tenant_my_booking_path(@booking), alert: alert_message
       end
     end
     

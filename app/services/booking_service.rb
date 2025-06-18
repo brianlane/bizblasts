@@ -126,7 +126,7 @@ class BookingService
   # @param booking [Booking] the booking to cancel
   # @param reason [String, nil] reason for cancellation
   # @param notify [Boolean] whether to notify affected parties
-  # @return [Boolean] true if successful, false otherwise
+  # @return [Array<Boolean, String>] success status and error message (if any)
   def self.cancel_booking(booking, reason = nil, notify = true)
     # Use the existing BookingManager implementation
     BookingManager.cancel_booking(booking, reason, notify)

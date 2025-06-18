@@ -175,14 +175,13 @@ module BusinessManager
       
       if @booking.status == 'cancelled'
         flash[:notice] = "This booking was already cancelled."
-      elsif BookingManager.cancel_booking(@booking, cancellation_reason)
-        flash[:notice] = "Booking has been cancelled."
       else
-        # Handle policy-based cancellation restrictions
-        if @booking.errors[:base].any?
-          flash[:alert] = @booking.errors[:base].first
+        success, error_message = BookingManager.cancel_booking(@booking, cancellation_reason)
+        if success
+          flash[:notice] = "Booking has been cancelled."
         else
-          flash[:alert] = "There was a problem cancelling the booking."
+          # Handle policy-based cancellation restrictions
+          flash[:alert] = error_message || "There was a problem cancelling the booking."
         end
       end
       
