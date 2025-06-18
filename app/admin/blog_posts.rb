@@ -98,25 +98,25 @@ ActiveAdmin.register BlogPost do
         # Debug script to log when elements are rendered
         script do
           raw """
-            console.log('📝 ActiveAdmin form rendering markdown editor elements...');
-            console.log('📝 Testing if JS works - window object:', typeof window);
-            console.log('📝 Testing if JS works - document object:', typeof document);
-            console.log('📝 Testing basic JS functionality...');
+            //console.log('📝 ActiveAdmin form rendering markdown editor elements...');
+            //console.log('📝 Testing if JS works - window object:', typeof window);
+            //console.log('📝 Testing if JS works - document object:', typeof document);
+            //console.log('📝 Testing basic JS functionality...');
             
             // Try to manually trigger markdown editor initialization if it exists
             setTimeout(() => {
-              console.log('📝 Checking for MarkdownEditor class...');
+              //console.log('📝 Checking for MarkdownEditor class...');
               if (window.MarkdownEditor) {
-                console.log('📝 MarkdownEditor class found in window!');
+                //console.log('📝 MarkdownEditor class found in window!');
                 try {
                   window.manualEditor = new window.MarkdownEditor();
-                  console.log('📝 Manual MarkdownEditor created successfully');
+                  //console.log('📝 Manual MarkdownEditor created successfully');
                 } catch (e) {
-                  console.error('📝 Error creating manual MarkdownEditor:', e);
+                  //console.error('📝 Error creating manual MarkdownEditor:', e);
                 }
               } else {
-                console.log('📝 MarkdownEditor class NOT found in window');
-                console.log('📝 Available in window:', Object.keys(window).filter(k => k.includes('Mark')));
+                //console.log('📝 MarkdownEditor class NOT found in window');
+                //console.log('📝 Available in window:', Object.keys(window).filter(k => k.includes('Mark')));
               }
             }, 500);
           """

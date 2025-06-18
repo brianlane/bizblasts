@@ -72,14 +72,14 @@ class PolicyAcceptance {
   async checkPolicyStatus() {
     // Prevent duplicate simultaneous checks
     if (this.isCheckingStatus) {
-      console.log('[PolicyAcceptance] Policy status check already in progress, skipping');
+      //console.log('[PolicyAcceptance] Policy status check already in progress, skipping');
       return;
     }
     
     // Check cache first
     const now = Date.now();
     if (this.statusCache && this.lastCheck && (now - this.lastCheck) < this.cacheTimeout) {
-      console.log('[PolicyAcceptance] Using cached policy status');
+      //console.log('[PolicyAcceptance] Using cached policy status');
       if (this.statusCache.requires_policy_acceptance && this.statusCache.missing_policies.length > 0) {
         this.showPolicyModal(this.statusCache.missing_policies);
       }
@@ -114,7 +114,7 @@ class PolicyAcceptance {
       if (data.requires_policy_acceptance && data.missing_policies.length > 0) {
         this.showPolicyModal(data.missing_policies);
       } else {
-        console.log('[PolicyAcceptance] No policies need acceptance');
+        //console.log('[PolicyAcceptance] No policies need acceptance');
       }
     } catch (error) {
       console.error('[PolicyAcceptance] Error checking policy status:', error);
