@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Public::SubscriptionsController, type: :controller do
   let(:business) { create(:business, subdomain: 'testbusiness', hostname: 'testbusiness') }
   let(:client_user) { create(:user, :client) }
-  let(:tenant_customer) { create(:tenant_customer, business: business, email: client_user.email, name: client_user.full_name) }
+  let(:tenant_customer) { create(:tenant_customer, business: business, email: client_user.email, first_name: client_user.first_name, last_name: client_user.last_name) }
   
   let(:product) { create(:product, business: business, subscription_enabled: true, price: 29.99) }
   let(:service) { create(:service, business: business, subscription_enabled: true, price: 75.00) }
@@ -120,7 +120,7 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
             quantity: 2,
             frequency: 'monthly',
             tenant_customer_attributes: {
-              name: 'John Doe',
+              first_name: 'John', last_name: 'Doe',
               email: 'john@example.com',
               phone: '555-1234'
             }
@@ -134,7 +134,7 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
         }.to change(business.tenant_customers, :count).by(1)
 
         created_customer = business.tenant_customers.last
-        expect(created_customer.name).to eq('John Doe')
+        expect(created_customer.full_name).to eq('John Doe')
         expect(created_customer.email).to eq('john@example.com')
         
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
@@ -177,7 +177,8 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
               quantity: 1,
               frequency: 'monthly',
               tenant_customer_attributes: {
-                name: '',
+                first_name: '',
+                last_name: '',
                 email: 'invalid-email'
               }
             }
@@ -208,7 +209,7 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
               quantity: 1,
               frequency: 'monthly',
               tenant_customer_attributes: {
-                name: 'Jane Doe',
+                first_name: 'Jane', last_name: 'Doe',
                 email: 'jane@example.com',
                 phone: '555-5678'
               }
@@ -241,7 +242,7 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
               quantity: 1,
               frequency: 'monthly',
               tenant_customer_attributes: {
-                name: 'Jane Doe',
+                first_name: 'Jane', last_name: 'Doe',
                 email: 'jane@example.com',
                 phone: '555-5678'
               }
@@ -270,7 +271,7 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
               quantity: 1,
               frequency: 'monthly',
               tenant_customer_attributes: {
-                name: 'Jane Doe',
+                first_name: 'Jane', last_name: 'Doe',
                 email: 'jane@example.com',
                 phone: '555-5678'
               }

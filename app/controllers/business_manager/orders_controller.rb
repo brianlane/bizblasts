@@ -142,7 +142,7 @@ module BusinessManager
       params.require(:order).permit(
         :tenant_customer_id, :shipping_method_id, :tax_rate_id,
         :shipping_address, :billing_address, :notes, :order_type,
-        tenant_customer_attributes: [:name, :email, :phone],
+        tenant_customer_attributes: [:first_name, :last_name, :email, :phone],
         line_items_attributes: [:id, :product_variant_id, :service_id, :staff_member_id, :quantity, :price, :total_amount, :_destroy]
       )
     end

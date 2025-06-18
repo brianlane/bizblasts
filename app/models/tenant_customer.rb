@@ -21,8 +21,9 @@ class TenantCustomer < ApplicationRecord
   # Allow access to User accounts associated with this customer's business
   has_many :users, through: :business, source: :clients
   
-  # Base validations
-  validates :name, presence: true
+  # Base validations - updated to match User model
+  validates :first_name, presence: true
+  validates :last_name, presence: true
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { scope: :business_id, message: "must be unique within this business" }
   # Make phone optional for now to fix booking flow
   validates :phone, presence: true, allow_blank: true
@@ -36,7 +37,7 @@ class TenantCustomer < ApplicationRecord
   scope :active, -> { where(active: true) }
   
   def full_name
-    name
+    [first_name, last_name].compact.join(' ').presence || email
   end
   
   def recent_bookings
@@ -134,9 +135,9 @@ class TenantCustomer < ApplicationRecord
     active_subscriptions.sum(:subscription_price)
   end
   
-  # Define ransackable attributes for ActiveAdmin
+  # Define ransackable attributes for ActiveAdmin - updated for new fields
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name email phone address notes active last_booking created_at updated_at business_id]
+    %w[id first_name last_name email phone address notes active last_booking created_at updated_at business_id]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -158,9 +159,9 @@ class TenantCustomer < ApplicationRecord
     
     begin
       BusinessMailer.new_customer_notification(self).deliver_later
-      Rails.logger.info "[EMAIL] Scheduled business customer notification for Customer #{name} (#{email})"
+      Rails.logger.info "[EMAIL] Scheduled business customer notification for Customer #{full_name} (#{email})"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to schedule business customer notification for Customer #{name} (#{email}): #{e.message}"
+      Rails.logger.error "[EMAIL] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
     end
   end
 end 

@@ -26,7 +26,8 @@ class ClientBookingsController < ApplicationController
     @available_products = current_business_for_booking.products.active.includes(:product_variants)
                                       .where(product_type: [:service, :mixed])
                                       .where.not(product_variants: { id: nil })
-                                      .order(:name)
+                                      .select(&:visible_to_customers?) # Filter out hidden products
+                                      .sort_by(&:name)
     # The view will use @booking.booking_product_add_ons to populate existing selections
   end
   
@@ -43,7 +44,8 @@ class ClientBookingsController < ApplicationController
       @available_products = current_business_for_booking.products.active.includes(:product_variants)
                                         .where(product_type: [:service, :mixed])
                                         .where.not(product_variants: { id: nil })
-                                        .order(:name)
+                                        .select(&:visible_to_customers?) # Filter out hidden products
+                                        .sort_by(&:name)
       flash.now[:alert] = @booking.errors.full_messages.to_sentence
       render :edit, status: :unprocessable_entity
     end

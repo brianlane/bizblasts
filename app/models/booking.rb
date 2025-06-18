@@ -36,7 +36,7 @@ class Booking < ApplicationRecord
 
   delegate :name, to: :service, prefix: true, allow_nil: true
   delegate :name, to: :staff_member, prefix: true, allow_nil: true
-  delegate :name, :email, to: :tenant_customer, prefix: :customer, allow_nil: true
+  delegate :full_name, :email, to: :tenant_customer, prefix: :customer, allow_nil: true
   
   def total_charge
     service_cost = (self.service&.price || 0) * self.quantity.to_i

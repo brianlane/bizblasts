@@ -129,12 +129,15 @@
                       description: "subscription price"
                     )
                   end
+                  
+                  # Auto-select if only one variant
+                  auto_selected_value = @product.product_variants.count == 1 ? @product.product_variants.first.id : nil
                 %>
                 <%= render 'shared/rich_dropdown',
                     collection: variant_collection,
                     field_name: "product_variant_id",
-                    selected_value: nil,
-                    prompt_text: "Select a variant",
+                    selected_value: auto_selected_value,
+                    prompt_text: @product.product_variants.count == 1 ? "Selected variant" : "Select a variant",
                     value_method: :id,
                     text_method: :name,
                     price_method: :price,
@@ -171,12 +174,15 @@
                     description: @product.on_promotion? && price_modifier != 0 ? "promotional price" : nil
                   )
                 end
+                
+                # Auto-select if only one variant
+                auto_selected_value = @product.product_variants.count == 1 ? @product.product_variants.first.id : nil
               %>
               <%= render 'shared/rich_dropdown',
                   collection: variant_collection,
                   field_name: "product_variant_id",
-                  selected_value: nil,
-                  prompt_text: "Select a variant",
+                  selected_value: auto_selected_value,
+                  prompt_text: @product.product_variants.count == 1 ? "Selected variant" : "Select a variant",
                   value_method: :id,
                   text_method: :name,
                   price_method: :price,
@@ -207,12 +213,15 @@
                         description: @product.on_promotion? && price_modifier != 0 ? "promotional price" : nil
                       )
                     end
+                    
+                    # Auto-select if only one variant
+                    auto_selected_value = @product.product_variants.count == 1 ? @product.product_variants.first.id : nil
                   %>
                   <%= render 'shared/rich_dropdown',
                       collection: variant_collection,
                       field_name: "product_variant_id",
-                      selected_value: nil,
-                      prompt_text: "Select a variant",
+                      selected_value: auto_selected_value,
+                      prompt_text: @product.product_variants.count == 1 ? "Selected variant" : "Select a variant",
                       value_method: :id,
                       text_method: :name,
                       price_method: :price,

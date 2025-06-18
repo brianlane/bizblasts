@@ -71,7 +71,7 @@ class ReferralService
       LoyaltyPointsService.award_points(
         customer: referrer_customer,
         points: referral_program.referrer_reward_value.to_i,
-        description: "Referral reward for new customer: #{referral.referred_tenant_customer.name}",
+        description: "Referral reward for new customer: #{referral.referred_tenant_customer.full_name}",
         related_record: referral
       )
       
@@ -85,7 +85,8 @@ class ReferralService
         email: user.email,
         business: business
       ) do |customer|
-        customer.name = user.full_name
+        customer.first_name = user.first_name
+        customer.last_name = user.last_name
         customer.phone = user.phone
         customer.skip_notification_email = true # Don't send a "new customer" email
       end

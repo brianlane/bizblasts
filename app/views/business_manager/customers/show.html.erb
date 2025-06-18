@@ -7,11 +7,11 @@
         <div class="flex items-center gap-4">
           <!-- Customer Avatar -->
           <div class="w-16 h-16 bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white font-bold text-xl border border-white/30">
-            <%= @customer.name.first.upcase %>
+            <%= @customer.full_name.first.upcase %>
           </div>
           <div>
             <h1 class="text-xl sm:text-2xl font-bold text-white">
-              <%= @customer.name %>
+              <%= @customer.full_name %>
             </h1>
             <p class="text-blue-100 text-sm mt-1">
               Customer Profile & Activity
@@ -104,7 +104,7 @@
                 </svg>
                 Full Name
               </div>
-              <div class="text-sm text-gray-900 font-medium"><%= @customer.name %></div>
+              <div class="text-sm text-gray-900 font-medium"><%= @customer.full_name %></div>
             </div>
 
             <!-- Email -->

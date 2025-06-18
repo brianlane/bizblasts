@@ -109,7 +109,9 @@
                                   min: 0, 
                                   max: current_item_stock, 
                                   class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 w-16 sm:text-sm border-gray-300 rounded-md" %>
-                            <span class="text-xs text-gray-500 ml-2">(Available: <%= current_item_stock %>)</span>
+                            <% if variant.product.show_stock_to_customers? %>
+                              <span class="text-xs text-gray-500 ml-2">(Available: <%= current_item_stock %>)</span>
+                            <% end %>
                           </div>
                           
                           <div class="flex items-center">
@@ -145,7 +147,9 @@
                                     max: variant.stock_quantity,
                                     value: 0,
                                     class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 w-16 sm:text-sm border-gray-300 rounded-md addon-quantity-input" %>
-                              <span class="text-xs text-gray-500 ml-2">(Available: <%= variant.stock_quantity %>)</span>
+                              <% if variant.product.show_stock_to_customers? %>
+                                <span class="text-xs text-gray-500 ml-2">(Available: <%= variant.stock_quantity %>)</span>
+                              <% end %>
                             </div>
                           </div>
                         </div>

@@ -47,7 +47,7 @@
         <p class="mb-2"><span class="font-semibold">Type:</span> <%= @order.order_type.titleize %></p>
         <p class="mb-2"><span class="font-semibold">Date:</span> <%= l @order.created_at, format: :long %></p>
         <% if @order.tenant_customer %>
-          <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @order.tenant_customer.name %></p>
+          <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @order.tenant_customer.full_name %></p>
           <p class="mb-2"><span class="font-semibold">Customer Email:</span> <%= @order.tenant_customer.email %></p>
         <% end %>
       </div>
@@ -189,7 +189,7 @@
         </div>
         <p class="mb-2"><span class="font-semibold">Due Date:</span> <%= l @invoice.due_date, format: :long if @invoice.due_date %></p>
         <% if @invoice.tenant_customer %>
-          <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @invoice.tenant_customer.name %></p>
+          <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @invoice.tenant_customer.full_name %></p>
           <p class="mb-2"><span class="font-semibold">Customer Email:</span> <%= @invoice.tenant_customer.email %></p>
         <% end %>
       </div>

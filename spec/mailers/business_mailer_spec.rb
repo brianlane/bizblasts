@@ -76,9 +76,9 @@ RSpec.describe BusinessMailer, type: :mailer do
       
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('New Booking')
-      expect(mail.subject).to include(tenant_customer.name)
+      expect(mail.subject).to include(tenant_customer.full_name)
       expect(mail.subject).to include(service.name)
-      expect(mail.body.encoded).to include(html_escape(tenant_customer.name))
+      expect(mail.body.encoded).to include(html_escape(tenant_customer.full_name))
       expect(mail.body.encoded).to include(service.name)
       expect(mail.body.encoded).to include(business.name)
     end
@@ -109,8 +109,8 @@ RSpec.describe BusinessMailer, type: :mailer do
       
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('New Order')
-      expect(mail.subject).to include(tenant_customer.name)
-      expect(mail.body.encoded).to include(html_escape(tenant_customer.name))
+      expect(mail.subject).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(html_escape(tenant_customer.full_name))
       expect(mail.body.encoded).to include(business.name)
     end
 
@@ -138,8 +138,8 @@ RSpec.describe BusinessMailer, type: :mailer do
       
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('New Customer')
-      expect(mail.subject).to include(tenant_customer.name)
-      expect(mail.body.encoded).to include(html_escape(tenant_customer.name))
+      expect(mail.subject).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(html_escape(tenant_customer.full_name))
       expect(mail.body.encoded).to include(tenant_customer.email)
       expect(mail.body.encoded).to include(business.name)
     end
@@ -171,8 +171,8 @@ RSpec.describe BusinessMailer, type: :mailer do
       
       expect(mail.to).to eq([manager_user.email])
       expect(mail.subject).to include('Payment Received')
-      expect(mail.subject).to include(tenant_customer.name)
-      expect(mail.body.encoded).to include(tenant_customer.name.gsub("'", "&#39;"))
+      expect(mail.subject).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(tenant_customer.full_name.gsub("'", "&#39;"))
       expect(mail.body.encoded).to include(business.name)
     end
 
@@ -238,7 +238,7 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(order_mail.subject).to include('New Order')
       
       # Test customer notification
-      new_customer = create(:tenant_customer, business: business, name: 'New Customer')
+      new_customer = create(:tenant_customer, business: business, first_name: 'New', last_name: 'Customer')
       
       expect {
         BusinessMailer.new_customer_notification(new_customer).deliver_now
@@ -305,7 +305,7 @@ RSpec.describe BusinessMailer, type: :mailer do
       
       booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
       order = create(:order, business: business, tenant_customer: tenant_customer)
-      customer = create(:tenant_customer, business: business, name: 'Another Customer')
+      customer = create(:tenant_customer, business: business, first_name: 'Another', last_name: 'Customer')
       invoice = create(:invoice, business: business, tenant_customer: tenant_customer)
       payment = create(:payment, business: business, tenant_customer: tenant_customer, invoice: invoice)
       

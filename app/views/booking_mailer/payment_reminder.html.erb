@@ -18,7 +18,7 @@
     <div class="container">
       <div class="header">
         <h1>Payment <%= @booking.service.experience? ? 'Required' : 'Reminder' %></h1>
-        <p>Hello <%= @customer.name %>,</p>
+        <p>Hello <%= @customer.full_name %>,</p>
       </div>
 
       <% if @booking.service.experience? %>

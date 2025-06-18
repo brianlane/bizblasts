@@ -795,4 +795,57 @@ RSpec.describe Product, type: :model do
       expect(product.discount_eligible?).to be false
     end
   end
+
+  it 'has show_stock_to_customers enabled by default' do
+    product = create(:product, business: business)
+    expect(product.show_stock_to_customers).to be true
+  end
+
+  it 'allows toggling show_stock_to_customers' do
+    product = create(:product, business: business, show_stock_to_customers: false)
+    expect(product.show_stock_to_customers).to be false
+
+    product.update!(show_stock_to_customers: true)
+    expect(product.show_stock_to_customers).to be true
+  end
+
+  it 'has hide_when_out_of_stock disabled by default' do
+    product = create(:product, business: business)
+    expect(product.hide_when_out_of_stock).to be false
+  end
+
+  it 'allows toggling hide_when_out_of_stock' do
+    product = create(:product, business: business, hide_when_out_of_stock: true)
+    expect(product.hide_when_out_of_stock).to be true
+
+    product.update!(hide_when_out_of_stock: false)
+    expect(product.hide_when_out_of_stock).to be false
+  end
+
+  describe '#visible_to_customers?' do
+    it 'returns false for inactive products' do
+      product = create(:product, business: business, active: false)
+      expect(product.visible_to_customers?).to be false
+    end
+
+    it 'returns true for active products with stock when hide_when_out_of_stock is false' do
+      product = create(:product, business: business, active: true, hide_when_out_of_stock: false, stock_quantity: 5)
+      expect(product.visible_to_customers?).to be true
+    end
+
+    it 'returns true for active products without stock when hide_when_out_of_stock is false' do
+      product = create(:product, business: business, active: true, hide_when_out_of_stock: false, stock_quantity: 0)
+      expect(product.visible_to_customers?).to be true
+    end
+
+    it 'returns false for active products without stock when hide_when_out_of_stock is true' do
+      product = create(:product, business: business, active: true, hide_when_out_of_stock: true, stock_quantity: 0)
+      expect(product.visible_to_customers?).to be false
+    end
+
+    it 'returns true for active products with stock when hide_when_out_of_stock is true' do
+      product = create(:product, business: business, active: true, hide_when_out_of_stock: true, stock_quantity: 5)
+      expect(product.visible_to_customers?).to be true
+    end
+  end
 end 

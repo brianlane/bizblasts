@@ -104,7 +104,7 @@ RSpec.describe BookingManager, type: :service do
           expect(booking).to be_persisted
           expect(errors).to be_nil
           expect(booking.tenant_customer).to be_present
-          expect(booking.tenant_customer.name).to eq("New Customer")
+          expect(booking.tenant_customer.full_name).to eq("New Customer")
           expect(booking.tenant_customer.email).to eq("new@example.com")
           expect(booking.tenant_customer.phone).to eq("123-456-7890")
         }.to change(TenantCustomer, :count).by(1)
@@ -112,7 +112,7 @@ RSpec.describe BookingManager, type: :service do
       
       it 'finds an existing tenant customer by email' do
         existing_customer = create(:tenant_customer, business: tenant, 
-                                  name: "Existing Customer", email: "new@example.com")
+                                  first_name: "Existing", last_name: "Customer", email: "new@example.com")
         
         expect {
           booking, errors = BookingManager.create_booking(new_customer_params, tenant)

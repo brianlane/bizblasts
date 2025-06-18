@@ -54,7 +54,7 @@ RSpec.describe "business_manager/orders/index.html.erb", type: :view do
       # Check for the entire row content or specific cells
       # Checking for the link text within a td is a robust approach
       expect(rendered).to have_content(order.order_number)
-      expect(rendered).to have_content(order.tenant_customer.name)
+      expect(rendered).to have_content(order.tenant_customer.full_name)
       
       # Status badge - look for spans with status text instead of specific class
       expect(rendered).to have_selector('span', text: order.status.titleize)

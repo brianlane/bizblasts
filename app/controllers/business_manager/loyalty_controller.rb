@@ -189,11 +189,11 @@ class BusinessManager::LoyaltyController < BusinessManager::BaseController
   def get_top_loyalty_customers
     current_business.tenant_customers
                    .joins(:loyalty_transactions)
-                   .group('tenant_customers.id, tenant_customers.name, tenant_customers.email')
+                   .group('tenant_customers.id, tenant_customers.first_name, tenant_customers.last_name, tenant_customers.email')
                    .order('SUM(loyalty_transactions.points_amount) DESC')
                    .limit(5)
-                   .pluck('tenant_customers.name', 'tenant_customers.email', 'SUM(loyalty_transactions.points_amount)')
-                   .map { |name, email, points| { name: name, email: email, points: points } }
+                   .pluck('tenant_customers.first_name', 'tenant_customers.last_name', 'tenant_customers.email', 'SUM(loyalty_transactions.points_amount)')
+                   .map { |first_name, last_name, email, points| { name: "#{first_name} #{last_name}".strip, email: email, points: points } }
   end
   
   def ensure_loyalty_program!
@@ -254,12 +254,12 @@ class BusinessManager::LoyaltyController < BusinessManager::BaseController
   def calculate_top_point_earners(transactions)
     transactions.earned
                .joins(:tenant_customer)
-               .group('tenant_customers.id, tenant_customers.name, tenant_customers.email')
+               .group('tenant_customers.id, tenant_customers.first_name, tenant_customers.last_name, tenant_customers.email')
                .order('SUM(loyalty_transactions.points_amount) DESC')
                .limit(10)
-               .pluck('tenant_customers.name', 'tenant_customers.email', 'SUM(loyalty_transactions.points_amount)')
-               .map.with_index(1) do |(name, email, points), rank|
-                 { rank: rank, name: name, email: email, points: points }
+               .pluck('tenant_customers.first_name', 'tenant_customers.last_name', 'tenant_customers.email', 'SUM(loyalty_transactions.points_amount)')
+               .map.with_index(1) do |(first_name, last_name, email, points), rank|
+                 { rank: rank, name: "#{first_name} #{last_name}".strip, email: email, points: points }
                end
   end
   

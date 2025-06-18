@@ -5,7 +5,7 @@ class BusinessManager::CustomersController < BusinessManager::BaseController
 
   # GET /manage/customers
   def index
-    @customers = @current_business.tenant_customers.order(:name).page(params[:page]).per(10)
+    @customers = @current_business.tenant_customers.order(:first_name, :last_name).page(params[:page]).per(10)
     authorize TenantCustomer
   end
 
@@ -67,6 +67,6 @@ class BusinessManager::CustomersController < BusinessManager::BaseController
   end
 
   def customer_params
-    params.require(:tenant_customer).permit(:name, :email, :phone, :address, :notes, :active)
+    params.require(:tenant_customer).permit(:first_name, :last_name, :email, :phone, :address, :notes, :active)
   end
 end 

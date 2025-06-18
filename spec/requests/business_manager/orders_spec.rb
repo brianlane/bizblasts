@@ -218,7 +218,7 @@ RSpec.describe "Business Manager Orders", type: :request do
       end
 
       context "with new nested customer" do
-        let(:customer_attrs) { { name: 'New Cust', email: 'new@cust.com', phone: '555-0000' } }
+        let(:customer_attrs) { { first_name: 'New', last_name: 'Cust', email: 'new@cust.com', phone: '555-0000' } }
         let(:nested_params) do
           {
             order: {

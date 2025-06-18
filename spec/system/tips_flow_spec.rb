@@ -4,7 +4,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
   let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain') }
   let!(:tip_configuration) { create(:tip_configuration, business: business) }
   let!(:user) { create(:user, :client, email: 'customer@example.com', password: 'password123') }
-  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
   let!(:experience_service) { create(:service, business: business, name: 'Wine Tasting Experience', price: 75.00, service_type: :experience, duration: 120, min_bookings: 1, max_bookings: 10, spots: 5, tips_enabled: true) }
   let!(:staff_member) { create(:staff_member, business: business) }
   let!(:services_staff_member) { create(:services_staff_member, service: experience_service, staff_member: staff_member) }

@@ -77,7 +77,7 @@
                   class="form-select rounded border px-3 py-2 w-full">
             <option value="">Select existing customer</option>
             <% @booking.business.customers.each do |customer| %>
-              <option value="<%= customer.id %>"><%= customer.name %> (<%= customer.email %>)</option>
+              <option value="<%= customer.id %>"><%= customer.full_name %> (<%= customer.email %>)</option>
             <% end %>
             <option value="new">Create new customer</option>
           </select>
@@ -87,10 +87,17 @@
         <div id="new-customer-fields" class="hidden">
           <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
           
-          <div class="form-group mb-4">
-            <label for="booking_customer_attributes_name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input type="text" id="booking_customer_attributes_name" name="booking[customer_attributes][name]"
-                   class="form-input rounded border px-3 py-2 w-full">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="form-group">
+              <label for="booking_customer_attributes_first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <input type="text" id="booking_customer_attributes_first_name" name="booking[customer_attributes][first_name]"
+                     class="form-input rounded border px-3 py-2 w-full">
+            </div>
+            <div class="form-group">
+              <label for="booking_customer_attributes_last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <input type="text" id="booking_customer_attributes_last_name" name="booking[customer_attributes][last_name]"
+                     class="form-input rounded border px-3 py-2 w-full">
+            </div>
           </div>
 
           <div class="form-group mb-4">  

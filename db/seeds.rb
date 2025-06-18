@@ -107,13 +107,14 @@ if Rails.env.development? || Rails.env.test?
       email: "customer#{i+1}@example.com",
       business: default_business
     ) do |c|
-      c.name = Faker::Name.name
+      c.first_name = Faker::Name.first_name
+      c.last_name = Faker::Name.last_name
       c.phone = "+1-#{rand(100..999)}-#{rand(100..999)}-#{rand(1000..9999)}"
     end
     
     if customer.new_record?
       customer.save!
-      puts "Created customer: #{customer.name}"
+      puts "Created customer: #{customer.full_name}"
     end
   end
 

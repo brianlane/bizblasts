@@ -103,7 +103,7 @@
         <div class="<%= admin_mode ? 'md:col-span-2' : '' %>">
           <h3 class="text-sm font-medium text-gray-500 mb-1">Customer</h3>
           <p class="text-gray-900">
-            <%= booking.customer_name %> 
+            <%= booking.customer_full_name %> 
             <% if admin_mode %>
               <br><%= mail_to booking.customer_email, booking.customer_email %>
               <% if booking.tenant_customer.phone.present? %>
@@ -115,7 +115,7 @@
       <% else %>
         <div>
           <h3 class="text-sm font-medium text-gray-500 inline mr-1">Customer:</h3>
-          <p class="inline text-gray-900"><%= booking.customer_name %></p>
+          <p class="inline text-gray-900"><%= booking.customer_full_name %></p>
         </div>
       <% end %>
     <% end %>

@@ -475,7 +475,7 @@ class StripeService
       # Prepare customer data for Stripe Checkout (don't create customer yet)
       customer_data = {
         email: tenant_customer.email,
-        name: tenant_customer.name
+        name: tenant_customer.full_name
       }
       
       # Add phone if available
@@ -587,7 +587,7 @@ class StripeService
     # Create new Stripe customer
     customer = Stripe::Customer.create(
       email: tenant.email, 
-      name: tenant.name, 
+      name: tenant.full_name, 
       metadata: { tenant_customer_id: tenant.id }
     )
     tenant.update!(stripe_customer_id: customer.id)

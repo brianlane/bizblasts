@@ -48,7 +48,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
       # Check for Recent Bookings widget
       within('#recent-bookings-widget') do
         expect(page).to have_content(service.name)
-        expect(page).to have_content(customer.name)
+        expect(page).to have_content(customer.full_name)
         expect(page).to have_content(recent_booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p"))
       end
 

@@ -5,8 +5,14 @@ class ProductsController < ApplicationController
 
   def index
     @business = current_tenant
-    # Base scope for products
+    # Base scope for products - only show products visible to customers
     base_scope = @business.products.active.where(product_type: [:standard, :mixed])
+                          .select(&:visible_to_customers?)
+    
+    # Convert back to ActiveRecord relation for Ransack
+    visible_product_ids = base_scope.map(&:id)
+    base_scope = @business.products.where(id: visible_product_ids) if visible_product_ids.any?
+    
     @q = base_scope.ransack(params[:q])
     result = @q.result(distinct: true).order(:id)
 

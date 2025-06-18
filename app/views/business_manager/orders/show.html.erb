@@ -27,7 +27,7 @@
       <% if @order.tenant_customer %>
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Customer Name</dt>
-          <dd class="col-span-2"><%= @order.tenant_customer.name %></dd>
+          <dd class="col-span-2"><%= @order.tenant_customer.full_name %></dd>
         </div>
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Customer Email</dt>

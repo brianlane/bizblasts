@@ -13,7 +13,7 @@
         <span class="customer-dropdown-text text-gray-900">
           <% if @order.tenant_customer_id.present? && @order.tenant_customer_id != "new" %>
             <% customer = @customers.find { |c| c.id == @order.tenant_customer_id } %>
-            <%= customer ? "#{customer.name} (#{customer.email})" : 'Select existing customer' %>
+            <%= customer ? "#{customer.full_name} (#{customer.email})" : 'Select existing customer' %>
           <% elsif @order.tenant_customer_id == "new" %>
             Create new customer
           <% else %>
@@ -52,11 +52,11 @@
         <% @customers.each do |customer| %>
           <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
                data-customer-id="<%= customer.id %>"
-               data-customer-name="<%= customer.name %> (<%= customer.email %>)"
+               data-customer-name="<%= customer.full_name %> (<%= customer.email %>)"
                data-customer-dropdown-target="option">
             <div class="flex items-center justify-between">
               <div class="flex-1">
-                <div class="font-medium text-gray-900"><%= customer.name %></div>
+                <div class="font-medium text-gray-900"><%= customer.full_name %></div>
                 <% if customer.email.present? %>
                   <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
                 <% end %>
@@ -100,11 +100,19 @@
   </div>
   <div id="new-customer-fields" class="hidden mb-4">
     <h3 class="text-lg font-medium mb-2">New Customer Details</h3>
-    <div class="mb-4">
-      <%= f.fields_for :tenant_customer do |cf| %>
-        <%= cf.label :name, 'Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= cf.text_field :name, placeholder: 'Customer Name', class: 'form-input rounded border px-3 py-2 w-full' %>
-      <% end %>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div>
+        <%= f.fields_for :tenant_customer do |cf| %>
+          <%= cf.label :first_name, 'First Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+          <%= cf.text_field :first_name, placeholder: 'First Name', class: 'form-input rounded border px-3 py-2 w-full' %>
+        <% end %>
+      </div>
+      <div>
+        <%= f.fields_for :tenant_customer do |cf| %>
+          <%= cf.label :last_name, 'Last Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+          <%= cf.text_field :last_name, placeholder: 'Last Name', class: 'form-input rounded border px-3 py-2 w-full' %>
+        <% end %>
+      </div>
     </div>
     <div class="mb-4">
       <%= f.fields_for :tenant_customer do |cf| %>

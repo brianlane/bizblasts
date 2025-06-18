@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe "Business Manager Orders", type: :system do
   let!(:business) { create(:business, name: "Test Business") }
   let!(:manager) { create(:user, :manager, business: business) }
-  let!(:tenant_customer) { create(:tenant_customer, business: business, name: "Test Customer") }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, first_name: "Test", last_name: "Customer") }
   
   # Create different types of orders
   let!(:product_order) do
@@ -176,7 +176,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       expect(page).to have_content(product_order.order_number)
       expect(page).to have_content("Product") # order type
       expect(page).to have_content("Pending Payment") # status
-      expect(page).to have_content(tenant_customer.name)
+      expect(page).to have_content(tenant_customer.full_name)
       
       # Check line items
       expect(page).to have_content("Items:")

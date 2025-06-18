@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -752,6 +752,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
     t.string "subscription_out_of_stock_action", default: "skip_billing_cycle"
     t.boolean "allow_customer_preferences", default: true, null: false
     t.boolean "allow_discounts", default: true, null: false
+    t.boolean "show_stock_to_customers", default: true, null: false
+    t.boolean "hide_when_out_of_stock", default: false, null: false
     t.index ["active"], name: "index_products_on_active"
     t.index ["allow_customer_preferences"], name: "index_products_on_allow_customer_preferences"
     t.index ["allow_discounts"], name: "index_products_on_allow_discounts"
@@ -1193,7 +1195,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
   end
 
   create_table "tenant_customers", force: :cascade do |t|
-    t.string "name", null: false
     t.string "email"
     t.string "phone"
     t.string "address"
@@ -1206,6 +1207,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_193930) do
     t.string "stripe_customer_id"
     t.bigint "user_id"
     t.boolean "email_marketing_opt_out"
+    t.string "first_name", null: false
+    t.string "last_name", null: false
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true

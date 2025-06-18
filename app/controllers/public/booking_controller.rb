@@ -59,8 +59,9 @@ module Public
       if current_user&.client?
         # Logged-in client: find or create their TenantCustomer by email
         customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-          c.name  = current_user.full_name
-          c.phone = current_user.phone
+          c.first_name = current_user.first_name
+          c.last_name  = current_user.last_name
+          c.phone      = current_user.phone
         end
       elsif current_user.present? && (current_user.staff? || current_user.manager?)
         # Staff or manager: select or create tenant customer based on form inputs
@@ -74,23 +75,23 @@ module Public
             redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           end
           
-          full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
-          
           # Try to find existing customer by email
           customer = current_tenant.tenant_customers.find_by(email: nested[:email])
           
           if customer
             # Update existing customer with new info if provided
-            customer.update!(
-              name: full_name.present? ? full_name : customer.name,
-              phone: nested[:phone].present? ? nested[:phone] : customer.phone
-            )
+            update_attrs = {}
+            update_attrs[:first_name] = nested[:first_name] if nested[:first_name].present?
+            update_attrs[:last_name] = nested[:last_name] if nested[:last_name].present?
+            update_attrs[:phone] = nested[:phone] if nested[:phone].present?
+            customer.update!(update_attrs) if update_attrs.any?
           else
             # Create new customer
             customer = current_tenant.tenant_customers.create!(
-              name:  full_name,
-              phone: nested[:phone],
-              email: nested[:email].presence
+              first_name: nested[:first_name],
+              last_name:  nested[:last_name],
+              phone:      nested[:phone],
+              email:      nested[:email].presence
             )
           end
         end
@@ -104,23 +105,23 @@ module Public
           redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         end
         
-        full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
-        
         # Try to find existing customer by email
         customer = current_tenant.tenant_customers.find_by(email: nested[:email])
         
         if customer
           # Update existing customer with new info if provided
-          customer.update!(
-            name: full_name.present? ? full_name : customer.name,
-            phone: nested[:phone].present? ? nested[:phone] : customer.phone
-          )
+          update_attrs = {}
+          update_attrs[:first_name] = nested[:first_name] if nested[:first_name].present?
+          update_attrs[:last_name] = nested[:last_name] if nested[:last_name].present?
+          update_attrs[:phone] = nested[:phone] if nested[:phone].present?
+          customer.update!(update_attrs) if update_attrs.any?
         else
           # Create new customer
           customer = current_tenant.tenant_customers.create!(
-            name:  full_name,
-            phone: nested[:phone],
-            email: nested[:email].presence
+            first_name: nested[:first_name],
+            last_name:  nested[:last_name],
+            phone:      nested[:phone],
+            email:      nested[:email].presence
           )
         end
 
@@ -394,7 +395,8 @@ module Public
         current_tenant.products.active.includes(:product_variants)
                                  .where(product_type: [:service, :mixed])
                                  .where.not(product_variants: { id: nil }) # Only products with variants
-                                 .order(:name)
+                                 .select(&:visible_to_customers?) # Filter out hidden products
+                                 .sort_by(&:name)
       else
         [] # Return an empty array if service is not found
       end

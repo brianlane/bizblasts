@@ -16,7 +16,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     user.confirm
     user
   }
-  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, name: user.full_name) }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
 
   before do
     driven_by(:rack_test)

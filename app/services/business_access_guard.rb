@@ -19,10 +19,28 @@ class BusinessAccessGuard
     business_user_accessing_different_business?
   end
 
+  # Check if business user should be blocked from checkout on their own website
+  # unless they are acting on behalf of a customer
+  def should_block_own_business_checkout?
+    return false unless current_user.present?
+    return false if current_user.client? # Clients can checkout normally
+    return false unless current_business.present?
+    return false unless current_user.business_id.present?
+    
+    # Only block if this is their own business (same logic as booking)
+    current_user.business_id == current_business.id
+  end
+
   # Get appropriate flash message for blocked access
   def flash_message
     return nil unless should_block_access?
     "You must sign out and proceed as a guest to access this business. Business users can only access their own business's booking and shopping features."
+  end
+
+  # Get flash message for blocked checkout on own business
+  def checkout_flash_message
+    return nil unless should_block_own_business_checkout?
+    "Business users cannot checkout for themselves. Please select a customer to place this order on their behalf, or sign out to proceed as a guest."
   end
 
   # Get redirect path for blocked users (simple version)
@@ -44,6 +62,11 @@ class BusinessAccessGuard
   def log_blocked_access
     business_id = current_business&.id || 'nil'
     Rails.logger.warn "[SECURITY] Business user #{current_user.id} (#{current_user.role}) from business #{current_user.business_id} attempted to access business #{business_id}. Access blocked."
+  end
+
+  # Log checkout attempt for own business without customer selection
+  def log_blocked_checkout
+    Rails.logger.warn "[SECURITY] Business user #{current_user.id} (#{current_user.role}) from business #{current_user.business_id} attempted to checkout on their own business without selecting a customer. Access blocked."
   end
 
   private

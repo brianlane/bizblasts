@@ -8,7 +8,7 @@
   <strong>Type:</strong> <%= @order.order_type.titleize %><br>
   <strong>Date:</strong> <%= l @order.created_at, format: :long %><br>
   <% if @order.tenant_customer %>
-    <strong>Customer Name:</strong> <%= @order.tenant_customer.name %><br>
+    <strong>Customer Name:</strong> <%= @order.tenant_customer.full_name %><br>
     <strong>Customer Email:</strong> <%= @order.tenant_customer.email %><br>
     <strong>Customer Phone:</strong> <%= @order.tenant_customer.phone %><br>
   <% else %>

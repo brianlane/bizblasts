@@ -72,7 +72,7 @@
 
   <%# Products Section %>
   <% if @business.show_products_section? %>
-    <% @products = @business.products.active.where(product_type: [:standard, :mixed]).order(:name) %>
+    <% @products = @business.products.active.where(product_type: [:standard, :mixed]).select(&:visible_to_customers?).sort_by(&:name) %>
     <% if @products.any? %>
       <div class="mt-12">
         <h2 class="text-3xl font-semibold mb-6">Our Products</h2>

@@ -87,7 +87,7 @@
                     <span class="ml-2"><%= booking.service.name %></span>
                   </div>
                   <div class="text-sm text-gray-600 mt-1">
-                    <%= booking.tenant_customer.name %>
+                    <%= booking.tenant_customer.full_name %>
                   </div>
                 </div>
                 <div class="ml-4">
@@ -182,7 +182,7 @@
                   <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= booking.id %></td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm font-medium text-gray-900"><%= booking.tenant_customer.name %></div>
+                      <div class="text-sm font-medium text-gray-900"><%= booking.tenant_customer.full_name %></div>
                       <div class="text-sm text-gray-500"><%= booking.tenant_customer.email %></div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

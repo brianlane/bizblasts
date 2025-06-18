@@ -5,7 +5,7 @@ RSpec.describe Client::SubscriptionsController, type: :controller do
   let(:client_user) { create(:user, :client) }
   let(:manager) { create(:user, :manager, business: business) }
   
-  let(:tenant_customer) { create(:tenant_customer, business: business, email: client_user.email, name: client_user.full_name) }
+  let(:tenant_customer) { create(:tenant_customer, business: business, email: client_user.email, first_name: client_user.first_name, last_name: client_user.last_name) }
   let(:product) { create(:product, business: business, subscription_enabled: true) }
   let(:service) { create(:service, business: business, subscription_enabled: true) }
   
@@ -266,7 +266,7 @@ RSpec.describe Client::SubscriptionsController, type: :controller do
   describe 'Multi-business isolation' do
     let(:other_business) { create(:business) }
     let(:other_client) { create(:user, :client) }
-    let(:other_tenant_customer) { create(:tenant_customer, business: other_business, email: other_client.email, name: other_client.full_name) }
+    let(:other_tenant_customer) { create(:tenant_customer, business: other_business, email: other_client.email, first_name: other_client.first_name, last_name: other_client.last_name) }
     let(:other_business_subscription) do
       ActsAsTenant.with_tenant(other_business) do
         create(:customer_subscription, business: other_business, tenant_customer: other_tenant_customer)

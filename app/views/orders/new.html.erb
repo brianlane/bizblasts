@@ -29,6 +29,132 @@
     </h1>
     
     <%= form_with model: @order, local: true, class: "space-y-8" do |f| %>
+      <%# Customer selection for business users (staff/manager) %>
+      <% if current_user&.staff? || current_user&.manager? %>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4 text-blue-900 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            Select Customer
+          </h2>
+          <p class="text-blue-800 text-sm mb-4">As a business user, you must select a customer to place this order on their behalf.</p>
+          
+          <!-- Customer Dropdown -->
+          <div class="mb-4" data-controller="customer-dropdown">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Select Customer</label>
+            <div class="relative">
+              <button type="button" 
+                      data-customer-dropdown-target="button"
+                      class="relative w-full cursor-pointer rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm">
+                <span data-customer-dropdown-target="selected" class="block truncate text-gray-500">
+                  Select a customer or create new...
+                </span>
+                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                  <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+
+              <!-- Dropdown Options -->
+              <div data-customer-dropdown-target="options" class="hidden absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                <!-- Default option -->
+                <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                     data-customer-id=""
+                     data-customer-name="Select a customer or create new..."
+                     data-customer-dropdown-target="option">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-500">Select a customer or create new...</div>
+                    </div>
+                  </div>
+                  <% if @order.tenant_customer_id.blank? %>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  <% end %>
+                </div>
+                
+                <% @order.business.tenant_customers.each do |customer| %>
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                       data-customer-id="<%= customer.id %>"
+                       data-customer-name="<%= customer.email.present? ? "#{customer.full_name} (#{customer.email})" : customer.full_name %>"
+                       data-customer-dropdown-target="option">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900"><%= customer.full_name %></div>
+                        <% if customer.email.present? %>
+                          <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
+                        <% end %>
+                        <% if customer.phone.present? %>
+                          <div class="text-xs text-gray-400 mt-1"><%= customer.phone %></div>
+                        <% end %>
+                      </div>
+                    </div>
+                    <% if @order.tenant_customer_id == customer.id %>
+                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    <% end %>
+                  </div>
+                <% end %>
+                
+                <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+                     data-customer-id="new"
+                     data-customer-name="Create new customer"
+                     data-customer-dropdown-target="option">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-blue-600">+ Create new customer</div>
+                    </div>
+                  </div>
+                  <% if @order.tenant_customer_id == "new" %>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Hidden field to store the selected customer ID -->
+            <%= f.hidden_field :tenant_customer_id, id: "tenant_customer_id" %>
+          </div>
+
+          <!-- New customer fields (hidden by default) -->
+          <div id="new-tenant-customer-fields" class="hidden mb-4">
+            <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
+            <%= f.fields_for :tenant_customer_attributes, @order.tenant_customer do |cust_fields| %>
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <%= cust_fields.label :first_name, "First Name", class: "block text-gray-700 text-sm font-bold mb-2" %>
+                  <%= cust_fields.text_field :first_name, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+                </div>
+                <div>
+                  <%= cust_fields.label :last_name, "Last Name", class: "block text-gray-700 text-sm font-bold mb-2" %>
+                  <%= cust_fields.text_field :last_name, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+                </div>
+              </div>
+              <div class="mb-4">
+                <%= cust_fields.label :email, class: "block text-gray-700 text-sm font-bold mb-2" %>
+                <%= cust_fields.email_field :email, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+              </div>
+              <div class="mb-4">
+                <%= cust_fields.label :phone, class: "block text-gray-700 text-sm font-bold mb-2" %>
+                <%= cust_fields.telephone_field :phone, required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+      
       <%# Render guest info for unauthenticated users %>
       <% if current_user.nil? %>
         <%= render 'shared/guest_customer_fields', f: f %>
@@ -373,6 +499,283 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         // No discount, use original total
         orderTotal.textContent = '$' + <%= @order.total_amount.to_f %>.toFixed(2);
+      }
+    }
+  });
+
+  // Initialize customer form validation
+  if (window.CustomerFormValidation) {
+    const validator = CustomerFormValidation.initializeForm({
+      formSelector: 'form[action*="/orders"]',
+      fieldPrefix: 'order[tenant_customer_attributes]',
+      realTimeValidation: true,
+      showSuccessState: true
+    });
+    
+    if (validator) {
+      CustomerFormValidation.setupConditionalValidation(validator, '#new-tenant-customer-fields');
+    }
+  }
+});
+</script>
+
+<script>
+// Customer dropdown functionality for business users (enhanced version from booking)
+document.addEventListener('DOMContentLoaded', function() {
+  const customerDropdownButton = document.querySelector('[data-customer-dropdown-target="button"]');
+  const customerDropdownMenu = document.querySelector('[data-customer-dropdown-target="options"]');
+  const customerDropdownOptions = document.querySelectorAll('[data-customer-dropdown-target="option"]');
+  const customerDropdownText = document.querySelector('[data-customer-dropdown-target="selected"]');
+  const customerDropdownArrow = customerDropdownButton?.querySelector('svg');
+  const customerHiddenField = document.getElementById('tenant_customer_id');
+  
+  // Only proceed if customer dropdown elements exist (staff/manager users only)
+  if (!customerDropdownButton || !customerDropdownMenu) {
+    return;
+  }
+  
+  let selectedCustomerId = '<%= params[:tenant_customer_id] || "" %>';
+  let customerDropdownButtonTouched = false;
+    
+  // Initialize customer fields display based on current selection
+  function initializeCustomerFields() {
+    const newCustomerFields = document.getElementById('new-tenant-customer-fields');
+    if (newCustomerFields) {
+      if (selectedCustomerId === 'new') {
+        newCustomerFields.classList.remove('hidden');
+      } else {
+        newCustomerFields.classList.add('hidden');
+      }
+    }
+  }
+  
+  // Call initialization
+  initializeCustomerFields();
+  
+  // Shared function to toggle customer dropdown
+  function toggleCustomerDropdown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check current state by examining classes and inline styles
+    const isHidden = customerDropdownMenu.classList.contains('hidden') || 
+                    customerDropdownMenu.style.display === 'none' || 
+                    customerDropdownMenu.style.display === '';
+    
+    if (isHidden) {
+      // Show dropdown
+      customerDropdownMenu.classList.remove('hidden');
+      customerDropdownArrow?.classList.add('rotate-180');
+      
+      // Mobile-specific positioning adjustments
+      if (window.innerWidth <= 640) {
+        customerDropdownMenu.style.position = 'absolute';
+        customerDropdownMenu.style.top = '100%';
+        customerDropdownMenu.style.left = '0';
+        customerDropdownMenu.style.right = '0';
+        customerDropdownMenu.style.zIndex = '50';
+        customerDropdownMenu.style.marginTop = '0.25rem';
+      }
+    } else {
+      // Hide dropdown
+      customerDropdownMenu.classList.add('hidden');
+      customerDropdownArrow?.classList.remove('rotate-180');
+      
+      // Clear mobile-specific inline styles
+      if (window.innerWidth <= 640) {
+        customerDropdownMenu.style.display = '';
+        customerDropdownMenu.style.position = '';
+        customerDropdownMenu.style.top = '';
+        customerDropdownMenu.style.left = '';
+        customerDropdownMenu.style.right = '';
+        customerDropdownMenu.style.zIndex = '';
+        customerDropdownMenu.style.marginTop = '';
+      }
+    }
+  }
+  
+  // Toggle customer dropdown on click
+  customerDropdownButton?.addEventListener('click', function(e) {
+    customerDropdownButtonTouched = true;
+    toggleCustomerDropdown(e);
+    setTimeout(() => { customerDropdownButtonTouched = false; }, 100);
+  });
+  
+  // Toggle customer dropdown on touch (for mobile)
+  customerDropdownButton?.addEventListener('touchend', function(e) {
+    customerDropdownButtonTouched = true;
+    toggleCustomerDropdown(e);
+    setTimeout(() => { customerDropdownButtonTouched = false; }, 100);
+  });
+  
+  // Shared function for customer option selection
+  function selectCustomerOption(element, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const customerId = element.dataset.customerId;
+    const customerName = element.dataset.customerName;
+    
+    // Update button text
+    customerDropdownText.textContent = customerName;
+    selectedCustomerId = customerId;
+    
+    // Update hidden field
+    customerHiddenField.value = customerId;
+    
+    // Update selected state
+    customerDropdownOptions.forEach(opt => {
+      const checkIcon = opt.querySelector('svg');
+      if (checkIcon) checkIcon.remove();
+    });
+    
+    // Add check icon to selected option
+    const checkIcon = document.createElement('span');
+    checkIcon.className = 'absolute inset-y-0 right-2 flex items-center text-blue-600';
+    checkIcon.innerHTML = `
+      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+      </svg>
+    `;
+    element.appendChild(checkIcon);
+    
+    // Close dropdown properly
+    customerDropdownMenu.classList.add('hidden');
+    customerDropdownArrow?.classList.remove('rotate-180');
+    
+    // Clear mobile-specific inline styles (critical for mobile)
+    if (window.innerWidth <= 640) {
+      customerDropdownMenu.style.display = '';
+      customerDropdownMenu.style.position = '';
+      customerDropdownMenu.style.top = '';
+      customerDropdownMenu.style.left = '';
+      customerDropdownMenu.style.right = '';
+      customerDropdownMenu.style.zIndex = '';
+      customerDropdownMenu.style.marginTop = '';
+    }
+    
+    // Handle new customer fields toggle
+    const newCustomerFields = document.getElementById('new-tenant-customer-fields');
+    if (newCustomerFields) {
+      if (customerId === 'new') {
+        // Show new customer fields - use aggressive approach
+        newCustomerFields.className = 'mb-4'; // Remove hidden, keep only mb-4
+        newCustomerFields.style.display = 'block';
+        newCustomerFields.style.visibility = 'visible';
+        newCustomerFields.style.opacity = '1';
+        
+        // Make new customer fields required - using more specific selectors
+        const nameField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="first_name"]');
+        const emailField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="email"]');
+        const phoneField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="phone"]');
+        
+        if (nameField) nameField.required = true;
+        if (emailField) emailField.required = true;
+        if (phoneField) phoneField.required = true;
+        
+      } else {
+        // Hide new customer fields
+        newCustomerFields.className = 'hidden mb-4'; // Ensure hidden class is applied
+        newCustomerFields.style.display = 'none';
+        newCustomerFields.style.visibility = 'hidden';
+        newCustomerFields.style.opacity = '0';
+        
+        // Remove required attributes - using more specific selectors
+        const nameField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="first_name"]');
+        const emailField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="email"]');
+        const phoneField = newCustomerFields.querySelector('input[name*="tenant_customer_attributes"][name*="phone"]');
+        
+        if (nameField) nameField.required = false;
+        if (emailField) emailField.required = false;
+        if (phoneField) phoneField.required = false;
+        
+        // Clear the fields
+        if (nameField) nameField.value = '';
+        if (emailField) emailField.value = '';
+        if (phoneField) phoneField.value = '';
+      }
+    }
+  }
+  
+  // Handle customer option selection
+  customerDropdownOptions.forEach(option => {
+    option.addEventListener('click', function(e) {
+      selectCustomerOption(this, e);
+    });
+    
+    // Handle touch for mobile options
+    option.addEventListener('touchend', function(e) {
+      selectCustomerOption(this, e);
+    });
+  });
+  
+  // Close customer dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('[data-controller="customer-dropdown"]')) {
+      if (!customerDropdownMenu?.classList.contains('hidden')) {
+        customerDropdownMenu?.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear mobile styles if needed
+        if (window.innerWidth <= 640) {
+          customerDropdownMenu.style.display = '';
+          customerDropdownMenu.style.position = '';
+          customerDropdownMenu.style.top = '';
+          customerDropdownMenu.style.left = '';
+          customerDropdownMenu.style.right = '';
+          customerDropdownMenu.style.zIndex = '';
+          customerDropdownMenu.style.marginTop = '';
+        }
+      }
+    }
+  });
+  
+  // Handle touch outside for mobile
+  document.addEventListener('touchend', function(event) {
+    // Don't close if button was just touched
+    if (customerDropdownButtonTouched) {
+      return;
+    }
+    
+    if (!event.target.closest('[data-controller="customer-dropdown"]')) {
+      const isOpen = !customerDropdownMenu?.classList.contains('hidden') && 
+                    customerDropdownMenu?.style.display !== 'none' && 
+                    customerDropdownMenu?.style.display !== '';
+      if (isOpen) {
+        customerDropdownMenu?.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear mobile styles if needed
+        if (window.innerWidth <= 640) {
+          customerDropdownMenu.style.display = '';
+          customerDropdownMenu.style.position = '';
+          customerDropdownMenu.style.top = '';
+          customerDropdownMenu.style.left = '';
+          customerDropdownMenu.style.right = '';
+          customerDropdownMenu.style.zIndex = '';
+          customerDropdownMenu.style.marginTop = '';
+        }
+      }
+    }
+  });
+  
+  // Handle escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      if (!customerDropdownMenu?.classList.contains('hidden')) {
+        customerDropdownMenu?.classList.add('hidden');
+        customerDropdownArrow?.classList.remove('rotate-180');
+        
+        // Clear mobile styles if needed
+        if (window.innerWidth <= 640) {
+          customerDropdownMenu.style.display = '';
+          customerDropdownMenu.style.position = '';
+          customerDropdownMenu.style.top = '';
+          customerDropdownMenu.style.left = '';
+          customerDropdownMenu.style.right = '';
+          customerDropdownMenu.style.zIndex = '';
+          customerDropdownMenu.style.marginTop = '';
+        }
       }
     }
   });

@@ -7,7 +7,7 @@ RSpec.describe "Booking Flow", type: :system do
   let!(:service) { create(:service, business: business, duration: 60, name: 'Test Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'John Doe') }
   let!(:client) { create(:user, :client) }
-  let!(:tenant_customer) { create(:tenant_customer, business: business, email: client.email, name: "#{client.first_name} #{client.last_name}") }
+  let!(:tenant_customer) { create(:tenant_customer, business: business, email: client.email, first_name: client.first_name, last_name: client.last_name) }
   let(:date) { Date.today.next_occurring(:monday) } # Next Monday
 
   before do

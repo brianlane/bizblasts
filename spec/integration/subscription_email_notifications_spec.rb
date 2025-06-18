@@ -199,7 +199,7 @@ RSpec.describe "Subscription Email Notifications", type: :request do
           BusinessMailer.new_subscription_notification(service_subscription).deliver_now
 
         email = ActionMailer::Base.deliveries.last
-        expect(email.body.encoded).to include(tenant_customer.name)
+        expect(email.body.encoded).to include(tenant_customer.full_name)
         expect(email.body.encoded).to include(service.name)
         expect(email.body.encoded).to include('$49.99')
         expect(email.body.encoded).to include('monthly')
@@ -330,7 +330,7 @@ RSpec.describe "Subscription Email Notifications", type: :request do
       SubscriptionMailer.subscription_confirmed(product_subscription).deliver_now
 
       email = ActionMailer::Base.deliveries.last
-      expect(email.body.encoded).to include(tenant_customer.name) if tenant_customer.name.present?
+      expect(email.body.encoded).to include(tenant_customer.full_name) if tenant_customer.full_name.present?
     end
 
     it "includes business-specific branding" do

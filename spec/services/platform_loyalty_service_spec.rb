@@ -12,6 +12,10 @@ RSpec.describe PlatformLoyaltyService, type: :service do
     # Reset any existing Stripe mocks to prevent interference from other tests
     RSpec::Mocks.space.reset_all
     
+    # Ensure ENV['STRIPE_PUBLISHABLE_KEY'] is set for Stripe coupon creation
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:[]).with('STRIPE_PUBLISHABLE_KEY').and_return('pk_test_123')
+    
     # Set up default Stripe coupon mock for all tests
     allow(Stripe::Coupon).to receive(:create).and_return(
       double('Stripe::Coupon', id: 'coupon_default_123')
@@ -27,6 +31,9 @@ RSpec.describe PlatformLoyaltyService, type: :service do
     
     # Reset all mocks to ensure clean state for next test
     RSpec::Mocks.space.reset_all
+    
+    # Reset ENV mocks to prevent pollution
+    allow(ENV).to receive(:[]).and_call_original
   end
 
   describe '.process_business_referral_signup' do
@@ -52,6 +59,10 @@ RSpec.describe PlatformLoyaltyService, type: :service do
       it 'creates Stripe coupon for referral discount' do
         # Clear any existing mocks and set up specific expectation for this test
         RSpec::Mocks.space.reset_all
+        
+        # Ensure ENV['STRIPE_PUBLISHABLE_KEY'] is set for this specific test
+        allow(ENV).to receive(:[]).and_call_original
+        allow(ENV).to receive(:[]).with('STRIPE_PUBLISHABLE_KEY').and_return('pk_test_123')
         
         mock_stripe_coupon = double('Stripe::Coupon', id: 'coupon_test_referral_123')
         expect(Stripe::Coupon).to receive(:create).with(

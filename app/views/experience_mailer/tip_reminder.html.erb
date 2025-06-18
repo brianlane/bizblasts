@@ -74,12 +74,12 @@
       <% if @business_logo %>
         <img src="<%= @business_logo %>" alt="<%= @business.name %>" class="logo">
       <% end %>
-      <h1>Thank you, <%= @customer.first_name || @customer.name %>!</h1>
+      <h1>Thank you, <%= @customer.first_name || @customer.full_name %>!</h1>
       <p>We hope you enjoyed your experience with us</p>
     </div>
     
     <div class="content">
-      <p>Hi <%= @customer.first_name || @customer.name.split.first %>,</p>
+      <p>Hi <%= @customer.first_name || @customer.full_name.split.first %>,</p>
       
       <p>Thank you for choosing <strong><%= @business.name %></strong> for your recent <%= @service.name.downcase %> experience. We hope you had a wonderful time!</p>
       

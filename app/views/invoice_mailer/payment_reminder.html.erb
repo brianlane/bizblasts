@@ -48,7 +48,7 @@
       <% if @customer.present? %>
       <div style="margin-bottom: 25px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
         <strong style="color: #495057; display: block; margin-bottom: 10px;">Account Information:</strong>
-        <p style="margin: 5px 0;"><strong>Name:</strong> <%= @customer.name %></p>
+        <p style="margin: 5px 0;"><strong>Name:</strong> <%= @customer.full_name %></p>
         <p style="margin: 5px 0;"><strong>Email:</strong> <%= @customer.email %></p>
       </div>
       <% end %>

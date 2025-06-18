@@ -10,7 +10,7 @@
             <%= @customer_subscription.display_name %>
           </h1>
           <p class="text-sm text-gray-600 mt-1">
-            Subscription for <%= @customer_subscription.tenant_customer.name %>
+            Subscription for <%= @customer_subscription.tenant_customer.full_name %>
           </p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2">
@@ -295,7 +295,7 @@
             <div>
               <dt class="text-sm font-medium text-gray-500">Name</dt>
               <dd class="mt-1 text-sm text-gray-900">
-                <%= link_to customer.name, business_manager_customer_path(customer), 
+                <%= link_to customer.full_name, business_manager_customer_path(customer), 
                       class: "text-blue-600 hover:text-blue-800" %>
               </dd>
             </div>

@@ -28,14 +28,14 @@
       <div class="content">
         <p>Hello <%= @business.name %> Team,</p>
         
-        <p>Great news! You've received a payment from <strong><%= @customer.name %></strong>.</p>
+        <p>Great news! You've received a payment from <strong><%= @customer.full_name %></strong>.</p>
 
         <div class="payment-details">
           <h3 style="margin-top: 0; color: #28a745;">Payment Details</h3>
           
           <div class="detail-row">
             <span class="label">Customer:</span>
-            <span class="value"><%= @customer.name %></span>
+            <span class="value"><%= @customer.full_name %></span>
           </div>
           
           <div class="detail-row">

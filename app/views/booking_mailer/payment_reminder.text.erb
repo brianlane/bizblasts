@@ -1,6 +1,6 @@
 Payment <%= @booking.service.experience? ? 'Required' : 'Reminder' %> - <%= @business.name %>
 
-Hello <%= @customer.name %>,
+Hello <%= @customer.full_name %>,
 
 <% if @booking.service.experience? %>
 ⚠️ IMMEDIATE PAYMENT REQUIRED

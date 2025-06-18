@@ -586,7 +586,8 @@ RSpec.describe SubscriptionBookingService, type: :service do
 
     it 'finds alternative time slots when conflicts exist' do
       # Mock availability service to return alternative slots
-      alternative_time = 1.week.from_now.beginning_of_hour + 10.hours
+      # Ensure the alternative time is definitely after 1.week.from_now.beginning_of_day
+      alternative_time = 1.week.from_now.beginning_of_day + 10.hours
       allow(AvailabilityService).to receive(:available_slots).and_return([
         { start_time: alternative_time, end_time: alternative_time + 1.hour }
       ])
