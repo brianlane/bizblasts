@@ -34,7 +34,7 @@
       function loadPolicies() {
         // Check if PolicyAcceptance class already loaded policies
         if (window.policyAcceptanceInstance && window.policyAcceptanceInstance.statusCache) {
-          console.log('[PolicyShow] Using cached policy status from PolicyAcceptance class');
+          //console.log('[PolicyShow] Using cached policy status from PolicyAcceptance class');
           const data = window.policyAcceptanceInstance.statusCache;
           if (data.missing_policies && data.missing_policies.length > 0) {
             displayPolicies(data.missing_policies);

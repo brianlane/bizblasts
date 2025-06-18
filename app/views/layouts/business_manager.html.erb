@@ -473,10 +473,10 @@
       document.addEventListener('DOMContentLoaded', function() {
         // Only initialize the PolicyAcceptance class if available and not already running
         if (typeof PolicyAcceptance !== 'undefined' && !window.policyAcceptanceInstance) {
-          console.log('[BusinessManager] Initializing PolicyAcceptance for user requiring policy acceptance');
+          //console.log('[BusinessManager] Initializing PolicyAcceptance for user requiring policy acceptance');
           new PolicyAcceptance();
         } else if (window.policyAcceptanceInstance) {
-          console.log('[BusinessManager] PolicyAcceptance already running, skipping initialization');
+          //console.log('[BusinessManager] PolicyAcceptance already running, skipping initialization');
         }
       });
     </script>
