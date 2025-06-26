@@ -1,4 +1,5 @@
 require 'rails_helper'
+require 'cgi'
 
 RSpec.describe "Subscription Email Notifications", type: :request do
   let(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant') }
@@ -199,7 +200,9 @@ RSpec.describe "Subscription Email Notifications", type: :request do
           BusinessMailer.new_subscription_notification(service_subscription).deliver_now
 
         email = ActionMailer::Base.deliveries.last
-        expect(email.body.encoded).to include(tenant_customer.full_name)
+        # HTML emails encode special characters, so check for the HTML-encoded version
+        expected_name = CGI.escapeHTML(tenant_customer.full_name)
+        expect(email.body.encoded).to include(expected_name)
         expect(email.body.encoded).to include(service.name)
         expect(email.body.encoded).to include('$49.99')
         expect(email.body.encoded).to include('monthly')
@@ -330,7 +333,10 @@ RSpec.describe "Subscription Email Notifications", type: :request do
       SubscriptionMailer.subscription_confirmed(product_subscription).deliver_now
 
       email = ActionMailer::Base.deliveries.last
-      expect(email.body.encoded).to include(tenant_customer.full_name) if tenant_customer.full_name.present?
+      if tenant_customer.full_name.present?
+        expected_name = CGI.escapeHTML(tenant_customer.full_name)
+        expect(email.body.encoded).to include(expected_name)
+      end
     end
 
     it "includes business-specific branding" do

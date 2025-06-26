@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'cgi'
 
 RSpec.describe SubscriptionMailer, type: :mailer do
   let(:business) { create(:business, name: 'Test Business', email: 'business@test.com') }
@@ -39,7 +40,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
       expect(mail.to).to eq([tenant_customer.email])
       expect(mail.subject).to include('Subscription Confirmed')
-      expect(mail.body.encoded).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(CGI.escapeHTML(tenant_customer.full_name))
       expect(mail.body.encoded).to include(product.name)
       expect(mail.body.encoded).to include('$15.75')
     end
@@ -49,7 +50,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
       expect(mail.to).to eq([tenant_customer.email])
       expect(mail.subject).to include('Subscription Confirmed')
-      expect(mail.body.encoded).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(CGI.escapeHTML(tenant_customer.full_name))
       expect(mail.body.encoded).to include(service.name)
       expect(mail.body.encoded).to include('$54.0')
     end
@@ -79,7 +80,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
       expect(mail.to).to eq([tenant_customer.email])
       expect(mail.subject).to include('Payment Processed')
-      expect(mail.body.encoded).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(CGI.escapeHTML(tenant_customer.full_name))
       expect(mail.body.encoded).to include(product.name)
       expect(mail.body.encoded).to include('processed successfully')
     end
@@ -105,7 +106,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
       expect(mail.to).to eq([tenant_customer.email])
       expect(mail.subject).to include('Payment Failed')
-      expect(mail.body.encoded).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(CGI.escapeHTML(tenant_customer.full_name))
       expect(mail.body.encoded).to include(product.name)
       expect(mail.body.encoded).to include('could not be processed')
     end
@@ -132,7 +133,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
       expect(mail.to).to eq([tenant_customer.email])
       expect(mail.subject).to include('Subscription Cancelled')
-      expect(mail.body.encoded).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(CGI.escapeHTML(tenant_customer.full_name))
       expect(mail.body.encoded).to include(product.name)
       expect(mail.body.encoded).to include('has been cancelled')
     end
@@ -165,7 +166,7 @@ RSpec.describe SubscriptionMailer, type: :mailer do
 
       expect(mail.to).to eq([tenant_customer.email])
       expect(mail.subject).to include('Subscription Cancelled')
-      expect(mail.body.encoded).to include(tenant_customer.full_name)
+      expect(mail.body.encoded).to include(CGI.escapeHTML(tenant_customer.full_name))
       expect(mail.body.encoded).to include(product.name)
       expect(mail.body.encoded).to include('multiple payment attempts')
     end

@@ -101,9 +101,10 @@ jobs:
       - name: Lint code for consistent style
         run: rubocop -f github || true
 
-  test:
+  # Base job that sets up the database and assets - other jobs depend on this
+  setup:
     runs-on: ubuntu-latest
-
+    
     env:
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
@@ -121,11 +122,8 @@ jobs:
           - 5432:5432
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
-      # redis:
-      #   image: redis
-      #   ports:
-      #     - 6379:6379
-      #   options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    outputs:
+      service_id: ${{ steps.setup_db.outputs.service_id }}
 
     steps:
       - name: Install packages
@@ -140,124 +138,468 @@ jobs:
           ruby-version: '3.4.2'
           bundler-cache: true
 
-      - name: Debug directory structure
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -la
-          ls -la bin || echo "bin directory not found"
-
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
-      # ADDED: Node.js Setup
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Or your preferred LTS version
+          node-version: '20'
           cache: 'npm'
 
-      # ADDED: Install JS Dependencies
       - name: Install JS Dependencies
         run: npm install
 
-      # ADDED: Build CSS Assets
-      - name: Build CSS
+      - name: Build CSS Assets
         run: |
           AA_PATH=$(bundle info activeadmin --path)
           echo "ActiveAdmin Path: $AA_PATH"
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           
-          # Ensure ActiveAdmin CSS compiles with proper import paths
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
           
-          # Copy the compiled CSS to public/assets as a fallback
           mkdir -p public/assets
           cp ./app/assets/builds/active_admin.css ./public/assets/
 
-      # ADDED: Build JS Assets
-      - name: Build JavaScript
+      - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
 
-      # Add a step to make scripts executable
+      - name: Setup test database
+        id: setup_db
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+          DISABLE_PROPSHAFT: true
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: |
+          echo "Setting up database..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          
+          bundle exec rake ci:github_actions
+          
+          SERVICE_ID=$(bundle exec rails runner "puts Service.find_by(name: 'Performance Test Service')&.id")
+          echo "service_id=$SERVICE_ID" >> $GITHUB_OUTPUT
+
+  # Model tests - typically fast and don't need browser
+  test_models:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          bundle exec rake ci:github_actions
+
+      - name: Run model tests
+        run: bundle exec rspec spec/models
+
+  # Request tests - API and controller tests
+  test_requests:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          bundle exec rake ci:github_actions
+
+      - name: Run request tests
+        run: bundle exec rspec spec/requests spec/controllers
+
+  # Service and business logic tests
+  test_services:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          bundle exec rake ci:github_actions
+
+      - name: Run service tests
+        run: bundle exec rspec spec/services spec/jobs spec/policies
+
+  # Integration tests
+  test_integration:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          bundle exec rake ci:github_actions
+
+      - name: Run integration tests
+        run: bundle exec rspec spec/integration spec/features spec/mailers
+
+  # System tests - these need Chrome and are usually the slowest
+  test_system:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          bundle exec rake ci:github_actions
+
+      - name: Run system tests
+        run: bundle exec rspec spec/system --format documentation
+
+      - name: Keep screenshots from failed system tests
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: system-test-screenshots
+          path: ${{ github.workspace }}/tmp/screenshots
+          if-no-files-found: ignore
+
+  # Other tests (helpers, lib, etc.)
+  test_other:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          bundle exec rake ci:github_actions
+
+      - name: Run other tests
+        run: bundle exec rspec spec/helpers spec/lib spec/views spec/admin spec/channels spec/javascript --format documentation
+
+  # Performance test - separate job
+  performance_test:
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
       - name: Make scripts executable
         run: |
           chmod +x script/performance_test.rb
           chmod +x bin/build-tailwind-standalone.sh
           chmod +x script/test_tailwind_build.rb
 
-      # Test Tailwind build without database (early test)
-      - name: Test Tailwind build without database
+      - name: Test Tailwind build
         env:
           RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
 
-      # FIRST: Set up the database and seed test data
-      - name: Setup test database with seed data
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          DISABLE_PROPSHAFT: true
-          RAILS_DISABLE_ASSET_COMPILATION: true
-          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+      - name: Setup database
         run: |
-          echo "Setting up database for performance test..."
-          # Create database with SQL directly to avoid Rails startup issues
           PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
-          
-          # Run comprehensive setup for GitHub Actions (handles all db setup and migrations)
-          echo "Running comprehensive GitHub Actions setup..."
           bundle exec rake ci:github_actions
-          
-          # Get the service ID that was created
-          SERVICE_ID=$(bundle exec rails runner "puts Service.find_by(name: 'Performance Test Service')&.id")
-          echo "Performance test service ID: $SERVICE_ID"
-          echo "SERVICE_ID=$SERVICE_ID" >> $GITHUB_ENV
 
-      # Build Tailwind CSS after database is ready
       - name: Build Tailwind CSS
         env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      # SECOND: Start Rails server AFTER database is set up
-      - name: Start Rails server for performance test
+      - name: Start Rails server
         run: |
           bundle exec rails server -p 3000 &
           echo $! > tmp/server.pid
-          # Give the server more time to fully initialize
           sleep 10
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          DISABLE_PROPSHAFT: true
-          RAILS_DISABLE_ASSET_COMPILATION: true
-          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
 
-      # THIRD: Run the performance test
       - name: Run Performance Test
         run: |
+          SERVICE_ID=${{ needs.setup.outputs.service_id }}
           echo "Using service ID: $SERVICE_ID"
-          # Run the performance test with the correct service ID
           ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=${SERVICE_ID}&commit=View+Availability" -n 200 -c 20
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          DISABLE_PROPSHAFT: true
-          RAILS_DISABLE_ASSET_COMPILATION: true
-          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
 
-      # Kill the Rails server process after the test
       - name: Stop Rails server
         if: always()
         run: |
@@ -266,33 +608,8 @@ jobs:
             rm tmp/server.pid
           fi
 
-      # FOURTH: Run the actual tests (database is already set up)
-      - name: Run tests
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          DISABLE_PROPSHAFT: true
-          RAILS_DISABLE_ASSET_COMPILATION: true
-          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
-        run: |
-          echo "Rails environment information:"
-          bundle exec rails -v
-          
-          # The database is already set up from the performance test setup
-          # so we can just run the tests
-          echo "Running tests..."
-          bundle exec rspec
-
-      - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: screenshots
-          path: ${{ github.workspace }}/tmp/screenshots
-          if-no-files-found: ignore
-
   deploy:
-    needs: [scan_ruby, scan_js, lint, test]
+    needs: [scan_ruby, scan_js, lint, test_models, test_requests, test_services, test_integration, test_system, test_other, performance_test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     
