@@ -101,101 +101,13 @@ jobs:
       - name: Lint code for consistent style
         run: rubocop -f github || true
 
-  # Base job that sets up the database and assets - other jobs depend on this
-  setup:
-    runs-on: ubuntu-latest
-    
-    env:
-      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-      STRIPE_STANDARD_PRICE_ID: ${{ secrets.STRIPE_STANDARD_PRICE_ID }}
-      STRIPE_PREMIUM_PRICE_ID: ${{ secrets.STRIPE_PREMIUM_PRICE_ID }}
-
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
-
-    outputs:
-      service_id: ${{ steps.setup_db.outputs.service_id }}
-
-    steps:
-      - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4.2'
-          bundler-cache: true
-
-      - name: Install all gems
-        run: bundle install --jobs 4 --retry 3 --with development test
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install JS Dependencies
-        run: npm install
-
-      - name: Build CSS Assets
-        run: |
-          AA_PATH=$(bundle info activeadmin --path)
-          echo "ActiveAdmin Path: $AA_PATH"
-          mkdir -p app/assets/builds
-          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
-          
-          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
-            --no-source-map \
-            --load-path=node_modules \
-            --load-path="$AA_PATH/app/assets/stylesheets"
-          
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
-
-      - name: Build JavaScript Assets
-        run: |
-          mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
-
-      - name: Setup test database
-        id: setup_db
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
-          DISABLE_PROPSHAFT: true
-          RAILS_DISABLE_ASSET_COMPILATION: true
-          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
-        run: |
-          echo "Setting up database..."
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
-          
-          bundle exec rake ci:github_actions
-          
-          SERVICE_ID=$(bundle exec rails runner "puts Service.find_by(name: 'Performance Test Service')&.id")
-          echo "service_id=$SERVICE_ID" >> $GITHUB_OUTPUT
-
   # Model tests - typically fast and don't need browser
   test_models:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_models
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -226,23 +138,65 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_models;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_models;"
           bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       - name: Run model tests
         run: bundle exec rspec spec/models
 
   # Request tests - API and controller tests
   test_requests:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_requests
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -273,23 +227,65 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_requests;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_requests;"
           bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       - name: Run request tests
         run: bundle exec rspec spec/requests spec/controllers
 
   # Service and business logic tests
   test_services:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -320,23 +316,65 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_services;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_services;"
           bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       - name: Run service tests
         run: bundle exec rspec spec/services spec/jobs spec/policies
 
   # Integration tests
   test_integration:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_integration
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -367,23 +405,65 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_integration;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_integration;"
           bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       - name: Run integration tests
         run: bundle exec rspec spec/integration spec/features spec/mailers
 
   # System tests - these need Chrome and are usually the slowest
   test_system:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -440,11 +520,28 @@ jobs:
           mkdir -p app/assets/builds
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
 
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_system;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_system;"
           bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       - name: Run system tests
         run: bundle exec rspec spec/system --format documentation
@@ -459,12 +556,11 @@ jobs:
 
   # Other tests (helpers, lib, etc.)
   test_other:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_other
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -495,23 +591,65 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_other;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_other;"
           bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
 
       - name: Run other tests
         run: bundle exec rspec spec/helpers spec/lib spec/views spec/admin spec/channels spec/javascript --format documentation
 
   # Performance test - separate job
   performance_test:
-    needs: setup
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_performance
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -579,8 +717,8 @@ jobs:
 
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_performance;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_performance;"
           bundle exec rake ci:github_actions
 
       - name: Build Tailwind CSS
@@ -596,7 +734,7 @@ jobs:
 
       - name: Run Performance Test
         run: |
-          SERVICE_ID=${{ needs.setup.outputs.service_id }}
+          SERVICE_ID=$(bundle exec rails runner "puts Service.find_by(name: 'Performance Test Service')&.id")
           echo "Using service ID: $SERVICE_ID"
           ruby script/performance_test.rb -u "http://consultllc.lvh.me:3000/calendar?service_id=${SERVICE_ID}&commit=View+Availability" -n 200 -c 20
 
