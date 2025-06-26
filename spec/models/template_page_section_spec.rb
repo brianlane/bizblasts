@@ -12,7 +12,7 @@ RSpec.describe TemplatePageSection, type: :model do
     
     it 'defines section_type as an enum' do
       expect(TemplatePageSection.section_types).to include('header', 'text', 'image', 'gallery', 
-                                                          'contact_form', 'service_list', 
+                                                          'contact_form', 'service_list', 'product_list', 
                                                           'testimonial', 'cta', 'custom')
     end
   end

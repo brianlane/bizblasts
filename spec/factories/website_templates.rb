@@ -41,7 +41,8 @@ FactoryBot.define do
               page_type: 'home',
               sections: [
                 { type: 'hero_banner', position: 0 },
-                { type: 'service_list', position: 1 }
+                { type: 'service_list', position: 1 },
+                { type: 'product_list', position: 2 }
               ]
             }
           ]

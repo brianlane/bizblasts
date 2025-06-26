@@ -183,7 +183,8 @@ class BusinessManager::Website::ThemesController < BusinessManager::Website::Bas
       sections: [
         { type: 'hero_banner', content: "Welcome to #{current_business.name}" },
         { type: 'text', content: current_business.description },
-        { type: 'service_list', content: 'Our Services' },
+                    { type: 'service_list', content: 'Our Services' },
+            { type: 'product_list', content: 'Our Products' },
         { type: 'contact_form', content: 'Contact Us' }
       ]
     }
@@ -233,6 +234,25 @@ class BusinessManager::Website::ThemesController < BusinessManager::Website::Bas
           <h2 class="text-center mb-8">#{ERB::Util.html_escape(section[:content])}</h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             #{services_html}
+          </div>
+        </div>
+      }.html_safe
+    when 'product_list'
+      products_html = ['Premium Product', 'Standard Product', 'Starter Product'].map do |product|
+        %{
+          <div class="product-card mb-6">
+            <h3>#{ERB::Util.html_escape(product)}</h3>
+            <p class="text-gray-600">High-quality #{ERB::Util.html_escape(product.downcase)} designed to meet your specific needs and exceed expectations.</p>
+            <div class="text-primary font-bold mt-2">Starting at $99</div>
+          </div>
+        }
+      end.join
+      
+      %{
+        <div>
+          <h2 class="text-center mb-8">#{ERB::Util.html_escape(section[:content])}</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            #{products_html}
           </div>
         </div>
       }.html_safe

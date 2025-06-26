@@ -30,7 +30,7 @@ RSpec.describe PageSection, type: :model do
 
   describe 'enums' do
     it { should define_enum_for(:section_type).with_values([
-      :header, :text, :image, :gallery, :contact_form, :service_list, 
+      :header, :text, :image, :gallery, :contact_form, :service_list, :product_list, 
       :testimonial, :cta, :custom, :hero_banner, :product_grid, 
       :team_showcase, :pricing_table, :faq_section, :social_media, 
       :video_embed, :map_location, :newsletter_signup

@@ -2,6 +2,8 @@
 
 puts "Creating website templates..."
 
+
+
 # Universal templates (cross-industry)
 universal_templates = [
   {
@@ -54,18 +56,93 @@ universal_templates = [
     description: 'High-end design for luxury brands and premium services',
     colors: { primary: '#1f2937', secondary: '#6b7280', accent: '#d97706' },
     premium: true
+  },
+  {
+    name: 'E-commerce Modern',
+    description: 'Perfect for businesses selling products online',
+    colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#f59e0b' },
+    product_focused: true
+  },
+  {
+    name: 'Retail Showcase',
+    description: 'Designed to highlight and sell products beautifully',
+    colors: { primary: '#ec4899', secondary: '#8b5cf6', accent: '#f59e0b' },
+    product_focused: true
+  },
+  {
+    name: 'Boutique Elegant',
+    description: 'Sophisticated design for boutique and specialty retailers',
+    colors: { primary: '#374151', secondary: '#6b7280', accent: '#ec4899' },
+    product_focused: true,
+    premium: true
   }
 ]
 
 # Create universal templates
 universal_templates.each do |template_data|
+  # Use product-focused structure for product-focused universal templates
+  template_structure = if template_data[:product_focused]
+                         {
+                           pages: [
+                             {
+                               title: 'Home',
+                               slug: 'home',
+                               page_type: 'home',
+                               sections: [
+                                 { type: 'hero_banner', position: 0 },
+                                 { type: 'product_list', position: 1 },
+                                 { type: 'service_list', position: 2 },
+                                 { type: 'testimonial', position: 3 },
+                                 { type: 'contact_form', position: 4 }
+                               ]
+                             },
+                             {
+                               title: 'About',
+                               slug: 'about', 
+                               page_type: 'about',
+                               sections: [
+                                 { type: 'text', position: 0 },
+                                 { type: 'team_showcase', position: 1 }
+                               ]
+                             },
+                             {
+                               title: 'Products',
+                               slug: 'products',
+                               page_type: 'products',
+                               sections: [
+                                 { type: 'product_list', position: 0 }
+                               ]
+                             },
+                             {
+                               title: 'Services',
+                               slug: 'services',
+                               page_type: 'services', 
+                               sections: [
+                                 { type: 'service_list', position: 0 }
+                               ]
+                             },
+                             {
+                               title: 'Contact',
+                               slug: 'contact',
+                               page_type: 'contact',
+                               sections: [
+                                 { type: 'contact_form', position: 0 },
+                                 { type: 'map_location', position: 1 }
+                               ]
+                             }
+                           ]
+                         }
+                       else
+                         WebsiteTemplate.default_page_structure
+                       end
+  
   template = WebsiteTemplate.find_or_create_by(
     name: template_data[:name],
     industry: 'universal'
   ) do |t|
     t.template_type = 'universal_template'
     t.description = template_data[:description]
-    t.structure = WebsiteTemplate.default_page_structure
+    t.structure = template_structure
     t.default_theme = {
       color_scheme: WebsiteTheme::DEFAULT_COLOR_SCHEME.merge(template_data[:colors]),
       typography: WebsiteTheme::DEFAULT_TYPOGRAPHY,
@@ -75,7 +152,7 @@ universal_templates.each do |template_data|
     t.active = true
   end
   
-  puts "Created universal template: #{template.name}"
+  puts "Created universal template: #{template.name} #{template_data[:product_focused] ? '(Product-focused)' : ''}"
 end
 
 # Industry-specific color schemes
@@ -176,11 +253,79 @@ industry_color_schemes = {
   'farmers_markets' => { primary: '#84cc16', secondary: '#059669', accent: '#f59e0b' }
 }
 
+# Define product-focused industries that should prioritize products over services
+product_focused_industries = [
+  'boutiques', 'jewelry_stores', 'electronics', 'bookstores', 'art_galleries', 
+  'craft_stores', 'antique_shops', 'toy_stores', 'sports_equipment', 'outdoor_gear',
+  'home_decor', 'furniture_stores', 'bakeries', 'coffee_shops', 'wine_shops',
+  'specialty_foods', 'cosmetics', 'perfume_shops', 'pet_supplies', 'plant_nurseries',
+  'garden_centers', 'hardware_stores', 'music_stores', 'gift_shops', 'souvenir_shops',
+  'thrift_stores', 'clothing', 'local_artisans', 'handmade_goods', 'farmers_markets'
+]
+
+
+
 # Create industry-specific templates
 Business::SHOWCASE_INDUSTRY_MAPPINGS.each do |industry_key, industry_name|
   next if industry_key == :other
   
   colors = industry_color_schemes[industry_key.to_s] || WebsiteTheme::DEFAULT_COLOR_SCHEME
+  
+  # Use product-focused structure for product-heavy industries
+  template_structure = if product_focused_industries.include?(industry_key.to_s)
+                         {
+                           pages: [
+                             {
+                               title: 'Home',
+                               slug: 'home',
+                               page_type: 'home',
+                               sections: [
+                                 { type: 'hero_banner', position: 0 },
+                                 { type: 'product_list', position: 1 },
+                                 { type: 'service_list', position: 2 },
+                                 { type: 'testimonial', position: 3 },
+                                 { type: 'contact_form', position: 4 }
+                               ]
+                             },
+                             {
+                               title: 'About',
+                               slug: 'about', 
+                               page_type: 'about',
+                               sections: [
+                                 { type: 'text', position: 0 },
+                                 { type: 'team_showcase', position: 1 }
+                               ]
+                             },
+                             {
+                               title: 'Products',
+                               slug: 'products',
+                               page_type: 'products',
+                               sections: [
+                                 { type: 'product_list', position: 0 }
+                               ]
+                             },
+                             {
+                               title: 'Services',
+                               slug: 'services',
+                               page_type: 'services', 
+                               sections: [
+                                 { type: 'service_list', position: 0 }
+                               ]
+                             },
+                             {
+                               title: 'Contact',
+                               slug: 'contact',
+                               page_type: 'contact',
+                               sections: [
+                                 { type: 'contact_form', position: 0 },
+                                 { type: 'map_location', position: 1 }
+                               ]
+                             }
+                           ]
+                         }
+                       else
+                         WebsiteTemplate.default_page_structure
+                       end
   
   template = WebsiteTemplate.find_or_create_by(
     industry: industry_key.to_s,
@@ -188,7 +333,7 @@ Business::SHOWCASE_INDUSTRY_MAPPINGS.each do |industry_key, industry_name|
   ) do |t|
     t.name = "#{industry_name} Professional"
     t.description = "Professional template designed specifically for #{industry_name} businesses"
-    t.structure = WebsiteTemplate.default_page_structure
+    t.structure = template_structure
     t.default_theme = {
       color_scheme: WebsiteTheme::DEFAULT_COLOR_SCHEME.merge(colors),
       typography: WebsiteTheme::DEFAULT_TYPOGRAPHY,
@@ -198,7 +343,7 @@ Business::SHOWCASE_INDUSTRY_MAPPINGS.each do |industry_key, industry_name|
     t.active = true
   end
   
-  puts "Created industry template: #{template.name}"
+  puts "Created industry template: #{template.name} #{product_focused_industries.include?(industry_key.to_s) ? '(Product-focused)' : '(Service-focused)'}"
 end
 
 puts "Finished creating #{WebsiteTemplate.count} website templates" 

@@ -50,8 +50,9 @@ class WebsiteTemplate < ApplicationRecord
           sections: [
             { type: 'hero_banner', position: 0 },
             { type: 'service_list', position: 1 },
-            { type: 'testimonial', position: 2 },
-            { type: 'contact_form', position: 3 }
+            { type: 'product_list', position: 2 },
+            { type: 'testimonial', position: 3 },
+            { type: 'contact_form', position: 4 }
           ]
         },
         {
@@ -69,6 +70,14 @@ class WebsiteTemplate < ApplicationRecord
           page_type: 'services', 
           sections: [
             { type: 'service_list', position: 0 }
+          ]
+        },
+        {
+          title: 'Products',
+          slug: 'products',
+          page_type: 'products',
+          sections: [
+            { type: 'product_list', position: 0 }
           ]
         },
         {
