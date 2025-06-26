@@ -110,11 +110,10 @@
           <!-- Subscription Statistics -->
           <% 
             # Calculate subscription metrics for this service
-            service_subscriptions = @service.business.customer_subscriptions.joins(:line_items)
-                                           .where(line_items: { service_id: @service.id })
+            service_subscriptions = @service.business.customer_subscriptions.where(service_id: @service.id)
             active_subscriptions = service_subscriptions.active
             total_subscriptions = service_subscriptions.count
-            monthly_revenue = active_subscriptions.sum { |sub| sub.line_items.where(service_id: @service.id).sum { |li| li.quantity * li.price } }
+            monthly_revenue = active_subscriptions.sum(:subscription_price)
             upcoming_bookings = active_subscriptions.where(next_billing_date: Date.current.beginning_of_month..Date.current.end_of_month).count
           %>
           
