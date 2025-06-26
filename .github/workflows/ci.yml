@@ -457,13 +457,13 @@ jobs:
       - name: Run integration tests
         run: bundle exec rspec spec/integration spec/features spec/mailers
 
-  # System tests - these need Chrome and are usually the slowest
-  test_system:
+  # System tests part 1 - Core functionality and authentication
+  test_system_1:
     runs-on: ubuntu-latest
     
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_1
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
@@ -524,6 +524,7 @@ jobs:
         run: |
           chmod +x bin/build-tailwind-standalone.sh
           chmod +x script/test_tailwind_build.rb
+          chmod +x bin/split_system_tests.rb
 
       - name: Test Tailwind build
         env:
@@ -534,8 +535,8 @@ jobs:
 
       - name: Setup database
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_system;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_system;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_system_1;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_system_1;"
           bundle exec rake ci:github_actions
 
       - name: Build Tailwind CSS
@@ -543,14 +544,231 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Run system tests
-        run: bundle exec rspec spec/system --format documentation
+      - name: Run system tests 1
+        run: |
+          TESTS=$(./bin/split_system_tests.rb 1)
+          if [ -n "$TESTS" ]; then
+            echo "Running system tests group 1..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No system tests found for group 1"
+          fi
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: system-test-screenshots
+          name: system-test-1-screenshots
+          path: ${{ github.workspace }}/tmp/screenshots
+          if-no-files-found: ignore
+
+  # System tests part 2 - Business management and website building
+  test_system_2:
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_2
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+          chmod +x bin/split_system_tests.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_system_2;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_system_2;"
+          bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
+
+      - name: Run system tests 2
+        run: |
+          TESTS=$(./bin/split_system_tests.rb 2)
+          if [ -n "$TESTS" ]; then
+            echo "Running system tests group 2..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No system tests found for group 2"
+          fi
+
+      - name: Keep screenshots from failed system tests
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: system-test-2-screenshots
+          path: ${{ github.workspace }}/tmp/screenshots
+          if-no-files-found: ignore
+
+  # System tests part 3 - E-commerce, payments, and UI features
+  test_system_3:
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_3
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+          chmod +x bin/split_system_tests.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_system_3;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_system_3;"
+          bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
+
+      - name: Run system tests 3
+        run: |
+          TESTS=$(./bin/split_system_tests.rb 3)
+          if [ -n "$TESTS" ]; then
+            echo "Running system tests group 3..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No system tests found for group 3"
+          fi
+
+      - name: Keep screenshots from failed system tests
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: system-test-3-screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
 
@@ -767,7 +985,7 @@ jobs:
           fi
 
   deploy:
-    needs: [scan_ruby, scan_js, lint, test_models, test_requests, test_services, test_integration, test_system, test_other, performance_test]
+    needs: [scan_ruby, scan_js, lint, test_models, test_requests, test_services, test_integration, test_system_1, test_system_2, test_system_3, test_other, performance_test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     
