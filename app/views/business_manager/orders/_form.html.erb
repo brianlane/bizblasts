@@ -6,10 +6,13 @@
     <%= f.label :tenant_customer_id, 'Customer', class: 'block text-sm font-medium text-gray-700 mb-1' %>
     
     <!-- Custom Customer Dropdown -->
-    <div class="customer-dropdown relative">
-      <button type="button" 
-              class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
-              data-customer-dropdown-target="button">
+    <div class="customer-dropdown relative" 
+         data-controller="customer-dropdown" 
+         data-customer-dropdown-selected-value-value="<%= @order.tenant_customer_id %>">
+              <button type="button" 
+                class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                data-customer-dropdown-target="button"
+                data-action="click->customer-dropdown#toggle">
         <span class="customer-dropdown-text text-gray-900">
           <% if @order.tenant_customer_id.present? && @order.tenant_customer_id != "new" %>
             <% customer = @customers.find { |c| c.id == @order.tenant_customer_id } %>
@@ -27,14 +30,15 @@
         </span>
       </button>
       
-      <!-- Dropdown Menu -->
-      <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
-           data-customer-dropdown-target="menu">
+              <!-- Dropdown Menu -->
+        <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-customer-dropdown-target="menu">
         
-        <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-             data-customer-id=""
-             data-customer-name="Select existing customer"
-             data-customer-dropdown-target="option">
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="Select existing customer"
+               data-customer-dropdown-target="option"
+               data-action="click->customer-dropdown#select">
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <div class="font-medium text-gray-500">Select existing customer</div>
@@ -50,10 +54,11 @@
         </div>
         
         <% @customers.each do |customer| %>
-          <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-               data-customer-id="<%= customer.id %>"
-               data-customer-name="<%= customer.full_name %> (<%= customer.email %>)"
-               data-customer-dropdown-target="option">
+                      <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= customer.id %>"
+                 data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
+                 data-customer-dropdown-target="option"
+                 data-action="click->customer-dropdown#select">
             <div class="flex items-center justify-between">
               <div class="flex-1">
                 <div class="font-medium text-gray-900"><%= customer.full_name %></div>
@@ -75,10 +80,11 @@
           </div>
         <% end %>
         
-        <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
-             data-customer-id="new"
-             data-customer-name="Create new customer"
-             data-customer-dropdown-target="option">
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+               data-item-id="new"
+               data-item-text="Create new customer"
+               data-customer-dropdown-target="option"
+               data-action="click->customer-dropdown#select">
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <div class="font-medium text-blue-600">+ Create new customer</div>
@@ -93,12 +99,11 @@
           <% end %>
         </div>
       </div>
-    </div>
     
     <!-- Hidden field to store the selected customer ID -->
-    <%= f.hidden_field :tenant_customer_id, id: "order_tenant_customer_id" %>
-  </div>
-  <div id="new-customer-fields" class="hidden mb-4">
+    <%= f.hidden_field :tenant_customer_id, id: "order_tenant_customer_id", data: { customer_dropdown_target: "hidden" } %>
+    
+    <div id="new-customer-fields" class="hidden mb-4" data-customer-dropdown-target="newCustomerFields">
     <h3 class="text-lg font-medium mb-2">New Customer Details</h3>
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
@@ -126,6 +131,7 @@
         <%= cf.telephone_field :phone, placeholder: 'Customer Phone', class: 'form-input rounded border px-3 py-2 w-full' %>
       <% end %>
     </div>
+  </div>
   </div>
 
   <!-- Shipping and Tax -->
@@ -794,7 +800,7 @@
 <script>
 // Dynamic order form behavior
 (function() {
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeProductLineItems() {
     // Customer form handling now done by custom dropdown JavaScript below
     // if (window.CustomerFormHelper) {
     //   CustomerFormHelper.initializeOrderForm();
@@ -902,11 +908,15 @@
 
     // Initial total calculation
     recalcOrderTotal();
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeProductLineItems);
+  document.addEventListener('turbo:load', initializeProductLineItems);
 })();
 
 // Extend dynamic form behavior to service rows
-document.addEventListener('DOMContentLoaded', () => {
+function initializeServiceLineItems() {
   const addSvcBtn = document.getElementById('add-service-btn');
   const svcTable = document.getElementById('service-line-items-table');
   const svcBody = svcTable.querySelector('tbody');
@@ -969,7 +979,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize existing service rows
   svcBody.querySelectorAll('tr').forEach(bindSvcRow);
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeServiceLineItems);
+document.addEventListener('turbo:load', initializeServiceLineItems);
 
 // Rich Dropdown Functionality for Order Form Line Items
 function initializeRichDropdown(container) {
@@ -1128,7 +1142,7 @@ function initializeRichDropdown(container) {
 }
 
 // Initialize rich dropdowns for existing rows on page load
-document.addEventListener('DOMContentLoaded', function() {
+function initializeExistingRichDropdowns() {
   // Initialize for existing product rows
   document.querySelectorAll('#line-items-table tbody tr').forEach(row => {
     initializeRichDropdown(row);
@@ -1138,7 +1152,11 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('#service-line-items-table tbody tr').forEach(row => {
     initializeRichDropdown(row);
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeExistingRichDropdowns);
+document.addEventListener('turbo:load', initializeExistingRichDropdowns);
 
 // Close dropdowns when clicking outside
 function closeAllDropdowns() {
@@ -1178,7 +1196,7 @@ document.addEventListener('DOMNodeInserted', function(e) {
 });
 
 // Shipping and Tax Rate Dropdown Functionality
-document.addEventListener('DOMContentLoaded', function() {
+function initializeShippingAndTaxDropdowns() {
   // Shipping Method Dropdown
   const shippingDropdownButton = document.querySelector('[data-shipping-dropdown-target="button"]');
   const shippingDropdownMenu = document.querySelector('[data-shipping-dropdown-target="menu"]');
@@ -1316,86 +1334,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-  
-  // Customer Dropdown
-  const customerDropdownButton = document.querySelector('[data-customer-dropdown-target="button"]');
-  const customerDropdownMenu = document.querySelector('[data-customer-dropdown-target="menu"]');
-  const customerDropdownOptions = document.querySelectorAll('[data-customer-dropdown-target="option"]');
-  const customerDropdownText = document.querySelector('.customer-dropdown-text');
-  const customerDropdownArrow = customerDropdownButton?.querySelector('svg');
-  const customerHiddenField = document.getElementById('order_tenant_customer_id');
-  const newCustomerFields = document.getElementById('new-customer-fields');
-  
-  if (customerDropdownButton && customerDropdownMenu) {
-    // Toggle dropdown
-    customerDropdownButton.addEventListener('click', function(e) {
-      e.preventDefault();
-      const isHidden = customerDropdownMenu.classList.contains('hidden');
-      
-      if (isHidden) {
-        customerDropdownMenu.classList.remove('hidden');
-        customerDropdownArrow?.classList.add('rotate-180');
-      } else {
-        customerDropdownMenu.classList.add('hidden');
-        customerDropdownArrow?.classList.remove('rotate-180');
-      }
-    });
-    
-    // Handle option selection
-    customerDropdownOptions.forEach(option => {
-      option.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const customerId = this.getAttribute('data-customer-id');
-        const customerName = this.getAttribute('data-customer-name');
-        
-        // Update hidden field
-        if (customerHiddenField) {
-          customerHiddenField.value = customerId;
-        }
-        
-        // Update button text
-        if (customerDropdownText) {
-          customerDropdownText.textContent = customerName;
-        }
-        
-        // Update selection indicators
-        customerDropdownOptions.forEach(opt => {
-          const checkmark = opt.querySelector('svg');
-          if (checkmark) {
-            checkmark.classList.add('hidden');
-          }
-        });
-        
-        const selectedCheckmark = this.querySelector('svg');
-        if (selectedCheckmark) {
-          selectedCheckmark.classList.remove('hidden');
-        }
-        
-        // Toggle new customer fields visibility
-        if (newCustomerFields) {
-          if (customerId === 'new') {
-            newCustomerFields.classList.remove('hidden');
-            newCustomerFields.style.display = '';
-          } else {
-            newCustomerFields.classList.add('hidden');
-            newCustomerFields.style.display = 'none';
-          }
-        }
-        
-        // Close dropdown
-        customerDropdownMenu.classList.add('hidden');
-        customerDropdownArrow?.classList.remove('rotate-180');
-      });
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!customerDropdownButton.contains(e.target) && !customerDropdownMenu.contains(e.target)) {
-        customerDropdownMenu.classList.add('hidden');
-        customerDropdownArrow?.classList.remove('rotate-180');
-      }
-    });
-  }
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeShippingAndTaxDropdowns);
+document.addEventListener('turbo:load', initializeShippingAndTaxDropdowns);
 </script> 

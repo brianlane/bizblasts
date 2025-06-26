@@ -20,6 +20,7 @@ RSpec.describe Product, type: :model do
     it { should validate_uniqueness_of(:name).scoped_to(:business_id) }
     it { should validate_presence_of(:price) }
     it { should validate_numericality_of(:price).is_greater_than_or_equal_to(0) }
+    it { should validate_length_of(:variant_label_text).is_at_most(100) }
 
     # Active Storage validations (ensure test helper is configured)
     # it { should validate_attached_of(:images) } # Attachment is optional
@@ -846,6 +847,64 @@ RSpec.describe Product, type: :model do
     it 'returns true for active products with stock when hide_when_out_of_stock is true' do
       product = create(:product, business: business, active: true, hide_when_out_of_stock: true, stock_quantity: 5)
       expect(product.visible_to_customers?).to be true
+    end
+  end
+
+  describe 'variant label functionality' do
+    let(:product) { create(:product, business: business) }
+    
+    describe '#should_show_variant_selector?' do
+      context 'when product has only default variant' do
+        it 'returns false' do
+          # Products get a default variant automatically, so we expect false
+          expect(product.should_show_variant_selector?).to be false
+        end
+      end
+      
+      context 'when product has 2 or more variants total' do
+        before do
+          create(:product_variant, product: product, name: 'Small')
+        end
+        
+        it 'returns true' do
+          expect(product.should_show_variant_selector?).to be true
+        end
+      end
+      
+      context 'when product has multiple user-created variants' do
+        before do
+          create(:product_variant, product: product, name: 'Small')
+          create(:product_variant, product: product, name: 'Large')
+        end
+        
+        it 'returns true' do
+          expect(product.should_show_variant_selector?).to be true
+        end
+      end
+    end
+    
+    describe '#display_variant_label' do
+      it 'returns the custom variant label text when present' do
+        product.update!(variant_label_text: 'Choose a size')
+        expect(product.display_variant_label).to eq('Choose a size')
+      end
+      
+      it 'returns default text when variant_label_text is blank' do
+        product.variant_label_text = ''
+        expect(product.display_variant_label).to eq('Choose a variant')
+      end
+      
+      it 'returns default text when variant_label_text is nil' do
+        product.variant_label_text = nil
+        expect(product.display_variant_label).to eq('Choose a variant')
+      end
+    end
+    
+    describe 'default values' do
+      it 'sets default variant_label_text to "Choose a variant"' do
+        new_product = create(:product, business: business)
+        expect(new_product.variant_label_text).to eq('Choose a variant')
+      end
     end
   end
 end 

@@ -47,6 +47,9 @@ RSpec.describe "BusinessManager::Services", type: :system do
       fill_in 'Name', with: 'New Test Service'
       fill_in 'Price', with: '50.00'
       fill_in 'Duration (minutes)', with: '60'
+      # Interact with rich dropdown instead of select element
+      find('#service_type_dropdown [data-dropdown-target="button"]').click
+      find('#service_type_dropdown [data-dropdown-target="option"]', text: 'Standard').click
       fill_in 'Description', with: 'A brand new service for testing.'
       check 'Active'
       # Assign staff (assuming at least one staff user exists)

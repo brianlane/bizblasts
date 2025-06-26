@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-
 rails assets:precompile
 
 if ! gem list foreman -i --silent; then

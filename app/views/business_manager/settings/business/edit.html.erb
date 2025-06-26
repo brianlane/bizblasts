@@ -446,7 +446,7 @@
   }
 
   // Add real-time validation listeners
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBusinessSettingsForm() {
     // Email validation
     const emailFields = document.querySelectorAll('input[type="email"]');
     emailFields.forEach(field => {
@@ -515,5 +515,9 @@
         this.value = value;
       });
     });
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeBusinessSettingsForm);
+  document.addEventListener('turbo:load', initializeBusinessSettingsForm);
 </script> 

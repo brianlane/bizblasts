@@ -49,7 +49,7 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeGuestCustomerFields() {
     var checkbox = document.getElementById('create_account_checkbox');
     var passwordFields = document.getElementById('account_password_fields');
     if (!checkbox) return;
@@ -68,5 +68,9 @@
         passwordFields.classList.add('hidden');
       }
     });
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeGuestCustomerFields);
+  document.addEventListener('turbo:load', initializeGuestCustomerFields);
 </script> 

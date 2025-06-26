@@ -503,9 +503,13 @@ const CustomerFormValidation = {
 };
 
 // Auto-initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+function initializeCustomerFormValidation() {
   CustomerFormValidation.autoInitialize();
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeCustomerFormValidation);
+document.addEventListener('turbo:load', initializeCustomerFormValidation);
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

@@ -1,6 +1,10 @@
 <%# app/views/business_manager/services/_form.html.erb %>
 
-<%= form_with(model: [:business_manager, service], local: true) do |form| %>
+<%= form_with(model: [:business_manager, service], local: true, 
+           data: { 
+             controller: "service-form",
+             action: "submit->service-form#validateForm"
+           }) do |form| %>
   <% if service.errors.any? %>
     <div id="error_explanation" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
       <strong class="font-bold"><%= pluralize(service.errors.count, "error") %> prohibited this service from being saved:</strong>
@@ -72,18 +76,29 @@
 
   <%# Service Type fields %>
    <div class="mb-4">
-     <%= form.label :service_type, class: "block text-gray-700 text-sm font-bold mb-2" %>
-     <%= render 'shared/rich_dropdown',
-         collection: Service.service_types.keys.map { |k| OpenStruct.new(id: k, name: k.humanize) },
-         field_name: "#{form.object_name}[service_type]",
-         selected_value: service.service_type,
-         prompt_text: "Select service type",
-         value_method: :id,
-         text_method: :name,
-         dropdown_id: "service_type_dropdown" %>
+     <%= form.label :service_type, class: "block text-gray-700 text-sm font-bold mb-2" do %>
+       Service Type
+     <% end %>
+     <div data-service-form-target="serviceTypeDropdown">
+       <%= render 'shared/rich_dropdown',
+           collection: Service.service_types.keys.map { |k| OpenStruct.new(id: k, name: k.humanize) },
+           field_name: "#{form.object_name}[service_type]",
+           selected_value: service.service_type,
+           prompt_text: "Select service type",
+           value_method: :id,
+           text_method: :name,
+           required: true,
+           dropdown_id: "service_type_dropdown",
+           hidden_field_data: { "data-service-form-target": "serviceTypeHidden" } %>
+     </div>
+     <div id="service_type_error" class="hidden mt-1 text-sm text-red-600" 
+          data-service-form-target="serviceTypeError">
+       Please select a service type.
+     </div>
    </div>
 
-   <div id="experience_fields" class="<%= service.experience? ? '' : 'hidden' %>">
+   <div id="experience_fields" class="<%= service.experience? ? '' : 'hidden' %>" 
+        data-service-form-target="experienceFields">
      <div class="mb-4">
        <%= form.label :min_bookings, class: "block text-gray-700 text-sm font-bold mb-2" %>
        <%= form.number_field :min_bookings, min: 1, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
@@ -342,37 +357,9 @@
   </div>
 <% end %>
 
-<%# Add JavaScript for dynamic behavior (optional but recommended) %>
+<%# Form behavior now handled by Stimulus controller %>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Handle subscription toggle
-    const subscriptionCheckbox = document.getElementById('service_subscription_enabled');
-    const subscriptionSettings = document.getElementById('service-subscription-settings');
-    
-    if (subscriptionCheckbox && subscriptionSettings) {
-      subscriptionCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-          subscriptionSettings.style.display = 'block';
-        } else {
-          subscriptionSettings.style.display = 'none';
-        }
-      });
-    }
-    
-    // Toggle Experience specific fields
-    const serviceTypeSelect = document.getElementById('service_type_dropdown_hidden');
-    const experienceFields = document.getElementById('experience_fields');
-
-    if (serviceTypeSelect && experienceFields) {
-      serviceTypeSelect.addEventListener('change', function() {
-        if (this.value === 'experience') {
-          experienceFields.classList.remove('hidden');
-        } else {
-          experienceFields.classList.add('hidden');
-        }
-      });
-    }
-
+  function initializeServiceFormImageManagement() {
     // Image management functionality
     const existingImagesDiv = document.getElementById('existing-images');
     if (existingImagesDiv) {
@@ -547,8 +534,11 @@
         }
       });
     }
-
-  });
+  }
+  
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeServiceFormImageManagement);
+  document.addEventListener('turbo:load', initializeServiceFormImageManagement);
 </script>
 
  

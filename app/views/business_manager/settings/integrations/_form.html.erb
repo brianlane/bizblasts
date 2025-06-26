@@ -106,7 +106,7 @@
 <% end %>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeIntegrationsForm() {
     // Integration Type Dropdown Functionality
     const integrationDropdownButton = document.querySelector('[data-integration-dropdown-target="button"]');
     const integrationDropdownMenu = document.querySelector('[data-integration-dropdown-target="menu"]');
@@ -175,5 +175,9 @@
         }
       });
     }
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeIntegrationsForm);
+  document.addEventListener('turbo:load', initializeIntegrationsForm);
 </script> 

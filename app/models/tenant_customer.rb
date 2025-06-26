@@ -40,6 +40,13 @@ class TenantCustomer < ApplicationRecord
     [first_name, last_name].compact.join(' ').presence || email
   end
   
+  # Backward compatibility method for old references
+  alias_method :name, :full_name
+  
+  def name_with_email
+    "#{full_name} (#{email})"
+  end
+  
   def recent_bookings
     bookings.order(start_time: :desc).limit(5)
   end

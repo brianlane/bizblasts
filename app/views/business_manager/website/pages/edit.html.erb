@@ -1,0 +1,227 @@
+<% content_for :title, "Edit Page: #{@page.title}" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <%= link_to business_manager_website_pages_path, class: "text-gray-400 hover:text-gray-600" do %>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      <% end %>
+      <h1 class="text-2xl font-bold text-gray-900">Edit Page</h1>
+      <% if @page.published? %>
+        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Published</span>
+      <% elsif @page.draft? %>
+        <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Draft</span>
+      <% end %>
+    </div>
+    <div class="space-x-3">
+      <%= link_to "Show Page", public_page_url(@page), 
+                  class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
+                  target: "_blank" %>
+      <%= link_to "Edit Sections", business_manager_website_page_sections_path(@page), 
+                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <%= form_with model: @page, url: business_manager_website_page_path(@page), local: true, class: "space-y-6" do |form| %>
+      
+      <!-- Basic Information -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <%= form.label :title, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.text_field :title, 
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                placeholder: "Enter page title" %>
+        </div>
+        
+        <div>
+          <%= form.label :slug, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.text_field :slug, 
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                placeholder: "page-url-slug" %>
+          <p class="text-xs text-gray-500 mt-1">URL: <%= root_url(subdomain: current_business.host_type_subdomain? ? current_business.hostname : nil) %><span id="slug-preview"><%= @page.slug %></span></p>
+        </div>
+      </div>
+
+      <!-- Page Type and Status -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <%= form.label :page_type, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.select :page_type, 
+                options_for_select([
+                  ['home', 'home'],
+                  ['about', 'about'],
+                  ['services', 'services'],
+                  ['contact', 'contact'],
+                  ['portfolio', 'portfolio'],
+                  ['team', 'team'],
+                  ['pricing', 'pricing'],
+                  ['custom', 'custom']
+                ], @page.page_type),
+                { prompt: 'Select page type' },
+                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+        </div>
+        
+        <div>
+          <%= form.label :status, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.select :status, 
+                options_for_select([
+                  ['Draft', 'draft'],
+                  ['Published', 'published'],
+                  ['Archived', 'archived']
+                ], @page.status),
+                {},
+                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+        </div>
+      </div>
+
+      <!-- Menu Settings -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center">
+          <%= form.check_box :show_in_menu, class: "rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+          <%= form.label :show_in_menu, "Show in navigation menu", class: "ml-2 text-sm font-medium text-gray-700" %>
+        </div>
+        
+        <div>
+          <%= form.label :menu_order, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.number_field :menu_order, 
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                placeholder: "Order in menu (optional)" %>
+        </div>
+      </div>
+
+      <!-- SEO Settings -->
+      <div class="border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
+        
+        <div class="space-y-4">
+          <div>
+            <%= form.label :seo_title, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :seo_title, 
+                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                  placeholder: "SEO title (optional)" %>
+            <p class="text-xs text-gray-500 mt-1">Leave blank to use page title</p>
+          </div>
+          
+          <div>
+            <%= form.label :meta_description, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_area :meta_description, 
+                  rows: 3,
+                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                  placeholder: "Brief description for search engines" %>
+          </div>
+          
+          <div>
+            <%= form.label :seo_keywords, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :seo_keywords, 
+                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                  placeholder: "Keywords separated by commas" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page Statistics -->
+      <% if @page.persisted? %>
+        <div class="border-t border-gray-200 pt-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Page Statistics</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-2xl font-bold text-blue-600"><%= @page.page_sections.count %></div>
+              <div class="text-sm text-gray-600">Sections</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-2xl font-bold text-green-600"><%= @page.page_versions.count %></div>
+              <div class="text-sm text-gray-600">Versions</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-2xl font-bold text-purple-600"><%= time_ago_in_words(@page.updated_at) %></div>
+              <div class="text-sm text-gray-600">Last Updated</div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Actions -->
+      <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+        <div class="space-x-3">
+          <% if @page.persisted? %>
+            <%= button_to "Create Version", business_manager_website_page_path(@page, action: :create_version), 
+                  method: :post,
+                  class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <% end %>
+        </div>
+        
+        <div class="space-x-3">
+          <%= link_to "Cancel", business_manager_website_pages_path, 
+                class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <%= form.submit "Update Page", 
+                class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <%= link_to business_manager_website_page_sections_path(@page), 
+            class: "flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" do %>
+        <svg class="w-6 h-6 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+        <div>
+          <div class="font-medium">Edit Sections</div>
+          <div class="text-sm text-gray-500">Use the page builder</div>
+        </div>
+      <% end %>
+      
+      <%= link_to public_page_url(@page), 
+            target: "_blank",
+            class: "flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" do %>
+        <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        <div>
+          <div class="font-medium">Show Page</div>
+          <div class="text-sm text-gray-500">See how it looks live</div>
+        </div>
+      <% end %>
+      
+      <%= link_to business_manager_website_pages_path, 
+            class: "flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" do %>
+        <svg class="w-6 h-6 text-purple-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <div>
+          <div class="font-medium">All Pages</div>
+          <div class="text-sm text-gray-500">Back to pages list</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-update slug preview and validation
+function initializeWebsitePageEditForm() {
+  const slugInput = document.querySelector('#page_slug');
+  const slugPreview = document.querySelector('#slug-preview');
+  
+  if (slugInput && slugPreview) {
+    slugInput.addEventListener('input', function() {
+      slugPreview.textContent = this.value || 'page-slug';
+    });
+  }
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeWebsitePageEditForm);
+document.addEventListener('turbo:load', initializeWebsitePageEditForm);
+</script> 

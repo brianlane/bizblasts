@@ -138,7 +138,7 @@
 
 <script>
   // Add vanilla JavaScript here to handle form functionality 
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBookingForm() {
     const form = document.getElementById('booking-form');
     const overlay = document.getElementById('booking-overlay');
     const prevDateBtn = document.getElementById('prev-date-btn');
@@ -178,5 +178,9 @@
     if (window.CustomerFormHelper) {
       CustomerFormHelper.initializeGenericBookingForm();
     }
-  });
+  }
+  
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeBookingForm);
+  document.addEventListener('turbo:load', initializeBookingForm);
 </script> 

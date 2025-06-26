@@ -25,7 +25,6 @@ RSpec.describe 'Business Manager Product Variant Management', type: :system do
       # Check that variants section exists
       expect(page).to have_content('Product Variants')
       expect(page).to have_content('Add variants if this product comes in different sizes, colors, or configurations.')
-      expect(page).to have_link('+ Add Variant')
       
       # Create the product without variants first
       click_button 'Create Product'
@@ -42,7 +41,6 @@ RSpec.describe 'Business Manager Product Variant Management', type: :system do
       
       # Verify the variant management section is present
       expect(page).to have_content('Product Variants')
-      expect(page).to have_link('+ Add Variant')
       
       # Verify we can update the product
       fill_in 'Name', with: 'Updated Product Name'

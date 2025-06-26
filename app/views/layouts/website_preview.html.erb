@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title><%= content_for?(:title) ? yield(:title) : 'Preview' %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    
+    <%# Load the same stylesheets as the main application layout %>
+    <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
+    <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
+    
+    <% if defined?(@page_theme) && @page_theme %>
+      <style>
+        :root {
+          <%= @page_theme.generate_css_variables.html_safe %>
+        }
+      </style>
+    <% end %>
+    
+    <% if defined?(@theme_css) && @theme_css %>
+      <style>
+        <%= @theme_css.html_safe %>
+      </style>
+    <% end %>
+  </head>
+
+  <body class="preview-mode">
+    <div class="preview-container">
+      <%= yield %>
+    </div>
+    
+    <% begin %>
+      <%= javascript_include_tag "application", defer: true %>
+    <% rescue => e %>
+      <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
+      <script src="/assets/application.js" defer></script>
+    <% end %>
+    
+    <style>
+      .preview-mode {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+      
+      .preview-banner {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      
+      .preview-container {
+        min-height: 100vh;
+      }
+    </style>
+  </body>
+</html> 

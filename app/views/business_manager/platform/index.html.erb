@@ -372,7 +372,7 @@ function showToast(message, type) {
 }
 
 // Handle form submissions with loading states
-document.addEventListener('DOMContentLoaded', function() {
+function initializePlatformIndex() {
   const forms = document.querySelectorAll('form[data-remote="true"]');
   forms.forEach(form => {
     form.addEventListener('ajax:before', function() {
@@ -406,5 +406,9 @@ document.addEventListener('DOMContentLoaded', function() {
       showToast(response.error || 'An error occurred', 'error');
     });
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializePlatformIndex);
+document.addEventListener('turbo:load', initializePlatformIndex);
 </script> 

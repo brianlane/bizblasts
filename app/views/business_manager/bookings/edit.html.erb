@@ -183,7 +183,7 @@
 
 <%# Add JavaScript for dynamic price update %>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBookingEditPage() {
     const quantityInput = document.getElementById('booking_quantity');
     const totalPriceSpan = document.getElementById('total-booking-price');
     const baseServicePrice = <%= @booking.service.price || 0 %>;
@@ -227,7 +227,9 @@
         style: 'currency',
         currency: 'USD',
       });
-      totalPriceSpan.textContent = formatter.format(newTotalPrice);
+      if (totalPriceSpan) {
+        totalPriceSpan.textContent = formatter.format(newTotalPrice);
+      }
     }
 
     // Add event listeners
@@ -243,5 +245,9 @@
 
     // Initial update on load
     updateTotalPrice();
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeBookingEditPage);
+  document.addEventListener('turbo:load', initializeBookingEditPage);
 </script> 

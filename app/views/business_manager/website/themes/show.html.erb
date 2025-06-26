@@ -1,0 +1,124 @@
+<% content_for :title, "#{@theme.name} - Theme Details" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <%= link_to business_manager_website_themes_path, class: "text-gray-400 hover:text-gray-600" do %>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      <% end %>
+      <h1 class="text-2xl font-bold text-gray-900"><%= @theme.name %></h1>
+      <% if @theme.active? %>
+        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Active</span>
+      <% end %>
+    </div>
+    <div class="space-x-3">
+      <%= link_to "Preview", theme_test_preview_path(theme_id: @theme.id), 
+                  class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
+                  target: "_blank" %>
+      <%= link_to "Edit", edit_business_manager_website_theme_path(@theme), 
+                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+      <% unless @theme.active? %>
+        <%= link_to "Activate", business_manager_website_theme_path(@theme, action: :activate), 
+                    method: :patch,
+                    class: "bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors",
+                    data: { confirm: "Activate this theme?" } %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Theme Information -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Theme Information</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="font-medium text-gray-700">Name:</label>
+          <span class="ml-2 text-gray-600"><%= @theme.name %></span>
+        </div>
+        <div>
+          <label class="font-medium text-gray-700">Status:</label>
+          <span class="ml-2">
+            <span class="px-2 py-1 text-xs rounded-full <%= @theme.active? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+              <%= @theme.active? ? 'Active' : 'Inactive' %>
+            </span>
+          </span>
+        </div>
+        <div>
+          <label class="font-medium text-gray-700">Created:</label>
+          <span class="ml-2 text-gray-600"><%= @theme.created_at.strftime("%B %d, %Y") %></span>
+        </div>
+        <div>
+          <label class="font-medium text-gray-700">Last Updated:</label>
+          <span class="ml-2 text-gray-600"><%= @theme.updated_at.strftime("%B %d, %Y") %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color Scheme -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Color Scheme</h2>
+      
+      <div class="grid grid-cols-3 gap-4">
+        <% @theme.color_scheme.each do |color_key, color_value| %>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-lg border-2 border-gray-200 mx-auto mb-2" 
+                 style="background-color: <%= color_value %>;"></div>
+            <p class="text-sm font-medium text-gray-900 capitalize"><%= color_key.humanize %></p>
+            <p class="text-xs text-gray-500"><%= color_value %></p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Typography -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Typography</h2>
+      
+      <div class="space-y-3">
+        <% @theme.typography.each do |key, value| %>
+          <div class="flex justify-between">
+            <span class="text-gray-600 capitalize"><%= key.humanize %>:</span>
+            <span class="text-gray-900 font-medium"><%= value %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Layout Configuration -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Layout Configuration</h2>
+      
+      <div class="space-y-3">
+        <% @theme.layout_config.each do |key, value| %>
+          <div class="flex justify-between">
+            <span class="text-gray-600 capitalize"><%= key.humanize %>:</span>
+            <span class="text-gray-900 font-medium"><%= value %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generated CSS Preview -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Generated CSS Variables</h2>
+    <pre class="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto"><%= @preview_css %></pre>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex justify-end space-x-3">
+    <%= link_to "Duplicate", business_manager_website_theme_path(@theme, action: :duplicate), 
+                method: :post,
+                class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+    <% unless @theme.active? %>
+      <%= link_to "Delete", business_manager_website_theme_path(@theme), 
+                  method: :delete,
+                  class: "bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors",
+                  data: { confirm: "Are you sure? This cannot be undone." } %>
+    <% end %>
+  </div>
+</div> 

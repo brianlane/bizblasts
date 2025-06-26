@@ -14,6 +14,7 @@
   # - required: whether field is required (default: false)
   # - css_class: additional CSS classes
   # - dropdown_id: unique ID for this dropdown instance
+  # - hidden_field_data: additional data attributes for the hidden field
 
   # Set defaults
   prompt_text ||= 'Select an option'
@@ -22,6 +23,7 @@
   required ||= false
   css_class ||= ''
   dropdown_id ||= "dropdown_#{SecureRandom.hex(4)}"
+  hidden_field_data ||= {}
   
   # Find selected item
   selected_item = collection.find { |item| item.send(value_method).to_s == selected_value.to_s } if selected_value.present?
@@ -134,14 +136,17 @@
   </div>
   
   <!-- Hidden field for form submission - maintains exact same field name -->
-  <%= hidden_field_tag field_name, selected_value, id: "#{dropdown_id}_hidden", required: required %>
+  <%= hidden_field_tag field_name, selected_value, { id: "#{dropdown_id}_hidden", required: required }.merge(hidden_field_data) %>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Rich Dropdown Functionality for <%= dropdown_id %>
+  // Rich Dropdown Functionality for <%= dropdown_id %>
+  // Use both DOMContentLoaded and turbo:load for compatibility
+  function initializeRichDropdown_<%= dropdown_id.gsub(/[^a-zA-Z0-9]/, '_') %>() {
     const dropdownContainer = document.getElementById('<%= dropdown_id %>');
-    if (!dropdownContainer) return;
+    if (!dropdownContainer) {
+      return;
+    }
     
     const dropdownButton = dropdownContainer.querySelector('[data-dropdown-target="button"]');
     const dropdownMenu = dropdownContainer.querySelector('[data-dropdown-target="menu"]');
@@ -340,5 +345,9 @@
       document.removeEventListener('touchend', outsideTouchHandler); 
       document.removeEventListener('keydown', escapeKeyHandler);
     });
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load
+  document.addEventListener('DOMContentLoaded', initializeRichDropdown_<%= dropdown_id.gsub(/[^a-zA-Z0-9]/, '_') %>);
+  document.addEventListener('turbo:load', initializeRichDropdown_<%= dropdown_id.gsub(/[^a-zA-Z0-9]/, '_') %>);
 </script> 

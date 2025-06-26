@@ -29,7 +29,7 @@
 
       <!-- Tip Collection Form -->
       <div class="px-6 py-6">
-        <%= form_with url: tips_path, method: :post, local: true, class: "space-y-6" do |form| %>
+        <%= form_with url: tips_path, method: :post, local: true, data: { turbo: false }, class: "space-y-6" do |form| %>
           <%= form.hidden_field :booking_id, value: @booking.id %>
           <%= form.hidden_field :token, value: params[:token] %>
           
@@ -95,7 +95,7 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeTipForm() {
   const totalAmount = document.querySelector('.total-amount');
   const submitBtn = document.getElementById('submit-tip-btn');
   const baseAmount = <%= @base_amount.to_f %>;
@@ -128,5 +128,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Allow form submission - let controller handle validation
   // Removed client-side validation to allow testing
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeTipForm);
+document.addEventListener('turbo:load', initializeTipForm);
 </script> 

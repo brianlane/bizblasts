@@ -1,0 +1,399 @@
+<% content_for :title, "#{@template.name} - Preview" %>
+
+<div class="template-preview-container" data-template-id="<%= @template.id %>">
+  <!-- Template Preview Header -->
+  <div class="preview-header bg-gray-100 border-b p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div>
+        <h1 class="text-xl font-bold text-gray-900"><%= @template.name %></h1>
+        <p class="text-gray-600"><%= @template.description %></p>
+      </div>
+      <div class="space-x-3">
+        <button type="button" 
+                onclick="window.parent.postMessage({action: 'applyTemplate', templateId: <%= @template.id %>}, '*')"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+          Apply This Template
+        </button>
+        <button type="button" 
+                onclick="window.parent.postMessage({action: 'closePreview'}, '*')"
+                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+          Close Preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Content -->
+  <div class="template-content">
+    <% @sample_pages.each_with_index do |page, index| %>
+      <div class="page-section <%= 'border-t border-gray-200' if index > 0 %>" data-page="<%= page[:slug] %>">
+        <!-- Page Header -->
+        <% unless page[:slug] == 'home' %>
+          <div class="page-header bg-gray-50 py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h1 class="text-3xl font-bold text-gray-900"><%= page[:title] %></h1>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Page Sections -->
+        <% page[:sections].each_with_index do |section, section_index| %>
+          <div class="section section-<%= section[:type] %> py-8" data-section-type="<%= section[:type] %>">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <%= render_sample_section(section, current_business) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Template Styles -->
+<style>
+  <% if @theme_css.present? %>
+    /* Template Theme CSS */
+    <%= @theme_css.html_safe %>
+  <% else %>
+    /* No theme CSS found - using fallback */
+    :root {
+      --color-primary: #dc2626;
+      --color-secondary: #7c3aed; 
+      --color-accent: #f59e0b;
+      --color-dark: #333333;
+      --color-light: #F8F9FA;
+    }
+  <% end %>
+  
+  /* Base template styles */
+  .template-preview-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    line-height: 1.6;
+    color: #333;
+  }
+  
+  .section {
+    min-height: 100px;
+  }
+  
+  .section-hero_banner {
+    background: linear-gradient(135deg, var(--color-primary, #3b82f6) 0%, var(--color-secondary, #1e40af) 100%);
+    color: white;
+  }
+  
+  .section-hero_banner h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  
+  .section-hero_banner p {
+    font-size: 1.25rem;
+    opacity: 0.9;
+  }
+  
+  .section-text h2 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: var(--color-primary, #3b82f6);
+  }
+  
+  .section-service_list .service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-service_list .service-item {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+  }
+  
+  .section-testimonial {
+    background-color: #f9fafb;
+  }
+  
+  .section-testimonial blockquote {
+    font-size: 1.5rem;
+    font-style: italic;
+    text-align: center;
+    margin: 2rem 0;
+  }
+  
+  .section-contact_form {
+    background-color: var(--color-primary, #3b82f6);
+    color: white;
+  }
+  
+  .section-contact_form h2 {
+    color: white;
+  }
+  
+  .cta-button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--color-accent, #f59e0b);
+    color: white;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: opacity 0.2s;
+  }
+  
+  .cta-button:hover {
+    opacity: 0.9;
+  }
+  
+  .cta-button-white {
+    background-color: white;
+    color: var(--color-primary, #3b82f6);
+  }
+  
+  /* Feature Showcase Styles */
+  .section-feature_showcase .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-feature_showcase .feature-item {
+    text-align: center;
+    padding: 1.5rem;
+  }
+  
+  .section-feature_showcase .feature-item h3 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--color-primary, #3b82f6);
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Call to Action Styles */
+  .section-call_to_action {
+    background: linear-gradient(135deg, var(--color-accent, #f59e0b) 0%, var(--color-secondary, #1e40af) 100%);
+    color: white;
+  }
+  
+  .section-call_to_action h2 {
+    color: white;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Stats Counter Styles */
+  .section-stats_counter {
+    background-color: var(--color-primary, #3b82f6);
+    color: white;
+  }
+  
+  .section-stats_counter .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-stats_counter .stat-item {
+    text-align: center;
+  }
+  
+  .section-stats_counter .stat-number {
+    display: block;
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--color-accent, #f59e0b);
+  }
+  
+  .section-stats_counter .stat-label {
+    display: block;
+    font-size: 1.25rem;
+    opacity: 0.9;
+  }
+  
+  /* Portfolio Gallery Styles */
+  .section-portfolio_gallery .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-portfolio_gallery .portfolio-item {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .section-portfolio_gallery .portfolio-item h3 {
+    color: var(--color-primary, #3b82f6);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Team Showcase Styles */
+  .section-team_showcase .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-team_showcase .team-member {
+    text-align: center;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+  }
+  
+  .section-team_showcase .team-member h3 {
+    color: var(--color-primary, #3b82f6);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Company Values Styles */
+  .section-company_values {
+    background-color: #f9fafb;
+  }
+  
+  .section-company_values .values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-company_values .value-item {
+    text-align: center;
+    padding: 1.5rem;
+  }
+  
+  .section-company_values .value-item h3 {
+    color: var(--color-primary, #3b82f6);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Pricing Table Styles */
+  .section-pricing_table .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-pricing_table .pricing-plan {
+    padding: 2rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+    text-align: center;
+  }
+  
+  .section-pricing_table .pricing-plan h3 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--color-primary, #3b82f6);
+    margin-bottom: 1rem;
+  }
+  
+  .section-pricing_table .price {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--color-accent, #f59e0b);
+    margin-bottom: 1rem;
+  }
+  
+  .section-pricing_table ul {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+  }
+  
+  .section-pricing_table li {
+    padding: 0.25rem 0;
+  }
+  
+  /* Case Study Styles */
+  .section-case_study_list .case-studies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-case_study_list .case-study {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .section-case_study_list .case-study h3 {
+    color: var(--color-primary, #3b82f6);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Social Links Styles */
+  .section-social_links {
+    background-color: var(--color-secondary, #1e40af);
+    color: white;
+  }
+  
+  .section-social_links .social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .section-social_links .social-links a {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--color-accent, #f59e0b);
+    color: white;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  /* Map Location Styles */
+  .section-map_location .map-placeholder {
+    height: 200px;
+    background-color: #e5e7eb;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+  
+  /* Business Hours Styles */
+  .section-business_hours {
+    background-color: #f9fafb;
+  }
+  
+  .section-business_hours .hours-list {
+    text-align: center;
+    margin-top: 1rem;
+  }
+  
+  .section-business_hours .hours-list div {
+    padding: 0.5rem 0;
+    font-weight: 500;
+  }
+</style>
+
+ 

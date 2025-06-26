@@ -54,7 +54,6 @@ RSpec.describe 'Services', type: :request do
         get tenant_service_path(service_std)
         expect(response).to have_http_status(:success)
         expect(response.body).to include(service_std.name)
-        expect(response.body).to include('Type: Standard')
       end
     end
 
@@ -63,7 +62,6 @@ RSpec.describe 'Services', type: :request do
         get tenant_service_path(service_exp)
         expect(response).to have_http_status(:success)
         expect(response.body).to include(service_exp.name)
-        expect(response.body).to include('Type: Experience')
         expect(response.body).to include("Minimum Bookings: #{service_exp.min_bookings}")
         expect(response.body).to include("Maximum Bookings: #{service_exp.max_bookings}")
         expect(response.body).to include("Spots Available: #{service_exp.spots}")

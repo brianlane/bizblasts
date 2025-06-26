@@ -158,7 +158,7 @@ RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
       end
 
       it 'displays rich service type dropdown' do
-        expect(page).to have_content('Service type')
+        expect(page).to have_content('Service Type')
         expect(page).to have_css('.rich-dropdown')
         expect(page).to have_css('#service_type_dropdown')
         

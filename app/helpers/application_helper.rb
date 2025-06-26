@@ -194,6 +194,25 @@ module ApplicationHelper
     end
   end
 
+  # Helper to generate public page URLs for business manager preview functionality
+  def public_page_url(page, business = nil)
+    business ||= current_business
+    
+    # Build the URL for the public page
+    if business.host_type_custom_domain?
+      "#{request.protocol}#{business.hostname}/#{page.slug}"
+    elsif business.host_type_subdomain?
+      if Rails.env.development? || Rails.env.test?
+        "http://#{business.hostname}.lvh.me:#{request.port}/#{page.slug}"
+      else
+        "#{request.protocol}#{business.hostname}.bizblasts.com/#{page.slug}"
+      end
+    else
+      # Fallback to current domain with page slug
+      "/#{page.slug}"
+    end
+  end
+
   def format_next_billing_date(date)
     return 'N/A' unless date.present?
     
@@ -208,6 +227,80 @@ module ApplicationHelper
       "In #{days_until} days"
     else
       date.strftime('%b %d, %Y')
+    end
+  end
+
+  # Selective prefetch helper for high-value links
+  # Use this for links that users are very likely to click
+  def prefetch_link_to(name = nil, path = nil, options = {}, &block)
+    # Enable prefetch only for specific high-value routes
+    high_value_routes = [
+      '/dashboard',
+      '/services', 
+      '/products',
+      '/about',
+      '/contact',
+      '/signup',
+      '/login',
+      '/calendar',
+      '/booking',
+      '/available-slots',
+      '/staff-availability'
+    ]
+    
+    # Check if this path should have prefetch enabled
+    if high_value_routes.any? { |route| path&.include?(route) }
+      options[:data] ||= {}
+      options[:data][:turbo_prefetch] = true
+    end
+    
+    if block_given?
+      link_to(path, options, &block)
+    else
+      link_to(name, path, options)
+    end
+  end
+
+  # Helper for high-traffic business pages that benefit from prefetch
+  def business_prefetch_link_to(name = nil, path = nil, options = {}, &block)
+    # Only enable for business-facing pages that are frequently accessed
+    business_routes = [
+      'services',
+      'products', 
+      'about',
+      'contact',
+      'calendar',
+      'booking',
+      'availability',
+      'available-slots',
+      'staff-availability'
+    ]
+    
+    if business_routes.any? { |route| path&.include?(route) }
+      options[:data] ||= {}
+      options[:data][:turbo_prefetch] = true
+    end
+    
+    if block_given?
+      link_to(path, options, &block)
+    else
+      link_to(name, path, options)
+    end
+  end
+
+  # Specific helper for calendar and booking links (always prefetch these slow pages)
+  def calendar_link_to(name = nil, path = nil, options = {}, &block)
+    # Always enable prefetch for calendar/booking related pages since they're slow to load
+    options[:data] ||= {}
+    options[:data][:turbo_prefetch] = true
+    
+    # Add helpful class for calendar links
+    options[:class] = "#{options[:class]} turbo-prefetched".strip
+    
+    if block_given?
+      link_to(path, options, &block)
+    else
+      link_to(name, path, options)
     end
   end
 

@@ -135,18 +135,22 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBookingReschedulePage() {
     const dateField = document.getElementById('date');
     const staffSelect = document.getElementById('reschedule_staff_dropdown_hidden');
     const form = document.querySelector('form');
     const timeSelectionContainer = document.querySelector('.mb-6 .grid');
     
     function loadTimeSlots() {
+      if (!dateField || !staffSelect) return;
+      
       const date = dateField.value;
       const staffId = staffSelect.value;
             
       // Show loading indicator
-      timeSelectionContainer.innerHTML = '<p class="text-gray-500 col-span-full">Loading available time slots...</p>';
+      if (timeSelectionContainer) {
+        timeSelectionContainer.innerHTML = '<p class="text-gray-500 col-span-full">Loading available time slots...</p>';
+      }
       
       // Create the URL with query parameters
       const url = window.location.pathname + '?date=' + date + '&staff_member_id=' + staffId;
@@ -155,20 +159,28 @@
       window.location.href = url;
     }
     
-    dateField.addEventListener('change', loadTimeSlots);
-    staffSelect.addEventListener('change', loadTimeSlots);
+    if (dateField) {
+      dateField.addEventListener('change', loadTimeSlots);
+    }
+    if (staffSelect) {
+      staffSelect.addEventListener('change', loadTimeSlots);
+    }
     
     // Set the date field value from the URL parameter or current date
     const urlParams = new URLSearchParams(window.location.search);
     const dateParam = urlParams.get('date');
-    if (dateParam) {
+    if (dateParam && dateField) {
       dateField.value = dateParam;
     }
     
     // Set the staff field value from the URL parameter
     const staffParam = urlParams.get('staff_member_id');
-    if (staffParam) {
+    if (staffParam && staffSelect) {
       staffSelect.value = staffParam;
     }
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeBookingReschedulePage);
+  document.addEventListener('turbo:load', initializeBookingReschedulePage);
 </script> 

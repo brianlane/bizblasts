@@ -295,7 +295,7 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeNewPromotionForm() {
   // Handle promotion type changes
   const automaticRadio = document.getElementById('automatic_promotion');
   const codeRadio = document.getElementById('code_promotion');
@@ -387,5 +387,9 @@ document.addEventListener('DOMContentLoaded', function() {
   servicesCheckbox.addEventListener('change', function() {
     servicesSelection.style.display = this.checked ? 'block' : 'none';
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeNewPromotionForm);
+document.addEventListener('turbo:load', initializeNewPromotionForm);
 </script> 

@@ -5,8 +5,8 @@ RSpec.describe ProductsController, type: :request do
   include Rails.application.routes.url_helpers
 
   let(:business) { create(:business) }
-  let!(:product1) { create(:product, business: business, name: 'Product 1', description: 'Description 1') }
-  let!(:product2) { create(:product, business: business, name: 'Product 2', description: 'Description 2') }
+  let!(:product1) { create(:product, business: business, name: 'Product 1', description: 'Description 1', active: true) }
+  let!(:product2) { create(:product, business: business, name: 'Product 2', description: 'Description 2', active: true) }
   let!(:variant1) { create(:product_variant, product: product1) }
   let!(:variant2) { create(:product_variant, product: product1) }
   # Default variant created by Product model when no variants are present
@@ -22,6 +22,7 @@ RSpec.describe ProductsController, type: :request do
     product1.reload
     # Manually set the current tenant for ActsAsTenant in this request spec context
     ActsAsTenant.current_tenant = business
+    allow_any_instance_of(ApplicationController).to receive(:current_tenant).and_return(business)
   end
 
   let(:images) { product1.images.attachments }
@@ -32,6 +33,19 @@ RSpec.describe ProductsController, type: :request do
     it "returns a success response" do
       get products_path
       expect(response).to have_http_status(:success)
+    end
+
+    context "when business has no visible products" do
+      before do
+        # Make all products invisible by making them inactive
+        business.products.update_all(active: false)
+      end
+
+      it "redirects to home with notice" do
+        get products_path
+        expect(response).to redirect_to(tenant_root_path)
+        expect(flash[:notice]).to eq("No products are currently available. Please check back later!")
+      end
     end
 
 

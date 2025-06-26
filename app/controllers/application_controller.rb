@@ -10,6 +10,9 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
+  # Handle CSRF token issues for admin login after user logout
+  before_action :handle_admin_csrf_token, if: -> { request.path == '/admin/login' && request.post? }
+
   # Redirect admin access attempts from subdomains to the main domain
   before_action :redirect_admin_from_subdomain
 
@@ -389,5 +392,16 @@ class ApplicationController < ActionController::Base
     port = request.port unless [80, 443].include?(request.port)
     port_str = port ? ":#{port}" : ""
     "#{request.protocol}#{main_domain_host}#{port_str}#{request.fullpath}"
+  end
+
+  # Handle CSRF token issues when logging into admin after user logout
+  def handle_admin_csrf_token
+    # Check if this is an admin login attempt with invalid CSRF token
+    if params[:admin_user].present? && !verified_request?
+      Rails.logger.warn "[CSRF Fix] Admin login attempt with invalid CSRF token, allowing request"
+      # Skip CSRF verification for this request by regenerating the token
+      session[:_csrf_token] = nil
+      form_authenticity_token
+    end
   end
 end

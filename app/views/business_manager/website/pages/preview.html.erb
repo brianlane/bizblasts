@@ -1,0 +1,94 @@
+<% content_for :title, @page.seo_title.present? ? @page.seo_title : @page.title %>
+<% content_for :meta_description, @page.meta_description if @page.meta_description.present? %>
+<% if @page.seo_keywords.present? %>
+  <% content_for :meta_keywords, @page.seo_keywords %>
+<% end %>
+
+<!-- Preview Mode Banner -->
+<div class="preview-banner bg-blue-100 border-b border-blue-200 py-2 text-center">
+  <span class="text-blue-800 text-sm font-medium">
+    📋 Preview Mode - This is how your page will appear to visitors
+  </span>
+</div>
+
+<div class="website-builder-page" data-page-id="<%= @page.id %>" data-page-type="<%= @page.page_type %>" data-controller="section-animations">
+  <!-- Page Header -->
+  <% unless @page.page_type == 'home' %>
+    <div class="page-header bg-gray-50 py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-4xl font-bold text-gray-900"><%= @page.title %></h1>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Page Content -->
+  <div class="page-content">
+    <!-- Rich Text Content -->
+    <% if @page.content.present? %>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="prose prose-lg max-w-none">
+          <%= @page.content %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Page Sections -->
+    <% @page.page_sections.ordered.each do |section| %>
+      <div class="page-section <%= section.css_classes %>" data-section-id="<%= section.id %>" data-section-type="<%= section.section_type %>">
+        <% begin %>
+          <%= render "public/sections/#{section.section_type}", section: section, business: @business %>
+        <% rescue ActionView::MissingTemplate %>
+          <%= render "public/sections/default", section: section, business: @business %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Empty State -->
+    <% if @page.page_sections.empty? && @page.content.blank? %>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div class="bg-gray-50 rounded-lg p-8">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">This page is empty</h3>
+          <p class="mt-2 text-gray-500">
+            Add some content or sections to see how your page will look.
+          </p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Apply theme styles if active theme exists -->
+<% if @business.active_website_theme.present? %>
+  <style>
+    /* Dynamic theme styles */
+    <% theme = @business.active_website_theme %>
+    <% if theme.color_scheme.present? %>
+      :root {
+        <% theme.color_scheme.each do |key, value| %>
+          --theme-<%= key.dasherize %>: <%= value %>;
+        <% end %>
+      }
+    <% end %>
+    
+    <% if theme.typography.present? %>
+      <% if theme.typography['heading_font'] %>
+        h1, h2, h3, h4, h5, h6 {
+          font-family: '<%= theme.typography['heading_font'] %>', sans-serif;
+        }
+      <% end %>
+      <% if theme.typography['body_font'] %>
+        body, p, div {
+          font-family: '<%= theme.typography['body_font'] %>', sans-serif;
+        }
+      <% end %>
+      <% if theme.typography['font_size_base'] %>
+        body {
+          font-size: <%= theme.typography['font_size_base'] %>;
+        }
+      <% end %>
+    <% end %>
+  </style>
+<% end %> 

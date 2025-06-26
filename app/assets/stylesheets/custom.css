@@ -2032,3 +2032,305 @@ input[type="checkbox"]:focus {
     transform: none;
   }
 }
+
+/* --- Custom Trix Editor Styles for Section Editing --- */
+.trix-editor-container {
+  border: 1px solid #1A5F7A; /* brand primary */
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 4px rgba(26, 95, 122, 0.07);
+}
+
+trix-toolbar {
+  background: #f8fafc;
+  border-bottom: 1px solid #57C5B6; /* brand secondary */
+  border-radius: 0.5rem 0.5rem 0 0;
+  margin-bottom: 0.5rem;
+}
+
+trix-toolbar .trix-button {
+  background: #e0e7ef;
+  border: none;
+  border-radius: 0.375rem;
+  margin: 0 0.3rem 0.5rem 0;
+  color: #1A5F7A;
+  font-weight: 500;
+  font-size: 1.05rem;
+  padding: 0.45rem 1rem;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(26, 95, 122, 0.07);
+  outline: none;
+  cursor: pointer;
+  display: inline-block;
+}
+
+trix-toolbar .trix-button:hover,
+trix-toolbar .trix-button.trix-active {
+  background: #1A5F7A;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(26, 95, 122, 0.13);
+}
+
+trix-toolbar .trix-button:focus {
+  outline: 2px solid #FF8C42;
+  background: #FF8C42;
+  color: #fff;
+}
+
+trix-toolbar .trix-button-group {
+  margin-right: 0.5rem;
+}
+
+.custom-trix {
+  min-height: 120px;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #57C5B6;
+  background: #F8F9FA;
+  font-size: 1rem;
+  color: #333;
+  box-shadow: none;
+  margin-top: 0.25rem;
+}
+
+.custom-trix:focus {
+  outline: 2px solid #FF8C42;
+  border-color: #FF8C42;
+  background: #fff;
+}
+
+/* Hide unwanted Trix toolbar buttons for section editor */
+trix-toolbar .trix-button[data-trix-attribute="heading"],
+trix-toolbar .trix-button[data-trix-attribute="Heading"],
+trix-toolbar .trix-button[title="Heading"],
+trix-toolbar .trix-button[aria-label="Heading"],
+trix-toolbar .trix-button[data-trix-attribute="quote"],
+trix-toolbar .trix-button[data-trix-attribute="code"],
+trix-toolbar .trix-button[data-trix-attribute="bullet"],
+trix-toolbar .trix-button[data-trix-attribute="number"],
+trix-toolbar .trix-button[data-trix-action="decreaseNestingLevel"],
+trix-toolbar .trix-button[data-trix-action="increaseNestingLevel"] {
+  display: none !important;
+}
+
+/* Link dialog styling improvements */
+trix-toolbar .trix-dialog--link {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #57C5B6;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.15);
+}
+
+/* Link dialog field container spacing */
+trix-toolbar .trix-dialog__link-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Space between button group and input field */
+}
+
+/* Link dialog button group with smaller buttons and proper spacing */
+trix-toolbar .trix-dialog__link-fields .trix-button-group {
+  display: flex;
+  gap: 0.5rem; /* Space between Link and Unlink buttons */
+  margin: 0; /* Reset margin since we're using gap on parent */
+}
+
+/* Make Link/Unlink buttons smaller */
+trix-toolbar .trix-dialog__link-fields .trix-button {
+  font-size: 0.875rem !important; /* Smaller text */
+  padding: 0.375rem 0.75rem !important; /* Smaller padding */
+  min-width: auto !important;
+  margin: 0 !important; /* Remove default margin since we're using gap */
+}
+
+/* Style the URL input field */
+trix-toolbar .trix-dialog__link-fields .trix-input {
+  padding: 0.5rem;
+  border: 1px solid #57C5B6;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  width: 100%;
+  min-width: 250px;
+  margin: 0; /* Reset margin since we're using gap on parent */
+}
+
+/* Focus state for input */
+trix-toolbar .trix-dialog__link-fields .trix-input:focus {
+  outline: 2px solid #FF8C42;
+  border-color: #FF8C42;
+  background: #fff;
+}
+
+/* Style links within the Trix editor content to look like hyperlinks */
+.custom-trix a,
+trix-editor a,
+.trix-content a,
+.page-section a,
+.page-content a,
+.website-builder-page a,
+.section-content a,
+div[data-section-type] a,
+.prose a {
+  color: #1A5F7A !important; /* Brand primary color */
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.custom-trix a:hover,
+trix-editor a:hover,
+.trix-content a:hover,
+.page-section a:hover,
+.page-content a:hover,
+.website-builder-page a:hover,
+.section-content a:hover,
+div[data-section-type] a:hover,
+.prose a:hover {
+  color: #FF8C42 !important; /* Brand accent color on hover */
+  text-decoration-color: #FF8C42 !important;
+}
+
+.custom-trix a:visited,
+trix-editor a:visited,
+.trix-content a:visited,
+.page-section a:visited,
+.page-content a:visited,
+.website-builder-page a:visited,
+.section-content a:visited,
+div[data-section-type] a:visited,
+.prose a:visited {
+  color: #57C5B6 !important; /* Brand secondary color for visited links */
+}
+
+.custom-trix a:visited:hover,
+trix-editor a:visited:hover,
+.trix-content a:visited:hover,
+.page-section a:visited:hover,
+.page-content a:visited:hover,
+.website-builder-page a:visited:hover,
+.section-content a:visited:hover,
+div[data-section-type] a:visited:hover,
+.prose a:visited:hover {
+  color: #FF8C42 !important; /* Accent color on hover even for visited */
+}
+
+/* --- Page Section Animation Styles --- */
+
+/* Animation Classes */
+.animate-fadeIn {
+  animation: fadeIn 1s ease-out both;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.8s ease-out both;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.8s ease-out both;
+}
+
+.animate-zoomIn {
+  animation: zoomIn 0.6s ease-out both;
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Intersection Observer animations for better performance */
+.page-section {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+/* Pre-animation state for sections with animations */
+.page-section.animate-fadeIn,
+.page-section.animate-slideUp,
+.page-section.animate-slideDown,
+.page-section.animate-zoomIn {
+  opacity: 0;
+}
+
+.page-section.animate-slideUp {
+  transform: translateY(60px);
+}
+
+.page-section.animate-slideDown {
+  transform: translateY(-60px);
+}
+
+.page-section.animate-zoomIn {
+  transform: scale(0.8);
+}
+
+/* Triggered animation state */
+.page-section.animate-fadeIn.in-view,
+.page-section.animate-slideUp.in-view,
+.page-section.animate-slideDown.in-view,
+.page-section.animate-zoomIn.in-view {
+  opacity: 1;
+  transform: none;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-slideUp,
+  .animate-slideDown,
+  .animate-zoomIn {
+    animation: none !important;
+  }
+  
+  .page-section.animate-fadeIn,
+  .page-section.animate-slideUp,
+  .page-section.animate-slideDown,
+  .page-section.animate-zoomIn {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

@@ -84,7 +84,7 @@
           </div>
 
           <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            function initializePasswordFieldToggle() {
               const toggleButton = document.getElementById('toggle-password-fields');
               const passwordFields = document.getElementById('password-fields');
               const toggleText = document.getElementById('toggle-password-text');
@@ -100,19 +100,23 @@
                   input.removeAttribute('name');
                 });
                 
-                toggleButton.addEventListener('click', function() {
+                // Remove existing event listeners to prevent duplicates
+                const newToggleButton = toggleButton.cloneNode(true);
+                toggleButton.parentNode.replaceChild(newToggleButton, toggleButton);
+                
+                newToggleButton.addEventListener('click', function() {
                   const isHidden = passwordFields.classList.contains('hidden');
                   
                   if (isHidden) {
                     passwordFields.classList.remove('hidden');
-                    toggleText.textContent = 'Hide password fields';
+                    document.getElementById('toggle-password-text').textContent = 'Hide password fields';
                     // Restore name attributes so fields can be submitted
                     passwordInputs.forEach(input => {
                       input.name = originalNames[input.id];
                     });
                   } else {
                     passwordFields.classList.add('hidden');
-                    toggleText.textContent = 'Show password fields';
+                    document.getElementById('toggle-password-text').textContent = 'Show password fields';
                     
                     // Clear fields and remove name attributes so they won't be submitted
                     passwordInputs.forEach(input => {
@@ -122,7 +126,11 @@
                   }
                 });
               }
-            });
+            }
+            
+            // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+            document.addEventListener('DOMContentLoaded', initializePasswordFieldToggle);
+            document.addEventListener('turbo:load', initializePasswordFieldToggle);
           </script>
         <% end %>
       <% end %>
@@ -291,7 +299,7 @@
       </div>
 
       <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initializeStaffMemberFormFeatures() {
           // Handle custom photo button click
           const photoButton = document.getElementById('staff-photo-button');
           const photoInput = document.getElementById('staff_member_photo_input');
@@ -371,13 +379,13 @@
               }
             });
           }
-        });
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeStaffMemberFormFeatures);
+        document.addEventListener('turbo:load', initializeStaffMemberFormFeatures);
 
         function validateStaffPhoto(input) {
           const file = input.files[0];
-          const photoButton = document.getElementById('staff-photo-button');
-          const photoDisplay = document.getElementById('photo-selection-display');
-          
           // Remove any existing feedback
           let existingFeedback = document.getElementById('photo-feedback');
           if (existingFeedback) {
@@ -386,6 +394,8 @@
           
           if (!file) {
             // Reset styling if no file
+            const photoButton = document.getElementById('staff-photo-button');
+            const photoDisplay = document.getElementById('photo-selection-display');
             if (photoButton) {
               photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
             }
@@ -414,6 +424,8 @@
           if (hasErrors) {
             input.value = '';
             // Update button styling for error
+            const photoButton = document.getElementById('staff-photo-button');
+            const photoDisplay = document.getElementById('photo-selection-display');
             if (photoButton) {
               photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
             }
@@ -432,6 +444,8 @@
           }
           
           // Valid file - update UI to show success
+          const photoButton = document.getElementById('staff-photo-button');
+          const photoDisplay = document.getElementById('photo-selection-display');
           if (photoButton) {
             photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
           }

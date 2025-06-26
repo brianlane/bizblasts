@@ -107,6 +107,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    
+    <!-- Selective Turbo Prefetch for Public Pages -->
+    <!-- Enable prefetch for public pages but with shorter cache time to balance performance -->
+    <meta name="turbo-prefetch-cache-time" content="10000">
 
     <%= yield :head %>
 
@@ -210,7 +214,7 @@
               <% end %>
               
               <!-- Sign Out Button -->
-              <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "text-error hover:text-red-700 px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm cursor-pointer" do %>
+              <%= link_to destroy_user_session_path, data: { turbo_method: :delete, turbo: false }, class: "text-error hover:text-red-700 px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm cursor-pointer" do %>
                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                 </svg>
@@ -347,7 +351,7 @@
 
     <!-- Mobile Menu Toggle Script -->
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      function initializeMobileNavToggle() {
         const toggleButton = document.getElementById('mobile-nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         
@@ -356,7 +360,11 @@
             navMenu.classList.toggle('hidden');
           });
         }
-      });
+      }
+
+      // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+      document.addEventListener('DOMContentLoaded', initializeMobileNavToggle);
+      document.addEventListener('turbo:load', initializeMobileNavToggle);
     </script>
 
     <%# Flash messages %>
@@ -385,7 +393,7 @@
       
       <%# Only initialize PolicyAcceptance if not already running %>
       <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initializePolicyAcceptance() {
           // Only initialize the PolicyAcceptance class if available and not already running
           if (typeof PolicyAcceptance !== 'undefined' && !window.policyAcceptanceInstance) {
             //console.log('[Application] Initializing PolicyAcceptance for user requiring policy acceptance');
@@ -393,7 +401,11 @@
           } else if (window.policyAcceptanceInstance) {
             //console.log('[Application] PolicyAcceptance already running, skipping initialization');
           }
-        });
+        }
+
+        // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+        document.addEventListener('DOMContentLoaded', initializePolicyAcceptance);
+        document.addEventListener('turbo:load', initializePolicyAcceptance);
       </script>
     <% end %>
   </body>

@@ -26,8 +26,18 @@ fi
 echo "Installing dependencies..."
 bundle install
 
-# Install JS dependencies
-yarn install
+# Install Bun for JavaScript bundling
+echo "Installing Bun..."
+curl -fsSL https://bun.sh/install | bash
+export PATH="$HOME/.bun/bin:$PATH"
+
+# Install JS dependencies (production only)
+echo "Installing JavaScript dependencies..."
+if command -v yarn &> /dev/null; then
+  yarn install --production
+else
+  npm install --production
+fi
 
 # Build ActiveAdmin CSS
 echo "Building ActiveAdmin CSS..."
@@ -37,12 +47,11 @@ bin/sass-build-activeadmin.sh
 echo "Building Tailwind CSS..."
 bin/rails tailwindcss:build
 
-# Add a JavaScript bundling step here
+# Bundle JavaScript with Bun
 echo "Bundling JavaScript..."
 bun run build:js
 
 # Precompile assets using Rails/Propshaft
-
 echo "Precompiling assets with Propshaft..."
 
 # Compile the CSS

@@ -321,7 +321,7 @@
 
 <script>
   // JavaScript to toggle products/services selection visibility
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeEditPromotionForm() {
     // Handle promotion type changes
     const automaticRadio = document.getElementById('automatic_promotion');
     const codeRadio = document.getElementById('code_promotion');
@@ -416,5 +416,9 @@
     
     // Set initial state
     updateDiscountSymbol();
-  });
+  }
+  
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeEditPromotionForm);
+  document.addEventListener('turbo:load', initializeEditPromotionForm);
 </script> 

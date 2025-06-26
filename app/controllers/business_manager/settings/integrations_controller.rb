@@ -1,11 +1,8 @@
 module BusinessManager
   module Settings
-    class IntegrationsController < ApplicationController
-      before_action :authenticate_user!
+    class IntegrationsController < BusinessManager::BaseController
       before_action :set_business
       before_action :set_integration, only: [:show, :edit, :update, :destroy]
-
-      layout 'business_manager'
 
       def index
         @integrations = policy_scope([:business_manager, :settings, @business.integrations])
@@ -53,7 +50,7 @@ module BusinessManager
       private
 
       def set_business
-        @business = current_user.business
+        @business = current_business
         # Ensure business is present, redirect or raise error if not
         unless @business
           flash[:alert] = "Business not found."

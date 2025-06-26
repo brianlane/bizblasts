@@ -36,12 +36,18 @@ module Public
       # If sanitization resulted in an empty string, default back to 'home'
       @page_slug = 'home' if @page_slug.blank?
 
-      # Find the specific Page record for the current tenant and slug (if using DB pages)
-      # @page = current_tenant.pages.find_by(slug: @page_slug, published: true)
-      # if @page.nil? && @page_slug != 'home'
-      #   render_not_found
-      #   return
-      # end
+      # PRIORITY: Check for website builder pages FIRST if business has Standard/Premium tier
+      # This ensures custom website builder pages take precedence over free tier static pages
+      if current_tenant.standard_tier? || current_tenant.premium_tier?
+        @page = current_tenant.pages.find_by(slug: @page_slug, status: :published)
+        
+        # If we found a website builder page, render it
+        if @page.present?
+          @business = current_tenant
+          render template: 'public/pages/website_builder_page'
+          return
+        end
+      end
       
       # Check if this is a client-specific route we want to handle differently
       if @page_slug == 'my-bookings' && current_user&.client?
@@ -49,7 +55,7 @@ module Public
         return
       end
       
-      # Render only known static pages via explicit templates
+      # Render only known static pages via explicit templates (fallback for free tier or when no custom page exists)
       slug = params[:page].to_s.downcase
       @business = current_tenant # Ensure @business is available for the views
 
@@ -60,8 +66,20 @@ module Public
         render template: 'public/pages/home'
       when 'services'
         @services = @business.services.active.order(:name)
+        if @services.empty?
+          redirect_to tenant_root_path, notice: "No services are currently available. Please check back later!"
+          return
+        end
         render template: 'public/pages/services'
       when 'products'
+        # Check for visible products first
+        visible_products = @business.products.active.where(product_type: [:standard, :mixed])
+                                   .select(&:visible_to_customers?)
+        if visible_products.empty?
+          redirect_to tenant_root_path, notice: "No products are currently available. Please check back later!"
+          return
+        end
+        
         @products = @business.products.active.where(product_type: [:standard, :mixed])
         @products = @products.where('name ILIKE ?', "%#{params[:q]}%") if params[:q].present?
         @products = @products.order(:name)

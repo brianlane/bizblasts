@@ -15,6 +15,11 @@ Rails.application.routes.draw do
     end
   end
   
+  # Theme test routes for development and previewing
+  get '/theme-test', to: 'theme_test#index', as: :theme_test
+  get '/theme-test/preview/:theme_id', to: 'theme_test#preview', as: :theme_test_preview
+  get '/theme-test/business/:business_subdomain', to: 'theme_test#preview', as: :theme_test_business
+  
   post '/webhooks/stripe', to: 'stripe_webhooks#create'
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
@@ -24,7 +29,9 @@ Rails.application.routes.draw do
   get '/debug/available-slots', to: 'admin/booking_availability#available_slots'
   
   # ActiveAdmin routes
-  devise_for :admin_users, ActiveAdmin::Devise.config
+  devise_for :admin_users, ActiveAdmin::Devise.config.merge(controllers: {
+    sessions: 'admin/sessions'
+  })
   ActiveAdmin.routes(self)
   
   devise_for :users, skip: [:registrations], controllers: {
@@ -221,6 +228,58 @@ Rails.application.routes.draw do
           get :customers
           get :analytics
           get :export_data
+        end
+      end
+      
+      # Website customization routes (Standard & Premium only)
+      namespace :website do
+        resources :pages do
+          member do
+            get :preview
+            patch :publish
+            post :create_version
+            patch :restore_version
+            post :duplicate
+          end
+          
+          resources :sections, except: [:show] do
+            member do
+              patch :move_up
+              patch :move_down  
+              post :duplicate
+              patch :reorder
+            end
+            
+            collection do
+              patch :reorder
+            end
+          end
+        end
+        
+        resources :themes do
+          member do
+            patch :activate
+            get :preview
+            post :duplicate
+            get :export
+          end
+          
+          collection do
+            post :import
+          end
+        end
+        
+        resources :templates, only: [:index, :show] do
+          member do
+            post :apply
+            get :preview
+          end
+          
+          collection do
+            get :search
+            get :filter_by_industry
+            get :compare
+          end
         end
       end
     end

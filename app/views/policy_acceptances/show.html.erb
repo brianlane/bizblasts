@@ -27,9 +27,13 @@
     </div>
     
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      function initializePolicyAcceptancePage() {
         loadPolicies();
-      });
+      }
+      
+      // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+      document.addEventListener('DOMContentLoaded', initializePolicyAcceptancePage);
+      document.addEventListener('turbo:load', initializePolicyAcceptancePage);
       
       function loadPolicies() {
         // Check if PolicyAcceptance class already loaded policies
@@ -60,20 +64,25 @@
         })
         .catch(error => {
           console.error('Error loading policies:', error);
-          document.getElementById('policies-list').innerHTML = `
-            <div class="text-center p-8 bg-red-50 border border-red-200 rounded-lg">
-              <h3 class="text-lg font-medium text-red-800 mb-4">Error Loading Policies</h3>
-              <p class="text-red-700 mb-4">Unable to load policy information. Please try refreshing the page.</p>
-              <button onclick="loadPolicies()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                Try Again
-              </button>
-            </div>
-          `;
+          const policiesList = document.getElementById('policies-list');
+          if (policiesList) {
+            policiesList.innerHTML = `
+              <div class="text-center p-8 bg-red-50 border border-red-200 rounded-lg">
+                <h3 class="text-lg font-medium text-red-800 mb-4">Error Loading Policies</h3>
+                <p class="text-red-700 mb-4">Unable to load policy information. Please try refreshing the page.</p>
+                <button onclick="loadPolicies()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                  Try Again
+                </button>
+              </div>
+            `;
+          }
         });
       }
       
       function displayPolicies(policies) {
         const container = document.getElementById('policies-list');
+        if (!container) return;
+        
         const acceptedPolicies = new Set();
         
         const descriptions = {
@@ -108,30 +117,41 @@
           </div>
         `).join('');
         
-        document.getElementById('accept-all-btn').addEventListener('click', acceptAllPolicies);
+        const acceptButton = document.getElementById('accept-all-btn');
+        if (acceptButton) {
+          // Remove existing listeners to prevent duplicates
+          const newButton = acceptButton.cloneNode(true);
+          acceptButton.parentNode.replaceChild(newButton, acceptButton);
+          newButton.addEventListener('click', acceptAllPolicies);
+        }
       }
       
       function showAllAcceptedState() {
-        document.getElementById('policy-acceptance-form').innerHTML = `
-          <div class="text-center p-8 bg-green-50 border border-green-200 rounded-lg">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
+        const formContainer = document.getElementById('policy-acceptance-form');
+        if (formContainer) {
+          formContainer.innerHTML = `
+            <div class="text-center p-8 bg-green-50 border border-green-200 rounded-lg">
+              <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium text-green-800 mb-4">All Policies Accepted</h3>
+              <p class="text-green-700 mb-4">You have accepted all required policies.</p>
+              <a href="<%= dashboard_path rescue root_path %>" class="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                Continue to Dashboard →
+              </a>
             </div>
-            <h3 class="text-lg font-medium text-green-800 mb-4">All Policies Accepted</h3>
-            <p class="text-green-700 mb-4">You have accepted all required policies.</p>
-            <a href="<%= dashboard_path rescue root_path %>" class="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-              Continue to Dashboard →
-            </a>
-          </div>
-        `;
+          `;
+        }
       }
       
       function updateAcceptButton() {
         const checkboxes = document.querySelectorAll('.policy-checkbox');
         const checkedBoxes = document.querySelectorAll('.policy-checkbox:checked');
         const button = document.getElementById('accept-all-btn');
+        
+        if (!button) return;
         
         if (checkedBoxes.length === checkboxes.length && checkboxes.length > 0) {
           button.disabled = false;
@@ -153,9 +173,11 @@
         });
         
         const button = document.getElementById('accept-all-btn');
-        button.disabled = true;
-        button.textContent = 'Processing...';
-        button.className = 'bg-gray-400 text-white px-8 py-3 rounded-lg font-medium cursor-not-allowed';
+        if (button) {
+          button.disabled = true;
+          button.textContent = 'Processing...';
+          button.className = 'bg-gray-400 text-white px-8 py-3 rounded-lg font-medium cursor-not-allowed';
+        }
         
         fetch('/policy_acceptances/bulk', {
           method: 'POST',

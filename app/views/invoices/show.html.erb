@@ -210,7 +210,7 @@
 <%= link_to 'Back to My Invoices', invoices_path, class: "bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded" %>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeInvoiceShowPage() {
   const invoiceTotal = document.querySelector('.invoice-total');
   const tipAmountDisplay = document.querySelector('.tip-amount-display');
   const tipAmountValue = document.querySelector('.tip-amount-value');
@@ -226,15 +226,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (tipAmount > 0) {
-      tipAmountDisplay.style.display = 'flex';
-      tipAmountValue.textContent = '$' + tipAmount.toFixed(2);
+      if (tipAmountDisplay) {
+        tipAmountDisplay.style.display = 'flex';
+      }
+      if (tipAmountValue) {
+        tipAmountValue.textContent = '$' + tipAmount.toFixed(2);
+      }
       
       const newTotal = baseAmount + tipAmount;
-      invoiceTotal.textContent = '$' + newTotal.toFixed(2);
+      if (invoiceTotal) {
+        invoiceTotal.textContent = '$' + newTotal.toFixed(2);
+      }
     } else {
-      tipAmountDisplay.style.display = 'none';
-      invoiceTotal.textContent = '$' + baseAmount.toFixed(2);
+      if (tipAmountDisplay) {
+        tipAmountDisplay.style.display = 'none';
+      }
+      if (invoiceTotal) {
+        invoiceTotal.textContent = '$' + baseAmount.toFixed(2);
+      }
     }
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeInvoiceShowPage);
+document.addEventListener('turbo:load', initializeInvoiceShowPage);
 </script> 

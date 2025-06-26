@@ -99,7 +99,7 @@
 
 <script>
   // Hide todo items that were clicked in this session, then clear the hidden state
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBusinessSetupTodos() {
     const todoItems = document.querySelectorAll('[data-todo-key]');
     todoItems.forEach(function(item) {
       const key = item.getAttribute('data-todo-key');
@@ -109,5 +109,9 @@
         sessionStorage.removeItem('hideTodo_' + key);
       }
     });
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeBusinessSetupTodos);
+  document.addEventListener('turbo:load', initializeBusinessSetupTodos);
 </script> 

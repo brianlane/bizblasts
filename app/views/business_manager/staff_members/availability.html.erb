@@ -339,7 +339,15 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', initializeStaffAvailabilityFeatures);
+document.addEventListener('turbo:load', initializeStaffAvailabilityFeatures);
+
+// Only initialize once per load
+// (guard to avoid double-binding listeners)
+function initializeStaffAvailabilityFeatures() {
+  if (initializeStaffAvailabilityFeatures.hasRun) return;
+  initializeStaffAvailabilityFeatures.hasRun = true;
+
   // Collapsible day sections
   document.querySelectorAll('.day-toggle').forEach(function(toggle) {
     toggle.addEventListener('click', function() {
@@ -421,7 +429,5 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
-  
-  setupRemoveSlotButtons();
-});
+}
 </script>

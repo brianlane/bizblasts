@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+function initializeCart() {
   // Auto-submit the quantity form when the input changes
   const quantityForms = document.querySelectorAll('.quantity-form');
   
@@ -18,4 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
-}); 
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeCart);
+document.addEventListener('turbo:load', initializeCart); 

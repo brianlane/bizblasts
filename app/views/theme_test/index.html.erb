@@ -1,0 +1,18 @@
+<% content_for :title, "Theme Test - BizBlasts" %>
+
+<% if @current_theme %>
+  <style>
+    <%= @current_theme.respond_to?(:generate_css_variables) ? @current_theme.generate_css_variables : @current_theme.call %>
+  </style>
+<% end %>
+
+<% if @business %>
+  <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mx-8 mt-4">
+    <strong>Preview Mode:</strong> Viewing theme for <strong><%= @business.name %></strong>
+    <% if @current_theme.respond_to?(:name) %>
+      - Theme: <strong><%= @current_theme.name %></strong>
+    <% end %>
+  </div>
+<% end %>
+
+<%= render 'shared/theme_test' %> 

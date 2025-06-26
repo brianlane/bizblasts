@@ -64,7 +64,7 @@ ActiveAdmin.register Order do
   end
 
   filter :tenant_customer, collection: -> {
-    TenantCustomer.order(:name)
+    TenantCustomer.order(:first_name, :last_name)
   }
   filter :order_number
   filter :status, as: :select, collection: Order.statuses.keys
@@ -128,7 +128,7 @@ ActiveAdmin.register Order do
   form do |f|
     f.inputs 'Order Details' do
       # Scope of tenant_customer dropdown
-      f.input :tenant_customer, collection: TenantCustomer.order(:name)
+      f.input :tenant_customer, collection: TenantCustomer.order(:first_name, :last_name)
       f.input :status, as: :select, collection: Order.statuses.keys, include_blank: false
       f.input :order_type, as: :select, collection: Order.order_types.keys, include_blank: false
       f.input :shipping_method, collection: ShippingMethod.where(active: true).order(:name)

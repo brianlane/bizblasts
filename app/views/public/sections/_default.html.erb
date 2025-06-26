@@ -1,0 +1,26 @@
+<div class="default-section py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <% if section.content_data['title'].present? %>
+      <h2 class="text-2xl font-bold text-gray-900 mb-4"><%= section.content_data['title'] %></h2>
+    <% end %>
+    
+    <% if section.content_data['content'].present? %>
+      <div class="prose max-w-none">
+        <%= section.content_data['content'] %>
+      </div>
+    <% end %>
+    
+    <!-- Section type indicator for development -->
+    <% if Rails.env.development? %>
+      <div class="mt-4 text-sm text-gray-500 border-t pt-4">
+        <strong>Section Type:</strong> <%= section.section_type.humanize %>
+        <% if section.section_config.present? %>
+          <br><strong>Config:</strong> <%= section.section_config.inspect %>
+        <% end %>
+        <% if section.content_data.present? %>
+          <br><strong>Content Data:</strong> <%= section.content_data.inspect %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div> 
