@@ -151,6 +151,44 @@ structures = {
         { type: 'social_links', position: 2 }
       ]}
     ]
+  },
+
+  landing_page: {
+    pages: [
+      { title: 'Home', slug: 'home', page_type: 'home', sections: [
+        { type: 'hero_banner', position: 0 },
+        { type: 'feature_showcase', position: 1 },
+        { type: 'stats_counter', position: 2 },
+        { type: 'testimonial', position: 3 },
+        { type: 'call_to_action', position: 4 }
+      ]},
+      { title: 'Contact', slug: 'contact', page_type: 'contact', sections: [
+        { type: 'contact_form', position: 0 }
+      ]}
+    ]
+  },
+
+  blog_focused: {
+    pages: [
+      { title: 'Home', slug: 'home', page_type: 'home', sections: [
+        { type: 'hero_banner', position: 0 },
+        { type: 'blog_posts', position: 1 },
+        { type: 'call_to_action', position: 2 }
+      ]},
+      { title: 'Blog', slug: 'blog', page_type: 'blog', sections: [
+        { type: 'blog_posts', position: 0 }
+      ]},
+      { title: 'About', slug: 'about', page_type: 'about', sections: [
+        { type: 'text', position: 0 },
+        { type: 'team_showcase', position: 1 }
+      ]},
+      { title: 'Services', slug: 'services', page_type: 'services', sections: [
+        { type: 'service_list', position: 0 }
+      ]},
+      { title: 'Contact', slug: 'contact', page_type: 'contact', sections: [
+        { type: 'contact_form', position: 0 }
+      ]}
+    ]
   }
 }
 
@@ -191,32 +229,30 @@ product_industries = [
 structure_names = structures.keys
 updated_count = 0
 
-# Universal templates with diverse structures
+# Enhanced universal templates with diverse structures - expanded to 15 templates
 universal_templates = [
-  { name: 'Modern Minimal', colors: { primary: '#2563eb', secondary: '#64748b', accent: '#f59e0b' }},
-  { name: 'Bold & Creative', colors: { primary: '#dc2626', secondary: '#7c3aed', accent: '#f59e0b' }},
-  { name: 'Professional Corporate', colors: { primary: '#1e40af', secondary: '#374151', accent: '#059669' }},
-  { name: 'Warm & Friendly', colors: { primary: '#ea580c', secondary: '#0d9488', accent: '#fbbf24' }},
-  { name: 'E-commerce Modern', colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#f59e0b' }, product_focused: true},
-  { name: 'Retail Showcase', colors: { primary: '#ec4899', secondary: '#8b5cf6', accent: '#f59e0b' }, product_focused: true}
+  { name: 'Modern Minimal', colors: { primary: '#2563eb', secondary: '#64748b', accent: '#f59e0b' }, structure: :minimalist},
+  { name: 'Bold & Creative', colors: { primary: '#dc2626', secondary: '#7c3aed', accent: '#f59e0b' }, structure: :creative_portfolio},
+  { name: 'Professional Corporate', colors: { primary: '#1e40af', secondary: '#374151', accent: '#059669' }, structure: :premium_corporate},
+  { name: 'Warm & Friendly', colors: { primary: '#ea580c', secondary: '#0d9488', accent: '#fbbf24' }, structure: :community_focused},
+  { name: 'E-commerce Modern', colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#f59e0b' }, product_focused: true, structure: :product_focused},
+  { name: 'Retail Showcase', colors: { primary: '#ec4899', secondary: '#8b5cf6', accent: '#f59e0b' }, product_focused: true, structure: :product_focused},
+  
+  # Additional universal templates
+  { name: 'Classic Elegant', colors: { primary: '#374151', secondary: '#6b7280', accent: '#d97706' }, structure: :premium_corporate},
+  { name: 'Tech Forward', colors: { primary: '#4338ca', secondary: '#06b6d4', accent: '#8b5cf6' }, structure: :service_focused},
+  { name: 'Vibrant & Fun', colors: { primary: '#ec4899', secondary: '#10b981', accent: '#f59e0b' }, structure: :community_focused},
+  { name: 'Clean & Simple', colors: { primary: '#059669', secondary: '#6b7280', accent: '#3b82f6' }, structure: :minimalist},
+  { name: 'Artistic & Unique', colors: { primary: '#7c3aed', secondary: '#ec4899', accent: '#f59e0b' }, structure: :creative_portfolio},
+  { name: 'Premium Luxury', colors: { primary: '#1f2937', secondary: '#6b7280', accent: '#d97706' }, premium: true, structure: :premium_corporate},
+  { name: 'Content Creator', colors: { primary: '#7c3aed', secondary: '#6b7280', accent: '#f59e0b' }, structure: :blog_focused},
+  { name: 'Landing Page Pro', colors: { primary: '#2563eb', secondary: '#64748b', accent: '#f59e0b' }, structure: :landing_page},
+  { name: 'Service Excellence', colors: { primary: '#059669', secondary: '#374151', accent: '#f59e0b' }, structure: :service_focused}
 ]
 
+# Create universal templates
 universal_templates.each_with_index do |template_data, index|
-  # Select structure based on template characteristics
-  structure_key = case template_data[:name].downcase
-  when /minimal|clean|simple/
-    :minimalist
-  when /creative|bold/
-    :creative_portfolio  
-  when /corporate|professional/
-    :premium_corporate
-  when /warm|friendly/
-    :community_focused
-  when /ecommerce|retail|modern/
-    template_data[:product_focused] ? :product_focused : :service_focused
-  else
-    structure_names[index % structure_names.length]
-  end
+  structure_key = template_data[:structure] || structure_names[index % structure_names.length]
   
   # Adjust structure for product-focused templates
   if template_data[:product_focused] && structure_key == :service_focused
@@ -246,7 +282,7 @@ universal_templates.each_with_index do |template_data, index|
       typography: WebsiteTheme::DEFAULT_TYPOGRAPHY,
       layout_config: WebsiteTheme::DEFAULT_LAYOUT_CONFIG
     },
-    requires_premium: false,
+    requires_premium: template_data[:premium] || false,
     active: true
   )
   
@@ -254,81 +290,92 @@ universal_templates.each_with_index do |template_data, index|
   puts "Created universal template: #{template.name} with #{structure_key} structure (#{structure[:pages].length} pages)"
 end
 
+# Popular industries that should get multiple template variations
+popular_industries = [
+  'hair_salons', 'massage_therapy', 'photography', 'consulting', 'boutiques', 
+  'bakeries', 'coffee_shops', 'landscaping', 'cleaning_services', 'tutoring'
+]
+
 # Create industry-specific templates with diverse structures
 Business::SHOWCASE_INDUSTRY_MAPPINGS.each_with_index do |(industry_key, industry_name), index|
   next if industry_key == :other
   
   colors = industry_colors[industry_key.to_s] || { primary: '#2563eb', secondary: '#64748b', accent: '#f59e0b' }
   is_product_focused = product_industries.include?(industry_key.to_s)
+  is_popular = popular_industries.include?(industry_key.to_s)
   
-  # Assign structure based on template characteristics and variety
-  structure_key = case industry_name.downcase
-  when /creative|artistic|photography|design/
-    :creative_portfolio  
-  when /premium|luxury|legal|corporate|consulting/
-    :premium_corporate
-  when /community|spa|yoga|local/
-    :community_focused
-  when /boutique|retail|shop|store/
-    is_product_focused ? :product_focused : :service_focused
+  # Create multiple templates for popular industries
+  template_variations = if is_popular
+    [
+      { suffix: 'Professional', structure: :service_focused },
+      { suffix: 'Modern', structure: :premium_corporate }
+    ]
   else
-    # Use index to distribute evenly across remaining structures
-    structure_names[index % structure_names.length]
+    [{ suffix: 'Professional', structure: nil }]
   end
   
-  # Get the base structure
-  if is_product_focused && structure_key == :service_focused
-    structure = structures[:product_focused].deep_dup
-  elsif is_product_focused && structures[structure_key]
-    # Modify existing structure to be product-focused
-    structure = structures[structure_key].deep_dup
-    structure[:pages].each do |page|
-      page[:sections].each do |section|
-        if section[:type] == 'service_list'
-          section[:type] = 'product_list'
+  template_variations.each do |variation|
+    # Assign structure based on template characteristics and variety
+    structure_key = variation[:structure] || case industry_name.downcase
+    when /creative|artistic|photography|design/
+      :creative_portfolio  
+    when /premium|luxury|legal|corporate|consulting/
+      :premium_corporate
+    when /community|spa|yoga|local/
+      :community_focused
+    when /boutique|retail|shop|store/
+      is_product_focused ? :product_focused : :service_focused
+    else
+      # Use index to distribute evenly across remaining structures
+      structure_names[index % structure_names.length]
+    end
+    
+    # Get the base structure
+    if is_product_focused && structure_key == :service_focused
+      structure = structures[:product_focused].deep_dup
+    elsif is_product_focused && structures[structure_key]
+      # Modify existing structure to be product-focused
+      structure = structures[structure_key].deep_dup
+      structure[:pages].each do |page|
+        page[:sections].each do |section|
+          if section[:type] == 'service_list'
+            section[:type] = 'product_list'
+          end
+        end
+        # Add/modify product-specific pages
+        if page[:page_type] == 'services'
+          page[:title] = 'Products'
+          page[:slug] = 'products'
+          page[:page_type] = 'products'
         end
       end
-      # Add/modify product-specific pages
-      if page[:page_type] == 'services'
-        page[:title] = 'Products'
-        page[:slug] = 'products'
-        page[:page_type] = 'products'
-      end
+    else
+      structure = structures[structure_key]
     end
-  else
-    structure = structures[structure_key]
+    
+    template_name = "#{industry_name} #{variation[:suffix]}"
+    
+    template = WebsiteTemplate.create!(
+      name: template_name,
+      industry: industry_key.to_s,
+      template_type: 'industry_specific',
+      description: "#{variation[:suffix]} template designed specifically for #{industry_name} businesses",
+      structure: structure,
+      default_theme: {
+        color_scheme: WebsiteTheme::DEFAULT_COLOR_SCHEME.merge(colors),
+        typography: WebsiteTheme::DEFAULT_TYPOGRAPHY,
+        layout_config: WebsiteTheme::DEFAULT_LAYOUT_CONFIG
+      },
+      requires_premium: false,
+      active: true
+    )
+    
+    updated_count += 1
+    puts "Created template #{template.id}: #{template.name} with #{structure_key} structure (#{structure[:pages].length} pages) #{is_product_focused ? '[Product-focused]' : '[Service-focused]'}"
+    
+    # Small delay to prevent overwhelming the database
+    sleep(0.01) if updated_count % 20 == 0
   end
-  
-  template_names = [
-    "#{industry_name} Professional",
-    "#{industry_name} Modern", 
-    "#{industry_name} Classic",
-    "#{industry_name} Premium",
-    "#{industry_name} Creative"
-  ]
-  
-  template_name = template_names[index % template_names.length]
-  
-  template = WebsiteTemplate.create!(
-    name: template_name,
-    industry: industry_key.to_s,
-    template_type: 'industry_specific',
-    description: "Professional template designed specifically for #{industry_name} businesses",
-    structure: structure,
-    default_theme: {
-      color_scheme: WebsiteTheme::DEFAULT_COLOR_SCHEME.merge(colors),
-      typography: WebsiteTheme::DEFAULT_TYPOGRAPHY,
-      layout_config: WebsiteTheme::DEFAULT_LAYOUT_CONFIG
-    },
-    requires_premium: false,
-    active: true
-  )
-  
-  updated_count += 1
-  puts "Updated template #{template.id}: #{template.name} with #{structure_key} structure (#{structure[:pages].length} pages) #{is_product_focused ? '[Product-focused]' : '[Service-focused]'}"
-  
-  # Small delay to prevent overwhelming the database
-  sleep(0.05) if updated_count % 10 == 0
 end
 
 puts "\nCompleted creating #{updated_count} templates with unique structures!"
@@ -336,15 +383,21 @@ puts "Templates now have genuinely different page layouts, section arrangements,
 
 # Show summary
 structure_counts = {}
+template_type_counts = { 'universal' => 0, 'industry_specific' => 0 }
+
 WebsiteTemplate.all.each do |template|
+  template_type_counts[template.industry == 'universal' ? 'universal' : 'industry_specific'] += 1
+  
   page_count = template.structure[:pages].length
   structure_type = case page_count
+  when 2
+    "Landing Page"
   when 3
     "Minimalist"
   when 4
     "Service/Product"
   when 5
-    "Portfolio"
+    "Portfolio/Blog"
   when 6
     "Corporate"
   else
@@ -354,7 +407,14 @@ WebsiteTemplate.all.each do |template|
   structure_counts[structure_type] += 1
 end
 
+puts "\nTemplate type distribution:"
+template_type_counts.each do |type, count|
+  puts "  #{type.humanize}: #{count} templates"
+end
+
 puts "\nStructure distribution:"
 structure_counts.each do |type, count|
   puts "  #{type}: #{count} templates"
-end 
+end
+
+puts "\nTotal templates created: #{WebsiteTemplate.count}" 

@@ -16,7 +16,8 @@ class TemplatePageSection < ApplicationRecord
     service_list: 5,
     testimonial: 6,
     cta: 7,
-    custom: 8
+    custom: 8,
+    product_list: 9
   }
 
   scope :active, -> { where(active: true) }

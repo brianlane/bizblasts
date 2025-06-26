@@ -71,7 +71,8 @@ Most page builders suffer from the "blank canvas problem" - they give you infini
 
 - 🦸 **Hero Banner**: Perfect for powerful first impressions
 - 📝 **Text Blocks**: Professional content layouts
-- 🔧 **Service Lists**: Showcase what you offer
+- 🔧 **Service Lists**: Showcase what services you offer
+- 🛍️ **Product Lists**: Showcase what products you offer
 - 💬 **Testimonials**: Build trust with social proof
 - 📞 **Contact Forms**: Capture leads effectively
 - 👥 **Team Showcase**: Put faces to your business
@@ -82,7 +83,7 @@ Most page builders suffer from the "blank canvas problem" - they give you infini
 
 **The Technical Innovation:**
 
-What makes our drag-and-drop system special isn't just that it works - it's that it prevents you from making bad decisions. Our `PageEditorController` includes intelligent positioning logic that ensures sections flow naturally. You can't accidentally break your website's structure because the system guides you toward professional layouts.
+What makes our drag-and-drop system special isn't just that it works - it's that it prevents you from making bad decisions. Our application includes intelligent positioning logic that ensures sections flow naturally. You can't accidentally break your website's structure because the system guides you toward professional layouts.
 
 **Real-Time Everything:**
 
@@ -96,7 +97,7 @@ When you drag a "Service List" section onto your page, several things happen ins
 
 Here's something that blew our minds during development: the system generates intelligent placeholder content based on your actual business data. 
 
-When that landscaping business owner adds a "Services" section, it doesn't show generic placeholders like "Service 1, Service 2, Service 3." Instead, it pulls from her actual service offerings and shows relevant content like "Lawn Maintenance, Garden Design, Seasonal Cleanup."
+When that landscaping business owner adds a "Services" section, it doesn't show generic placeholders like "Service 1, Service 2, Service 3." Instead, it pulls from the actual service offerings and shows relevant content like "Lawn Maintenance, Garden Design, Seasonal Cleanup."
 
 ## **Part 3: Theme Management That Actually Makes Sense**
 
@@ -132,42 +133,13 @@ The technical achievement here is significant. Our theme system uses CSS custom 
 
 While business owners see a simple drag-and-drop interface, there's serious technology powering everything:
 
-**Robust Data Architecture:**
-- `WebsiteTheme` models store comprehensive design configurations
-- `PageSection` models handle flexible content structures  
-- `WebsiteTemplate` models contain intelligent business logic
-- `PageVersion` models provide complete undo/redo capabilities
-
 **Performance-Optimized Frontend:**
 - Stimulus controllers handle complex interactions efficiently
-- Sortable.js provides smooth drag-and-drop experiences
+- Sortable provides smooth drag-and-drop experiences
 - Auto-save functionality prevents data loss
 - CSRF protection ensures security without sacrificing usability
 
-**Intelligent Business Logic:**
-Our `WebsiteTemplateService` doesn't just apply templates - it intelligently adapts them to specific businesses while preserving existing data and configurations.
-
-### **Testing That Ensures Reliability**
-
-We've built comprehensive test suites that verify every aspect of the website builder:
-- **System tests** validate complete user workflows
-- **Controller tests** ensure API reliability
-- **Model tests** verify business logic accuracy
-- **JavaScript tests** confirm frontend functionality
-
-This testing foundation means business owners can rely on the system working perfectly, even as we add new features and capabilities.
-
 ## **Real-World Success Stories**
-
-### **The Restaurant Owner**
-
-Maria runs "Bella's Italian Kitchen" and needed a website to showcase her menu and enable online reservations. Using our restaurant-specific template, she had a professional website running in under an hour. The template automatically included:
-- Menu display sections optimized for food presentation
-- Reservation integration with her booking system
-- Testimonial areas perfect for showcasing food reviews
-- Location maps with parking information
-
-**The result:** Online reservations increased by 40% in the first month.
 
 ### **The Fitness Trainer**
 
@@ -202,7 +174,6 @@ Small businesses can now compete with larger companies in the digital space. Pro
 ### **AI-Powered Enhancements Coming Soon**
 
 We're already working on the next generation of features:
-- **AI Content Generation**: Automatically write compelling copy based on business type and goals
 - **Performance Optimization**: Automatically optimize images and loading speeds
 - **SEO Intelligence**: Built-in search engine optimization that adapts to business focus areas
 - **Conversion Analytics**: Detailed insights into what website elements drive business results
@@ -243,4 +214,4 @@ The future of small business websites is here, and it's designed to help entrepr
 
 ---
 
-*Want to explore the website builder yourself? Visit your BizBlasts dashboard and click on "Website Builder" to start creating your professional online presence today.* 
+*Want to explore the website builder yourself? If you have a standard or premium business account, visit your BizBlasts dashboard and click on "Website Builder" to start creating your professional online presence today.* 
