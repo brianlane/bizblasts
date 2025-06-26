@@ -157,6 +157,8 @@ class BusinessManager::Website::TemplatesController < BusinessManager::Website::
       "#{current_business.description} We pride ourselves on quality service and customer satisfaction."
     when 'service_list'
       current_business.services.active.limit(3).pluck(:name).join(', ')
+    when 'product_list'
+      current_business.products.active.limit(3).pluck(:name).join(', ')
     when 'testimonial'
       "\"Excellent service and professional staff. Highly recommended!\" - Satisfied Customer"
     when 'contact_form'
@@ -234,6 +236,25 @@ class BusinessManager::Website::TemplatesController < BusinessManager::Website::
           <h2>Our Services</h2>
           <div class="service-grid">
             #{services_html}
+          </div>
+        </div>
+      }.html_safe
+    when 'product_list'
+      products_html = ['Premium Product', 'Standard Product', 'Basic Product'].map do |product|
+        %{
+          <div class="product-item">
+            <h3 class="font-semibold text-lg mb-2">#{ERB::Util.html_escape(product)}</h3>
+            <p>High-quality #{ERB::Util.html_escape(product.downcase)} designed to meet your needs.</p>
+            <div class="price font-bold text-primary">Starting at $99</div>
+          </div>
+        }
+      end.join
+      
+      %{
+        <div>
+          <h2>Our Products</h2>
+          <div class="product-grid">
+            #{products_html}
           </div>
         </div>
       }.html_safe

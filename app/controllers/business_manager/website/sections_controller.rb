@@ -194,7 +194,16 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
     
     # Handle custom content format from edit form
     if params[:section_content].present?
-      permitted_params[:content] = params.require(:section_content).permit!.to_h
+      # Define allowed keys for section content based on section types
+      allowed_content_keys = [
+        :title, :subtitle, :description, :content, :image_url, :link_url, :link_text,
+        :button_text, :button_url, :heading, :subheading, :text, :items, :layout,
+        :show_contact_form, :show_map, :show_hours, :show_social_links,
+        :grid_columns, :max_items, :show_pricing, :show_descriptions,
+        :company_name, :address, :phone, :email, :hours, :social_links,
+        items: [], social_links: {}
+      ]
+      permitted_params[:content] = params.require(:section_content).permit(allowed_content_keys).to_h
     elsif params[:section_content_json].present?
       begin
         permitted_params[:content] = JSON.parse(params[:section_content_json])

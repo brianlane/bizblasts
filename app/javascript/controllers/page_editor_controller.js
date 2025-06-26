@@ -631,6 +631,10 @@ export default class extends Controller {
         title: 'Our Services',
         description: 'We offer a wide range of professional services.'
       },
+      product_list: {
+        title: 'Our Products',
+        description: 'Discover our high-quality products designed for your needs.'
+      },
       team_showcase: {
         title: 'Meet Our Team',
         description: 'Our experienced professionals are here to help you.'

@@ -142,7 +142,7 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
   end
   
   def section_types_for_tier
-    basic_sections = %w[header text image contact_form service_list]
+            basic_sections = %w[header text image contact_form service_list product_list]
     standard_sections = %w[gallery testimonial cta hero_banner]
     premium_sections = %w[product_grid team_showcase pricing_table faq_section 
                          social_media video_embed map_location newsletter_signup]

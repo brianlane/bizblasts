@@ -113,6 +113,34 @@
     background: white;
   }
   
+  .section-product_list .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .section-product_list .product-item {
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .section-product_list .product-item h3 {
+    color: var(--color-primary, #3b82f6);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  .section-product_list .price {
+    color: var(--color-accent, #f59e0b);
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-top: 1rem;
+  }
+  
   .section-testimonial {
     background-color: #f9fafb;
   }

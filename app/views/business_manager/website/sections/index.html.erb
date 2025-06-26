@@ -43,6 +43,7 @@
                  { type: 'hero_banner', name: 'Hero Banner', icon: '🦸', description: 'Large promotional section' },
                  { type: 'text', name: 'Text Block', icon: '📝', description: 'Rich text content' },
                  { type: 'service_list', name: 'Service List', icon: '🔧', description: 'Display your services' },
+                 { type: 'product_list', name: 'Product List', icon: '🛍️', description: 'Display your products' },
                  { type: 'testimonial', name: 'Testimonials', icon: '💬', description: 'Customer reviews' },
                  { type: 'contact_form', name: 'Contact Form', icon: '📞', description: 'Contact information' },
                  { type: 'team_showcase', name: 'Team Showcase', icon: '👥', description: 'Show your team' },
@@ -183,6 +184,10 @@
                       <% when 'service_list' %>
                         <div class="text-center text-gray-500">
                           📋 Service List (Auto-populated from your services)
+                        </div>
+                      <% when 'product_list' %>
+                        <div class="text-center text-gray-500">
+                          🛍️ Product List (Auto-populated from your products)
                         </div>
                       <% when 'testimonial' %>
                         <div class="italic text-center">

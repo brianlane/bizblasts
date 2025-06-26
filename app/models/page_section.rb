@@ -26,7 +26,8 @@ class PageSection < ApplicationRecord
     social_media: 14,
     video_embed: 15,
     map_location: 16,
-    newsletter_signup: 17
+    newsletter_signup: 17,
+    product_list: 18
   }
 
   scope :active, -> { where(active: true) }
@@ -54,6 +55,8 @@ class PageSection < ApplicationRecord
     case section_type
     when 'service_list'
       business.services.active.limit(section_config&.dig('limit') || 6)
+    when 'product_list'
+      business.products.active.limit(section_config&.dig('limit') || 8)
     when 'product_grid'
       business.products.active.limit(section_config&.dig('limit') || 8)
     when 'team_showcase'
@@ -86,7 +89,7 @@ class PageSection < ApplicationRecord
   
   # Content is optional for sections that generate their own content dynamically
   def content_optional_section?
-    %w[contact_form service_list product_grid team_showcase pricing_table map_location newsletter_signup].include?(section_type)
+    %w[contact_form service_list product_list product_grid team_showcase pricing_table map_location newsletter_signup].include?(section_type)
   end
   
   def set_default_config
@@ -100,6 +103,8 @@ class PageSection < ApplicationRecord
       { 'height' => 'large', 'text_alignment' => 'center', 'overlay' => true }
     when 'service_list'
       { 'layout' => 'grid', 'columns' => 3, 'limit' => 6 }
+    when 'product_list'
+      { 'layout' => 'grid', 'columns' => 4, 'limit' => 8 }
     when 'product_grid'
       { 'layout' => 'grid', 'columns' => 4, 'limit' => 8 }
     when 'testimonial'
