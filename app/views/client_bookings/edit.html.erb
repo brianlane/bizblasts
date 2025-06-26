@@ -93,7 +93,7 @@
 
 <%# Add JavaScript for dynamic price update %>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeClientBookingEditPage() {
     const quantityInput = document.getElementById('booking_quantity');
     const totalPriceSpan = document.getElementById('total-booking-price');
     const baseServicePrice = <%= @booking.service.price || 0 %>;
@@ -113,10 +113,16 @@
       let addonsTotal = 0;
 
       addonQuantityInputs.forEach(input => {
-        const variantId = input.closest('.product-variant-selection').querySelector('input[type="hidden"]').value;
-        const quantity = parseInt(input.value, 10) || 0;
-        const price = addonPrices[variantId] || 0;
-        addonsTotal += quantity * price;
+        const variantSelection = input.closest('.product-variant-selection');
+        if (variantSelection) {
+          const hiddenInput = variantSelection.querySelector('input[type="hidden"]');
+          if (hiddenInput) {
+            const variantId = hiddenInput.value;
+            const quantity = parseInt(input.value, 10) || 0;
+            const price = addonPrices[variantId] || 0;
+            addonsTotal += quantity * price;
+          }
+        }
       });
 
       const newTotalPrice = (baseServicePrice * serviceQuantity) + addonsTotal;
@@ -126,7 +132,9 @@
         style: 'currency',
         currency: 'USD',
       });
-      totalPriceSpan.textContent = formatter.format(newTotalPrice);
+      if (totalPriceSpan) {
+        totalPriceSpan.textContent = formatter.format(newTotalPrice);
+      }
     }
 
     if (quantityInput) {
@@ -141,5 +149,9 @@
 
     // Initial update on load
     updateTotalPrice();
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeClientBookingEditPage);
+  document.addEventListener('turbo:load', initializeClientBookingEditPage);
 </script> 

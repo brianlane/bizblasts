@@ -116,23 +116,25 @@
             <%= hidden_field_tag :product_id, @product.id %>
             <%= hidden_field_tag :subscription_type, 'product_subscription' %>
             
-            <% if @product.product_variants.any? %>
+            <% if @product.should_show_variant_selector? %>
               <div class="mb-3">
-                <label for="subscription_variant" class="block text-sm font-medium text-purple-700 mb-1">Choose variant:</label>
-                <%
-                  variant_collection = @product.product_variants.map do |variant|
-                    subscription_variant_price = variant.subscription_price
-                    OpenStruct.new(
-                      id: variant.id,
-                      name: variant.name,
-                      price: subscription_variant_price,
-                      description: "subscription price"
-                    )
-                  end
-                  
-                  # Auto-select if only one variant
-                  auto_selected_value = @product.product_variants.count == 1 ? @product.product_variants.first.id : nil
-                %>
+                <label for="subscription_variant" class="block text-sm font-medium text-purple-700 mb-1"><%= @product.display_variant_label %>:</label>
+                              <%
+                # Use all variants when selector is shown
+                variants_to_show = @product.product_variants
+                variant_collection = variants_to_show.map do |variant|
+                  subscription_variant_price = variant.subscription_price
+                  OpenStruct.new(
+                    id: variant.id,
+                    name: variant.name,
+                    price: subscription_variant_price,
+                    description: "subscription price"
+                  )
+                end
+                
+                # Auto-select if only one variant
+                auto_selected_value = variants_to_show.count == 1 ? variants_to_show.first.id : nil
+              %>
                 <%= render 'shared/rich_dropdown',
                     collection: variant_collection,
                     field_name: "product_variant_id",
@@ -144,6 +146,9 @@
                     description_method: :description,
                     dropdown_id: "subscription_variant_dropdown" %>
               </div>
+            <% elsif @product.product_variants.any? %>
+              <!-- Hidden variant field for single variant products -->
+              <%= hidden_field_tag :product_variant_id, @product.product_variants.first.id %>
             <% end %>
             
             <div class="mb-3">
@@ -158,13 +163,15 @@
         </div>
       <% end %>
       
-      <% if @product.product_variants.any? %>
+      <% if @product.should_show_variant_selector? %>
         <%= form_tag line_items_path, method: :post, class: "one-time-purchase-form #{'mt-6' if @product.subscription_enabled?}" do %>
           <% unless @product.subscription_enabled? %>
             <div class="mt-4">
-              <label for="variant" class="block text-sm font-medium text-gray-700">Choose a variant:</label>
+              <label for="variant" class="block text-sm font-medium text-gray-700"><%= @product.display_variant_label %>:</label>
               <%
-                variant_collection = @product.product_variants.map do |variant|
+                # Use all variants when selector is shown
+                variants_to_show = @product.product_variants
+                variant_collection = variants_to_show.map do |variant|
                   price_modifier = variant.price_modifier || 0
                   variant_price = @product.on_promotion? ? @product.promotional_price + price_modifier : variant.final_price
                   OpenStruct.new(
@@ -176,7 +183,7 @@
                 end
                 
                 # Auto-select if only one variant
-                auto_selected_value = @product.product_variants.count == 1 ? @product.product_variants.first.id : nil
+                auto_selected_value = variants_to_show.count == 1 ? variants_to_show.first.id : nil
               %>
               <%= render 'shared/rich_dropdown',
                   collection: variant_collection,
@@ -201,9 +208,11 @@
               <h4 class="text-sm font-medium text-gray-900 mb-2">One-time purchase:</h4>
               <div class="flex items-center gap-4">
                 <div class="flex-1">
-                  <label for="onetime_variant" class="block text-sm font-medium text-gray-700 mb-1">Choose variant:</label>
+                  <label for="onetime_variant" class="block text-sm font-medium text-gray-700 mb-1"><%= @product.display_variant_label %>:</label>
                   <%
-                    variant_collection = @product.product_variants.map do |variant|
+                    # Use all variants when selector is shown
+                    variants_to_show = @product.product_variants  
+                    variant_collection = variants_to_show.map do |variant|
                       price_modifier = variant.price_modifier || 0
                       variant_price = @product.on_promotion? ? @product.promotional_price + price_modifier : variant.final_price
                       OpenStruct.new(
@@ -215,7 +224,7 @@
                     end
                     
                     # Auto-select if only one variant
-                    auto_selected_value = @product.product_variants.count == 1 ? @product.product_variants.first.id : nil
+                    auto_selected_value = variants_to_show.count == 1 ? variants_to_show.first.id : nil
                   %>
                   <%= render 'shared/rich_dropdown',
                       collection: variant_collection,
@@ -239,6 +248,17 @@
               </div>
             </div>
           <% end %>
+        <% end %>
+      <% elsif @product.product_variants.any? %>
+        <!-- Hidden form for products with variants but selector is hidden -->
+        <%= form_tag line_items_path, method: :post, class: "one-time-purchase-form" do %>
+          <%= hidden_field_tag :product_variant_id, @product.product_variants.first.id %>
+          <div class="mt-4">
+            <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity:</label>
+            <input type="number" name="quantity" id="quantity" value="1" min="1" 
+                   class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
+          </div>
+          <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
         <% end %>
       <% end %>
       

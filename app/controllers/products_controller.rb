@@ -5,13 +5,21 @@ class ProductsController < ApplicationController
 
   def index
     @business = current_tenant
-    # Base scope for products - only show products visible to customers
-    base_scope = @business.products.active.where(product_type: [:standard, :mixed])
-                          .select(&:visible_to_customers?)
     
-    # Convert back to ActiveRecord relation for Ransack
-    visible_product_ids = base_scope.map(&:id)
-    base_scope = @business.products.where(id: visible_product_ids) if visible_product_ids.any?
+    # Check if business has any visible products first
+    visible_products = @business.products.active.where(product_type: [:standard, :mixed])
+                                .select(&:visible_to_customers?)
+    
+    # If no visible products, redirect to home with a message
+    if visible_products.empty?
+      redirect_to tenant_root_path, notice: "No products are currently available. Please check back later!"
+      return
+    end
+    
+    # Build the ActiveRecord relation for products that are visible to customers
+    # We need to get the IDs of visible products and use them in a proper AR query
+    visible_product_ids = visible_products.map(&:id)
+    base_scope = @business.products.where(id: visible_product_ids)
     
     @q = base_scope.ransack(params[:q])
     result = @q.result(distinct: true).order(:id)

@@ -71,6 +71,7 @@ module BusinessManager
         :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_out_of_stock_action, :allow_customer_preferences,
         :show_stock_to_customers, # Allow customers to see stock quantities
         :hide_when_out_of_stock, # Hide product when out of stock
+        :variant_label_text, # Variant label customization
         add_on_service_ids: [], 
         # Allow multiple images to be uploaded
         images: [], 

@@ -143,7 +143,7 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeTipCollection() {
   const tipComponent = document.querySelector('.tip-collection-component');
   if (!tipComponent) return;
   
@@ -160,13 +160,21 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function updateTipAmount(amount) {
     currentTipAmount = amount;
-    hiddenInput.value = amount;
+    if (hiddenInput) {
+      hiddenInput.value = amount;
+    }
     
     if (amount > 0) {
-      selectedDisplay.classList.remove('hidden');
-      selectedAmount.textContent = '$' + amount.toFixed(2);
+      if (selectedDisplay) {
+        selectedDisplay.classList.remove('hidden');
+      }
+      if (selectedAmount) {
+        selectedAmount.textContent = '$' + amount.toFixed(2);
+      }
     } else {
-      selectedDisplay.classList.add('hidden');
+      if (selectedDisplay) {
+        selectedDisplay.classList.add('hidden');
+      }
     }
     
     // Clear all active states
@@ -214,11 +222,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // No tip button handler
-  noTipButton.addEventListener('click', clearTip);
+  if (noTipButton) {
+    noTipButton.addEventListener('click', clearTip);
+  }
   
   // Clear tip button handler
   if (clearButton) {
     clearButton.addEventListener('click', clearTip);
   }
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeTipCollection);
+document.addEventListener('turbo:load', initializeTipCollection);
 </script> 

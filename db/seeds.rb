@@ -49,22 +49,30 @@ puts "--- DEBUG: businesses table columns: #{ActiveRecord::Base.connection.colum
 
 # Keep the existing default business and admin
 puts "Creating default tenant..."
-default_business = Business.find_or_initialize_by(hostname: 'default', host_type: 'subdomain')
-default_business.name = 'Default Business'
-default_business.industry = Business::SHOWCASE_INDUSTRY_MAPPINGS[:other]
-default_business.phone = '555-123-4567'
-default_business.email = 'default@example.com'
-default_business.address = '123 Main St'
-default_business.city = 'Anytown'
-default_business.state = 'CA'
-default_business.zip = '12345'
-default_business.description = 'The default business for system operations.'
-default_business.tier = :free
-default_business.active = true
-# Save without validations to bypass industry inclusion
-default_business.save!(validate: false)
+# Be more defensive about creating default business - only create if it truly doesn't exist
+default_business = Business.find_by(hostname: 'default', host_type: 'subdomain')
+
+if default_business.nil?
+  default_business = Business.new(hostname: 'default', host_type: 'subdomain')
+  default_business.name = 'Default Business'
+  default_business.industry = Business::SHOWCASE_INDUSTRY_MAPPINGS[:other]
+  default_business.phone = '555-123-4567'
+  default_business.email = 'default@example.com'
+  default_business.address = '123 Main St'
+  default_business.city = 'Anytown'
+  default_business.state = 'CA'
+  default_business.zip = '12345'
+  default_business.description = 'The default business for system operations.'
+  default_business.tier = :free
+  default_business.active = true
+  # Save without validations to bypass industry inclusion
+  default_business.save!(validate: false)
+  puts "Created new default tenant: #{default_business.name}"
+else
+  puts "Default tenant already exists: #{default_business.name} (#{default_business.hostname}) - skipping creation"
+end
+
 default_business.reload
-puts "Default tenant created/found: #{default_business.name} (#{default_business.hostname}, type: #{default_business.host_type}) ID: #{default_business.id}"
 
 # Create an admin user in the default tenant (SKIP in production)
 if !Rails.env.production?

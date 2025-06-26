@@ -45,6 +45,7 @@ class Product < ApplicationRecord
   validates :allow_discounts, inclusion: { in: [true, false] }
   validates :show_stock_to_customers, inclusion: { in: [true, false] }
   validates :hide_when_out_of_stock, inclusion: { in: [true, false] }
+  validates :variant_label_text, length: { maximum: 100 }
   # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
                                      message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
@@ -76,7 +77,7 @@ class Product < ApplicationRecord
   def self.ransackable_attributes(auth_object = nil)
     # Allowlist attributes for searching/filtering in ActiveAdmin
     # Include basic fields, foreign keys, flags, and timestamps
-    %w[id name description price active featured business_id created_at updated_at product_type allow_discounts show_stock_to_customers hide_when_out_of_stock]
+    %w[id name description price active featured business_id created_at updated_at product_type allow_discounts show_stock_to_customers hide_when_out_of_stock variant_label_text]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -199,6 +200,21 @@ class Product < ApplicationRecord
   def allow_customer_preferences?
     # Allow customers to set preferences for subscription products
     subscription_enabled?
+  end
+
+  # Variant label display logic
+  def should_show_variant_selector?
+    # Show selector when there are 2 or more total variants
+    product_variants.count >= 2
+  end
+  
+  def display_variant_label
+    return 'Choose a variant' if variant_label_text.blank?
+    variant_label_text
+  end
+  
+  def user_created_variants
+    product_variants.where.not(name: 'Default')
   end
 
   # Custom setter to handle nested image attributes (primary flags & ordering)

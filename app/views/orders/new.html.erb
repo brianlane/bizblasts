@@ -28,7 +28,7 @@
       Checkout
     </h1>
     
-    <%= form_with model: @order, local: true, class: "space-y-8" do |f| %>
+    <%= form_with model: @order, local: true, class: "space-y-8", data: { turbo: false } do |f| %>
       <%# Customer selection for business users (staff/manager) %>
       <% if current_user&.staff? || current_user&.manager? %>
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
@@ -314,7 +314,7 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeOrderPromoAndTipHandling() {
   const orderTotal = document.querySelector('.order-total');
   const tipAmountDisplay = document.querySelector('.tip-amount-display');
   const tipAmountValue = document.querySelector('.tip-amount-value');
@@ -516,12 +516,16 @@ document.addEventListener('DOMContentLoaded', function() {
       CustomerFormValidation.setupConditionalValidation(validator, '#new-tenant-customer-fields');
     }
   }
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeOrderPromoAndTipHandling);
+document.addEventListener('turbo:load', initializeOrderPromoAndTipHandling);
 </script>
 
 <script>
 // Customer dropdown functionality for business users (enhanced version from booking)
-document.addEventListener('DOMContentLoaded', function() {
+function initializeOrderCustomerDropdown() {
   const customerDropdownButton = document.querySelector('[data-customer-dropdown-target="button"]');
   const customerDropdownMenu = document.querySelector('[data-customer-dropdown-target="options"]');
   const customerDropdownOptions = document.querySelectorAll('[data-customer-dropdown-target="option"]');
@@ -779,5 +783,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeOrderCustomerDropdown);
+document.addEventListener('turbo:load', initializeOrderCustomerDropdown);
 </script> 

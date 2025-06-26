@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_19_070100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -226,6 +226,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
     t.string "subscription_discount_type", default: "percentage"
     t.decimal "subscription_discount_value", precision: 10, scale: 2, default: "0.0"
     t.text "subscription_discount_message"
+    t.string "template_applied"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -580,13 +581,35 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
 
   create_table "page_sections", force: :cascade do |t|
     t.bigint "page_id", null: false
-    t.integer "section_type"
-    t.text "content"
+    t.integer "section_type", default: 0
+    t.json "content"
     t.integer "position"
     t.boolean "active"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.json "section_config", default: {}
+    t.string "custom_css_classes"
+    t.string "animation_type"
+    t.json "background_settings", default: {}
+    t.index ["animation_type"], name: "index_page_sections_on_animation_type"
     t.index ["page_id"], name: "index_page_sections_on_page_id"
+  end
+
+  create_table "page_versions", force: :cascade do |t|
+    t.bigint "page_id", null: false
+    t.bigint "created_by_id"
+    t.integer "version_number", null: false
+    t.json "content_snapshot", default: {}, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "published_at", precision: nil
+    t.text "change_notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_page_versions_on_created_by_id"
+    t.index ["page_id", "version_number"], name: "index_page_versions_on_page_id_and_version_number", unique: true
+    t.index ["page_id"], name: "index_page_versions_on_page_id"
+    t.index ["published_at"], name: "index_page_versions_on_published_at"
+    t.index ["status"], name: "index_page_versions_on_status"
   end
 
   create_table "pages", force: :cascade do |t|
@@ -601,7 +624,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
     t.string "meta_description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "status", default: 1, null: false
+    t.string "template_applied"
+    t.json "custom_theme_settings", default: {}
+    t.string "seo_title"
+    t.text "seo_keywords"
     t.index ["business_id"], name: "index_pages_on_business_id"
+    t.index ["status"], name: "index_pages_on_status"
+    t.index ["template_applied"], name: "index_pages_on_template_applied"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -754,6 +784,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
     t.boolean "allow_discounts", default: true, null: false
     t.boolean "show_stock_to_customers", default: true, null: false
     t.boolean "hide_when_out_of_stock", default: false, null: false
+    t.string "variant_label_text", default: "Choose a variant"
     t.index ["active"], name: "index_products_on_active"
     t.index ["allow_customer_preferences"], name: "index_products_on_allow_customer_preferences"
     t.index ["allow_discounts"], name: "index_products_on_allow_discounts"
@@ -1297,6 +1328,38 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "website_templates", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "industry", null: false
+    t.integer "template_type", default: 0, null: false
+    t.json "structure", default: {}, null: false
+    t.json "default_theme", default: {}, null: false
+    t.text "preview_image_url"
+    t.text "description"
+    t.boolean "requires_premium", default: false, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active", "requires_premium"], name: "index_website_templates_on_active_and_requires_premium"
+    t.index ["industry"], name: "index_website_templates_on_industry"
+    t.index ["template_type"], name: "index_website_templates_on_template_type"
+  end
+
+  create_table "website_themes", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.string "name", null: false
+    t.json "color_scheme", default: {}, null: false
+    t.json "typography", default: {}, null: false
+    t.json "layout_config", default: {}, null: false
+    t.text "custom_css"
+    t.boolean "active", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id", "active"], name: "index_website_themes_on_business_id_and_active"
+    t.index ["business_id"], name: "index_website_themes_on_business_id"
+    t.index ["name"], name: "index_website_themes_on_name"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "booking_policies", "businesses", on_delete: :cascade
@@ -1357,6 +1420,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
   add_foreign_key "orders", "tax_rates"
   add_foreign_key "orders", "tenant_customers", on_delete: :nullify
   add_foreign_key "page_sections", "pages"
+  add_foreign_key "page_versions", "pages"
+  add_foreign_key "page_versions", "users", column: "created_by_id"
   add_foreign_key "pages", "businesses", on_delete: :cascade
   add_foreign_key "payments", "businesses", on_delete: :cascade
   add_foreign_key "payments", "invoices", on_delete: :nullify
@@ -1423,4 +1488,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_164244) do
   add_foreign_key "tips", "tenant_customers"
   add_foreign_key "users", "businesses"
   add_foreign_key "users", "staff_members"
+  add_foreign_key "website_themes", "businesses"
 end

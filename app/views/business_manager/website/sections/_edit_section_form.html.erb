@@ -1,0 +1,151 @@
+<%= form_with model: [@page, section], url: business_manager_website_page_section_path(@page, section), method: :patch, local: true, class: "h-full flex flex-col", data: { controller: "edit-section", edit_section_target: "form", action: "submit->edit-section#submit", turbo: false } do |form| %>
+  <div class="space-y-4 flex-1 overflow-y-auto pr-2 py-4">
+          <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-3">
+          Edit <%= section.section_type.humanize %> Section
+        </h3>
+      </div>
+
+    <!-- Section Type Display -->
+    <div>
+      <%= form.label :section_type, class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <div class="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-600">
+        <%= section.section_type.humanize %>
+      </div>
+    </div>
+
+
+
+    <!-- Content based on section type -->
+    <% case section.section_type %>
+    <% when 'hero_banner' %>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+          <input type="text" name="section_content[title]" 
+                 value="<%= section.content_data['title'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Subtitle</label>
+          <textarea name="section_content[subtitle]" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><%= section.content_data['subtitle'] %></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Button Text</label>
+          <input type="text" name="section_content[button_text]" 
+                 value="<%= section.content_data['button_text'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Button Link</label>
+          <input type="text" name="section_content[button_link]" 
+                 value="<%= section.content_data['button_link'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+
+    <% when 'text' %>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+          <input type="text" name="section_content[title]" 
+                 value="<%= section.content_data['title'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+          <div class="trix-editor-container">
+            <input id="section-content-trix" type="hidden" name="section_content[content]" value="<%= section.content_data['content'] %>">
+            <trix-editor input="section-content-trix" class="custom-trix w-full" placeholder="Type your content here..."></trix-editor>
+          </div>
+        </div>
+      </div>
+
+    <% when 'testimonial' %>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Quote</label>
+          <textarea name="section_content[quote]" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><%= section.content_data['quote'] %></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Author</label>
+          <input type="text" name="section_content[author]" 
+                 value="<%= section.content_data['author'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Company</label>
+          <input type="text" name="section_content[company]" 
+                 value="<%= section.content_data['company'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+
+    <% when 'contact_form', 'service_list', 'team_showcase', 'gallery', 'pricing_table', 'faq_section' %>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+          <input type="text" name="section_content[title]" 
+                 value="<%= section.content_data['title'] %>"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+          <textarea name="section_content[description]" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"><%= section.content_data['description'] %></textarea>
+        </div>
+      </div>
+
+    <% else %>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Content (JSON)</label>
+        <textarea name="section_content_json" rows="6"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"><%= section.content_data.to_json %></textarea>
+        <p class="text-xs text-gray-500 mt-1">Edit the JSON content for this section type</p>
+      </div>
+    <% end %>
+
+    <!-- Advanced Settings -->
+    <div class="border-t border-gray-200 pt-4">
+      <h4 class="text-md font-medium text-gray-900 mb-3">Advanced Settings</h4>
+      
+      <div class="space-y-4">
+
+
+        <div>
+          <%= form.label :animation_type, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.select :animation_type, 
+                options_for_select([
+                  ['None', ''],
+                  ['Fade In', 'fadeIn'],
+                  ['Slide Up', 'slideUp'],
+                  ['Slide Down', 'slideDown'],
+                  ['Zoom In', 'zoomIn']
+                ], section.animation_type),
+                { prompt: 'Select animation' },
+                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+        </div>
+
+        <div class="flex items-center">
+          <%= form.check_box :active, class: "rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+          <%= form.label :active, "Section is active", class: "ml-2 text-sm font-medium text-gray-700" %>
+          <br>
+          <br>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Actions (Fixed at bottom) -->
+  <div class="flex justify-end space-x-3 pt-4 pb-2 border-t border-gray-200 flex-shrink-0 bg-gray-50">
+    <button type="button" 
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            data-action="click->edit-section#close">
+      Cancel
+    </button>
+    <%= form.submit "Update Section", 
+          class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+  </div>
+<% end %> 

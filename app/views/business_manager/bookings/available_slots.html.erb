@@ -249,7 +249,7 @@
 </div> 
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeAvailableSlotsPage() {
   // PHASE 4, STEP 7: Real-time frontend time filtering for business manager
   function filterPastSlots() {
     const now = new Date();
@@ -337,5 +337,9 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(filterPastSlots, 500);
     }
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeAvailableSlotsPage);
+document.addEventListener('turbo:load', initializeAvailableSlotsPage);
 </script> 

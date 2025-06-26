@@ -330,18 +330,38 @@
   </div>
 
   <!-- Product Variants Section -->
-  <div class="mt-8 border-t pt-6">
+  <div class="mt-8 border-t pt-6" data-controller="product-variants">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Product Variants</h3>
     <p class="text-sm text-gray-600 mb-4">Add variants if this product comes in different sizes, colors, or configurations.</p>
     
-    <div id="product-variants" class="space-y-4">
+    <!-- Variant Label Customization -->
+    <% 
+      # Count existing user-created variants (excluding default)
+      user_created_variants_count = @product.persisted? ? @product.user_created_variants.count : 0
+      show_customization = user_created_variants_count >= 2
+    %>
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" id="variant-label-customization" style="<%= show_customization ? 'display: block;' : 'display: none;' %>">
+      <h4 class="text-md font-medium text-gray-900 mb-3">Variant Display Settings</h4>
+      <div>
+        <%= form.label :variant_label_text, "Variant Selection Label", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= form.text_field :variant_label_text, placeholder: "e.g., Choose a size, Select color, Pick variant", 
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        <p class="mt-1 text-xs text-gray-500">This text appears above the variant dropdown on your product page. Products with only one variant will automatically hide the dropdown.</p>
+      </div>
+    </div>
+    
+    <div data-product-variants-target="container" class="space-y-4">
       <%= form.fields_for :product_variants do |variant_form| %>
         <%= render 'variant_fields', form: variant_form %>
       <% end %>
       
-      <div id="add-variant-container" class="flex justify-start">
-        <%= link_to '+ Add Variant', '#', id: 'add-variant', 
-              class: "inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+      <div class="flex justify-start">
+        <button type="button"
+                data-product-variants-target="addButton"
+                data-action="click->product-variants#addVariant"
+                class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          + Add Variant
+        </button>
       </div>
     </div>
   </div>
@@ -403,9 +423,7 @@
 </template>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    let variantCounter = 0;
-    
+  function initializeProductForm() {
     // Handle subscription toggle
     const subscriptionCheckbox = document.getElementById('product_subscription_enabled');
     const subscriptionSettings = document.getElementById('subscription-settings');
@@ -419,142 +437,6 @@
         }
       });
     }
-    
-    // Handle Add Variant button click
-    const addVariantBtn = document.getElementById('add-variant');
-    if (addVariantBtn) {
-      addVariantBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Get the variants container
-        const variantsContainer = document.getElementById('product-variants');
-        if (!variantsContainer) {
-          console.error('Product variants container not found');
-          return;
-        }
-        
-        // Create unique timestamp for this variant
-        const timestamp = Date.now() + variantCounter++;
-        
-        // Create the variant using the manual approach (most reliable)
-        const newVariant = createVariantManually(timestamp);
-        
-        // Find the add button container - use specific ID to avoid any confusion
-        const addButtonContainer = document.getElementById('add-variant-container');
-        
-        // IMPROVED APPROACH: Use insertAdjacentElement instead of DOM manipulation
-        // This preserves existing elements and their event handlers
-        if (addButtonContainer) {
-          // Insert the new variant right before the button container
-          // This doesn't disrupt existing DOM elements or their event handlers
-          addButtonContainer.insertAdjacentElement('beforebegin', newVariant);
-        } else {
-          console.warn('Add button container not found, appending to end');
-          // Fallback: just append to the end
-          variantsContainer.appendChild(newVariant);
-        }
-        
-        // Focus on the first input of the new variant
-        const firstInput = newVariant.querySelector('input[type="text"]');
-        if (firstInput) {
-          firstInput.focus();
-        }
-      });
-    }
-    
-    // Fallback function to create variant manually
-    function createVariantManually(timestamp) {
-      const variantDiv = document.createElement('div');
-      variantDiv.className = 'variant-field bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4';
-      variantDiv.innerHTML = `
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="text-md font-medium text-gray-900">Product Variant</h4>
-          <button type="button" class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
-            Remove Variant
-          </button>
-        </div>
-        
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2">Variant Name</label>
-            <input type="text" name="product[product_variants_attributes][${timestamp}][name]" required placeholder="e.g., Large, Red" 
-                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
-          </div>
-          
-          <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2">SKU</label>
-            <input type="text" name="product[product_variants_attributes][${timestamp}][sku]" placeholder="Stock Keeping Unit" 
-                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
-          </div>
-          
-          <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2">Price Modifier ($)</label>
-            <input type="number" name="product[product_variants_attributes][${timestamp}][price_modifier]" step="0.01" placeholder="0.00" 
-                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
-            <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
-          </div>
-          
-          <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2">Stock Quantity</label>
-            <input type="number" name="product[product_variants_attributes][${timestamp}][stock_quantity]" required min="0" placeholder="0" 
-                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
-          </div>
-        </div>
-        
-        <div class="mt-4">
-          <label class="block text-gray-700 text-sm font-bold mb-2">Options (JSON)</label>
-          <textarea name="product[product_variants_attributes][${timestamp}][options]" rows="2" 
-                    placeholder='e.g., {"size": "Large", "color": "Red"}' 
-                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"></textarea>
-          <p class="mt-1 text-xs text-gray-500">Enter as valid JSON for additional variant properties</p>
-        </div>
-      `;
-      return variantDiv;
-    }
-    
-    // Handle Remove Variant links (with event delegation)
-    document.addEventListener('click', function(e) {
-      // More robust detection for remove variant elements
-      let removeButton = null;
-      
-      // Check if the clicked element itself has the remove-variant class
-      if (e.target.classList.contains('remove-variant')) {
-        removeButton = e.target;
-      }
-      // Check if the clicked element is inside a remove-variant element
-      else if (e.target.closest('.remove-variant')) {
-        removeButton = e.target.closest('.remove-variant');
-      }
-      
-      if (removeButton) {
-        e.preventDefault();
-        
-        const variantFields = removeButton.closest('.variant-field');
-        
-        if (!variantFields) {
-          console.error('No variant-field parent found for Remove button');
-          return;
-        }
-        
-        // Check if this is an existing record (has an id field)
-        const idField = variantFields.querySelector('input[name*="[id]"]');
-        
-        if (idField && idField.value) {
-          // Create hidden field for _destroy
-          const destroyField = document.createElement('input');
-          destroyField.type = 'hidden';
-          destroyField.name = idField.name.replace('[id]', '[_destroy]');
-          destroyField.value = '1';
-          variantFields.appendChild(destroyField);
-          
-          // Hide instead of remove for existing records
-          variantFields.style.display = 'none';
-        } else {
-          // For new records, just remove from DOM
-          variantFields.remove();
-        }
-      }
-    });
     
     // Image management functionality
     const existingImagesDiv = document.getElementById('existing-images');
@@ -730,5 +612,9 @@
         }
       });
     }
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeProductForm);
+  document.addEventListener('turbo:load', initializeProductForm);
 </script> 

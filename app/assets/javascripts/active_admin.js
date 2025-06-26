@@ -286,7 +286,7 @@ new MarkdownEditor();
  * - Enhanced positioning and z-index management
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+function initializeActiveAdminEnhancements() {
   let isUpdating = false; // Prevent infinite loops
   
   // Function to manually initialize Active Admin dropdown functionality
@@ -652,4 +652,8 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeActiveAdminEnhancements);
+document.addEventListener('turbo:load', initializeActiveAdminEnhancements);

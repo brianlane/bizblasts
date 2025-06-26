@@ -336,13 +336,13 @@ ActiveAdmin.register User do
     
     script do
       raw <<-JS
-        document.addEventListener('DOMContentLoaded', function() {
+        function initializeAdminUserForm() {
           var roleSelector = document.getElementById('user_role_selector');
           var businessInput = document.getElementById('user_business_input');
           var staffInput = document.getElementById('user_staff_member_input');
           
           function toggleBusinessFields() {
-            var selectedRole = roleSelector.value;
+            var selectedRole = roleSelector ? roleSelector.value : '';
             var requiresBusiness = (selectedRole === 'manager' || selectedRole === 'staff');
             
             if (businessInput) {
@@ -357,7 +357,11 @@ ActiveAdmin.register User do
             roleSelector.addEventListener('change', toggleBusinessFields);
             toggleBusinessFields();
           }
-        });
+        }
+
+        // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+        document.addEventListener('DOMContentLoaded', initializeAdminUserForm);
+        document.addEventListener('turbo:load', initializeAdminUserForm);
       JS
     end
   end

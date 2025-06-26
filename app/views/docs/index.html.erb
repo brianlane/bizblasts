@@ -162,27 +162,30 @@
 
 <!-- Interactive JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeDocsIndexPage() {
   // Search functionality
   const searchInput = document.getElementById('docs-search');
   const docCards = document.querySelectorAll('.doc-card');
   
-  searchInput.addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    
-    docCards.forEach(card => {
-      const title = card.querySelector('h3').textContent.toLowerCase();
-      const description = card.querySelector('p').textContent.toLowerCase();
-      const category = card.querySelector('.bg-white\\/20').textContent.toLowerCase();
+  if (searchInput && docCards.length > 0) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
       
-      if (title.includes(searchTerm) || description.includes(searchTerm) || category.includes(searchTerm)) {
-        card.style.display = 'block';
-        card.style.animation = 'slideUp 0.3s ease-out';
-      } else {
-        card.style.display = 'none';
-      }
+      docCards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        const description = card.querySelector('p').textContent.toLowerCase();
+        const categoryElement = card.querySelector('.bg-white\\/20');
+        const category = categoryElement ? categoryElement.textContent.toLowerCase() : '';
+        
+        if (title.includes(searchTerm) || description.includes(searchTerm) || category.includes(searchTerm)) {
+          card.style.display = 'block';
+          card.style.animation = 'slideUp 0.3s ease-out';
+        } else {
+          card.style.display = 'none';
+        }
+      });
     });
-  });
+  }
   
   // Add smooth scroll behavior
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -197,5 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeDocsIndexPage);
+document.addEventListener('turbo:load', initializeDocsIndexPage);
 </script> 

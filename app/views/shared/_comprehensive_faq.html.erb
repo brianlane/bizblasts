@@ -278,7 +278,7 @@
 
 <!-- FAQ Functionality JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeComprehensiveFAQ() {
   // FAQ Category Filtering
   const categoryButtons = document.querySelectorAll('.faq-category-btn');
   const faqItems = document.querySelectorAll('.faq-item');
@@ -313,8 +313,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const searchTerm = this.value.toLowerCase();
       
       faqItems.forEach(item => {
-        const title = item.querySelector('h3').textContent.toLowerCase();
-        const content = item.querySelector('div, p').textContent.toLowerCase();
+        const title = item.querySelector('h3')?.textContent.toLowerCase() || '';
+        const content = item.querySelector('div, p')?.textContent.toLowerCase() || '';
         
         if (title.includes(searchTerm) || content.includes(searchTerm)) {
           item.classList.remove('hidden');
@@ -329,10 +329,17 @@ document.addEventListener('DOMContentLoaded', function() {
           btn.classList.remove('bg-primary', 'text-white', 'border-primary');
           btn.classList.add('border-gray-300', 'text-gray-600', 'hover:border-primary', 'hover:text-primary');
         });
-        document.querySelector('[data-category="all"]').classList.remove('border-gray-300', 'text-gray-600', 'hover:border-primary', 'hover:text-primary');
-        document.querySelector('[data-category="all"]').classList.add('bg-primary', 'text-white', 'border-primary');
+        const allButton = document.querySelector('[data-category="all"]');
+        if (allButton) {
+          allButton.classList.remove('border-gray-300', 'text-gray-600', 'hover:border-primary', 'hover:text-primary');
+          allButton.classList.add('bg-primary', 'text-white', 'border-primary');
+        }
       }
     });
   }
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeComprehensiveFAQ);
+document.addEventListener('turbo:load', initializeComprehensiveFAQ);
 </script> 

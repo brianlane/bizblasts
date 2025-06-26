@@ -1,12 +1,8 @@
 # frozen_string_literal: true
 
-class BusinessManager::Settings::BusinessController < ApplicationController # Or your specific base controller for manager sections
-  before_action :authenticate_user! # Assuming Devise for authentication
-  before_action :set_tenant # ADD THIS LINE to ensure tenant is set
+class BusinessManager::Settings::BusinessController < BusinessManager::BaseController
   before_action :set_business
   before_action :authorize_business_settings # Pundit authorization
-
-  layout 'business_manager' # As per global conventions
 
   # POST /manage/settings/business/connect_stripe
   def connect_stripe
@@ -74,9 +70,8 @@ class BusinessManager::Settings::BusinessController < ApplicationController # Or
   private
 
   def set_business
-    # Assuming current_business is a helper method returning the active tenant/business
-    # (e.g., from ActsAsTenant.current_tenant or similar mechanism)
-    @business = ActsAsTenant.current_tenant
+    # Use the current_business method from the base controller
+    @business = current_business
     raise ActiveRecord::RecordNotFound unless @business
   end
 

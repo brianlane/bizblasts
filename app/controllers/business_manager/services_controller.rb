@@ -87,8 +87,12 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :tips_enabled,
       :allow_discounts,
       :availability_settings,
+      :service_type,
+      :min_bookings,
+      :max_bookings,
       :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_rebooking_preference, :allow_customer_preferences,
       staff_member_ids: [], # Allow staff assignment via new association
+      add_on_product_ids: [], # Allow add-on product assignment
       images: [], # Allow new image uploads
       images_attributes: [:id, :primary, :position, :_destroy] # Allow managing existing images
     )

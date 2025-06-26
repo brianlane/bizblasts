@@ -1,10 +1,7 @@
 module BusinessManager
   module Settings
-    class NotificationsController < ApplicationController
-      before_action :authenticate_user!
+    class NotificationsController < BusinessManager::BaseController
       before_action :set_business
-
-      layout 'business_manager'
 
       def index
         @notification_templates = policy_scope([:business_manager, :settings, @business.notification_templates])
@@ -78,7 +75,7 @@ module BusinessManager
       private
 
       def set_business
-        @business = current_user.business
+        @business = current_business
       end
 
       def notification_template_params

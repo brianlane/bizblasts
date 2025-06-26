@@ -1,0 +1,274 @@
+<% content_for :title, "Page Sections - #{@page.title}" %>
+
+<div class="min-h-screen bg-gray-50" data-controller="page-editor" data-page-editor-page-id-value="<%= @page.id %>">
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-200 top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center space-x-4">
+          <%= link_to business_manager_website_pages_path, class: "text-gray-400 hover:text-gray-600" do %>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          <% end %>
+          <h1 class="text-xl font-semibold text-gray-900">Edit Sections: <%= @page.title %></h1>
+          <span class="text-sm text-gray-500">/<%= @page.slug %></span>
+          <span class="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">✓ Auto-saves</span>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <button type="button" 
+                  class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+                  data-action="click->page-editor#togglePreview">
+            <span data-page-editor-target="previewToggleText">Show Preview</span>
+          </button>
+          <%= link_to "View Page", public_page_url(@page), 
+                      class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors",
+                      target: "_blank" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      
+      <!-- Section Library -->
+      <div class="lg:col-span-1 space-y-6">
+        <div class="section-library bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Section Library</h2>
+          
+          <div class="space-y-3">
+            <% section_types = [
+                 { type: 'hero_banner', name: 'Hero Banner', icon: '🦸', description: 'Large promotional section' },
+                 { type: 'text', name: 'Text Block', icon: '📝', description: 'Rich text content' },
+                 { type: 'service_list', name: 'Service List', icon: '🔧', description: 'Display your services' },
+                 { type: 'testimonial', name: 'Testimonials', icon: '💬', description: 'Customer reviews' },
+                 { type: 'contact_form', name: 'Contact Form', icon: '📞', description: 'Contact information' },
+                 { type: 'team_showcase', name: 'Team Showcase', icon: '👥', description: 'Show your team' },
+                 { type: 'gallery', name: 'Image Gallery', icon: '🖼️', description: 'Photo gallery' },
+                 { type: 'pricing_table', name: 'Pricing Table', icon: '💰', description: 'Service pricing' },
+                 { type: 'faq_section', name: 'FAQ', icon: '❓', description: 'Frequently asked questions' },
+                 { type: 'map_location', name: 'Location Map', icon: '🗺️', description: 'Business location' }
+               ] %>
+            
+            <% section_types.each do |section| %>
+              <div class="border border-gray-200 rounded-lg p-3 cursor-grab hover:bg-gray-50 transition-colors"
+                   draggable="true"
+                   data-section-type="<%= section[:type] %>"
+                   data-action="dragstart->page-editor#handleDragStart">
+                <div class="flex items-center space-x-3">
+                  <div class="text-2xl"><%= section[:icon] %></div>
+                  <div class="flex-1">
+                    <h3 class="font-medium text-gray-900 text-sm"><%= section[:name] %></h3>
+                    <p class="text-xs text-gray-500"><%= section[:description] %></p>
+                  </div>
+                  <button type="button" 
+                          class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                          data-action="click->page-editor#addNewSection"
+                          data-section-type="<%= section[:type] %>">
+                    Add Section
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Page Settings -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Page Settings</h3>
+          
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Status:</span>
+              <span class="<%= @page.published? ? 'text-green-600' : 'text-yellow-600' %>">
+                <%= @page.status.humanize %>
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Sections:</span>
+              <span class="text-gray-900"><%= @page.page_sections.count %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">In Menu:</span>
+              <span class="text-gray-900"><%= @page.show_in_menu? ? 'Yes' : 'No' %></span>
+            </div>
+          </div>
+          
+          <div class="mt-4 pt-4 border-t border-gray-200">
+            <%= link_to "Edit Page Settings", edit_business_manager_website_page_path(@page), 
+                        class: "w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm transition-colors" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page Builder Area -->
+      <div class="lg:col-span-3">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+          <!-- Builder Header -->
+          <div class="border-b border-gray-200 p-4">
+            <div class="flex justify-between items-center">
+              <h2 class="text-lg font-semibold text-gray-900">Page Builder</h2>
+              <div class="text-sm text-gray-500">
+                Drag sections from the library or reorder existing sections
+              </div>
+            </div>
+          </div>
+
+          <!-- Drop Zone -->
+          <div class="p-6 min-h-[600px]">
+            <div id="page-sections-container" 
+                 class="space-y-4 min-h-[400px] border-2 border-dashed border-gray-200 rounded-lg p-4"
+                 data-page-editor-target="sectionsContainer"
+                 data-sortable="true"
+                 data-action="dragover->page-editor#handleDragOver drop->page-editor#handleDrop">
+              
+              <% if @page.page_sections.any? %>
+                <% @page.page_sections.ordered.each do |section| %>
+                  <div class="section-item bg-gray-50 border border-gray-300 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+                       data-section-id="<%= section.id %>"
+                       data-section-type="<%= section.section_type %>"
+                       draggable="true"
+                       data-action="dragstart->page-editor#handleSectionDragStart">
+                    
+                    <!-- Section Header -->
+                    <div class="flex justify-between items-center mb-3">
+                      <div class="flex items-center space-x-3">
+                        <div class="cursor-grab text-gray-400 hover:text-gray-600">
+                          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                          </svg>
+                        </div>
+                        <h3 class="font-medium text-gray-900 capitalize">
+                          <%= section.section_type.humanize %>
+                        </h3>
+                        <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                          Position <%= section.position + 1 %>
+                        </span>
+                      </div>
+                      
+                      <div class="flex space-x-2">
+                        <button type="button" 
+                                class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors"
+                                data-action="click->page-editor#editSection"
+                                data-section-id="<%= section.id %>">
+                          Edit
+                        </button>
+                        <button type="button" 
+                                class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
+                                data-action="click->page-editor#deleteSection"
+                                data-section-id="<%= section.id %>">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Section Preview -->
+                    <div class="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600">
+                      <% case section.section_type %>
+                      <% when 'hero_banner' %>
+                        <div class="text-center">
+                          <div class="font-bold text-lg mb-2">
+                            <%= section.content_data['title'] || 'Hero Title' %>
+                          </div>
+                          <div class="text-sm">
+                            <%= section.content_data['subtitle'] || 'Hero subtitle description' %>
+                          </div>
+                        </div>
+                      <% when 'text' %>
+                        <div>
+                          <%= section.content_data['content'].to_s.html_safe.presence || 'Text content will appear here...' %>
+                        </div>
+                      <% when 'service_list' %>
+                        <div class="text-center text-gray-500">
+                          📋 Service List (Auto-populated from your services)
+                        </div>
+                      <% when 'testimonial' %>
+                        <div class="italic text-center">
+                          "<%= section.content_data['quote'] || 'Customer testimonial will appear here' %>"
+                        </div>
+                      <% when 'contact_form' %>
+                        <div class="text-center text-gray-500">
+                          📞 Contact Form (Auto-populated from business info)
+                        </div>
+                      <% else %>
+                        <div class="text-center text-gray-500">
+                          <%= section.section_type.humanize %> Section
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              <% else %>
+                <div class="text-center py-12 text-gray-500">
+                  <div class="text-6xl mb-4">📋</div>
+                  <h3 class="text-lg font-medium mb-2">No sections yet</h3>
+                  <p class="text-sm">Drag sections from the library to start building your page</p>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Preview Panel -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden preview-mode page-preview" data-page-editor-target="previewOverlay">
+    <div class="absolute inset-4 bg-white rounded-lg shadow-xl overflow-hidden">
+      <div class="bg-gray-100 border-b border-gray-200 p-4 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Page Preview</h3>
+        <button type="button" 
+                class="text-gray-500 hover:text-gray-700"
+                data-action="click->page-editor#togglePreview">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <iframe class="w-full h-full" data-page-editor-target="previewFrame" src=""></iframe>
+    </div>
+  </div>
+
+  <!-- Section Edit Modal Template -->
+  <div class="hidden modal" id="edit-section-modal" data-page-editor-target="editModal" data-edit-section-modal-target="modal">
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div class="absolute inset-x-4 top-10 bottom-10 bg-white rounded-lg shadow-xl flex flex-col">
+        <div class="bg-gray-100 border-b border-gray-200 px-6 py-3 flex justify-between items-center flex-shrink-0">
+          <h3 class="text-lg font-semibold">Edit Section</h3>
+          <button type="button" 
+                  class="text-gray-500 hover:text-gray-700"
+                  data-action="click->page-editor#closeEditModal">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 overflow-y-auto flex-1 bg-gray-50" data-page-editor-target="editModalContent">
+          <!-- Dynamic content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.section-item.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+.section-item.drag-over {
+  border-color: #3b82f6;
+  background-color: #dbeafe;
+}
+
+#page-sections-container.drag-over {
+  border-color: #3b82f6;
+  background-color: #f0f9ff;
+}
+
+.cursor-grab:active {
+  cursor: grabbing;
+}</style> 

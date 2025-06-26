@@ -48,6 +48,9 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
         # Click on 20% tip button (which should be $15.00 for $75 service)
         click_button '20%'
         
+        # Wait for JavaScript to process the tip selection
+        expect(page).to have_content('Tip Selected')
+        expect(page).to have_content('$15.00')
         
         # Submit tip form
         click_button 'Add $15.00 Tip'

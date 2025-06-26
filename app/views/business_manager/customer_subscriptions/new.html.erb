@@ -167,7 +167,7 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeCustomerSubscriptionForm() {
     const productRadio = document.getElementById('subscription_type_product');
     const serviceRadio = document.getElementById('subscription_type_service');
     const productSelection = document.getElementById('product_selection');
@@ -205,7 +205,11 @@
     
     // Initialize on page load
     toggleSubscriptionType();
-  });
+  }
+  
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeCustomerSubscriptionForm);
+  document.addEventListener('turbo:load', initializeCustomerSubscriptionForm);
 </script> 
  
  

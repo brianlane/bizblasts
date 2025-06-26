@@ -171,6 +171,10 @@ class Business < ApplicationRecord
   has_many :tips, dependent: :destroy
   has_one :tip_configuration, dependent: :destroy
   
+  # Website customization associations
+  has_many :website_themes, dependent: :destroy
+  has_one :active_website_theme, -> { where(active: true) }, class_name: 'WebsiteTheme'
+  
   # Tip configuration helper methods
   def tip_configuration_or_default
     tip_configuration || build_tip_configuration
@@ -540,6 +544,14 @@ class Business < ApplicationRecord
   
   # Background processing for logo
   after_commit :process_logo, if: -> { logo.attached? }
+  
+  def has_visible_products?
+    products.active.where(product_type: [:standard, :mixed]).any?(&:visible_to_customers?)
+  end
+
+  def has_visible_services?
+    services.active.any?
+  end
   
   private
   

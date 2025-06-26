@@ -253,7 +253,7 @@
 
 <script>
 // Add client-side filtering functionality
-document.addEventListener('DOMContentLoaded', function() {
+function initializePlatformTransactions() {
   const typeFilter = document.getElementById('transaction_type');
   const dateFilter = document.getElementById('date_range');
   
@@ -268,5 +268,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   typeFilter.addEventListener('change', applyFilters);
   dateFilter.addEventListener('change', applyFilters);
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializePlatformTransactions);
+document.addEventListener('turbo:load', initializePlatformTransactions);
 </script> 

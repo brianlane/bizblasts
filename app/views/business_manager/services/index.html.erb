@@ -39,6 +39,11 @@
                       Subscription
                     </span>
                   <% end %>
+                  <% if service.service_type.present? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <%= service.service_type.humanize %>
+                    </span>
+                  <% end %>
                 </div>
               </div>
               
@@ -101,6 +106,7 @@
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+                  <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Service Type</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Active</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Featured</th>
                   <th class="px-6 py-3 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subscription</th>
@@ -117,6 +123,15 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap"><%= service.duration %> min</td>
                     <td class="px-6 py-4 whitespace-nowrap font-medium text-green-600"><%= number_to_currency(service.price) %></td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <% if service.service_type.present? %>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <%= service.service_type.humanize %>
+                        </span>
+                      <% else %>
+                        <span class="text-gray-500 text-sm">-</span>
+                      <% end %>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap"><%= boolean_status_tag service.active %></td>
                     <td class="px-6 py-4 whitespace-nowrap"><%= boolean_status_tag service.featured, 'Featured' %></td>
                     <td class="px-6 py-4 whitespace-nowrap">

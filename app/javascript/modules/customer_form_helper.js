@@ -147,9 +147,13 @@ const CustomerFormHelper = {
 };
 
 // Auto-initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+function initializeCustomerFormHelper() {
   CustomerFormHelper.autoInitialize();
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeCustomerFormHelper);
+document.addEventListener('turbo:load', initializeCustomerFormHelper);
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+function initializeWebsiteHoverModule() {
   const websiteHoverTrigger = document.getElementById('website-hover-trigger');
   
   if (!websiteHoverTrigger) return;
@@ -100,4 +100,8 @@ document.addEventListener('DOMContentLoaded', function() {
       hidePopup();
     }
   });
-}); 
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeWebsiteHoverModule);
+document.addEventListener('turbo:load', initializeWebsiteHoverModule); 

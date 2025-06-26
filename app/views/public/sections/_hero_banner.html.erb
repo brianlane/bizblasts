@@ -1,0 +1,21 @@
+<div class="hero-banner-section bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div class="text-center">
+      <% if section.content_data['title'].present? %>
+        <h1 class="text-4xl md:text-6xl font-bold mb-6"><%= section.content_data['title'] %></h1>
+      <% end %>
+      
+      <% if section.content_data['subtitle'].present? %>
+        <div class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+          <%= section.content_data['subtitle'] %>
+        </div>
+      <% end %>
+      
+      <% if section.content_data['button_text'].present? %>
+        <%= link_to section.content_data['button_text'], 
+                    section.content_data['button_link'] || '#', 
+                    class: "inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors" %>
+      <% end %>
+    </div>
+  </div>
+</div> 

@@ -8,12 +8,12 @@ RSpec.describe "Settings::BusinessController", type: :request do
 
   # Create a business for tenant context
   let!(:business) { create(:business) }
-  # Create a user associated with the business. User model needs `business` association.
-  let!(:user) { create(:user, business: business) }
+  # Create a manager user associated with the business.
+  let!(:user) { create(:user, :manager, business: business) }
 
   before do
     # Simulate subdomain in host for routes under SubdomainConstraint
-    host! "#{business.hostname}.example.com"
+    host! "#{business.hostname}.lvh.me"
     # Set current tenant for the request context
     ActsAsTenant.current_tenant = business
     # Sign in the user (Devise test helper)

@@ -169,6 +169,10 @@ ActiveAdmin.register Product do
           end
         }
     end
+    
+    f.inputs 'Variant Display Settings' do
+      f.input :variant_label_text, label: 'Variant Selection Label', hint: 'Text shown above variant dropdown (e.g., "Choose a size:", "Select color:"). Products with only one variant will automatically hide the dropdown.'
+    end
 
     f.inputs 'Variants' do
       f.has_many :product_variants, heading: 'Product Variants', allow_destroy: true, new_record: 'Add Variant' do |vf|

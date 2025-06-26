@@ -1,5 +1,11 @@
-document.addEventListener('DOMContentLoaded', function() {
-  document.addEventListener('click', function(event) {
+function initializeDeleteFix() {
+  // Remove existing listeners to prevent duplicates
+  const existingListener = document._deleteFixListener;
+  if (existingListener) {
+    document.removeEventListener('click', existingListener);
+  }
+  
+  function handleDeleteClick(event) {
     // Find if the clicked element or any of its parents is a delete link
     const deleteLink = event.target.closest('a[data-method="delete"]');
     if (!deleteLink) return;
@@ -25,17 +31,27 @@ document.addEventListener('DOMContentLoaded', function() {
     form.appendChild(methodInput);
     
     // Add CSRF token
-    const csrfParam = document.querySelector('meta[name="csrf-param"]').getAttribute('content');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrfParam = document.querySelector('meta[name="csrf-param"]');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
     
-    const tokenInput = document.createElement('input');
-    tokenInput.type = 'hidden';
-    tokenInput.name = csrfParam;
-    tokenInput.value = csrfToken;
-    form.appendChild(tokenInput);
+    if (csrfParam && csrfToken) {
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = csrfParam.getAttribute('content');
+      tokenInput.value = csrfToken.getAttribute('content');
+      form.appendChild(tokenInput);
+    }
     
     // Submit the form to perform the delete action
     document.body.appendChild(form);
     form.submit();
-  });
-});
+  }
+  
+  // Store reference to listener for cleanup
+  document._deleteFixListener = handleDeleteClick;
+  document.addEventListener('click', handleDeleteClick);
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeDeleteFix);
+document.addEventListener('turbo:load', initializeDeleteFix);

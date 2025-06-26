@@ -137,12 +137,14 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeStaffAvailabilityPage() {
     // Add time slot functionality
     document.querySelectorAll('.add-slot-btn').forEach(function(button) {
       button.addEventListener('click', function() {
         const day = this.dataset.day;
         const slotsContainer = document.getElementById(day + '-slots');
+        if (!slotsContainer) return;
+        
         const index = slotsContainer.children.length;
         
         const slotHtml = `
@@ -168,11 +170,18 @@
     function setupRemoveSlotButtons() {
       document.querySelectorAll('.remove-slot-btn').forEach(function(button) {
         button.addEventListener('click', function() {
-          this.closest('.time-slot-row').remove();
+          const timeSlotRow = this.closest('.time-slot-row');
+          if (timeSlotRow) {
+            timeSlotRow.remove();
+          }
         });
       });
     }
     
     setupRemoveSlotButtons();
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeStaffAvailabilityPage);
+  document.addEventListener('turbo:load', initializeStaffAvailabilityPage);
 </script>

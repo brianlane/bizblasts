@@ -180,7 +180,7 @@
   }
 
   // Add real-time validation listeners
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeClientRegistrationForm() {
     // Email validation
     const emailFields = document.querySelectorAll('input[type="email"]');
     emailFields.forEach(field => {
@@ -228,5 +228,9 @@
         }
       });
     }
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeClientRegistrationForm);
+  document.addEventListener('turbo:load', initializeClientRegistrationForm);
 </script> 

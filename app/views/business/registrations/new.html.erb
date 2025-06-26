@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <%= form_for(resource, as: resource_name, url: business_registration_path, local: true, class: "space-y-8") do |f| %>
+    <%= form_for(resource, as: resource_name, url: business_registration_path, local: true, class: "space-y-8", data: { turbo: false }) do |f| %>
       <%= render "devise/shared/error_messages", resource: resource %>
 
       <!-- Owner Information Section -->
@@ -335,10 +335,10 @@
 </div>
 
 <script type="text/javascript">
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBusinessRegistrationPlanSelection() {
     const selectedTierInput = document.getElementById('selected_tier');
     const hostnameFieldDiv = document.getElementById('hostname-field');
-    const hostnameInput = hostnameFieldDiv.querySelector('input[name="user[business_attributes][hostname]"]');
+    const hostnameInput = hostnameFieldDiv?.querySelector('input[name="user[business_attributes][hostname]"]');
     const hostnameHelpText = document.getElementById('hostname-help-text');
     const tierDescriptionDiv = document.getElementById('tier-descriptions');
     const planSelectButtons = document.querySelectorAll('.plan-select-btn');
@@ -346,7 +346,9 @@
 
     function selectPlan(tier) {
       // Update hidden field
-      selectedTierInput.value = tier;
+      if (selectedTierInput) {
+        selectedTierInput.value = tier;
+      }
       
       // Update visual selection - Reset all plans first
       subscriptionPlans.forEach(plan => {
@@ -384,6 +386,8 @@
     }
 
     function toggleFields(selectedTier) {
+      if (!tierDescriptionDiv || !hostnameFieldDiv || !hostnameInput || !hostnameHelpText) return;
+      
       // Hide all descriptions first
       tierDescriptionDiv.querySelectorAll('[data-tier]').forEach(p => p.style.display = 'none');
       // Clear help text
@@ -421,7 +425,7 @@
 
     // Initialize with free plan selected
     selectPlan('free');
-  });
+  }
 
   // Enhanced form validation functions
   function validateField(input, isValid, errorMessage) {
@@ -460,7 +464,7 @@
   }
 
   // Add real-time validation listeners
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeBusinessRegistrationValidation() {
     // Email validation
     const emailFields = document.querySelectorAll('input[type="email"]');
     emailFields.forEach(field => {
@@ -529,5 +533,11 @@
         this.value = value;
       });
     });
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationPlanSelection);
+  document.addEventListener('turbo:load', initializeBusinessRegistrationPlanSelection);
+  document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationValidation);
+  document.addEventListener('turbo:load', initializeBusinessRegistrationValidation);
 </script> 

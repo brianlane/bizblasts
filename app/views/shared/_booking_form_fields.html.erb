@@ -84,7 +84,7 @@
         <div class="form-group mb-4">
           <%= f.label :tenant_customer_id, "Select Existing Customer", class: "block text-sm font-medium text-gray-700 mb-1" %>
           <%= render 'shared/rich_dropdown',
-              collection: TenantCustomer.order(:name),
+              collection: TenantCustomer.order(:first_name, :last_name),
               field_name: "#{f.object_name}[tenant_customer_id]",
               selected_value: f.object.tenant_customer_id,
               prompt_text: "Create new customer",
@@ -165,7 +165,7 @@
 
 <script>
 // Handle booking form dynamic behavior
-document.addEventListener('DOMContentLoaded', function() {
+function initializeBookingForm() {
   // Handle customer field toggling in admin mode
   const customerIdField = document.getElementById('booking_customer_dropdown_hidden');
   const customerNameField = document.getElementById('booking_customer_name_field');
@@ -230,5 +230,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeBookingForm);
+document.addEventListener('turbo:load', initializeBookingForm);
 </script> 

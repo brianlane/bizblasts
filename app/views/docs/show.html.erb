@@ -124,7 +124,7 @@
 
 <!-- Enhanced JavaScript for Reading Experience -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeDocsShowPage() {
   // Reading progress indicator
   function updateReadingProgress() {
     const article = document.querySelector('.prose');
@@ -140,7 +140,10 @@ document.addEventListener('DOMContentLoaded', function() {
       1
     );
     
-    document.getElementById('reading-progress').style.width = (progress * 100) + '%';
+    const progressElement = document.getElementById('reading-progress');
+    if (progressElement) {
+      progressElement.style.width = (progress * 100) + '%';
+    }
   }
   
   // Table of contents generator
@@ -148,10 +151,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const headings = document.querySelectorAll('.prose h2, .prose h3');
     const tocContainer = document.getElementById('table-of-contents');
     
+    if (!tocContainer) return;
+    
     if (headings.length === 0) {
       document.getElementById('toc-container').style.display = 'none';
       return;
     }
+    
+    // Clear existing content
+    tocContainer.innerHTML = '';
     
     headings.forEach((heading, index) => {
       const id = 'heading-' + index;
@@ -209,16 +217,20 @@ document.addEventListener('DOMContentLoaded', function() {
       const rect = article.getBoundingClientRect();
       const tocContainer = document.getElementById('toc-container');
       
-      if (rect.top < window.innerHeight && rect.bottom > 0) {
+      if (tocContainer && rect.top < window.innerHeight && rect.bottom > 0) {
         tocContainer.style.opacity = '1';
         tocContainer.style.pointerEvents = 'auto';
-      } else {
+      } else if (tocContainer) {
         tocContainer.style.opacity = '0.3';
         tocContainer.style.pointerEvents = 'none';
       }
     }
   });
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeDocsShowPage);
+document.addEventListener('turbo:load', initializeDocsShowPage);
 </script>
 
 <!-- Custom Styles for Enhanced Reading -->

@@ -55,7 +55,7 @@
 <% end %>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeCustomerForm() {
   // Initialize validation for customer form
   if (window.CustomerFormValidation) {
     CustomerFormValidation.initializeForm({
@@ -65,5 +65,9 @@ document.addEventListener('DOMContentLoaded', function() {
       showSuccessState: true
     });
   }
-});
+}
+
+// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeCustomerForm);
+document.addEventListener('turbo:load', initializeCustomerForm);
 </script> 

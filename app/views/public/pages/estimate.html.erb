@@ -92,7 +92,7 @@
   }
 
   // Add real-time validation listeners
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeEstimateForm() {
     // Email validation
     const emailFields = document.querySelectorAll('input[type="email"]');
     emailFields.forEach(field => {
@@ -161,5 +161,9 @@
         this.value = value;
       });
     });
-  });
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeEstimateForm);
+  document.addEventListener('turbo:load', initializeEstimateForm);
 </script> 

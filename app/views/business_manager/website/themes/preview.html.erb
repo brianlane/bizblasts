@@ -1,0 +1,118 @@
+<% content_for :title, "#{@preview_theme.name} - Preview" %>
+
+<div class="theme-preview-container" data-theme-id="<%= @preview_theme.id %>">
+  <!-- Theme Preview Header -->
+  <div class="preview-header bg-gray-100 border-b p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div>
+        <h1 class="text-xl font-bold text-gray-900"><%= @preview_theme.name %></h1>
+        <p class="text-gray-600">Theme preview for <%= current_business.name %></p>
+      </div>
+      <div class="space-x-3">
+        <button type="button" 
+                onclick="window.parent.postMessage({action: 'activateTheme', themeId: <%= @preview_theme.id %>}, '*')"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+          Activate This Theme
+        </button>
+        <button type="button" 
+                onclick="window.parent.postMessage({action: 'closePreview'}, '*')"
+                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+          Close Preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sample Website Content with Theme Applied -->
+  <div class="theme-content">
+    <!-- Sample Header -->
+    <header class="bg-white shadow-sm border-b" style="background-color: var(--primary-color, #3b82f6);">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+          <div class="flex items-center">
+            <h1 class="text-2xl font-bold text-white"><%= @sample_page[:business_name] %></h1>
+          </div>
+          <nav class="hidden md:flex space-x-8">
+            <a href="#" class="text-white hover:text-gray-200">Home</a>
+            <a href="#" class="text-white hover:text-gray-200">About</a>
+            <a href="#" class="text-white hover:text-gray-200">Services</a>
+            <a href="#" class="text-white hover:text-gray-200">Contact</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sample Page Sections -->
+    <% @sample_page[:sections].each_with_index do |section, index| %>
+      <div class="section section-<%= section[:type] %> py-12" data-section-type="<%= section[:type] %>">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <%= render_sample_section(section) %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Sample Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+          <h3 class="text-lg font-semibold mb-2"><%= @sample_page[:business_name] %></h3>
+          <p class="text-gray-400"><%= @sample_page[:business_description] %></p>
+          <div class="mt-4 text-sm text-gray-500">
+            © <%= Date.current.year %> <%= @sample_page[:business_name] %>. All rights reserved.
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- Apply Theme Styles -->
+<style>
+  :root {
+    <%= @preview_theme.generate_css_variables.html_safe %>
+  }
+  
+  /* Custom theme CSS */
+  <% if @preview_theme.custom_css.present? %>
+    <%= @preview_theme.custom_css.html_safe %>
+  <% end %>
+  
+  /* Sample styling using theme variables */
+  .cta-button {
+    background-color: var(--accent-color, #10b981);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  
+  .cta-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  .service-card {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--accent-color, #10b981);
+  }
+  
+  .section h2 {
+    color: var(--primary-color, #3b82f6);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  
+  .section h3 {
+    color: var(--secondary-color, #1f2937);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+</style> 

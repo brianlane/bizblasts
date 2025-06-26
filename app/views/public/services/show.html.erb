@@ -63,12 +63,9 @@
       </div>
       <div>
          <% if @service.experience? %>
-           <p class="text-gray-900 font-medium">Type: Experience</p>
            <p class="text-gray-900 font-medium">Minimum Bookings: <%= @service.min_bookings %></p>
            <p class="text-gray-900 font-medium">Maximum Bookings: <%= @service.max_bookings %></p>
            <p class="text-gray-900 font-medium">Spots Available: <%= @service.spots %></p>
-         <% else %>
-           <p class="text-gray-900 font-medium">Type: Standard</p>
          <% end %>
       </div>
     </div>
