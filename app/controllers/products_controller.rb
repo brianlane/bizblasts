@@ -22,7 +22,7 @@ class ProductsController < ApplicationController
     base_scope = @business.products.where(id: visible_product_ids)
     
     @q = base_scope.ransack(params[:q])
-    result = @q.result(distinct: true).order(:id)
+    result = @q.result(distinct: true).positioned
 
     per_page = Kaminari.config.default_per_page
     if params[:q].blank? && result.count > per_page

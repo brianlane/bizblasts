@@ -101,6 +101,7 @@ import DropdownController from "./controllers/dropdown_controller"
 import CustomerDropdownController from "./controllers/customer_dropdown_controller"
 import ProductVariantsController from "./controllers/product_variants_controller"
 import ServiceFormController from "./controllers/service_form_controller"
+import SortableController from "./controllers/sortable_controller"
 import HelloController from "./controllers/hello_controller"
 
 application.register("page-editor", PageEditorController)
@@ -112,6 +113,7 @@ application.register("dropdown", DropdownController)
 application.register("customer-dropdown", CustomerDropdownController)
 application.register("product-variants", ProductVariantsController)
 application.register("service-form", ServiceFormController)
+application.register("sortable", SortableController)
 application.register("hello", HelloController)
 
 // Auto-discovery for additional controllers (compatible approach)
@@ -127,7 +129,7 @@ function autoDiscoverControllers() {
     // Get list of manually registered controllers to avoid duplicates
     const manuallyRegistered = new Set([
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
-      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'hello'
+      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello'
     ]);
     
     // Dynamically import and register each controller

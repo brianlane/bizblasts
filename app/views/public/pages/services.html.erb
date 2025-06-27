@@ -8,7 +8,7 @@
 
   <% if @business.services.active.any? %>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <% @business.services.active.order(:name).each do |service| %>
+      <% @business.services.active.positioned.each do |service| %>
         <div class="border rounded-lg p-4 shadow-sm flex flex-col">
           <%# Display Primary Image if available %>
           <% if service.primary_image&.attached? %>

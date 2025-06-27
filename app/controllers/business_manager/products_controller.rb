@@ -1,11 +1,13 @@
 module BusinessManager
   class ProductsController < BaseController # Inherit from your base controller for this namespace
-    before_action :set_product, only: [:show, :edit, :update, :destroy]
+    before_action :set_product, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down]
 
     # GET /manage/products
     def index
-      @products = @current_business.products.includes(:product_variants).order(:name)
-      # Add pagination if needed: e.g., @products = @products.page(params[:page])
+      @products = current_business.products.positioned.includes(:product_variants, images_attachments: :blob)
+      
+      # Apply pagination if using kaminari
+      @products = @products.page(params[:page]) if @products.respond_to?(:page)
     end
 
     # GET /manage/products/:id
@@ -16,13 +18,13 @@ module BusinessManager
 
     # GET /manage/products/new
     def new
-      @product = @current_business.products.new
+      @product = current_business.products.new
       # No automatic variant build; variants are opt-in via Add Variant link
     end
 
     # POST /manage/products
     def create
-      @product = @current_business.products.new(product_params)
+      @product = current_business.products.new(product_params)
       if @product.save
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully created.'
       else
@@ -53,15 +55,94 @@ module BusinessManager
       redirect_to business_manager_products_path, notice: 'Product was successfully deleted.'
     end
 
+    def update_position
+      new_position = params[:position].to_i
+      
+      if @product.move_to_position(new_position)
+        render json: { status: 'success', message: 'Product position updated successfully' }
+      else
+        render json: { status: 'error', message: 'Failed to update product position' }, status: :unprocessable_entity
+      end
+    end
+
+    def move_up
+      # Check if product is already at the top
+      products_list = current_business.products.positioned.to_a
+      current_index = products_list.index(@product)
+      
+      if current_index.nil?
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Product not found' }, status: :not_found }
+          format.html { redirect_to business_manager_products_path, alert: 'Product not found' }
+        end
+        return
+      end
+      
+      if current_index == 0
+        # Already at the top, do nothing but return success
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Product is already at the top' } }
+          format.html { redirect_to business_manager_products_path, notice: 'Product is already at the top' }
+        end
+        return
+      end
+      
+      # Move to previous position
+      target_product = products_list[current_index - 1]
+      if @product.move_to_position(target_product.position)
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Product moved up successfully' } }
+          format.html { redirect_to business_manager_products_path, notice: 'Product moved up successfully' }
+        end
+      else
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Failed to move product up' }, status: :unprocessable_entity }
+          format.html { redirect_to business_manager_products_path, alert: 'Failed to move product up' }
+        end
+      end
+    end
+
+    def move_down
+      # Check if product is already at the bottom
+      products_list = current_business.products.positioned.to_a
+      current_index = products_list.index(@product)
+      
+      if current_index.nil?
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Product not found' }, status: :not_found }
+          format.html { redirect_to business_manager_products_path, alert: 'Product not found' }
+        end
+        return
+      end
+      
+      if current_index == products_list.length - 1
+        # Already at the bottom, do nothing but return success
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Product is already at the bottom' } }
+          format.html { redirect_to business_manager_products_path, notice: 'Product is already at the bottom' }
+        end
+        return
+      end
+      
+      # Move to next position
+      target_product = products_list[current_index + 1]
+      if @product.move_to_position(target_product.position)
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Product moved down successfully' } }
+          format.html { redirect_to business_manager_products_path, notice: 'Product moved down successfully' }
+        end
+      else
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Failed to move product down' }, status: :unprocessable_entity }
+          format.html { redirect_to business_manager_products_path, alert: 'Failed to move product down' }
+        end
+      end
+    end
+
     private
 
     def set_product
-      # Eager load associations needed for show/edit views here
-            @product = @current_business.products
-        .includes(:product_variants, images_attachments: :blob)
-        .find(params[:id])
-    rescue ActiveRecord::RecordNotFound
-      redirect_to business_manager_products_path, alert: 'Product not found.'
+      @product = current_business.products.find(params[:id])
     end
 
     def product_params
@@ -72,6 +153,7 @@ module BusinessManager
         :show_stock_to_customers, # Allow customers to see stock quantities
         :hide_when_out_of_stock, # Hide product when out of stock
         :variant_label_text, # Variant label customization
+        :position, # Allow position updates
         add_on_service_ids: [], 
         # Allow multiple images to be uploaded
         images: [], 

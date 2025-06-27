@@ -6,7 +6,7 @@
   <h2 class="text-2xl font-bold mb-4">Our Services</h2>
   <% if @business.services.active.any? %>
     <div class="space-y-4">
-      <% @business.services.active.order(:name).each do |service| %>
+      <% @business.services.active.positioned.each do |service| %>
         <div class="border rounded-lg p-4 shadow-sm">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-xl font-semibold"><%= service.name %></h3>
@@ -47,11 +47,12 @@
   <% end %>
   <br>
   <br>
-  <% products = @business.products.active.where(product_type: [:standard, :mixed]).select(&:visible_to_customers?) %>
+  <% products = @business.products.active.where(product_type: [:standard, :mixed]).positioned %>
+  <% products = products.select(&:visible_to_customers?) %>
   <% products = products.select { |p| p.name.downcase.include?(params[:q].downcase) } if params[:q].present? %>
   <% if products.any? %>
     <div class="space-y-4">
-      <% products.order(:name).each do |product| %>
+      <% products.each do |product| %>
         <div class="border rounded-lg p-4 shadow-sm">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-xl font-semibold"><%= product.name %></h3>
