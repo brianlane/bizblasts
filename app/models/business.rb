@@ -230,6 +230,7 @@ class Business < ApplicationRecord
   before_validation :ensure_hours_is_hash
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
+  after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
   
   # Find the current tenant
   def self.current
@@ -436,7 +437,7 @@ class Business < ApplicationRecord
   
   # Custom ransacker for Stripe status filtering
   ransacker :stripe_status do
-    Arel.sql("CASE WHEN stripe_customer_id IS NOT NULL AND stripe_customer_id != '' THEN 'connected' ELSE 'not_connected' END")
+    Arel.sql("CASE WHEN stripe_account_id IS NOT NULL AND stripe_account_id != '' THEN 'connected' ELSE 'not_connected' END")
   end
   
   # Domain coverage methods for Premium tier
@@ -630,6 +631,26 @@ class Business < ApplicationRecord
       payments.find_each do |payment|
         payment.mark_business_deleted!
       end
+    end
+  end
+  
+  def handle_loyalty_program_disabled
+    # Only act if loyalty program was disabled (changed from true to false)
+    return unless loyalty_program_enabled_before_last_save == true && !loyalty_program_enabled?
+    
+    # Find all services that use loyalty fallback
+    services_with_loyalty_fallback = services.where(
+      subscription_enabled: true,
+      subscription_rebooking_preference: 'same_day_loyalty_fallback'
+    )
+    
+    if services_with_loyalty_fallback.exists?
+      Rails.logger.info "[LOYALTY PROGRAM DISABLED] Converting #{services_with_loyalty_fallback.count} service(s) from loyalty fallback to standard fallback for business #{id}"
+      
+      # Convert them to the standard fallback option
+      services_with_loyalty_fallback.update_all(
+        subscription_rebooking_preference: 'same_day_next_month'
+      )
     end
   end
 end 

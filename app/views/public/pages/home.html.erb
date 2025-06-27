@@ -32,7 +32,7 @@
 
   <%# Services Section %>
   <% if @business.show_services_section? %>
-    <% @services = @business.services.active.order(:name) %>
+    <% @services = @business.services.active.positioned %>
     <% if @services.any? %>
       <div>
         <h2 class="text-3xl font-semibold mb-6">Our Services</h2>
@@ -72,7 +72,7 @@
 
   <%# Products Section %>
   <% if @business.show_products_section? %>
-    <% @products = @business.products.active.where(product_type: [:standard, :mixed]).select(&:visible_to_customers?).sort_by(&:name) %>
+    <% @products = @business.products.active.where(product_type: [:standard, :mixed]).positioned.select(&:visible_to_customers?) %>
     <% if @products.any? %>
       <div class="mt-12">
         <h2 class="text-3xl font-semibold mb-6">Our Products</h2>
