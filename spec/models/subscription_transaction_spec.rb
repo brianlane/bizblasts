@@ -165,7 +165,7 @@ RSpec.describe SubscriptionTransaction, type: :model do
       end
 
       it 'does not change processed_date if already set' do
-        original_date = 1.hour.ago.to_date
+        original_date = Date.current - 1.day  # Use stable date to avoid midnight boundary issues
         transaction = create(:subscription_transaction, :pending, processed_date: original_date)
         
         transaction.update!(status: 'completed')

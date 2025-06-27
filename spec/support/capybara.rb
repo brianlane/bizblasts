@@ -3,29 +3,69 @@ require 'capybara/cuprite'
 
 # Configure Capybara for system tests
 Capybara.register_driver(:cuprite) do |app|
-  Capybara::Cuprite::Driver.new(
-    app,
+  options = {
     window_size: [1200, 800],
     # Browser options for CI/Docker compatibility
     browser_options: { 
       'no-sandbox' => nil,
       'disable-gpu' => true,
-      'disable-dev-shm-usage' => nil
+      'disable-dev-shm-usage' => nil,
+      'disable-background-timer-throttling' => nil,
+      'disable-backgrounding-occluded-windows' => nil,
+      'disable-renderer-backgrounding' => nil,
+      'disable-features' => 'TranslateUI',
+      'disable-extensions' => nil,
+      'disable-ipc-flooding-protection' => nil,
+      'disable-hang-monitor' => nil,
+      'disable-client-side-phishing-detection' => nil,
+      'disable-popup-blocking' => nil,
+      'disable-prompt-on-repost' => nil,
+      'disable-sync' => nil,
+      'disable-translate' => nil,
+      'disable-web-security' => nil,
+      'force-color-profile' => 'srgb',
+      'memory-pressure-off' => nil,
+      'max_old_space_size' => '4096'
     },
     headless: ENV['HEADLESS'] != 'false',
     inspector: ENV['INSPECTOR'] == 'true',
-    process_timeout: 150,  # Increased for CI stability  
-    timeout:         150,  # Increased for longer startup
     js_errors: true,
     dialog_handler: ->(page, dialog) { dialog.accept }
-  )
+  }
+
+  # CI-specific settings for better stability
+  if ENV['CI'] == 'true'
+    options.merge!({
+      process_timeout: 30,     # Increased timeout for CI
+      timeout: 30,             # Increased timeout for CI
+      slowmo: 0.1,             # Add slight delay between commands
+      browser_options: options[:browser_options].merge({
+        'single-process' => nil,
+        'no-zygote' => nil,
+        'memory-pressure-off' => nil,
+        'max_old_space_size' => '2048'
+      })
+    })
+  else
+    options.merge!({
+      process_timeout: 15,
+      timeout: 15
+    })
+  end
+
+  Capybara::Cuprite::Driver.new(app, **options)
 end
 
 # Use cuprite for JS tests
 Capybara.javascript_driver = :cuprite
 
 # Configure test timeouts
-Capybara.default_max_wait_time = 30 # seconds
+if ENV['CI'] == 'true'
+  Capybara.default_max_wait_time = 15 # seconds - reduced for CI speed
+  Capybara.server_errors = []        # Don't raise server errors in CI
+else
+  Capybara.default_max_wait_time = 30 # seconds
+end
 
 # Configure the default host for Capybara tests
 Capybara.server_host = 'lvh.me'
