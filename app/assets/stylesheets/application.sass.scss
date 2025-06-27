@@ -54,3 +54,137 @@
     font-style: italic;
   }
 }
+
+// Drag and Drop Sortable Styles
+.sortable-ghost {
+  opacity: 0.5;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+}
+
+.sortable-chosen {
+  cursor: grabbing;
+  transform: rotate(2deg);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.sortable-drag {
+  opacity: 0.8;
+  transform: rotate(5deg);
+}
+
+.sortable-handle {
+  cursor: grab;
+  color: #6b7280;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: #374151;
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// Sortable item styles
+.sortable-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Mobile drag feedback
+@media (max-width: 1024px) {
+  .sortable-chosen {
+    transform: scale(1.02);
+  }
+  
+  .sortable-ghost {
+    opacity: 0.3;
+  }
+}
+
+// Position indicator
+.position-indicator {
+  @apply inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-600 text-sm font-medium rounded-full;
+  min-width: 2rem;
+}
+
+// Drag instructions
+.drag-instructions {
+  @apply text-xs text-gray-500 mt-2 flex items-center gap-1;
+}
+
+.drag-icon {
+  @apply text-gray-400 hover:text-gray-600 transition-colors;
+}
+
+// Arrow button styles for position controls
+.position-controls {
+  @apply flex items-center gap-1;
+}
+
+.position-arrow {
+  @apply inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors border-0 bg-transparent p-0;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  &:focus {
+    @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+  }
+  
+  &.disabled {
+    @apply opacity-30 cursor-not-allowed;
+    
+    &:hover {
+      @apply text-gray-400 bg-transparent;
+      transform: none;
+    }
+  }
+}
+
+// Enhanced position indicator with arrows
+.position-indicator-with-arrows {
+  @apply flex items-center gap-1;
+  
+  .position-number {
+    @apply inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-600 text-sm font-medium rounded-full;
+    min-width: 2rem;
+    
+    // Ensure perfect centering
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Mobile-specific improvements
+@media (max-width: 1024px) {
+  .position-indicator-with-arrows {
+    @apply gap-3;
+    
+    .position-number {
+      @apply w-10 h-10 text-base font-semibold;
+      min-width: 2.5rem;
+    }
+    
+    .position-arrow {
+      @apply w-8 h-8;
+      
+      svg {
+        @apply w-5 h-5;
+      }
+    }
+  }
+}

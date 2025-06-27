@@ -29,8 +29,17 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
       processed_params[:cancellation_window_mins] = nil
     end
     
-    # Remove the virtual cancellation_window_hours parameter
+    # Convert hours to minutes for min_advance_hours before updating
+    if processed_params[:min_advance_hours].present?
+      hours = processed_params[:min_advance_hours].to_i
+      processed_params[:min_advance_mins] = hours * 60
+    else
+      processed_params[:min_advance_mins] = nil
+    end
+    
+    # Remove the virtual parameters
     processed_params.delete(:cancellation_window_hours)
+    processed_params.delete(:min_advance_hours)
     
     if @booking_policy.update(processed_params)
       redirect_to business_manager_settings_booking_policy_path, notice: 'Booking policies updated successfully.'
@@ -56,7 +65,8 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
       :max_advance_days,
       :min_duration_mins,
       :max_duration_mins,
-      :cancellation_window_hours
+      :cancellation_window_hours,
+      :min_advance_hours
     )
   end
 end 

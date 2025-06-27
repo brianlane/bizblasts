@@ -80,8 +80,20 @@ Rails.application.routes.draw do
   constraints(SubdomainConstraint) do
     namespace :business_manager, path: '/manage' do
       get '/dashboard', to: 'dashboard#index', as: :dashboard
-      resources :services
-      resources :products
+      resources :services do
+        member do
+          patch :update_position
+          patch :move_up
+          patch :move_down
+        end
+      end
+      resources :products do
+        member do
+          patch :update_position
+          patch :move_up
+          patch :move_down
+        end
+      end
       resources :shipping_methods
       resources :tax_rates
       resources :customers

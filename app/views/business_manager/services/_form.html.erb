@@ -95,6 +95,19 @@
           data-service-form-target="serviceTypeError">
        Please select a service type.
      </div>
+     
+     <!-- Service Type Explanation -->
+     <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+       <h5 class="text-sm font-medium text-blue-800 mb-2">Service Type Definitions:</h5>
+       <div class="text-sm text-blue-700 space-y-2">
+         <div>
+           <span class="font-semibold">Standard:</span> Regular services that customers book individually. Quantity is always 1 person, payment can be flexible (before or after service), and each booking is independent.
+         </div>
+         <div>
+           <span class="font-semibold">Experience:</span> Events with multiple attendees. Supports variable quantity (min/max attendees), requires upfront payment to secure spots, and ideal for workshops, tours, or group services.
+         </div>
+       </div>
+     </div>
    </div>
 
    <div id="experience_fields" class="<%= service.experience? ? '' : 'hidden' %>" 
@@ -116,19 +129,23 @@
      <% end %>
    </div>
 
-  <%# Add-on Products %>
-  <div class="mb-4">
-    <h3 class="text-lg font-semibold mb-2">Add-on Products</h3>
-    <%= form.collection_check_boxes :add_on_product_ids, @current_business.products.where(product_type: [:service, :mixed]).order(:name), :id, :name do |b|
-      b.label(class: "inline-flex items-center mr-4 mb-2") do
-        b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
-        content_tag(:span, b.text, class: "ml-2")
-      end
-    end %>
-  </div>
+  <%# Add-on Products - only show if business has service or mixed products %>
+  <% addon_products = @current_business.products.where(product_type: [:service, :mixed]).positioned %>
+  <% if addon_products.exists? %>
+    <div class="mb-4">
+      <h3 class="text-lg font-semibold mb-2">Add-on Products</h3>
+      <%= form.collection_check_boxes :add_on_product_ids, addon_products, :id, :name do |b|
+        b.label(class: "inline-flex items-center mr-4 mb-2") do
+          b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
+          content_tag(:span, b.text, class: "ml-2")
+        end
+      end %>
+    </div>
+  <% end %>
 
   <!-- Subscription Settings Section -->
-  <div id="service-subscription-settings" class="mb-8 border-t pt-6" style="<%= service.subscription_enabled? ? '' : 'display: none;' %>">
+  <div id="service-subscription-settings" class="mb-8 border-t pt-6" style="<%= service.subscription_enabled? ? '' : 'display: none;' %>" 
+       data-service-form-target="subscriptionSettings">
     <h3 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Subscription Settings</h3>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -162,9 +179,16 @@
         <h4 class="text-md font-medium text-gray-800">Rebooking Preferences</h4>
         
         <div>
-          <%= form.label :subscription_rebooking_preference, "Default Rebooking Option", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= form.label :subscription_rebooking_preference, "Rebooking Preference", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <% 
+            business_rebooking_options = [
+              ['Same day next month (or soonest available)', 'same_day_next_month'],
+              ['Same day next month (or loyalty points if unavailable)', 'same_day_loyalty_fallback'],
+              ['Let customers choose their preference', 'customer_choice']
+            ]
+          %>
           <%= render 'shared/rich_dropdown',
-              collection: CustomerSubscription.rebooking_preferences.map { |key, label| [label, key] },
+              collection: business_rebooking_options,
               field_name: "#{form.object_name}[subscription_rebooking_preference]",
               selected_value: service.subscription_rebooking_preference || 'same_day_next_month',
               prompt_text: "Select Rebooking Option",
@@ -180,54 +204,13 @@
           <ul class="text-sm text-blue-700 space-y-1">
             <li><strong>Same day next month (or soonest available):</strong> Try to book same day/time next month, fallback to earliest available slot</li>
             <li><strong>Same day next month (or loyalty points if unavailable):</strong> Try to book same day/time next month, award loyalty points if no slots available (requires loyalty program)</li>
-            <li><strong>Use business default:</strong> Use the default rebooking preference set by the business</li>
+            <li><strong>Let customers choose their preference:</strong> Customers can select their preferred rebooking option when subscribing</li>
           </ul>
         </div>
       </div>
     </div>
 
-    <!-- Customer Preferences Section -->
-    <div class="mt-6 border-t pt-6">
-      <h4 class="text-md font-medium text-gray-800 mb-4">Customer Preferences</h4>
-      
-      <div class="space-y-4">
-        <div class="flex items-start">
-          <div class="flex items-center h-5">
-            <%= form.check_box :allow_customer_preferences, 
-                  class: "focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded",
-                  checked: service.allow_customer_preferences != false %>
-          </div>
-          <div class="ml-3">
-            <%= form.label :allow_customer_preferences, "Allow customers to set their own subscription preferences", 
-                  class: "text-sm font-medium text-gray-700" %>
-            <p class="text-sm text-gray-500 mt-1">
-              When enabled, customers can choose their preferred rebooking options instead of using your defaults.
-            </p>
-          </div>
-        </div>
-        
-        <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-amber-800">Customer Choice Benefits</h3>
-              <div class="mt-2 text-sm text-amber-700">
-                <ul class="list-disc list-inside space-y-1">
-                  <li>Improves customer satisfaction and control</li>
-                  <li>Reduces support requests about rebooking preferences</li>
-                  <li>Your settings above become the default fallback</li>
-                  <li>Customers can change preferences anytime in their account</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </div>
 
   <!-- Service Images Section -->

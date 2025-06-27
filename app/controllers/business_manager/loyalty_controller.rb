@@ -44,8 +44,21 @@ class BusinessManager::LoyaltyController < BusinessManager::BaseController
   
   def toggle_status
     if current_business.loyalty_program_enabled?
-      current_business.update!(loyalty_program_enabled: false)
-      message = 'Loyalty program disabled.'
+      # Check if any services use loyalty fallback before disabling
+      services_with_loyalty_fallback = current_business.services.where(
+        subscription_enabled: true,
+        subscription_rebooking_preference: 'same_day_loyalty_fallback'
+      )
+      
+      if services_with_loyalty_fallback.exists?
+        # Show warning and auto-convert
+        service_names = services_with_loyalty_fallback.pluck(:name).join(', ')
+        current_business.update!(loyalty_program_enabled: false)
+        message = "Loyalty program disabled. The following services with loyalty fallback were automatically converted to standard rebooking: #{service_names}."
+      else
+        current_business.update!(loyalty_program_enabled: false)
+        message = 'Loyalty program disabled.'
+      end
     else
       current_business.update!(loyalty_program_enabled: true)
       ensure_loyalty_program!
