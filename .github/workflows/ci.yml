@@ -104,7 +104,7 @@ jobs:
   # Model tests - typically fast and don't need browser
   test_models:
     runs-on: ubuntu-latest
-    
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_models
@@ -467,6 +467,7 @@ jobs:
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+      CI: true
 
     services:
       postgres:
@@ -480,7 +481,16 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+          # Install Chrome with proper dependencies
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          # Verify Chrome installation
+          google-chrome --version
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -572,6 +582,7 @@ jobs:
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+      CI: true
 
     services:
       postgres:
@@ -585,7 +596,16 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+          # Install Chrome with proper dependencies
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          # Verify Chrome installation
+          google-chrome --version
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -677,6 +697,7 @@ jobs:
       DISABLE_PROPSHAFT: true
       RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+      CI: true
 
     services:
       postgres:
@@ -690,7 +711,16 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config google-chrome-stable
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+          # Install Chrome with proper dependencies
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          # Verify Chrome installation
+          google-chrome --version
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -958,7 +988,7 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_performance;"
           PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_performance;"
           bundle exec rake ci:github_actions
-
+          
       - name: Build Tailwind CSS
         env:
           SKIP_SOLID_QUEUE_SETUP: true

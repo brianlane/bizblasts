@@ -17,6 +17,12 @@ show_help() {
   echo "  No arguments    : Run all tests in parallel"
   echo "  fast            : Run tests without coverage"
   echo "  spec            : Run all tests in parallel"
+  echo "  split           : Use intelligent test splitting with isolated databases"
+  echo "  split-list      : Show test distribution across categories"
+  echo "  split-run [cat] : Run specific test category (models, system_1, etc.)"
+  echo "  split-all       : Run all categories in parallel with isolated databases"
+  echo "  split-setup     : Setup all isolated databases"
+  echo "  split-cleanup   : Clean up isolated test databases"
   echo "  -r, --reset-db  : Force recreation of test databases"
   echo "  -c, --coverage  : Enable code coverage (slower)"
   echo "  -p, --parallel N: Use N parallel processes (default: auto-detect)"
@@ -25,6 +31,10 @@ show_help() {
   echo "Examples:"
   echo "  ./bin/test                                # Run all tests"
   echo "  ./bin/test fast                          # Run without coverage"
+  echo "  ./bin/test split-list                    # Show test categories"
+  echo "  ./bin/test split-run models              # Run only model tests"
+  echo "  ./bin/test split-run system_1            # Run system test group 1"
+  echo "  ./bin/test split-all                     # Run all categories in parallel"
   echo "  ./bin/test -p 16                        # Use 16 parallel processes"
   echo "  ./bin/test spec/models/user_spec.rb      # Run specific test file"
   echo ""
@@ -58,11 +68,71 @@ while [[ $# -gt 0 ]]; do
       FAST_MODE=1
       shift
       ;;
+    split-list)
+      ./bin/split_tests.rb list
+      exit $?
+      ;;
+    split-run)
+      SPLIT_RUN_COMMAND=1
+      CATEGORY="$2"
+      if [ -z "$CATEGORY" ]; then
+        echo "Error: Must specify category for split-run"
+        echo "Use: ./bin/test split-list to see available categories"
+        exit 1
+      fi
+      shift 2
+      ;;
+    split-all)
+      SPLIT_ALL_COMMAND=1
+      shift
+      ;;
+    split-setup)
+      ./bin/split_tests.rb setup-all
+      exit $?
+      ;;
+    split-cleanup)
+      ./bin/split_tests.rb cleanup
+      exit $?
+      ;;
+    split)
+      echo "Available split commands:"
+      echo "  split-list      Show test distribution"
+      echo "  split-run [cat] Run specific category"
+      echo "  split-all       Run all categories in parallel"
+      echo "  split-setup     Setup isolated databases"
+      echo "  split-cleanup   Clean up databases"
+      echo ""
+      echo "Use: ./bin/test split-list to see test categories"
+      exit 0
+      ;;
     *)
       break
       ;;
   esac
 done
+
+# Execute split commands after parsing all options
+if [ "$SPLIT_RUN_COMMAND" = "1" ]; then
+  # Build options for split_tests.rb
+  SPLIT_OPTS=()
+  [ $ENABLE_COVERAGE -eq 1 ] && SPLIT_OPTS+=("-c")
+  [ $FAST_MODE -eq 1 ] && SPLIT_OPTS+=("-f")
+  [ -n "$CUSTOM_PROCESSORS" ] && SPLIT_OPTS+=("-p" "$CUSTOM_PROCESSORS")
+  
+  ./bin/split_tests.rb run "$CATEGORY" "${SPLIT_OPTS[@]}"
+  exit $?
+fi
+
+if [ "$SPLIT_ALL_COMMAND" = "1" ]; then
+  # Build options for split_tests.rb
+  SPLIT_OPTS=()
+  [ $ENABLE_COVERAGE -eq 1 ] && SPLIT_OPTS+=("-c")
+  [ $FAST_MODE -eq 1 ] && SPLIT_OPTS+=("-f")
+  [ -n "$CUSTOM_PROCESSORS" ] && SPLIT_OPTS+=("-p" "$CUSTOM_PROCESSORS")
+  
+  ./bin/split_tests.rb run-all "${SPLIT_OPTS[@]}"
+  exit $?
+fi
 
 # Auto-detect optimal processor count
 if [ -z "$CUSTOM_PROCESSORS" ]; then

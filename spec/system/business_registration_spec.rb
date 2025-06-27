@@ -75,7 +75,7 @@ RSpec.describe "Business Registration", type: :system do
     it "displays subscription plan tiles" do
       visit new_business_registration_path
       
-      expect(page).to have_content("Choose Your MonthlyPlan")
+      expect(page).to have_content("Choose Your Monthly Plan")
       expect(page).to have_content("Free Plan")
       expect(page).to have_content("$0/month")
       expect(page).to have_content("Standard Plan")
