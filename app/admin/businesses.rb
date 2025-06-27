@@ -115,9 +115,17 @@ ActiveAdmin.register Business do
     column :hostname
     column :host_type
     column :tier
-    column "Stripe Status", :stripe_customer_id do |business|
-      if business.stripe_customer_id.present?
-        status_tag "Connected", class: "ok"
+    column "Stripe Status", :stripe_account_id do |business|
+      if business.stripe_account_id.present?
+        begin
+          if StripeService.check_onboarding_status(business)
+            status_tag "Connected", class: "ok"
+          else
+            status_tag "Setup Incomplete", class: "warning"
+          end
+        rescue => e
+          status_tag "Error", class: "error"
+        end
       else
         status_tag "Not Connected", class: "error"
       end
@@ -157,8 +165,16 @@ ActiveAdmin.register Business do
       row :host_type
       row :tier
       row "Stripe Status" do |business|
-        if business.stripe_customer_id.present?
-          status_tag("Connected", class: "ok") + " (Customer ID: #{business.stripe_customer_id})".html_safe
+        if business.stripe_account_id.present?
+          begin
+            if StripeService.check_onboarding_status(business)
+              status_tag("Connected", class: "ok") + " (Account ID: #{business.stripe_account_id})".html_safe
+            else
+              status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{business.stripe_account_id})".html_safe
+            end
+          rescue => e
+            status_tag("Error", class: "error") + " (Account ID: #{business.stripe_account_id})".html_safe
+          end
         else
           status_tag "Not Connected", class: "error"
         end
@@ -184,13 +200,24 @@ ActiveAdmin.register Business do
     panel "Stripe Integration" do
       attributes_table_for business do
         row "Connection Status" do |b|
-          if b.stripe_customer_id.present?
-            status_tag "Connected", class: "ok"
+          if b.stripe_account_id.present?
+            begin
+              if StripeService.check_onboarding_status(b)
+                status_tag "Connected", class: "ok"
+              else
+                status_tag "Setup Incomplete", class: "warning"
+              end
+            rescue => e
+              status_tag "Error", class: "error"
+            end
           else
             status_tag "Not Connected", class: "error"
           end
         end
-        row "Stripe Customer ID" do |b|
+        row "Stripe Connect Account ID" do |b|
+          b.stripe_account_id.present? ? b.stripe_account_id : "Not set"
+        end
+        row "Stripe Customer ID (for subscriptions)" do |b|
           b.stripe_customer_id.present? ? b.stripe_customer_id : "Not set"
         end
         row "Connected At" do |b|
@@ -300,7 +327,8 @@ ActiveAdmin.register Business do
     
     # Stripe Integration section
     f.inputs "Stripe Integration" do
-      f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "The Stripe customer ID for this business (automatically set when connected)"
+      f.input :stripe_account_id, label: "Stripe Connect Account ID", hint: "The Stripe Connect account ID for accepting payments (automatically set when connected)"
+      f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "The Stripe customer ID for business subscriptions (automatically set when paying for plans)"
     end
     
     # Domain Coverage section (only for Premium tier businesses)
