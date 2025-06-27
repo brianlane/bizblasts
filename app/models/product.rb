@@ -97,6 +97,7 @@ class Product < ApplicationRecord
 
   # If products can be sold without variants, add stock field and validation
   validates :stock_quantity, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: :has_variants?
+  validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   def has_variants?
     product_variants.exists?  
@@ -271,6 +272,39 @@ class Product < ApplicationRecord
     end
   end
 
+  # Position management
+  scope :positioned, -> { order(:position, :created_at) }
+  scope :by_position, -> { order(:position) }
+  
+  # Set position before creation if not set
+  before_create :set_position_to_end, unless: :position?
+  after_destroy :resequence_positions
+
+  # Position management methods
+  def move_to_position(new_position)
+    return if position == new_position
+    
+    transaction do
+      if new_position > position
+        # Moving down: shift items up
+        business.products.where(position: (position + 1)..new_position).update_all('position = position - 1')
+      else
+        # Moving up: shift items down
+        business.products.where(position: new_position...position).update_all('position = position + 1')
+      end
+      
+      update!(position: new_position)
+    end
+  end
+  
+  def move_to_top
+    move_to_position(0)
+  end
+  
+  def move_to_bottom
+    move_to_position(business.products.maximum(:position) || 0)
+  end
+
   private
 
   def validate_pending_image_attributes
@@ -376,5 +410,14 @@ class Product < ApplicationRecord
       price_modifier: 0,
       stock_quantity: stock_quantity || 0
     )
+  end
+
+  def set_position_to_end
+    max_position = business&.products&.maximum(:position) || -1
+    self.position = max_position + 1
+  end
+  
+  def resequence_positions
+    business.products.where('position > ?', position).update_all('position = position - 1')
   end
 end 

@@ -58,6 +58,7 @@ class Service < ApplicationRecord
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
   validates :allow_discounts, inclusion: { in: [true, false] }
+  validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   # Validations for images - Updated for 15MB max
   validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
@@ -66,6 +67,7 @@ class Service < ApplicationRecord
   
   validate :image_size_validation
   validate :image_format_validation
+  validate :loyalty_program_required_for_loyalty_fallback
   
   # Validations for min/max bookings and spots based on type
   validates :min_bookings, numericality: { only_integer: true, greater_than_or_equal_to: 1 }, if: :experience?
@@ -80,6 +82,14 @@ class Service < ApplicationRecord
   
   scope :active, -> { where(active: true) }
   scope :featured, -> { where(featured: true) }
+  
+  # Position management
+  scope :positioned, -> { order(:position, :created_at) }
+  scope :by_position, -> { order(:position) }
+  
+  # Set position before creation if not set
+  before_create :set_position_to_end, unless: :position?
+  after_destroy :resequence_positions
   
   # Optional: Define an enum for duration if you have standard lengths
   # enum duration_minutes: { thirty_minutes: 30, sixty_minutes: 60, ninety_minutes: 90 }
@@ -195,6 +205,31 @@ class Service < ApplicationRecord
     duration
   end
 
+  # Position management methods
+  def move_to_position(new_position)
+    return if position == new_position
+    
+    transaction do
+      if new_position > position
+        # Moving down: shift items up
+        business.services.where(position: (position + 1)..new_position).update_all('position = position - 1')
+      else
+        # Moving up: shift items down
+        business.services.where(position: new_position...position).update_all('position = position + 1')
+      end
+      
+      update!(position: new_position)
+    end
+  end
+  
+  def move_to_top
+    move_to_position(0)
+  end
+  
+  def move_to_bottom
+    move_to_position(business.services.maximum(:position) || 0)
+  end
+
   # Custom setter to handle nested image attributes (primary flags & ordering)
   # This logic is adapted from the Product model and assumes similar ActiveAdmin handling
   def images_attributes=(attrs)
@@ -280,5 +315,43 @@ class Service < ApplicationRecord
   def set_initial_spots
     # For 'Experience' services, initialize spots with max_bookings if not already set
     self.spots = max_bookings if spots.nil? && max_bookings.present?
+  end
+  
+  def loyalty_program_required_for_loyalty_fallback
+    return unless subscription_enabled? && subscription_rebooking_preference == 'same_day_loyalty_fallback'
+    
+    unless business&.loyalty_program_active?
+      errors.add(:subscription_rebooking_preference, 
+        'cannot use loyalty points fallback when loyalty program is not enabled. Please enable your loyalty program first or choose a different rebooking option.')
+    end
+  end
+  
+  # Safe method to get rebooking preference - falls back if loyalty program is disabled
+  def effective_subscription_rebooking_preference
+    return subscription_rebooking_preference unless subscription_rebooking_preference == 'same_day_loyalty_fallback'
+    
+    # If loyalty fallback is set but loyalty program is disabled, use standard fallback
+    if business&.loyalty_program_active?
+      'same_day_loyalty_fallback'
+    else
+      Rails.logger.warn "[SERVICE #{id}] Loyalty fallback requested but loyalty program disabled. Using standard fallback instead."
+      'same_day_next_month'
+    end
+  end
+
+  def set_position_to_end
+    max_position = business&.services&.maximum(:position) || -1
+    self.position = max_position + 1
+  end
+  
+  def resequence_positions
+    business.services.where('position > ?', position).update_all('position = position - 1')
+  end
+  
+  # Class method to resequence all positions for a business
+  def self.resequence_for_business(business)
+    business.services.positioned.each_with_index do |service, index|
+      service.update_column(:position, index) if service.position != index
+    end
   end
 end 

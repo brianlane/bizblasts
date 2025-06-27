@@ -65,7 +65,7 @@ module Public
         # @products are loaded in home.html.erb directly
         render template: 'public/pages/home'
       when 'services'
-        @services = @business.services.active.order(:name)
+        @services = @business.services.active.positioned
         if @services.empty?
           redirect_to tenant_root_path, notice: "No services are currently available. Please check back later!"
           return
@@ -82,7 +82,7 @@ module Public
         
         @products = @business.products.active.where(product_type: [:standard, :mixed])
         @products = @products.where('name ILIKE ?', "%#{params[:q]}%") if params[:q].present?
-        @products = @products.order(:name)
+        @products = @products.positioned
         render template: 'public/pages/products'
       when 'about'
         render template: 'public/pages/about' # Assuming you have an about.html.erb

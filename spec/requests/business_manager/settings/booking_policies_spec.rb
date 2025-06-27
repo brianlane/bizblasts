@@ -95,6 +95,14 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
           expect(response).to redirect_to(business_manager_settings_booking_policy_path)
           expect(flash[:notice]).to eq('Booking policies updated successfully.')
         end
+
+        it "converts min_advance_hours to minutes correctly" do
+          patch business_manager_settings_booking_policy_path, params: { booking_policy: { min_advance_hours: 2 } }
+          @booking_policy.reload
+          expect(@booking_policy.min_advance_mins).to eq(120) # 2 hours = 120 minutes
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
+          expect(flash[:notice]).to eq('Booking policies updated successfully.')
+        end
       end
 
       context "with invalid parameters" do

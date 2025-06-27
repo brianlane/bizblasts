@@ -2,12 +2,14 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
-  before_action :set_service, only: [:show, :edit, :update, :destroy]
+  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down]
 
   # GET /business_manager/services
   def index
-    # TODO: Add filtering/sorting later
-    @services = @current_business.services.order(:name).page(params[:page]).per(10) # Basic pagination
+    @services = current_business.services.positioned.includes(:staff_members, images_attachments: :blob)
+    
+    # Apply pagination if using kaminari
+    @services = @services.page(params[:page]) if @services.respond_to?(:page)
     # authorize @services # Add Pundit authorization later
   end
 
@@ -19,13 +21,13 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
   # GET /business_manager/services/new
   def new
-    @service = @current_business.services.new
+    @service = current_business.services.new
     # authorize @service
   end
 
   # POST /business_manager/services
   def create
-    @service = @current_business.services.new(service_params)
+    @service = current_business.services.new(service_params)
     # authorize @service # Add Pundit authorization later
 
     if @service.save
@@ -66,11 +68,95 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     end
   end
 
-  private
+      def update_position
+      new_position = params[:position].to_i
+      
+      if @service.move_to_position(new_position)
+        render json: { status: 'success', message: 'Service position updated successfully' }
+      else
+        render json: { status: 'error', message: 'Failed to update service position' }, status: :unprocessable_entity
+      end
+    end
+
+    def move_up
+      # Check if service is already at the top
+      services_list = current_business.services.positioned.to_a
+      current_index = services_list.index(@service)
+      
+      if current_index.nil?
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Service not found' }, status: :not_found }
+          format.html { redirect_to business_manager_services_path, alert: 'Service not found' }
+        end
+        return
+      end
+      
+      if current_index == 0
+        # Already at the top, do nothing but return success
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Service is already at the top' } }
+          format.html { redirect_to business_manager_services_path, notice: 'Service is already at the top' }
+        end
+        return
+      end
+      
+      # Move to previous position
+      target_service = services_list[current_index - 1]
+      if @service.move_to_position(target_service.position)
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Service moved up successfully' } }
+          format.html { redirect_to business_manager_services_path, notice: 'Service moved up successfully' }
+        end
+      else
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Failed to move service up' }, status: :unprocessable_entity }
+          format.html { redirect_to business_manager_services_path, alert: 'Failed to move service up' }
+        end
+      end
+    end
+
+    def move_down
+      # Check if service is already at the bottom
+      services_list = current_business.services.positioned.to_a
+      current_index = services_list.index(@service)
+      
+      if current_index.nil?
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Service not found' }, status: :not_found }
+          format.html { redirect_to business_manager_services_path, alert: 'Service not found' }
+        end
+        return
+      end
+      
+      if current_index == services_list.length - 1
+        # Already at the bottom, do nothing but return success
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Service is already at the bottom' } }
+          format.html { redirect_to business_manager_services_path, notice: 'Service is already at the bottom' }
+        end
+        return
+      end
+      
+      # Move to next position
+      target_service = services_list[current_index + 1]
+      if @service.move_to_position(target_service.position)
+        respond_to do |format|
+          format.json { render json: { status: 'success', message: 'Service moved down successfully' } }
+          format.html { redirect_to business_manager_services_path, notice: 'Service moved down successfully' }
+        end
+      else
+        respond_to do |format|
+          format.json { render json: { status: 'error', message: 'Failed to move service down' }, status: :unprocessable_entity }
+          format.html { redirect_to business_manager_services_path, alert: 'Failed to move service down' }
+        end
+      end
+    end
+
+    private
 
   # Use callbacks to share common setup or constraints between actions.
   def set_service
-    @service = @current_business.services.find(params[:id])
+    @service = current_business.services.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to business_manager_services_path, alert: 'Service not found.'
   end
@@ -91,6 +177,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :min_bookings,
       :max_bookings,
       :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_rebooking_preference, :allow_customer_preferences,
+      :position, # Allow position updates
       staff_member_ids: [], # Allow staff assignment via new association
       add_on_product_ids: [], # Allow add-on product assignment
       images: [], # Allow new image uploads
