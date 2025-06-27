@@ -437,7 +437,7 @@ class Business < ApplicationRecord
   
   # Custom ransacker for Stripe status filtering
   ransacker :stripe_status do
-    Arel.sql("CASE WHEN stripe_customer_id IS NOT NULL AND stripe_customer_id != '' THEN 'connected' ELSE 'not_connected' END")
+    Arel.sql("CASE WHEN stripe_account_id IS NOT NULL AND stripe_account_id != '' THEN 'connected' ELSE 'not_connected' END")
   end
   
   # Domain coverage methods for Premium tier
