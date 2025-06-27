@@ -68,7 +68,7 @@ RSpec.describe 'Bookings', type: :system do
       expect(page).not_to have_field('booking[tenant_customer_id]', visible: true)
     end
 
-    it_with_retry 'has hidden fields for pre-selected staff and client customer', retries: 3 do
+    it 'has hidden fields for pre-selected staff and client customer' do
       expect(page).to have_selector("input[name='booking[staff_member_id]'][type='hidden']", visible: false)
       expect(page).to have_selector("input[name='booking[tenant_customer_id]'][type='hidden']", visible: false)
     end

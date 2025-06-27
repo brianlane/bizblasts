@@ -66,6 +66,9 @@ end
 # Define DatabaseCleaner constants globally
 EXCLUDED_TABLES ||= %w[schema_migrations ar_internal_metadata].freeze
 
+# Add this after other requires but before RSpec.configure
+require 'rspec/retry'
+
 # RSpec configuration
 RSpec.configure do |config|
   # Include Factory Bot syntax methods
@@ -203,6 +206,28 @@ RSpec.configure do |config|
   Capybara.javascript_driver = :cuprite
   
   config.include Pundit::Authorization, type: :view
+
+  # RSpec Retry Configuration for flaky tests
+  config.verbose_retry = true
+  config.display_try_failure_messages = true
+  
+  # Only retry specific browser-related errors and only in CI
+  config.around(:each, type: :system) do |ex|
+    if ENV['CI'] == 'true'
+      ex.run_with_retry(
+        retry: 2,  # Try 2 additional times (3 total)
+        exceptions_to_retry: [
+          Ferrum::ProcessTimeoutError,
+          Ferrum::TimeoutError,
+          Capybara::ElementNotFound,
+          Net::ReadTimeout
+        ],
+        retry_callback: -> { Capybara.reset! }
+      )
+    else
+      ex.run
+    end
+  end
 end
 
 # Configure Shoulda Matchers

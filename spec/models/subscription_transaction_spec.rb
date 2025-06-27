@@ -164,13 +164,24 @@ RSpec.describe SubscriptionTransaction, type: :model do
         expect(transaction.processed_date).to eq(Date.current)
       end
 
-      it 'does not change processed_date if already set' do
-        original_date = Date.current - 1.day  # Use stable date to avoid midnight boundary issues
+      it 'does not change processed_date if already set to current date' do
+        original_date = Date.current  # Set to current date to test no-change behavior
         transaction = create(:subscription_transaction, :pending, processed_date: original_date)
         
         transaction.update!(status: 'completed')
         
         expect(transaction.processed_date).to eq(original_date)
+      end
+
+      it 'updates processed_date when set to a different date' do
+        past_date = Date.current - 1.day  # Set to past date
+        transaction = create(:subscription_transaction, :pending, processed_date: past_date)
+        
+        transaction.update!(status: 'completed')
+        
+        # Should update to current date since it was different
+        expect(transaction.processed_date).to eq(Date.current)
+        expect(transaction.processed_date).not_to eq(past_date)
       end
     end
   end
