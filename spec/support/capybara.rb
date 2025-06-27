@@ -6,26 +6,11 @@ Capybara.register_driver(:cuprite) do |app|
   options = {
     window_size: [1200, 800],
     # Browser options for CI/Docker compatibility
+    # Minimal browser options - only essential for CI stability
     browser_options: { 
       'no-sandbox' => nil,
-      'disable-gpu' => true,
-      'disable-dev-shm-usage' => nil,
-      'disable-background-timer-throttling' => nil,
-      'disable-backgrounding-occluded-windows' => nil,
-      'disable-renderer-backgrounding' => nil,
-      'disable-features' => 'TranslateUI',
-      'disable-extensions' => nil,
-      'disable-ipc-flooding-protection' => nil,
-      'disable-hang-monitor' => nil,
-      'disable-client-side-phishing-detection' => nil,
-      'disable-popup-blocking' => nil,
-      'disable-prompt-on-repost' => nil,
-      'disable-sync' => nil,
-      'disable-translate' => nil,
-      'disable-web-security' => nil,
-      'force-color-profile' => 'srgb',
-      'memory-pressure-off' => nil,
-      'max_old_space_size' => '4096'
+      'disable-gpu' => nil,
+      'disable-dev-shm-usage' => nil
     },
     headless: ENV['HEADLESS'] != 'false',
     inspector: ENV['INSPECTOR'] == 'true',
