@@ -133,6 +133,7 @@ class LineItem < ApplicationRecord
   # Validate that product line items do not exceed available stock
   def stock_sufficiency
     return unless quantity.present? && product_variant.present?
+    return if product_variant.business&.stock_management_disabled?
 
     unless product_variant.in_stock?(quantity)
       errors.add(:quantity, "for #{product_variant.name} is not sufficient. Only #{product_variant.stock_quantity} available.")

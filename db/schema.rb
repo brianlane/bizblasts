@@ -227,6 +227,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_26_211148) do
     t.decimal "subscription_discount_value", precision: 10, scale: 2, default: "0.0"
     t.text "subscription_discount_message"
     t.string "template_applied"
+    t.boolean "stock_management_enabled", default: true, null: false
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -238,6 +239,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_26_211148) do
     t.index ["platform_referral_code"], name: "index_businesses_on_platform_referral_code", unique: true
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
     t.index ["status"], name: "index_businesses_on_status"
+    t.index ["stock_management_enabled"], name: "index_businesses_on_stock_management_enabled"
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
     t.index ["subscription_discount_enabled"], name: "index_businesses_on_subscription_discount_enabled"
