@@ -8,6 +8,7 @@ RSpec.describe "business_manager/products/new.html.erb", type: :view do
   before(:each) do
     # Required for view rendering
     allow(view).to receive(:current_user).and_return(manager_user)
+    allow(view).to receive(:current_business).and_return(business)
     
     # Assign instance variables expected by the view and form partial
     assign(:product, product)
