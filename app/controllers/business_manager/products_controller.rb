@@ -158,7 +158,7 @@ module BusinessManager
         # Allow multiple images to be uploaded
         images: [], 
         # Permit nested attributes for variants and images (for updates/ordering/primary)
-        product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy],
+        product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :_destroy],
         images_attributes: [:id, :primary, :position, :_destroy]
       )
     end

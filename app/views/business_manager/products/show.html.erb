@@ -156,20 +156,12 @@
                   </div>
                 </div>
                 
-                <div class="grid grid-cols-<%= current_business.requires_stock_tracking? ? '2' : '1' %> gap-4 text-sm">
-                  <% if current_business.requires_stock_tracking? %>
-                    <div>
-                      <div class="text-xs text-gray-500 uppercase tracking-wider">Stock</div>
-                      <div class="text-gray-900 font-medium"><%= variant.stock_quantity %> units</div>
-                    </div>
-                  <% end %>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wider">Options</div>
-                    <div class="text-gray-900">
-                      <%= variant.options.presence || content_tag(:em, "No options", class: "text-gray-400") %>
-                    </div>
+                <% if current_business.requires_stock_tracking? %>
+                  <div class="text-sm">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Stock</div>
+                    <div class="text-gray-900 font-medium"><%= variant.stock_quantity %> units</div>
                   </div>
-                </div>
+                <% end %>
               </div>
             <% end %>
           </div>
