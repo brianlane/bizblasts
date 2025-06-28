@@ -5,7 +5,7 @@ ActiveAdmin.register Product do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :active, :featured, :product_type, :allow_discounts, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :options, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :name, :description, :price, :active, :featured, :product_type, :allow_discounts, add_on_service_ids: [], product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :_destroy], images_attributes: [:id, :primary, :position, :_destroy]
   #
   # or
   #
@@ -180,7 +180,6 @@ ActiveAdmin.register Product do
         vf.input :sku
         vf.input :price_modifier, label: 'Price Modifier (+/-)'
         vf.input :stock_quantity
-        vf.input :options
       end
     end
 

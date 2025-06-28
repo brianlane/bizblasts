@@ -164,13 +164,7 @@ export default class extends Controller {
         </div>
       </div>
       
-      <div class="mt-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2">Options (JSON)</label>
-        <textarea name="product[product_variants_attributes][${timestamp}][options]" rows="2" 
-                  placeholder='e.g., {"size": "Large", "color": "Red"}' 
-                  class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"></textarea>
-        <p class="mt-1 text-xs text-gray-500">Enter as valid JSON for additional variant properties</p>
-      </div>
+
     `
     return variantDiv
   }

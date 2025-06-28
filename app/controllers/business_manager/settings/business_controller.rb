@@ -58,7 +58,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       # Check if the sync_location parameter is present with a value of '1'
       if params[:sync_location] == '1'
         sync_with_default_location
-        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated and synced with main location.'
+        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated.'
       else
         redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
       end
