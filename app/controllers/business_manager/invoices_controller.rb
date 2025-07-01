@@ -1,13 +1,24 @@
 # frozen_string_literal: true
 
 class BusinessManager::InvoicesController < BusinessManager::BaseController
-  before_action :set_invoice, only: [:show, :resend]
+  before_action :set_invoice, only: [:show, :resend, :cancel]
 
   # POST /manage/invoices/:id/resend
   def resend
     authorize @invoice
     InvoiceMailer.invoice_created(@invoice).deliver_later
     redirect_to business_manager_invoice_path(@invoice), notice: 'Invoice resent to customer.'
+  end
+
+  # PATCH /manage/invoices/:id/cancel
+  def cancel
+    authorize @invoice
+    if @invoice.cancelled?
+      redirect_to business_manager_invoice_path(@invoice), notice: 'Invoice already cancelled.'
+    else
+      @invoice.update!(status: :cancelled)
+      redirect_to business_manager_invoice_path(@invoice), notice: 'Invoice cancelled.'
+    end
   end
 
   # GET /manage/invoices

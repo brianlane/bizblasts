@@ -88,6 +88,17 @@ class Booking < ApplicationRecord
     ExperienceTipReminderJob.set(wait: 2.hours).perform_later(id)
   end
   
+  # Always present times in the business's local zone
+  def start_time
+    tz = business&.time_zone.presence || Time.zone.name
+    super&.in_time_zone(tz)
+  end
+
+  def end_time
+    tz = business&.time_zone.presence || Time.zone.name
+    super&.in_time_zone(tz)
+  end
+  
   private
 
   def experience_service?

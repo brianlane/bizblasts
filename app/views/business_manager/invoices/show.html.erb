@@ -2,10 +2,13 @@
 <div class="container mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-4">Invoice <%= @invoice.invoice_number %></h1>
 
-  <div class="mb-4">
+  <div class="mb-4 flex space-x-2">
     <%= button_to 'Resend to Customer', resend_business_manager_invoice_path(@invoice), method: :post,
                   data: { confirm: 'Resend this invoice to the customer?' },
-                  class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline' %>
+                  class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+    <%= button_to 'Cancel Invoice', cancel_business_manager_invoice_path(@invoice), method: :patch,
+                  data: { confirm: 'Are you sure you want to cancel this invoice? This action cannot be undone.' },
+                  class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
   </div>
   <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
     <dl class="divide-y divide-gray-200">
@@ -33,6 +36,12 @@
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Order</dt>
           <dd class="col-span-2"><%= link_to @invoice.order.order_number, business_manager_order_path(@invoice.order), class: 'text-blue-600 hover:text-blue-800' %></dd>
+        </div>
+      <% end %>
+      <% if @invoice.booking.present? %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Booking</dt>
+          <dd class="col-span-2"><%= link_to "Booking ##{@invoice.booking.id}", business_manager_booking_path(@invoice.booking), class: 'text-blue-600 hover:text-blue-800' %></dd>
         </div>
       <% end %>
       <%# Add more fields as needed: due_date, amount, tax_amount, etc. %>

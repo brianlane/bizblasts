@@ -115,8 +115,36 @@ class BookingPolicy < ApplicationRecord
     example_time = Time.current + 2.days + 14.hours # Example: day after tomorrow at 2 PM
     cutoff_time = example_time - cancellation_window_mins.minutes
     
-    "Example: Booked for #{example_time.strftime('%A at %l:%M %p')}? " \
     "Cancel by #{cutoff_time.strftime('%A at %l:%M %p')}"
+  end
+
+  # Business manager override methods
+  def allows_manager_override?
+    # Business managers can always override cancellation windows
+    true
+  end
+
+  def cancellation_allowed_for?(user, booking)
+    # Allow cancellation if user is a manager or staff member
+    return true if user&.manager? || user&.staff?
+    
+    # Apply normal policy for clients
+    return true if cancellation_window_mins.blank?
+    
+    cancellation_deadline = booking.start_time - cancellation_window_mins.minutes
+    Time.current <= cancellation_deadline
+  end
+
+  # Check if a specific user can cancel a booking
+  def user_can_cancel?(user, booking)
+    # Business managers and staff can always cancel
+    return true if user&.manager? || user&.staff?
+    
+    # Check if booking is in the past
+    return false if booking.start_time < Time.current
+    
+    # Check cancellation window for regular users
+    cancellation_allowed_for?(user, booking)
   end
 
   private

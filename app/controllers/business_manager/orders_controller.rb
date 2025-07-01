@@ -4,28 +4,8 @@ module BusinessManager
     before_action :load_collections, only: [:new, :edit, :create, :update]
 
     def index
-      @orders = @current_business.orders.includes(
-                  :tenant_customer, 
-                  :shipping_method, 
-                  :tax_rate,
-                  :invoice,
-                  line_items: { product_variant: :product }
-                )
-      
-      # Handle status filter
-      if params[:status].present?
-        @status_filter = params[:status]
-        @orders = @orders.where(status: @status_filter)
-      end
-      
-      # Handle type filter
-      if params[:type].present? && Order.order_types.key?(params[:type])
-        @type_filter = params[:type]
-        @orders = @orders.where(order_type: Order.order_types[@type_filter])
-      end
-      
-      # Sort by most recent
-      @orders = @orders.order(created_at: :desc)
+      # Redirect to the new unified transactions view
+      redirect_to business_manager_transactions_path(filter: 'orders', status: params[:status], type: params[:type])
     end
 
     def show

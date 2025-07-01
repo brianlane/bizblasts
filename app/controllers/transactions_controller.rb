@@ -56,6 +56,13 @@ class TransactionsController < ApplicationController
   end
 
   def show
+    # Check if this is a business manager trying to access an invoice
+    if current_user&.has_any_role?(:manager, :staff) && params[:type] == 'invoice' && request.subdomain.present? && request.subdomain != 'www'
+      # Redirect business managers to their invoice management interface
+      redirect_to business_manager_invoice_path(params[:id])
+      return
+    end
+
     # Find the transaction (either order or invoice)
     if params[:type] == 'invoice'
       @transaction = find_invoice(params[:id])

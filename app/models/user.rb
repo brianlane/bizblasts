@@ -154,6 +154,27 @@ class User < ApplicationRecord
     manager? && self.business_id == business.id
   end
 
+  # Booking policy override capabilities
+  def can_override_booking_policies?
+    manager? || staff?
+  end
+
+  # Check if user can cancel a specific booking (considering policies and role)
+  def can_cancel_booking?(booking)
+    # Business managers and staff can always cancel bookings for their business
+    if (manager? || staff?) && business_id == booking.business_id
+      return true
+    end
+    
+    # For client users, check the booking policy
+    if client?
+      policy = booking.business.booking_policy
+      return policy&.user_can_cancel?(self, booking) || false # Default to false if no policy to ensure safety
+    end
+    
+    false
+  end
+
   # Find the StaffMember record for a specific business
   def staff_member_for(business)
     staff_memberships.find_by(business: business)
