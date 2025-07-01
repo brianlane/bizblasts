@@ -23,7 +23,7 @@
           <td><%= invoice.status.titleize %></td>
           <td>
             <% if invoice.booking %>
-              Booking: <%= link_to invoice.booking.service.name, client_booking_path(invoice.booking) %> on <%= l invoice.booking.start_time, format: :short %>
+              Booking: <%= link_to invoice.booking.service.name, client_booking_path(invoice.booking) %> on <%= l invoice.booking.local_start_time, format: :short %>
             <% elsif invoice.lineable_type == 'Order' && invoice.lineable %>
               Order: <%= link_to invoice.lineable.order_number, order_path(invoice.lineable) %>
             <% else %>

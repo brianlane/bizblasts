@@ -19,7 +19,7 @@
               <div class="font-medium text-sm sm:text-base"><%= booking.service.name %></div>
               <div class="text-sm text-gray-600">at <%= booking.business.name %></div>
               <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                <%= booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+                <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
               </div>
               <% if booking.staff_member %>
                 <div class="text-xs text-gray-500">with <%= booking.staff_member.user&.full_name || booking.staff_member.name %></div>
@@ -54,7 +54,7 @@
               <div class="font-medium text-sm sm:text-base"><%= booking.service.name %></div>
               <div class="text-sm text-gray-600">at <%= booking.business.name %></div>
               <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                <%= booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+                <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
               </div>
               <% if booking.staff_member %>
                 <div class="text-xs text-gray-500">with <%= booking.staff_member.user&.full_name || booking.staff_member.name %></div>

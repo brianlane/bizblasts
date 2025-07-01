@@ -41,7 +41,7 @@
               </p>
               <p class="text-sm text-yellow-800">
                 <span class="font-medium">Currently Scheduled For:</span> 
-                <%= @booking.start_time.in_time_zone(@booking.business.time_zone || Time.zone.name).strftime("%A, %B %d, %Y at %I:%M %p") %>
+                <%= @booking.local_start_time.strftime("%A, %B %d, %Y at %I:%M %p") %>
               </p>
             </div>
           </div>

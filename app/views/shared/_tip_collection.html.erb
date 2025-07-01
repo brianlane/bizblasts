@@ -42,7 +42,7 @@
           <p class="text-sm text-blue-700 mt-1">
             <%= booking.service.name %> with <%= booking.staff_member&.name || 'our team' %>
             <br>
-            <span class="text-blue-600"><%= booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></span>
+            <span class="text-blue-600"><%= booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></span>
           </p>
         </div>
       </div>

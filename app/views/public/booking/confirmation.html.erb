@@ -42,7 +42,7 @@
     </p>
     <p><strong>Service:</strong> <%= @booking.service.name %></p>
     <p><strong>Business:</strong> <%= @booking.business.name %></p>
-    <p><strong>Date & Time:</strong> <%= l @booking.start_time, format: :long %> (until <%= l @booking.end_time, format: :short_time %>)</p>
+          <p><strong>Date & Time:</strong> <%= l @booking.local_start_time, format: :long %> (until <%= l @booking.local_end_time, format: :short_time %>)</p>
     <p><strong>Staff:</strong> <%= @booking.staff_member&.name || 'Any available' %></p>
     <p><strong>Your Name:</strong> <%= @booking.tenant_customer.full_name %></p>
     <p><strong>Your Email:</strong> <%= @booking.tenant_customer.email %></p>
