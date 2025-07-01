@@ -88,6 +88,8 @@ class Product < ApplicationRecord
 
   # Delegate stock check to variants if they exist, otherwise check product stock
   def in_stock?(requested_quantity = 1)
+    return true if business&.stock_management_disabled?
+    
     if product_variants.any?
       product_variants.sum(:stock_quantity) >= requested_quantity
     else
@@ -96,7 +98,7 @@ class Product < ApplicationRecord
   end
 
   # If products can be sold without variants, add stock field and validation
-  validates :stock_quantity, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: :has_variants?
+  validates :stock_quantity, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: -> { has_variants? || business&.stock_management_disabled? }
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   def has_variants?
@@ -107,8 +109,8 @@ class Product < ApplicationRecord
   def visible_to_customers?
     return false unless active? # Inactive products are never visible
     
-    # If hide_when_out_of_stock is enabled and product is out of stock, hide it
-    if hide_when_out_of_stock?
+    # Skip stock-based visibility if stock management is disabled
+    if hide_when_out_of_stock? && business&.requires_stock_tracking?
       return false unless in_stock?(1)
     end
     

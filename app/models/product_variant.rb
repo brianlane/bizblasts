@@ -10,7 +10,7 @@ class ProductVariant < ApplicationRecord
   delegate :business, :business_id, to: :product, allow_nil: true
 
   validates :name, presence: true # E.g., "Large, Red"
-  validates :stock_quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :stock_quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: -> { business&.stock_management_disabled? }
   validates :price_modifier, numericality: true, allow_nil: true # Can be positive or negative
 
   # Add reserved_quantity field
@@ -18,11 +18,13 @@ class ProductVariant < ApplicationRecord
 
   # Basic stock check
   def in_stock?(requested_quantity = 1)
+    return true if business&.stock_management_disabled?
     stock_quantity >= requested_quantity
   end
 
   # Increment stock level
   def increment_stock!(quantity = 1)
+    return true if business&.stock_management_disabled?
     # Consider using optimistic locking if high concurrency is expected
     self.stock_quantity += quantity
     save!
@@ -31,6 +33,8 @@ class ProductVariant < ApplicationRecord
   # Decrement stock level
   # Returns true if successful, false otherwise
   def decrement_stock!(quantity = 1)
+    return true if business&.stock_management_disabled?
+    
     raise "Cannot decrement below 0" if stock_quantity - quantity < 0
     
     with_lock do
@@ -87,6 +91,8 @@ class ProductVariant < ApplicationRecord
   # --- End Ransack methods ---
 
   def reserve_stock!(quantity, order)
+    return true if business&.stock_management_disabled?
+    
     # Check available stock
     if stock_quantity - reserved_quantity >= quantity
       # Create reservation
@@ -107,9 +113,11 @@ class ProductVariant < ApplicationRecord
   end
   
   def release_reservation!(reservation)
-    # Update stock and reservation quantities
-    increment!(:stock_quantity, reservation.quantity)
-    decrement!(:reserved_quantity, reservation.quantity) 
+    if business&.stock_management_enabled?
+      # Update stock and reservation quantities
+      increment!(:stock_quantity, reservation.quantity)
+      decrement!(:reserved_quantity, reservation.quantity) 
+    end
     
     # Delete reservation
     reservation.destroy!

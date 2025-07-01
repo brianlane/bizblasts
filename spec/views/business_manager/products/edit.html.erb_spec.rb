@@ -8,6 +8,7 @@ RSpec.describe "business_manager/products/edit.html.erb", type: :view do
   before(:each) do
     # Required for view rendering
     allow(view).to receive(:current_user).and_return(manager_user)
+    allow(view).to receive(:current_business).and_return(business)
     
     # Assign instance variables expected by the view and form partial
     assign(:product, product)
@@ -44,6 +45,8 @@ RSpec.describe "business_manager/products/edit.html.erb", type: :view do
     let!(:product) { create(:product, business: business, tips_enabled: false) }
 
     it "renders the tips_enabled checkbox as unchecked" do
+      allow(view).to receive(:current_business).and_return(business)
+      assign(:product, product)
       render
       expect(rendered).to have_field('product[tips_enabled]', type: 'checkbox', checked: false)
     end

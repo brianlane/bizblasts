@@ -23,6 +23,18 @@ class SubscriptionStockService
   
   def check_stock_availability
     requested_quantity = customer_subscription.quantity || 1
+    
+    # Return always available if stock management is disabled
+    if business.stock_management_disabled?
+      return {
+        available: true,
+        unlimited_stock: true,
+        current_stock: Float::INFINITY,
+        required_quantity: requested_quantity,
+        stock_level: 'unlimited'
+      }
+    end
+    
     current_stock = product.stock_quantity || 0
     
     result = {
@@ -59,6 +71,17 @@ class SubscriptionStockService
   
   def reserve_stock(options = {})
     requested_quantity = customer_subscription.quantity || 1
+    
+    # Always succeed if stock management is disabled
+    if business.stock_management_disabled?
+      return {
+        success: true,
+        reserved_quantity: requested_quantity,
+        unlimited_stock: true,
+        reservation_id: nil
+      }
+    end
+    
     current_stock = product.stock_quantity || 0
     allow_partial = options[:allow_partial] || false
     
@@ -182,6 +205,15 @@ class SubscriptionStockService
   
   def update_stock_levels(fulfillment_data)
     fulfilled_quantity = fulfillment_data[:fulfilled_quantity]
+    
+    # Skip stock updates if stock management is disabled
+    if business.stock_management_disabled?
+      return {
+        success: true,
+        unlimited_stock: true,
+        new_stock_level: Float::INFINITY
+      }
+    end
     
     begin
       # Update product stock
