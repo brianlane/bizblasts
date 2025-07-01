@@ -43,8 +43,13 @@ RSpec.describe "Booking Flow", type: :system do
       # Verify available days are shown
       expect(page).to have_selector('.calendar-day')
       
-      # Get the first available day
-      first_day = find('.calendar-day', match: :first)
+      # Get the first available day that has slots (not a past date and has available slots > 0)
+      available_days = all('.calendar-day:not(.past-date)')
+      first_day = available_days.find do |day|
+        slot_count_element = day.find('.available-slots-count span', visible: false) rescue nil
+        slot_count_element && slot_count_element.text.to_i > 0
+      end
+            
       slot_time = first_day.text.strip
 
       # Click the day

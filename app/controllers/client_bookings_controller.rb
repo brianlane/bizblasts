@@ -33,6 +33,7 @@ class ClientBookingsController < ApplicationController
   
   def update
     # Enforce cancellation window policy on reschedule attempts
+    permitted_attrs = client_booking_update_params
     if params[:booking][:start_time].present?
       original_start = @booking.start_time
       policy_window = @booking.business.booking_policy&.cancellation_window_mins
@@ -51,15 +52,24 @@ class ClientBookingsController < ApplicationController
       end
       begin
         new_start_time = Time.zone.parse(params[:booking][:start_time].to_s)
-        if new_start_time && @booking.service&.duration.present?
-          params[:booking][:end_time] = (new_start_time + @booking.service.duration.minutes).to_s
-        end
-      rescue
+      rescue ArgumentError => e
+        Rails.logger.warn "[CLIENT BOOKING] Invalid start_time provided: #{params[:booking][:start_time]} — #{e.message}"
+        flash.now[:alert] = "Invalid start time format. Please choose a valid time."
+        render :edit, status: :unprocessable_entity and return
+      end
+
+      if new_start_time && @booking.service&.duration.present?
+        # Build a safe, mutable copy of permitted params
+        permitted_attrs = client_booking_update_params.to_h
+        permitted_attrs[:end_time] = (new_start_time + @booking.service.duration.minutes).to_s
+      else
+        permitted_attrs = client_booking_update_params
       end
     end
-    # @booking is set by before_action
-    # We need to permit booking_product_add_ons_attributes for updates, including :id and :_destroy
-    if @booking.update(client_booking_update_params)
+
+    # --- Persist changes ---
+    # We need to permit booking_product_add_ons_attributes for updates, including :id and :_destroy.
+    if @booking.update(permitted_attrs)
       # After booking and add-ons are updated, regenerate/update the invoice
       generate_or_update_invoice_for_booking(@booking)
       BookingMailer.status_update(@booking).deliver_later

@@ -88,15 +88,19 @@ class Booking < ApplicationRecord
     ExperienceTipReminderJob.set(wait: 2.hours).perform_later(id)
   end
   
-  # Always present times in the business's local zone
+  # Returns the booking's time zone, preferring the associated business's configured zone.
+  # Memoised to avoid repeated look-ups (which can trigger N+1 queries when business
+  # isn't eager-loaded).
+  def local_timezone
+    @local_timezone ||= business&.time_zone.presence || Time.zone.name
+  end
+
   def start_time
-    tz = business&.time_zone.presence || Time.zone.name
-    super&.in_time_zone(tz)
+    super&.in_time_zone(local_timezone)
   end
 
   def end_time
-    tz = business&.time_zone.presence || Time.zone.name
-    super&.in_time_zone(tz)
+    super&.in_time_zone(local_timezone)
   end
   
   private
