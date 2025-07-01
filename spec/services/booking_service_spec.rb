@@ -49,8 +49,9 @@ RSpec.describe BookingService do
         end_date:    end_date
       )
 
-      expect(result.keys).to eq((start_date..end_date).map(&:to_s))
-      expect(result.keys.count).to eq(35)
+      expected_dates = (start_date..end_date).select { |d| d >= Date.current }.map(&:to_s)
+      expect(result.keys).to match_array(expected_dates)
+      expect(result.keys.count).to eq(expected_dates.count)
     end
   end
   

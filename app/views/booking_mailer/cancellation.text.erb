@@ -1,0 +1,44 @@
+BOOKING CANCELLED
+==================
+
+Hello <%= @customer.first_name %>,
+
+We're sorry to inform you that your booking with <%= @business.name %> has been cancelled.
+
+CANCELLED BOOKING DETAILS
+--------------------------
+Service: <%= @booking.service.name %>
+Date & Time: <%= @booking.start_time.strftime('%A, %B %d, %Y at %l:%M %p') %>
+Duration: <%= @booking.service.duration %> minutes
+<% if @booking.staff_member %>Staff Member: <%= @booking.staff_member.name %>
+<% end %><% if @booking.total_charge > 0 %>Total Amount: $<%= sprintf('%.2f', @booking.total_charge) %>
+<% end %>
+
+<% if @reason && !@reason.empty? %>
+CANCELLATION REASON
+-------------------
+<%= @reason %>
+
+<% end %>
+REFUND INFORMATION
+------------------
+If you paid for this booking, we will process your refund within 3-5 business days. The refund will appear on your original payment method.
+
+We sincerely apologize for any inconvenience this may cause. If you have any questions or would like to reschedule, please don't hesitate to contact us.
+
+<% if @business.hostname && !@business.hostname.empty? %>
+You can book another appointment at any time by visiting our booking page:
+<%= new_tenant_booking_url(host: @business.hostname + '.lvh.me') %>
+
+<% end %>
+We appreciate your understanding and look forward to serving you in the future.
+
+Best regards,
+<%= @business.name %>
+
+<% if @business.phone && !@business.phone.empty? %>Phone: <%= @business.phone %>
+<% end %><% if @business.email && !@business.email.empty? %>Email: <%= @business.email %>
+<% end %>
+
+---
+This email was sent regarding your cancelled booking that was scheduled for <%= @booking.start_time.strftime('%B %d, %Y') %>. 

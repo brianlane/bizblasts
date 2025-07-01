@@ -82,6 +82,12 @@ RSpec.describe BookingManager, type: :service do
         expect(booking.amount).to eq(service.price)
         expect(booking.original_amount).to eq(service.price)
       end
+      
+      it 'sends a confirmation email when send_confirmation is true' do
+        params = valid_params.merge(send_confirmation: true)
+        booking, errors = BookingManager.create_booking(params, tenant)
+        expect(BookingMailer).to have_received(:confirmation).with(booking)
+      end
     end
     
     context 'with customer information instead of tenant_customer_id' do
@@ -516,6 +522,57 @@ RSpec.describe BookingManager, type: :service do
          end
        end
     end
+
+    context 'when booking has an associated invoice' do
+      let!(:policy) { create(:booking_policy, business: tenant, cancellation_window_mins: 0, max_daily_bookings: 5) }
+      
+      it 'cancels the invoice when the booking is cancelled and invoice has no payments' do
+        booking = create(:booking, 
+          business: tenant, 
+          service: service, 
+          staff_member: staff_member, 
+          tenant_customer: customer,
+          start_time: start_time,
+          end_time: start_time + 1.hour,
+          status: :confirmed)
+        
+        # Create an invoice for the booking
+        invoice = create(:invoice, :with_booking, booking: booking, tenant_customer: customer, business: tenant, status: :pending)
+        
+        travel_to start_time - 2.hours do
+          success, error_message = BookingManager.cancel_booking(booking)
+          
+          expect(success).to be true
+          expect(error_message).to be_nil
+          expect(booking.reload.status).to eq('cancelled')
+          expect(invoice.reload.status).to eq('cancelled')
+        end
+      end
+      
+      it 'does not cancel the invoice when it has successful payments' do
+        booking = create(:booking, 
+          business: tenant, 
+          service: service, 
+          staff_member: staff_member, 
+          tenant_customer: customer,
+          start_time: start_time,
+          end_time: start_time + 1.hour,
+          status: :confirmed)
+        
+        # Create an invoice with a successful payment
+        invoice = create(:invoice, :with_booking, booking: booking, tenant_customer: customer, business: tenant, status: :paid)
+        payment = create(:payment, invoice: invoice, status: :completed, tenant_customer: customer, business: tenant)
+        
+        travel_to start_time - 2.hours do
+          success, error_message = BookingManager.cancel_booking(booking)
+          
+          expect(success).to be true
+          expect(error_message).to be_nil
+          expect(booking.reload.status).to eq('cancelled')
+          expect(invoice.reload.status).to eq('paid') # Should remain paid, not cancelled
+        end
+      end
+    end
   end
   
   describe '.available?' do
@@ -536,6 +593,116 @@ RSpec.describe BookingManager, type: :service do
         end_time: end_time,
         exclude_booking_id: 123
       )
+    end
+  end
+
+  describe '.cancel_booking with user context' do
+    let!(:booking_policy) do
+      create(:booking_policy, 
+             business: tenant, 
+             cancellation_window_mins: 60,
+             max_daily_bookings: 10  # Allow multiple bookings
+      )
+    end
+    
+    let(:booking) do
+      booking = build(:booking,
+                     business: tenant,
+                     service: service,
+                     staff_member: staff_member,
+                     tenant_customer: customer,
+                     start_time: 30.minutes.from_now,  # Within cancellation window
+                     end_time: 90.minutes.from_now,
+                     status: :confirmed
+      )
+      booking.save(validate: false)  # Skip validations for test setup
+      booking
+    end
+    
+    let(:client_user) { create(:user, :client) }
+    let(:manager_user) { create(:user, :manager, business: tenant) }
+    
+    before do
+      # Ensure staff member can work with the service
+      staff_member.services << service unless staff_member.services.include?(service)
+    end
+    
+    context 'when client user tries to cancel within cancellation window' do
+      it 'should fail due to policy restriction' do
+        success, error_message = BookingManager.cancel_booking(
+          booking, 
+          'Client cancellation', 
+          true, 
+          current_user: client_user
+        )
+        
+        expect(success).to be false
+        expect(error_message).to include('Cannot cancel booking within')
+        expect(booking.reload.status).to eq('confirmed')
+      end
+    end
+    
+    context 'when manager user tries to cancel within cancellation window' do
+      it 'should succeed due to manager override' do
+        success, error_message = BookingManager.cancel_booking(
+          booking, 
+          'Manager override cancellation', 
+          true, 
+          current_user: manager_user
+        )
+        
+        expect(success).to be true
+        expect(error_message).to be_nil
+        expect(booking.reload.status).to eq('cancelled')
+        expect(booking.cancellation_reason).to eq('Manager override cancellation')
+      end
+    end
+    
+    context 'when no user context is provided' do
+      it 'should apply policy restrictions (backwards compatibility)' do
+        success, error_message = BookingManager.cancel_booking(
+          booking, 
+          'No user context'
+        )
+        
+        expect(success).to be false
+        expect(error_message).to include('Cannot cancel booking within')
+        expect(booking.reload.status).to eq('confirmed')
+      end
+    end
+    
+    context 'email notifications' do      
+      it 'calls cancellation mailer when notifying' do
+        # Mock the message delivery to track it was called
+        mock_mail = double("mail")
+        allow(mock_mail).to receive(:deliver_later)
+        expect(BookingMailer).to receive(:cancellation).with(booking).and_return(mock_mail)
+        
+        success, error = BookingManager.cancel_booking(
+          booking, 
+          'Manager cancellation', 
+          true, 
+          current_user: manager_user
+        )
+        
+        expect(success).to be true
+        expect(error).to be_nil
+        expect(mock_mail).to have_received(:deliver_later)
+      end
+      
+      it 'does not send email when notify is false' do
+        expect(BookingMailer).not_to receive(:cancellation)
+        
+        success, error = BookingManager.cancel_booking(
+          booking, 
+          'Manager cancellation', 
+          false,  # notify = false
+          current_user: manager_user
+        )
+        
+        expect(success).to be true
+        expect(error).to be_nil
+      end
     end
   end
 end 

@@ -135,6 +135,20 @@ module BusinessManager
         redirect_to business_manager_booking_path(@booking) and return
       end
       
+      # Automatically adjust end_time when rescheduling via update
+      if params[:booking][:start_time].present? && @booking.service&.duration.present?
+        begin
+          # Parse new start_time and set end_time based on service duration
+          new_start = Time.zone.parse(params[:booking][:start_time])
+          if new_start
+            new_end = new_start + @booking.service.duration.minutes
+            params[:booking][:end_time] = new_end.to_s
+          end
+        rescue ArgumentError
+          # Ignore parse errors and let validations handle invalid times
+        end
+      end
+      
       result = @booking.update(booking_params)
       Rails.logger.debug("Update result: #{result}")
       Rails.logger.debug("Booking errors: #{@booking.errors.full_messages}") unless result
@@ -178,7 +192,7 @@ module BusinessManager
       if @booking.status == 'cancelled'
         flash[:notice] = "This booking was already cancelled."
       else
-        success, error_message = BookingManager.cancel_booking(@booking, cancellation_reason)
+        success, error_message = BookingManager.cancel_booking(@booking, cancellation_reason, true, current_user: current_user)
         if success
           flash[:notice] = "Booking has been cancelled."
         else
@@ -313,17 +327,6 @@ module BusinessManager
         end
       end
 
-      # Buffer time policy
-      if policy.buffer_time_mins.present? && policy.buffer_time_mins > 0 && @booking.staff_member_id.present?
-        buffer = policy.buffer_time_mins
-        day = @booking.start_time.to_date
-        current_business.bookings.where(staff_member_id: @booking.staff_member_id, start_time: day.all_day).each do |existing|
-          if @booking.start_time < existing.end_time + buffer.minutes && @booking.end_time > existing.start_time - buffer.minutes
-            @booking.errors.add(:base, "Booking conflicts with another existing booking due to buffer time")
-          end
-        end
-      end
-
       # Duration constraints policy
       if policy.min_duration_mins.present? && duration.to_i < policy.min_duration_mins
         @booking.errors.add(:base, "Booking cannot be less than the minimum required duration")
@@ -343,7 +346,7 @@ module BusinessManager
         flash[:notice] = "Booking was successfully created."
         redirect_to business_manager_booking_path(@booking)
       else
-        raise "DEBUG: Booking errors: #{@booking.errors.full_messages.inspect}"
+        #raise "DEBUG: Booking errors: #{@booking.errors.full_messages.inspect}"
         flash.now[:alert] = @booking.errors.full_messages.join(', ')
         render :new, status: :unprocessable_entity
       end

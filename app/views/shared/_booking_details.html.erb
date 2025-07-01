@@ -172,6 +172,7 @@
               <%= booking.invoice.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' %>
               <%= booking.invoice.status == 'paid' ? 'bg-green-100 text-green-800' : '' %>
               <%= booking.invoice.status == 'overdue' ? 'bg-red-100 text-red-800' : '' %>
+              <%= booking.invoice.status == 'cancelled' ? 'bg-gray-100 text-gray-800' : '' %>
             ">
               <%= booking.invoice.status.titleize %>
             </span>
@@ -232,9 +233,12 @@
                       class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
                       data: { confirm: "Are you sure you want to cancel this booking?" } %>
         <% else %>
-          <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch, 
-                      class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
-                      data: { confirm: "Are you sure you want to cancel this booking?" } %>
+          <%# Show this client-side cancel button only if the current user is a client. Business-manager users already have their own actions elsewhere. %>
+          <% if current_user&.client? %>
+            <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch, 
+                        class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+                        data: { confirm: "Are you sure you want to cancel this booking?" } %>
+          <% end %>
         <% end %>
       </div>
     </div>

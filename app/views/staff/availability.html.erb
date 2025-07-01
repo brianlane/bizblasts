@@ -93,7 +93,7 @@
               <div class="day-slots p-1">
                 <% @calendar_data[date.to_s]&.each do |slot| %>
                   <div class="slot bg-blue-100 text-xs p-1 mb-1 rounded">
-                    <%= slot[:start_time].strftime('%l:%M %p').strip %>
+                    <%= display_time(slot[:start_time]) %>
                   </div>
                 <% end %>
                 

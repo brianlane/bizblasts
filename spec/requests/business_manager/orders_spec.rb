@@ -59,21 +59,24 @@ RSpec.describe "Business Manager Orders", type: :request do
     before { sign_in manager } # Can also test with staff
 
     describe "GET /manage/orders" do
-      it "is successful" do
+      it "redirects to transactions index and is successful" do
         get business_manager_orders_path
+        expect(response).to have_http_status(:found)
+        follow_redirect!
         expect(response).to be_successful
       end
 
-      it "assigns orders belonging to the current business" do
+      it "assigns transactions belonging to the current business" do
         other_business = create(:business)
         other_order = nil
         ActsAsTenant.with_tenant(other_business) do
           other_order = create(:order, business: other_business)
         end
-        
+
         get business_manager_orders_path
-        expect(assigns(:orders)).to include(product_order, service_order, mixed_order)
-        expect(assigns(:orders)).not_to include(other_order)
+        follow_redirect!
+        expect(assigns(:transactions)).to include(product_order, service_order, mixed_order)
+        expect(assigns(:transactions)).not_to include(other_order)
       end
 
       context "with status filter" do
@@ -82,8 +85,9 @@ RSpec.describe "Business Manager Orders", type: :request do
           paid_order = create(:order, :paid, business: business, tenant_customer: tenant_customer)
           
           get business_manager_orders_path, params: { status: 'pending_payment' }
-          expect(assigns(:orders)).to include(pending_order)
-          expect(assigns(:orders)).not_to include(paid_order)
+          follow_redirect!
+          expect(assigns(:transactions)).to include(pending_order)
+          expect(assigns(:transactions)).not_to include(paid_order)
           expect(assigns(:status_filter)).to eq('pending_payment')
         end
       end
@@ -91,22 +95,25 @@ RSpec.describe "Business Manager Orders", type: :request do
       context "with type filter" do
         it "filters orders by type" do
           get business_manager_orders_path, params: { type: 'product' }
-          expect(assigns(:orders)).to include(product_order)
-          expect(assigns(:orders)).not_to include(service_order, mixed_order)
+          follow_redirect!
+          expect(assigns(:transactions)).to include(product_order)
+          expect(assigns(:transactions)).not_to include(service_order, mixed_order)
           expect(assigns(:type_filter)).to eq('product')
         end
 
         it "filters orders by service type" do
           get business_manager_orders_path, params: { type: 'service' }
-          expect(assigns(:orders)).to include(service_order)
-          expect(assigns(:orders)).not_to include(product_order, mixed_order)
+          follow_redirect!
+          expect(assigns(:transactions)).to include(service_order)
+          expect(assigns(:transactions)).not_to include(product_order, mixed_order)
           expect(assigns(:type_filter)).to eq('service')
         end
 
         it "filters orders by mixed type" do
           get business_manager_orders_path, params: { type: 'mixed' }
-          expect(assigns(:orders)).to include(mixed_order)
-          expect(assigns(:orders)).not_to include(product_order, service_order)
+          follow_redirect!
+          expect(assigns(:transactions)).to include(mixed_order)
+          expect(assigns(:transactions)).not_to include(product_order, service_order)
           expect(assigns(:type_filter)).to eq('mixed')
         end
       end
@@ -117,8 +124,9 @@ RSpec.describe "Business Manager Orders", type: :request do
           paid_product_order = create(:order, :paid, business: business, tenant_customer: tenant_customer, order_type: :product)
           
           get business_manager_orders_path, params: { status: 'pending_payment', type: 'product' }
-          expect(assigns(:orders)).to include(pending_product_order)
-          expect(assigns(:orders)).not_to include(paid_product_order, service_order, mixed_order)
+          follow_redirect!
+          expect(assigns(:transactions)).to include(pending_product_order)
+          expect(assigns(:transactions)).not_to include(paid_product_order, service_order, mixed_order)
           expect(assigns(:status_filter)).to eq('pending_payment')
           expect(assigns(:type_filter)).to eq('product')
         end

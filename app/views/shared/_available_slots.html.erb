@@ -51,7 +51,7 @@
         <% 
           start_time = slot[:start_time]
           end_time = slot[:end_time]
-          formatted_time = start_time.strftime('%l:%M %p').strip
+          formatted_time = display_time(start_time)
           
           # Prepare params for booking link
           booking_params = { 

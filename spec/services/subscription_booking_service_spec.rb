@@ -383,8 +383,8 @@ RSpec.describe SubscriptionBookingService, type: :service do
       allow(loyalty_service).to receive(:award_subscription_payment_points!)
       expect(loyalty_service).to receive(:award_milestone_points!).with('first_month')
       
-      # Set subscription to be 1 month old
-      customer_subscription.update!(created_at: 1.month.ago)
+      # Set subscription to be just over one month old to ensure milestone triggers
+      customer_subscription.update!(created_at: 32.days.ago)
       
       service.process_subscription!
     end

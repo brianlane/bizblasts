@@ -200,7 +200,7 @@
       <% if @booking.start_time.present? %>
         <!-- Display selected date/time as read-only -->
         <div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-gray-900 font-medium">
-          <%= @booking.start_time.strftime("%A, %B %-d, %Y at %l:%M %p") %>
+          <%= @booking.start_time.in_time_zone(@business.time_zone || Time.zone.name).strftime("%A, %B %-d, %Y at %l:%M %p") %>
         </div>
         <!-- Hidden field to submit the value -->
         <%= form.hidden_field :start_time %>
@@ -481,16 +481,6 @@
                 </p>
               <% end %>
             </div>
-            <% if policy.cancellation_example_for_customers %>
-              <div class="mt-3 p-3 bg-green-100 rounded-lg">
-                <p class="text-sm text-green-700">
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <strong>Example:</strong> <%= policy.cancellation_example_for_customers %>
-                </p>
-              </div>
-            <% end %>
             <p class="text-sm text-green-600 mt-3 flex items-center">
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>

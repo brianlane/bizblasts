@@ -334,5 +334,12 @@ module ApplicationHelper
     end
   end
 
+  # Format a time in the current Time.zone with given strftime pattern
+  def display_time(time, fmt = '%l:%M %p')
+    return '' unless time
+    time = time.in_time_zone(Time.zone)
+    time.strftime(fmt).strip
+  end
+
   # ... existing helper methods ...
 end

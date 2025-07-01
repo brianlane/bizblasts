@@ -16,6 +16,11 @@ class InvoicePolicy < BusinessPolicy
     show?
   end
 
+  # Can cancel an invoice
+  def cancel?
+    show?
+  end
+
   class Scope < Scope
     def resolve
       if user.present? && user.business_id.present? && user.has_any_role?(:manager, :staff)
