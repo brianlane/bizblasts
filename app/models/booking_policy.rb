@@ -115,7 +115,8 @@ class BookingPolicy < ApplicationRecord
     example_time = Time.current + 2.days + 14.hours # Example: day after tomorrow at 2 PM
     cutoff_time = example_time - cancellation_window_mins.minutes
     
-    "Cancel by #{cutoff_time.strftime('%A at %l:%M %p')}"
+    "Cancel by #{cutoff_time.strftime('%A at %l:%M %p')} " \
+    "(for appointment booked #{example_time.strftime('%A at %l:%M %p')})"
   end
 
   # Business manager override methods

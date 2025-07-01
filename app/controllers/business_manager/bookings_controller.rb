@@ -135,6 +135,9 @@ module BusinessManager
         redirect_to business_manager_booking_path(@booking) and return
       end
       
+      # Get permitted parameters first
+      permitted_attrs = booking_params
+      
       # Automatically adjust end_time when rescheduling via update
       if params[:booking][:start_time].present? && @booking.service&.duration.present?
         begin
@@ -142,14 +145,16 @@ module BusinessManager
           new_start = Time.zone.parse(params[:booking][:start_time])
           if new_start
             new_end = new_start + @booking.service.duration.minutes
-            params[:booking][:end_time] = new_end.to_s
+            # Build a safe, mutable copy of permitted params
+            permitted_attrs = booking_params.to_h
+            permitted_attrs[:end_time] = new_end.to_s
           end
         rescue ArgumentError
           # Ignore parse errors and let validations handle invalid times
         end
       end
       
-      result = @booking.update(booking_params)
+      result = @booking.update(permitted_attrs)
       Rails.logger.debug("Update result: #{result}")
       Rails.logger.debug("Booking errors: #{@booking.errors.full_messages}") unless result
       

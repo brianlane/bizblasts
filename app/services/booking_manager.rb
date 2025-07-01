@@ -292,19 +292,8 @@ class BookingManager
       if cancellation_window_minutes.present? && cancellation_window_minutes > 0
         Time.use_zone(business.time_zone || 'UTC') do
           local_now   = Time.zone.now
-          # Handle legacy bookings where start_time was saved in UTC but intended as local
-          local_start = if booking.start_time.utc? && business.time_zone.present? && business.time_zone != 'UTC'
-            Time.zone.local(
-              booking.start_time.year,
-              booking.start_time.month,
-              booking.start_time.day,
-              booking.start_time.hour,
-              booking.start_time.min,
-              booking.start_time.sec
-            )
-          else
-            booking.start_time.in_time_zone(Time.zone)
-          end
+          # Use the booking's local_start_time method which properly converts UTC to business timezone
+          local_start = booking.local_start_time
           cancellation_deadline = local_start - cancellation_window_minutes.minutes
           if local_now > cancellation_deadline
             # Convert minutes to hours for user-friendly display
