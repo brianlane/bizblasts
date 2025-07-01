@@ -200,7 +200,7 @@
       <% if @booking.start_time.present? %>
         <!-- Display selected date/time as read-only -->
         <div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-gray-900 font-medium">
-          <%= @booking.start_time.in_time_zone(@business.time_zone || Time.zone.name).strftime("%A, %B %-d, %Y at %l:%M %p") %>
+          <%= @booking.local_start_time.strftime("%A, %B %-d, %Y at %l:%M %p") %>
         </div>
         <!-- Hidden field to submit the value -->
         <%= form.hidden_field :start_time %>

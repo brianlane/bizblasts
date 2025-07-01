@@ -47,7 +47,7 @@ class SmsService
     customer = booking.tenant_customer
     service = booking.service
     
-    message = "Booking confirmed: #{service&.name || 'Booking'} on #{booking.start_time.strftime('%b %d at %I:%M %p')}. " \
+    message = "Booking confirmed: #{service&.name || 'Booking'} on #{booking.local_start_time.strftime('%b %d at %I:%M %p')}. " \
               "Reply HELP for assistance or CANCEL to cancel your booking."
     
     send_message(customer.phone, message, { 
@@ -62,7 +62,7 @@ class SmsService
     service = booking.service
     
     message = "Reminder: Your #{service&.name || 'booking'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} " \
-              "at #{booking.start_time.strftime('%I:%M %p')}. " \
+              "at #{booking.local_start_time.strftime('%I:%M %p')}. " \
               "Reply HELP for assistance or CONFIRM to confirm."
     
     send_message(customer.phone, message, { 

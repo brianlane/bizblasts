@@ -31,7 +31,7 @@
           <h3 class="font-medium text-gray-800 mb-2">Service Details</h3>
           <div class="space-y-1 text-sm text-gray-600">
             <p><span class="font-medium">Service:</span> <%= @booking.service.name %></p>
-            <p><span class="font-medium">Date:</span> <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
+            <p><span class="font-medium">Date:</span> <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
             <% if @booking.staff_member %>
               <p><span class="font-medium">Staff:</span> <%= @booking.staff_member.name %></p>
             <% end %>

@@ -1,6 +1,6 @@
 <%# app/views/client_bookings/edit.html.erb %>
 <h1>Edit Booking for <%= @booking.service.name %></h1>
-<p>Scheduled for: <%= l @booking.start_time, format: :long %> with <%= @booking.staff_member&.name || 'Any Staff' %></p>
+<p>Scheduled for: <%= l @booking.local_start_time, format: :long %> with <%= @booking.staff_member&.name || 'Any Staff' %></p>
 
 <%= form_with(model: @booking, url: client_booking_path(@booking), method: :patch, local: true) do |form| %>
   <% if @booking.errors.any? %>

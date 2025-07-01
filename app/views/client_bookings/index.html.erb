@@ -23,7 +23,7 @@
             <td class="px-4 py-2 border-b"><%= booking.service.name %></td>
             <td class="px-4 py-2 border-b"><%= booking.staff_member.name %></td>
             <td class="px-4 py-2 border-b">
-              <%= booking.start_time.strftime("%b %d, %Y at %I:%M %p") %>
+              <%= booking.local_start_time.strftime("%b %d, %Y at %I:%M %p") %>
             </td>
             <td class="px-4 py-2 border-b">
               <span class="px-2 py-1 rounded text-xs 

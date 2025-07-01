@@ -252,10 +252,10 @@
                   <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <div>
                     <div class="text-sm font-medium text-gray-900">
-                      <%= booking.start_time.strftime("%b %d, %Y") %>
+                      <%= booking.local_start_time.strftime("%b %d, %Y") %>
                     </div>
                     <div class="text-xs text-gray-500">
-                      <%= booking.start_time.strftime("%I:%M %p") %>
+                      <%= booking.local_start_time.strftime("%I:%M %p") %>
                     </div>
                   </div>
                 </div>

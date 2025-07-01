@@ -91,9 +91,9 @@ RSpec.describe BookingMailer, type: :mailer do
       expect(mail.body.encoded).to include(staff_member.full_name) if staff_member.respond_to?(:full_name)
       expect(mail.body.encoded).to include(tenant_customer.full_name)
       expect(mail.body.encoded).to include(business.name)
-      expect(mail.body.encoded).to include(booking.start_time.strftime('%A, %B %d, %Y'))
-      expect(mail.body.encoded).to include(booking.start_time.strftime('%I:%M %p'))
-      expect(mail.body.encoded).to include(booking.end_time.strftime('%I:%M %p'))
+      expect(mail.body.encoded).to include(booking.local_start_time.strftime('%A, %B %d, %Y'))
+      expect(mail.body.encoded).to include(booking.local_start_time.strftime('%I:%M %p'))
+      expect(mail.body.encoded).to include(booking.local_end_time.strftime('%I:%M %p'))
       expect(mail.body.encoded).to include(booking.duration.to_i.to_s)
     end
 

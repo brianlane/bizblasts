@@ -95,12 +95,14 @@ class Booking < ApplicationRecord
     @local_timezone ||= business&.time_zone.presence || Time.zone.name
   end
 
-  def start_time
-    super&.in_time_zone(local_timezone)
+  # Get start time in the business's local timezone
+  def local_start_time
+    start_time&.in_time_zone(local_timezone)
   end
 
-  def end_time
-    super&.in_time_zone(local_timezone)
+  # Get end time in the business's local timezone  
+  def local_end_time
+    end_time&.in_time_zone(local_timezone)
   end
   
   private

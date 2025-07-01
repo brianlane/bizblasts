@@ -50,11 +50,11 @@
             </div>
             <div class="flex justify-between">
               <span>Date:</span>
-              <span class="font-medium"><%= @booking.start_time.strftime("%B %d, %Y") %></span>
+              <span class="font-medium"><%= @booking.local_start_time.strftime("%B %d, %Y") %></span>
             </div>
             <div class="flex justify-between">
               <span>Time:</span>
-              <span class="font-medium"><%= @booking.start_time.strftime("%I:%M %p") %></span>
+              <span class="font-medium"><%= @booking.local_start_time.strftime("%I:%M %p") %></span>
             </div>
             <% if @booking.staff_member %>
               <div class="flex justify-between">

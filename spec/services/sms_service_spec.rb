@@ -85,7 +85,7 @@ RSpec.describe SmsService, type: :service do
     let!(:booking) { create(:booking, tenant_customer: customer, service: service, start_time: Time.current + 3.days, business: tenant) }
     
     it 'calls send_message with the correct arguments and formatted message' do
-      expected_message = "Booking confirmed: Consultation on #{(Time.current + 3.days).strftime('%b %d at %I:%M %p')}. " \
+      expected_message = "Booking confirmed: Consultation on #{booking.local_start_time.strftime('%b %d at %I:%M %p')}. " \
                          "Reply HELP for assistance or CANCEL to cancel your booking."
       expected_options = { 
         tenant_customer_id: customer.id,
@@ -107,8 +107,8 @@ RSpec.describe SmsService, type: :service do
     
     context 'for 24h timeframe' do
       it 'calls send_message with the correct arguments and formatted message' do
-        expected_message = "Reminder: Your Follow-up is tomorrow at #{booking.start_time.strftime('%I:%M %p')}. " \
-                           "Reply HELP for assistance or CONFIRM to confirm."
+              expected_message = "Reminder: Your Follow-up is tomorrow at #{booking.local_start_time.strftime('%I:%M %p')}. " \
+                         "Reply HELP for assistance or CONFIRM to confirm."
         expected_options = { 
           tenant_customer_id: customer.id,
           booking_id: booking.id,
@@ -125,7 +125,7 @@ RSpec.describe SmsService, type: :service do
 
     context 'for 1h timeframe' do
        it 'calls send_message with the correct arguments and formatted message' do
-         expected_message = "Reminder: Your Follow-up is in 1 hour at #{booking.start_time.strftime('%I:%M %p')}. " \
+         expected_message = "Reminder: Your Follow-up is in 1 hour at #{booking.local_start_time.strftime('%I:%M %p')}. " \
                             "Reply HELP for assistance or CONFIRM to confirm."
          expected_options = { 
            tenant_customer_id: customer.id,

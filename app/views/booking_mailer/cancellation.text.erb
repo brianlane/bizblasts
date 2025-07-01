@@ -8,7 +8,7 @@ We're sorry to inform you that your booking with <%= @business.name %> has been 
 CANCELLED BOOKING DETAILS
 --------------------------
 Service: <%= @booking.service.name %>
-Date & Time: <%= @booking.start_time.strftime('%A, %B %d, %Y at %l:%M %p') %>
+Date & Time: <%= @booking.local_start_time.strftime('%A, %B %d, %Y at %l:%M %p') %>
 Duration: <%= @booking.service.duration %> minutes
 <% if @booking.staff_member %>Staff Member: <%= @booking.staff_member.name %>
 <% end %><% if @booking.total_charge > 0 %>Total Amount: $<%= sprintf('%.2f', @booking.total_charge) %>
@@ -41,4 +41,4 @@ Best regards,
 <% end %>
 
 ---
-This email was sent regarding your cancelled booking that was scheduled for <%= @booking.start_time.strftime('%B %d, %Y') %>. 
+This email was sent regarding your cancelled booking that was scheduled for <%= @booking.local_start_time.strftime('%B %d, %Y') %>. 
