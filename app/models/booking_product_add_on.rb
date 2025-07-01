@@ -33,6 +33,7 @@ class BookingProductAddOn < ApplicationRecord
 
   def variant_in_stock
     return unless product_variant && quantity.to_i > 0
+    return if product_variant.business&.stock_management_disabled?
     unless product_variant.in_stock?(quantity)
       errors.add(:quantity, "for #{product_variant.name} is not sufficient. Only #{product_variant.stock_quantity} available.")
     end
@@ -40,6 +41,7 @@ class BookingProductAddOn < ApplicationRecord
   
   def variant_in_stock_for_update
     return unless product_variant && quantity.to_i > 0 && @original_quantity.present?
+    return if product_variant.business&.stock_management_disabled?
     quantity_diff = quantity.to_i - @original_quantity.to_i
     if quantity_diff > 0 # If increasing quantity
       # Check if there is enough stock for the additional quantity requested
@@ -59,6 +61,7 @@ class BookingProductAddOn < ApplicationRecord
 
   def adjust_stock_on_update
     return unless product_variant && @original_quantity.present?
+    return if product_variant.business&.stock_management_disabled?
     quantity_diff = quantity.to_i - @original_quantity.to_i
 
     if quantity_diff > 0 # Quantity increased, so decrement stock further
@@ -75,6 +78,7 @@ class BookingProductAddOn < ApplicationRecord
 
   def decrement_variant_stock_on_create
     return unless product_variant && quantity.to_i > 0
+    return if product_variant.business&.stock_management_disabled?
     unless product_variant.decrement_stock!(quantity)
       errors.add(:base, "Failed to decrement stock for #{product_variant.name}. Operation rolled back.")
       raise ActiveRecord::Rollback
@@ -83,6 +87,7 @@ class BookingProductAddOn < ApplicationRecord
 
   def increment_variant_stock_on_destroy
     return unless product_variant && quantity.to_i > 0
+    return if product_variant.business&.stock_management_disabled?
     # quantity here is the quantity at the time of destruction
     product_variant.increment_stock!(quantity)
   end

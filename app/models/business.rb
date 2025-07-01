@@ -351,6 +351,20 @@ class Business < ApplicationRecord
     %w[09:00 10:00 11:00 14:00 15:00 16:00]
   end
   
+  # Stock management methods
+  def stock_management_enabled?
+    stock_management_enabled
+  end
+  
+  def stock_management_disabled?
+    !stock_management_enabled
+  end
+  
+  # Helper method for products to check if they should track stock
+  def requires_stock_tracking?
+    stock_management_enabled?
+  end
+  
   # Platform (BizBlasts) loyalty methods
   def current_platform_loyalty_points
     platform_loyalty_points || 0
@@ -427,7 +441,7 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id stripe_status payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id stripe_status payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date stock_management_enabled]
   end
   
   # Define which associations are allowed to be searched with Ransack

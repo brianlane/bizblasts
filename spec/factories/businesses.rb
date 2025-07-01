@@ -48,6 +48,7 @@ FactoryBot.define do
 
     time_zone { 'UTC' }
     active { true }
+    stock_management_enabled { true }
     
     # Traits for specific host types/tiers
     trait :subdomain_host do
