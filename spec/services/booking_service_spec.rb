@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe BookingService do
   let(:staff_member) { create(:staff_member) }
   let(:service) { create(:service) }
-  let(:date) { Date.today }
+  let(:date) { Date.current + 7.days } # Use a future date to avoid past filtering
   let(:tenant) { create(:business) }
   
   describe '.generate_calendar_data' do
@@ -21,13 +21,15 @@ RSpec.describe BookingService do
         tenant: tenant
       )
       
-      # Calendar data should contain entries for all days in the month
+      # Calendar data should contain entries for all days in the month (excluding past dates)
       start_date = date.beginning_of_month
       end_date = date.end_of_month
       
-      expect(result.keys).to include(start_date.to_s)
-      expect(result.keys).to include(end_date.to_s)
-      expect(result.keys.count).to eq((end_date - start_date).to_i + 1)
+      # Only expect dates that are not in the past to be included
+      expected_dates = (start_date..end_date).select { |d| d >= Date.current }.map(&:to_s)
+      
+      expect(result.keys).to match_array(expected_dates)
+      expect(result.keys.count).to eq(expected_dates.count)
     end
     
     it 'returns empty hash if staff member or service is nil' do
