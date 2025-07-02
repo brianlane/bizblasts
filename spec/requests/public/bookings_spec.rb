@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Bookings', type: :system do
-  let!(:business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:service) { create(:service, business: business) }
   let!(:staff) { create(:user, :staff, business: business, email: 'staff@test.com') }
   let!(:staff_member) { create(:staff_member, business: business, user: staff) }

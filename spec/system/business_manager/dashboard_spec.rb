@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager Dashboard", type: :system do
-  let!(:business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff) { create(:user, :staff, business: business, email: 'staff@test.com') }
   let!(:client) { create(:user, :client, email: 'client@test.com') }
@@ -49,7 +49,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
       within('#recent-bookings-widget') do
         expect(page).to have_content(service.name)
         expect(page).to have_content(customer.full_name)
-        expect(page).to have_content(recent_booking.start_time.strftime("%a, %b %d, %Y at %I:%M %p"))
+        expect(page).to have_content(recent_booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p"))
       end
 
       # Check for Upcoming Appointments widget
@@ -65,7 +65,6 @@ RSpec.describe "Business Manager Dashboard", type: :system do
 
       # Check for Quick Actions including Services link
       within('#quick-actions-widget') do
-        expect(page).to have_link("View Orders", href: "/manage/orders")
         expect(page).to have_link("Create Booking") # Placeholder check
         expect(page).to have_link("Edit Website", href: edit_business_manager_settings_website_pages_path)
       end

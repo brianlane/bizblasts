@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe "Booking Flow", type: :system do
-  let!(:business) { create(:business, hostname: 'testbiz', time_zone: 'America/New_York') }
+  let!(:business) { create(:business, time_zone: 'America/New_York') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Test Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'John Doe') }
   let!(:client) { create(:user, :client) }
@@ -36,15 +36,20 @@ RSpec.describe "Booking Flow", type: :system do
   end
 
   def complete_booking
-    with_subdomain(business.hostname) do
+    with_subdomain(business.subdomain) do
       # Visit calendar page
       visit tenant_calendar_path(service_id: service.id, staff_member_id: staff_member.id, date: date)
       
       # Verify available days are shown
       expect(page).to have_selector('.calendar-day')
       
-      # Get the first available day
-      first_day = find('.calendar-day', match: :first)
+      # Get the first available day that has slots (not a past date and has available slots > 0)
+      available_days = all('.calendar-day:not(.past-date)')
+      first_day = available_days.find do |day|
+        slot_count_element = day.find('.available-slots-count span', visible: false) rescue nil
+        slot_count_element && slot_count_element.text.to_i > 0
+      end
+            
       slot_time = first_day.text.strip
 
       # Click the day
@@ -95,11 +100,11 @@ RSpec.describe "Booking Flow", type: :system do
     # Verify the booking appears in my-bookings with correct details
     expect(page).to have_content(service.name)
     expect(page).to have_content(staff_member.name)
-    # Use a more flexible content check for the time
-    expect(page).to have_content("AM") # Or any part of the time display that should be consistent
+    # Verify that a time is displayed (could be AM or PM within business hours)
+    expect(page).to have_content(/\d{1,2}:\d{2} (AM|PM)/)
 
     # Verify the slot is no longer available on the calendar page under the tenant subdomain
-    with_subdomain(business.hostname) do
+    with_subdomain(business.subdomain) do
       visit tenant_calendar_path(service_id: service.id, staff_member_id: staff_member.id, date: date)
       expect(page).to have_selector('.calendar-day')
       expect(page).to have_content(date.strftime('%B %Y'))

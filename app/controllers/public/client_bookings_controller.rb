@@ -37,7 +37,7 @@ module Public
       
       cancellation_reason = "Cancelled by client"
       
-      success, error_message = BookingService.cancel_booking(@booking, cancellation_reason)
+      success, error_message = BookingManager.cancel_booking(@booking, cancellation_reason, true, current_user: current_user)
       
       if success
         redirect_to tenant_my_booking_path(@booking), notice: "Your booking has been successfully cancelled."

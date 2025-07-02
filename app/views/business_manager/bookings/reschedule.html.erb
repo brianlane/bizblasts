@@ -41,7 +41,7 @@
               </p>
               <p class="text-sm text-yellow-800">
                 <span class="font-medium">Currently Scheduled For:</span> 
-                <%= @booking.start_time.strftime("%A, %B %d, %Y at %I:%M %p") %>
+                <%= @booking.local_start_time.strftime("%A, %B %d, %Y at %I:%M %p") %>
               </p>
             </div>
           </div>
@@ -92,8 +92,9 @@
             <% if @available_slots.present? %>
               <% @available_slots.each do |slot| %>
                 <% start_time_str = slot[:start_time].strftime("%I:%M %p") %>
+                <% start_time_value = slot[:start_time].strftime("%H:%M") %>
                 <div class="relative">
-                  <input type="radio" name="start_time" id="time-<%= start_time_str.parameterize %>" value="<%= start_time_str %>" class="peer absolute h-0 w-0 opacity-0">
+                  <input type="radio" name="start_time" id="time-<%= start_time_str.parameterize %>" value="<%= start_time_value %>" class="peer absolute h-0 w-0 opacity-0">
                   <label for="time-<%= start_time_str.parameterize %>" class="flex items-center justify-center py-2 px-4 bg-white border rounded-md cursor-pointer hover:bg-gray-50 peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-700">
                     <%= start_time_str %>
                   </label>

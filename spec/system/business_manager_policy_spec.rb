@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Business Manager Policy Enforcement', type: :system do
-  let(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+  let(:business) { create(:business, host_type: 'subdomain') }
   let(:manager) { create(:user, :manager, business: business) }
   let!(:privacy_policy) { create(:policy_version, policy_type: 'privacy_policy', version: 'v1.0', active: true) }
   let!(:terms_policy) { create(:policy_version, policy_type: 'terms_of_service', version: 'v1.0', active: true) }
@@ -14,7 +14,7 @@ RSpec.describe 'Business Manager Policy Enforcement', type: :system do
     driven_by(:rack_test)
     
     # Configure Capybara for subdomain
-    Capybara.app_host = "http://testbiz.example.com"
+    Capybara.app_host = "http://#{business.subdomain}.example.com"
     
     # Set tenant context for the business
     ActsAsTenant.current_tenant = business

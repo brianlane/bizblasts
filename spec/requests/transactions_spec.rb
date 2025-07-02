@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Transactions', type: :request do
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+  let(:business) { create(:business) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }
   let(:user) { create(:user, :client, email: tenant_customer.email) }
   let(:service) { create(:service, business: business, price: 100.00) }

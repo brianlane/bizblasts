@@ -13,18 +13,9 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
   end
 
   # Setup a business with a subdomain and a business user associated with it.
-  let!(:business) { Business.create!(
+  let!(:business) { create(:business, 
     name: 'Test Business',
-    subdomain: 'testbiz',
-    hostname: 'testbiz',
     industry: 'other',
-    phone: '1234567890',
-    email: 'test@example.com',
-    address: '123 Main St',
-    city: 'Test City',
-    state: 'Test State',
-    zip: '12345',
-    description: 'A test business',
     tier: 'free',
     host_type: 'subdomain'
   ) }
@@ -64,14 +55,14 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     login_as(user, scope: :user)
 
     # After login, manually visit the dashboard
-    switch_to_subdomain('testbiz')
+    switch_to_subdomain(business.subdomain)
     visit '/dashboard'
 
     # Check that we're actually on the dashboard page
-    expect(page).to have_content(/Dashboard|Welcome|testbiz/i)
+    expect(page).to have_content(/Dashboard|Welcome|#{business.name}/i)
     
     # Check that we're on the right subdomain
-    expect(URI.parse(page.current_url).host).to include("testbiz")
+    expect(URI.parse(page.current_url).host).to include(business.subdomain)
 
     # Find and click the sign out link
     if page.has_link?('Sign Out')

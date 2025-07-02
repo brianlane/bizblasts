@@ -9,6 +9,8 @@ module Public
     # Ensure user is logged in to book (or handle guest booking flow)
     skip_before_action :authenticate_user!, only: [:new, :create, :confirmation]
     before_action :set_form_data, only: [:new, :create]
+    # Use the business's time zone for date/time multiparam parsing in create
+    around_action :use_business_time_zone, only: [:create]
     # Potentially allow viewing the form without login?
 
     # GET /book (new_booking_path)
@@ -35,7 +37,8 @@ module Public
       # Pre-fill date/time if provided via query params
       if params[:date].present? && params[:start_time].present?
         # Ensure BookingManager.process_datetime_params is robust
-        dt = BookingManager.process_datetime_params(params[:date], params[:start_time])
+        current_tenant.ensure_time_zone! if current_tenant.respond_to?(:ensure_time_zone!)
+        dt = BookingManager.process_datetime_params(params[:date], params[:start_time], current_tenant&.time_zone || 'UTC')
         @booking.start_time = dt if dt
       end
     end
@@ -384,6 +387,12 @@ module Public
     end
 
     private
+
+    # Wrap the action in the current tenant's time zone for correct multiparam time parsing
+    def use_business_time_zone
+      tz = current_tenant&.ensure_time_zone! || 'UTC'
+      Time.use_zone(tz) { yield }
+    end
 
     def set_form_data
       # Try to get service_id from top-level params (GET new) or nested booking params (POST create error)

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe BusinessManager::ServicesController, type: :controller do
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+  let(:business) { create(:business) }
   let(:manager_user) { create(:user, :manager, business: business) }
 
   before do

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager Customers", type: :system do
-  let!(:business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:manager)  { create(:user, :manager, business: business) }
   let!(:customer) { create(:tenant_customer, business: business, first_name: 'Existing', last_name: 'Customer', email: 'exist@example.com', phone: '123-456-7890') }
 

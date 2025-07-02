@@ -50,6 +50,9 @@ FactoryBot.define do
     active { true }
     stock_management_enabled { true }
     
+    # Set subdomain same as hostname for subdomain host types
+    subdomain { hostname }
+    
     # Traits for specific host types/tiers
     trait :subdomain_host do
       host_type { 'subdomain' }
@@ -76,6 +79,11 @@ FactoryBot.define do
     trait :premium_tier do
       tier { 'premium' }
       # No host_type change needed here, default sequence handles both
+    end
+    
+    trait :testbiz do
+      sequence(:hostname) { |n| "testbiz-#{n}" }
+      sequence(:subdomain) { |n| "testbiz-#{n}" }
     end
     
     trait :with_bookings do

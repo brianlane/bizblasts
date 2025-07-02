@@ -12,16 +12,23 @@ class AvailabilityService
   def self.available_slots(staff_member, date, service = nil, interval: 30)
     return [] unless staff_member.active?
     
+    # PERFORMANCE OPTIMIZATION: Skip past dates completely
+    return [] if date < Date.current
+    
+    # PERFORMANCE OPTIMIZATION: Use more aggressive caching for future dates
+    cache_duration = case
+    when date == Date.current then 2.minutes  # Very short cache for today
+    when date < Date.current + 3.days then 10.minutes  # Short cache for next few days
+    else 1.hour  # Longer cache for distant future
+    end
+    
     # Include current hour in cache key for same-day slots to handle time progression
     time_component = date == Date.current ? Time.current.hour : 'static'
     
-    # Always cache available slots based on parameters, availability, and policy
-    cache_key = ['availability_slots', staff_member.id, date.to_s, service&.id, interval,
-                 time_component, staff_member.availability, 
-                 staff_member.business.booking_policy&.attributes].join('/')
-    
-    # Reduce cache TTL for same-day slots for better real-time accuracy
-    cache_duration = date == Date.current ? 5.minutes : 15.minutes
+    # Include the business time zone in the cache key so slots are cached per-timezone.
+    tz = staff_member.business&.time_zone.presence || 'UTC'
+    tz_component = tz.parameterize(separator: '_')
+    cache_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
     
     Rails.cache.fetch(cache_key, expires_in: cache_duration) do
       raw_slots = compute_available_slots(staff_member, date, service, interval)
@@ -92,7 +99,8 @@ class AvailabilityService
   # @return [Hash] a hash with dates as keys and aggregated available slots as values
   def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30)
     # Use a cache key based on unique parameters
-    cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval].join('/')
+    tz = staff_member.business&.time_zone.presence || 'UTC'
+    cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
 
     Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
       return {} unless staff_member.active?
@@ -157,69 +165,73 @@ class AvailabilityService
   private
 
   def self.compute_available_slots(staff_member, date, service, interval)
-    slot_duration = service&.duration || interval
-    step_interval = interval
-    time_slots = []
-    
-    # Policy checks
     business = staff_member.business
-    policy = business&.booking_policy
-    if policy
-      # Adjust to minimum duration
-      if policy.min_duration_mins.present? && slot_duration < policy.min_duration_mins
-        slot_duration = policy.min_duration_mins
+    tz = business&.time_zone.presence || 'UTC'
+
+    Time.use_zone(tz) do
+      slot_duration = service&.duration || interval
+      step_interval = interval
+      time_slots = []
+      
+      # Policy checks
+      policy = business&.booking_policy
+      if policy
+        # Adjust to minimum duration
+        if policy.min_duration_mins.present? && slot_duration < policy.min_duration_mins
+          slot_duration = policy.min_duration_mins
+        end
+        # Exceed maximum duration
+        if policy.max_duration_mins.present? && slot_duration > policy.max_duration_mins
+          return []
+        end
+        # Max daily bookings
+        if policy.max_daily_bookings.present? && policy.max_daily_bookings > 0
+          current_bookings = check_daily_booking_limit(staff_member, date, nil)
+          return [] if current_bookings >= policy.max_daily_bookings
+        end
+        # Max advance days
+        if policy.max_advance_days.present? && policy.max_advance_days > 0
+          max_date = Time.current.to_date + policy.max_advance_days.days
+          return [] if date > max_date
+        end
       end
-      # Exceed maximum duration
-      if policy.max_duration_mins.present? && slot_duration > policy.max_duration_mins
+      
+      # Service capability
+      # Check if staff member can perform this service
+      if service.present? && !staff_member.services.include?(service)
         return []
       end
-      # Max daily bookings
-      if policy.max_daily_bookings.present? && policy.max_daily_bookings > 0
-        current_bookings = check_daily_booking_limit(staff_member, date, nil)
-        return [] if current_bookings >= policy.max_daily_bookings
-      end
-      # Max advance days
-      if policy.max_advance_days.present? && policy.max_advance_days > 0
-        max_date = Time.current.to_date + policy.max_advance_days.days
-        return [] if date > max_date
-      end
-    end
-    
-    # Service capability
-    # Check if staff member can perform this service
-    if service.present? && !staff_member.services.include?(service)
-      return []
-    end
-    
-    # Determine intervals
-    day_name = date.strftime('%A').downcase
-    availability_data = staff_member.availability&.with_indifferent_access || {}
-    intervals = if availability_data[:exceptions]&.key?(date.iso8601)
-                  Array(availability_data[:exceptions][date.iso8601])
-                else
-                  Array(availability_data[day_name])
-                end
-    return [] unless intervals.any?
-    
-    intervals.each do |interval_data|
-      start_str, end_str = interval_data['start'], interval_data['end']
-      next unless start_str && end_str
-      start_h, start_m = start_str.split(':').map(&:to_i)
-      end_h, end_m = end_str.split(':').map(&:to_i)
-      interval_start = Time.zone.local(date.year, date.month, date.day, start_h, start_m)
-      interval_end = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
-      interval_end += 1.day if end_h < start_h
-      current = interval_start
       
-      while current + slot_duration.minutes <= interval_end
-        st = current
-        en = current + slot_duration.minutes
-        time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)
-        current += step_interval.minutes
+      # Determine intervals
+      day_name = date.strftime('%A').downcase
+      availability_data = staff_member.availability&.with_indifferent_access || {}
+      intervals = if availability_data[:exceptions]&.key?(date.iso8601)
+                    Array(availability_data[:exceptions][date.iso8601])
+                  else
+                    Array(availability_data[day_name])
+                  end
+      return [] unless intervals.any?
+      
+      intervals.each do |interval_data|
+        start_str, end_str = interval_data['start'], interval_data['end']
+        next unless start_str && end_str
+        start_h, start_m = start_str.split(':').map(&:to_i)
+        end_h, end_m = end_str.split(':').map(&:to_i)
+        interval_start = Time.zone.local(date.year, date.month, date.day, start_h, start_m)
+        interval_end = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+        interval_end += 1.day if end_h < start_h
+        current = interval_start
+        
+        while current + slot_duration.minutes <= interval_end
+          st = current
+          en = current + slot_duration.minutes
+          time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)
+          current += step_interval.minutes
+        end
       end
+      
+      filter_booked_slots(time_slots, staff_member, date, slot_duration)
     end
-    
-    filter_booked_slots(time_slots, staff_member, date, slot_duration)
   end
 
   # Check if a staff member is available for the entire duration
@@ -273,18 +285,20 @@ class AvailabilityService
     # Enhanced logging
     Rails.logger.debug("Checking #{slots.count} slots for conflicts with #{existing_bookings.count} existing bookings (buffer: #{buffer_minutes} mins)")
     if Rails.env.test?
-      Rails.logger.debug("TEST DEBUG (Filter): Existing Bookings (with buffer): #{existing_bookings.map { |b| { start_time: b.start_time, end_time: b.end_time } }.inspect}")
+      Rails.logger.debug("TEST DEBUG (Filter): Existing Bookings (with buffer): #{existing_bookings.map { |booking_data| { start_time: booking_data[1], end_time: booking_data[2] } }.inspect}")
       Rails.logger.debug("TEST DEBUG (Filter): Slots to check: #{slots.map { |s| s[:start_time].strftime('%H:%M') + '-' + s[:end_time].strftime('%H:%M') }.inspect}")
     end
 
     return slots if existing_bookings.empty?
 
     # Create a list of booked intervals including buffer times, sorted by start time
-    booked_intervals = existing_bookings.map do |booking|
+    # Note: existing_bookings is an array of arrays from pluck: [id, start_time, end_time, status]
+    booked_intervals = existing_bookings.map do |booking_data|
+      booking_id, start_time, end_time, status = booking_data
       {
-        start_time: booking.start_time,
-        end_time: booking.end_time + buffer_duration,
-        booking_id: booking.id
+        start_time: start_time,
+        end_time: end_time + buffer_duration,
+        booking_id: booking_id
       }
     end.sort_by { |interval| interval[:start_time] }
 
@@ -337,33 +351,28 @@ class AvailabilityService
   # Includes buffer time from BookingPolicy
   def self.fetch_conflicting_bookings(staff_member, start_time, end_time, exclude_booking_id = nil)
     business = staff_member.business
-    policy = business&.booking_policy
-    buffer_minutes = policy&.buffer_time_mins || 0
-    buffer_duration = buffer_minutes.minutes # ActiveSupport::Duration for clarity
-
-    # Find bookings for the staff member that are not cancelled and overlap the potential slot + buffer
-    query = Booking.where(
-      staff_member_id: staff_member.id
-    ).where.not(status: :cancelled)
-
-    # Exclude a specific booking if requested (e.g., when updating)
-    query = query.where.not(id: exclude_booking_id) if exclude_booking_id
-
-    # Overlap condition:
-    # Existing booking starts before the potential slot ends
-    # AND
-    # Existing booking ends (plus buffer) after the potential slot starts
-    # Uses native interval arithmetic for database efficiency
-    query = query.where(
-      "bookings.start_time < :end_time AND (bookings.end_time + make_interval(mins := :buffer)) > :start_time",
-      {
-        end_time: end_time,
-        buffer: buffer_minutes,
-        start_time: start_time
-      }
-    )
-
-    query.to_a # Execute and return as array
+    buffer_time_mins = business.booking_policy&.buffer_time_mins || 0
+    
+    # PERFORMANCE OPTIMIZATION: Calculate time range once
+    buffer_duration = buffer_time_mins.minutes
+    query_start = start_time - buffer_duration
+    query_end = end_time + buffer_duration
+    
+    # PERFORMANCE OPTIMIZATION: Use optimized query with indexes
+    query = business.bookings
+                    .joins(:staff_member)  # Ensure staff_member association is loaded
+                    .where(staff_member_id: staff_member.id)
+                    .where.not(status: ['cancelled', 'no_show'])
+                    .where(
+                      '(start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?)',
+                      query_end, query_start, query_start, query_end
+                    )
+    
+    # Exclude specific booking if provided
+    query = query.where.not(id: exclude_booking_id) if exclude_booking_id.present?
+    
+    # PERFORMANCE OPTIMIZATION: Use pluck to get only needed data instead of full objects
+    query.pluck(:id, :start_time, :end_time, :status)
   end
 
   # Check the number of bookings for a staff member on a given date

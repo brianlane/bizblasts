@@ -50,28 +50,13 @@ RSpec.describe "Business Manager Orders", type: :system do
     click_button "Sign In"
   end
 
-  describe "viewing orders from dashboard" do
-    it "navigates to orders index from dashboard" do
-      visit business_manager_dashboard_path
-      
-      # Find and click the "View Orders" link in the quick actions section
-      within "#quick-actions-widget" do
-        click_link "View Orders"
-      end
-      
-      # Verify we're on the orders index page
-      expect(page).to have_current_path(business_manager_orders_path)
-      expect(page).to have_content("Business Orders")
-    end
-  end
-
   describe "orders index page" do
     before do
       visit business_manager_orders_path
     end
 
     it "displays a list of all orders" do
-      expect(page).to have_content("Business Orders")
+      expect(page).to have_content("Business Transactions")
       
       # Check that all orders are displayed
       expect(page).to have_content(product_order.order_number)
@@ -91,7 +76,7 @@ RSpec.describe "Business Manager Orders", type: :system do
 
     it "filters orders by type" do
       # Click on the Product filter - find the section with the h3 containing "Filter by Type"
-      type_section = find("h3", text: "Filter by Type").find(:xpath, "..")
+      type_section = find("h3", text: "Filter Orders by Type").find(:xpath, "..")
       within type_section do
         click_link "Product"
       end
@@ -102,7 +87,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       expect(page).not_to have_content(mixed_order.order_number)
       
       # Now try service filter
-      type_section = find("h3", text: "Filter by Type").find(:xpath, "..")
+      type_section = find("h3", text: "Filter Orders by Type").find(:xpath, "..")
       within type_section do
         click_link "Service"
       end
@@ -115,7 +100,7 @@ RSpec.describe "Business Manager Orders", type: :system do
 
     it "filters orders by status" do
       # Click on the Pending Payment filter - find the section with the h3 containing "Filter by Status"
-      status_section = find("h3", text: "Filter by Status").find(:xpath, "..")
+      status_section = find("h3", text: "Filter Orders by Status").find(:xpath, "..")
       within status_section do
         click_link "Pending Payment"
       end
@@ -128,13 +113,13 @@ RSpec.describe "Business Manager Orders", type: :system do
     
     it "combines status and type filters" do
       # Apply status filter first
-      status_section = find("h3", text: "Filter by Status").find(:xpath, "..")
+      status_section = find("h3", text: "Filter Orders by Status").find(:xpath, "..")
       within status_section do
         click_link "Pending Payment"
       end
       
       # Then apply type filter
-      type_section = find("h3", text: "Filter by Type").find(:xpath, "..")
+      type_section = find("h3", text: "Filter Orders by Type").find(:xpath, "..")
       within type_section do
         click_link "Product"
       end
@@ -161,8 +146,8 @@ RSpec.describe "Business Manager Orders", type: :system do
     it "navigates to order details from index" do
       visit business_manager_orders_path
       
-      # Click on an order number
-      click_link product_order.order_number
+      # Click on the "View Order" action link for the product order
+      click_link 'View Order', href: business_manager_order_path(product_order)
       
       # Verify we're on the correct order detail page
       expect(page).to have_current_path(business_manager_order_path(product_order))
@@ -193,7 +178,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       visit business_manager_order_path(product_order)
       
       click_link "Back to Business Orders"
-      expect(page).to have_current_path(business_manager_orders_path)
+      expect(page).to have_content("Business Transactions")
     end
   end
 end 

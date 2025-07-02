@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Public::LoyaltyController, type: :controller do
-  let(:business) { create(:business, hostname: 'testbiz') }
+  let(:business) { create(:business) }
   let(:loyalty_program) { create(:loyalty_program, business: business, active: true) }
   let(:user) { create(:user, role: :client) }
   let(:tenant_customer) { create(:tenant_customer, business: business, email: user.email) }

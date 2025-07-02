@@ -4,7 +4,7 @@ FactoryBot.define do
     cancellation_window_mins { 0 }
     buffer_time_mins { 0 }
     max_daily_bookings { 0 }
-    max_advance_days { 0 }
+    max_advance_days { 30 } # Allow bookings up to 30 days in advance by default
     min_duration_mins { nil }
     max_duration_mins { nil }
     intake_fields { {} }

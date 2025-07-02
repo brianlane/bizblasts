@@ -1,0 +1,44 @@
+BOOKING STATUS UPDATE
+=====================================
+
+Hello <%= @customer.first_name %>,
+
+Your booking with <%= @business.name %> has been updated.
+
+New Status: <%= @status.upcase %>
+
+BOOKING DETAILS
+---------------
+Service: <%= @booking.service.name %>
+Date & Time: <%= @booking.local_start_time.strftime('%A, %B %d, %Y at %l:%M %p') %>
+Duration: <%= @booking.service.duration %> minutes
+<% if @booking.staff_member %>Staff Member: <%= @booking.staff_member.name %>
+<% end %><% if @booking.notes && !@booking.notes.empty? %>Notes: <%= @booking.notes %>
+<% end %>
+
+<% if @status == 'confirmed' %>
+Great news! Your booking is confirmed. We look forward to seeing you!
+<% elsif @status == 'cancelled' %>
+Your booking has been cancelled. If you have any questions, please don't hesitate to contact us.
+<% elsif @status == 'completed' %>
+Thank you for choosing <%= @business.name %>! We hope you had a great experience.
+<% if @booking.eligible_for_tips? %>
+
+If you'd like to leave a tip for your service provider, please visit:
+<%= new_tip_url(@booking, token: @booking.generate_tip_token, host: @business.subdomain + '.' + Rails.application.config.app_domain) %>
+<% end %>
+<% end %>
+
+<% if @status != 'cancelled' %>
+If you need to make any changes to your booking, please contact us as soon as possible.
+<% end %>
+
+Best regards,
+<%= @business.name %>
+
+<% if @business.phone && !@business.phone.empty? %>Phone: <%= @business.phone %>
+<% end %><% if @business.email && !@business.email.empty? %>Email: <%= @business.email %>
+<% end %>
+
+---
+This email was sent regarding your booking scheduled for <%= @booking.local_start_time.strftime('%B %d, %Y') %>. 

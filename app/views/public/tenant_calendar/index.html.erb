@@ -2,6 +2,7 @@
      data-controller="calendar"
      data-calendar-endpoint-value="<%= tenant_available_slots_path %>"
      data-calendar-is-subdomain-value="true"
+     data-business-time-zone="<%= @business.time_zone.presence || 'UTC' %>"
      <% if @service.present? %>data-calendar-service-id-value="<%= @service.id %>"<% end %>>
   
   <!-- Mobile-optimized header -->
@@ -148,7 +149,7 @@
       <!-- Desktop Calendar Grid (hidden on mobile) -->
       <div class="hidden sm:block p-4 sm:p-6">
         <div class="calendar-container">
-          <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @date) do |date| %>
+          <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @calendar_base_date || @date) do |date| %>
             <% is_past_date = date < Date.current %>
             <div class="calendar-day <%= 'past-date' if is_past_date %>" 
                  data-date="<%= date.to_s %>"
@@ -464,24 +465,36 @@
         
         if (filteredSlots.length > 0) {
           filteredSlots.forEach(slot => {
-            // Parse the UTC time and adjust for the user's local timezone
+            // Parse the UTC time and adjust for the business's local time zone
             const startTimeUTC = new Date(slot.start_time);
             
-            // Skip if slot has passed (additional safety check)
-            if (date === currentDateStr && startTimeUTC.getTime() <= now.getTime()) {
-              return; // Skip this slot
-            }
-            
-            // Format the times in the user's local timezone
+            // Format according to the business's local time zone (passed from the server)
+            const businessTz = document.querySelector('[data-business-time-zone]').dataset.businessTimeZone;
             const formattedStartTime = startTimeUTC.toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit',
-              timeZone: 'UTC',
+              timeZone: businessTz,
               hour12: true
+            });
+            
+            // Create URL-safe time format (HH:MM) for backend processing
+            const urlStartTime = startTimeUTC.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: businessTz,
+              hour12: false
             });
             
             // Add Staff Member Name if available in slot data
             const staffNameHtml = slot.staff_member_name ? `<div class="text-xs text-gray-600 mt-1">Staff: ${slot.staff_member_name}</div>` : '';
+            
+            // Skip if slot time has already passed in business's local time zone
+            // Simple and reliable approach: compare UTC times directly
+            const now = new Date();
+            
+            if (date === currentDateStr && startTimeUTC.getTime() <= now.getTime()) {
+              return; // Skip this slot
+            }
             
             html += `
               <div class="slot-item border rounded-lg overflow-hidden">
@@ -494,7 +507,7 @@
                 </div>
                 ${!slot.booked ? `
                 <a 
-                  href="<%= new_tenant_booking_path %>?service_id=<%= @service&.id %>&date=${date}&start_time=${startTimeUTC.getUTCHours()}:${startTimeUTC.getUTCMinutes()}&staff_member_id=${slot.staff_member_id}"
+                  href="<%= new_tenant_booking_path %>?service_id=<%= @service&.id %>&date=${date}&start_time=${urlStartTime}&staff_member_id=${slot.staff_member_id}"
                   class="book-slot-button block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 text-center transition-colors"
                 >Book This Slot</a>
                 ` : ''}

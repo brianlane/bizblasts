@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Public::ServicesController, type: :request do
   include Rails.application.routes.url_helpers
 
-  let!(:business) { create(:business, hostname: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:service) { create(:service, business: business, price: 150.00, name: 'Test Service') }
   let!(:staff_member) { create(:staff_member, business: business) }
   

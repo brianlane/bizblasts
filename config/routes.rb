@@ -123,10 +123,14 @@ Rails.application.routes.draw do
       # Allow staff/manager to create bookings under subdomain
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
       
+      # Business transactions management (unified orders and invoices)
+      resources :transactions, only: [:index, :show]
+      
       # Business orders management
       resources :orders, only: [:index, :show, :new, :create, :edit, :update]
       resources :invoices, only: [:index, :show] do
         post :resend, on: :member
+        patch :cancel, on: :member
       end
       get '/settings', to: 'settings#index', as: :settings
 
@@ -378,6 +382,8 @@ Rails.application.routes.draw do
 
       get '/my-bookings', to: 'client_bookings#index', as: :tenant_my_bookings
       get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
+      # Add alias for backward compatibility with tests
+      get '/booking/:id', to: 'client_bookings#show', as: :tenant_booking, constraints: { id: /\d+/ }
       patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
 
       resources :invoices, only: [:index, :show], as: :tenant_invoices do

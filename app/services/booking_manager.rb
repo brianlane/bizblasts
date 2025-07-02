@@ -16,7 +16,7 @@ class BookingManager
       
       # Process date and time parameters if provided
       if booking_params[:date].present? && booking_params[:time].present?
-        booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time])
+        booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time], (business || booking.business)&.time_zone || 'UTC')
       end
       
       # Filter and set the booking parameters
@@ -136,7 +136,7 @@ class BookingManager
       if booking_params[:send_confirmation]
         # Placeholder for sending confirmation
         Rails.logger.info "[BookingManager] Send confirmation flag set for Booking ##{booking.id}"
-        # BookingMailer.confirmation(booking).deliver_later
+        BookingMailer.confirmation(booking).deliver_later
       end
       
       # Handle payment requirements
@@ -167,7 +167,7 @@ class BookingManager
       
       # Process date and time parameters if provided
       if booking_params[:date].present? && booking_params[:time].present?
-        booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time])
+        booking_params[:start_time] = process_datetime_params(booking_params[:date], booking_params[:time], booking.business&.time_zone || 'UTC')
       end
       
       # Calculate new end_time if start_time or service changed
@@ -184,6 +184,7 @@ class BookingManager
           
           # Check booking policy duration constraints
           business = booking.business
+          business.ensure_time_zone! if business.respond_to?(:ensure_time_zone!)
           policy = business&.booking_policy
           
           if policy.present?
@@ -260,7 +261,7 @@ class BookingManager
       if booking.saved_change_to_status?
         # Notify customer of status change
         Rails.logger.info "[BookingManager] Status changed from #{original_status} to #{booking.status} for Booking ##{booking.id}"
-        # BookingMailer.status_update(booking).deliver_later
+        BookingMailer.status_update(booking).deliver_later
       end
       
       # Reschedule reminders if time changed
@@ -277,52 +278,86 @@ class BookingManager
   
   # Cancel a booking with optional reason and handle related tasks
   # Returns [success, error_message] - success is boolean, error_message is string or nil
-  def self.cancel_booking(booking, reason = nil, notify = true)
-    # Check cancellation policy
-    business = booking.business
-    policy = business&.booking_policy
-    cancellation_window_minutes = policy&.cancellation_window_mins
-    if cancellation_window_minutes.present? && cancellation_window_minutes > 0
-      cancellation_deadline = booking.start_time - cancellation_window_minutes.minutes
-      if Time.current > cancellation_deadline
-        # Convert minutes to hours for user-friendly display
-        error_message = if cancellation_window_minutes >= 60 && cancellation_window_minutes % 60 == 0
-          hours = cancellation_window_minutes / 60
-          time_unit = hours == 1 ? "hour" : "hours"
-          "Cannot cancel booking within #{hours} #{time_unit} of the start time."
-        else
-          "Cannot cancel booking within #{cancellation_window_minutes} minutes of the start time."
+  def self.cancel_booking(booking, reason = nil, notify = true, current_user: nil)
+    # Check if current user is business manager/staff with override privileges
+    business_override = current_user&.manager? || current_user&.staff?
+    
+    # Apply cancellation policy only for client users, not business managers
+    unless business_override
+      # Check cancellation policy
+      business = booking.business
+      business.ensure_time_zone! if business.respond_to?(:ensure_time_zone!)
+      policy = business&.booking_policy
+      cancellation_window_minutes = policy&.cancellation_window_mins
+      if cancellation_window_minutes.present? && cancellation_window_minutes > 0
+        Time.use_zone(business.time_zone || 'UTC') do
+          local_now   = Time.zone.now
+          # Use the booking's local_start_time method which properly converts UTC to business timezone
+          local_start = booking.local_start_time
+          cancellation_deadline = local_start - cancellation_window_minutes.minutes
+          if local_now > cancellation_deadline
+            # Convert minutes to hours for user-friendly display
+            error_message = if cancellation_window_minutes >= 60 && cancellation_window_minutes % 60 == 0
+              hours = cancellation_window_minutes / 60
+              time_unit = hours == 1 ? "hour" : "hours"
+              "Cannot cancel booking within #{hours} #{time_unit} of the start time."
+            else
+              "Cannot cancel booking within #{cancellation_window_minutes} minutes of the start time."
+            end
+            
+            booking.errors.add(:base, error_message)
+            Rails.logger.warn "[BookingManager] Attempted to cancel Booking ##{booking.id} within cancellation window."
+            return [false, error_message] # Return both success status and error message
+          end
         end
-        
-        booking.errors.add(:base, error_message)
-        Rails.logger.warn "[BookingManager] Attempted to cancel Booking ##{booking.id} within cancellation window."
-        return [false, error_message] # Return both success status and error message
       end
     end
 
     ActiveRecord::Base.transaction do
-      # Update booking status
-      booking.update!(status: :cancelled)
+      # Update booking status with audit trail
+      booking.update!(
+        status: :cancelled,
+        cancellation_reason: reason.present? ? reason : (business_override ? "Cancelled by business manager (override)" : nil),
+        cancelled_by: current_user&.id,
+        manager_override: business_override
+      )
       
-      # Record cancellation reason if provided
-      booking.update!(cancellation_reason: reason) if reason.present?
+      # Enhanced logging for audit trail
+      if business_override
+        Rails.logger.info "[BookingManager] Manager override cancellation for Booking ##{booking.id} by User ##{current_user.id} (#{current_user.email})"
+      else
+        Rails.logger.info "[BookingManager] Normal cancellation for Booking ##{booking.id} by User ##{current_user&.id || 'system'}"
+      end
       
       if notify
         # Notify customer
         Rails.logger.info "[BookingManager] Booking ##{booking.id} cancelled with reason: #{reason || 'Not provided'}"
-        # BookingMailer.cancellation(booking).deliver_later
+        # Send cancellation email
+        begin
+          BookingMailer.cancellation(booking).deliver_later
+          Rails.logger.info "[BookingManager] Cancellation email scheduled for Booking ##{booking.id}"
+        rescue => e
+          Rails.logger.error "[BookingManager] Failed to schedule cancellation email for Booking ##{booking.id}: #{e.message}"
+        end
       end
       
       # Find associated invoice
       invoice = booking.invoice
       
-      # Process refund if applicable
-      if invoice && invoice.payments.successful.exists?
-        # Placeholder for refund processing
-        Rails.logger.info "[BookingManager] Processing refund for cancelled Booking ##{booking.id} via Invoice ##{invoice.id}"
-        # invoice.payments.successful.each do |payment|
-        #   StripeService.refund_payment(payment)
-        # end
+      # Handle invoice based on payment status
+      if invoice
+        if invoice.payments.successful.exists?
+          # Invoice has payments - process refund if applicable
+          Rails.logger.info "[BookingManager] Processing refund for cancelled Booking ##{booking.id} via Invoice ##{invoice.id}"
+          # TODO: Implement actual refund processing
+          # invoice.payments.successful.each do |payment|
+          #   StripeService.refund_payment(payment)
+          # end
+        else
+          # Invoice has no payments - cancel it since service won't be performed
+          invoice.update!(status: :cancelled)
+          Rails.logger.info "[BookingManager] Cancelled unpaid Invoice ##{invoice.invoice_number} for cancelled Booking ##{booking.id}"
+        end
       end
       
       # --- Increment spots for Experience services upon cancellation ---
@@ -355,32 +390,30 @@ class BookingManager
   private
   
   # Process date and time strings into a DateTime object
-  def self.process_datetime_params(date_str, time_str)
+  def self.process_datetime_params(date_str, time_str, zone = 'UTC')
     return nil if date_str.blank? || time_str.blank?
-    
-    begin
-      date = Date.parse(date_str.to_s)
-      
-      # Handle different time string formats
-      if time_str.to_s.include?(':')
-        # Format like "10:00"
-        time_parts = time_str.to_s.split(':').map(&:to_i)
-        hour, minute = time_parts[0], time_parts[1]
-      else
-        # Try to handle integer time like 1000 (for 10:00)
-        time_int = time_str.to_i
-        hour = time_int / 100
-        minute = time_int % 100
+
+    Time.use_zone(zone) do
+      begin
+        date = Date.parse(date_str.to_s)
+
+        # Handle different time string formats
+        if time_str.to_s.include?(':')
+          hour, minute = time_str.split(':').map(&:to_i)
+        else
+          time_int = time_str.to_i
+          hour = time_int / 100
+          minute = time_int % 100
+        end
+
+        hour = [[hour, 0].max, 23].min
+        minute = [[minute, 0].max, 59].min
+
+        Time.zone.local(date.year, date.month, date.day, hour, minute)
+      rescue ArgumentError, TypeError => e
+        Rails.logger.error "[BookingManager] Error parsing datetime: #{e.message} for date: #{date_str}, time: #{time_str}"
+        nil
       end
-      
-      # Validate hour and minute ranges
-      hour = [[hour, 0].max, 23].min   # Clamp between 0-23
-      minute = [[minute, 0].max, 59].min # Clamp between 0-59
-      
-      Time.zone.local(date.year, date.month, date.day, hour, minute)
-    rescue ArgumentError, TypeError => e
-      Rails.logger.error "[BookingManager] Error parsing datetime: #{e.message} for date: #{date_str}, time: #{time_str}"
-      nil
     end
   end
   

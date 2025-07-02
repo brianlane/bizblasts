@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Promotion and Discount Code Stacking', type: :service do
-  let!(:business) { create(:business, hostname: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:customer) { create(:tenant_customer, business: business) }
   let!(:user) { create(:user, :client) }
   

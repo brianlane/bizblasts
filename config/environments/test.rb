@@ -90,4 +90,24 @@ Rails.application.configure do
   # Set up test environment variables for email
   ENV['MAILER_EMAIL'] ||= 'from@example.com'
   ENV['ADMIN_EMAIL'] ||= 'admin@example.com'
+
+  # -----------------------------------------------------------------
+  # Geocoder configuration for tests
+  # Prevent external HTTP calls and return deterministic coordinates
+  # -----------------------------------------------------------------
+  Geocoder.configure(lookup: :test, ip_lookup: :test)
+
+  # Provide stubbed responses for locations we care about in specs
+  Geocoder::Lookup::Test.add_stub(
+    "Phoenix, AZ",
+    [{ 'latitude' => 33.4484, 'longitude' => -112.0740 }]
+  )
+  Geocoder::Lookup::Test.add_stub(
+    "Phoenix Arizona",
+    [{ 'latitude' => 33.4484, 'longitude' => -112.0740 }]
+  )
+  Geocoder::Lookup::Test.add_stub(
+    "Phoenix, Arizona",
+    [{ 'latitude' => 33.4484, 'longitude' => -112.0740 }]
+  )
 end

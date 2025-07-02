@@ -49,7 +49,7 @@
         <p><span class="font-medium">Staff:</span> <%= @invoice.booking.staff_member&.name || 'Any Staff' %></p>
       </div>
       <div>
-        <p><span class="font-medium">Scheduled:</span> <%= l @invoice.booking.start_time, format: :long %></p>
+        <p><span class="font-medium">Scheduled:</span> <%= l @invoice.booking.local_start_time, format: :long %></p>
         <p><span class="font-medium">Status:</span> 
           <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
             <%= @invoice.booking.status.titleize %>
@@ -71,7 +71,7 @@
   <h2>Service Details:</h2>
   <p>
     <strong>Service:</strong> <%= @invoice.booking.service.name %><br>
-    <strong>Scheduled:</strong> <%= l @invoice.booking.start_time, format: :long %><br>
+            <strong>Scheduled:</strong> <%= l @invoice.booking.local_start_time, format: :long %><br>
     <strong>Staff:</strong> <%= @invoice.booking.staff_member&.name || 'Any Staff' %><br>
   </p>
   <% if @invoice.booking.booking_product_add_ons.any? %>

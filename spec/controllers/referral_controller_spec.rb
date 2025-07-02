@@ -1,14 +1,14 @@
 require 'rails_helper'
 
 RSpec.describe Public::ReferralController, type: :controller do
-  let(:business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz', referral_program_enabled: true) }
+  let(:business) { create(:business, referral_program_enabled: true) }
   let(:client_user) { create(:user, role: :client) }
   let(:manager_user) { create(:user, role: :manager, business: business) }
 
   before do
     business.save! unless business.persisted?
     ActsAsTenant.current_tenant = business
-    @request.host = 'testbiz.lvh.me'
+    @request.host = "#{business.subdomain}.lvh.me"
     
     business.create_referral_program!(
       active: true,

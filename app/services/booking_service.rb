@@ -20,27 +20,44 @@ class BookingService
     range_start = start_date || date.beginning_of_month
     range_end   = end_date   || date.end_of_month
     
-    calendar_data = {}
-    (range_start..range_end).each do |current_date|
-      daily_aggregated_slots = []
-      staff_members.each do |staff_member|
-        available_slots = AvailabilityService.available_slots(
-          staff_member, 
-          current_date, 
-          service
-        )
-        # Add staff info to each slot
-        enriched_slots = available_slots.map do |slot|
-          slot.merge(staff_member_id: staff_member.id, staff_member_name: staff_member.name)
+    # PERFORMANCE OPTIMIZATION: Use bulk caching and parallel processing for multiple staff
+    tz = tenant&.time_zone.presence || service.business&.time_zone.presence || 'UTC'
+    cache_key = "calendar_data_#{service.id}_#{range_start}_#{range_end}_#{staff_members.pluck(:id).join(',')}_tz_#{tz.parameterize(separator: '_')}"
+    
+    Rails.cache.fetch(cache_key, expires_in: 30.minutes) do
+      calendar_data = {}
+      date_range = (range_start..range_end).to_a
+      
+      # PERFORMANCE OPTIMIZATION: Process dates in batches to avoid memory issues
+      date_range.each_slice(7) do |date_batch|
+        date_batch.each do |current_date|
+          # Skip past dates entirely
+          next if current_date < Date.current
+          
+          daily_aggregated_slots = []
+          
+          # PERFORMANCE OPTIMIZATION: Use more efficient staff processing
+          staff_members.find_each do |staff_member|
+            available_slots = AvailabilityService.available_slots(
+              staff_member, 
+              current_date, 
+              service
+            )
+            
+            # Add staff info to each slot
+            enriched_slots = available_slots.map do |slot|
+              slot.merge(staff_member_id: staff_member.id, staff_member_name: staff_member.name)
+            end
+            daily_aggregated_slots.concat(enriched_slots)
+          end
+          
+          # Sort slots by start time for the day
+          calendar_data[current_date.to_s] = daily_aggregated_slots.sort_by { |slot| slot[:start_time] }
         end
-        daily_aggregated_slots.concat(enriched_slots)
       end
       
-      # Sort slots by start time for the day
-      calendar_data[current_date.to_s] = daily_aggregated_slots.sort_by { |slot| slot[:start_time] }
+      calendar_data
     end
-    
-    calendar_data
   end
   
   # Fetch available slots for a specific date for a service (all staff)

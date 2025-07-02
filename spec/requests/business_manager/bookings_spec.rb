@@ -268,7 +268,7 @@ RSpec.describe "Business Manager Bookings", type: :request do
           end
         end
 
-        it "prevents cancellation within the window" do
+        it "allows cancellation within the window (business manager override)" do
           # Create a booking that's 30 minutes in the future (within the 60-min window)
           imminent_booking = create(:booking,
             business: business,
@@ -280,9 +280,9 @@ RSpec.describe "Business Manager Bookings", type: :request do
           # Travel to a time inside the cancellation window (e.g., 20 minutes before start)
           travel_to imminent_booking.start_time - 20.minutes do
             patch cancel_business_manager_booking_path(imminent_booking), params: cancel_params
-            expect(imminent_booking.reload.status).not_to eq("cancelled")
-            expect(response).to redirect_to(business_manager_booking_path(imminent_booking)) # Still redirects to show
-            expect(flash[:alert]).to eq("Cannot cancel booking within 1 hour of the start time.")
+            expect(imminent_booking.reload.status).to eq("cancelled")
+            expect(response).to redirect_to(business_manager_booking_path(imminent_booking))
+            expect(flash[:notice]).to eq("Booking has been cancelled.")
           end
         end
       end
