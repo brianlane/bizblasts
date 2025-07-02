@@ -153,6 +153,8 @@ RSpec.describe AvailabilityService, type: :service do
     end
     
     context 'when staff member has split shift availability' do
+      # Use a specific Monday to ensure the test always runs on a day with availability
+      let(:test_monday) { Date.current.next_occurring(:monday) }
       let(:split_availability) do
         {
           monday: [{ "start" => "09:00", "end" => "12:00" }, { "start" => "14:00", "end" => "17:00" }],
@@ -163,7 +165,7 @@ RSpec.describe AvailabilityService, type: :service do
       before { staff_member.update!(availability: split_availability) }
 
       it 'returns slots only within the defined intervals' do
-        slots = described_class.available_slots(staff_member, date, service, interval: 30)
+        slots = described_class.available_slots(staff_member, test_monday, service, interval: 30)
         slot_times_h_m = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
 
         # Should include slots in 9-12 and 14-17 ranges
