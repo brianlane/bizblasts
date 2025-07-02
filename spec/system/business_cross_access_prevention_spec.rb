@@ -12,8 +12,8 @@ RSpec.describe 'Business Cross-Access Prevention', type: :system do
     end
   end
 
-  let!(:business_a) { create(:business, hostname: 'business-a', host_type: 'subdomain') }
-  let!(:business_b) { create(:business, hostname: 'business-b', host_type: 'subdomain') }
+  let!(:business_a) { create(:business, host_type: 'subdomain') }
+  let!(:business_b) { create(:business, host_type: 'subdomain') }
   let!(:manager_a) { create(:user, :manager, business: business_a) }
   let!(:staff_a) { create(:user, :staff, business: business_a) }
   let!(:client_user) { create(:user, :client) }

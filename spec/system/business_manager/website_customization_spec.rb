@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Website Customization System', type: :system do
-  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', hostname: 'custombiz', host_type: 'subdomain', subdomain: 'custombiz') }
+  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', host_type: 'subdomain') }
   let!(:manager) { create(:user, :manager, business: business) }
   
   before do

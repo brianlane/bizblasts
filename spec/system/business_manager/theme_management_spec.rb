@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Theme Management', type: :system do
-  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', hostname: 'themebiz', host_type: 'subdomain', subdomain: 'themebiz') }
+  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', host_type: 'subdomain') }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:theme1) { create(:website_theme, :active, business: business, name: 'Modern Theme') }
   let!(:theme2) { create(:website_theme, business: business, name: 'Classic Theme') }

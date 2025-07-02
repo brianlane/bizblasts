@@ -5,10 +5,10 @@ require 'rails_helper'
 RSpec.describe "Business Manager Dashboard", type: :system do
   let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
-  let!(:staff) { create(:user, :staff, business: business, email: 'staff@test.com') }
-  let!(:client) { create(:user, :client, email: 'client@test.com') }
-  let!(:other_business) { create(:business, hostname: 'otherbiz', subdomain: 'otherbiz') }
-  let!(:other_manager) { create(:user, :manager, business: other_business, email: 'othermanager@test.com') }
+  let!(:staff) { create(:user, :staff, business: business) }
+  let!(:client) { create(:user, :client) }
+  let!(:other_business) { create(:business) }
+  let!(:other_manager) { create(:user, :manager, business: other_business) }
   let!(:service) { create(:service, business: business) }
   let!(:customer) { create(:tenant_customer, business: business) }
   let!(:recent_booking) { create(:booking, business: business, service: service, tenant_customer: customer, start_time: 3.days.ago) }

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Template Marketplace', type: :system do
-  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', hostname: 'templatebiz', host_type: 'subdomain', subdomain: 'templatebiz') }
+  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', host_type: 'subdomain') }
   let!(:manager) { create(:user, :manager, business: business) }
 
   before do

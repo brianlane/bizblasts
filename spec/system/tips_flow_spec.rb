@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Tips Flow', type: :system, js: true do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain') }
   let!(:tip_configuration) { create(:tip_configuration, business: business) }
   let!(:user) { create(:user, :client, email: 'customer@example.com', password: 'password123') }
   let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
@@ -37,7 +37,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'allows customer to add tip after experience completion' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         # Visit tip form directly with token
         visit new_tip_path(booking_id: completed_booking.id, token: tip_token)
         
@@ -72,7 +72,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'shows validation errors for invalid tip amounts' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         visit new_tip_path(booking_id: completed_booking.id, token: tip_token)
         
         # Try to submit without selecting any tip amount
@@ -89,7 +89,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
       # Create existing tip
       create(:tip, :completed, business: business, booking: completed_booking, tenant_customer: tenant_customer)
       
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         # Direct access to tip form should redirect
         visit new_tip_path(booking_id: completed_booking.id, token: tip_token)
         
@@ -118,7 +118,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'allows tips for future experiences' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         # Should be able to access tip form for future bookings
         visit new_tip_path(booking_id: future_booking.id, token: tip_token)
         
@@ -148,7 +148,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'does not show tip option for standard services' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         # Direct access should redirect with error
         visit new_tip_path(booking_id: standard_booking.id, token: tip_token)
         
@@ -179,7 +179,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'handles tip payment success' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         visit success_tip_path(tip, token: tip_token)
         
         expect(page).to have_content('Thank you for your tip! Your appreciation means a lot to our team.')
@@ -202,7 +202,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
       # Create a pending tip for cancellation test
       pending_tip = create(:tip, business: business, booking: cancellation_booking, tenant_customer: tenant_customer, amount: 15.00, status: :pending)
       
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         visit cancel_tip_path(pending_tip, token: cancellation_token)
         
         expect(page).to have_content('Tip payment was cancelled.')
@@ -228,7 +228,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     let(:tip_token) { completed_booking.generate_tip_token }
 
     it 'allows tip access with valid token even when unauthenticated' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         visit new_tip_path(booking_id: completed_booking.id, token: tip_token)
         
         # Should be able to access tip form with valid token
@@ -266,7 +266,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'handles Stripe errors gracefully' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         visit new_tip_path(booking_id: completed_booking.id, token: tip_token)
         
         # Click on 15% tip button for the Stripe error test

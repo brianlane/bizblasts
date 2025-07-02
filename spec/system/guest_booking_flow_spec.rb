@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Guest Booking Flow', type: :system, js: true do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'guestbiz', subdomain: 'guestbiz', host_type: 'subdomain', time_zone: 'UTC') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', time_zone: 'UTC') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Guest Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Staff Member') }
 
@@ -15,7 +15,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
   let(:date) { Date.today.next_day }
 
   it 'allows a guest to book a service without logging in' do
-    with_subdomain('guestbiz') do
+    with_subdomain(business.subdomain) do
       visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
 
       # Accept the cookie banner if it appears
@@ -60,7 +60,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
   end
 
   it 'allows a guest to book and create an account' do
-    with_subdomain('guestbiz') do
+    with_subdomain(business.subdomain) do
       visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
 
       # Accept the cookie banner if it appears
@@ -116,7 +116,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
   # Test for the email confirmation functionality added during authentication implementation
   describe 'email confirmation functionality' do
     it 'requires email confirmation for new user accounts created during guest booking' do
-      with_subdomain('guestbiz') do
+      with_subdomain(business.subdomain) do
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
 
         # Accept the cookie banner if it appears

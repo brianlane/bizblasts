@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Page Builder System', type: :system do
-  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', hostname: 'pagebiz', host_type: 'subdomain', subdomain: 'pagebiz') }
+  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', host_type: 'subdomain') }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:theme) { create(:website_theme, :active, business: business, name: 'Test Theme') }
   let!(:home_page) { create(:page, business: business, title: 'Home', page_type: 'home', status: 'published') }

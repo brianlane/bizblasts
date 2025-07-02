@@ -3,11 +3,11 @@ require 'rails_helper'
 RSpec.describe 'Bookings', type: :system do
   let!(:business) { create(:business) }
   let!(:service) { create(:service, business: business) }
-  let!(:staff) { create(:user, :staff, business: business, email: 'staff@test.com') }
+  let!(:staff) { create(:user, :staff, business: business) }
   let!(:staff_member) { create(:staff_member, business: business, user: staff) }
-  let!(:client) { create(:user, :client, email: 'client@test.com') }
+  let!(:client) { create(:user, :client) }
   let!(:manager) { create(:user, :manager, business: business) }
-  let!(:customer) { create(:tenant_customer, business: business, first_name: 'Test', last_name: 'Customer', email: 'customer@test.com') }
+  let!(:customer) { create(:tenant_customer, business: business, first_name: 'Test', last_name: 'Customer') }
 
   before do
     # Use a JavaScript-enabled driver for UI interactions

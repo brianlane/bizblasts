@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   include StripeWebhookHelpers
   
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain', stripe_account_id: 'acct_test123') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', stripe_account_id: 'acct_test123') }
   
   before do
     ActsAsTenant.current_tenant = business
@@ -41,7 +41,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     end
 
     it 'creates booking and redirects to confirmation for standard services' do
-      with_subdomain('testbiz') do
+      with_subdomain(business.subdomain) do
         # Sign in
         visit new_user_session_path
         fill_in 'Email', with: user.email
@@ -93,7 +93,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     end
 
     it 'creates guest booking and redirects to confirmation for standard services' do
-      with_subdomain('testbiz') do
+      with_subdomain(business.subdomain) do
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
         
         # Fill guest details
@@ -155,7 +155,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     end
 
     it 'redirects directly to Stripe Checkout for product orders' do
-      with_subdomain('testbiz') do
+      with_subdomain(business.subdomain) do
         # Sign in
         visit new_user_session_path
 
@@ -214,7 +214,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     end
 
     it 'redirects guest product orders directly to Stripe Checkout' do
-      with_subdomain('testbiz') do
+      with_subdomain(business.subdomain) do
         # Add to cart as guest
         visit products_path
 
