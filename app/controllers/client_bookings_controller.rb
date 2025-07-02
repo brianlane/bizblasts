@@ -35,10 +35,10 @@ class ClientBookingsController < ApplicationController
     # Enforce cancellation window policy on reschedule attempts
     permitted_attrs = client_booking_update_params
     if params[:booking][:start_time].present?
-      original_start = @booking.start_time
       policy_window = @booking.business.booking_policy&.cancellation_window_mins
       if policy_window.present? && policy_window > 0
-        deadline = original_start - policy_window.minutes
+        # Use local_start_time for consistent timezone comparison
+        deadline = @booking.local_start_time - policy_window.minutes
         if Time.current > deadline
           if policy_window >= 60 && policy_window % 60 == 0
             hours = policy_window / 60

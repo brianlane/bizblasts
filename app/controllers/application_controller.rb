@@ -411,7 +411,7 @@ class ApplicationController < ActionController::Base
   # Wrap request in the tenant's time zone
   def use_business_time_zone(&block)
     # Ensure business has a valid time_zone populated
-    if ActsAsTenant.current_tenant.respond_to?(:ensure_time_zone!)
+    if ActsAsTenant.current_tenant&.respond_to?(:ensure_time_zone!)
       ActsAsTenant.current_tenant.ensure_time_zone!
     end
     tz = ActsAsTenant.current_tenant&.time_zone.presence || 'UTC'
