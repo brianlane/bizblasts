@@ -489,9 +489,10 @@
             const staffNameHtml = slot.staff_member_name ? `<div class="text-xs text-gray-600 mt-1">Staff: ${slot.staff_member_name}</div>` : '';
             
             // Skip if slot time has already passed in business's local time zone
-            const nowInBizTz = new Date().toLocaleString('en-US', { timeZone: businessTz });
-            const nowBizDate = new Date(nowInBizTz);
-            if (date === currentDateStr && startTimeUTC.getTime() <= nowBizDate.getTime()) {
+            // Simple and reliable approach: compare UTC times directly
+            const now = new Date();
+            
+            if (date === currentDateStr && startTimeUTC.getTime() <= now.getTime()) {
               return; // Skip this slot
             }
             

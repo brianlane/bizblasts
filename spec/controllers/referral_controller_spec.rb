@@ -8,7 +8,7 @@ RSpec.describe Public::ReferralController, type: :controller do
   before do
     business.save! unless business.persisted?
     ActsAsTenant.current_tenant = business
-    @request.host = 'testbiz.lvh.me'
+    @request.host = "#{business.subdomain}.lvh.me"
     
     business.create_referral_program!(
       active: true,
