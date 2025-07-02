@@ -315,8 +315,8 @@ module Public
             # Generate invoice for the booking
             generate_or_update_invoice_for_booking(@booking)
             
-            # Automatically confirm booking if business policy allows it
-            if current_tenant.booking_policy&.auto_confirm_bookings?
+            # Automatically confirm booking if no policy exists (legacy) or if policy allows it
+            if current_tenant.booking_policy.nil? || current_tenant.booking_policy.auto_confirm_bookings?
               @booking.update!(status: :confirmed)
             end
             
