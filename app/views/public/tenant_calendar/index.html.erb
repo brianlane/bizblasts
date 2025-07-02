@@ -477,6 +477,14 @@
               hour12: true
             });
             
+            // Create URL-safe time format (HH:MM) for backend processing
+            const urlStartTime = startTimeUTC.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: businessTz,
+              hour12: false
+            });
+            
             // Add Staff Member Name if available in slot data
             const staffNameHtml = slot.staff_member_name ? `<div class="text-xs text-gray-600 mt-1">Staff: ${slot.staff_member_name}</div>` : '';
             
@@ -498,7 +506,7 @@
                 </div>
                 ${!slot.booked ? `
                 <a 
-                  href="<%= new_tenant_booking_path %>?service_id=<%= @service&.id %>&date=${date}&start_time=${formattedStartTime}&staff_member_id=${slot.staff_member_id}"
+                  href="<%= new_tenant_booking_path %>?service_id=<%= @service&.id %>&date=${date}&start_time=${urlStartTime}&staff_member_id=${slot.staff_member_id}"
                   class="book-slot-button block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 text-center transition-colors"
                 >Book This Slot</a>
                 ` : ''}
