@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager Account Deletion", type: :system do
-  let(:business) { create(:business, hostname: 'testbiz') }
+  let(:business) { create(:business) }
   
   before do
     driven_by(:rack_test)

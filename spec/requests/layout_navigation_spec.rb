@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Layout Navigation', type: :request do
-  let(:business) { FactoryBot.create(:business, hostname: 'testbiz') }
+  let(:business) { FactoryBot.create(:business) }
   let(:service) { FactoryBot.create(:service, business: business) }
   let(:manager) { FactoryBot.create(:user, :manager, business: business) }
   let(:staff) { FactoryBot.create(:user, :staff, business: business) }

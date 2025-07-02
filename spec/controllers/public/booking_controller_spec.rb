@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Public::BookingController, type: :controller do
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+  let(:business) { create(:business) }
   
   before do
     ActsAsTenant.current_tenant = business

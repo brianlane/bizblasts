@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
-  let(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+  let(:business) { create(:business, host_type: 'subdomain') }
   let!(:services) { create_list(:service, 3, business: business) }
   let!(:staff_members) { create_list(:staff_member, 2, business: business) }
   

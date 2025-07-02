@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Public::BookingController, type: :controller do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain') }
   let!(:service) { create(:service, business: business, name: 'Test Service', price: 100.00, duration: 30) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Test Staff') }
   let!(:user) { create(:user, :client) }

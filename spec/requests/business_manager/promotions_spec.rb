@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'BusinessManager::Promotions', type: :request do
   include Rails.application.routes.url_helpers
 
-  let!(:business) { create(:business, hostname: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:business_user) { create(:user, :manager, business: business) }
   let!(:promotion) { create(:promotion, business: business) }
   let!(:product1) { create(:product, business: business) }

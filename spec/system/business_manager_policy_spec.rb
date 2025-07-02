@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Business Manager Policy Enforcement', type: :system do
-  let(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+  let(:business) { create(:business, host_type: 'subdomain') }
   let(:manager) { create(:user, :manager, business: business) }
   let!(:privacy_policy) { create(:policy_version, policy_type: 'privacy_policy', version: 'v1.0', active: true) }
   let!(:terms_policy) { create(:policy_version, policy_type: 'terms_of_service', version: 'v1.0', active: true) }

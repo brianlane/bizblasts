@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business User Session Management", type: :request do
-  let!(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+  let!(:business) { create(:business, host_type: 'subdomain') }
   let!(:user) { create(:user, role: :manager, business: business, password: 'password', password_confirmation: 'password') }
 
   let(:main_domain_host) { "lvh.me" }
