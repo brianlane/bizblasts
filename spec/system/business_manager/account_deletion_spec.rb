@@ -3,12 +3,12 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager Account Deletion", type: :system do
-  let(:business) { create(:business, hostname: 'testbiz') }
+  let(:business) { create(:business) }
   
   before do
     driven_by(:rack_test)
     ActsAsTenant.current_tenant = business
-    Capybara.app_host = "http://testbiz.lvh.me"
+    Capybara.app_host = "http://#{business.subdomain}.lvh.me"
   end
 
   context "staff member account deletion" do

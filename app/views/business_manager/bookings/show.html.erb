@@ -78,9 +78,10 @@
         <% end %>
         
         <% if !%w[cancelled completed].include?(@booking.status) %>
-          <%= link_to "Cancel Booking", "#", 
-                class: "cancel-booking-link inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500", 
-                data: { booking_id: @booking.id } %>
+          <%= link_to "Cancel Booking", cancel_business_manager_booking_path(@booking), 
+                method: :patch,
+                data: { confirm: "Are you sure you want to cancel this booking? This action cannot be undone." },
+                class: "inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" %>
         <% end %>
         
         <% if !%w[cancelled completed].include?(@booking.status) %>
@@ -95,60 +96,4 @@
   </div>
 </div>
 
-<script>
-  function initializeBookingShowPage() {
-    const modal = document.getElementById('cancel-booking-modal');
-    const form = document.getElementById('cancel-booking-form');
-    const closeBtn = document.getElementById('cancel-modal-close');
-    
-    // Open modal when cancel link is clicked
-    document.querySelectorAll('.cancel-booking-link').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const bookingId = this.dataset.bookingId;
-        if (form) {
-          form.action = `/manage/bookings/${bookingId}/cancel`;
-        }
-        if (modal) {
-          modal.classList.remove('hidden');
-        }
-      });
-    });
-    
-    // Close modal when close button is clicked
-    if (closeBtn) {
-      closeBtn.addEventListener('click', function() {
-        if (modal) {
-          modal.classList.add('hidden');
-        }
-      });
-    }
-    
-    // Close modal when clicking outside of it
-    if (modal) {
-      modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-          modal.classList.add('hidden');
-        }
-      });
-    }
-    
-    // Confirm booking form handling
-    const confirmForms = document.querySelectorAll('.confirm-booking-form');
-    confirmForms.forEach(form => {
-      form.addEventListener('submit', function(e) {
-        e.preventDefault(); // Stop the form from submitting immediately
-        
-        if (confirm('Are you sure you want to confirm this booking?')) {
-          // If user confirms, submit the form
-          form.submit();
-        }
-        // Otherwise do nothing, which cancels the submission
-      });
-    });
-  }
-
-  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-  document.addEventListener('DOMContentLoaded', initializeBookingShowPage);
-  document.addEventListener('turbo:load', initializeBookingShowPage);
-</script> 
+<!-- Removed custom cancellation script in favor of Rails UJS --> 

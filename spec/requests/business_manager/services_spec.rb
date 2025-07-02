@@ -5,7 +5,7 @@ RSpec.describe "/manage/services", type: :request do
   include Rails.application.routes.url_helpers
 
   # Create necessary data
-  let!(:business) { create(:business, hostname: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:service) { create(:service, business: business) }
 

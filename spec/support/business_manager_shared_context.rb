@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.shared_context 'setup business context' do
-  let!(:business)    { FactoryBot.create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+  let!(:business)    { FactoryBot.create(:business) }
   let!(:manager)     { FactoryBot.create(:user, :manager, business: business) }
   let!(:staff_user)  { FactoryBot.create(:user, :staff, business: business) }
   let!(:staff_member){ FactoryBot.create(:staff_member, business: business, user: staff_user, name: "#{staff_user.first_name} #{staff_user.last_name}") }

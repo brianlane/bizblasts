@@ -33,7 +33,7 @@
         <div>
           <h3 class="text-sm font-medium text-gray-500 mb-1">Date & Time</h3>
           <p class="text-gray-900">
-            <%= l @booking.start_time, format: :long %> (until <%= l @booking.end_time, format: :short_time %>)
+            <%= l @booking.local_start_time, format: :long %> (until <%= l @booking.local_end_time, format: :short_time %>)
           </p>
         </div>
 

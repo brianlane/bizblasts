@@ -109,7 +109,7 @@
       <div style="margin-top: 25px; padding: 20px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px;">
         <h3 style="color: #856404; margin: 0 0 15px 0; font-size: 18px;">Your Service Booking</h3>
         <p style="margin: 8px 0; color: #856404;"><strong>Service:</strong> <%= @invoice.booking.service.name %></p>
-        <p style="margin: 8px 0; color: #856404;"><strong>Date & Time:</strong> <%= @invoice.booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
+        <p style="margin: 8px 0; color: #856404;"><strong>Date & Time:</strong> <%= @invoice.booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
         <% if @invoice.booking.staff_member.present? %>
         <p style="margin: 8px 0; color: #856404;"><strong>Staff Member:</strong> <%= @invoice.booking.staff_member.name %></p>
         <% end %>

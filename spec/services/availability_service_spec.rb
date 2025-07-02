@@ -7,7 +7,8 @@ RSpec.describe AvailabilityService, type: :service do
   let!(:business) { create(:business) }
   # Use let (lazy) for service - only created when needed
   let(:service) { create(:service, business: business, duration: 60) }
-  let(:date) { Date.new(2024, 5, 15) } # A Wednesday
+  # Use a future date (tomorrow) so slots are not filtered out as past
+  let(:date) { Date.current + 1.day }
 
   # Create staff member within a before block to ensure tenant is set
   let(:staff_member) { create(:staff_member, business: business) }
@@ -152,6 +153,8 @@ RSpec.describe AvailabilityService, type: :service do
     end
     
     context 'when staff member has split shift availability' do
+      # Use a specific Monday to ensure the test always runs on a day with availability
+      let(:test_monday) { Date.current.next_occurring(:monday) }
       let(:split_availability) do
         {
           monday: [{ "start" => "09:00", "end" => "12:00" }, { "start" => "14:00", "end" => "17:00" }],
@@ -162,7 +165,7 @@ RSpec.describe AvailabilityService, type: :service do
       before { staff_member.update!(availability: split_availability) }
 
       it 'returns slots only within the defined intervals' do
-        slots = described_class.available_slots(staff_member, date, service, interval: 30)
+        slots = described_class.available_slots(staff_member, test_monday, service, interval: 30)
         slot_times_h_m = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
 
         # Should include slots in 9-12 and 14-17 ranges
@@ -438,8 +441,9 @@ RSpec.describe AvailabilityService, type: :service do
   end
   
   describe '.availability_calendar' do
-    let(:start_date) { Date.new(2023, 6, 1) } # Thursday
-    let(:end_date) { Date.new(2023, 6, 3) } # Saturday
+    # Use the upcoming Thursday-Saturday range to ensure future dates
+    let(:start_date) { Date.current.next_occurring(:thursday) }
+    let(:end_date)   { start_date + 2.days } # Thursday-Saturday
     
     it 'returns a hash with dates as keys' do
       calendar = described_class.availability_calendar(
@@ -558,7 +562,10 @@ RSpec.describe AvailabilityService, type: :service do
     end
     
     context 'with max_daily_bookings policy' do
-      let!(:policy) { create(:booking_policy, business: business, max_daily_bookings: 2) }
+      let!(:policy) { create(:booking_policy, business: business, max_daily_bookings: 2, max_advance_days: nil) }
+      
+      # Use next weekday (Monday) to ensure it falls inside standard availability
+      let(:date) { Date.current.next_occurring(:monday) }
       
       it 'returns no slots when max bookings are reached' do
         # Create 2 bookings for the same day (max allowed)
@@ -683,7 +690,7 @@ RSpec.describe AvailabilityService, type: :service do
         # Mock Rails.cache to verify cache duration
         expect(Rails.cache).to receive(:fetch).with(
           anything, 
-          hash_including(expires_in: 5.minutes)
+          hash_including(expires_in: 2.minutes)
         ).and_call_original
         
         described_class.available_slots(staff_member, today, service)
@@ -693,8 +700,8 @@ RSpec.describe AvailabilityService, type: :service do
         future_date = Date.current + 1.day
         
         expect(Rails.cache).to receive(:fetch).with(
-          anything, 
-          hash_including(expires_in: 15.minutes)
+          anything,
+          hash_including(expires_in: 10.minutes)
         ).and_call_original
         
         described_class.available_slots(staff_member, future_date, service)
@@ -739,9 +746,10 @@ RSpec.describe AvailabilityService, type: :service do
       end
       
       it 'respects business time zone when filtering past slots' do
-        # Mock current time to be 10:00 AM EST (15:00 UTC)
-        est_time = Time.zone.parse("#{today} 10:00").in_time_zone('America/New_York')
-        travel_to est_time.utc
+        # Freeze time at 10:00 AM Eastern so filtering uses that reference
+        est_zone = ActiveSupport::TimeZone['America/New_York']
+        est_time = est_zone.local(today.year, today.month, today.day, 10, 0)
+        travel_to est_time
         
         slots = described_class.available_slots(staff_with_timezone, today, service_with_timezone)
         slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }

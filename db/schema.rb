@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_26_211148) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_30_010430) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -158,12 +158,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_26_211148) do
     t.decimal "promo_discount_amount", precision: 10, scale: 2
     t.string "promo_code_type"
     t.datetime "tip_reminder_sent_at"
+    t.integer "cancelled_by"
+    t.boolean "manager_override"
     t.index ["applied_promo_code"], name: "index_bookings_on_applied_promo_code"
+    t.index ["business_id", "staff_member_id"], name: "index_bookings_on_business_and_staff_member"
     t.index ["business_id", "start_time"], name: "index_bookings_on_business_id_and_start_time"
     t.index ["business_id"], name: "index_bookings_on_business_id"
     t.index ["promo_code_type"], name: "index_bookings_on_promo_code_type"
     t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
+    t.index ["staff_member_id", "start_time", "end_time"], name: "index_bookings_on_staff_member_and_times"
+    t.index ["staff_member_id", "start_time"], name: "index_bookings_on_staff_member_and_start_time"
+    t.index ["staff_member_id", "status", "start_time", "end_time"], name: "index_bookings_on_staff_status_and_times"
+    t.index ["staff_member_id", "status"], name: "index_bookings_on_staff_member_and_status"
     t.index ["staff_member_id"], name: "index_bookings_on_staff_member_id"
     t.index ["start_time", "end_time"], name: "index_bookings_on_start_time_and_end_time", using: :gist
     t.index ["start_time"], name: "index_bookings_on_start_time"

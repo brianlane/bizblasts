@@ -15,7 +15,7 @@ This is a friendly reminder about your upcoming service booking. While payment i
 BOOKING DETAILS
 ===============
 Service: <%= @booking.service.name %>
-Date & Time: <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %>
+Date & Time: <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %>
 Duration: <%= @booking.service.duration %> minutes
 <% if @booking.service.experience? && @booking.quantity > 1 %>
 Attendees: <%= @booking.quantity %>

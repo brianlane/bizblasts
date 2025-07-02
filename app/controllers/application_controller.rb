@@ -404,4 +404,17 @@ class ApplicationController < ActionController::Base
       form_authenticity_token
     end
   end
+
+  # Ensure all times are in the current tenant's local time zone
+  around_action :use_business_time_zone
+
+  # Wrap request in the tenant's time zone
+  def use_business_time_zone(&block)
+    # Ensure business has a valid time_zone populated
+    if ActsAsTenant.current_tenant&.respond_to?(:ensure_time_zone!)
+      ActsAsTenant.current_tenant.ensure_time_zone!
+    end
+    tz = ActsAsTenant.current_tenant&.time_zone.presence || 'UTC'
+    Time.use_zone(tz, &block)
+  end
 end

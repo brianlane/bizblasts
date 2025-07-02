@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Services', type: :request do
   include Rails.application.routes.url_helpers
 
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+  let(:business) { create(:business) }
   let!(:service_std) do
     create(:service,
            business: business,

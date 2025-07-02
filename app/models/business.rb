@@ -231,6 +231,7 @@ class Business < ApplicationRecord
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
+  after_validation :set_time_zone_from_address, if: :address_components_changed?
   
   # Find the current tenant
   def self.current
@@ -566,6 +567,78 @@ class Business < ApplicationRecord
 
   def has_visible_services?
     services.active.any?
+  end
+  
+  # ---------------- Time zone helpers ----------------
+  def full_address
+    [address, city, state, zip].compact.join(', ')
+  end
+
+  def address_components_changed?
+    saved_change_to_address? || saved_change_to_city? || saved_change_to_state? || saved_change_to_zip?
+  end
+
+  def set_time_zone_from_address
+    begin
+      result = Geocoder.search(full_address).first
+      tz = result&.data&.dig('timezone') || result&.timezone
+
+      if tz.blank? && state.present?
+        # Simple US state fallback mapping
+        state_map = {
+          'AL' => 'America/Chicago', 'AK' => 'America/Anchorage', 'AZ' => 'America/Phoenix',
+          'AR' => 'America/Chicago', 'CA' => 'America/Los_Angeles', 'CO' => 'America/Denver',
+          'CT' => 'America/New_York', 'DE' => 'America/New_York', 'FL' => 'America/New_York',
+          'GA' => 'America/New_York', 'HI' => 'Pacific/Honolulu', 'ID' => 'America/Boise',
+          'IL' => 'America/Chicago', 'IN' => 'America/Indiana/Indianapolis', 'IA' => 'America/Chicago',
+          'KS' => 'America/Chicago', 'KY' => 'America/New_York', 'LA' => 'America/Chicago',
+          'ME' => 'America/New_York', 'MD' => 'America/New_York', 'MA' => 'America/New_York',
+          'MI' => 'America/Detroit', 'MN' => 'America/Chicago', 'MS' => 'America/Chicago',
+          'MO' => 'America/Chicago', 'MT' => 'America/Denver', 'NE' => 'America/Chicago',
+          'NV' => 'America/Los_Angeles', 'NH' => 'America/New_York', 'NJ' => 'America/New_York',
+          'NM' => 'America/Denver', 'NY' => 'America/New_York', 'NC' => 'America/New_York',
+          'ND' => 'America/Chicago', 'OH' => 'America/New_York', 'OK' => 'America/Chicago',
+          'OR' => 'America/Los_Angeles', 'PA' => 'America/New_York', 'RI' => 'America/New_York',
+          'SC' => 'America/New_York', 'SD' => 'America/Chicago', 'TN' => 'America/Chicago',
+          'TX' => 'America/Chicago', 'UT' => 'America/Denver', 'VT' => 'America/New_York',
+          'VA' => 'America/New_York', 'WA' => 'America/Los_Angeles', 'WV' => 'America/New_York',
+          'WI' => 'America/Chicago', 'WY' => 'America/Denver'
+        }
+
+        # Accept full state names too
+        full_state_map = {
+          'Alabama' => 'AL', 'Alaska' => 'AK', 'Arizona' => 'AZ', 'Arkansas' => 'AR',
+          'California' => 'CA', 'Colorado' => 'CO', 'Connecticut' => 'CT', 'Delaware' => 'DE',
+          'Florida' => 'FL', 'Georgia' => 'GA', 'Hawaii' => 'HI', 'Idaho' => 'ID',
+          'Illinois' => 'IL', 'Indiana' => 'IN', 'Iowa' => 'IA', 'Kansas' => 'KS',
+          'Kentucky' => 'KY', 'Louisiana' => 'LA', 'Maine' => 'ME', 'Maryland' => 'MD',
+          'Massachusetts' => 'MA', 'Michigan' => 'MI', 'Minnesota' => 'MN', 'Mississippi' => 'MS',
+          'Missouri' => 'MO', 'Montana' => 'MT', 'Nebraska' => 'NE', 'Nevada' => 'NV',
+          'New Hampshire' => 'NH', 'New Jersey' => 'NJ', 'New Mexico' => 'NM', 'New York' => 'NY',
+          'North Carolina' => 'NC', 'North Dakota' => 'ND', 'Ohio' => 'OH', 'Oklahoma' => 'OK',
+          'Oregon' => 'OR', 'Pennsylvania' => 'PA', 'Rhode Island' => 'RI', 'South Carolina' => 'SC',
+          'South Dakota' => 'SD', 'Tennessee' => 'TN', 'Texas' => 'TX', 'Utah' => 'UT',
+          'Vermont' => 'VT', 'Virginia' => 'VA', 'Washington' => 'WA', 'West Virginia' => 'WV',
+          'Wisconsin' => 'WI', 'Wyoming' => 'WY'
+        }
+
+        abbr = state_map.key?(state) ? state : full_state_map[state]
+        tz = state_map[abbr] if abbr
+      end
+
+      self.time_zone = tz if tz.present?
+    rescue => e
+      Rails.logger.warn "[Business] Failed to look up timezone for #{full_address}: #{e.message}"
+    end
+  end
+  
+  # Ensure time_zone present by performing lookup if blank
+  def ensure_time_zone!
+    return time_zone if time_zone.present? && time_zone != 'UTC'
+
+    set_time_zone_from_address if respond_to?(:set_time_zone_from_address)
+    save(validate: false) if time_zone_changed? && persisted?
+    time_zone
   end
   
   private

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Public::BookingController, type: :controller do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain') }
   let!(:service) { create(:service, business: business, name: 'Test Service', price: 100.00, duration: 30) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Test Staff') }
   let!(:user) { create(:user, :client) }
@@ -11,7 +11,7 @@ RSpec.describe Public::BookingController, type: :controller do
     business.save! unless business.persisted?
     ActsAsTenant.current_tenant = business
     set_tenant(business)
-    @request.host = 'testbiz.lvh.me'
+    @request.host = "#{business.subdomain}.lvh.me"
     sign_in user
     create(:services_staff_member, service: service, staff_member: staff_member)
   end

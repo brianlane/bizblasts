@@ -3,8 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
-  let(:business) { create(:business, tier: 'free', hostname: 'testbiz', subdomain: 'testbiz') }
-  let(:premium_business) { create(:business, tier: 'premium', host_type: 'subdomain', hostname: 'premiumtest') }
+  let(:business) { create(:business, tier: 'free') }
+  let(:premium_business) { create(:business, tier: 'premium', host_type: 'subdomain') }
   let(:manager_user) { create(:user, :manager, business: business) }
   let(:premium_manager) { create(:user, :manager, business: premium_business) }
 

@@ -86,7 +86,7 @@
       <div class="service-details">
         <h3 style="margin-top: 0; color: <%= @business_colors[:primary] %>;">Your Experience</h3>
         <p><strong>Service:</strong> <%= @service.name %></p>
-        <p><strong>Date:</strong> <%= @booking.start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
+        <p><strong>Date:</strong> <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
         <% if @booking.staff_member %>
           <p><strong>Staff Member:</strong> <%= @booking.staff_member.name %></p>
         <% end %>

@@ -32,11 +32,47 @@ class ClientBookingsController < ApplicationController
   end
   
   def update
-    # @booking is set by before_action
-    # We need to permit booking_product_add_ons_attributes for updates, including :id and :_destroy
-    if @booking.update(client_booking_update_params)
+    # Enforce cancellation window policy on reschedule attempts
+    permitted_attrs = client_booking_update_params
+    if params[:booking][:start_time].present?
+      policy_window = @booking.business.booking_policy&.cancellation_window_mins
+      if policy_window.present? && policy_window > 0
+        # Use local_start_time for consistent timezone comparison
+        deadline = @booking.local_start_time - policy_window.minutes
+        if Time.current > deadline
+          if policy_window >= 60 && policy_window % 60 == 0
+            hours = policy_window / 60
+            time_unit = hours == 1 ? 'hour' : 'hours'
+            alert_msg = "Cannot reschedule booking within #{hours} #{time_unit} of the start time."
+          else
+            alert_msg = "Cannot reschedule booking within #{policy_window} minutes of the start time."
+          end
+          redirect_to client_booking_path(@booking), alert: alert_msg and return
+        end
+      end
+      begin
+        new_start_time = Time.zone.parse(params[:booking][:start_time].to_s)
+      rescue ArgumentError => e
+        Rails.logger.warn "[CLIENT BOOKING] Invalid start_time provided: #{params[:booking][:start_time]} — #{e.message}"
+        flash.now[:alert] = "Invalid start time format. Please choose a valid time."
+        render :edit, status: :unprocessable_entity and return
+      end
+
+      if new_start_time && @booking.service&.duration.present?
+        # Build a safe, mutable copy of permitted params
+        permitted_attrs = client_booking_update_params.to_h
+        permitted_attrs[:end_time] = (new_start_time + @booking.service.duration.minutes).to_s
+      else
+        permitted_attrs = client_booking_update_params
+      end
+    end
+
+    # --- Persist changes ---
+    # We need to permit booking_product_add_ons_attributes for updates, including :id and :_destroy.
+    if @booking.update(permitted_attrs)
       # After booking and add-ons are updated, regenerate/update the invoice
       generate_or_update_invoice_for_booking(@booking)
+      BookingMailer.status_update(@booking).deliver_later
       redirect_to client_booking_path(@booking), notice: 'Booking was successfully updated.'
     else
       # If update fails, re-render edit form. Need @available_products and @service again.
@@ -69,7 +105,7 @@ class ClientBookingsController < ApplicationController
     
     # Use BookingManager to handle cancellation with policy checks
     cancellation_reason = "Cancelled by client"
-    success, error_message = BookingManager.cancel_booking(@booking, cancellation_reason)
+    success, error_message = BookingManager.cancel_booking(@booking, cancellation_reason, true, current_user: current_user)
     
     if success
       redirect_to client_booking_path(@booking), notice: "Your booking has been successfully cancelled."
@@ -122,11 +158,10 @@ class ClientBookingsController < ApplicationController
 
   def client_booking_update_params
     params.require(:booking).permit(
-      # Permit only fields a client can change, e.g., notes, product add-ons.
-      # Start_time, staff_member_id might require re-validation of availability - complex for client edit.
-      # For simplicity, let's assume clients can mainly change notes and product add-ons.
-      # If they can change time/staff, more logic from Public::BookingController#create would be needed.
+      # Permit fields a client can change, including rescheduling times
       :notes,
+      :start_time,
+      :end_time,
       booking_product_add_ons_attributes: {}
     )
   end

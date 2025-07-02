@@ -12,11 +12,28 @@ module Public
       # Selected service if provided
       @service = @business.services.find_by(id: params[:service_id]) if params[:service_id].present?
       
-      # If service is selected, fetch initial data for the month using BookingService
+
       if @service.present?
-        # Build a 5-week calendar starting on Monday of the current week
-        @calendar_start_date = @date.beginning_of_week(:monday)
-        @calendar_end_date   = @calendar_start_date + 34.days
+        # Build a month-centered 5-week calendar grid that properly shows the target month
+        # This ensures the full target month is visible with appropriate padding from adjacent months
+        
+        # Start with the target month's first day
+        month_start = @date.beginning_of_month
+        month_end = @date.end_of_month
+        
+        # Find the Monday that starts the week containing the first day of the month
+        @calendar_start_date = month_start.beginning_of_week(:monday)
+        
+        # Calculate how many weeks we need to show the full month
+        weeks_needed = ((month_end - @calendar_start_date).to_i / 7.0).ceil
+        
+        # Ensure we always show exactly 5 weeks for consistency
+        weeks_to_show = [weeks_needed, 5].max
+        @calendar_end_date = @calendar_start_date + (weeks_to_show * 7 - 1).days
+        
+        # Use the target date as the calendar base for proper month context
+        @calendar_base_date = @date
+        
         @calendar_data = BookingService.generate_calendar_data(
           service:    @service,
           date:       @date,

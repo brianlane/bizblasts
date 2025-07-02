@@ -148,7 +148,7 @@ RSpec.describe 'Policy Acceptance Modal', type: :system do
   end
 
   describe 'business user on subdomain' do
-    let(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+    let(:business) { create(:business, host_type: 'subdomain') }
     let(:business_user) { create(:user, :manager, business: business) }
     let!(:return_policy) { create(:policy_version, policy_type: 'return_policy', version: 'v1.0', active: true) }
     
@@ -156,7 +156,7 @@ RSpec.describe 'Policy Acceptance Modal', type: :system do
       driven_by(:rack_test)
       
       # Configure Capybara for subdomain
-      Capybara.app_host = "http://testbiz.example.com"
+      Capybara.app_host = "http://#{business.subdomain}.example.com"
       
       # Set tenant context for the business
       ActsAsTenant.current_tenant = business

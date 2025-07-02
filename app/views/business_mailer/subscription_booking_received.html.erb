@@ -11,7 +11,7 @@
   <% if @staff_member %>
     <li><strong>Staff Member:</strong> <%= @staff_member.name %></li>
   <% end %>
-  <li><strong>Booking Date:</strong> <%= @booking.start_time.strftime('%B %d, %Y at %I:%M %p') %></li>
+      <li><strong>Booking Date:</strong> <%= @booking.local_start_time.strftime('%B %d, %Y at %I:%M %p') %></li>
   <li><strong>Subscription Frequency:</strong> <%= @customer_subscription.frequency %></li>
 </ul>
 
