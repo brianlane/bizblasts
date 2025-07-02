@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'guestbiz', subdomain: 'guestbiz', host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Test Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Staff Member') }
   let!(:product) { create(:product, name: 'Test Product', active: true, business: business) }
@@ -10,7 +10,7 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
   before do
     # Associate staff with service
     create(:services_staff_member, service: service, staff_member: staff_member)
-    switch_to_subdomain('guestbiz')
+    switch_to_subdomain(business.subdomain)
   end
 
   describe 'Public::BookingController authentication bypass' do
