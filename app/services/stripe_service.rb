@@ -1001,7 +1001,8 @@ class StripeService
           end_time: Time.parse(booking_data['end_time']),
           notes: booking_data['notes'],
           tenant_customer: tenant_customer,
-          status: :confirmed  # Mark as confirmed since payment was successful
+          # Confirm by default when no policy exists, or auto confirm if enabled
+          status: (business.booking_policy.nil? || business.booking_policy.auto_confirm_bookings?) ? :confirmed : :pending
         )
         
         # Create booking product add-ons if any

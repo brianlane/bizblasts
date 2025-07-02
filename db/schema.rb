@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_30_010430) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_02_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -122,6 +122,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_30_010430) do
     t.integer "min_duration_mins"
     t.integer "max_duration_mins"
     t.integer "min_advance_mins", default: 0
+    t.boolean "auto_confirm_bookings", default: false, null: false
     t.index ["business_id"], name: "index_booking_policies_on_business_id"
     t.index ["min_advance_mins"], name: "index_booking_policies_on_min_advance_mins"
   end

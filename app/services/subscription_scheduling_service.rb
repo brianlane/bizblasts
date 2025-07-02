@@ -232,7 +232,8 @@ class SubscriptionSchedulingService
         tenant_customer: tenant_customer,
         start_time: start_time,
         end_time: end_time,
-        status: :confirmed,
+        # Confirm by default when no policy exists, or auto confirm if enabled
+        status: (business.booking_policy.nil? || business.booking_policy.auto_confirm_bookings?) ? :confirmed : :pending,
         notes: "Scheduled subscription booking - #{customer_subscription.frequency.humanize}"
       )
       
