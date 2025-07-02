@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Product Tipping Flow', type: :system do
-  let!(:business) { create(:business, :with_default_tax_rate, hostname: 'tipstest', subdomain: 'tipstest', host_type: 'subdomain', stripe_account_id: 'acct_test123') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', stripe_account_id: 'acct_test123') }
   let!(:product) { create(:product, name: 'Premium Coffee Beans', price: 25.00, business: business, tips_enabled: true) }
   let!(:product_variant) { create(:product_variant, product: product, name: 'Medium Roast', stock_quantity: 10, price_modifier: 0.0) }
   let!(:shipping_method) { create(:shipping_method, name: 'Standard Shipping', cost: 5.0, business: business) }
@@ -35,7 +35,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'allows checkout without tip' do
       it 'completes order successfully without tip' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -65,7 +65,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'shows validation error for tip amount below minimum' do
       it 'displays error for tip below minimum' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -92,7 +92,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'shows validation error for negative tip amount' do
       it 'displays error for negative tip' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -123,7 +123,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'allows large tip amounts' do
       it 'accepts large tip amounts' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -153,7 +153,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     end
 
     it 'allows customer to add tip during product checkout' do
-      with_subdomain('tipstest') do
+      with_subdomain(business.subdomain) do
         # Sign in user
         sign_in user
         
@@ -191,7 +191,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
   describe 'Guest user product checkout with tips' do
     context 'allows guest to add tip during checkout' do
       it 'completes order with tip for guest user' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           # Add product to cart
           visit products_path
           click_link 'Premium Coffee Beans'
@@ -229,7 +229,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'shows tip validation errors for guest users' do
       it 'displays validation errors for invalid tip amounts' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           # Add product to cart
           visit products_path
           click_link 'Premium Coffee Beans'
@@ -268,7 +268,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
       end
       
       it 'does not show tip option when no products have tips enabled' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -294,7 +294,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'mixed cart with tip-enabled and tip-disabled products' do
       it 'shows tip option when cart has at least one tip-eligible product' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add both products to cart
@@ -321,7 +321,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'cart with only tip-disabled products' do
       it 'does not show tip option when no products allow tips' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add only tip-disabled product to cart
@@ -348,7 +348,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
   describe 'Stripe integration errors' do
     context 'handles Stripe connection errors gracefully' do
       it 'shows appropriate error message for Stripe errors' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -382,7 +382,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
       end
       
       it 'shows appropriate error for missing Stripe account' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -416,7 +416,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'handles decimal tip amounts correctly' do
       it 'processes decimal tip amounts properly' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -447,7 +447,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'handles minimum valid tip amount (0.50)' do
       it 'accepts minimum tip amount' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart
@@ -478,7 +478,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'handles empty cart gracefully' do
       it 'redirects appropriately for empty cart' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           # Try to go to checkout with empty cart
           visit new_order_path
           
@@ -495,7 +495,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
     
     context 'preserves tip amount when other validation errors occur' do
       it 'maintains tip amount through validation errors' do
-        with_subdomain('tipstest') do
+        with_subdomain(business.subdomain) do
           sign_in user
           
           # Add product to cart

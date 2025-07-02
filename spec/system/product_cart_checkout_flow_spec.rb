@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Product Cart and Checkout Flow', type: :system do
-  let!(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant', host_type: 'subdomain') }
+  let!(:business) { create(:business, host_type: 'subdomain') }
   let!(:product) { create(:product, name: 'Test Product', active: true, business: business) }
   let!(:variant) { create(:product_variant, product: product, name: 'Default', stock_quantity: 2, price_modifier: 0.0) }
   let!(:shipping_method) { create(:shipping_method, name: 'Standard', cost: 5.0, business: business) }
@@ -26,7 +26,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
   end
 
   it 'allows a user to browse, add to cart, checkout, and redirects to Stripe' do
-    with_subdomain('testtenant') do
+    with_subdomain(business.subdomain) do
       # First sign in the user
       visit new_user_session_path
       fill_in 'Email', with: user.email
@@ -65,7 +65,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
   end
 
   it 'shows an error if user tries to order more than available stock' do
-    with_subdomain('testtenant') do
+    with_subdomain(business.subdomain) do
       # First sign in the user
       visit new_user_session_path
       fill_in 'Email', with: user.email
@@ -92,7 +92,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
   end
 
   it 'allows a guest to browse, add to cart, checkout, and redirects to Stripe' do
-    with_subdomain('testtenant') do
+    with_subdomain(business.subdomain) do
       # Browse products as guest
       visit products_path
       click_link 'Test Product'
@@ -124,7 +124,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
   end
 
   it 'allows a guest to checkout and create an account' do
-    with_subdomain('testtenant') do
+    with_subdomain(business.subdomain) do
       # Browse products as guest
       visit products_path
       click_link 'Test Product'
