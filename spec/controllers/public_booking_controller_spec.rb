@@ -11,7 +11,7 @@ RSpec.describe Public::BookingController, type: :controller do
     business.save! unless business.persisted?
     ActsAsTenant.current_tenant = business
     set_tenant(business)
-    @request.host = 'testbiz.lvh.me'
+    @request.host = "#{business.subdomain}.lvh.me"
     sign_in user
     create(:services_staff_member, service: service, staff_member: staff_member)
   end

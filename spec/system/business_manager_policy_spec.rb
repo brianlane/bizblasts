@@ -14,7 +14,7 @@ RSpec.describe 'Business Manager Policy Enforcement', type: :system do
     driven_by(:rack_test)
     
     # Configure Capybara for subdomain
-    Capybara.app_host = "http://testbiz.example.com"
+    Capybara.app_host = "http://#{business.subdomain}.example.com"
     
     # Set tenant context for the business
     ActsAsTenant.current_tenant = business
