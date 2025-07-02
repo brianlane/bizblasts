@@ -183,68 +183,72 @@
         </div>
       </div>
 
-      <!-- Booking Window Card -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
-        <div class="bg-gradient-to-r from-orange-500 to-red-500 p-6">
-          <div class="flex items-center space-x-4">
-            <div class="bg-white/20 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
+      <!-- Booking Window & Automatic Confirmation Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Booking Window Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-orange-500 to-red-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Booking Window</h3>
+                <p class="text-orange-100 mt-1">How far in advance customers can book</p>
+              </div>
             </div>
-            <div>
-              <h3 class="text-xl font-bold text-white">Booking Window</h3>
-              <p class="text-orange-100 mt-1">How far in advance customers can book</p>
+          </div>
+          <div class="p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
+                <p class="text-2xl font-bold text-gray-900">
+                  <%= @booking_policy.max_advance_days.present? ? "#{pluralize(@booking_policy.max_advance_days, 'day')} in advance" : "No limit" %>
+                </p>
+                <% if @booking_policy.max_advance_days.present? %>
+                  <p class="text-sm text-gray-600 mt-1">Maximum advance booking window</p>
+                <% end %>
+              </div>
+              <div class="<%= @booking_policy.max_advance_days.present? ? 'bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700' %> px-3 py-2 rounded-full text-sm font-medium">
+                <%= @booking_policy.max_advance_days.present? ? 'Active' : 'Disabled' %>
+              </div>
             </div>
           </div>
         </div>
-        <div class="p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
-              <p class="text-2xl font-bold text-gray-900">
-                <%= @booking_policy.max_advance_days.present? ? "#{pluralize(@booking_policy.max_advance_days, 'day')} in advance" : "No limit" %>
-              </p>
-              <% if @booking_policy.max_advance_days.present? %>
-                <p class="text-sm text-gray-600 mt-1">Maximum advance booking window</p>
-              <% end %>
-            </div>
-            <div class="<%= @booking_policy.max_advance_days.present? ? 'bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700' %> px-3 py-2 rounded-full text-sm font-medium">
-              <%= @booking_policy.max_advance_days.present? ? 'Active' : 'Disabled' %>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Automatic Confirmation Status Card -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden lg:col-span-2 mb-8">
-        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-6">
-          <div class="flex items-center space-x-4">
-            <div class="bg-white/20 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path>
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-xl font-bold text-white">Automatic Confirmation</h3>
-              <p class="text-indigo-100 mt-1">Automatically confirm new bookings</p>
+        <!-- Automatic Confirmation Status Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Automatic Confirmation</h3>
+                <p class="text-indigo-100 mt-1">Automatically confirm new bookings</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
-              <p class="text-2xl font-bold text-gray-900">
-                <%= @booking_policy.auto_confirm_bookings? ? 'On' : 'Off' %>
-              </p>
-            </div>
-            <div class="<%= @booking_policy.auto_confirm_bookings? ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-700' %> px-3 py-2 rounded-full text-sm font-medium">
-              <%= @booking_policy.auto_confirm_bookings? ? 'Enabled' : 'Disabled' %>
+          <div class="p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
+                <p class="text-2xl font-bold text-gray-900">
+                  <%= @booking_policy.auto_confirm_bookings? ? 'On' : 'Off' %>
+                </p>
+              </div>
+              <div class="<%= @booking_policy.auto_confirm_bookings? ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-700' %> px-3 py-2 rounded-full text-sm font-medium">
+                <%= @booking_policy.auto_confirm_bookings? ? 'Enabled' : 'Disabled' %>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      <!-- End Booking Window & Automatic Confirmation Grid -->
 
       <!-- Summary Card -->
       <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
