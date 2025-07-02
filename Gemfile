@@ -65,7 +65,7 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 15.2"
+gem "stripe", "~> 15.3"
 
 # Use node based css bundling
 gem "cssbundling-rails"
