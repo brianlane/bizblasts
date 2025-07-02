@@ -148,7 +148,7 @@ RSpec.describe 'Policy Acceptance Modal', type: :system do
   end
 
   describe 'business user on subdomain' do
-    let(:business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
+    let(:business) { create(:business, host_type: 'subdomain') }
     let(:business_user) { create(:user, :manager, business: business) }
     let!(:return_policy) { create(:policy_version, policy_type: 'return_policy', version: 'v1.0', active: true) }
     

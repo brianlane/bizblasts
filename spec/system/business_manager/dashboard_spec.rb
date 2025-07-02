@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager Dashboard", type: :system do
-  let!(:business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff) { create(:user, :staff, business: business, email: 'staff@test.com') }
   let!(:client) { create(:user, :client, email: 'client@test.com') }

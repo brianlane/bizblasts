@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Public::ReferralController, type: :controller do
-  let(:business) { create(:business, hostname: 'testbiz') }
+  let(:business) { create(:business) }
   let(:user) { create(:user, role: :client) }
   let(:tenant_customer) { create(:tenant_customer, business: business, email: user.email) }
 

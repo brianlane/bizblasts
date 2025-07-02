@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe BusinessManager::BookingsController, type: :controller do
   include ActiveSupport::Testing::TimeHelpers
   include ActiveJob::TestHelper
-  let(:business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz') }
+  let(:business) { create(:business) }
   let(:manager) { create(:user, :manager, business: business) }
   let(:client_user) { create(:user, :client) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Public Payments', type: :request do
-  let(:business) { create(:business, subdomain: 'testbiz', hostname: 'testbiz') }
+  let(:business) { create(:business) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }
   let(:user) { create(:user, :client, email: tenant_customer.email) }
   let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 10.00) }

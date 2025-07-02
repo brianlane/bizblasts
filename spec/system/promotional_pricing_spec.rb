@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Promotional Pricing System', type: :system do
-  let!(:business) { create(:business, hostname: 'testbiz') }
+  let!(:business) { create(:business) }
   let!(:product) { create(:product, business: business, price: 100.00, name: 'Test Product') }
   let!(:product_variant) { create(:product_variant, product: product, price_modifier: 0.00) }
   let!(:service) { create(:service, business: business, price: 150.00, name: 'Test Service') }
