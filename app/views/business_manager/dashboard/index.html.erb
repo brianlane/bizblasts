@@ -14,7 +14,10 @@
     <!-- Recent Bookings (Last 7 Days) -->
     <div id="recent-bookings-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Bookings (Last 7 Days)</h3>
-      <% recent_bookings = @current_business.bookings.where(start_time: 7.days.ago..Time.current).order(start_time: :desc).limit(5) %>
+      <% recent_bookings = @current_business.bookings.where(start_time: 7.days.ago..Time.current)
+        .where.not(status: :cancelled)
+        .order(start_time: :desc)
+        .limit(5) %>
       <% if recent_bookings.present? %>
         <div class="space-y-3">
           <% recent_bookings.each do |booking| %>
@@ -37,7 +40,10 @@
     <!-- Upcoming Appointments (Next 7 Days) -->
     <div id="upcoming-appointments-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Upcoming Appointments (Next 7 Days)</h3>
-      <% upcoming_appointments = @current_business.bookings.where(start_time: Time.current..7.days.from_now).order(start_time: :asc).limit(5) %>
+      <% upcoming_appointments = @current_business.bookings.where(start_time: Time.current..7.days.from_now)
+        .where.not(status: :cancelled)
+        .order(start_time: :asc)
+        .limit(5) %>
       <% if upcoming_appointments.present? %>
         <div class="space-y-3">
           <% upcoming_appointments.each do |booking| %>

@@ -8,6 +8,7 @@ FactoryBot.define do
     min_duration_mins { nil }
     max_duration_mins { nil }
     intake_fields { {} }
+    auto_confirm_bookings { false }
 
     # Allow traits or customization if needed
     
