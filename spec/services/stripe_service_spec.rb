@@ -515,14 +515,14 @@ RSpec.describe StripeService, type: :service do
 
   describe "tip fee calculations" do
     describe ".calculate_tip_stripe_fee" do
-      it "calculates 2.9% Stripe fee" do
+      it "calculates 2.9% + $0.30 Stripe fee" do
         fee = StripeService.calculate_tip_stripe_fee(100.0)
-        expect(fee).to eq(2.90)
+        expect(fee).to eq(3.20) # (100.0 * 0.029) + 0.30 = 2.90 + 0.30 = 3.20
       end
 
       it "rounds to 2 decimal places" do
         fee = StripeService.calculate_tip_stripe_fee(33.33)
-        expect(fee).to eq(0.97)
+        expect(fee).to eq(1.27) # (33.33 * 0.029) + 0.30 = 0.97 + 0.30 = 1.27
       end
     end
 
@@ -547,13 +547,13 @@ RSpec.describe StripeService, type: :service do
       it "calculates business amount after fees (direct charges)" do
         # In direct charges, business pays Stripe fees directly, so we deduct both Stripe and platform fees
         amount = StripeService.calculate_tip_business_amount(100.0, business)
-        expect(amount).to eq(92.1) # 100 - 2.9 (Stripe fee) - 5.00 (platform fee)
+        expect(amount).to eq(91.8) # 100 - 3.20 (Stripe fee with flat fee) - 5.00 (platform fee)
       end
       
       it "calculates business amount for premium tier after fees" do
         premium_business = create(:business, tier: 'premium')
         amount = StripeService.calculate_tip_business_amount(100.0, premium_business)
-        expect(amount).to eq(94.1) # 100 - 2.9 (Stripe fee) - 3.00 (platform fee)
+        expect(amount).to eq(93.8) # 100 - 3.20 (Stripe fee with flat fee) - 3.00 (platform fee)
       end
     end
   end
