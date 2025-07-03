@@ -60,13 +60,13 @@ RSpec.describe StripeService, type: :service do
           ],
           payment_intent_data: hash_including(
             application_fee_amount: 30, # Platform fees now applied for tips (3% of $10.00 = $0.30 for premium tier)
-            transfer_data: { destination: business.stripe_account_id },
             metadata: hash_including(
               business_id: business.id,
               tip_id: tip.id,
               tenant_customer_id: tenant_customer.id,
               payment_type: 'tip'
-            )
+            ),
+            on_behalf_of: business.stripe_account_id
           ),
           metadata: hash_including(
             business_id: business.id,
@@ -74,7 +74,8 @@ RSpec.describe StripeService, type: :service do
             tenant_customer_id: tenant_customer.id,
             payment_type: 'tip'
           )
-        )
+        ),
+        { stripe_account: business.stripe_account_id }
       )
 
       expect(result[:session]).to eq(mock_session)
@@ -103,7 +104,7 @@ RSpec.describe StripeService, type: :service do
         cancel_url: 'http://example.com/cancel'
       )
 
-      expect(StripeService).to have_received(:ensure_stripe_customer_for_tenant).with(tenant_customer)
+      expect(StripeService).to have_received(:ensure_stripe_customer_for_tenant).with(tenant_customer, business)
     end
   end
 
@@ -135,9 +136,10 @@ RSpec.describe StripeService, type: :service do
         expect(tip.paid_at).to be_within(1.second).of(Time.current)
         
         # Check fee calculations for $10.00 tip on premium tier business (3% platform fee)
-        expect(tip.stripe_fee_amount).to eq(0.59) # 2.9% + $0.30 = $0.29 + $0.30 = $0.59
+        expect(tip.stripe_fee_amount).to eq(0.29) # 2.9% of $10.00 = $0.29 (flat fee removed; informational)
         expect(tip.platform_fee_amount).to eq(0.30) # 3% of $10.00 = $0.30
-        expect(tip.business_amount).to eq(9.11) # $10.00 - $0.59 - $0.30 = $9.11
+        # Business receives net after all fees
+        expect(tip.business_amount).to eq(9.41) # $10.00 - $0.29 (Stripe fee) - $0.30 (platform fee)
       end
     end
     

@@ -42,7 +42,9 @@ class SubscriptionStripeService
     return false unless customer_subscription.stripe_subscription_id.present?
     
     begin
-      stripe_subscription = Stripe::Subscription.retrieve(customer_subscription.stripe_subscription_id)
+      stripe_subscription = Stripe::Subscription.retrieve(customer_subscription.stripe_subscription_id, {
+        stripe_account: business.stripe_account_id
+      })
       
       # Update subscription details
       stripe_subscription = Stripe::Subscription.update(
@@ -54,6 +56,9 @@ class SubscriptionStripeService
             quantity: customer_subscription.quantity || 1
           }],
           proration_behavior: 'create_prorations'
+        },
+        {
+          stripe_account: business.stripe_account_id
         }
       )
       
@@ -72,7 +77,9 @@ class SubscriptionStripeService
     return false unless customer_subscription.stripe_subscription_id.present?
     
     begin
-      stripe_subscription = Stripe::Subscription.cancel(customer_subscription.stripe_subscription_id)
+      stripe_subscription = Stripe::Subscription.cancel(customer_subscription.stripe_subscription_id, {}, {
+        stripe_account: business.stripe_account_id
+      })
       
       # Update local subscription
       customer_subscription.update!(
@@ -94,7 +101,9 @@ class SubscriptionStripeService
     return false unless customer_subscription.stripe_subscription_id.present?
     
     begin
-      stripe_subscription = Stripe::Subscription.retrieve(customer_subscription.stripe_subscription_id)
+      stripe_subscription = Stripe::Subscription.retrieve(customer_subscription.stripe_subscription_id, {
+        stripe_account: business.stripe_account_id
+      })
       
       # Update status based on Stripe status
       case stripe_subscription.status
@@ -140,7 +149,9 @@ class SubscriptionStripeService
     # Check if tenant_customer already has a Stripe customer ID
     if tenant_customer.stripe_customer_id.present?
       begin
-        return Stripe::Customer.retrieve(tenant_customer.stripe_customer_id)
+        return Stripe::Customer.retrieve(tenant_customer.stripe_customer_id, {
+          stripe_account: business.stripe_account_id
+        })
       rescue Stripe::InvalidRequestError
         # Stripe customer doesn't exist, create a new one
         Rails.logger.warn "[STRIPE] Stripe customer #{tenant_customer.stripe_customer_id} not found, creating new one"
@@ -160,6 +171,8 @@ class SubscriptionStripeService
           tenant_customer_id: tenant_customer.id,
           business_id: business.id
         }
+      }, {
+        stripe_account: business.stripe_account_id
       })
       
       # Update tenant_customer with Stripe ID
@@ -181,12 +194,16 @@ class SubscriptionStripeService
           price: get_stripe_price_id,
           quantity: customer_subscription.quantity || 1
         }],
+        application_fee_percent: get_application_fee_percent,
+        on_behalf_of: business.stripe_account_id,
         metadata: {
           customer_subscription_id: customer_subscription.id,
           business_id: business.id,
           tenant_customer_id: tenant_customer.id
         },
         expand: ['latest_invoice.payment_intent']
+      }, {
+        stripe_account: business.stripe_account_id
       })
     rescue => e
       Rails.logger.error "[STRIPE] Error creating Stripe subscription: #{e.message}"
@@ -219,6 +236,8 @@ class SubscriptionStripeService
             business_id: business.id
           }
         }
+      }, {
+        stripe_account: business.stripe_account_id
       })
       
       Rails.logger.info "[STRIPE] Created price #{price.id} for service #{customer_subscription.service.id}"
@@ -340,6 +359,20 @@ class SubscriptionStripeService
         description: "Subscription payment for #{subscription.service.name}"
       )
     end
+  end
+
+  # Calculate platform fee in cents based on business tier
+  def calculate_platform_fee_cents(amount_cents)
+    rate = case business.tier
+           when 'premium' then 0.03
+           else 0.05
+           end
+    (amount_cents * rate).round
+  end
+
+  # Get application fee percentage for Stripe subscriptions
+  def get_application_fee_percent
+    business.tier == 'premium' ? 3.0 : 5.0
   end
 end 
  
