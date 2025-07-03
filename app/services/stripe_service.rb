@@ -18,7 +18,7 @@ class StripeService
   def self.create_connect_account(business)
     configure_stripe_api_key
     account = Stripe::Account.create(
-      type: 'express',
+      type: 'standard',
       country: 'US',
       email: business.email,
       capabilities: {
@@ -103,8 +103,8 @@ class StripeService
       customer_creation: 'always', # Let Stripe create the customer during checkout
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
+        on_behalf_of: business.stripe_account_id,
         application_fee_amount: platform_fee_cents,
-        transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           tenant_customer_id: tenant_customer.id,
@@ -119,16 +119,18 @@ class StripeService
       }
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     if stripe_customer
       session_params[:customer] = stripe_customer.id
       session_params.delete(:customer_creation) # Don't create new customer if using existing
       session_params.delete(:customer_email) # Don't pre-fill if using existing customer
     end
 
-    # Create the checkout session with booking data in metadata
-    session = Stripe::Checkout::Session.create(session_params)
+    # Create the checkout session with booking data in metadata (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -171,8 +173,8 @@ class StripeService
       customer_creation: 'always', # Let Stripe create the customer during checkout
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
+        on_behalf_of: business.stripe_account_id,
         application_fee_amount: platform_fee_cents,
-        transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           invoice_id: invoice.id,
@@ -186,16 +188,18 @@ class StripeService
       }
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     if stripe_customer
       session_params[:customer] = stripe_customer.id
       session_params.delete(:customer_creation) # Don't create new customer if using existing
       session_params.delete(:customer_email) # Don't pre-fill if using existing customer
     end
 
-    # Create the checkout session
-    session = Stripe::Checkout::Session.create(session_params)
+    # Create the checkout session (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -239,8 +243,8 @@ class StripeService
       customer_creation: 'always', # Let Stripe create the customer during checkout
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
+        on_behalf_of: business.stripe_account_id,
         application_fee_amount: platform_fee_cents,
-        transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           tip_id: tip.id,
@@ -256,16 +260,18 @@ class StripeService
       }
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     if stripe_customer
       session_params[:customer] = stripe_customer.id
       session_params.delete(:customer_creation) # Don't create new customer if using existing
       session_params.delete(:customer_email) # Don't pre-fill if using existing customer
     end
 
-    # Create the checkout session for tip
-    session = Stripe::Checkout::Session.create(session_params)
+    # Create the checkout session for tip (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -296,19 +302,26 @@ class StripeService
       payment_method: payment_method_id,
       confirm: payment_method_id.present?,
       metadata: { business_id: business.id, invoice_id: invoice.id, order_id: order&.id },
-      application_fee_amount: platform_fee_cents,
-      transfer_data: { destination: business.stripe_account_id }
+      on_behalf_of: business.stripe_account_id,
+      application_fee_amount: platform_fee_cents
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     customer_id = nil
     if stripe_customer
       intent_params[:customer] = stripe_customer.id
       customer_id = stripe_customer.id
     end
 
-    intent = Stripe::PaymentIntent.create(intent_params)
+    intent = Stripe::PaymentIntent.create(intent_params, {
+      stripe_account: business.stripe_account_id
+    })
+
+    # Calculate fee values for record
+    stripe_fee_amount   = stripe_fee_cents / 100.0
+    platform_fee_amount = platform_fee_cents / 100.0
+    business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
 
     payment = Payment.create!(
       business: business,
@@ -316,12 +329,12 @@ class StripeService
       order: order,
       tenant_customer: tenant_customer,
       amount: total_amount,
-      stripe_fee_amount: stripe_fee_cents / 100.0,
-      platform_fee_amount: platform_fee_cents / 100.0,
-      business_amount: (total_amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
+      stripe_fee_amount:   stripe_fee_amount,
+      platform_fee_amount: platform_fee_amount,
+      business_amount:     business_amount,
       stripe_payment_intent_id: intent.id,
       stripe_customer_id: customer_id, # Will be nil if no customer
-      payment_method: payment_method_id.present? ? :credit_card : :other, # Set based on whether payment method is provided
+      payment_method: payment_method_id.present? ? :credit_card : :other,
       status: :pending
     )
 
@@ -363,7 +376,9 @@ class StripeService
     params = { payment_intent: payment.stripe_payment_intent_id }
     params[:amount] = (amount * 100).to_i if amount
     params[:metadata] = { reason: reason } if reason
-    refund = Stripe::Refund.create(params)
+    refund = Stripe::Refund.create(params, {
+      stripe_account: payment.business.stripe_account_id
+    })
     payment.update!(status: :refunded, refunded_amount: (refund.amount_refunded / 100.0), refund_reason: reason)
     refund
   end
@@ -389,6 +404,7 @@ class StripeService
     
     # Calculate amount in cents
     amount_cents = (tip.amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
     
     # Minimum amount check
     if amount_cents < 50 # $0.50 minimum
@@ -413,6 +429,16 @@ class StripeService
         success_url: success_url,
         cancel_url: cancel_url,
         client_reference_id: tip.id.to_s,
+        payment_intent_data: {
+          on_behalf_of: business.stripe_account_id,
+          application_fee_amount: platform_fee_cents,
+          metadata: {
+            tip_id: tip.id.to_s,
+            booking_id: tip.booking&.id.to_s,
+            business_id: business.id.to_s,
+            tip_context: "Tip for #{tip.booking&.service&.name || 'service'}"
+          }
+        },
         metadata: {
           tip_id: tip.id.to_s,
           booking_id: tip.booking&.id.to_s,
@@ -567,16 +593,18 @@ class StripeService
   end
 
   # Retrieve or create Stripe Customer for tenant
-  def self.ensure_stripe_customer_for_tenant(tenant)
+  def self.ensure_stripe_customer_for_tenant(tenant, business = nil)
     # In development or test mode without Stripe keys, return a mock customer
     if (Rails.env.development? || Rails.env.test?) && !stripe_configured?
       Rails.logger.info "[STRIPE] #{Rails.env} mode - mocking customer creation for tenant #{tenant.id}"
       return OpenStruct.new(id: "cus_#{Rails.env}_#{tenant.id}", email: tenant.email)
     end
     
+    stripe_account_options = business&.stripe_account_id ? { stripe_account: business.stripe_account_id } : {}
+    
     if tenant.stripe_customer_id.present?
       begin
-        return Stripe::Customer.retrieve(tenant.stripe_customer_id)
+        return Stripe::Customer.retrieve(tenant.stripe_customer_id, stripe_account_options)
       rescue Stripe::InvalidRequestError => e
         # Customer doesn't exist in Stripe, clear the ID and create a new one
         Rails.logger.warn "Stripe customer #{tenant.stripe_customer_id} not found, creating new customer for tenant #{tenant.id}"
@@ -584,11 +612,14 @@ class StripeService
       end
     end
     
-    # Create new Stripe customer
+    # Create new Stripe customer (on connected account if business provided)
     customer = Stripe::Customer.create(
-      email: tenant.email, 
-      name: tenant.full_name, 
-      metadata: { tenant_customer_id: tenant.id }
+      {
+        email: tenant.email, 
+        name: tenant.full_name, 
+        metadata: { tenant_customer_id: tenant.id }
+      },
+      stripe_account_options
     )
     tenant.update!(stripe_customer_id: customer.id)
     customer
@@ -668,15 +699,19 @@ class StripeService
       total_amount = invoice.total_amount.to_f
       amount_cents = (total_amount * 100).to_i
       
+      stripe_fee_amount   = calculate_stripe_fee_cents(amount_cents) / 100.0
+      platform_fee_amount = calculate_platform_fee_cents(amount_cents, business) / 100.0
+      business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
+
       payment = Payment.create!(
         business: business,
         invoice: invoice,
         order: invoice.order,
         tenant_customer: tenant_customer,
         amount: total_amount,
-        stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
-        platform_fee_amount: calculate_platform_fee_cents(amount_cents, business) / 100.0,
-        business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - calculate_platform_fee_cents(amount_cents, business) / 100.0).round(2),
+        stripe_fee_amount:   stripe_fee_amount,
+        platform_fee_amount: platform_fee_amount,
+        business_amount:     business_amount,
         stripe_payment_intent_id: session['payment_intent'],
         stripe_customer_id: session['customer'],
         payment_method: :credit_card,
@@ -943,23 +978,23 @@ class StripeService
         Rails.logger.info "[TIP] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
       end
       
-      # Calculate fees for the tip payment
-      amount_cents = (tip.amount * 100).to_i
-      stripe_fee_cents = calculate_stripe_fee_cents(amount_cents)
-      platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
-      
+      # Use service helpers to calculate tip fees and net amount
+      stripe_fee_amount   = calculate_tip_stripe_fee(tip.amount)
+      platform_fee_amount = calculate_tip_platform_fee(tip.amount, business)
+      business_amount     = calculate_tip_business_amount(tip.amount, business)
+
       # Update tip record with Stripe payment details and fees
       tip.update!(
         stripe_payment_intent_id: session['payment_intent'],
         stripe_customer_id: session['customer'],
-        stripe_fee_amount: stripe_fee_cents / 100.0,
-        platform_fee_amount: platform_fee_cents / 100.0,
-        business_amount: (tip.amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
+        stripe_fee_amount:   stripe_fee_amount,
+        platform_fee_amount: platform_fee_amount,
+        business_amount:     business_amount,
         status: :completed,
         paid_at: Time.current
       )
       
-      Rails.logger.info "[TIP] Successfully processed tip payment #{tip.id} for booking #{tip.booking_id} with fees: Stripe: $#{stripe_fee_cents / 100.0}, Platform: $#{platform_fee_cents / 100.0}"
+      Rails.logger.info "[TIP] Successfully processed tip payment #{tip.id} for booking #{tip.booking_id} with fees: Stripe: $#{stripe_fee_amount}, Platform: $#{platform_fee_amount}"
     end
   rescue => e
     Rails.logger.error "[TIP] Error processing tip payment for session #{session['id']}: #{e.message}"
@@ -1029,14 +1064,18 @@ class StripeService
         total_amount = invoice.total_amount.to_f
         amount_cents = (total_amount * 100).to_i
         
+        stripe_fee_amount   = calculate_stripe_fee_cents(amount_cents) / 100.0
+        platform_fee_amount = calculate_platform_fee_cents(amount_cents, business) / 100.0
+        business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
+
         payment = Payment.create!(
           business: business,
           invoice: invoice,
           tenant_customer: tenant_customer,
           amount: total_amount,
-          stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
-          platform_fee_amount: calculate_platform_fee_cents(amount_cents, business) / 100.0,
-          business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - calculate_platform_fee_cents(amount_cents, business) / 100.0).round(2),
+          stripe_fee_amount:   stripe_fee_amount,
+          platform_fee_amount: platform_fee_amount,
+          business_amount:     business_amount,
           stripe_payment_intent_id: session['payment_intent'],
           stripe_customer_id: session['customer'],
           payment_method: :credit_card,
@@ -1257,7 +1296,7 @@ class StripeService
 
     # Calculate amounts and fees
     amount_received = payment_intent.amount_received / 100.0
-    stripe_fee = (payment_intent.charges.data.first&.balance_transaction&.fee || 0) / 100.0
+    stripe_fee_amount = (payment_intent.charges.data.first&.balance_transaction&.fee || 0) / 100.0
     
     # Extract tip amount from metadata or calculate from difference
     tip_amount = if session.metadata&.dig('tip_amount')
@@ -1268,16 +1307,16 @@ class StripeService
                    0.0
                  end
 
-    # Calculate platform fee (if applicable)
+    # Calculate platform fee and net business amount
     platform_fee_amount = calculate_platform_fee(amount_received - tip_amount)
-    business_amount = amount_received - stripe_fee - platform_fee_amount
+    business_amount = (amount_received - stripe_fee_amount - platform_fee_amount).round(2)
 
     # Create payment record
     payment = invoice.payments.build(
       stripe_payment_intent_id: payment_intent_id,
       amount: amount_received,
       tip_amount: tip_amount,
-      stripe_fee_amount: stripe_fee,
+      stripe_fee_amount: stripe_fee_amount,
       platform_fee_amount: platform_fee_amount,
       business_amount: business_amount,
       status: :completed,
@@ -1394,13 +1433,19 @@ class StripeService
     (tip_amount * 0.029).round(2)
   end
 
-  def self.calculate_tip_platform_fee(tip_amount)
-    # Platform takes no fee from tips - they go directly to business
-    0.0
+  def self.calculate_tip_platform_fee(tip_amount, business = nil)
+    # Platform takes the same fee from tips as other payments
+    business_for_calc = business || ActsAsTenant.current_tenant
+    
+    # Always treat tip_amount as dollars and convert to cents
+    amount_cents = (tip_amount * 100).to_i
+    fee_cents = calculate_platform_fee_cents(amount_cents, business_for_calc)
+    fee_cents / 100.0
   end
 
-  def self.calculate_tip_business_amount(tip_amount)
-    tip_amount - calculate_tip_stripe_fee(tip_amount)
+  def self.calculate_tip_business_amount(tip_amount, business = nil)
+    # Calculate actual net amount business receives after all fees
+    tip_amount - calculate_tip_stripe_fee(tip_amount) - calculate_tip_platform_fee(tip_amount, business)
   end
 
   # Calculate platform fee for general use (used by tests)
