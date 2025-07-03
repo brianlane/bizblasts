@@ -103,7 +103,7 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       expect(page).to have_content('Test Product')
       
       # Proceed to checkout
-      click_link 'Checkout'
+      click_link 'Proceed to Checkout'
       expect(current_path).to eq(new_order_path)
       expect(page).to have_field('First Name')
       expect(page).to have_field('Email')
