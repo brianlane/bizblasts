@@ -65,8 +65,7 @@ RSpec.describe StripeService, type: :service do
               tip_id: tip.id,
               tenant_customer_id: tenant_customer.id,
               payment_type: 'tip'
-            ),
-            on_behalf_of: business.stripe_account_id
+            )
           ),
           metadata: hash_including(
             business_id: business.id,

@@ -103,7 +103,6 @@ class StripeService
       customer_creation: 'always', # Let Stripe create the customer during checkout
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
-        on_behalf_of: business.stripe_account_id,
         application_fee_amount: platform_fee_cents,
         metadata: { 
           business_id: business.id, 
@@ -173,7 +172,6 @@ class StripeService
       customer_creation: 'always', # Let Stripe create the customer during checkout
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
-        on_behalf_of: business.stripe_account_id,
         application_fee_amount: platform_fee_cents,
         metadata: { 
           business_id: business.id, 
@@ -243,7 +241,6 @@ class StripeService
       customer_creation: 'always', # Let Stripe create the customer during checkout
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
-        on_behalf_of: business.stripe_account_id,
         application_fee_amount: platform_fee_cents,
         metadata: { 
           business_id: business.id, 
@@ -302,7 +299,6 @@ class StripeService
       payment_method: payment_method_id,
       confirm: payment_method_id.present?,
       metadata: { business_id: business.id, invoice_id: invoice.id, order_id: order&.id },
-      on_behalf_of: business.stripe_account_id,
       application_fee_amount: platform_fee_cents
     }
     
@@ -430,7 +426,6 @@ class StripeService
         cancel_url: cancel_url,
         client_reference_id: tip.id.to_s,
         payment_intent_data: {
-          on_behalf_of: business.stripe_account_id,
           application_fee_amount: platform_fee_cents,
           metadata: {
             tip_id: tip.id.to_s,
