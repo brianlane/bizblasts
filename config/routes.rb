@@ -122,6 +122,12 @@ Rails.application.routes.draw do
 
       # Allow staff/manager to create bookings under subdomain
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
+      # Estimates management
+      resources :estimates do
+        member do
+          patch :send_to_customer
+        end
+      end
       
       # Business transactions management (unified orders and invoices)
       resources :transactions, only: [:index, :show]
@@ -371,6 +377,11 @@ Rails.application.routes.draw do
       # Estimate page and form submission
       get '/estimate', to: 'pages#show', page: 'estimate', as: :tenant_estimate_page
       post '/estimate', to: 'requests#create', as: :tenant_estimate_request
+      # Public estimate actions
+      get  '/estimates/:token',                 to: 'estimates#show',            as: :tenant_estimate
+      patch '/estimates/:token/approve',         to: 'estimates#approve',         as: :approve_tenant_estimate
+      patch '/estimates/:token/decline',         to: 'estimates#decline',         as: :decline_tenant_estimate
+      patch '/estimates/:token/request_changes', to: 'estimates#request_changes', as: :request_changes_tenant_estimate
 
       get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
       get '/available-slots', to: 'tenant_calendar#available_slots', as: :tenant_available_slots
@@ -557,7 +568,8 @@ Rails.application.routes.draw do
     end
   end
 
-
+  # Client portal: estimates
+  resources :estimates, only: [:index, :show], path: 'my-estimates', controller: 'client/estimates'
 
   authenticated :user, ->(user) { user.admin? } do
     get 'dashboard', to: 'admin_dashboard#index'
@@ -697,5 +709,11 @@ Rails.application.routes.draw do
     member do
       get :success
     end
+  end
+
+  scope module: 'client' do
+    get 'dashboard', to: 'dashboard#show', as: :client_dashboard
+    resources :bookings, only: [:index, :show]
+    resources :estimates, only: [:index, :show]
   end
 end

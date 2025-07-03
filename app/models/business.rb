@@ -132,6 +132,7 @@ class Business < ApplicationRecord
   has_many :orders  # Orphaned, not deleted
   has_many :shipping_methods, dependent: :destroy
   has_many :tax_rates, dependent: :destroy
+  has_many :estimates, dependent: :destroy
   
   # Referral and Loyalty system associations
   has_one :referral_program, dependent: :destroy

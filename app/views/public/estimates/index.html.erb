@@ -1,0 +1,8 @@
+<h1>My Estimates</h1>
+<ul>
+  <% @estimates.each do |estimate| %>
+    <li>
+      <%= link_to "Estimate ##{estimate.id} - #{estimate.status.titleize}", tenant_estimate_path(estimate.token) %>
+    </li>
+  <% end %>
+</ul> 

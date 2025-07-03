@@ -103,6 +103,8 @@ import ProductVariantsController from "./controllers/product_variants_controller
 import ServiceFormController from "./controllers/service_form_controller"
 import SortableController from "./controllers/sortable_controller"
 import HelloController from "./controllers/hello_controller"
+import DatePickerController from "./controllers/date_picker_controller"
+import DynamicLineItemsController from "./controllers/dynamic_line_items_controller"
 
 application.register("page-editor", PageEditorController)
 application.register("theme-editor", ThemeEditorController)
@@ -115,6 +117,8 @@ application.register("product-variants", ProductVariantsController)
 application.register("service-form", ServiceFormController)
 application.register("sortable", SortableController)
 application.register("hello", HelloController)
+application.register("date-picker", DatePickerController)
+application.register("dynamic-line-items", DynamicLineItemsController)
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -129,7 +133,7 @@ function autoDiscoverControllers() {
     // Get list of manually registered controllers to avoid duplicates
     const manuallyRegistered = new Set([
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
-      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello'
+      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello', 'date-picker', 'dynamic-line-items'
     ]);
     
     // Dynamically import and register each controller

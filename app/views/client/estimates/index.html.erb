@@ -1,0 +1,42 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">My Estimates</h1>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <ul class="divide-y divide-gray-200">
+      <% if @estimates.any? %>
+        <% @estimates.each do |estimate| %>
+          <li>
+            <%= link_to client_estimate_path(estimate.token), class: "block hover:bg-gray-50" do %>
+              <div class="px-4 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-medium text-indigo-600 truncate">
+                    Estimate ##<%= estimate.id %>
+                  </p>
+                  <div class="ml-2 flex-shrink-0 flex">
+                    <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <%= estimate_status_badge(estimate.status) %>">
+                      <%= estimate.status.humanize %>
+                    </p>
+                  </div>
+                </div>
+                <div class="mt-2 sm:flex sm:justify-between">
+                  <div class="sm:flex">
+                    <p class="flex items-center text-sm text-gray-500">
+                      Total: <%= number_to_currency(estimate.total) %>
+                    </p>
+                    <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                      Created: <%= l(estimate.created_at, format: :long) %>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </li>
+        <% end %>
+      <% else %>
+        <li class="px-4 py-4 sm:px-6">
+          You don't have any estimates yet.
+        </li>
+      <% end %>
+    </ul>
+  </div>
+</div> 
