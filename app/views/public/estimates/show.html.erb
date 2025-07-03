@@ -1,0 +1,61 @@
+<% content_for :title, "Your Estimate" %>
+
+<div class="container mx-auto px-4 py-6 max-w-2xl">
+  <h1 class="text-2xl font-bold mb-4">Estimate #<%= @estimate.id %></h1>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <dl class="divide-y divide-gray-200">
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Estimate Date</dt>
+        <dd class="col-span-2"><%= @estimate.created_at.strftime('%B %d, %Y') %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Proposed Start</dt>
+        <dd class="col-span-2"><%= @estimate.proposed_start_time.strftime('%B %d, %Y %I:%M %p') if @estimate.proposed_start_time %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Subtotal</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.subtotal) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Taxes</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.taxes) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Total</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.total) %></dd>
+      </div>
+    </dl>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-2">Line Items</h2>
+  <div class="bg-white shadow sm:rounded-lg overflow-x-auto mb-6">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <% @estimate.estimate_items.each do |item| %>
+          <tr>
+            <td class="px-6 py-4 whitespace-nowrap"><%= item.service&.name || '-' %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= item.description %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= item.qty %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.cost_rate) %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.total) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex space-x-4">
+    <%= button_to 'Approve Estimate', approve_tenant_estimate_path(@estimate.token), method: :patch, data: { confirm: 'Approve this estimate?' }, class: 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded' %>
+    <%= button_to 'Decline Estimate', decline_tenant_estimate_path(@estimate.token), method: :patch, data: { confirm: 'Decline this estimate?' }, class: 'bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded' %>
+  </div>
+</div> 

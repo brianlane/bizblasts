@@ -1,0 +1,8 @@
+Hello <%= @estimate.first_name %>,
+
+Your estimate #<%= @estimate.id %> from <%= @estimate.business.name %> is ready.
+
+You can view it here:
+<%= tenant_estimate_url(@estimate.token, subdomain: @estimate.business.subdomain) %>
+
+Thank you for choosing <%= @estimate.business.name %>! 
