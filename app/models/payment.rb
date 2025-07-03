@@ -51,6 +51,14 @@ class Payment < ApplicationRecord
     end
   end
   
+  def self.ransackable_attributes(auth_object = nil)
+    ["amount", "business_amount", "business_id", "created_at", "failure_reason", "id", "id_value", "invoice_id", "order_id", "paid_at", "payment_method", "platform_fee_amount", "refund_reason", "refunded_amount", "status", "stripe_charge_id", "stripe_customer_id", "stripe_fee_amount", "stripe_payment_intent_id", "stripe_transfer_id", "tenant_customer_id", "tip_amount", "updated_at"]
+  end
+
+  def self.ransackable_associations(auth_object = nil)
+    ["business", "invoice", "order", "tenant_customer"]
+  end
+  
   private
   
   def orphaned_payment?
