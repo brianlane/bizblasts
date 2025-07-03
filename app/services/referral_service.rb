@@ -25,7 +25,7 @@ class ReferralService
       return { success: false, error: 'Referral is not pending' } unless referral.pending?
 
       business = referral.business
-      referral_program = business.referral_program
+      referral_program = business.referral_program.reload
       return { success: false, error: 'Referral program is not active' } unless referral_program&.active?
       
       # Check if minimum purchase requirement is met
@@ -61,7 +61,7 @@ class ReferralService
     # Awards the specified reward to the user who made the referral.
     def award_referrer_reward(referral)
       business = referral.business
-      referral_program = business.referral_program
+      referral_program = business.referral_program.reload
       referrer_user = referral.referrer
       
       # The referrer must also be a customer of the business to receive points.
