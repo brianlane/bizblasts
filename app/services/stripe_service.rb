@@ -588,14 +588,16 @@ class StripeService
   end
 
   # Retrieve or create Stripe Customer for tenant
-  def self.ensure_stripe_customer_for_tenant(tenant, business = nil)
+  def self.ensure_stripe_customer_for_tenant(tenant, business)
     # In development or test mode without Stripe keys, return a mock customer
     if (Rails.env.development? || Rails.env.test?) && !stripe_configured?
       Rails.logger.info "[STRIPE] #{Rails.env} mode - mocking customer creation for tenant #{tenant.id}"
       return OpenStruct.new(id: "cus_#{Rails.env}_#{tenant.id}", email: tenant.email)
     end
     
-    stripe_account_options = business&.stripe_account_id ? { stripe_account: business.stripe_account_id } : {}
+    # Determine connected account context (explicit business or current tenant)
+    connected_account_id = business&.stripe_account_id || ActsAsTenant.current_tenant&.stripe_account_id
+    stripe_account_options = connected_account_id.present? ? { stripe_account: connected_account_id } : {}
     
     if tenant.stripe_customer_id.present?
       begin
