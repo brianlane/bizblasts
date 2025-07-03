@@ -36,8 +36,23 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
   def refresh_stripe
     if StripeService.check_onboarding_status(@business)
       flash[:notice] = 'Stripe onboarding complete!'
+      redirect_to edit_business_manager_settings_business_path
     else
-      flash[:alert] = 'Stripe onboarding not yet completed.'
+      link = StripeService.create_onboarding_link(
+        @business,
+        refresh_url: refresh_stripe_business_manager_settings_business_url(host: request.host, protocol: request.protocol),
+        return_url: edit_business_manager_settings_business_url(host: request.host, protocol: request.protocol)
+      )
+      redirect_to link.url, allow_other_host: true
+    end
+  end
+
+  # DELETE /manage/settings/business/disconnect_stripe
+  def disconnect_stripe
+    if @business.update(stripe_account_id: nil)
+      flash[:notice] = 'Stripe account disconnected.'
+    else
+      flash[:alert] = 'Failed to disconnect Stripe account.'
     end
     redirect_to edit_business_manager_settings_business_path
   end
