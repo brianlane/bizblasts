@@ -191,7 +191,7 @@ jobs:
         run: bundle exec rspec spec/models
 
   # Request tests - API and controller tests
-  test_requests:
+  test_requests_1:
     runs-on: ubuntu-latest
     
     env:
@@ -213,7 +213,7 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -257,6 +257,7 @@ jobs:
         run: |
           chmod +x bin/build-tailwind-standalone.sh
           chmod +x script/test_tailwind_build.rb
+          chmod +x bin/split_request_tests.rb
 
       - name: Test Tailwind build
         env:
@@ -276,8 +277,115 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Run request tests
-        run: bundle exec rspec spec/requests spec/controllers
+      - name: Split and run request spec group 1
+        run: |
+          TESTS=$(./bin/split_request_tests.rb 1)
+          if [ -n "$TESTS" ]; then
+            echo "Running request spec group 1..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No request specs found for group 1"
+          fi
+
+      - name: Run controller tests
+        run: bundle exec rspec spec/controllers --format documentation
+
+  # Request tests group 2
+  test_requests_2:
+    runs-on: ubuntu-latest
+    
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_requests
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS Dependencies
+        run: npm install
+
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css \
+            --no-source-map \
+            --load-path=node_modules \
+            --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets
+          cp ./app/assets/builds/active_admin.css ./public/assets/
+
+      - name: Build JavaScript Assets
+        run: |
+          mkdir -p app/assets/builds
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+
+      - name: Make scripts executable
+        run: |
+          chmod +x bin/build-tailwind-standalone.sh
+          chmod +x script/test_tailwind_build.rb
+          chmod +x bin/split_request_tests.rb
+
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_requests;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_requests;"
+          bundle exec rake ci:github_actions
+
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
+
+      - name: Split and run request spec group 2
+        run: |
+          TESTS=$(./bin/split_request_tests.rb 2)
+          if [ -n "$TESTS" ]; then
+            echo "Running request spec group 2..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No request specs found for group 2"
+          fi
 
   # Service and business logic tests
   test_services:
@@ -1014,8 +1122,96 @@ jobs:
             rm tmp/server.pid
           fi
 
+  # System tests part 4 - Newly added for group 4
+  test_system_4:
+    runs-on: ubuntu-latest
+
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_4
+      DISABLE_PROPSHAFT: true
+      RAILS_DISABLE_ASSET_COMPILATION: true
+      DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+      CI: true
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: |
+          sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config curl
+          curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.2'
+          bundler-cache: true
+      - name: Install all gems
+        run: bundle install --jobs 4 --retry 3 --with development test
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install JS Dependencies
+        run: npm install
+      - name: Build CSS Assets
+        run: |
+          AA_PATH=$(bundle info activeadmin --path)
+          mkdir -p app/assets/builds
+          npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
+          npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
+          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
+      - name: Build JavaScript Assets
+        run: npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+      - name: Make scripts executable
+        run: chmod +x bin/split_system_tests.rb
+      - name: Test Tailwind build
+        env:
+          RAILS_DISABLE_ASSET_COMPILATION: true
+          SKIP_SOLID_QUEUE_SETUP: true
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+        run: ./script/test_tailwind_build.rb
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS bizblasts_test_system_4;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE bizblasts_test_system_4;"
+          bundle exec rake ci:github_actions
+      - name: Build Tailwind CSS
+        env:
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: ./bin/build-tailwind-standalone.sh
+      - name: Run system tests 4
+        run: |
+          TESTS=$(./bin/split_system_tests.rb 4)
+          if [ -n "$TESTS" ]; then
+            echo "Running system tests group 4..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No system tests found for group 4"
+          fi
+      - name: Keep screenshots from failed system tests
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: system-test-4-screenshots
+          path: ${{ github.workspace }}/tmp/screenshots
+          if-no-files-found: ignore
+
   deploy:
-    needs: [scan_ruby, scan_js, lint, test_models, test_requests, test_services, test_integration, test_system_1, test_system_2, test_system_3, test_other, performance_test]
+    needs: [scan_ruby, scan_js, lint, test_models, test_requests_1, test_requests_2, test_services, test_integration, test_system_1, test_system_2, test_system_3, test_system_4, test_other, performance_test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     
