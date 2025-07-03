@@ -195,7 +195,6 @@ class SubscriptionStripeService
           quantity: customer_subscription.quantity || 1
         }],
         application_fee_percent: get_application_fee_percent,
-        on_behalf_of: business.stripe_account_id,
         metadata: {
           customer_subscription_id: customer_subscription.id,
           business_id: business.id,

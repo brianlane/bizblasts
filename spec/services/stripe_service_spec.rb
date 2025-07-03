@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe StripeService, type: :service do
-  let(:business) { create(:business, stripe_account_id: 'acct_test123') }
+  let(:business) { create(:business, tier: 'free', stripe_account_id: 'acct_test123') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 10.00) }
 
@@ -74,7 +74,7 @@ RSpec.describe StripeService, type: :service do
           success_url: success_url,
           cancel_url: cancel_url,
           customer: 'cus_test123',
-          payment_intent_data: hash_including(on_behalf_of: business.stripe_account_id)
+          payment_intent_data: hash_including(application_fee_amount: 50)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -144,7 +144,7 @@ RSpec.describe StripeService, type: :service do
             booking_type: 'service_booking',
             booking_data: booking_data.to_json
           ),
-          payment_intent_data: hash_including(on_behalf_of: business.stripe_account_id)
+          payment_intent_data: hash_including(application_fee_amount: 50)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -478,7 +478,7 @@ RSpec.describe StripeService, type: :service do
             tip_id: tip.id.to_s,
             business_id: business.id.to_s
           ),
-          payment_intent_data: hash_including(on_behalf_of: business.stripe_account_id)
+          payment_intent_data: hash_including(application_fee_amount: 125)
         ),
         { stripe_account: business.stripe_account_id }
       )

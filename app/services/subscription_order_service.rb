@@ -215,11 +215,12 @@ class SubscriptionOrderService
     
     # Calculate number of full calendar months since subscription start
     tz = business.time_zone.presence || 'UTC'
-    local_start_time = customer_subscription.created_at.in_time_zone(tz)
-    local_current_time = Time.current.in_time_zone(tz)
-    raw_months = (local_current_time.year * 12 + local_current_time.month) -
-                 (local_start_time.year * 12 + local_start_time.month)
-    subscription_months = raw_months - (local_current_time.day < local_start_time.day ? 1 : 0)
+    local_start_date = customer_subscription.created_at.in_time_zone(tz).to_date
+    local_current_date = Time.current.in_time_zone(tz).to_date
+    raw_months = (local_current_date.year * 12 + local_current_date.month) -
+                 (local_start_date.year * 12 + local_start_date.month)
+    anniversary_date = local_start_date >> raw_months
+    subscription_months = raw_months - (local_current_date < anniversary_date ? 1 : 0)
 
     case subscription_months
     when 1
