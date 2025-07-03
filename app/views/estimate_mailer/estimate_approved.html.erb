@@ -1,0 +1,4 @@
+<p>Hello <%= @estimate.tenant_customer&.full_name || @estimate.first_name %>,</p>
+<p>This email confirms that you have approved Estimate ##<%= @estimate.id %>.</p>
+<p>If a deposit was required, you should have received a separate invoice to complete payment. Otherwise, we will be in touch shortly to confirm your booking.</p>
+<p>Thank you!</p> 

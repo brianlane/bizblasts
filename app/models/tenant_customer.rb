@@ -5,6 +5,7 @@ class TenantCustomer < ApplicationRecord
   
   acts_as_tenant(:business)
   belongs_to :business
+  belongs_to :user, optional: true
   has_many :bookings, dependent: :destroy
   has_many :invoices, dependent: :destroy
   has_many :orders, dependent: :destroy

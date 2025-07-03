@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_02_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_02_182036) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -351,6 +351,54 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_02_120000) do
     t.index ["stripe_coupon_id"], name: "index_discount_codes_on_stripe_coupon_id"
     t.index ["tenant_customer_id"], name: "index_discount_codes_on_tenant_customer_id"
     t.index ["used_by_customer_id"], name: "index_discount_codes_on_used_by_customer_id"
+  end
+
+  create_table "estimate_items", force: :cascade do |t|
+    t.bigint "estimate_id", null: false
+    t.bigint "service_id"
+    t.string "description"
+    t.integer "qty"
+    t.decimal "cost_rate", precision: 10, scale: 2
+    t.decimal "tax_rate", precision: 10, scale: 2
+    t.decimal "total", precision: 10, scale: 2
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["estimate_id"], name: "index_estimate_items_on_estimate_id"
+    t.index ["service_id"], name: "index_estimate_items_on_service_id"
+  end
+
+  create_table "estimates", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.datetime "proposed_start_time"
+    t.datetime "proposed_end_time"
+    t.string "first_name"
+    t.string "last_name"
+    t.string "email"
+    t.string "phone"
+    t.string "address"
+    t.string "city"
+    t.string "state"
+    t.string "zip"
+    t.text "customer_notes"
+    t.text "internal_notes"
+    t.decimal "subtotal", precision: 10, scale: 2
+    t.decimal "taxes", precision: 10, scale: 2
+    t.decimal "required_deposit", precision: 10, scale: 2
+    t.decimal "total", precision: 10, scale: 2
+    t.integer "status"
+    t.string "token", null: false
+    t.datetime "sent_at"
+    t.datetime "viewed_at"
+    t.datetime "approved_at"
+    t.datetime "declined_at"
+    t.datetime "deposit_paid_at"
+    t.bigint "booking_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_estimates_on_booking_id"
+    t.index ["business_id"], name: "index_estimates_on_business_id"
+    t.index ["tenant_customer_id"], name: "index_estimates_on_tenant_customer_id"
   end
 
   create_table "friendly_id_slugs", id: :serial, force: :cascade do |t|
@@ -1399,6 +1447,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_02_120000) do
   add_foreign_key "discount_codes", "referrals", column: "generated_by_referral_id"
   add_foreign_key "discount_codes", "tenant_customers"
   add_foreign_key "discount_codes", "tenant_customers", column: "used_by_customer_id", on_delete: :nullify
+  add_foreign_key "estimate_items", "estimates"
+  add_foreign_key "estimate_items", "services"
+  add_foreign_key "estimates", "bookings"
+  add_foreign_key "estimates", "businesses"
+  add_foreign_key "estimates", "tenant_customers"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "bookings", on_delete: :nullify

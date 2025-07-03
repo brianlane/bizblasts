@@ -139,6 +139,34 @@ class Invoice < ApplicationRecord
     has_tip_eligible_items?
   end
 
+  # Create an invoice from an approved estimate
+  def self.create_from_estimate(estimate)
+    invoice = nil
+    transaction do
+      invoice = create!(
+        tenant_customer: estimate.tenant_customer,
+        business: estimate.business,
+        booking: estimate.booking,
+        amount: estimate.subtotal,
+        original_amount: estimate.subtotal,
+        discount_amount: 0.0,
+        tax_amount: estimate.taxes || 0.0,
+        total_amount: estimate.total,
+        due_date: 7.days.from_now,
+        status: :pending
+      )
+      estimate.estimate_items.each do |item|
+        invoice.line_items.create!(
+          service: item.service,
+          quantity: item.qty,
+          price: item.cost_rate,
+          total_amount: item.total
+        )
+      end
+    end
+    invoice
+  end
+
   private
 
   def set_invoice_number
