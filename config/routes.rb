@@ -145,6 +145,7 @@ Rails.application.routes.draw do
           post :connect_stripe
           get :stripe_onboarding
           post :refresh_stripe
+          delete :disconnect_stripe
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]

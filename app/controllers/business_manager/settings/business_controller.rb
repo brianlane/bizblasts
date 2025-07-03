@@ -42,6 +42,16 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     redirect_to edit_business_manager_settings_business_path
   end
 
+  # DELETE /manage/settings/business/disconnect_stripe
+  def disconnect_stripe
+    if @business.update(stripe_account_id: nil)
+      flash[:notice] = 'Stripe account disconnected.'
+    else
+      flash[:alert] = 'Failed to disconnect Stripe account.'
+    end
+    redirect_to edit_business_manager_settings_business_path
+  end
+
   def edit
     # @business is set by set_business
     # The view will use @business to populate the form

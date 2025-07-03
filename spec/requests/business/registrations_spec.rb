@@ -63,7 +63,7 @@ RSpec.describe "Business::Registrations", type: :request do
       allow(StripeService).to receive(:create_connect_account) do |business|
         mock_account = Stripe::Account.construct_from({
           id: "acct_#{SecureRandom.hex(8)}",
-          type: 'express',
+          type: 'standard',
           country: 'US',
           email: business.email
         })

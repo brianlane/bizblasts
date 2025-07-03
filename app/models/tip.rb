@@ -78,7 +78,7 @@ class Tip < ApplicationRecord
                    end
     self.platform_fee_amount = (amount_cents * platform_rate).round / 100.0
     
-    # Calculate business amount (tip amount - all fees)
+    # Calculate net amount business receives after all fees
     self.business_amount = amount - stripe_fee_amount - platform_fee_amount
   end
 end 

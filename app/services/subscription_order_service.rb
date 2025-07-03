@@ -120,7 +120,9 @@ class SubscriptionOrderService
   end
   
   def generate_order_number
-    "SUB-#{Time.current.strftime('%Y%m%d')}-#{SecureRandom.hex(4).upcase}"
+    tz = business.time_zone.presence || 'UTC'
+    now = Time.current.in_time_zone(tz)
+    "SUB-#{now.strftime('%Y%m%d')}-#{SecureRandom.hex(4).upcase}"
   end
   
   def create_order_line_item(order)
@@ -164,12 +166,14 @@ class SubscriptionOrderService
   end
   
   def create_order_invoice(order)
+    tz = business.time_zone.presence || 'UTC'
+    local_today = Time.current.in_time_zone(tz).to_date
     invoice = order.build_invoice(
       tenant_customer: tenant_customer,
       business: business,
       amount: order.total_amount,
       total_amount: order.total_amount,
-      due_date: Date.current + 30.days,
+      due_date: local_today + 30.days,
       status: 'paid' # Subscription orders are pre-paid
     )
     
@@ -209,9 +213,15 @@ class SubscriptionOrderService
     
     loyalty_service = SubscriptionLoyaltyService.new(customer_subscription)
     
-    # Check for various milestones based on subscription duration
-    subscription_months = ((Time.current - customer_subscription.created_at) / 1.month).to_i
-    
+    # Calculate number of full calendar months since subscription start
+    tz = business.time_zone.presence || 'UTC'
+    local_start_date = customer_subscription.created_at.in_time_zone(tz).to_date
+    local_current_date = Time.current.in_time_zone(tz).to_date
+    raw_months = (local_current_date.year * 12 + local_current_date.month) -
+                 (local_start_date.year * 12 + local_start_date.month)
+    anniversary_date = local_start_date >> raw_months
+    subscription_months = raw_months - (local_current_date < anniversary_date ? 1 : 0)
+
     case subscription_months
     when 1
       loyalty_service.award_milestone_points!('first_month') unless milestone_awarded?('first_month')
