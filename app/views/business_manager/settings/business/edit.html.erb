@@ -59,7 +59,7 @@
           <%= button_to 'Connect Stripe Account', connect_stripe_business_manager_settings_business_path,
                 method: :post,
                 data: { turbo: false },
-                class: 'inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm' %>
+                class: 'inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm cursor-pointer' %>
         </div>
       <% elsif StripeService.check_onboarding_status(@business) %>
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
@@ -76,7 +76,7 @@
             <%= button_to 'Disconnect Stripe Account', disconnect_stripe_business_manager_settings_business_path,
                   method: :delete,
                   data: { turbo: false, confirm: 'Are you sure you want to disconnect your Stripe account? This action cannot be undone.' },
-                  class: 'inline-flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 shadow-sm' %>
+                  class: 'inline-flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 shadow-sm cursor-pointer' %>
           </div>
         </div>
       <% else %>
@@ -96,11 +96,11 @@
             <%= button_to 'Complete Setup', stripe_onboarding_business_manager_settings_business_path,
                   method: :get,
                   data: { turbo: false },
-                  class: 'inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm' %>
+                  class: 'inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm cursor-pointer' %>
             <%= button_to 'Refresh Status', refresh_stripe_business_manager_settings_business_path,
                   method: :post,
                   data: { turbo: false },
-                  class: 'inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 border border-gray-300' %>
+                  class: 'inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 border border-gray-300 cursor-pointer' %>
           </div>
         </div>
       <% end %>
@@ -305,7 +305,7 @@
           </svg>
           Hours of Operation
         </h2>
-        <p class="text-sm text-gray-600 mt-1">Set your business hours for each day of the week</p>
+        <p class="text-sm text-gray-600 mt-1">Set your business hours for each day of the week. Only for display purposes.</p>
       </div>
       <div class="p-6">
         <div class="space-y-4">
@@ -476,7 +476,7 @@
         Cancel
       <% end %>
       <%= form.submit "Save Business Information", 
-            class: "inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl" %>
+            class: "inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer" %>
     </div>
   <% end %>
 </div>
