@@ -36,8 +36,8 @@ FactoryBot.define do
           tip.platform_fee_amount = (amount_cents * platform_rate).round / 100.0
           
           # Calculate business amount (tip amount - all fees)
-          # In direct charges, business pays Stripe fees, so we only deduct platform fee
-          tip.business_amount = tip.amount - tip.platform_fee_amount
+          # Business receives net amount after deducting both Stripe and platform fees
+          tip.business_amount = tip.amount - tip.stripe_fee_amount - tip.platform_fee_amount
         end
       end
     end

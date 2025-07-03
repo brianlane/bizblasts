@@ -136,10 +136,10 @@ RSpec.describe StripeService, type: :service do
         expect(tip.paid_at).to be_within(1.second).of(Time.current)
         
         # Check fee calculations for $10.00 tip on premium tier business (3% platform fee)
-        expect(tip.stripe_fee_amount).to eq(0.29) # 2.9% of $10.00 = $0.29 (flat fee removed; informational)
+        expect(tip.stripe_fee_amount).to eq(0.59) # 2.9% of $10.00 + $0.30 = $0.29 + $0.30 = $0.59
         expect(tip.platform_fee_amount).to eq(0.30) # 3% of $10.00 = $0.30
         # Business receives net after all fees
-        expect(tip.business_amount).to eq(9.41) # $10.00 - $0.29 (Stripe fee) - $0.30 (platform fee)
+        expect(tip.business_amount).to eq(9.11) # $10.00 - $0.59 (Stripe fee) - $0.30 (platform fee)
       end
     end
     

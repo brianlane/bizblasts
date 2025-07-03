@@ -1430,7 +1430,7 @@ class StripeService
   # Calculate tip-specific fees
   def self.calculate_tip_stripe_fee(tip_amount)
     # Stripe fee: 2.9% + $0.30 per transaction (prorated for tip portion)
-    (tip_amount * 0.029).round(2)
+    ((tip_amount * 0.029) + 0.30).round(2)
   end
 
   def self.calculate_tip_platform_fee(tip_amount, business = nil)
