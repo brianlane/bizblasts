@@ -203,7 +203,7 @@ RSpec.describe ReferralService, type: :service do
 
     context 'when minimum purchase amount is not met' do
       let!(:customer) { create(:tenant_customer, business: business) }
-      let!(:small_order) do
+      let(:small_order) do
         create(:order, 
           business: business, 
           tenant_customer: customer, 
