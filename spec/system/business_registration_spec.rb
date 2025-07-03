@@ -37,7 +37,7 @@ RSpec.describe "Business Registration", type: :system do
       account_id = "acct_#{SecureRandom.hex(8)}"
       business.update!(stripe_account_id: account_id)
       # Return a mock account object
-      double('Stripe::Account', id: account_id, type: 'express', country: 'US', email: business.email)
+      double('Stripe::Account', id: account_id, type: 'standard', country: 'US', email: business.email)
     end
 
     allow(StripeService).to receive(:ensure_stripe_customer_for_business) do |business|

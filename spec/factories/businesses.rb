@@ -41,8 +41,8 @@ FactoryBot.define do
       if host_type == 'custom_domain'
         [:standard, :premium].sample # Custom domain cannot be free
       else
-        # Allow any tier for subdomain, can be overridden by traits
-        Business.tiers.keys.sample 
+        # Always free tier for subdomain
+        'free'
       end
     end
 
