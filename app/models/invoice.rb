@@ -41,8 +41,11 @@ class Invoice < ApplicationRecord
     payments.successful.sum(:amount)
   end
   
+  # Remaining balance after all successful payments. Use total_amount
+  # (which includes taxes, tips, etc.) to avoid negative balances when
+  # amount represents a pre-tax subtotal.
   def balance_due
-    amount - total_paid
+    total_amount - total_paid
   end
   
   def mark_as_paid!

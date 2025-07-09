@@ -64,7 +64,8 @@ RSpec.describe "Stripe Webhook Integration", type: :request do
       it "enqueues job with correct parameters" do
         expect(StripeWebhookJob).to receive(:perform_later).with(
           webhook_payload,
-          valid_signature
+          valid_signature,
+          anything
         )
 
         post '/webhooks/stripe', 
