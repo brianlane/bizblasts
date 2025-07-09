@@ -2,7 +2,8 @@
 
 # Controller for handling the public booking process within a tenant subdomain.
 module Public
-  class BookingController < ApplicationController
+  class BookingController < Public::BaseController
+    after_action :no_store!, only: %i[confirmation]
     # Ensure tenant is set based on subdomain
     before_action :set_tenant
     include BusinessAccessProtection
