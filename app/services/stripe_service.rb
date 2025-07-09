@@ -338,16 +338,19 @@ class StripeService
   end
 
   # Process raw webhook payload (as JSON string)
-  def self.process_webhook(event_json)
+  def self.process_webhook(event_json, tenant_context = nil)
     configure_stripe_api_key
     event = JSON.parse(event_json)
+    
+    Rails.logger.info "[STRIPE_SERVICE] Processing webhook #{event['type']} with tenant context: #{tenant_context&.name || 'None'}"
+    
     case event['type']
     when 'payment_intent.succeeded'
-      handle_successful_payment(event['data']['object'])
+      handle_successful_payment(event['data']['object'], tenant_context)
     when 'payment_intent.payment_failed'
-      handle_failed_payment(event['data']['object'])
+      handle_failed_payment(event['data']['object'], tenant_context)
     when 'charge.refunded'
-      handle_refund(event['data']['object'])
+      handle_refund(event['data']['object'], tenant_context)
     when 'account.updated'
       handle_account_updated(event['data']['object'])
     when 'checkout.session.completed'
@@ -762,40 +765,97 @@ class StripeService
     end
   end
 
-  def self.handle_successful_payment(pi)
-    payment = Payment.find_by(stripe_payment_intent_id: pi['id'])
+  def self.handle_successful_payment(pi, tenant_context = nil)
+    # Try to find payment with tenant context first
+    payment = if tenant_context
+      Rails.logger.info "[PAYMENT] Looking for payment in tenant context: #{tenant_context.name}"
+      ActsAsTenant.with_tenant(tenant_context) do
+        Payment.find_by(stripe_payment_intent_id: pi['id'])
+      end
+    else
+      # Fallback to unscoped search across all tenants
+      Rails.logger.info "[PAYMENT] Looking for payment across all tenants"
+      Payment.unscoped.find_by(stripe_payment_intent_id: pi['id'])
+    end
+    
     return unless payment
     
-    # Determine payment method from Stripe data
-    payment_method = case pi.dig('charges', 'data', 0, 'payment_method_details', 'type')
-                    when 'card' then :credit_card
-                    when 'us_bank_account' then :bank_transfer
-                    when 'paypal' then :paypal
-                    else :other
-                    end
-    
-    payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
-    payment.invoice.mark_as_paid! if payment.invoice&.pending?
-    # Update order status if applicable
-    if (order = payment.order)
-      # For product or experience orders, mark as paid; for services, mark as processing
-      new_status = order.payment_required? ? :paid : :processing
-      order.update!(status: new_status)
+    # Ensure we're in the correct tenant context for the payment
+    ActsAsTenant.with_tenant(payment.business) do
+      Rails.logger.info "[PAYMENT] Processing successful payment #{payment.id} for business #{payment.business.name}"
+      
+      # Determine payment method from Stripe data
+      payment_method = case pi.dig('charges', 'data', 0, 'payment_method_details', 'type')
+                      when 'card' then :credit_card
+                      when 'us_bank_account' then :bank_transfer
+                      when 'paypal' then :paypal
+                      else :other
+                      end
+      
+      payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
+      payment.invoice.mark_as_paid! if payment.invoice&.pending?
+      
+      # Update order status if applicable
+      if (order = payment.order)
+        # For product or experience orders, mark as paid; for services, mark as processing
+        new_status = order.payment_required? ? :paid : :processing
+        order.update!(status: new_status)
+      else
+        # No associated order – this is a standalone invoice payment. Send confirmation email.
+        begin
+          InvoiceMailer.payment_confirmation(payment.invoice, payment).deliver_later
+          Rails.logger.info "[EMAIL] Sent payment confirmation email for Invoice ##{payment.invoice.invoice_number}"
+        rescue => e
+          Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{payment.invoice&.invoice_number}: #{e.message}"
+        end
+      end
     end
   end
 
-  def self.handle_failed_payment(pi)
-    payment = Payment.find_by(stripe_payment_intent_id: pi['id'])
+  def self.handle_failed_payment(pi, tenant_context = nil)
+    # Try to find payment with tenant context first
+    payment = if tenant_context
+      Rails.logger.info "[PAYMENT] Looking for failed payment in tenant context: #{tenant_context.name}"
+      ActsAsTenant.with_tenant(tenant_context) do
+        Payment.find_by(stripe_payment_intent_id: pi['id'])
+      end
+    else
+      # Fallback to unscoped search across all tenants
+      Rails.logger.info "[PAYMENT] Looking for failed payment across all tenants"
+      Payment.unscoped.find_by(stripe_payment_intent_id: pi['id'])
+    end
+    
     return unless payment
-    payment.update!(status: :failed, failure_reason: pi['last_payment_error']&.dig('message'))
+    
+    # Ensure we're in the correct tenant context for the payment
+    ActsAsTenant.with_tenant(payment.business) do
+      Rails.logger.info "[PAYMENT] Processing failed payment #{payment.id} for business #{payment.business.name}"
+      payment.update!(status: :failed, failure_reason: pi['last_payment_error']&.dig('message'))
+    end
   end
 
-  def self.handle_refund(charge)
-    payment = Payment.find_by(stripe_charge_id: charge['id'])
+  def self.handle_refund(charge, tenant_context = nil)
+    # Try to find payment with tenant context first
+    payment = if tenant_context
+      Rails.logger.info "[REFUND] Looking for refund payment in tenant context: #{tenant_context.name}"
+      ActsAsTenant.with_tenant(tenant_context) do
+        Payment.find_by(stripe_charge_id: charge['id'])
+      end
+    else
+      # Fallback to unscoped search across all tenants
+      Rails.logger.info "[REFUND] Looking for refund payment across all tenants"
+      Payment.unscoped.find_by(stripe_charge_id: charge['id'])
+    end
+    
     return unless payment
-    refunded_amt = charge['amount_refunded'] / 100.0
-    reason = charge['refunds']&.dig('data')&.first&.dig('reason')
-    payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+    
+    # Ensure we're in the correct tenant context for the payment
+    ActsAsTenant.with_tenant(payment.business) do
+      Rails.logger.info "[REFUND] Processing refund for payment #{payment.id} for business #{payment.business.name}"
+      refunded_amt = charge['amount_refunded'] / 100.0
+      reason = charge['refunds']&.dig('data')&.first&.dig('reason')
+      payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+    end
   end
 
   def self.handle_subscription_event(sub)

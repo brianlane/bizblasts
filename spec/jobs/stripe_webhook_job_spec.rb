@@ -16,7 +16,7 @@ RSpec.describe StripeWebhookJob, type: :job do
     # Stub Stripe::Webhook.construct_event to return a mock event
     mock_event = double('Stripe::Event', data: double(object: { 'id' => 'pi_test' }), type: 'payment_intent.succeeded')
     expect(Stripe::Webhook).to receive(:construct_event).with(payload, sig_header, endpoint_secret).and_return(mock_event)
-    expect(StripeService).to receive(:process_webhook).with(mock_event.to_json)
+    expect(StripeService).to receive(:process_webhook).with(mock_event.to_json, anything)
 
     described_class.perform_now(payload, sig_header)
   end

@@ -6,6 +6,9 @@ module Public
     before_action :set_tenant
     before_action :authenticate_user!, except: [:show, :pay]
     before_action :set_invoice_and_access_token, only: [:show, :pay]
+    # Prevent browsers from caching the invoice show page so that navigating
+    # back after a successful payment fetches the latest status from the server.
+    after_action :set_no_store_cache_headers, only: [:show]
 
     # GET /invoices
     def index
@@ -69,6 +72,14 @@ module Public
     end
 
     private
+
+    # Ensure the browser (and any intermediate caches) do not store the invoice
+    # page. This forces a fresh request when the user navigates back after paying.
+    def set_no_store_cache_headers
+      response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+      response.headers["Pragma"] = "no-cache"
+      response.headers["Expires"] = "0"
+    end
 
     def set_invoice_and_access_token
       @access_token = params[:access_token] || params[:token]
