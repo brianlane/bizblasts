@@ -98,7 +98,7 @@
                           local: true,
                           class: "space-y-4" do |f| %>
               
-              <% days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday] %>
+              <% days_of_week = %w[sunday monday tuesday wednesday thursday friday saturday] %>
               <% days_of_week.each_with_index do |day, idx| %>
                 <% current_date = @start_date + idx.days %>
                 <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
