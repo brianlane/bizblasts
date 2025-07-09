@@ -2,6 +2,7 @@
 
 module Public
   class OrdersController < ::OrdersController
+    after_action :no_store!, only: %i[show]
     skip_before_action :authenticate_user!, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_current_tenant, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_tenant_customer,  only: [:new, :create, :show, :validate_promo_code]
@@ -359,6 +360,13 @@ module Public
     end
 
     private
+
+    # Set Cache-Control headers to prevent caching
+    def no_store!
+      response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+      response.headers["Pragma"]        = "no-cache"
+      response.headers["Expires"]       = "0"
+    end
 
     # Build a temporary order object for promo code validation
     def build_temp_order_for_validation

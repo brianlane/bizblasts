@@ -1,4 +1,5 @@
-class Public::TipsController < ApplicationController
+class Public::TipsController < Public::BaseController
+  after_action :no_store!
   before_action :set_tenant
   before_action :set_booking_from_token, only: [:new, :create]
   before_action :validate_tip_eligibility, only: [:new, :create]
