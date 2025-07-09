@@ -318,22 +318,25 @@
       // PHASE 4, STEP 7: Real-time calendar slot count updates
       // Update slot counts every 5 minutes to account for slots that have passed
       function updateRealTimeSlotCounts() {
-        const now = new Date();
-        const currentDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const businessTimeZone = document.querySelector('[data-business-time-zone]')?.dataset.businessTimeZone || 'UTC';
+        
+        // Get the current date string in the business's time zone
+        const nowInBusinessTz = new Date(new Date().toLocaleString('en-US', { timeZone: businessTimeZone }));
+        const currentDateStrInBizTz = nowInBusinessTz.toISOString().split('T')[0];
         
         // Only update today's slot count in real-time
         <% @calendar_data.each do |date, slots| %>
           <% if date %>
             try {
               const slotDate = '<%= date %>';
-              if (slotDate === currentDateStr) {
+              if (slotDate === currentDateStrInBizTz) {
                 const dayElement = document.querySelector('[data-date="<%= date %>"]');
                 if (dayElement) {
                   // Get original slots for this date
                   const originalSlots = <%= raw slots.to_json %>;
                   
                   // Filter out slots that have passed
-                  const currentTime = now.getTime();
+                  const currentTime = new Date().getTime();
                   const availableSlots = originalSlots.filter(slot => {
                     const slotTime = new Date(slot.start_time).getTime();
                     return slotTime > currentTime;

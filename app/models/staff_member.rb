@@ -79,48 +79,51 @@ class StaffMember < ApplicationRecord
     return false unless active?
 
     time_to_check = Tod::TimeOfDay(datetime)
-    date_str = datetime.to_date.iso8601
-    day_name = datetime.strftime('%A').downcase
-
     availability_data = self.availability&.with_indifferent_access || {}
     exceptions = availability_data[:exceptions] || {}
     weekly_schedule = availability_data.except(:exceptions)
-    
-    # Debug
-    Rails.logger.debug("Checking availability at: #{datetime.strftime('%Y-%m-%d %H:%M:%S')}")
-    Rails.logger.debug("Time of day: #{time_to_check}, Date: #{date_str}, Day: #{day_name}")
 
-    # Add explicit debug when checking exceptions
-    if exceptions.key?(date_str)
-      Rails.logger.debug("Found exception for date: #{date_str}")
-      Rails.logger.debug("Exception intervals: #{exceptions[date_str].inspect}")
-    end
+    # Check current day's schedule for availability
+    current_date = datetime.to_date
+    current_day_name = current_date.strftime('%A').downcase
+    current_day_intervals = find_intervals_for(current_date.iso8601, current_day_name, exceptions, weekly_schedule)
 
-    intervals = find_intervals_for(date_str, day_name, exceptions, weekly_schedule)
+    current_day_intervals.each do |interval|
+      start_tod = parse_time_of_day(interval['start'])
+      end_tod = parse_time_of_day(interval['end'])
+      next unless start_tod && end_tod
 
-    if intervals.empty?
-      Rails.logger.debug("No intervals found for #{date_str}/#{day_name}, returning not available")
-      return false
-    end
-    
-    Rails.logger.debug("Found #{intervals.count} intervals for #{day_name}/#{date_str}: #{intervals.inspect}")
-
-    available = intervals.any? do |interval|
-      start_time = parse_time_of_day(interval[:start] || interval['start'])
-      end_time = parse_time_of_day(interval[:end] || interval['end'])
+      is_overnight = start_tod > end_tod || (end_tod == Tod::TimeOfDay.new(0) && start_tod != Tod::TimeOfDay.new(0))
       
-      if start_time && end_time
-        result = time_to_check >= start_time && time_to_check < end_time
-        Rails.logger.debug("  - Comparing #{time_to_check} with interval #{interval[:start] || interval['start']} to #{interval[:end] || interval['end']}: #{result ? 'AVAILABLE' : 'NOT AVAILABLE'}")
-        result
+      if is_overnight
+        # For an overnight shift, check if the time is on or after the start time on this day
+        return true if time_to_check >= start_tod
       else
-        Rails.logger.debug("  - Skipping invalid interval: #{interval.inspect}")
-        false # Skip invalid intervals
+        # For a same-day shift, check if the time is within the interval
+        return true if time_to_check >= start_tod && time_to_check < end_tod
       end
     end
-    
-    Rails.logger.debug("Final availability result for #{datetime.strftime('%Y-%m-%d %H:%M:%S')}: #{available}")
-    available
+
+    # Check previous day's schedule for overnight spillover
+    previous_date = datetime.to_date - 1.day
+    previous_day_name = previous_date.strftime('%A').downcase
+    previous_day_intervals = find_intervals_for(previous_date.iso8601, previous_day_name, exceptions, weekly_schedule)
+
+    previous_day_intervals.each do |interval|
+      start_tod = parse_time_of_day(interval['start'])
+      end_tod = parse_time_of_day(interval['end'])
+      next unless start_tod && end_tod
+      
+      is_overnight = start_tod > end_tod || (end_tod == Tod::TimeOfDay.new(0) && start_tod != Tod::TimeOfDay.new(0))
+
+      if is_overnight
+        # If the previous day had an overnight shift, check if the current time falls in the spillover period
+        return true if time_to_check < end_tod
+      end
+    end
+
+    # If no availability is found in either check, return false
+    false
   end
   
   def self.ransackable_attributes(auth_object = nil)
@@ -281,8 +284,13 @@ class StaffMember < ApplicationRecord
       validate_time_string(day_key, interval['end'], "end time for interval ##{index + 1}")
       start_tod = Tod::TimeOfDay.parse(interval['start']) rescue nil
       end_tod = Tod::TimeOfDay.parse(interval['end']) rescue nil
-      if start_tod && end_tod && start_tod >= end_tod
-         errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+      if start_tod && end_tod
+        # An interval is invalid if the start time is on or after the end time,
+        # unless the end time is midnight (00:00), which signifies an overnight availability.
+        is_overnight_slot = (end_tod == Tod::TimeOfDay.new(0)) && (start_tod != Tod::TimeOfDay.new(0))
+        if !is_overnight_slot && start_tod >= end_tod
+          errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+        end
       end
     end
   end

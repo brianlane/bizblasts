@@ -100,6 +100,10 @@ class AvailabilityService
   def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30)
     # Use a cache key based on unique parameters
     tz = staff_member.business&.time_zone.presence || 'UTC'
+    
+    # If no service is provided, use the first assigned service as a default for calendar previews
+    service ||= staff_member.services.active.first
+    
     cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
 
     Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
@@ -128,6 +132,7 @@ class AvailabilityService
       calendar_data = {}
       
       date_range.each do |date|
+        # Pass the service object to available_slots
         calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval)
       end
       
@@ -222,7 +227,11 @@ class AvailabilityService
         interval_end += 1.day if end_h < start_h
         current = interval_start
         
-        while current + slot_duration.minutes <= interval_end
+        # The loop should check if the current time is a valid start time.
+        # A valid start time is one where the service can be completed before the interval ends.
+        last_possible_start_time = interval_end - slot_duration.minutes
+        
+        while current <= last_possible_start_time
           st = current
           en = current + slot_duration.minutes
           time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)
