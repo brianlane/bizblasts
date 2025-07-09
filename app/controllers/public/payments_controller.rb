@@ -2,13 +2,14 @@
 
 module Public
   class PaymentsController < Public::BaseController
+    skip_before_action :authenticate_user!, only: %i[new create]
     # Set tenant and require user authentication
     before_action :set_tenant
-    before_action :authenticate_user!, except: [:new, :create]
-    before_action :set_tenant_customer, only: [:index, :new, :create]
-    before_action :set_invoice, only: [:new, :create]
+    before_action :authenticate_user!, except: %i[new create]
+    before_action :set_tenant_customer, only: %i[index new create]
+    before_action :set_invoice, only: %i[new create]
 
-    after_action :no_store!, only: %i[new success cancel]
+    after_action :no_store!, only: %i[new create]
 
     # GET /payments
     def index
