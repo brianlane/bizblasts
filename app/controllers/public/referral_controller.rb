@@ -1,5 +1,6 @@
 module Public
-  class ReferralController < PublicController
+  class ReferralController < Public::BaseController
+    after_action :no_store!
     before_action :authenticate_user!
     before_action :ensure_client_user
     before_action :set_business, only: [:show]

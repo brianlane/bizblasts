@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 module Public
-  class PaymentsController < ApplicationController
+  class PaymentsController < Public::BaseController
     # Set tenant and require user authentication
     before_action :set_tenant
     before_action :authenticate_user!, except: [:new, :create]
     before_action :set_tenant_customer, only: [:index, :new, :create]
     before_action :set_invoice, only: [:new, :create]
+
+    after_action :no_store!, only: %i[new success cancel]
 
     # GET /payments
     def index

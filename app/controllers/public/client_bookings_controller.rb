@@ -1,5 +1,6 @@
 module Public
-  class ClientBookingsController < ApplicationController
+  class ClientBookingsController < Public::BaseController
+    after_action :no_store!
     before_action :authenticate_user!
     before_action :ensure_authorized_user
     before_action :set_business

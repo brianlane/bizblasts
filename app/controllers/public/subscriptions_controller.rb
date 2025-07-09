@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-class Public::SubscriptionsController < ApplicationController
+class Public::SubscriptionsController < Public::BaseController
+  after_action :no_store!
   skip_before_action :authenticate_user!  # Allow guest access for subscription signups
   before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
   before_action :set_product_or_service, except: [:confirmation]
