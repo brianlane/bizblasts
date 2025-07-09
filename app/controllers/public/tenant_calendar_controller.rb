@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 module Public
-  class TenantCalendarController < ApplicationController
+  class TenantCalendarController < Public::BaseController
+    after_action :no_store!
     skip_before_action :authenticate_user!
     before_action :set_business
     

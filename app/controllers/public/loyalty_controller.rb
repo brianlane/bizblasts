@@ -1,4 +1,5 @@
-class Public::LoyaltyController < PublicController
+class Public::LoyaltyController < Public::BaseController
+  after_action :no_store!
   before_action :authenticate_user!
   before_action :ensure_client_user
   before_action :set_current_customer
