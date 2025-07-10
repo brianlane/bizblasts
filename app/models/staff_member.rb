@@ -78,51 +78,55 @@ class StaffMember < ApplicationRecord
   def available_at?(datetime)
     return false unless active?
 
-    time_to_check = Tod::TimeOfDay(datetime)
+    time_to_check = Tod::TimeOfDay.parse(datetime.strftime('%H:%M'))
     availability_data = self.availability&.with_indifferent_access || {}
     exceptions = availability_data[:exceptions] || {}
     weekly_schedule = availability_data.except(:exceptions)
 
-    # Check current day's schedule for availability
+    # Check today's intervals
     current_date = datetime.to_date
     current_day_name = current_date.strftime('%A').downcase
     current_day_intervals = find_intervals_for(current_date.iso8601, current_day_name, exceptions, weekly_schedule)
 
     current_day_intervals.each do |interval|
       start_tod = parse_time_of_day(interval['start'])
-      end_tod = parse_time_of_day(interval['end'])
+      end_tod   = parse_time_of_day(interval['end'])
       next unless start_tod && end_tod
 
-      is_overnight = start_tod > end_tod || (end_tod == Tod::TimeOfDay.new(0) && start_tod != Tod::TimeOfDay.new(0))
-      
+      # Full-day availability
+      if start_tod == Tod::TimeOfDay.new(0) && end_tod == Tod::TimeOfDay.new(0)
+        return true
+      end
+
+      # Determine if this is an overnight interval (spans midnight)
+      is_overnight = start_tod >= end_tod
+
       if is_overnight
-        # For an overnight shift, check if the time is on or after the start time on this day
-        return true if time_to_check >= start_tod
+        # Available if time is on or after start, or before end (spillover)
+        return true if time_to_check >= start_tod || time_to_check < end_tod
       else
-        # For a same-day shift, check if the time is within the interval
+        # Normal same-day interval
         return true if time_to_check >= start_tod && time_to_check < end_tod
       end
     end
 
-    # Check previous day's schedule for overnight spillover
-    previous_date = datetime.to_date - 1.day
-    previous_day_name = previous_date.strftime('%A').downcase
-    previous_day_intervals = find_intervals_for(previous_date.iso8601, previous_day_name, exceptions, weekly_schedule)
+    # Check spillover from yesterday's overnight intervals
+    previous_date = current_date - 1
+    prev_day_name = previous_date.strftime('%A').downcase
+    prev_intervals = find_intervals_for(previous_date.iso8601, prev_day_name, exceptions, weekly_schedule)
 
-    previous_day_intervals.each do |interval|
+    prev_intervals.each do |interval|
       start_tod = parse_time_of_day(interval['start'])
-      end_tod = parse_time_of_day(interval['end'])
+      end_tod   = parse_time_of_day(interval['end'])
       next unless start_tod && end_tod
-      
-      is_overnight = start_tod > end_tod || (end_tod == Tod::TimeOfDay.new(0) && start_tod != Tod::TimeOfDay.new(0))
 
-      if is_overnight
-        # If the previous day had an overnight shift, check if the current time falls in the spillover period
-        return true if time_to_check < end_tod
-      end
+      # Only consider overnight intervals from yesterday
+      next unless start_tod >= end_tod
+
+      # After midnight spillover
+      return true if time_to_check < end_tod
     end
 
-    # If no availability is found in either check, return false
     false
   end
   
