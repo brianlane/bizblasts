@@ -134,11 +134,14 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       Rails.logger.info "Permitted availability params: #{availability_params.inspect}"
       
       # Extract availability parameters
-      days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday]
+      # Build day names dynamically starting from the calendar's start_date to
+      # ensure we match the configured beginning_of_week (Sunday vs Monday).
+      days_of_week = (0..6).map { |d| (@start_date + d.days).strftime('%A').downcase }
       
       days_of_week.each do |day|
         full_day_param = params.dig(:full_day, day)
-        
+
+        # Full-day checkbox returns '1' when checked
         if full_day_param == '1'
           availability_data[day] = [{ 'start' => '00:00', 'end' => '23:59' }]
           Rails.logger.debug "#{day.capitalize} set to full 24-hour availability"
@@ -166,10 +169,13 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       final_availability = if params.dig(:staff_member, :only_current_week) == '1'
         old_avail = @staff_member.availability || {}
         exceptions = old_avail['exceptions'] || {}
+
+        # Map each day-of-week to the corresponding date in the current week
         days_of_week.each_with_index do |day, idx|
           date_key = (@start_date + idx.days).iso8601
           exceptions[date_key] = availability_data[day]
         end
+
         old_avail.merge('exceptions' => exceptions)
       else
         availability_data

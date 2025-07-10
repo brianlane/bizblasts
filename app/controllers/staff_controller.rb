@@ -97,7 +97,7 @@ class StaffController < ApplicationController
     days_of_week.each do |day|
       # Check for full-day checkbox first
       full_day_param = params.dig(:full_day, day)
-      if full_day_param == '1' || full_day_param == 'on'
+      if full_day_param == '1'
         # Full 24-hour availability
         availability_data[day] = [{
           'start' => '00:00',
