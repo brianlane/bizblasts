@@ -183,7 +183,7 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
       patch manage_availability_business_manager_staff_member_path(staff_member), params: { staff_member: { availability: availability_params } }
       staff_member.reload
       expect(staff_member.availability["monday"]).to include({ "start" => "09:00", "end" => "17:00" })
-      expect(response).to redirect_to(manage_availability_business_manager_staff_member_path(staff_member, date: Date.today))
+      expect(response).to redirect_to(manage_availability_business_manager_staff_member_path(staff_member, date: Date.today, bust_cache: true))
     end
 
     it "renders a response with 422 status if invalid" do

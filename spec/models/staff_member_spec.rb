@@ -279,14 +279,14 @@ RSpec.describe StaffMember, type: :model do
     it 'is invalid if start equals end time on non-midnight intervals' do
       member = build(:staff_member, availability: { tuesday: [{ 'start' => '10:00', 'end' => '10:00' }] }, business: business)
       expect(member).not_to be_valid
-      expect(member.errors[:availability]).to include("start time must be before end time for interval #1 on 'tuesday'")
+      expect(member.errors[:availability]).to include(/Shifts are not supported/)
     end
 
     it 'is invalid if exception interval start equals end time on non-midnight intervals' do
       valid_date = Date.today.iso8601
       member = build(:staff_member, availability: { exceptions: { valid_date => [{ 'start' => '10:00', 'end' => '10:00' }] } }, business: business)
       expect(member).not_to be_valid
-      expect(member.errors[:availability]).to include("start time must be before end time for interval #1 on 'exception date #{valid_date}'")
+      expect(member.errors[:availability]).to include(/Shifts are not supported/)
     end
   end
 

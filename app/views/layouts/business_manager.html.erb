@@ -269,7 +269,11 @@
           </div>
         <% end %>
         
-        <%# Standard Flash Messages removed from layout %>
+        <% if flash[:alert].present? || flash[:notice].present? %>
+          <div data-auto-flash="true" class="alert <%= flash[:alert] ? 'alert-danger mb-4 p-4 bg-red-100 text-red-700 rounded' : 'alert-success mb-4 p-4 bg-green-100 text-green-700 rounded' %>">
+            <%= flash[:alert] || flash[:notice] %>
+          </div>
+        <% end %>
 
         <%= yield %>
       </main>

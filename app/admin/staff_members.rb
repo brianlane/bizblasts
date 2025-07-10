@@ -180,7 +180,7 @@ ActiveAdmin.register StaffMember do
   end
 
   action_item :manage_availability, only: :show do
-    link_to "Manage Availability", admin_staff_member_availability_path(staff_member), class: "action_item"
+    link_to "Manage Availability", availability_admin_staff_member_path(staff_member), class: "action_item"
   end
 
   member_action :availability, method: :get do
