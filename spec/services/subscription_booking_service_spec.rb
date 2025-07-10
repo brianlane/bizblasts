@@ -39,8 +39,9 @@ RSpec.describe SubscriptionBookingService, type: :service do
     allow(BusinessMailer).to receive(:subscription_booking_received).and_return(double(deliver_later: true))
     
     # Mock AvailabilityService
+    next_monday = Date.current.next_occurring(:monday)
     allow(AvailabilityService).to receive(:available_slots).and_return([
-      { start_time: Time.zone.parse("#{Date.current.next_week} 10:00"), end_time: Time.zone.parse("#{Date.current.next_week} 11:00") }
+      { start_time: Time.zone.parse("#{next_monday} 10:00"), end_time: Time.zone.parse("#{next_monday} 11:00") }
     ])
     allow(AvailabilityService).to receive(:is_available?).and_return(true)
   end
@@ -304,7 +305,8 @@ RSpec.describe SubscriptionBookingService, type: :service do
       
       booking = Booking.last
       day_of_week = booking.start_time.strftime('%A').downcase
-      expect(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']).to include(day_of_week)
+      available_days = default_availability.keys
+      expect(available_days).to include(day_of_week)
     end
   end
 
