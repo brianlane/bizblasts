@@ -274,9 +274,11 @@ class StaffMember < ApplicationRecord
         
         unless is_normal || is_full_day
           if start_tod >= end_tod
-            errors.add(:availability, :invalid_interval_order, message: "Shifts are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day")
-          else
-            errors.add(:availability, :invalid_interval_order, message: "Start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+            errors.add(
+              :availability,
+              :invalid_interval_order,
+              message: "Shift(s) are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day"
+            )
           end
         end
       end
