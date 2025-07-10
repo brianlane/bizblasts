@@ -277,7 +277,7 @@ class StaffMember < ApplicationRecord
             errors.add(
               :availability,
               :invalid_interval_order,
-              message: "Shift(s) are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day"
+              message: "Shifts are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day"
             )
           end
         end
