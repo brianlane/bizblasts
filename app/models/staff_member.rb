@@ -78,49 +78,34 @@ class StaffMember < ApplicationRecord
   def available_at?(datetime)
     return false unless active?
 
-    time_to_check = Tod::TimeOfDay(datetime)
-    date_str = datetime.to_date.iso8601
-    day_name = datetime.strftime('%A').downcase
-
+    time_to_check = Tod::TimeOfDay.parse(datetime.strftime('%H:%M'))
     availability_data = self.availability&.with_indifferent_access || {}
     exceptions = availability_data[:exceptions] || {}
     weekly_schedule = availability_data.except(:exceptions)
-    
-    # Debug
-    Rails.logger.debug("Checking availability at: #{datetime.strftime('%Y-%m-%d %H:%M:%S')}")
-    Rails.logger.debug("Time of day: #{time_to_check}, Date: #{date_str}, Day: #{day_name}")
 
-    # Add explicit debug when checking exceptions
-    if exceptions.key?(date_str)
-      Rails.logger.debug("Found exception for date: #{date_str}")
-      Rails.logger.debug("Exception intervals: #{exceptions[date_str].inspect}")
-    end
+    # Check today's intervals
+    current_date = datetime.to_date
+    current_day_name = current_date.strftime('%A').downcase
+    current_day_intervals = find_intervals_for(current_date.iso8601, current_day_name, exceptions, weekly_schedule)
 
-    intervals = find_intervals_for(date_str, day_name, exceptions, weekly_schedule)
+    current_day_intervals.each do |interval|
+      interval = interval.with_indifferent_access
+      start_tod = parse_time_of_day(interval['start'])
+      end_tod   = parse_time_of_day(interval['end'])
+      next unless start_tod && end_tod
 
-    if intervals.empty?
-      Rails.logger.debug("No intervals found for #{date_str}/#{day_name}, returning not available")
-      return false
-    end
-    
-    Rails.logger.debug("Found #{intervals.count} intervals for #{day_name}/#{date_str}: #{intervals.inspect}")
+      # Full-day availability (00:00 to 23:59)
+      if start_tod == Tod::TimeOfDay.new(0, 0) && end_tod == Tod::TimeOfDay.new(23, 59)
+        return true
+      end
 
-    available = intervals.any? do |interval|
-      start_time = parse_time_of_day(interval[:start] || interval['start'])
-      end_time = parse_time_of_day(interval[:end] || interval['end'])
-      
-      if start_time && end_time
-        result = time_to_check >= start_time && time_to_check < end_time
-        Rails.logger.debug("  - Comparing #{time_to_check} with interval #{interval[:start] || interval['start']} to #{interval[:end] || interval['end']}: #{result ? 'AVAILABLE' : 'NOT AVAILABLE'}")
-        result
-      else
-        Rails.logger.debug("  - Skipping invalid interval: #{interval.inspect}")
-        false # Skip invalid intervals
+      # Normal same-day interval (no overnight shifts supported)
+      if start_tod < end_tod
+        return true if time_to_check >= start_tod && time_to_check < end_tod
       end
     end
-    
-    Rails.logger.debug("Final availability result for #{datetime.strftime('%Y-%m-%d %H:%M:%S')}: #{available}")
-    available
+
+    false
   end
   
   def self.ransackable_attributes(auth_object = nil)
@@ -280,9 +265,23 @@ class StaffMember < ApplicationRecord
       validate_time_string(day_key, interval['start'], "start time for interval ##{index + 1}")
       validate_time_string(day_key, interval['end'], "end time for interval ##{index + 1}")
       start_tod = Tod::TimeOfDay.parse(interval['start']) rescue nil
-      end_tod = Tod::TimeOfDay.parse(interval['end']) rescue nil
-      if start_tod && end_tod && start_tod >= end_tod
-         errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+      end_tod   = Tod::TimeOfDay.parse(interval['end'])   rescue nil
+      if start_tod && end_tod
+        # Valid interval conditions:
+        # 1) Normal: start before end on same day
+        # 2) Full day: exactly 00:00 to 23:59 (24-hour availability)
+        is_normal    = start_tod < end_tod
+        is_full_day  = (start_tod == Tod::TimeOfDay.new(0, 0)) && (end_tod == Tod::TimeOfDay.new(23, 59))
+        
+        unless is_normal || is_full_day
+          if start_tod >= end_tod
+            errors.add(
+              :availability,
+              :invalid_interval_order,
+              message: "Shifts are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day"
+            )
+          end
+        end
       end
     end
   end

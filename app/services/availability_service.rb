@@ -8,8 +8,9 @@ class AvailabilityService
   # @param date [Date] the date for which to generate slots
   # @param service [Service, optional] the service being booked (to determine duration)
   # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @param bust_cache [Boolean] whether to bypass the cache
   # @return [Array<Hash>] an array of available slot data with start_time and end_time
-  def self.available_slots(staff_member, date, service = nil, interval: 30)
+  def self.available_slots(staff_member, date, service = nil, interval: 30, bust_cache: false)
     return [] unless staff_member.active?
     
     # PERFORMANCE OPTIMIZATION: Skip past dates completely
@@ -29,6 +30,9 @@ class AvailabilityService
     tz = staff_member.business&.time_zone.presence || 'UTC'
     tz_component = tz.parameterize(separator: '_')
     cache_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
+    
+    # Bust the cache if requested
+    Rails.cache.delete(cache_key) if bust_cache
     
     Rails.cache.fetch(cache_key, expires_in: cache_duration) do
       raw_slots = compute_available_slots(staff_member, date, service, interval)
@@ -96,11 +100,24 @@ class AvailabilityService
   # @param start_date [Date] the start date of the range
   # @param end_date [Date] the end date of the range
   # @param service [Service, optional] the service being booked
+  # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @param bust_cache [Boolean] whether to bypass the cache
   # @return [Hash] a hash with dates as keys and aggregated available slots as values
-  def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30)
+  def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30, bust_cache: false)
     # Use a cache key based on unique parameters
     tz = staff_member.business&.time_zone.presence || 'UTC'
+    
+    # Do not automatically select a default service when none is provided.
+    # When service is nil, slot generation will fall back to the generic
+    # interval-based logic so that availability previews are not tied to an
+    # arbitrary service duration. This prevents inaccurate slots when a staff
+    # member offers multiple services with varying durations and also avoids
+    # masking misconfiguration when the staff member has no active services.
+    
     cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
+
+    # Bust the cache if requested
+    Rails.cache.delete(cache_key) if bust_cache
 
     Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
       return {} unless staff_member.active?
@@ -128,7 +145,8 @@ class AvailabilityService
       calendar_data = {}
       
       date_range.each do |date|
-        calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval)
+        # Pass the service object and cache-busting instruction
+        calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval, bust_cache: bust_cache)
       end
       
       calendar_data
@@ -217,12 +235,29 @@ class AvailabilityService
         next unless start_str && end_str
         start_h, start_m = start_str.split(':').map(&:to_i)
         end_h, end_m = end_str.split(':').map(&:to_i)
+
+        # Build start and end times in the business time-zone
         interval_start = Time.zone.local(date.year, date.month, date.day, start_h, start_m)
-        interval_end = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+        interval_end   = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+
+        # Handle overnight intervals (end before start)
         interval_end += 1.day if end_h < start_h
+
+        # SPECIAL CASE: Treat an interval ending at 23:59 as inclusive of the very last
+        # minute of the day so that services can finish exactly at midnight.
+        # Without this, a 2-hour service starting at 22:00 would be excluded because
+        # 22:00 + 120 mins = 00:00 which is > 23:59. By extending the end boundary by
+        # one minute we effectively allow bookings that finish at 00:00.
+        if end_h == 23 && end_m == 59
+          interval_end += 1.minute
+        end
         current = interval_start
         
-        while current + slot_duration.minutes <= interval_end
+        # The loop should check if the current time is a valid start time.
+        # A valid start time is one where the service can be completed before the interval ends.
+        last_possible_start_time = interval_end - slot_duration.minutes
+        
+        while current <= last_possible_start_time
           st = current
           en = current + slot_duration.minutes
           time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)
