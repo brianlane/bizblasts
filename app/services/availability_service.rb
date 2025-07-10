@@ -107,8 +107,12 @@ class AvailabilityService
     # Use a cache key based on unique parameters
     tz = staff_member.business&.time_zone.presence || 'UTC'
     
-    # If no service is provided, use the first assigned service as a default for calendar previews
-    service ||= staff_member.services.active.first
+    # Do not automatically select a default service when none is provided.
+    # When service is nil, slot generation will fall back to the generic
+    # interval-based logic so that availability previews are not tied to an
+    # arbitrary service duration. This prevents inaccurate slots when a staff
+    # member offers multiple services with varying durations and also avoids
+    # masking misconfiguration when the staff member has no active services.
     
     cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
 
