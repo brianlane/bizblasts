@@ -235,9 +235,22 @@ class AvailabilityService
         next unless start_str && end_str
         start_h, start_m = start_str.split(':').map(&:to_i)
         end_h, end_m = end_str.split(':').map(&:to_i)
+
+        # Build start and end times in the business time-zone
         interval_start = Time.zone.local(date.year, date.month, date.day, start_h, start_m)
-        interval_end = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+        interval_end   = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+
+        # Handle overnight intervals (end before start)
         interval_end += 1.day if end_h < start_h
+
+        # SPECIAL CASE: Treat an interval ending at 23:59 as inclusive of the very last
+        # minute of the day so that services can finish exactly at midnight.
+        # Without this, a 2-hour service starting at 22:00 would be excluded because
+        # 22:00 + 120 mins = 00:00 which is > 23:59. By extending the end boundary by
+        # one minute we effectively allow bookings that finish at 00:00.
+        if end_h == 23 && end_m == 59
+          interval_end += 1.minute
+        end
         current = interval_start
         
         # The loop should check if the current time is a valid start time.
