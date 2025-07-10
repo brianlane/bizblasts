@@ -584,4 +584,47 @@ RSpec.describe StaffMember, type: :model do
       end
     end
   end
+
+  describe 'with custom multi-day availability' do
+    let(:member) do
+      availability = {
+        'sunday'    => [{ 'start' => '01:00', 'end' => '00:00' }],
+        'monday'    => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'tuesday'   => [{ 'start' => '00:00', 'end' => '00:00' }],
+        'wednesday' => [{ 'start' => '00:00', 'end' => '00:00' }],
+        'thursday'  => [{ 'start' => '00:00', 'end' => '00:00' }],
+        'friday'    => [{ 'start' => '00:00', 'end' => '00:00' }],
+        'saturday'  => []
+      }
+      build(:staff_member, availability: availability, business: business)
+    end
+
+    before { member.save! }
+
+    it 'is available all day Sunday' do
+      sunday_morning = Time.zone.parse('2024-04-21 08:00:00') # Sunday
+      sunday_night   = Time.zone.parse('2024-04-21 23:59:00')
+      expect(member.available_at?(sunday_morning)).to be true
+      expect(member.available_at?(sunday_night)).to be true
+    end
+
+    it 'is unavailable on Saturday' do
+      saturday_noon = Time.zone.parse('2024-04-20 12:00:00') # Saturday
+      expect(member.available_at?(saturday_noon)).to be false
+    end
+
+    it 'is available Monday 10am and unavailable at 8pm' do
+      monday_10am = Time.zone.parse('2024-04-15 10:00:00') # Monday
+      monday_8pm  = Time.zone.parse('2024-04-15 20:00:00')
+      expect(member.available_at?(monday_10am)).to be true
+      expect(member.available_at?(monday_8pm)).to be false
+    end
+
+    it 'is available all day Wednesday' do
+      wednesday_6am  = Time.zone.parse('2024-04-17 06:00:00') # Wednesday
+      wednesday_10pm = Time.zone.parse('2024-04-17 22:00:00')
+      expect(member.available_at?(wednesday_6am)).to be true
+      expect(member.available_at?(wednesday_10pm)).to be true
+    end
+  end
 end
