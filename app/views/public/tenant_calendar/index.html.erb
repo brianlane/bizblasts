@@ -320,9 +320,8 @@
       function updateRealTimeSlotCounts() {
         const businessTimeZone = document.querySelector('[data-business-time-zone]')?.dataset.businessTimeZone || 'UTC';
         
-        // Get the current date string in the business's time zone
-        const nowInBusinessTz = new Date(new Date().toLocaleString('en-US', { timeZone: businessTimeZone }));
-        const currentDateStrInBizTz = nowInBusinessTz.toISOString().split('T')[0];
+        // Get the current date string (YYYY-MM-DD) in business's time zone directly
+        const currentDateStrInBizTz = new Date().toLocaleDateString('sv', { timeZone: businessTimeZone });
         
         // Only update today's slot count in real-time
         <% @calendar_data.each do |date, slots| %>

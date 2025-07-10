@@ -67,9 +67,5 @@ module Bizblasts
 
     # Set the start of the week to Sunday for consistency across the app
     config.beginning_of_week = :sunday
-    
-    # Add custom log format to include tenant information
-    config.log_tags = [
-    ]
   end
 end
