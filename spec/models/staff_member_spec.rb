@@ -228,10 +228,9 @@ RSpec.describe StaffMember, type: :model do
       expect(member2.errors[:availability]).to include("invalid end time for interval #1 for 'tuesday': '17-00'. Use HH:MM format.")
     end
 
-    it 'is invalid if start time is not before end time' do
+    it 'is valid for overnight intervals (start after end)' do
       member = build(:staff_member, availability: { monday: [{ start: '18:00', end: '17:00' }] }, business: business)
-      expect(member).not_to be_valid
-      expect(member.errors[:availability]).to include("start time must be before end time for interval #1 on 'monday'")
+      expect(member).to be_valid
     end
 
     it 'is invalid if exceptions value is not a hash' do
@@ -272,8 +271,7 @@ RSpec.describe StaffMember, type: :model do
     it 'is invalid if exception start time is not before end time' do
       valid_date = Date.today.iso8601
       member = build(:staff_member, availability: { exceptions: { valid_date => [{ start: '14:00', end: '10:00' }] } }, business: business)
-      expect(member).not_to be_valid
-      expect(member.errors[:availability]).to include("start time must be before end time for interval #1 on 'exception date #{valid_date}'")
+      expect(member).to be_valid
     end
   end
 
@@ -625,6 +623,33 @@ RSpec.describe StaffMember, type: :model do
       wednesday_10pm = Time.zone.parse('2024-04-17 22:00:00')
       expect(member.available_at?(wednesday_6am)).to be true
       expect(member.available_at?(wednesday_10pm)).to be true
+    end
+  end
+
+  describe 'with non-midnight overnight interval' do
+    let(:overnight_member) do
+      availability = { 'wednesday' => [{ 'start' => '23:00', 'end' => '01:00' }] }
+      build(:staff_member, availability: availability, business: business)
+    end
+
+    before { overnight_member.save! }
+
+    it 'is valid with a start after end (cross-midnight)' do
+      expect(overnight_member).to be_valid
+    end
+
+    it 'is available before midnight and after midnight spillover' do
+      late_night = Time.zone.parse('2024-04-17 23:30:00') # Wednesday
+      early_morning = Time.zone.parse('2024-04-18 00:30:00') # Thursday
+      expect(overnight_member.available_at?(late_night)).to be true
+      expect(overnight_member.available_at?(early_morning)).to be true
+    end
+
+    it 'is not available outside the overnight window' do
+      before_shift = Time.zone.parse('2024-04-17 22:00:00')
+      after_shift = Time.zone.parse('2024-04-18 02:00:00')
+      expect(overnight_member.available_at?(before_shift)).to be false
+      expect(overnight_member.available_at?(after_shift)).to be false
     end
   end
 end

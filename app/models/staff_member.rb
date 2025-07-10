@@ -291,11 +291,12 @@ class StaffMember < ApplicationRecord
       if start_tod && end_tod
         # Valid interval conditions:
         # 1) Normal: start before end on same day
-        # 2) Overnight: spans midnight only if end time is exactly midnight (00:00)
+        # 2) Overnight: spans midnight when start >= end, excluding full-day
         # 3) Full day: exactly midnight to midnight (00:00 to 00:00)
         is_normal    = start_tod < end_tod
-        is_overnight = (end_tod == Tod::TimeOfDay.new(0)) && (start_tod != Tod::TimeOfDay.new(0))
         is_full_day  = (start_tod == Tod::TimeOfDay.new(0)) && (end_tod == Tod::TimeOfDay.new(0))
+        # any other case where start >= end is overnight
+        is_overnight = (start_tod >= end_tod) && !is_full_day
         unless is_normal || is_overnight || is_full_day
           errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
         end
