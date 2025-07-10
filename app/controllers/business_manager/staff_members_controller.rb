@@ -137,37 +137,26 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday]
       
       days_of_week.each do |day|
-        # Get all parameters for this day
-        day_params = availability_params[day]
+        full_day_param = params.dig(:full_day, day)
         
-        Rails.logger.debug "Raw #{day} params: #{day_params.inspect}"
-        
-        next unless day_params.is_a?(Hash) && day_params.any?
-        
-        # Process each slot for this day
-        slots = []
-        day_params.each do |slot_index, slot_data|
-          next unless slot_data.is_a?(Hash)
+        if full_day_param == '1'
+          availability_data[day] = [{ 'start' => '00:00', 'end' => '23:59' }]
+          Rails.logger.debug "#{day.capitalize} set to full 24-hour availability"
+        else
+          day_params = availability_params[day]
           
-          # Extract start and end times - using string keys since we're working with a hash now
-          start_time = slot_data["start"]
-          end_time = slot_data["end"]
-          
-          # Only add the slot if both times are present
-          if start_time.present? && end_time.present?
-            slots << {
-              'start' => start_time,
-              'end' => end_time
-            }
-            Rails.logger.debug "Added slot: start=#{start_time}, end=#{end_time}"
+          if day_params.is_a?(Hash) && day_params.any?
+            slots = day_params.values.map do |slot_data|
+              { 'start' => slot_data['start'], 'end' => slot_data['end'] } if slot_data['start'].present? && slot_data['end'].present?
+            end.compact
+            
+            availability_data[day] = slots
+            Rails.logger.info "Day #{day} slots: #{slots.inspect}"
+          else
+            # If no slots are submitted for a day (and it's not a full day), ensure it's saved as an empty array
+            availability_data[day] = []
           end
         end
-        
-        # Add the slots to the availability data
-        availability_data[day] = slots
-        
-        # Log for debugging
-        Rails.logger.info "Day #{day} slots: #{availability_data[day].inspect}"
       end
       
       # Log the final data we're about to save
@@ -194,24 +183,43 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
         else
           "#{@staff_member.name}'s availability was successfully updated."
         end
-        redirect_to manage_availability_business_manager_staff_member_path(@staff_member, date: @date)
+        redirect_to manage_availability_business_manager_staff_member_path(@staff_member, date: @date, bust_cache: true)
       else
-        error_message = "Failed to save availability: #{@staff_member.errors.full_messages.join(', ')}"
-        Rails.logger.error error_message
+        # Create user-friendly error message for overnight shifts
+        error_messages = @staff_member.errors.full_messages
+        user_friendly_errors = error_messages.map do |msg|
+          if msg.include?("Shifts are not supported")
+            # Extract the day name from the error message
+            day_match = msg.match(/on '(\w+)'/)
+            day_name = day_match ? day_match[1].capitalize : "a day"
+            "#{day_name}: Shifts are not supported. Please use the 'Full 24 Hour Availability' checkbox or create separate time slots for each day."
+          else
+            msg
+          end
+        end
+        
+        error_message = user_friendly_errors.join('. ')
+        Rails.logger.error "Failed to save availability: #{@staff_member.errors.full_messages.join(', ')}"
+        
+        # Set flash message and add debug logging
         flash.now[:alert] = error_message
+        Rails.logger.debug "Flash alert set to: #{flash.now[:alert]}"
         
         @calendar_data = AvailabilityService.availability_calendar(
           staff_member: @staff_member,
           start_date: @start_date,
-          end_date: @end_date
+          end_date: @end_date,
+          bust_cache: true
         )
         
         @services = @staff_member.services.active
-        render 'business_manager/staff_members/availability'
+        render 'business_manager/staff_members/availability', status: :unprocessable_entity
       end
     else
       # GET request
       # @date, @start_date, and @end_date are already set above
+      
+      bust_cache = params[:bust_cache] == 'true'
       
       # Ensure staff member has a properly initialized availability hash
       if @staff_member.availability.blank? || !@staff_member.availability.is_a?(Hash)
@@ -233,7 +241,8 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       @calendar_data = AvailabilityService.availability_calendar(
         staff_member: @staff_member,
         start_date: @start_date,
-        end_date: @end_date
+        end_date: @end_date,
+        bust_cache: bust_cache
       )
       
       # Get services this staff member can provide

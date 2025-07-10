@@ -93,38 +93,15 @@ class StaffMember < ApplicationRecord
       end_tod   = parse_time_of_day(interval['end'])
       next unless start_tod && end_tod
 
-      # Full-day availability
-      if start_tod == Tod::TimeOfDay.new(0) && end_tod == Tod::TimeOfDay.new(0)
+      # Full-day availability (00:00 to 23:59)
+      if start_tod == Tod::TimeOfDay.new(0, 0) && end_tod == Tod::TimeOfDay.new(23, 59)
         return true
       end
 
-      # Determine if this is an overnight interval (spans midnight)
-      is_overnight = start_tod >= end_tod
-
-      if is_overnight
-        # Available if time is on or after start, or before end (spillover)
-        return true if time_to_check >= start_tod || time_to_check < end_tod
-      else
-        # Normal same-day interval
+      # Normal same-day interval (no overnight shifts supported)
+      if start_tod < end_tod
         return true if time_to_check >= start_tod && time_to_check < end_tod
       end
-    end
-
-    # Check spillover from yesterday's overnight intervals
-    previous_date = current_date - 1
-    prev_day_name = previous_date.strftime('%A').downcase
-    prev_intervals = find_intervals_for(previous_date.iso8601, prev_day_name, exceptions, weekly_schedule)
-
-    prev_intervals.each do |interval|
-      start_tod = parse_time_of_day(interval['start'])
-      end_tod   = parse_time_of_day(interval['end'])
-      next unless start_tod && end_tod
-
-      # Only consider overnight intervals from yesterday
-      next unless start_tod >= end_tod
-
-      # After midnight spillover
-      return true if time_to_check < end_tod
     end
 
     false
@@ -291,14 +268,16 @@ class StaffMember < ApplicationRecord
       if start_tod && end_tod
         # Valid interval conditions:
         # 1) Normal: start before end on same day
-        # 2) Overnight: spans midnight when start >= end, excluding full-day
-        # 3) Full day: exactly midnight to midnight (00:00 to 00:00)
+        # 2) Full day: exactly 00:00 to 23:59 (24-hour availability)
         is_normal    = start_tod < end_tod
-        is_full_day  = (start_tod == Tod::TimeOfDay.new(0)) && (end_tod == Tod::TimeOfDay.new(0))
-        # any other case where start >= end is overnight
-        is_overnight = (start_tod >= end_tod) && !is_full_day
-        unless is_normal || is_overnight || is_full_day
-          errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+        is_full_day  = (start_tod == Tod::TimeOfDay.new(0, 0)) && (end_tod == Tod::TimeOfDay.new(23, 59))
+        
+        unless is_normal || is_full_day
+          if start_tod >= end_tod
+            errors.add(:availability, :invalid_interval_order, message: "Shifts are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day")
+          else
+            errors.add(:availability, :invalid_interval_order, message: "Start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+          end
         end
       end
     end

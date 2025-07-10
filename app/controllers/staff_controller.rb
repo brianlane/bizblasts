@@ -67,22 +67,74 @@ class StaffController < ApplicationController
   
   # PATCH /staff/:id/update_availability
   def update_availability
-    # Define the permitted structure for availability
-    permitted_availability = params.require(:staff_member).require(:availability).permit(
-      monday: [[:start, :end]],
-      tuesday: [[:start, :end]],
-      wednesday: [[:start, :end]],
-      thursday: [[:start, :end]],
-      friday: [[:start, :end]],
-      saturday: [[:start, :end]],
-      sunday: [[:start, :end]],
+    # Initialize availability data structure
+    availability_data = {
+      'monday' => [],
+      'tuesday' => [],
+      'wednesday' => [],
+      'thursday' => [],
+      'friday' => [],
+      'saturday' => [],
+      'sunday' => [],
+      'exceptions' => {}
+    }
+    
+    # Permit the expected nested structure from the form
+    availability_params = params.require(:staff_member).require(:availability).permit(
+      monday: permit_dynamic_slots,
+      tuesday: permit_dynamic_slots,
+      wednesday: permit_dynamic_slots,
+      thursday: permit_dynamic_slots,
+      friday: permit_dynamic_slots,
+      saturday: permit_dynamic_slots,
+      sunday: permit_dynamic_slots,
       exceptions: {}
-      # If days map directly to simple arrays (e.g., ['09:00', '10:00']), use:
-      # monday: [], tuesday: [], ... sunday: []
     ).to_h
+    
+    # Extract availability parameters
+    days_of_week = %w[monday tuesday wednesday thursday friday saturday sunday]
+    
+    days_of_week.each do |day|
+      # Check for full-day checkbox first
+      full_day_param = params.dig(:full_day, day)
+      if full_day_param == '1' || full_day_param == 'on'
+        # Full 24-hour availability
+        availability_data[day] = [{
+          'start' => '00:00',
+          'end' => '23:59'
+        }]
+        next
+      end
+      
+      # Get all parameters for this day
+      day_params = availability_params[day]
+      
+      next unless day_params.is_a?(Hash) && day_params.any?
+      
+      # Process each slot for this day
+      slots = []
+      day_params.each do |slot_index, slot_data|
+        next unless slot_data.is_a?(Hash)
+        
+        # Extract start and end times - using string keys since we're working with a hash now
+        start_time = slot_data["start"]
+        end_time = slot_data["end"]
+        
+        # Only add the slot if both times are present
+        if start_time.present? && end_time.present?
+          slots << {
+            'start' => start_time,
+            'end' => end_time
+          }
+        end
+      end
+      
+      # Add the slots to the availability data
+      availability_data[day] = slots
+    end
 
-    # Update the staff member with the permitted availability data
-    if @staff_member.update(availability: permitted_availability)
+    # Update the staff member with the availability data
+    if @staff_member.update(availability: availability_data)
       respond_to do |format|
         format.html { redirect_to availability_staff_path(@staff_member), notice: 'Availability was successfully updated.' }
         format.json { render json: { success: true, message: 'Availability was successfully updated.' }, status: :ok }
@@ -122,5 +174,11 @@ class StaffController < ApplicationController
   
   def current_business_scope
     ActsAsTenant.current_tenant || current_user&.business
+  end
+
+  # Helper to permit dynamic keys (slot indices) mapping to start/end times
+  def permit_dynamic_slots
+    # Allows any key (e.g., "0", "1") to contain a hash with "start" and "end"
+    Hash.new { |h, k| h[k] = [:start, :end] }
   end
 end
