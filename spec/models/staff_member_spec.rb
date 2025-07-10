@@ -228,9 +228,10 @@ RSpec.describe StaffMember, type: :model do
       expect(member2.errors[:availability]).to include("invalid end time for interval #1 for 'tuesday': '17-00'. Use HH:MM format.")
     end
 
-    it 'is valid for overnight intervals (start after end)' do
+    it 'is invalid for overnight intervals (start after end) as cross-midnight shifts are not supported' do
       member = build(:staff_member, availability: { monday: [{ start: '18:00', end: '17:00' }] }, business: business)
-      expect(member).to be_valid
+      expect(member).not_to be_valid
+      expect(member.errors[:availability]).to include(/Shifts are not supported/)
     end
 
     it 'is invalid if exceptions value is not a hash' do
@@ -268,10 +269,11 @@ RSpec.describe StaffMember, type: :model do
       expect(member2.errors[:availability]).to include("invalid end time for interval #1 for 'exception date #{valid_date}': '14:00:00'. Use HH:MM format.")
     end
 
-    it 'is invalid if exception start time is not before end time' do
+    it 'is invalid if exception start time is not before end time (overnight interval not supported)' do
       valid_date = Date.today.iso8601
       member = build(:staff_member, availability: { exceptions: { valid_date => [{ start: '14:00', end: '10:00' }] } }, business: business)
-      expect(member).to be_valid
+      expect(member).not_to be_valid
+      expect(member.errors[:availability]).to include(/Shifts are not supported/)
     end
 
     it 'is invalid if start equals end time on non-midnight intervals' do
@@ -599,12 +601,12 @@ RSpec.describe StaffMember, type: :model do
   describe 'with custom multi-day availability' do
     let(:member) do
       availability = {
-        'sunday'    => [{ 'start' => '01:00', 'end' => '00:00' }],
+        'sunday'    => [{ 'start' => '00:00', 'end' => '23:59' }],
         'monday'    => [{ 'start' => '09:00', 'end' => '17:00' }],
-        'tuesday'   => [{ 'start' => '00:00', 'end' => '00:00' }],
-        'wednesday' => [{ 'start' => '00:00', 'end' => '00:00' }],
-        'thursday'  => [{ 'start' => '00:00', 'end' => '00:00' }],
-        'friday'    => [{ 'start' => '00:00', 'end' => '00:00' }],
+        'tuesday'   => [{ 'start' => '00:00', 'end' => '23:59' }],
+        'wednesday' => [{ 'start' => '00:00', 'end' => '23:59' }],
+        'thursday'  => [{ 'start' => '00:00', 'end' => '23:59' }],
+        'friday'    => [{ 'start' => '00:00', 'end' => '23:59' }],
         'saturday'  => []
       }
       build(:staff_member, availability: availability, business: business)
@@ -645,24 +647,9 @@ RSpec.describe StaffMember, type: :model do
       build(:staff_member, availability: availability, business: business)
     end
 
-    before { overnight_member.save! }
-
-    it 'is valid with a start after end (cross-midnight)' do
-      expect(overnight_member).to be_valid
-    end
-
-    it 'is available before midnight and after midnight spillover' do
-      late_night = Time.zone.parse('2024-04-17 23:30:00') # Wednesday
-      early_morning = Time.zone.parse('2024-04-18 00:30:00') # Thursday
-      expect(overnight_member.available_at?(late_night)).to be true
-      expect(overnight_member.available_at?(early_morning)).to be true
-    end
-
-    it 'is not available outside the overnight window' do
-      before_shift = Time.zone.parse('2024-04-17 22:00:00')
-      after_shift = Time.zone.parse('2024-04-18 02:00:00')
-      expect(overnight_member.available_at?(before_shift)).to be false
-      expect(overnight_member.available_at?(after_shift)).to be false
+    it 'is invalid because overnight shifts spanning midnight are not supported' do
+      expect(overnight_member).not_to be_valid
+      expect(overnight_member.errors[:availability]).to include(/Shifts are not supported/)
     end
   end
 end
