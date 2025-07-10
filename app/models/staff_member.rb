@@ -283,12 +283,16 @@ class StaffMember < ApplicationRecord
       validate_time_string(day_key, interval['start'], "start time for interval ##{index + 1}")
       validate_time_string(day_key, interval['end'], "end time for interval ##{index + 1}")
       start_tod = Tod::TimeOfDay.parse(interval['start']) rescue nil
-      end_tod = Tod::TimeOfDay.parse(interval['end']) rescue nil
+      end_tod   = Tod::TimeOfDay.parse(interval['end'])   rescue nil
       if start_tod && end_tod
-        # An interval is invalid if the start time is on or after the end time,
-        # unless the end time is midnight (00:00), which signifies an overnight availability.
-        is_overnight_slot = (end_tod == Tod::TimeOfDay.new(0)) && (start_tod != Tod::TimeOfDay.new(0))
-        if !is_overnight_slot && start_tod >= end_tod
+        # Valid interval conditions:
+        # 1) Normal: start before end on same day
+        # 2) Overnight: spans midnight only if end time is exactly midnight (00:00)
+        # 3) Full day: exactly midnight to midnight (00:00 to 00:00)
+        is_normal    = start_tod < end_tod
+        is_overnight = (end_tod == Tod::TimeOfDay.new(0)) && (start_tod != Tod::TimeOfDay.new(0))
+        is_full_day  = (start_tod == Tod::TimeOfDay.new(0)) && (end_tod == Tod::TimeOfDay.new(0))
+        unless is_normal || is_overnight || is_full_day
           errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
         end
       end

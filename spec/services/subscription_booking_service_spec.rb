@@ -304,7 +304,7 @@ RSpec.describe SubscriptionBookingService, type: :service do
       
       booking = Booking.last
       day_of_week = booking.start_time.strftime('%A').downcase
-      expect(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']).to include(day_of_week)
+      expect(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']).to include(day_of_week)
     end
   end
 

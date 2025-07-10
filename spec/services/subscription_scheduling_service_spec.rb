@@ -303,29 +303,29 @@ RSpec.describe SubscriptionSchedulingService, type: :service do
       end
 
       it 'returns true when date matches preferred days' do
-        # Set customer preference for Monday and Friday
+        # Set customer preference for Sunday and Thursday (since week now starts on Sunday)
         customer_subscription.update!(
           customer_preferences: {
-            'preferred_days' => ['monday', 'friday']
+            'preferred_days' => ['sunday', 'thursday']
           }
         )
         
-        monday = Date.current.next_week.beginning_of_week
-        result = service_instance.send(:date_matches_preferences?, monday)
+        sunday = Date.current.next_week.beginning_of_week
+        result = service_instance.send(:date_matches_preferences?, sunday)
         
         expect(result).to be true
       end
 
       it 'returns false when date does not match preferred days' do
-        # Set customer preference for Monday and Friday only
+        # Set customer preference for Sunday and Thursday only
         customer_subscription.update!(
           customer_preferences: {
-            'preferred_days' => ['monday', 'friday']
+            'preferred_days' => ['sunday', 'thursday']
           }
         )
         
-        tuesday = Date.current.next_week.beginning_of_week + 1.day
-        result = service_instance.send(:date_matches_preferences?, tuesday)
+        monday = Date.current.next_week.beginning_of_week + 1.day
+        result = service_instance.send(:date_matches_preferences?, monday)
         
         expect(result).to be false
       end
