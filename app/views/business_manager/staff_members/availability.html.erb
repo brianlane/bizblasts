@@ -75,9 +75,9 @@
                           data: { turbo: false },
                           class: "space-y-4" do |f| %>
               
-              <% days_of_week = %w[sunday monday tuesday wednesday thursday friday saturday] %>
-              <% days_of_week.each_with_index do |day, idx| %>
-                <% current_date = @start_date + idx.days %>
+              <% dates = (@start_date..@end_date).to_a %>
+              <% dates.each_with_index do |current_date, idx| %>
+              <% day = current_date.strftime('%A').downcase %>
                 <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                   <button type="button" 
                           class="day-toggle w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 text-left flex items-center justify-between transition-colors"
