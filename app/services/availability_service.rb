@@ -8,8 +8,9 @@ class AvailabilityService
   # @param date [Date] the date for which to generate slots
   # @param service [Service, optional] the service being booked (to determine duration)
   # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @param bust_cache [Boolean] whether to bypass the cache
   # @return [Array<Hash>] an array of available slot data with start_time and end_time
-  def self.available_slots(staff_member, date, service = nil, interval: 30)
+  def self.available_slots(staff_member, date, service = nil, interval: 30, bust_cache: false)
     return [] unless staff_member.active?
     
     # PERFORMANCE OPTIMIZATION: Skip past dates completely
@@ -29,6 +30,9 @@ class AvailabilityService
     tz = staff_member.business&.time_zone.presence || 'UTC'
     tz_component = tz.parameterize(separator: '_')
     cache_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
+    
+    # Bust the cache if requested
+    Rails.cache.delete(cache_key) if bust_cache
     
     Rails.cache.fetch(cache_key, expires_in: cache_duration) do
       raw_slots = compute_available_slots(staff_member, date, service, interval)
@@ -96,8 +100,10 @@ class AvailabilityService
   # @param start_date [Date] the start date of the range
   # @param end_date [Date] the end date of the range
   # @param service [Service, optional] the service being booked
+  # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @param bust_cache [Boolean] whether to bypass the cache
   # @return [Hash] a hash with dates as keys and aggregated available slots as values
-  def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30)
+  def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30, bust_cache: false)
     # Use a cache key based on unique parameters
     tz = staff_member.business&.time_zone.presence || 'UTC'
     
@@ -105,6 +111,9 @@ class AvailabilityService
     service ||= staff_member.services.active.first
     
     cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
+
+    # Bust the cache if requested
+    Rails.cache.delete(cache_key) if bust_cache
 
     Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
       return {} unless staff_member.active?
@@ -132,8 +141,8 @@ class AvailabilityService
       calendar_data = {}
       
       date_range.each do |date|
-        # Pass the service object to available_slots
-        calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval)
+        # Pass the service object and cache-busting instruction
+        calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval, bust_cache: bust_cache)
       end
       
       calendar_data
