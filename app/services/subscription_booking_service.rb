@@ -109,10 +109,7 @@ class SubscriptionBookingService
         first_slot = available_slots.first
         booking_time = first_slot[:start_time] + time_offset
         
-        # Make sure the offset time is still within business hours
-        if booking_time.hour >= 9 && booking_time.hour <= 17
-          return booking_time
-        end
+        return booking_time
       end
     end
     

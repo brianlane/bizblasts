@@ -89,6 +89,7 @@ class StaffMember < ApplicationRecord
     current_day_intervals = find_intervals_for(current_date.iso8601, current_day_name, exceptions, weekly_schedule)
 
     current_day_intervals.each do |interval|
+      interval = interval.with_indifferent_access
       start_tod = parse_time_of_day(interval['start'])
       end_tod   = parse_time_of_day(interval['end'])
       next unless start_tod && end_tod
