@@ -54,9 +54,15 @@
   <hr>
   <h3>Notification Preferences</h3>
 
-  <fieldset <%= 'disabled' if @user.unsubscribed_from_emails? %>>
+  <fieldset <%= 'disabled' if @user.unsubscribed_at.present? %>>
     <%= form.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
-      <p class="text-sm text-gray-600 mb-2">Manage your email and SMS notifications.</p>
+      <p class="text-sm text-gray-600 mb-2">
+        <% if @user.unsubscribed_at.present? %>
+          <strong>You are currently unsubscribed from all emails.</strong> To manage individual notification preferences, please resubscribe first.
+        <% else %>
+          Manage your email and SMS notifications.
+        <% end %>
+      </p>
       
       <div class="preference-section">
         <h4>Booking & Service Notifications</h4>

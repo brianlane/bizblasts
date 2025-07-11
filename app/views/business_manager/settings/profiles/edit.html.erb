@@ -22,7 +22,7 @@
     </div>
 
     <div class="panel-body">
-      <%= form_with model: @user, url: edit_business_manager_settings_profile_path, method: :patch, local: true do |f|
+      <%= form_with model: @user, url: business_manager_settings_profile_path, method: :patch, local: true do |f|
         %>
         <% if @user.errors.any? %>
           <div id="error_explanation">
