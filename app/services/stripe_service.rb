@@ -378,7 +378,29 @@ class StripeService
     refund = Stripe::Refund.create(params, {
       stripe_account: payment.business.stripe_account_id
     })
-    payment.update!(status: :refunded, refunded_amount: (refund.amount_refunded / 100.0), refund_reason: reason)
+
+    refunded_amt = refund.amount_refunded / 100.0
+    payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+
+    # Cascade updates to related records
+    if (invoice = payment.invoice)
+      # If all payments on this invoice are refunded, mark invoice as cancelled
+      if invoice.payments.where.not(status: :refunded).none?
+        invoice.update!(status: :cancelled)
+      end
+
+      # Update order status if applicable
+      if (order = invoice.order)
+        order.update!(status: :refunded)
+
+        # Send refund confirmation email
+        begin
+          OrderMailer.refund_confirmation(order, payment).deliver_later if defined?(OrderMailer)
+        rescue => e
+          Rails.logger.error "[EMAIL] Failed to send refund confirmation for Order ##{order.id}: #{e.message}"
+        end
+      end
+    end
     refund
   end
 
@@ -855,6 +877,19 @@ class StripeService
       refunded_amt = charge['amount_refunded'] / 100.0
       reason = charge['refunds']&.dig('data')&.first&.dig('reason')
       payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+
+      # Cascade updates to related records
+      if (invoice = payment.invoice)
+        # If all payments on this invoice are refunded, mark invoice as cancelled
+        if invoice.payments.where.not(status: :refunded).none?
+          invoice.update!(status: :cancelled)
+        end
+
+        # Update order status if applicable
+        if (order = invoice.order)
+          order.update!(status: :refunded)
+        end
+      end
     end
   end
 

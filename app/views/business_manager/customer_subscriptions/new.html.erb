@@ -34,12 +34,125 @@
             
             <div>
               <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
-              <%= form.collection_select :tenant_customer_id, @tenant_customers, :id, :full_name, 
-                    { prompt: "Select a customer" },
-                    { required: true, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
-              <% if @tenant_customers.empty? %>
-                <p class="mt-1 text-sm text-gray-500">No customers found. <%= link_to "Create a customer first", business_manager_customers_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
-              <% end %>
+              <div class="customer-dropdown relative" 
+                   data-controller="customer-dropdown" 
+                   data-customer-dropdown-selected-value-value="<%= @customer_subscription.tenant_customer_id %>">
+                <button type="button" 
+                        class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px] flex items-center justify-between"
+                        data-customer-dropdown-target="button"
+                        data-action="click->customer-dropdown#toggle">
+                  <span class="customer-dropdown-text text-gray-900 flex-1">
+                    <% if @customer_subscription.tenant_customer_id.present? %>
+                      <% if @customer_subscription.tenant_customer_id == "new" %>
+                        Create new customer
+                      <% else %>
+                        <% customer = @tenant_customers.find { |c| c.id == @customer_subscription.tenant_customer_id } %>
+                        <%= customer ? "#{customer.full_name} (#{customer.email})" : 'Select existing customer' %>
+                      <% end %>
+                    <% else %>
+                      Select existing customer
+                    <% end %>
+                  </span>
+                  <span class="flex items-center pl-2">
+                    <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </span>
+                </button>
+                <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+                     data-customer-dropdown-target="menu">
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                       data-item-id=""
+                       data-item-text="Select existing customer"
+                       data-customer-dropdown-target="option"
+                       data-action="click->customer-dropdown#select">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-500">Select existing customer</div>
+                      </div>
+                    </div>
+                    <% if @customer_subscription.tenant_customer_id.blank? %>
+                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    <% end %>
+                  </div>
+                  <% @tenant_customers.each do |customer| %>
+                    <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                         data-item-id="<%= customer.id %>"
+                         data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
+                         data-customer-dropdown-target="option"
+                         data-action="click->customer-dropdown#select">
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                          <div class="font-medium text-gray-900"><%= customer.full_name %></div>
+                          <% if customer.email.present? %>
+                            <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
+                          <% end %>
+                          <% if customer.phone.present? %>
+                            <div class="text-xs text-gray-400 mt-1"><%= customer.phone %></div>
+                          <% end %>
+                        </div>
+                      </div>
+                      <% if @customer_subscription.tenant_customer_id == customer.id %>
+                        <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                          </svg>
+                        </span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+                       data-item-id="new"
+                       data-item-text="Create new customer"
+                       data-customer-dropdown-target="option"
+                       data-action="click->customer-dropdown#select">
+                    <div class="flex-1">
+                      <div class="font-medium text-blue-600">+ Create new customer</div>
+                    </div>
+                    <% if @customer_subscription.tenant_customer_id == "new" %>
+                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    <% end %>
+                  </div>
+                </div>
+                <%= form.hidden_field :tenant_customer_id, id: "customer_subscription_tenant_customer_id", data: { customer_dropdown_target: "hidden" } %>
+                <div id="new-customer-fields" class="hidden mb-4" data-customer-dropdown-target="newCustomerFields">
+                  <h3 class="text-lg font-medium mb-2">New Customer Details</h3>
+                  <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <%= form.fields_for :tenant_customer do |cf| %>
+                        <%= cf.label :first_name, 'First Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                        <%= cf.text_field :first_name, placeholder: 'First Name', class: 'form-input rounded border px-3 py-2 w-full' %>
+                      <% end %>
+                    </div>
+                    <div>
+                      <%= form.fields_for :tenant_customer do |cf| %>
+                        <%= cf.label :last_name, 'Last Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                        <%= cf.text_field :last_name, placeholder: 'Last Name', class: 'form-input rounded border px-3 py-2 w-full' %>
+                      <% end %>
+                    </div>
+                  </div>
+                  <div class="mb-4">
+                    <%= form.fields_for :tenant_customer do |cf| %>
+                      <%= cf.label :email, 'Email', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                      <%= cf.email_field :email, placeholder: 'Customer Email', class: 'form-input rounded border px-3 py-2 w-full' %>
+                    <% end %>
+                  </div>
+                  <div class="mb-4">
+                    <%= form.fields_for :tenant_customer do |cf| %>
+                      <%= cf.label :phone, 'Phone', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                      <%= cf.telephone_field :phone, placeholder: 'Customer Phone', class: 'form-input rounded border px-3 py-2 w-full' %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -63,9 +176,14 @@
 
             <div id="product_selection" class="hidden">
               <%= form.label :product_id, "Product", class: "block text-gray-700 text-sm font-bold mb-2" %>
-              <%= form.collection_select :product_id, @products.where(subscription_enabled: true), :id, :name, 
-                    { prompt: "Select a product" },
-                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <%= render 'shared/rich_dropdown',
+                    collection: @products.where(subscription_enabled: true),
+                    field_name: "customer_subscription[product_id]",
+                    selected_value: @customer_subscription.product_id,
+                    prompt_text: "Select a product",
+                    value_method: :id,
+                    text_method: :name,
+                    dropdown_id: "subscription_product_dropdown" %>
               <% if @products.where(subscription_enabled: true).empty? %>
                 <p class="mt-1 text-sm text-gray-500">No subscription-enabled products found. <%= link_to "Enable subscriptions on products", business_manager_products_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
               <% end %>
@@ -73,9 +191,14 @@
 
             <div id="service_selection" class="hidden">
               <%= form.label :service_id, "Service", class: "block text-gray-700 text-sm font-bold mb-2" %>
-              <%= form.collection_select :service_id, @services.where(subscription_enabled: true), :id, :name, 
-                    { prompt: "Select a service" },
-                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <%= render 'shared/rich_dropdown',
+                    collection: @services.where(subscription_enabled: true),
+                    field_name: "customer_subscription[service_id]",
+                    selected_value: @customer_subscription.service_id,
+                    prompt_text: "Select a service",
+                    value_method: :id,
+                    text_method: :name,
+                    dropdown_id: "subscription_service_dropdown" %>
               <% if @services.where(subscription_enabled: true).empty? %>
                 <p class="mt-1 text-sm text-gray-500">No subscription-enabled services found. <%= link_to "Enable subscriptions on services", business_manager_services_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
               <% end %>
@@ -114,14 +237,18 @@
             
             <div>
               <%= form.label :service_rebooking_preference, "Rebooking Preference", class: "block text-gray-700 text-sm font-bold mb-2" %>
-              <%= form.select :service_rebooking_preference, 
-                    options_for_select([
-                      ['Same day next month (or soonest available)', 'same_day_next_month'],
-                      ['Same day next month (or loyalty points if unavailable)', 'same_day_loyalty_fallback'],
-                      ['Use business default', 'business_default']
-                    ], 'same_day_next_month'),
-                    { prompt: "Select rebooking preference" },
-                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <%= render 'shared/rich_dropdown',
+                    collection: [
+                      OpenStruct.new(id: 'same_day_next_month', name: 'Same day next month (or soonest available)'),
+                      OpenStruct.new(id: 'same_day_loyalty_fallback', name: 'Same day next month (or loyalty points if unavailable)'),
+                      OpenStruct.new(id: 'business_default', name: 'Use business default')
+                    ],
+                    field_name: "customer_subscription[service_rebooking_preference]",
+                    selected_value: @customer_subscription.service_rebooking_preference,
+                    prompt_text: "Select rebooking preference",
+                    value_method: :id,
+                    text_method: :name,
+                    dropdown_id: "service_rebooking_preference_dropdown" %>
             </div>
 
             <div>
@@ -137,14 +264,18 @@
             
             <div>
               <%= form.label :out_of_stock_action, "Out of Stock Action", class: "block text-gray-700 text-sm font-bold mb-2" %>
-              <%= form.select :out_of_stock_action, 
-                    options_for_select([
-                      ['Skip billing cycle', 'skip_billing_cycle'],
-                      ['Award loyalty points', 'award_loyalty_points'],
-                      ['Cancel subscription', 'cancel_subscription']
-                    ], 'skip_billing_cycle'),
-                    { prompt: "Select out of stock action" },
-                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+              <%= render 'shared/rich_dropdown',
+                    collection: [
+                      OpenStruct.new(id: 'skip_billing_cycle', name: 'Skip billing cycle'),
+                      OpenStruct.new(id: 'award_loyalty_points', name: 'Award loyalty points'),
+                      OpenStruct.new(id: 'cancel_subscription', name: 'Cancel subscription')
+                    ],
+                    field_name: "customer_subscription[out_of_stock_action]",
+                    selected_value: @customer_subscription.out_of_stock_action,
+                    prompt_text: "Select out of stock action",
+                    value_method: :id,
+                    text_method: :name,
+                    dropdown_id: "out_of_stock_action_dropdown" %>
             </div>
           </div>
         </div>

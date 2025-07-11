@@ -37,7 +37,39 @@ class Payment < ApplicationRecord
   end
   
   def refund!
-    update(status: :refunded, refunded_at: Time.current)
+    update(status: :refunded)
+  end
+  
+  # Initiate a refund for this payment using StripeService. Returns the Stripe::Refund
+  # object on success, or false on failure. This will only run for completed payments
+  # that were processed through Stripe (stripe_payment_intent_id must be present).
+  #
+  # Params:
+  #   amount [Float]   – Optional partial refund amount in dollars. Defaults to full amount.
+  #   reason [String]  – Optional reason text ("requested_by_customer", "duplicate", etc.).
+  #   user   [User]    – Optional user initiating the refund (for auditing). Currently stored
+  #                      only in logs – extend as needed.
+  def initiate_refund(amount: nil, reason: nil, user: nil)
+    unless completed?
+      errors.add(:base, "Only completed payments can be refunded")
+      return false
+    end
+
+    unless stripe_payment_intent_id.present?
+      errors.add(:base, "Payment is missing Stripe payment intent – cannot refund via Stripe")
+      return false
+    end
+
+    Rails.logger.info("[PAYMENT] Initiating refund for Payment ##{id} by #{user&.email || 'system'} – amount=#{amount || amount}, reason=#{reason}")
+
+    begin
+      result = StripeService.create_refund(self, amount: amount, reason: reason)
+      return result
+    rescue => e
+      Rails.logger.error("[PAYMENT] Refund failed for Payment ##{id}: #{e.message}")
+      errors.add(:base, "Stripe refund failed: #{e.message}")
+      return false
+    end
   end
   
   # Mark payment as business deleted and remove business association

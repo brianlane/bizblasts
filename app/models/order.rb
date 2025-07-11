@@ -294,4 +294,11 @@ class Order < ApplicationRecord
     end
   end
 
+  # Determine if this order is eligible for a refund action in the UI
+  def refundable?
+    return false if status_refunded? || status_cancelled? || status_business_deleted?
+    return false unless invoice
+    invoice.payments.successful.where.not(status: :refunded).exists?
+  end
+
 end
