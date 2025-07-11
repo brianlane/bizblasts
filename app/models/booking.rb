@@ -105,6 +105,13 @@ class Booking < ApplicationRecord
     end_time&.in_time_zone(local_timezone)
   end
   
+  # Determine if booking can be refunded (i.e., has paid invoice with unrefunded payments)
+  def refundable?
+    return false if cancelled? || business_deleted?
+    return false unless invoice
+    invoice.payments.successful.where.not(status: :refunded).exists?
+  end
+  
   private
 
   def experience_service?

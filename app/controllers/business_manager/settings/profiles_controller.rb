@@ -126,13 +126,28 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
   def unsubscribe_all
     authorize @user, policy_class: Settings::ProfilePolicy # Ensure user is authorized
 
-    # Update all notification preferences to false
-    @user.notification_preferences.each do |key, value|
-      @user.notification_preferences[key] = false
+    # Set all notification preferences to false
+    updated_preferences = @user.notification_preferences || {}
+    email_preferences = %w[
+      email_booking_notifications
+      email_order_notifications
+      email_customer_notifications
+      email_payment_notifications
+      email_failed_payment_notifications
+      email_subscription_notifications
+      email_marketing_notifications
+      email_blog_notifications
+      email_system_notifications
+      email_marketing_updates
+      email_blog_updates
+    ]
+    
+    email_preferences.each do |pref|
+      updated_preferences[pref] = false
     end
 
-    if @user.save
-      redirect_to edit_business_manager_settings_profile_path, notice: 'You have successfully unsubscribed from all email notifications.'
+    if @user.update(notification_preferences: updated_preferences)
+      redirect_to edit_business_manager_settings_profile_path, notice: 'Unsubscribed from All Emails Successfully.'
     else
       # This case should be rare unless there's a validation on the notification_preferences hash itself
       @account_deletion_info = @user.can_delete_account?

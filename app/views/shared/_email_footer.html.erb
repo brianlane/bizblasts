@@ -3,12 +3,14 @@
   <a href="<%= terms_url %>" class="text-primary hover:underline">Terms of Service</a> |
   <a href="<%= disclaimer_url %>" class="text-primary hover:underline">Disclaimer</a> |
   <a href="<%= cookies_url %>" class="text-primary hover:underline">Cookie Policy</a> |
-  <% if @user && @user.client? %>
+  <% if @unsubscribe_token.present? %>
+    <a href="<%= unsubscribe_url(token: @unsubscribe_token) %>" class="text-primary hover:underline">Unsubscribe</a>
+  <% elsif @user && @user.client? %>
     <a href="<%= edit_client_settings_url %>" class="text-primary hover:underline">Unsubscribe</a>
   <% elsif @user && (@user.manager? || @user.staff?) %>
     <a href="<%= edit_business_manager_settings_profile_url(subdomain: @user.business.subdomain) %>" class="text-primary hover:underline">Unsubscribe</a>
   <% else %>
-    <%# Fallback or guest unsubscribe link - might need a dedicated tokenized route later %>
-    <a href="#" class="text-primary hover:underline">Unsubscribe</a>
+    <%# Fallback for cases where no token is available %>
+    <a href="<%= root_url %>" class="text-primary hover:underline">Contact Support</a>
   <% end %>
 </p> 

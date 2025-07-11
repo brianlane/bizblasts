@@ -548,4 +548,11 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
       end
     end
   end
+
+  describe 'universal unsubscribe UI' do
+    before do
+      sign_in manager_user
+      manager_user.update!(unsubscribed_at: Time.current)
+    end
+  end
 end 

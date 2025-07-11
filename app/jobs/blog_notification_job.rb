@@ -14,8 +14,11 @@ class BlogNotificationJob < ApplicationJob
       "(users.notification_preferences->>'email_marketing_updates')::boolean = true"
     )
 
+    # Filter by global unsubscribe and granular preferences
+    subscribed_users = subscribed_users.select { |u| u.can_receive_email?(:blog) }
+
     # Send notifications in batches to avoid overwhelming the email service
-    subscribed_users.find_in_batches(batch_size: 50) do |user_batch|
+    subscribed_users.each_slice(50) do |user_batch|
       user_batch.each do |user|
         begin
           BlogMailer.new_post_notification(user, blog_post).deliver_later

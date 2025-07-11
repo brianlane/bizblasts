@@ -1,6 +1,6 @@
 module BusinessManager
   class OrdersController < BusinessManager::BaseController
-    before_action :set_order, only: [:show, :edit, :update]
+    before_action :set_order, only: [:show, :edit, :update, :refund]
     before_action :load_collections, only: [:new, :edit, :create, :update]
 
     def index
@@ -94,6 +94,34 @@ module BusinessManager
       else
         flash.now[:alert] = "Unable to update order: #{@order.errors.full_messages.to_sentence}"
         render :edit
+      end
+    end
+
+    # PATCH /manage/orders/:id/refund
+    def refund
+      if @order.status_refunded?
+        redirect_to business_manager_order_path(@order), notice: 'Order already refunded.'
+        return
+      end
+
+      invoice = @order.invoice
+      if invoice.blank? || invoice.payments.successful.none?
+        redirect_to business_manager_order_path(@order), alert: 'No completed payments found to refund.'
+        return
+      end
+
+      refund_failures = []
+      invoice.payments.successful.each do |payment|
+        success = payment.initiate_refund(reason: 'requested_by_customer', user: current_user)
+        refund_failures << payment.id unless success
+      end
+
+      if refund_failures.empty?
+        # Use helper method to check if all payments are refunded and update order status accordingly
+        @order.check_and_update_refund_status!
+        redirect_to business_manager_order_path(@order), notice: 'Refund initiated successfully.'
+      else
+        redirect_to business_manager_order_path(@order), alert: "Refund failed for payments: #{refund_failures.join(', ')}"
       end
     end
 

@@ -71,4 +71,100 @@ RSpec.describe TenantCustomer, type: :model do
       expect(customer.full_name).to eq('test@example.com')
     end
   end
+
+  describe 'unsubscribe token generation' do
+    let(:business) { create(:business) }
+    
+    it 'generates a unique unsubscribe token' do
+      ActsAsTenant.with_tenant(business) do
+        customer = create(:tenant_customer, business: business)
+        expect(customer.unsubscribe_token).to be_present
+        expect(customer.unsubscribe_token.length).to eq(64) # 32 hex chars = 64 characters
+      end
+    end
+    
+    it 'ensures tokens are unique across User and TenantCustomer tables' do
+      ActsAsTenant.with_tenant(business) do
+        # Create a tenant customer with a specific token
+        customer = create(:tenant_customer, business: business)
+        original_token = customer.unsubscribe_token
+        
+        # Create a user and force it to try to use the same token
+        user = build(:user, role: :client)
+        user.unsubscribe_token = original_token
+        
+        # The generate_unsubscribe_token method should detect the collision and generate a new token
+        user.send(:generate_unsubscribe_token)
+        
+        expect(user.unsubscribe_token).not_to eq(original_token)
+        expect(user.unsubscribe_token).to be_present
+      end
+    end
+    
+    it 'regenerates a new unique token' do
+      ActsAsTenant.with_tenant(business) do
+        customer = create(:tenant_customer, business: business)
+        original_token = customer.unsubscribe_token
+        
+        customer.send(:regenerate_unsubscribe_token)
+        
+        expect(customer.unsubscribe_token).not_to eq(original_token)
+        expect(customer.unsubscribe_token).to be_present
+      end
+    end
+  end
+
+  describe '#can_receive_email?' do
+    let(:business) { create(:business) }
+    let(:customer) { create(:tenant_customer, business: business) }
+
+    context 'when customer is not unsubscribed' do
+      it 'allows transactional emails' do
+        expect(customer.can_receive_email?(:transactional)).to be true
+      end
+
+      it 'allows marketing emails when not opted out' do
+        customer.update!(email_marketing_opt_out: false)
+        expect(customer.can_receive_email?(:marketing)).to be true
+      end
+
+      it 'blocks marketing emails when opted out' do
+        customer.update!(email_marketing_opt_out: true)
+        expect(customer.can_receive_email?(:marketing)).to be false
+      end
+
+      it 'allows other email types' do
+        %i[blog booking order payment customer system subscription].each do |email_type|
+          expect(customer.can_receive_email?(email_type)).to be true
+        end
+      end
+
+      it 'allows unknown email types' do
+        expect(customer.can_receive_email?(:unknown_type)).to be true
+      end
+    end
+
+    context 'when customer is globally unsubscribed' do
+      before do
+        customer.update!(unsubscribed_at: Time.current)
+      end
+
+      it 'still allows transactional emails' do
+        expect(customer.can_receive_email?(:transactional)).to be true
+      end
+
+      it 'blocks all other email types' do
+        %i[marketing blog booking order payment customer system subscription].each do |email_type|
+          expect(customer.can_receive_email?(email_type)).to be false
+        end
+      end
+    end
+
+    context 'with string vs symbol parameters' do
+      it 'handles both string and symbol parameters' do
+        expect(customer.can_receive_email?(:marketing)).to be true
+        expect(customer.can_receive_email?('marketing')).to be true
+      end
+    end
+  end
 end 
