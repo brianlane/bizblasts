@@ -6,7 +6,7 @@
   <% if @user && @user.client? %>
     <a href="<%= edit_client_settings_url %>" class="text-primary hover:underline">Unsubscribe</a>
   <% elsif @user && (@user.manager? || @user.staff?) %>
-    <a href="<%= edit_business_manager_settings_profile_url %>" class="text-primary hover:underline">Unsubscribe</a>
+    <a href="<%= edit_business_manager_settings_profile_url(subdomain: @user.business.subdomain) %>" class="text-primary hover:underline">Unsubscribe</a>
   <% else %>
     <%# Fallback or guest unsubscribe link - might need a dedicated tokenized route later %>
     <a href="#" class="text-primary hover:underline">Unsubscribe</a>
