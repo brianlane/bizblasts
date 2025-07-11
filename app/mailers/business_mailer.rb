@@ -191,8 +191,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager can receive marketing emails
-    return unless business_user.can_receive_email?(:marketing)
+    # Check if the manager can receive subscription emails
+    return unless business_user.can_receive_email?(:subscription)
     
     mail(
       to: business_user.email,
@@ -230,8 +230,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager can receive marketing emails
-    return unless business_user.can_receive_email?(:marketing)
+    # Check if the manager can receive order emails
+    return unless business_user.can_receive_email?(:order)
     
     mail(
       to: business_user.email,
@@ -273,8 +273,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager can receive marketing emails
-    return unless business_user.can_receive_email?(:marketing)
+    # Check if the manager can receive booking emails
+    return unless business_user.can_receive_email?(:booking)
     
     mail(
       to: business_user.email,
@@ -303,8 +303,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager can receive marketing emails
-    return unless business_user.can_receive_email?(:marketing)
+    # Check if the manager can receive payment emails
+    return unless business_user.can_receive_email?(:payment)
     
     mail(
       to: business_user.email,
@@ -333,8 +333,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager can receive marketing emails
-    return unless business_user.can_receive_email?(:marketing)
+    # Check if the manager can receive subscription emails
+    return unless business_user.can_receive_email?(:subscription)
     
     mail(
       to: business_user.email,
