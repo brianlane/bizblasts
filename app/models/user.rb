@@ -4,6 +4,8 @@
 # Clients can associate with multiple businesses via ClientBusiness.
 # Staff/Managers belong to a single business.
 class User < ApplicationRecord
+  include UnsubscribeTokenGenerator
+  
   # Custom exception for account deletion errors
   class AccountDeletionError < StandardError; end
 
@@ -254,9 +256,9 @@ class User < ApplicationRecord
     # If no notification preferences are set, default to true
     return true if notification_preferences.nil? || notification_preferences.empty?
     
-    # Check if any of the relevant keys are explicitly set to false
-    # If none are explicitly false, allow the email
-    keys.none? { |k| notification_preferences[k] == false || notification_preferences[k] == '0' }
+    # Check if ANY of the relevant keys are enabled (not explicitly set to false)
+    # This allows users to receive emails from a category if they have at least one preference enabled
+    keys.any? { |k| notification_preferences[k] != false && notification_preferences[k] != '0' }
   end
 
   def unsubscribed_from_emails?
@@ -464,17 +466,6 @@ class User < ApplicationRecord
   end
 
   # Unsubscribe system methods
-  def generate_unsubscribe_token
-    loop do
-      self.unsubscribe_token = SecureRandom.hex(32)
-      break unless User.exists?(unsubscribe_token: unsubscribe_token)
-    end
-    save(validate: false) if persisted?
-  end
-
-  def regenerate_unsubscribe_token
-    generate_unsubscribe_token
-  end
 
   def unsubscribe_from_emails!
     update!(

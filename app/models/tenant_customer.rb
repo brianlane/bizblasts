@@ -2,6 +2,7 @@
 
 class TenantCustomer < ApplicationRecord
   include TenantScoped
+  include UnsubscribeTokenGenerator
   
   acts_as_tenant(:business)
   belongs_to :business
@@ -162,18 +163,6 @@ class TenantCustomer < ApplicationRecord
   end
 
   # Unsubscribe system methods
-  def generate_unsubscribe_token
-    loop do
-      self.unsubscribe_token = SecureRandom.hex(32)
-      break unless TenantCustomer.exists?(unsubscribe_token: unsubscribe_token)
-    end
-    save(validate: false) if persisted?
-  end
-
-  def regenerate_unsubscribe_token
-    generate_unsubscribe_token
-  end
-
   def unsubscribe_from_emails!
     update!(
       unsubscribed_at: Time.current,
