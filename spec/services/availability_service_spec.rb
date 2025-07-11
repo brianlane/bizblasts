@@ -7,8 +7,8 @@ RSpec.describe AvailabilityService, type: :service do
   let!(:business) { create(:business) }
   # Use let (lazy) for service - only created when needed
   let(:service) { create(:service, business: business, duration: 60) }
-  # Use a future date (tomorrow) so slots are not filtered out as past
-  let(:date) { Date.current + 1.day }
+  # Use a future date (next Monday) so slots are not filtered out as past and always have availability
+  let(:date) { Date.current.next_occurring(:monday) }
 
   # Create staff member within a before block to ensure tenant is set
   let(:staff_member) { create(:staff_member, business: business) }

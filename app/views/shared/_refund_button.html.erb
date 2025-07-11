@@ -1,0 +1,9 @@
+<%# Shared Refund Button Partial
+     locals: record, refund_path %>
+<% if record.respond_to?(:refundable?) && record.refundable? %>
+  <%= button_to 'Issue Refund',
+        refund_path,
+        method: :patch,
+        data: { confirm: 'Are you sure you want to refund this transaction?' },
+        class: 'inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer' %>
+<% end %> 

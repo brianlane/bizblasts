@@ -1,0 +1,330 @@
+<% content_for :title, "Payment ##{@payment.id}" %>
+
+<div class="bg-white shadow-sm border-b border-gray-200">
+  <div class="px-6 py-4">
+    <div class="flex justify-between items-center">
+      <div>
+        <div class="text-sm text-gray-600 mb-2">
+          <%= link_to "Payments", business_manager_payments_path, class: "hover:text-gray-900" %> 
+          <span class="mx-2">/</span>
+          <span class="text-gray-900">Payment #<%= @payment.id %></span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">Payment #<%= @payment.id %></h1>
+        <p class="text-gray-600 mt-1">
+          <%= @payment.status.humanize %> payment 
+          <% if @payment.completed? && @payment.paid_at %>
+            on <%= l @payment.paid_at, format: :long %>
+          <% elsif @payment.created_at %>
+            created <%= l @payment.created_at, format: :long %>
+          <% end %>
+        </p>
+      </div>
+      
+      <div class="flex space-x-3">
+        <% if @stripe_dashboard_url.present? %>
+          <%= link_to "View in Stripe Dashboard", 
+                @stripe_dashboard_url, 
+                target: "_blank",
+                rel: "noopener",
+                class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors" %>
+        <% end %>
+        
+        <%= link_to "Back to Payments", 
+              business_manager_payments_path, 
+              class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="px-6 py-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Payment Information -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Payment Status -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Payment Status</h2>
+        <div class="flex items-center space-x-4">
+          <div class="flex-shrink-0">
+            <% case @payment.status %>
+            <% when 'completed' %>
+              <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            <% when 'pending' %>
+              <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            <% when 'failed' %>
+              <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </div>
+            <% when 'refunded' %>
+              <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/>
+                </svg>
+              </div>
+            <% end %>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium text-gray-900"><%= @payment.status.humanize %></h3>
+            <% if @payment.failure_reason.present? %>
+              <p class="text-sm text-red-600 mt-1"><%= @payment.failure_reason %></p>
+            <% end %>
+            <% if @payment.refund_reason.present? %>
+              <p class="text-sm text-gray-600 mt-1">Reason: <%= @payment.refund_reason %></p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Details -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Payment Details</h2>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Payment Amount</dt>
+            <dd class="text-lg font-semibold text-gray-900"><%= number_to_currency(@payment.amount) %></dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Payment Method</dt>
+            <dd class="text-lg text-gray-900"><%= @payment.payment_method.humanize %></dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Your Net Amount</dt>
+            <dd class="text-lg font-semibold text-green-600"><%= number_to_currency(@payment.business_amount) %></dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Processing Fees</dt>
+            <dd class="text-lg text-gray-900">
+              <%= number_to_currency(@payment.stripe_fee_amount + @payment.platform_fee_amount) %>
+              <span class="text-sm text-gray-500">
+                (Stripe: <%= number_to_currency(@payment.stripe_fee_amount) %>, 
+                Platform: <%= number_to_currency(@payment.platform_fee_amount) %>)
+              </span>
+            </dd>
+          </div>
+          
+          <% if @payment.tip_amount.present? && @payment.tip_amount > 0 %>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Tip Amount</dt>
+              <dd class="text-lg text-gray-900"><%= number_to_currency(@payment.tip_amount) %></dd>
+            </div>
+          <% end %>
+          
+          <% if @payment.refunded_amount.present? && @payment.refunded_amount > 0 %>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Refunded Amount</dt>
+              <dd class="text-lg text-red-600"><%= number_to_currency(@payment.refunded_amount) %></dd>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+
+      <!-- Timeline -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Payment Timeline</h2>
+        <div class="flow-root">
+          <ul>
+            <li>
+              <div class="relative <%= @payment.paid_at.present? || @payment.refunded? ? 'pb-8' : '' %>">
+                <% if @payment.paid_at.present? || @payment.refunded? %>
+                  <div class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"></div>
+                <% end %>
+                <div class="relative flex space-x-3">
+                  <div>
+                    <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div>
+                      <p class="text-sm text-gray-500">
+                        Payment created
+                        <time datetime="<%= @payment.created_at.iso8601 %>">
+                          <%= l @payment.created_at, format: :long %>
+                        </time>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+            
+            <% if @payment.paid_at.present? %>
+              <li>
+                <div class="relative <%= @payment.refunded? ? 'pb-8' : '' %>">
+                  <% if @payment.refunded? %>
+                    <div class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"></div>
+                  <% end %>
+                  <div class="relative flex space-x-3">
+                    <div>
+                      <span class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div>
+                        <p class="text-sm text-gray-500">
+                          Payment completed
+                          <time datetime="<%= @payment.paid_at.iso8601 %>">
+                            <%= l @payment.paid_at, format: :long %>
+                          </time>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+            
+            <% if @payment.refunded? %>
+              <li>
+                <div class="relative">
+                  <div class="relative flex space-x-3">
+                    <div>
+                      <span class="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center ring-8 ring-white">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"/>
+                        </svg>
+                      </span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div>
+                        <p class="text-sm text-gray-500">
+                          Payment refunded
+                          <time datetime="<%= @payment.updated_at.iso8601 %>">
+                            <%= l @payment.updated_at, format: :long %>
+                          </time>
+                        </p>
+                        <% if @payment.refund_reason.present? %>
+                          <p class="text-xs text-gray-400 mt-1">Reason: <%= @payment.refund_reason %></p>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      <!-- Customer Information -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Customer</h2>
+        <div class="space-y-3">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Name</p>
+            <p class="text-base text-gray-900"><%= @payment.tenant_customer.full_name %></p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Email</p>
+            <p class="text-base text-gray-900"><%= @payment.tenant_customer.email %></p>
+          </div>
+          <% if @payment.tenant_customer.phone.present? %>
+            <div>
+              <p class="text-sm font-medium text-gray-500">Phone</p>
+              <p class="text-base text-gray-900"><%= @payment.tenant_customer.phone %></p>
+            </div>
+          <% end %>
+        </div>
+        <div class="mt-4">
+          <%= link_to "View Customer", 
+                business_manager_customer_path(@payment.tenant_customer), 
+                class: "text-indigo-600 hover:text-indigo-900 text-sm font-medium" %>
+        </div>
+      </div>
+
+      <!-- Related Records -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Related Records</h2>
+        <div class="space-y-3">
+          <% if @payment.invoice.present? %>
+            <div>
+              <p class="text-sm font-medium text-gray-500">Invoice</p>
+              <p class="text-base text-gray-900">
+                <%= link_to @payment.invoice.invoice_number, 
+                      business_manager_invoice_path(@payment.invoice), 
+                      class: "text-indigo-600 hover:text-indigo-900" %>
+              </p>
+            </div>
+          <% end %>
+          
+          <% if @payment.order.present? %>
+            <div>
+              <p class="text-sm font-medium text-gray-500">Order</p>
+              <p class="text-base text-gray-900">
+                <%= link_to "Order ##{@payment.order.id}", 
+                      business_manager_order_path(@payment.order), 
+                      class: "text-indigo-600 hover:text-indigo-900" %>
+              </p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Stripe Information -->
+      <% if @payment.stripe_payment_intent_id.present? %>
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Stripe Details</h2>
+          <div class="space-y-3">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Payment Intent ID</p>
+              <p class="text-xs text-gray-900 font-mono break-all"><%= @payment.stripe_payment_intent_id %></p>
+            </div>
+            <% if @payment.stripe_charge_id.present? %>
+              <div>
+                <p class="text-sm font-medium text-gray-500">Charge ID</p>
+                <p class="text-xs text-gray-900 font-mono break-all"><%= @payment.stripe_charge_id %></p>
+              </div>
+            <% end %>
+            <% if @payment.stripe_customer_id.present? %>
+              <div>
+                <p class="text-sm font-medium text-gray-500">Stripe Customer ID</p>
+                <p class="text-xs text-gray-900 font-mono break-all"><%= @payment.stripe_customer_id %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Actions -->
+      <% if @payment.completed? && !@payment.refunded? %>
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+          <div class="space-y-3">
+            <% if @stripe_dashboard_url.present? %>
+              <%= link_to "Manage in Stripe", 
+                    @stripe_dashboard_url, 
+                    target: "_blank",
+                    rel: "noopener",
+                    class: "block w-full text-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors" %>
+            <% end %>
+            
+            <p class="text-xs text-gray-500 text-center">
+              Detailed payment management can be handled through the Stripe Dashboard.
+            </p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div> 

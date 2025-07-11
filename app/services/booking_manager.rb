@@ -349,10 +349,24 @@ class BookingManager
         if invoice.payments.successful.exists?
           # Invoice has payments - process refund if applicable
           Rails.logger.info "[BookingManager] Processing refund for cancelled Booking ##{booking.id} via Invoice ##{invoice.id}"
-          # TODO: Implement actual refund processing
-          # invoice.payments.successful.each do |payment|
-          #   StripeService.refund_payment(payment)
-          # end
+          invoice.payments.successful.each do |payment|
+            refund_success = payment.initiate_refund(reason: "booking_cancelled", user: current_user)
+
+            if refund_success
+              Rails.logger.info "[BookingManager] Refund processed for Payment ##{payment.id} (Booking ##{booking.id})"
+              # Mark invoice as cancelled if all payments fully refunded
+              if invoice.payments.where.not(status: :refunded).none?
+                invoice.update!(status: :cancelled)
+              end
+
+              # Update order status if applicable
+              if (order = invoice.order)
+                order.update!(status: :refunded)
+              end
+            else
+              Rails.logger.error "[BookingManager] Failed to refund Payment ##{payment.id} for Booking ##{booking.id}: #{payment.errors.full_messages.join(', ')}"
+            end
+          end
         else
           # Invoice has no payments - cancel it since service won't be performed
           invoice.update!(status: :cancelled)

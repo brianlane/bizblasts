@@ -106,34 +106,48 @@
         <%= form_tag subscriptions_path, method: :get, local: true, class: "space-y-4 sm:space-y-0 sm:flex sm:items-end sm:space-x-4" do %>
           <div class="flex-1">
             <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-            <%= select_tag :status, 
-                options_for_select([
-                  ['All Statuses', ''],
-                  ['Active', 'active'],
-                  ['Cancelled', 'cancelled'],
-                  ['Expired', 'expired'],
-                  ['Failed', 'failed']
-                ], params[:status]), 
-                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+            <%= render 'shared/rich_dropdown',
+                  collection: [
+                    OpenStruct.new(id: '', name: 'All Statuses'),
+                    OpenStruct.new(id: 'active', name: 'Active'),
+                    OpenStruct.new(id: 'cancelled', name: 'Cancelled'),
+                    OpenStruct.new(id: 'expired', name: 'Expired'),
+                    OpenStruct.new(id: 'failed', name: 'Failed')
+                  ],
+                  field_name: 'status',
+                  selected_value: params[:status],
+                  prompt_text: 'All Statuses',
+                  value_method: :id,
+                  text_method: :name,
+                  dropdown_id: 'client_subscription_status_dropdown' %>
           </div>
           
           <div class="flex-1">
             <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
-            <%= select_tag :type, 
-                options_for_select([
-                  ['All Types', ''],
-                  ['Product Subscriptions', 'product_subscription'],
-                  ['Service Subscriptions', 'service_subscription']
-                ], params[:type]), 
-                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+            <%= render 'shared/rich_dropdown',
+                  collection: [
+                    OpenStruct.new(id: '', name: 'All Types'),
+                    OpenStruct.new(id: 'product_subscription', name: 'Product Subscriptions'),
+                    OpenStruct.new(id: 'service_subscription', name: 'Service Subscriptions')
+                  ],
+                  field_name: 'type',
+                  selected_value: params[:type],
+                  prompt_text: 'All Types',
+                  value_method: :id,
+                  text_method: :name,
+                  dropdown_id: 'client_subscription_type_dropdown' %>
           </div>
           
           <div class="flex-1">
             <label for="business_id" class="block text-sm font-medium text-gray-700">Business</label>
-            <%= select_tag :business_id, 
-                options_from_collection_for_select(@businesses, :id, :name, params[:business_id]),
-                { include_blank: "All Businesses" },
-                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+            <%= render 'shared/rich_dropdown',
+                  collection: @businesses,
+                  field_name: 'business_id',
+                  selected_value: params[:business_id],
+                  prompt_text: 'All Businesses',
+                  value_method: :id,
+                  text_method: :name,
+                  dropdown_id: 'client_subscription_business_dropdown' %>
           </div>
           
           <div>
