@@ -60,7 +60,7 @@ class Payment < ApplicationRecord
       return false
     end
 
-    Rails.logger.info("[PAYMENT] Initiating refund for Payment ##{id} by #{user&.email || 'system'} – amount=#{amount || amount}, reason=#{reason}")
+    Rails.logger.info("[PAYMENT] Initiating refund for Payment ##{id} by #{user&.email || 'system'} – amount=#{amount || self.amount}, reason=#{reason}")
 
     begin
       result = StripeService.create_refund(self, amount: amount, reason: reason)
