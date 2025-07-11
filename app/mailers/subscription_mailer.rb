@@ -56,7 +56,7 @@ class SubscriptionMailer < ApplicationMailer
     @customer_subscription = customer_subscription
     @customer = customer_subscription.tenant_customer
     @business = customer_subscription.business
-    @item = customer_subscription.item
+    @item = customer_subscription.product || customer_subscription.service
 
     # Set unsubscribe token for the customer
     set_unsubscribe_token(@customer)
