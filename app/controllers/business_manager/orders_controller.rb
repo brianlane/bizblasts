@@ -117,7 +117,8 @@ module BusinessManager
       end
 
       if refund_failures.empty?
-        @order.update!(status: :refunded)
+        # Use helper method to check if all payments are refunded and update order status accordingly
+        @order.check_and_update_refund_status!
         redirect_to business_manager_order_path(@order), notice: 'Refund initiated successfully.'
       else
         redirect_to business_manager_order_path(@order), alert: "Refund failed for payments: #{refund_failures.join(', ')}"

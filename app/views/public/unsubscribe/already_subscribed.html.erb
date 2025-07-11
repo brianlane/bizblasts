@@ -1,0 +1,35 @@
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div class="text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+          <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">
+          Already Subscribed
+        </h2>
+        
+        <div class="mb-6">
+          <p class="text-gray-600">
+            <strong><%= @recipient.email %></strong> is already subscribed to marketing emails.
+          </p>
+          <p class="text-sm text-gray-500 mt-2">
+            You'll receive updates about promotions, newsletters, and other marketing communications.
+          </p>
+        </div>
+
+        <div class="flex flex-col space-y-3">
+          <%= link_to "Unsubscribe from Emails", unsubscribe_path(token: params[:token]), 
+              method: :patch,
+              class: "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" %>
+          
+          <%= link_to "Return to Home", root_path, 
+              class: "w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

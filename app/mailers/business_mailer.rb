@@ -3,6 +3,7 @@
 class BusinessMailer < ApplicationMailer
   # Send domain request notification to premium business users after email confirmation
   def domain_request_notification(user)
+    return unless user.can_receive_email?(:system)
     @user = user
     @business = user.business
     
@@ -10,6 +11,9 @@ class BusinessMailer < ApplicationMailer
     return unless @business.present?
     
     @domain_requested = @business.hostname if @business.host_type_custom_domain?
+    
+    # Set unsubscribe token for the user
+    set_unsubscribe_token(user)
     
     mail(
       to: @user.email,
@@ -49,11 +53,11 @@ class BusinessMailer < ApplicationMailer
       return
     end
     
-    # Check if the manager has booking notifications enabled
-    unless notification_enabled?(business_user, 'email_booking_notifications')
-      Rails.logger.info "[BusinessMailer] Email booking notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive booking emails
+    return unless business_user.can_receive_email?(:booking)
+    
+    # Set unsubscribe token for the business user
+    set_unsubscribe_token(business_user)
     
     mail(
       to: business_user.email,
@@ -81,11 +85,11 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has order notifications enabled
-    unless notification_enabled?(business_user, 'email_order_notifications')
-      Rails.logger.info "[BusinessMailer] Email order notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive order emails
+    return unless business_user.can_receive_email?(:order)
+    
+    # Set unsubscribe token for the business user
+    set_unsubscribe_token(business_user)
     
     mail(
       to: business_user.email,
@@ -111,11 +115,11 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has customer notifications enabled
-    unless notification_enabled?(business_user, 'email_customer_notifications')
-      Rails.logger.info "[BusinessMailer] Email customer notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive customer emails
+    return unless business_user.can_receive_email?(:customer)
+    
+    # Set unsubscribe token for the business user
+    set_unsubscribe_token(business_user)
     
     mail(
       to: business_user.email,
@@ -146,11 +150,11 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has payment notifications enabled
-    unless notification_enabled?(business_user, 'email_payment_notifications')
-      Rails.logger.info "[BusinessMailer] Email payment notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive payment emails
+    return unless business_user.can_receive_email?(:payment)
+    
+    # Set unsubscribe token for the business user
+    set_unsubscribe_token(business_user)
     
     subject = if @booking
       "Payment Received: #{@customer.full_name} - #{@booking.service.name}"
@@ -187,17 +191,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has subscription notifications enabled
-    unless notification_enabled?(business_user, 'email_subscription_notifications')
-      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
-      return
-    end
-    
-    # Check if the manager has opted out of marketing emails
-    if business_user.email_marketing_opt_out == true
-      Rails.logger.info "[BusinessMailer] Manager has opted out of marketing emails for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive marketing emails
+    return unless business_user.can_receive_email?(:marketing)
     
     mail(
       to: business_user.email,
@@ -235,11 +230,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has subscription notifications enabled
-    unless notification_enabled?(business_user, 'email_subscription_notifications')
-      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive marketing emails
+    return unless business_user.can_receive_email?(:marketing)
     
     mail(
       to: business_user.email,
@@ -281,11 +273,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has subscription notifications enabled
-    unless notification_enabled?(business_user, 'email_subscription_notifications')
-      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive marketing emails
+    return unless business_user.can_receive_email?(:marketing)
     
     mail(
       to: business_user.email,
@@ -314,11 +303,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has subscription notifications enabled
-    unless notification_enabled?(business_user, 'email_subscription_notifications')
-      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive marketing emails
+    return unless business_user.can_receive_email?(:marketing)
     
     mail(
       to: business_user.email,
@@ -347,11 +333,8 @@ class BusinessMailer < ApplicationMailer
     # Check for valid email
     return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
     
-    # Check if the manager has subscription notifications enabled
-    unless notification_enabled?(business_user, 'email_subscription_notifications')
-      Rails.logger.info "[BusinessMailer] Email subscription notifications disabled for Business ##{@business.id}"
-      return
-    end
+    # Check if the manager can receive marketing emails
+    return unless business_user.can_receive_email?(:marketing)
     
     mail(
       to: business_user.email,

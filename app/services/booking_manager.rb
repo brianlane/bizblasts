@@ -359,9 +359,9 @@ class BookingManager
                 invoice.update!(status: :cancelled)
               end
 
-              # Update order status if applicable
+              # Update order status if applicable - use helper method to ensure consistency
               if (order = invoice.order)
-                order.update!(status: :refunded)
+                order.check_and_update_refund_status!
               end
             else
               Rails.logger.error "[BookingManager] Failed to refund Payment ##{payment.id} for Booking ##{booking.id}: #{payment.errors.full_messages.join(', ')}"

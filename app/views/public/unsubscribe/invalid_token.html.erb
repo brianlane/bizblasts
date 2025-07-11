@@ -1,0 +1,31 @@
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div class="text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+        
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">
+          Invalid Unsubscribe Link
+        </h2>
+        
+        <div class="mb-6">
+          <p class="text-gray-600">
+            The unsubscribe link you clicked is invalid or has expired.
+          </p>
+          <p class="text-sm text-gray-500 mt-2">
+            If you're still receiving unwanted emails, please contact our support team.
+          </p>
+        </div>
+
+        <div class="flex flex-col space-y-3">
+          <%= link_to "Return to Home", root_path, 
+              class: "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

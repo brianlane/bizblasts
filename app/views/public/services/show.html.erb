@@ -253,7 +253,7 @@
             <%= form_tag subscriptions_path, method: :post, class: "subscription-form" do %>
               <%= hidden_field_tag :service_id, @service.id %>
               <%= hidden_field_tag :subscription_type, 'service_subscription' %>
-              
+              <!--subscription monthly appointments is stored in the subscription model from the service view, not the services view (duplicate)-->
               <% if @service.allow_customer_preferences? %>
                 <div class="mb-3">
                   <label for="rebooking_preference" class="block text-sm font-medium text-purple-700 mb-1">Rebooking preference:</label>

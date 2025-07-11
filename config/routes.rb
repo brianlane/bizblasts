@@ -493,6 +493,11 @@ Rails.application.routes.draw do
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
 
+  # Universal unsubscribe routes
+  get '/unsubscribe', to: 'public/unsubscribe#show', as: :unsubscribe
+  patch '/unsubscribe', to: 'public/unsubscribe#update'
+  patch '/unsubscribe/resubscribe', to: 'public/unsubscribe#resubscribe', as: :resubscribe_unsubscribe
+
   # Policy acceptance routes
   resources :policy_acceptances, only: [:create, :show]
   get '/policy_status', to: 'policy_acceptances#status'

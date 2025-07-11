@@ -387,17 +387,9 @@ class StripeService
       # If all payments on this invoice are refunded, mark invoice as cancelled
       if invoice.payments.where.not(status: :refunded).none?
         invoice.update!(status: :cancelled)
-      end
-
-      # Update order status if applicable
-      if (order = invoice.order)
-        order.update!(status: :refunded)
-
-        # Send refund confirmation email
-        begin
-          OrderMailer.refund_confirmation(order, payment).deliver_later if defined?(OrderMailer)
-        rescue => e
-          Rails.logger.error "[EMAIL] Failed to send refund confirmation for Order ##{order.id}: #{e.message}"
+        # Update order status if applicable - use helper method to ensure consistency
+        if (order = invoice.order)
+          order.check_and_update_refund_status!
         end
       end
     end
@@ -883,11 +875,10 @@ class StripeService
         # If all payments on this invoice are refunded, mark invoice as cancelled
         if invoice.payments.where.not(status: :refunded).none?
           invoice.update!(status: :cancelled)
-        end
-
-        # Update order status if applicable
-        if (order = invoice.order)
-          order.update!(status: :refunded)
+          # Update order status if applicable - use helper method to ensure consistency
+          if (order = invoice.order)
+            order.check_and_update_refund_status!
+          end
         end
       end
     end

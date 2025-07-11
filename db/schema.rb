@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_02_182036) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1302,9 +1302,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_02_182036) do
     t.boolean "email_marketing_opt_out"
     t.string "first_name", null: false
     t.string "last_name", null: false
+    t.string "unsubscribe_token"
+    t.datetime "unsubscribed_at"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
+    t.index ["unsubscribe_token"], name: "index_tenant_customers_on_unsubscribe_token", unique: true
     t.index ["user_id"], name: "index_tenant_customers_on_user_id"
   end
 
@@ -1381,6 +1384,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_02_182036) do
     t.string "last_sign_in_ip"
     t.string "referral_source_code"
     t.boolean "email_marketing_opt_out"
+    t.string "unsubscribe_token"
+    t.datetime "unsubscribed_at"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
     t.index ["email", "role"], name: "index_users_on_email_and_role"
@@ -1388,6 +1393,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_02_182036) do
     t.index ["last_sign_in_at"], name: "index_users_on_last_sign_in_at"
     t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["unsubscribe_token"], name: "index_users_on_unsubscribe_token", unique: true
   end
 
   create_table "website_templates", force: :cascade do |t|
