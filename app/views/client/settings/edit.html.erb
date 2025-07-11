@@ -53,66 +53,69 @@
 
   <hr>
   <h3>Notification Preferences</h3>
-  <%= form.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
-    <p class="text-sm text-gray-600 mb-2">Manage your email and SMS notifications.</p>
-    
-    <div class="preference-section">
-      <h4>Booking & Service Notifications</h4>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_booking_confirmation, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_booking_confirmation, "Email Booking Confirmations", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive confirmation emails when you book services</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :sms_booking_reminder, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :sms_booking_reminder, "SMS Booking Reminders", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get SMS reminders before your appointments</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_booking_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_booking_updates, "Email Booking Status Updates", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get notified when your booking status changes</small>
-      </div>
-    </div>
 
-    <div class="preference-section">
-      <h4>Order & Product Notifications</h4>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_order_updates, "Email Order Updates (for products)", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive updates on your product orders</small>
+  <fieldset <%= 'disabled' if @user.unsubscribed_from_emails? %>>
+    <%= form.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
+      <p class="text-sm text-gray-600 mb-2">Manage your email and SMS notifications.</p>
+      
+      <div class="preference-section">
+        <h4>Booking & Service Notifications</h4>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :email_booking_confirmation, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :email_booking_confirmation, "Email Booking Confirmations", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Receive confirmation emails when you book services</small>
+        </div>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :sms_booking_reminder, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :sms_booking_reminder, "SMS Booking Reminders", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Get SMS reminders before your appointments</small>
+        </div>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :email_booking_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :email_booking_updates, "Email Booking Status Updates", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Get notified when your booking status changes</small>
+        </div>
       </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :sms_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :sms_order_updates, "SMS Order Updates (for products)", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get SMS updates on your product orders</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_payment_confirmations, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_payment_confirmations, "Email Payment Confirmations", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive email receipts when payments are processed</small>
-      </div>
-    </div>
 
-    <div class="preference-section">
-      <h4>Marketing & Promotional</h4>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_promotions, "Email Promotional Offers & News", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive special offers and business news</small>
+      <div class="preference-section">
+        <h4>Order & Product Notifications</h4>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :email_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :email_order_updates, "Email Order Updates (for products)", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Receive updates on your product orders</small>
+        </div>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :sms_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :sms_order_updates, "SMS Order Updates (for products)", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Get SMS updates on your product orders</small>
+        </div>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :email_payment_confirmations, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :email_payment_confirmations, "Email Payment Confirmations", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Receive email receipts when payments are processed</small>
+        </div>
       </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_blog_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get notified when we publish new blog posts</small>
+
+      <div class="preference-section">
+        <h4>Marketing & Promotional</h4>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :email_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :email_promotions, "Email Promotional Offers & News", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Receive special offers and business news</small>
+        </div>
+        <div class="mb-2">
+          <%= prefs_fields.check_box :email_blog_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Get notified when we publish new blog posts</small>
+        </div>
+        <div class="mb-4">
+          <%= prefs_fields.check_box :sms_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
+          <%= prefs_fields.label :sms_promotions, "SMS Promotional Offers", class: "ml-2 text-gray-700" %>
+          <small class="notification-description">Get special offers via SMS</small>
+        </div>
       </div>
-      <div class="mb-4">
-        <%= prefs_fields.check_box :sms_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :sms_promotions, "SMS Promotional Offers", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get special offers via SMS</small>
-      </div>
-    </div>
-  <% end %>
+    <% end %>
+  </fieldset>
 
   <div>
     <%= form.submit "Save Settings" %>
@@ -123,7 +126,7 @@
 <%= form_with url: unsubscribe_all_client_settings_path, method: :patch, local: true, data: { confirm: "Are you sure you want to unsubscribe from all notifications? You can re-subscribe in your settings at any time." } do |form|
 %>
   <div class="mt-4">
-    <%= form.submit "Unsubscribe From All Emails", class: "btn-secondary" %><%# Use a secondary button style %>
+    <%= form.submit "Unsubscribe From All Emails", class: "btn-secondary cursor-pointer" %><%# Use a secondary button style %>
   </div>
 <% end %>
 

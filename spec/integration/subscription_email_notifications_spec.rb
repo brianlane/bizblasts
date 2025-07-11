@@ -285,6 +285,20 @@ RSpec.describe "Subscription Email Notifications", type: :request do
     end
   end
 
+  describe 'universal unsubscribe' do
+    it 'does not send business notification emails if manager is globally unsubscribed, but still sends transactional emails to customers' do
+      business_manager = business.users.where(role: [:manager]).first
+      business_manager.update!(unsubscribed_at: Time.current)
+      # Try to send business notification
+      expect {
+        BusinessMailer.new_subscription_notification(product_subscription).deliver_now
+      }.not_to change { ActionMailer::Base.deliveries.count }
+      # Transactional email to customer should still send
+      expect {
+        SubscriptionMailer.payment_succeeded(product_subscription).deliver_now
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
+    end
+  end
 
 
   describe "subscription update emails" do

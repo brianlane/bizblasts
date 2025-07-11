@@ -83,4 +83,18 @@ RSpec.describe "Client Settings Management", type: :system do
     expect(page).to have_content("Profile settings updated successfully.")
     # Don't check specific notification_preferences values as we've already done that in the request spec
   end
+
+  it "shows the 'Unsubscribed Successfully' banner and disables notification toggles if globally unsubscribed" do
+    client_user.update!(unsubscribed_at: Time.current)
+    visit client_settings_path
+    expect(page).to have_content("Unsubscribed Successfully")
+    expect(page).to have_content("You have globally unsubscribed from all marketing and notification emails")
+    expect(page).to have_button("Resubscribe")
+    # All notification checkboxes should be disabled
+    within('fieldset[disabled]') do
+      expect(page).to have_unchecked_field("user[notification_preferences][email_booking_confirmation]", disabled: true)
+      expect(page).to have_unchecked_field("user[notification_preferences][email_order_updates]", disabled: true)
+      expect(page).to have_unchecked_field("user[notification_preferences][email_promotions]", disabled: true)
+    end
+  end
 end 

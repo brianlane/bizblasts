@@ -548,4 +548,22 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
       end
     end
   end
+
+  describe 'universal unsubscribe UI' do
+    before do
+      sign_in manager_user
+      manager_user.update!(unsubscribed_at: Time.current)
+    end
+
+    it "shows the 'Unsubscribed Successfully' banner but keeps notification toggles enabled for granular control" do
+      get edit_business_manager_settings_profile_path
+      expect(response.body).to include("Unsubscribed Successfully")
+      expect(response.body).to include("You have globally unsubscribed from all marketing and notification emails")
+      expect(response.body).to include("Resubscribe")
+      # Notification checkboxes should remain enabled for granular control
+      expect(response.body).not_to include("fieldset disabled")
+      # Should show the unsubscribe banner (not the flash message from button click)
+      expect(response.body).to include("You have globally unsubscribed from all marketing and notification emails")
+    end
+  end
 end 

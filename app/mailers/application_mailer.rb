@@ -30,4 +30,18 @@ class ApplicationMailer < ActionMailer::Base
     admin_notice = "\n\n---\nPlease do not reply to this email, and send all communications to #{ENV['ADMIN_EMAIL']}"
     body + admin_notice
   end
+
+  # Set unsubscribe token for email recipient
+  def set_unsubscribe_token(recipient)
+    if recipient.is_a?(User)
+      @unsubscribe_token = recipient.unsubscribe_token
+      @user = recipient
+    elsif recipient.is_a?(TenantCustomer)
+      @unsubscribe_token = recipient.unsubscribe_token
+      @user = nil
+    else
+      @unsubscribe_token = nil
+      @user = nil
+    end
+  end
 end

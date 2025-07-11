@@ -219,10 +219,14 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <%= form.label :quantity, "Monthly Appointments", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.number_field :quantity, 
-                      value: @customer_subscription.quantity || 1,
-                      min: 1, max: 4,
-                      class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" %>
+                <%= render 'shared/rich_dropdown',
+                      collection: [1,2,3,4].map { |n| OpenStruct.new(id: n, name: n.to_s) },
+                      field_name: 'customer_subscription[quantity]',
+                      selected_value: @customer_subscription.quantity || 1,
+                      prompt_text: 'Select number of appointments',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_quantity_dropdown' %>
                 <p class="mt-1 text-xs text-gray-500">appointments per month</p>
               </div>
               <div>

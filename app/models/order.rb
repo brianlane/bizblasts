@@ -301,4 +301,18 @@ class Order < ApplicationRecord
     invoice.payments.successful.where.not(status: :refunded).exists?
   end
 
+  # Check if all payments on the associated invoice are refunded and update order status accordingly
+  # This method should be called after a payment is refunded to ensure consistent state
+  def check_and_update_refund_status!
+    return unless invoice
+    
+    # Only update to refunded if all payments on the invoice are refunded
+    if invoice.payments.where.not(status: :refunded).none?
+      update!(status: :refunded)
+      Rails.logger.info "[ORDER] Updated order ##{order_number} status to refunded - all invoice payments refunded"
+    else
+      Rails.logger.info "[ORDER] Order ##{order_number} not yet refunded - #{invoice.payments.where.not(status: :refunded).count} payments still pending refund"
+    end
+  end
+
 end

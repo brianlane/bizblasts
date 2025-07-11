@@ -30,11 +30,14 @@ class TenantCustomer < ApplicationRecord
   
   # Callbacks
   after_create :send_business_customer_notification
+  after_create :generate_unsubscribe_token
   
   # Add accessor to skip email notifications when handled by staggered delivery
   attr_accessor :skip_notification_email
   
   scope :active, -> { where(active: true) }
+  scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
+  scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
   
   def full_name
     [first_name, last_name].compact.join(' ').presence || email
@@ -156,6 +159,42 @@ class TenantCustomer < ApplicationRecord
   # This combined with the index on the database should improve performance
   def self.index_for_email_uniqueness
     @email_business_index ||= {}
+  end
+
+  # Unsubscribe system methods
+  def generate_unsubscribe_token
+    loop do
+      self.unsubscribe_token = SecureRandom.hex(32)
+      break unless TenantCustomer.exists?(unsubscribe_token: unsubscribe_token)
+    end
+    save(validate: false) if persisted?
+  end
+
+  def regenerate_unsubscribe_token
+    generate_unsubscribe_token
+  end
+
+  def unsubscribe_from_emails!
+    update!(
+      unsubscribed_at: Time.current,
+      email_marketing_opt_out: true
+    )
+  end
+
+  def resubscribe_to_emails!
+    update!(
+      unsubscribed_at: nil,
+      email_marketing_opt_out: false
+    )
+    regenerate_unsubscribe_token
+  end
+
+  def unsubscribed_from_emails?
+    unsubscribed_at.present?
+  end
+
+  def subscribed_to_emails?
+    !unsubscribed_from_emails?
   end
   
   private

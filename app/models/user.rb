@@ -30,6 +30,7 @@ class User < ApplicationRecord
   # Callbacks
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
+  after_create :generate_unsubscribe_token
 
   # Validations
   validates :email, presence: true,
@@ -58,6 +59,8 @@ class User < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :business_users, -> { where(role: [:manager, :staff]) }
   scope :clients, -> { where(role: :client) }
+  scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
+  scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
 
   # Methods
   def active_for_authentication?
@@ -228,6 +231,52 @@ class User < ApplicationRecord
     # Clear policy status response cache
     Rails.cache.delete("policy_status_response_#{id}")
     Rails.cache.delete("policy_status_check_#{id}")
+  end
+
+  # Returns true if the user can receive a given type of email (e.g., :marketing, :blog, :booking, etc.)
+  def can_receive_email?(type)
+    return false if unsubscribed_from_emails? || email_marketing_opt_out
+    return true if type == :transactional # Always allow transactional emails
+
+    # Map type to notification_preferences key(s)
+    key_map = {
+      marketing: %w[email_marketing_notifications email_promotional_offers email_marketing_updates email_promotions],
+      blog: %w[email_blog_notifications email_blog_updates blog_post_notifications],
+      booking: %w[email_booking_notifications email_booking_confirmation email_booking_updates],
+      order: %w[email_order_notifications email_order_updates],
+      payment: %w[email_payment_notifications email_payment_confirmations],
+      customer: %w[email_customer_notifications],
+      system: %w[system_notifications]
+    }
+    keys = key_map[type.to_sym] || []
+    return true if keys.empty? # If unknown type, default to allow
+    
+    # If no notification preferences are set, default to true
+    return true if notification_preferences.nil? || notification_preferences.empty?
+    
+    # Check if any of the relevant keys are explicitly set to false
+    # If none are explicitly false, allow the email
+    keys.none? { |k| notification_preferences[k] == false || notification_preferences[k] == '0' }
+  end
+
+  def unsubscribed_from_emails?
+    # Check if globally unsubscribed via button (unsubscribed_at set)
+    return true if unsubscribed_at.present?
+    
+    # Check if all email notification preferences are false
+    return false if notification_preferences.nil? || notification_preferences.empty?
+    
+    email_preferences = %w[
+      email_booking_notifications email_customer_notifications email_payment_notifications 
+      email_subscription_notifications email_marketing_notifications email_blog_notifications
+      email_system_notifications email_marketing_updates email_blog_updates
+    ]
+    
+    email_preferences.all? { |pref| notification_preferences[pref] == false }
+  end
+
+  def subscribed_to_emails?
+    !unsubscribed_from_emails?
   end
 
   private # Ensure private keyword exists or add it if needed
@@ -412,6 +461,56 @@ class User < ApplicationRecord
   # Helper method for conditional password validation (mimics Devise behavior)
   def password_required?
     !persisted? || password.present? || password_confirmation.present?
+  end
+
+  # Unsubscribe system methods
+  def generate_unsubscribe_token
+    loop do
+      self.unsubscribe_token = SecureRandom.hex(32)
+      break unless User.exists?(unsubscribe_token: unsubscribe_token)
+    end
+    save(validate: false) if persisted?
+  end
+
+  def regenerate_unsubscribe_token
+    generate_unsubscribe_token
+  end
+
+  def unsubscribe_from_emails!
+    update!(
+      unsubscribed_at: Time.current,
+      email_marketing_opt_out: true
+    )
+    # Update notification preferences to disable email notifications
+    update_notification_preferences_for_unsubscribe
+  end
+
+  def resubscribe_to_emails!
+    update!(
+      unsubscribed_at: nil,
+      email_marketing_opt_out: false
+    )
+    regenerate_unsubscribe_token
+  end
+
+  def update_notification_preferences_for_unsubscribe
+    return unless notification_preferences.present?
+    
+    # Disable all email-related notification preferences
+    updated_preferences = notification_preferences.dup
+    email_preferences = %w[
+      email_booking_notifications
+      email_customer_notifications
+      email_payment_notifications
+      email_subscription_notifications
+      email_marketing_notifications
+    ]
+    
+    email_preferences.each do |pref|
+      updated_preferences[pref] = false
+    end
+    
+    update_column(:notification_preferences, updated_preferences)
   end
 
   def email_uniqueness_by_role_type
