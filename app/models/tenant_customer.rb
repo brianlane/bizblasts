@@ -186,6 +186,26 @@ class TenantCustomer < ApplicationRecord
     !unsubscribed_from_emails?
   end
   
+  # Returns true if the customer can receive a given type of email (e.g., :marketing, :blog, :booking, etc.)
+  def can_receive_email?(type)
+    return true if type == :transactional # Always allow transactional emails
+    return false if unsubscribed_from_emails?
+
+    # For TenantCustomer, we have simpler logic than User since we don't have granular notification preferences
+    # We only check the global unsubscribe status and email_marketing_opt_out for marketing emails
+    case type.to_sym
+    when :marketing
+      # Check if marketing emails are explicitly opted out
+      !email_marketing_opt_out?
+    when :blog, :booking, :order, :payment, :customer, :system, :subscription
+      # For other email types, allow if not globally unsubscribed
+      true
+    else
+      # Default to allow for unknown types
+      true
+    end
+  end
+  
   private
   
   def send_business_customer_notification
