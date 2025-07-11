@@ -238,7 +238,7 @@ class User < ApplicationRecord
   # Returns true if the user can receive a given type of email (e.g., :marketing, :blog, :booking, etc.)
   def can_receive_email?(type)
     return true if type == :transactional # Always allow transactional emails
-    return false if unsubscribed_from_emails? || email_marketing_opt_out
+    return false if unsubscribed_from_emails?
 
     # Map type to notification_preferences key(s)
     key_map = {
@@ -248,7 +248,8 @@ class User < ApplicationRecord
       order: %w[email_order_notifications email_order_updates],
       payment: %w[email_payment_notifications email_payment_confirmations],
       customer: %w[email_customer_notifications],
-      system: %w[system_notifications]
+      system: %w[system_notifications],
+      subscription: %w[email_subscription_notifications]
     }
     keys = key_map[type.to_sym] || []
     return true if keys.empty? # If unknown type, default to allow
