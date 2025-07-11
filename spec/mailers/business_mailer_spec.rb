@@ -93,7 +93,11 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
 
     it 'does not send email when notifications are disabled' do
-      manager_user.update!(notification_preferences: { 'email_booking_notifications' => false })
+      manager_user.update!(notification_preferences: { 
+        'email_booking_notifications' => false,
+        'email_booking_confirmation' => false,
+        'email_booking_updates' => false
+      })
       
       expect {
         BusinessMailer.new_booking_notification(booking).deliver_now
@@ -124,7 +128,10 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
 
     it 'does not send email when notifications are disabled' do
-      manager_user.update!(notification_preferences: { 'email_order_notifications' => false })
+      manager_user.update!(notification_preferences: { 
+        'email_order_notifications' => false,
+        'email_order_updates' => false
+      })
       
       expect {
         BusinessMailer.new_order_notification(order).deliver_now
@@ -154,7 +161,9 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
 
     it 'does not send email when notifications are disabled' do
-      manager_user.update!(notification_preferences: { 'email_customer_notifications' => false })
+      manager_user.update!(notification_preferences: { 
+        'email_customer_notifications' => false
+      })
       
       expect {
         BusinessMailer.new_customer_notification(tenant_customer).deliver_now
@@ -204,7 +213,10 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
 
     it 'does not send email when notifications are disabled' do
-      manager_user.update!(notification_preferences: { 'email_payment_notifications' => false })
+      manager_user.update!(notification_preferences: { 
+        'email_payment_notifications' => false,
+        'email_payment_confirmations' => false
+      })
       
       expect {
         BusinessMailer.payment_received_notification(payment).deliver_now
@@ -284,7 +296,11 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
 
     it 'logs appropriate info when notifications are disabled' do
-      manager_user.update!(notification_preferences: { 'email_booking_notifications' => false })
+      manager_user.update!(notification_preferences: { 
+        'email_booking_notifications' => false,
+        'email_booking_confirmation' => false,
+        'email_booking_updates' => false
+      })
       booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
       
       expect {
@@ -299,9 +315,13 @@ RSpec.describe BusinessMailer, type: :mailer do
       # Disable all notifications
       manager_user.update!(notification_preferences: {
         'email_booking_notifications' => false,
+        'email_booking_confirmation' => false,
+        'email_booking_updates' => false,
         'email_order_notifications' => false,
+        'email_order_updates' => false,
         'email_customer_notifications' => false,
-        'email_payment_notifications' => false
+        'email_payment_notifications' => false,
+        'email_payment_confirmations' => false
       })
       
       booking = create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member)
@@ -327,9 +347,13 @@ RSpec.describe BusinessMailer, type: :mailer do
         # This reflects the actual production state where notifications are disabled
         manager_user.update!(notification_preferences: {
           'email_booking_notifications' => false,
+          'email_booking_confirmation' => false,
+          'email_booking_updates' => false,
           'email_order_notifications' => false,
+          'email_order_updates' => false,
           'email_customer_notifications' => false,
-          'email_payment_notifications' => false
+          'email_payment_notifications' => false,
+          'email_payment_confirmations' => false
         })
       end
 
