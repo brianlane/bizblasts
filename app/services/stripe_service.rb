@@ -378,7 +378,21 @@ class StripeService
     refund = Stripe::Refund.create(params, {
       stripe_account: payment.business.stripe_account_id
     })
-    payment.update!(status: :refunded, refunded_amount: (refund.amount_refunded / 100.0), refund_reason: reason)
+
+    refunded_amt = refund.amount_refunded / 100.0
+    payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+
+    # Cascade updates to related records
+    if (invoice = payment.invoice)
+      # If all payments on this invoice are refunded, mark invoice as cancelled
+      if invoice.payments.where.not(status: :refunded).none?
+        invoice.update!(status: :cancelled)
+        # Update order status if applicable - use helper method to ensure consistency
+        if (order = invoice.order)
+          order.check_and_update_refund_status!
+        end
+      end
+    end
     refund
   end
 
@@ -855,6 +869,18 @@ class StripeService
       refunded_amt = charge['amount_refunded'] / 100.0
       reason = charge['refunds']&.dig('data')&.first&.dig('reason')
       payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+
+      # Cascade updates to related records
+      if (invoice = payment.invoice)
+        # If all payments on this invoice are refunded, mark invoice as cancelled
+        if invoice.payments.where.not(status: :refunded).none?
+          invoice.update!(status: :cancelled)
+          # Update order status if applicable - use helper method to ensure consistency
+          if (order = invoice.order)
+            order.check_and_update_refund_status!
+          end
+        end
+      end
     end
   end
 

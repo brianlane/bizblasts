@@ -109,6 +109,7 @@ Rails.application.routes.draw do
         member do
           patch 'confirm'
           patch 'cancel'
+          patch 'refund'
           get 'reschedule'
           patch 'update_schedule'
         end
@@ -127,11 +128,18 @@ Rails.application.routes.draw do
       resources :transactions, only: [:index, :show]
       
       # Business orders management
-      resources :orders, only: [:index, :show, :new, :create, :edit, :update]
+      resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
+        member do
+          patch :refund
+        end
+      end
       resources :invoices, only: [:index, :show] do
         post :resend, on: :member
         patch :cancel, on: :member
       end
+      
+      # Business payments management
+      resources :payments, only: [:index, :show]
       get '/settings', to: 'settings#index', as: :settings
 
       # Route to dismiss individual business setup reminder tasks for the current user
@@ -484,6 +492,11 @@ Rails.application.routes.draw do
 
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
+
+  # Universal unsubscribe routes
+  get '/unsubscribe', to: 'public/unsubscribe#show', as: :unsubscribe
+  patch '/unsubscribe', to: 'public/unsubscribe#update'
+  patch '/unsubscribe/resubscribe', to: 'public/unsubscribe#resubscribe', as: :resubscribe_unsubscribe
 
   # Policy acceptance routes
   resources :policy_acceptances, only: [:create, :show]

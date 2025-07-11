@@ -314,4 +314,40 @@ RSpec.describe User, type: :model do
       end
     end
   end
+
+  describe 'unsubscribe token generation' do
+    let(:business) { create(:business) }
+    
+    it 'generates a unique unsubscribe token' do
+      user = create(:user, role: :client)
+      expect(user.unsubscribe_token).to be_present
+      expect(user.unsubscribe_token.length).to eq(64) # 32 hex chars = 64 characters
+    end
+    
+    it 'ensures tokens are unique across User and TenantCustomer tables' do
+      # Create a user with a specific token
+      user = create(:user, role: :client)
+      original_token = user.unsubscribe_token
+      
+      # Create a tenant customer and force it to try to use the same token
+      tenant_customer = build(:tenant_customer, business: business)
+      tenant_customer.unsubscribe_token = original_token
+      
+      # The generate_unsubscribe_token method should detect the collision and generate a new token
+      tenant_customer.send(:generate_unsubscribe_token)
+      
+      expect(tenant_customer.unsubscribe_token).not_to eq(original_token)
+      expect(tenant_customer.unsubscribe_token).to be_present
+    end
+    
+    it 'regenerates a new unique token' do
+      user = create(:user, role: :client)
+      original_token = user.unsubscribe_token
+      
+      user.send(:regenerate_unsubscribe_token)
+      
+      expect(user.unsubscribe_token).not_to eq(original_token)
+      expect(user.unsubscribe_token).to be_present
+    end
+  end
 end

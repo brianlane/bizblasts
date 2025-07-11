@@ -17,6 +17,11 @@ module Settings
       user == record
     end
 
+    def unsubscribe_all?
+      # A user can only unsubscribe from all emails for their own profile
+      user == record
+    end
+
     class Scope < Scope
       def resolve
         # Users can only see their own record in a profile context

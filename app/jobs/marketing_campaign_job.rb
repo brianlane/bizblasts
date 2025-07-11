@@ -30,20 +30,15 @@ class MarketingCampaignJob < ApplicationJob
   private
   
   def process_email_campaign(campaign, options)
-    # Get recipients based on segmentation
     recipients = get_recipients(campaign, options)
+    recipients = recipients.select { |r| r.can_receive_email?(:marketing) }
     return if recipients.empty?
-    
     # In a real implementation, this would use ActionMailer or a third-party service
     # recipients.each do |recipient|
     #   MarketingMailer.campaign_email(recipient, campaign).deliver_later
     # end
-    
-    # Log the count of emails sent
     recipient_count = recipients.count
     Rails.logger.info "Sending #{recipient_count} emails for campaign ##{campaign.id}"
-    
-    # Record metrics
     update_campaign_metrics(campaign, { email_recipients_count: recipient_count, email_sent_at: Time.current })
   end
   

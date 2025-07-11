@@ -2,6 +2,7 @@
 
 class TenantCustomer < ApplicationRecord
   include TenantScoped
+  include UnsubscribeTokenGenerator
   
   acts_as_tenant(:business)
   belongs_to :business
@@ -30,11 +31,14 @@ class TenantCustomer < ApplicationRecord
   
   # Callbacks
   after_create :send_business_customer_notification
+  after_create :generate_unsubscribe_token
   
   # Add accessor to skip email notifications when handled by staggered delivery
   attr_accessor :skip_notification_email
   
   scope :active, -> { where(active: true) }
+  scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
+  scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
   
   def full_name
     [first_name, last_name].compact.join(' ').presence || email
@@ -156,6 +160,50 @@ class TenantCustomer < ApplicationRecord
   # This combined with the index on the database should improve performance
   def self.index_for_email_uniqueness
     @email_business_index ||= {}
+  end
+
+  # Unsubscribe system methods
+  def unsubscribe_from_emails!
+    update!(
+      unsubscribed_at: Time.current,
+      email_marketing_opt_out: true
+    )
+  end
+
+  def resubscribe_to_emails!
+    update!(
+      unsubscribed_at: nil,
+      email_marketing_opt_out: false
+    )
+    regenerate_unsubscribe_token
+  end
+
+  def unsubscribed_from_emails?
+    unsubscribed_at.present?
+  end
+
+  def subscribed_to_emails?
+    !unsubscribed_from_emails?
+  end
+  
+  # Returns true if the customer can receive a given type of email (e.g., :marketing, :blog, :booking, etc.)
+  def can_receive_email?(type)
+    return true if type == :transactional # Always allow transactional emails
+    return false if unsubscribed_from_emails?
+
+    # For TenantCustomer, we have simpler logic than User since we don't have granular notification preferences
+    # We only check the global unsubscribe status and email_marketing_opt_out for marketing emails
+    case type.to_sym
+    when :marketing
+      # Check if marketing emails are explicitly opted out
+      !email_marketing_opt_out?
+    when :blog, :booking, :order, :payment, :customer, :system, :subscription
+      # For other email types, allow if not globally unsubscribed
+      true
+    else
+      # Default to allow for unknown types
+      true
+    end
   end
   
   private

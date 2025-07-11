@@ -4,7 +4,7 @@ module BusinessManager
   class BookingsController < BaseController
     before_action :authenticate_user!
     before_action :require_business_staff!
-    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule]
+    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund]
     
     # GET /manage/bookings
     def index
@@ -206,6 +206,29 @@ module BusinessManager
         end
       end
       
+      redirect_to business_manager_booking_path(@booking)
+    end
+
+    # PATCH /manage/bookings/:id/refund
+    def refund
+      unless @booking.refundable?
+        flash[:alert] = "This booking is not eligible for a refund."
+        return redirect_to business_manager_booking_path(@booking)
+      end
+
+      refund_failures = []
+      @booking.invoice.payments.successful.where.not(status: :refunded).each do |payment|
+        success = payment.initiate_refund(reason: 'booking_refund', user: current_user)
+        refund_failures << payment.id unless success
+      end
+
+      if refund_failures.empty?
+        flash[:notice] = 'Refund initiated successfully.'
+        @booking.update(status: :cancelled) if @booking.status != 'cancelled'
+      else
+        flash[:alert] = "Refund failed for payments: #{refund_failures.join(', ')}"
+      end
+
       redirect_to business_manager_booking_path(@booking)
     end
     

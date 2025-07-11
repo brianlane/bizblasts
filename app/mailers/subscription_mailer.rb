@@ -7,6 +7,9 @@ class SubscriptionMailer < ApplicationMailer
     @customer = customer_subscription.tenant_customer
     @item = customer_subscription.product || customer_subscription.service
     
+    # Set unsubscribe token for the customer
+    set_unsubscribe_token(@customer)
+    
     # Always send transactional emails regardless of marketing preferences
     mail(
       to: @customer.email,
@@ -23,6 +26,9 @@ class SubscriptionMailer < ApplicationMailer
     @customer = customer_subscription.tenant_customer
     @item = customer_subscription.product || customer_subscription.service
     
+    # Set unsubscribe token for the customer
+    set_unsubscribe_token(@customer)
+    
     mail(
       to: @customer.email,
       subject: "Subscription Payment Processed - #{@item.name}",
@@ -36,6 +42,9 @@ class SubscriptionMailer < ApplicationMailer
     @customer = customer_subscription.tenant_customer
     @item = customer_subscription.product || customer_subscription.service
     
+    # Set unsubscribe token for the customer
+    set_unsubscribe_token(@customer)
+    
     mail(
       to: @customer.email,
       subject: "Subscription Payment Failed - #{@item.name}",
@@ -47,7 +56,10 @@ class SubscriptionMailer < ApplicationMailer
     @customer_subscription = customer_subscription
     @customer = customer_subscription.tenant_customer
     @business = customer_subscription.business
-    @item = customer_subscription.item
+    @item = customer_subscription.product || customer_subscription.service
+
+    # Set unsubscribe token for the customer
+    set_unsubscribe_token(@customer)
 
     mail(
       to: @customer.email,
