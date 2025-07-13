@@ -571,7 +571,12 @@ Rails.application.routes.draw do
     end
   end
 
-
+  namespace :business_manager, path: '/manage' do
+    resource :settings, only: [:show] do
+      get :edit_sidebar
+      patch :update_sidebar
+    end
+  end
 
   authenticated :user, ->(user) { user.admin? } do
     get 'dashboard', to: 'admin_dashboard#index'
