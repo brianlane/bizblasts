@@ -16,19 +16,19 @@ RSpec.describe 'BusinessManager::Settings sidebar customization', type: :request
   end
 
   it 'shows the sidebar customization page' do
-    get edit_sidebar_business_manager_settings_path
+    get edit_sidebar_settings_path
     expect(response).to be_successful
     expect(response.body).to include('Customize Sidebar')
   end
 
   it 'updates sidebar order and visibility' do
-    patch update_sidebar_business_manager_settings_path, params: {
+    patch update_sidebar_settings_path, params: {
       sidebar_items: [
         { key: 'dashboard', visible: '1' },
         { key: 'bookings', visible: '0' }
       ]
     }
-    expect(response).to redirect_to(business_manager_settings_path)
+    expect(response).to redirect_to(edit_sidebar_settings_path)
     user.reload
     # All default sidebar items should be created (18 total)
     expect(user.user_sidebar_items.count).to eq(18)
@@ -41,13 +41,13 @@ RSpec.describe 'BusinessManager::Settings sidebar customization', type: :request
 
   it 'does not show Website Builder for free tier' do
     business.update!(tier: :free)
-    get edit_sidebar_business_manager_settings_path
+    get edit_sidebar_settings_path
     expect(response.body).not_to include('Website Builder')
   end
 
   it 'shows Website Builder for standard tier' do
     business.update!(tier: :standard)
-    get edit_sidebar_business_manager_settings_path
+    get edit_sidebar_settings_path
     expect(response.body).to include('Website Builder')
   end
 end 
