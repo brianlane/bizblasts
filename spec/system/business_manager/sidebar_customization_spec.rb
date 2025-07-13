@@ -6,7 +6,7 @@ RSpec.describe 'Sidebar Customization', type: :system do
   before do
     switch_to_subdomain(business.subdomain)
     login_as(manager, scope: :user)
-    visit edit_sidebar_settings_path
+    visit edit_sidebar_business_manager_settings_sidebar_path
   end
 
   it 'shows all sidebar items and allows reordering and hiding' do
@@ -16,17 +16,10 @@ RSpec.describe 'Sidebar Customization', type: :system do
     first_label = first('.sidebar-item label')
     sidebar_label = first_label.text
     uncheck first_label[:for]
-    puts "--- BEFORE SAVE ---"
-    puts page.html
     # Drag the second item to the top
     sidebar_items = all('.sidebar-item')
     sidebar_items[1].drag_to(sidebar_items[0])
     click_button 'Save Sidebar'
-    puts "--- AFTER SAVE ---"
-    puts page.html
-    # Debug: print sidebar config from backend
-    user_id = manager.id
-    puts `bin/rails runner 'puts User.find(#{user_id}).sidebar_items_config.inspect'`
     within('#sidebar') do
       expect(page).not_to have_content(sidebar_label)
     end

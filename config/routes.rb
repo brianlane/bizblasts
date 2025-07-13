@@ -182,6 +182,10 @@ Rails.application.routes.draw do
         # Tips configuration
         resource :tips, only: [:show, :update]
 
+        resource :sidebar, only: [:show], controller: 'sidebar' do
+          get :edit_sidebar
+          patch :update_sidebar
+        end
       end
       
       # Customer Subscription Management for Business Managers
@@ -432,11 +436,6 @@ Rails.application.routes.draw do
         get :success
         get :cancel
       end
-    end
-
-    resource :settings, only: [:show] do
-      get :edit_sidebar
-      patch :update_sidebar
     end
   end
 
