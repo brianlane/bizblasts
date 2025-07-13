@@ -6,7 +6,7 @@ RSpec.describe 'Sidebar Customization', type: :system do
   before do
     switch_to_subdomain(business.subdomain)
     login_as(manager, scope: :user)
-    visit edit_sidebar_business_manager_settings_path
+    visit edit_sidebar_settings_path
   end
 
   it 'shows all sidebar items and allows reordering and hiding' do

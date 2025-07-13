@@ -9,7 +9,7 @@
       </div>
     </div>
     <div class="panel-body">
-      <%= form_with url: update_sidebar_business_manager_settings_path, method: :patch, local: true, id: 'sidebar-customization-form' do |f| %>
+      <%= form_with url: update_sidebar_settings_path, method: :patch, local: true, id: 'sidebar-customization-form' do |f| %>
         <ul id="sidebar-items-list" class="sortable-list">
           <% @sidebar_items.each_with_index do |item, idx| %>
             <% user_item = @user_sidebar_items[item[:key]] %>

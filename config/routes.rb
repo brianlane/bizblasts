@@ -433,6 +433,11 @@ Rails.application.routes.draw do
         get :cancel
       end
     end
+
+    resource :settings, only: [:show] do
+      get :edit_sidebar
+      patch :update_sidebar
+    end
   end
 
   # Fallback routes for base OrdersController new/create
@@ -568,13 +573,6 @@ Rails.application.routes.draw do
         get :subscriptions
         patch :update_subscriptions
       end
-    end
-  end
-
-  namespace :business_manager, path: '/manage' do
-    resource :settings, only: [:show] do
-      get :edit_sidebar
-      patch :update_sidebar
     end
   end
 

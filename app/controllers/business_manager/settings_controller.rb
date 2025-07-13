@@ -47,7 +47,7 @@ class BusinessManager::SettingsController < BusinessManager::BaseController
       end
     end
     respond_to do |format|
-      format.html { redirect_to edit_sidebar_business_manager_settings_path, notice: 'Sidebar updated.' }
+      format.html { redirect_to edit_sidebar_settings_path, notice: 'Sidebar updated.' }
       format.json { render json: { success: true } }
     end
   end
