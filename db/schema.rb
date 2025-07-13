@@ -1355,6 +1355,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
     t.check_constraint "amount > 0::numeric", name: "tips_amount_positive"
   end
 
+  create_table "user_sidebar_items", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "item_key", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "visible", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "item_key"], name: "index_user_sidebar_items_on_user_id_and_item_key", unique: true
+    t.index ["user_id"], name: "index_user_sidebar_items_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", null: false
     t.string "encrypted_password", default: "", null: false
@@ -1559,6 +1570,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
   add_foreign_key "tips", "bookings"
   add_foreign_key "tips", "businesses"
   add_foreign_key "tips", "tenant_customers"
+  add_foreign_key "user_sidebar_items", "users"
   add_foreign_key "users", "businesses"
   add_foreign_key "users", "staff_members"
   add_foreign_key "website_themes", "businesses"
