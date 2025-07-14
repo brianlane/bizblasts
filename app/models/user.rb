@@ -21,6 +21,7 @@ class User < ApplicationRecord
   has_many :policy_acceptances, dependent: :destroy
   # Track which setup reminder tasks the user has dismissed
   has_many :setup_reminder_dismissals, dependent: :destroy
+  has_many :user_sidebar_items, dependent: :destroy
   
   # Referral system associations
   has_many :referrals_made, class_name: 'Referral', foreign_key: 'referrer_id', dependent: :destroy
@@ -280,6 +281,22 @@ class User < ApplicationRecord
 
   def subscribed_to_emails?
     !unsubscribed_from_emails?
+  end
+
+  def sidebar_items_config
+    if user_sidebar_items.exists?
+      defaults = UserSidebarItem.default_items_for(self).index_by { |item| item[:key] }
+      visible_items = user_sidebar_items.order(:position).select { |item| item.visible }
+      return [] if user_sidebar_items.count > 0 && visible_items.empty?
+      visible_items.map do |item|
+        label = defaults[item.item_key]&.dig(:label) || item.item_key.humanize
+        OpenStruct.new(item_key: item.item_key, label: label, position: item.position, visible: item.visible)
+      end
+    else
+      UserSidebarItem.default_items_for(self).map.with_index do |item, idx|
+        OpenStruct.new(item_key: item[:key], label: item[:label], position: idx, visible: true)
+      end
+    end
   end
 
   private # Ensure private keyword exists or add it if needed

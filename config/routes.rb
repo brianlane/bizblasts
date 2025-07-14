@@ -182,6 +182,10 @@ Rails.application.routes.draw do
         # Tips configuration
         resource :tips, only: [:show, :update]
 
+        resource :sidebar, only: [:show], controller: 'sidebar' do
+          get :edit_sidebar
+          patch :update_sidebar
+        end
       end
       
       # Customer Subscription Management for Business Managers
@@ -570,8 +574,6 @@ Rails.application.routes.draw do
       end
     end
   end
-
-
 
   authenticated :user, ->(user) { user.admin? } do
     get 'dashboard', to: 'admin_dashboard#index'
