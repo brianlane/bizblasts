@@ -38,6 +38,40 @@
     <%= form.number_field :price, step: 0.01, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
   </div>
 
+  <div class="mb-8 border-t pt-6">
+    <h3 class="text-lg font-semibold mb-4">Service Variants</h3>
+    <p class="text-sm text-gray-600 mb-4">Create different versions of this service (e.g., 30-min, 60-min) with their own duration and price.</p>
+
+    <%= form.fields_for :service_variants do |variant_form| %>
+      <div class="grid grid-cols-12 gap-4 items-end mb-4 border p-4 rounded-lg bg-gray-50">
+        <div class="col-span-3">
+          <%= variant_form.label :name, class: "block text-gray-700 text-sm font-bold mb-1" %>
+          <%= variant_form.text_field :name, class: "w-full border rounded px-3 py-2" %>
+        </div>
+        <div class="col-span-3">
+          <%= variant_form.label :duration, "Duration (min)", class: "block text-gray-700 text-sm font-bold mb-1" %>
+          <%= variant_form.number_field :duration, min: 1, class: "w-full border rounded px-3 py-2" %>
+        </div>
+        <div class="col-span-3">
+          <%= variant_form.label :price, class: "block text-gray-700 text-sm font-bold mb-1" %>
+          <%= variant_form.number_field :price, step: 0.01, class: "w-full border rounded px-3 py-2" %>
+        </div>
+        <div class="col-span-2 flex items-center">
+          <%= variant_form.check_box :active, class: "mr-2" %> <%= variant_form.label :active, class: "text-sm" %>
+        </div>
+        <div class="col-span-1 text-right">
+          <% unless variant_form.object.new_record? %>
+            <%= variant_form.check_box :_destroy %>
+            <%= variant_form.label :_destroy, "Remove", class: "text-sm text-red-600" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <%# Simple link to add another blank variant (will be handled by Stimulus or Rails UJS duplicates) %>
+    <%= link_to "Add Variant", "#", class: "text-blue-600 text-sm", id: "add-variant-link" %>
+  </div>
+
   <div class="mb-4">
     <%= form.check_box :active %>
     <%= form.label :active, class: "ml-2 text-gray-700 text-sm font-bold" %>

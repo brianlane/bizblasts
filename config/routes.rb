@@ -86,6 +86,7 @@ Rails.application.routes.draw do
           patch :move_up
           patch :move_down
         end
+        resources :service_variants, except: [:show]
       end
       resources :products do
         member do

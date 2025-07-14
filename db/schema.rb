@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_14_151000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -161,6 +161,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
     t.datetime "tip_reminder_sent_at"
     t.integer "cancelled_by"
     t.boolean "manager_override"
+    t.bigint "service_variant_id"
     t.index ["applied_promo_code"], name: "index_bookings_on_applied_promo_code"
     t.index ["business_id", "staff_member_id"], name: "index_bookings_on_business_and_staff_member"
     t.index ["business_id", "start_time"], name: "index_bookings_on_business_id_and_start_time"
@@ -168,6 +169,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
     t.index ["promo_code_type"], name: "index_bookings_on_promo_code_type"
     t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
+    t.index ["service_variant_id"], name: "index_bookings_on_service_variant_id"
     t.index ["staff_member_id", "start_time", "end_time"], name: "index_bookings_on_staff_member_and_times"
     t.index ["staff_member_id", "start_time"], name: "index_bookings_on_staff_member_and_start_time"
     t.index ["staff_member_id", "status", "start_time", "end_time"], name: "index_bookings_on_staff_status_and_times"
@@ -963,6 +965,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
     t.index ["template_type"], name: "index_service_templates_on_template_type"
   end
 
+  create_table "service_variants", force: :cascade do |t|
+    t.bigint "service_id", null: false
+    t.string "name", null: false
+    t.integer "duration", null: false
+    t.decimal "price", precision: 10, scale: 2, null: false
+    t.boolean "active", default: true
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_id", "name"], name: "index_service_variants_on_service_id_and_name", unique: true
+    t.index ["service_id"], name: "index_service_variants_on_service_id"
+  end
+
   create_table "services", force: :cascade do |t|
     t.string "name", null: false
     t.text "description"
@@ -1446,6 +1461,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
   add_foreign_key "booking_product_add_ons", "product_variants"
   add_foreign_key "bookings", "businesses", on_delete: :cascade
   add_foreign_key "bookings", "promotions", on_delete: :nullify
+  add_foreign_key "bookings", "service_variants"
   add_foreign_key "bookings", "services", on_delete: :nullify
   add_foreign_key "bookings", "staff_members", on_delete: :nullify
   add_foreign_key "bookings", "tenant_customers", on_delete: :nullify
@@ -1534,6 +1550,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_11_192042) do
   add_foreign_key "referrals", "orders", column: "qualifying_order_id"
   add_foreign_key "referrals", "tenant_customers", column: "referred_tenant_customer_id"
   add_foreign_key "referrals", "users", column: "referrer_id"
+  add_foreign_key "service_variants", "services"
   add_foreign_key "services", "businesses", on_delete: :cascade
   add_foreign_key "services_staff_members", "services", on_delete: :cascade
   add_foreign_key "services_staff_members", "staff_members", on_delete: :cascade
