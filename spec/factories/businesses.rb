@@ -35,6 +35,7 @@ FactoryBot.define do
     zip { Faker::Address.zip_code }
     description { Faker::Company.catch_phrase }
     website { Faker::Internet.url }
+    sequence(:stripe_account_id) { |n| "acct_test#{n}" }
     
     # Set tier, ensuring free tier gets subdomain host_type
     tier do 
