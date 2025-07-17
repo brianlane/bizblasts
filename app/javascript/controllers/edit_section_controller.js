@@ -4,14 +4,14 @@ export default class extends Controller {
   static targets = ["form"]
   
   connect() {
-    console.log("Edit section controller connected")
+    //console.log("Edit section controller connected")
   }
   
   submit(event) {
     event.preventDefault()
     event.stopPropagation()
     event.stopImmediatePropagation()
-    console.log('Form submission intercepted by Stimulus controller')
+    //console.log('Form submission intercepted by Stimulus controller')
     
     // Make sure no other handlers run
     if (event.detail) {
@@ -21,12 +21,12 @@ export default class extends Controller {
     const form = this.formTarget
     const formData = new FormData(form)
     
-    console.log('Submitting to:', form.action)
-    console.log('Form data:', [...formData.entries()])
+    //console.log('Submitting to:', form.action)
+    //console.log('Form data:', [...formData.entries()])
     
     // Add .json format to force JSON response
     const url = form.action + '.json'
-    console.log('Fetching URL:', url)
+    //console.log('Fetching URL:', url)
     
     fetch(url, {
       method: 'PATCH',
@@ -74,9 +74,9 @@ export default class extends Controller {
     const modal = document.querySelector('[data-page-editor-target="editModal"]')
     if (modal) {
       modal.classList.add('hidden')
-      console.log('Modal closed successfully')
+      //console.log('Modal closed successfully')
     } else {
-      console.log('Modal not found')
+      //console.log('Modal not found')
     }
   }
 } 

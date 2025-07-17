@@ -22,7 +22,7 @@
         <div class="space-y-3">
           <% recent_bookings.each do |booking| %>
             <div class="py-3 border-b border-gray-100 last:border-b-0">
-              <div class="font-medium text-sm sm:text-base"><%= booking.service.name %></div>
+              <div class="font-medium text-sm sm:text-base"><%= service_with_variant(booking) %></div>
               <div class="text-sm text-gray-600">with <%= booking.tenant_customer&.full_name || 'Deleted Customer' %></div>
               <div class="text-xs sm:text-sm text-gray-500 mt-1">
                 <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
@@ -48,7 +48,7 @@
         <div class="space-y-3">
           <% upcoming_appointments.each do |booking| %>
             <div class="py-3 border-b border-gray-100 last:border-b-0">
-              <div class="font-medium text-sm sm:text-base"><%= booking.service.name %></div>
+              <div class="font-medium text-sm sm:text-base"><%= service_with_variant(booking) %></div>
               <div class="text-sm text-gray-600">with <%= booking.tenant_customer&.full_name || 'Deleted Customer' %></div>
               <div class="text-xs sm:text-sm text-gray-500 mt-1">
                 <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>

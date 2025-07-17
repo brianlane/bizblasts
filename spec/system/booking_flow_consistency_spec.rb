@@ -6,6 +6,7 @@ RSpec.describe "Booking Flow", type: :system do
   let!(:business) { create(:business, time_zone: 'America/New_York') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Test Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'John Doe') }
+  let!(:service_variant) { create(:service_variant, service: service, duration: 60, name: 'Default Variant', price: 100.0, position: 1) }
   let!(:client) { create(:user, :client) }
   let!(:tenant_customer) { create(:tenant_customer, business: business, email: client.email, first_name: client.first_name, last_name: client.last_name) }
   let(:date) { Date.today.next_occurring(:monday) } # Next Monday

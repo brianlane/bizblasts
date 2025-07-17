@@ -44,9 +44,9 @@ export default class extends Controller {
     this.previewMode = false
     this.setupDragAndDrop()
     this.lastAddRequest = null // Initialize duplicate request tracking
-    console.log("Page editor connected for page:", this.pageIdValue)
-    console.log("Available targets:", Object.keys(this.targets))
-    console.log("Sections container:", this.hasSectionsContainerTarget ? "✓" : "✗")
+    //console.log("Page editor connected for page:", this.pageIdValue)
+    //console.log("Available targets:", Object.keys(this.targets))
+    //console.log("Sections container:", this.hasSectionsContainerTarget ? "✓" : "✗")
   }
 
   disconnect() {
@@ -171,7 +171,7 @@ export default class extends Controller {
    * Can be called directly with section type and position, or as an event handler
    */
   async addNewSection(sectionTypeOrEvent, position = null) {
-    console.log('=== addNewSection called ===')
+    //console.log('=== addNewSection called ===')
     
     let sectionType, eventFromButton = false
     
@@ -185,11 +185,11 @@ export default class extends Controller {
       sectionType = event.currentTarget.dataset.sectionType
       position = null // Button clicks add to the end
       eventFromButton = true
-      console.log('Event-based call detected, section type:', sectionType)
+      //console.log('Event-based call detected, section type:', sectionType)
     } else {
       // Direct call with section type
       sectionType = sectionTypeOrEvent
-      console.log('Direct call, section type:', sectionType, 'position:', position)
+      //console.log('Direct call, section type:', sectionType, 'position:', position)
     }
     
     // Validate section type
@@ -203,7 +203,7 @@ export default class extends Controller {
     if (position === null) {
       const existingSections = this.sectionsContainerTarget.querySelectorAll('.section-item')
       position = existingSections.length
-      console.log('Calculated position:', position)
+      //console.log('Calculated position:', position)
     }
     
     return this.createSection(sectionType, position)
@@ -214,7 +214,7 @@ export default class extends Controller {
    * This maintains backwards compatibility
    */
   async addSection(event) {
-    console.log('=== addSection called ===')
+    //console.log('=== addSection called ===')
     return this.addNewSection(event)
   }
 
@@ -227,14 +227,14 @@ export default class extends Controller {
     const requestKey = `add-${sectionType}-${position}-${Date.now()}`
     
     if (this.lastAddRequest && (Date.now() - this.lastAddRequest.time) < 1000) {
-      console.log('Duplicate request blocked')
+      //console.log('Duplicate request blocked')
       return
     }
     
     this.lastAddRequest = { key: requestKey, time: Date.now() }
     
     try {
-      console.log('Creating section:', sectionType, 'at position:', position)
+      //console.log('Creating section:', sectionType, 'at position:', position)
       
       const requestBody = {
         page_section: {
@@ -244,8 +244,8 @@ export default class extends Controller {
         }
       }
       
-      console.log('Request body:', requestBody)
-      console.log('Making request to:', `/manage/website/pages/${this.pageIdValue}/sections`)
+      //console.log('Request body:', requestBody)
+      //console.log('Making request to:', `/manage/website/pages/${this.pageIdValue}/sections`)
       
       const response = await fetch(`/manage/website/pages/${this.pageIdValue}/sections`, {
         method: 'POST',
@@ -253,11 +253,11 @@ export default class extends Controller {
         body: JSON.stringify(requestBody)
       })
 
-      console.log('Response status:', response.status, 'ok:', response.ok)
+      //console.log('Response status:', response.status, 'ok:', response.ok)
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Section created successfully:', result)
+        //console.log('Section created successfully:', result)
         
         // Refresh the sections display
         await this.refreshSections()
@@ -375,7 +375,7 @@ export default class extends Controller {
   }
 
   async refreshSections() {
-    console.log('=== refreshSections called ===')
+    //console.log('=== refreshSections called ===')
     try {
       const response = await fetch(`/manage/website/pages/${this.pageIdValue}/sections`, {
         headers: {
@@ -383,28 +383,28 @@ export default class extends Controller {
         }
       })
 
-      console.log('Refresh sections response status:', response.status)
-      console.log('Refresh sections response ok:', response.ok)
+      //console.log('Refresh sections response status:', response.status)
+      //console.log('Refresh sections response ok:', response.ok)
 
       if (response.ok) {
         const html = await response.text()
-        console.log('Received HTML length:', html.length)
+        //console.log('Received HTML length:', html.length)
         
         // Extract just the sections container content
         const parser = new DOMParser()
         const doc = parser.parseFromString(html, 'text/html')
         const newContainer = doc.querySelector('#page-sections-container')
         
-        console.log('New container found:', !!newContainer)
+        //console.log('New container found:', !!newContainer)
         if (newContainer) {
-          console.log('New container innerHTML length:', newContainer.innerHTML.length)
-          console.log('Current container target:', this.sectionsContainerTarget)
+          //console.log('New container innerHTML length:', newContainer.innerHTML.length)
+          //console.log('Current container target:', this.sectionsContainerTarget)
           this.sectionsContainerTarget.innerHTML = newContainer.innerHTML
-          console.log('DOM updated successfully')
+          //console.log('DOM updated successfully')
           
           // Check if we now have section items
           const sectionItems = this.sectionsContainerTarget.querySelectorAll('.section-item')
-          console.log('Section items after refresh:', sectionItems.length)
+          //console.log('Section items after refresh:', sectionItems.length)
         } else {
           console.error('Could not find #page-sections-container in response')
         }
@@ -469,11 +469,11 @@ export default class extends Controller {
       .map(section => section.dataset.sectionId)
       .filter(id => id)
 
-    console.log('Reordering sections:', sectionIds)
+    //console.log('Reordering sections:', sectionIds)
 
     // Don't send empty reorder requests
     if (sectionIds.length === 0) {
-      console.log('No sections to reorder, skipping')
+      //console.log('No sections to reorder, skipping')
       return
     }
 

@@ -10,7 +10,7 @@ class BookingService
   # @param start_date [Date, nil] the start date of the range (optional)
   # @param end_date [Date, nil] the end date of the range (optional)
   # @return [Hash] calendar data with dates as keys and aggregated available slots as values
-  def self.generate_calendar_data(service:, date:, tenant: nil, start_date: nil, end_date: nil)
+  def self.generate_calendar_data(service:, date:, tenant: nil, start_date: nil, end_date: nil, interval: nil)
     return {} unless service && date
     
     staff_members = service.staff_members.active
@@ -22,7 +22,8 @@ class BookingService
     
     # PERFORMANCE OPTIMIZATION: Use bulk caching and parallel processing for multiple staff
     tz = tenant&.time_zone.presence || service.business&.time_zone.presence || 'UTC'
-    cache_key = "calendar_data_#{service.id}_#{range_start}_#{range_end}_#{staff_members.pluck(:id).join(',')}_tz_#{tz.parameterize(separator: '_')}"
+    slot_interval = interval || service.duration
+    cache_key = "calendar_data_#{service.id}_#{range_start}_#{range_end}_#{staff_members.pluck(:id).join(',')}_interval_#{slot_interval}_tz_#{tz.parameterize(separator: '_')}"
     
     Rails.cache.fetch(cache_key, expires_in: 30.minutes) do
       calendar_data = {}
@@ -39,9 +40,10 @@ class BookingService
           # PERFORMANCE OPTIMIZATION: Use more efficient staff processing
           staff_members.find_each do |staff_member|
             available_slots = AvailabilityService.available_slots(
-              staff_member, 
-              current_date, 
-              service
+              staff_member,
+              current_date,
+              service,
+              interval: slot_interval
             )
             
             # Add staff info to each slot

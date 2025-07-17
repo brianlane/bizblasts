@@ -1,0 +1,38 @@
+<%# 
+  Shared partial for displaying service variant as read-only in booking forms
+  Parameters:
+  - form: the form builder object
+  - service_variant: the selected service variant object
+  - service: the service object (for return link)
+  - label: optional label text (defaults to "Choose Option")
+  - show_return_link: whether to show the "return to calendar" link (defaults to true)
+  - return_path: custom return path (defaults to tenant_calendar_path)
+%>
+
+<%
+  label ||= "Choose Option"
+  show_return_link = true if show_return_link.nil?
+  return_path ||= defined?(tenant_calendar_path) ? tenant_calendar_path(service_id: service.id) : "#"
+%>
+
+<div class="mb-6">
+  <%= form.label :service_variant_id, label, class: "block text-sm font-medium text-gray-700 mb-2" %>
+  
+  <!-- Display selected variant as read-only -->
+  <div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-gray-900 font-medium">
+    <%= service_variant.name %> - <%= number_to_currency(service_variant.price) %> (<%= service_variant.duration %> min)
+  </div>
+  
+  <!-- Hidden field to submit the value -->
+  <%= form.hidden_field :service_variant_id, value: service_variant.id %>
+  
+  <% if show_return_link %>
+    <p class="mt-2 text-sm text-gray-600">
+      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      To change, please 
+      <%= link_to "return to calendar", return_path, class: "text-blue-600 hover:text-blue-800 underline" %>.
+    </p>
+  <% end %>
+</div> 

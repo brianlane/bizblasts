@@ -106,7 +106,7 @@ Rails.application.routes.draw do
       end
       
       # Bookings management
-      resources :bookings, only: [:index, :show, :edit, :update, :create] do
+      resources :bookings, only: [:index, :show, :new, :edit, :update, :create] do
         member do
           patch 'confirm'
           patch 'cancel'

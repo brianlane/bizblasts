@@ -292,7 +292,7 @@ class Service < ApplicationRecord
 
   # Return primary (first) variant for convenience
   def default_variant
-    @default_variant ||= service_variants.by_position.first
+    service_variants.by_position.first
   end
 
   # Convenience wrappers to favour variant price/duration when available

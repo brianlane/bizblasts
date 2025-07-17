@@ -2,7 +2,7 @@
 
 <%= form_with(model: [:business_manager, service], local: true, 
            data: { 
-             controller: "service-form",
+             controller: "service-form service-variants",
              action: "submit->service-form#validateForm"
            }) do |form| %>
   <% if service.errors.any? %>
@@ -28,22 +28,25 @@
           class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
   </div>
 
-  <div class="mb-4">
-    <%= form.label :duration, "Duration (minutes)", class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= form.number_field :duration, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
-  </div>
+  <div data-service-variants-target="baseFields" class="base-fields-block">
+    <div class="mb-4">
+      <%= form.label :duration, "Duration (minutes)", class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.number_field :duration, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    </div>
 
-  <div class="mb-4">
-    <%= form.label :price, class: "block text-gray-700 text-sm font-bold mb-2" %>
-    <%= form.number_field :price, step: 0.01, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    <div class="mb-4">
+      <%= form.label :price, class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.number_field :price, step: 0.01, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+    </div>
   </div>
 
   <div class="mb-8 border-t pt-6">
     <h3 class="text-lg font-semibold mb-4">Service Variants</h3>
     <p class="text-sm text-gray-600 mb-4">Create different versions of this service (e.g., 30-min, 60-min) with their own duration and price.</p>
 
+    <div data-service-variants-target="container">
     <%= form.fields_for :service_variants do |variant_form| %>
-      <div class="grid grid-cols-12 gap-4 items-end mb-4 border p-4 rounded-lg bg-gray-50">
+      <div class="variant-field grid grid-cols-12 gap-4 items-end mb-4 border p-4 rounded-lg bg-gray-50">
         <div class="col-span-3">
           <%= variant_form.label :name, class: "block text-gray-700 text-sm font-bold mb-1" %>
           <%= variant_form.text_field :name, class: "w-full border rounded px-3 py-2" %>
@@ -59,17 +62,20 @@
         <div class="col-span-2 flex items-center">
           <%= variant_form.check_box :active, class: "mr-2" %> <%= variant_form.label :active, class: "text-sm" %>
         </div>
-        <div class="col-span-1 text-right">
+        <div class="col-span-1 text-right flex items-center">
           <% unless variant_form.object.new_record? %>
-            <%= variant_form.check_box :_destroy %>
-            <%= variant_form.label :_destroy, "Remove", class: "text-sm text-red-600" %>
+            <%= variant_form.check_box :_destroy, style: 'display:none;' %>
+            <button type="button" class="remove-variant text-red-600 text-sm cursor-pointer" data-action="click->service-variants#removeVariant">Remove</button>
+          <% else %>
+            <button type="button" class="remove-variant text-red-600 text-sm cursor-pointer" data-action="click->service-variants#removeVariant">Remove</button>
           <% end %>
         </div>
       </div>
     <% end %>
+    </div>
 
-    <%# Simple link to add another blank variant (will be handled by Stimulus or Rails UJS duplicates) %>
-    <%= link_to "Add Variant", "#", class: "text-blue-600 text-sm", id: "add-variant-link" %>
+    <%# Link handled by Stimulus %>
+    <%= button_tag "Add Variant", type: "button", class: "inline-flex items-center px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-md transition-colors cursor-pointer", data: { "service-variants-target": "addButton", action: "service-variants#addVariant" } %>
   </div>
 
   <div class="mb-4">
@@ -305,7 +311,7 @@
                   <!-- Remove button -->
                   <div>
                     <button type="button" 
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors delete-image-button">
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors delete-image-button cursor-pointer">
                       <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                       </svg>

@@ -46,7 +46,7 @@
           <div class="space-y-2 text-sm text-gray-600">
             <div class="flex justify-between">
               <span>Service:</span>
-              <span class="font-medium"><%= @booking.service.name %></span>
+              <span class="font-medium"><%= service_with_variant(@booking) %></span>
             </div>
             <div class="flex justify-between">
               <span>Date:</span>

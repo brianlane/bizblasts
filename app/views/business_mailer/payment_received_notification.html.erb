@@ -77,7 +77,7 @@
           <h4 style="margin: 10px 0; color: #495057;">Related Booking</h4>
           <div class="detail-row">
             <span class="label">Service:</span>
-            <span class="value"><%= @booking.service.name %></span>
+            <span class="value"><%= service_with_variant(@booking) %></span>
           </div>
           <div class="detail-row">
             <span class="label">Date & Time:</span>

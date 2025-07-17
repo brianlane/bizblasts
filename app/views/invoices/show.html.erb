@@ -45,7 +45,7 @@
     <h3 class="text-lg font-semibold mb-2 text-green-800">Related Booking</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <p><span class="font-medium">Service:</span> <%= @invoice.booking.service.name %></p>
+        <p><span class="font-medium">Service:</span> <%= service_with_variant(@invoice.booking) %></p>
         <p><span class="font-medium">Staff:</span> <%= @invoice.booking.staff_member&.name || 'Any Staff' %></p>
       </div>
       <div>
@@ -70,7 +70,7 @@
 
   <h2>Service Details:</h2>
   <p>
-    <strong>Service:</strong> <%= @invoice.booking.service.name %><br>
+    <strong>Service:</strong> <%= service_with_variant(@invoice.booking) %><br>
             <strong>Scheduled:</strong> <%= l @invoice.booking.local_start_time, format: :long %><br>
     <strong>Staff:</strong> <%= @invoice.booking.staff_member&.name || 'Any Staff' %><br>
   </p>

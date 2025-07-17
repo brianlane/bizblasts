@@ -54,14 +54,14 @@
       <% if @invoice.booking.present? %>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f3f4;">
           <div style="flex: 1;">
-            <strong style="color: #495057; font-size: 16px;"><%= @invoice.booking.service.name %></strong>
+            <strong style="color: #495057; font-size: 16px;"><%= service_with_variant(@invoice.booking) %></strong>
             <br><span style="color: #6c757d; font-size: 14px;">Service Date: <%= @invoice.booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></span>
             <% if @invoice.booking.staff_member.present? %>
             <br><span style="color: #6c757d; font-size: 14px;">Staff: <%= @invoice.booking.staff_member.name %></span>
             <% end %>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(@invoice.booking.service.price) %></div>
+            <div style="font-size: 16px; font-weight: bold; color: #495057;"><%= number_to_currency(service_price(@invoice.booking)) %></div>
           </div>
         </div>
         
