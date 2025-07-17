@@ -7,6 +7,10 @@
   <% if @business.services.active.any? %>
     <div class="space-y-4">
       <% @business.services.active.positioned.each do |service| %>
+        <% variants = service.service_variants.active.by_position %>
+        <% has_variants = variants.any? %>
+        <% default_variant = variants.first if has_variants %>
+        
         <div class="border rounded-lg p-4 shadow-sm">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-xl font-semibold"><%= service.name %></h3>
@@ -21,13 +25,27 @@
           </div>
           <p class="text-gray-700 mt-1"><%= service.description %></p>
           <p class="text-gray-900 font-medium mt-2">
-            Duration: <%= service.duration %> minutes | Price: <%= number_to_currency(service.price) %>
+            <% if has_variants %>
+              <% min_duration = variants.minimum(:duration) %>
+              <% max_duration = variants.maximum(:duration) %>
+              <% duration_display = min_duration == max_duration ? "#{min_duration} minutes" : "#{min_duration}-#{max_duration} minutes" %>
+              Duration: <%= duration_display %> | 
+              <% min_price = variants.minimum(:price) %>
+              <% max_price = variants.maximum(:price) %>
+              <% price_display = min_price == max_price ? number_to_currency(min_price) : "#{number_to_currency(min_price)} - #{number_to_currency(max_price)}" %>
+              Price: <%= price_display %>
+            <% else %>
+              Duration: <%= service.duration %> minutes | Price: <%= number_to_currency(service.price) %>
+            <% end %>
           </p>
           <div class="mt-4 space-x-2">
-            <%= link_to "View Service", tenant_service_path(service), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700" %>
+            <% view_service_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+            <%= link_to "View Service", tenant_service_path(service, view_service_params), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700" %>
             <% first_active_staff = service.staff_members.active.first %>
+            <% book_params = { service_id: service.id, staff_member_id: first_active_staff&.id } %>
+            <% book_params[:service_variant_id] = default_variant.id if has_variants %>
             <%= link_to "Book Now", 
-                tenant_calendar_path(service_id: service.id, staff_member_id: first_active_staff&.id), 
+                tenant_calendar_path(book_params), 
                 class: "inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" %>
           </div>
         </div>

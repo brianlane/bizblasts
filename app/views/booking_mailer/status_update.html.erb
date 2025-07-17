@@ -37,9 +37,9 @@
 
       <div class="booking-details">
         <h3>Booking Details</h3>
-        <p><strong>Service:</strong> <%= @booking.service.name %></p>
+        <p><strong>Service:</strong> <%= service_with_variant(@booking) %></p>
         <p><strong>Date & Time:</strong> <%= @booking.local_start_time.strftime('%A, %B %d, %Y at %l:%M %p') %></p>
-        <p><strong>Duration:</strong> <%= @booking.service.duration %> minutes</p>
+        <p><strong>Duration:</strong> <%= service_duration(@booking) %> minutes</p>
         <% if @booking.staff_member %>
           <p><strong>Staff Member:</strong> <%= @booking.staff_member.name %></p>
         <% end %>

@@ -11,17 +11,65 @@ export default class extends Controller {
     this.isOpen = false
     this.setInitialState()
     this.setupOutsideClickListener()
+    this.adjustWidth()
   }
   
   disconnect() {
     this.removeOutsideClickListener()
   }
+
+  adjustWidth() {
+    if (!this.hasMenuTarget || this.optionTargets.length === 0) {
+      return;
+    }
+
+    const menu = this.menuTarget;
+    const hadWFull = menu.classList.contains('w-full');
+
+    // For measurement, temporarily modify styles to allow content to define width
+    const originalStyles = {
+      display: menu.style.display,
+      visibility: menu.style.visibility,
+      width: menu.style.width
+    };
+
+    if (hadWFull) menu.classList.remove('w-full');
+    menu.style.width = 'auto';
+    menu.style.display = 'block';
+    menu.style.visibility = 'hidden';
+
+    let maxWidth = 0;
+    this.optionTargets.forEach(option => {
+      if (option.scrollWidth > maxWidth) {
+        maxWidth = option.scrollWidth;
+      }
+    });
+
+    // Restore original styles
+    menu.style.display = originalStyles.display;
+    menu.style.visibility = originalStyles.visibility;
+    menu.style.width = originalStyles.width;
+    if (hadWFull) menu.classList.add('w-full');
+
+    if (maxWidth > 0) {
+      // Add padding for aesthetics and the arrow icon
+      const finalWidth = maxWidth + 40;
+      this.buttonTarget.style.minWidth = `${finalWidth}px`;
+    }
+  }
   
   setInitialState() {
     // Set initial selected state if we have a selected value
-    if (this.selectedValueValue) {
+    let selectedId = this.selectedValueValue
+    
+    // Fallback: read from hidden input if no data attribute provided
+    if (!selectedId && this.hasHiddenTarget && this.hiddenTarget.value) {
+      selectedId = this.hiddenTarget.value
+    }
+    
+    if (selectedId) {
       const selectedOption = this.optionTargets.find(option => 
-        option.dataset.itemId === this.selectedValueValue
+        option.dataset.itemId === selectedId
       )
       if (selectedOption) {
         this.selectOption(selectedOption, false)

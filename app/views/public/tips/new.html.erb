@@ -15,7 +15,7 @@
       <!-- Booking Details -->
       <div class="px-6 py-4 bg-blue-50 border-b">
         <div class="text-center">
-          <h2 class="text-lg font-semibold text-gray-800"><%= @booking.service.name %></h2>
+          <h2 class="text-lg font-semibold text-gray-800"><%= service_with_variant(@booking) %></h2>
           <p class="text-sm text-gray-600 mt-1">
             <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %>
           </p>

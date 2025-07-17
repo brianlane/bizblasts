@@ -34,7 +34,7 @@ function setupTenantSpecificTurboHandlers() {
     // Add tenant-specific headers for business manager routes
     if (event.detail.url.includes('/manage/')) {
       // Business manager specific logic
-      console.log('Navigating to business manager area');
+      //console.log('Navigating to business manager area');
       
       // Add custom headers if needed for tenant context
       if (event.detail.fetchOptions) {
@@ -103,6 +103,8 @@ import ProductVariantsController from "./controllers/product_variants_controller
 import ServiceFormController from "./controllers/service_form_controller"
 import SortableController from "./controllers/sortable_controller"
 import HelloController from "./controllers/hello_controller"
+import ServiceVariantsController from "./controllers/service_variants_controller"
+import DropdownUpdaterController from "./controllers/dropdown_updater_controller"
 
 application.register("page-editor", PageEditorController)
 application.register("theme-editor", ThemeEditorController)
@@ -115,6 +117,8 @@ application.register("product-variants", ProductVariantsController)
 application.register("service-form", ServiceFormController)
 application.register("sortable", SortableController)
 application.register("hello", HelloController)
+application.register("service-variants", ServiceVariantsController)
+application.register("dropdown-updater", DropdownUpdaterController)
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -139,7 +143,7 @@ function autoDiscoverControllers() {
           const module = await import(path);
           if (module.default) {
             application.register(name, module.default);
-            console.log(`Auto-registered Stimulus controller: ${name}`);
+            //console.log(`Auto-registered Stimulus controller: ${name}`);
           }
         } catch (importError) {
           // Controller file doesn't exist, skip silently

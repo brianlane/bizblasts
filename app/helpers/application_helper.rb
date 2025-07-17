@@ -27,6 +27,32 @@ module ApplicationHelper
     content_tag(:span, text, class: css_class)
   end
 
+  # Returns service name together with its variant if the booking has one.
+  # Example: "Massage — Deep Tissue"
+  def service_with_variant(booking)
+    return '' unless booking&.service
+
+    base = booking.service.name
+    variant = booking.service_variant&.name
+    variant.present? ? "#{base} — #{variant}" : base
+  end
+
+  # Returns the price for a booking, preferring the variant price when present.
+  # Usage: number_to_currency(service_price(booking))
+  def service_price(booking)
+    return 0 unless booking && booking.respond_to?(:service)
+
+    booking.service_variant&.price || booking.service&.price || 0
+  end
+
+  # Returns the duration (in minutes) for a booking, preferring the variant duration when present.
+  # Usage: service_duration(booking)
+  def service_duration(booking)
+    return nil unless booking && booking.respond_to?(:service)
+
+    booking.service_variant&.duration || booking.service&.duration
+  end
+
   # Helper to return CSS color classes based on booking status
   def status_color(status)
     case status.to_s.downcase
@@ -335,10 +361,38 @@ module ApplicationHelper
   end
 
   # Format a time in the current Time.zone with given strftime pattern
-  def display_time(time, fmt = '%l:%M %p')
+  # Format a time in provided or current timezone
+  def display_time(time, fmt = '%l:%M %p', zone = Time.zone)
     return '' unless time
-    time = time.in_time_zone(Time.zone)
-    time.strftime(fmt).strip
+    time.in_time_zone(zone).strftime(fmt).strip
+  end
+
+  # Convenience wrapper for records associated with a business
+  # Falls back to Time.zone when business or time zone missing
+  def display_time_for_business(time, business, fmt = '%l:%M %p')
+    tz = business&.time_zone.presence || Time.zone
+    display_time(time, fmt, tz)
+  end
+
+  # Legacy method kept for compatibility
+  alias_method :display_time_legacy, :display_time
+
+  # Determine appropriate time zone for mixed transaction objects (Order or Invoice)
+  def transaction_time_zone(transaction)
+    if transaction.respond_to?(:business) && transaction.business.present?
+      transaction.business.time_zone.presence || Time.zone
+    elsif transaction.respond_to?(:order) && transaction.order&.business.present?
+      transaction.order.business.time_zone.presence || Time.zone
+    elsif transaction.respond_to?(:booking) && transaction.booking&.business.present?
+      transaction.booking.business.time_zone.presence || Time.zone
+    else
+      Time.zone
+    end
+  end
+
+  def display_transaction_time(time, transaction, fmt = '%l:%M %p')
+    tz = transaction_time_zone(transaction)
+    display_time(time, fmt, tz)
   end
 
   # ---------------------------------------------------------------------------

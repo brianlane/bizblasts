@@ -9,6 +9,7 @@ class ServiceVariant < ApplicationRecord
   # Scopes
   default_scope { order(:position, :created_at) }
   scope :by_position, -> { order(:position, :created_at) }
+  scope :active, -> { where(active: true) }
 
   # Validations
   validates :name, presence: true

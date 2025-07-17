@@ -23,6 +23,10 @@ module Public
       end
 
       @booking = current_tenant.bookings.new(service: @service)
+      if params[:service_variant_id].present? && @service
+        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+        @booking.service_variant = @service_variant if @service_variant
+      end
       # Always pre-fill staff member if provided via query params
       @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
       
@@ -158,7 +162,12 @@ module Public
                  )
       @booking = current_tenant.bookings.new(attrs)
       @booking.tenant_customer = customer
-      @booking.end_time        = @booking.start_time + @service.duration.minutes
+      duration_for_booking = if @booking.service_variant.present?
+                               @booking.service_variant.duration
+                             else
+                               @service.duration
+                             end
+      @booking.end_time        = @booking.start_time + duration_for_booking.minutes
       
       # Process promo code if provided
       if booking_params[:promo_code].present?
@@ -401,6 +410,9 @@ module Public
       # Try to get service_id from top-level params (GET new) or nested booking params (POST create error)
       service_id = params[:service_id] || params[:booking].try(:[], :service_id)
       @service = current_tenant.services.find_by(id: service_id)
+      if @service && params[:service_variant_id].present?
+        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+      end
 
       # Ensure @available_products is always set, even if @service is nil
       @available_products = if @service.present?
@@ -416,7 +428,7 @@ module Public
 
     def booking_params
       params.require(:booking).permit(
-        :service_id, :staff_member_id, :start_time,
+        :service_id, :service_variant_id, :staff_member_id, :start_time,
         :'start_time(1i)', :'start_time(2i)', :'start_time(3i)',
         :'start_time(4i)', :'start_time(5i)', :quantity,
         :notes, :tenant_customer_id, :date, :duration, :promo_code,

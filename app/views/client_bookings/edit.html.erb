@@ -1,5 +1,5 @@
 <%# app/views/client_bookings/edit.html.erb %>
-<h1>Edit Booking for <%= @booking.service.name %></h1>
+<h1>Edit Booking for <%= service_with_variant(@booking) %></h1>
 <p>Scheduled for: <%= l @booking.local_start_time, format: :long %> with <%= @booking.staff_member&.name || 'Any Staff' %></p>
 
 <%= form_with(model: @booking, url: client_booking_path(@booking), method: :patch, local: true) do |form| %>
@@ -96,7 +96,7 @@
   function initializeClientBookingEditPage() {
     const quantityInput = document.getElementById('booking_quantity');
     const totalPriceSpan = document.getElementById('total-booking-price');
-    const baseServicePrice = <%= @booking.service.price || 0 %>;
+    const baseServicePrice = <%= service_price(@booking) || 0 %>;
     const addonQuantityInputs = document.querySelectorAll('.addon-quantity-input');
     const addonPrices = {}; // Store add-on prices by product variant ID
 

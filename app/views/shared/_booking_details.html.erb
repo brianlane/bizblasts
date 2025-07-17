@@ -38,7 +38,7 @@
 <div class="booking-details <%= condensed ? 'text-sm' : '' %>">
   <div class="<%= condensed ? 'flex justify-between mb-2' : 'flex justify-between mb-4' %>">
     <h2 class="<%= condensed ? 'text-lg font-semibold' : 'text-xl font-semibold' %>">
-      <%= booking.service_name %>
+      <%= service_with_variant(booking) %>
     </h2>
     <span class="px-3 py-1 rounded-full text-sm font-medium <%= status_color(booking.status) %>">
       <%= booking.status.capitalize %>
@@ -87,7 +87,7 @@
     <% unless condensed %>
       <div>
         <h3 class="text-sm font-medium text-gray-500 mb-1">Duration</h3>
-        <p class="text-gray-900"><%= booking.duration.to_i %> minutes</p>
+        <p class="text-gray-900"><%= service_duration(booking) %> minutes</p>
       </div>
     <% end %>
 
@@ -178,7 +178,7 @@
             </span>
           </p>
           <% if booking.service.present? %>
-            <p><span class="font-medium">Service Cost:</span> <%= number_to_currency booking.service.price %></p>
+            <p><span class="font-medium">Service Cost:</span> <%= number_to_currency service_price(booking) %></p>
           <% end %>
         </div>
         <div>

@@ -96,6 +96,11 @@ class Order < ApplicationRecord
     end
   end
 
+  # Returns the order's created_at in the business's local timezone (or app Time.zone if business not present)
+  def local_created_at
+    created_at&.in_time_zone(business&.time_zone.presence || Time.zone)
+  end
+
   # Check if order contains both products and services
   
   # Check if order contains tip-eligible items

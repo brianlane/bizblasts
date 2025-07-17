@@ -9,9 +9,9 @@ New Status: <%= @status.upcase %>
 
 BOOKING DETAILS
 ---------------
-Service: <%= @booking.service.name %>
+Service: <%= service_with_variant(@booking) %>
 Date & Time: <%= @booking.local_start_time.strftime('%A, %B %d, %Y at %l:%M %p') %>
-Duration: <%= @booking.service.duration %> minutes
+Duration: <%= service_duration(@booking) %> minutes
 <% if @booking.staff_member %>Staff Member: <%= @booking.staff_member.name %>
 <% end %><% if @booking.notes && !@booking.notes.empty? %>Notes: <%= @booking.notes %>
 <% end %>
