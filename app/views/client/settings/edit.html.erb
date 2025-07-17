@@ -240,7 +240,7 @@
   <!-- Danger Zone -->
   <div class="bg-white shadow rounded-lg border-red-200">
     <div class="px-6 py-4 border-b border-red-200 bg-red-50">
-      <h2 class="text-lg font-medium text-red-900">Danger Zone</h2>
+      <h2 class="text-lg font-medium text-red-900">Delete Account</h2>
       <p class="mt-1 text-sm text-red-600">Once you delete your account, there is no going back. Please be certain.</p>
     </div>
     <div class="px-6 py-6">
@@ -275,7 +275,7 @@
         </ul>
       </div>
 
-      <%= form_with model: @user, url: client_settings_path, method: :delete, local: true, data: { confirm: "Are you absolutely sure? This action cannot be undone." }, class: "space-y-6" do |form| %>
+      <%= form_with model: @user, url: client_settings_path, method: :delete, local: true, data: { confirm: "This will permanently delete your account. Are you sure?" }, class: "deletion-form space-y-6" do |form| %>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <%= form.label :current_password, "Current Password", class: "block text-sm font-medium text-gray-700 mb-2" %>
