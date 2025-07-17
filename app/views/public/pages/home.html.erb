@@ -34,12 +34,12 @@
   <% if @business.show_services_section? %>
     <% @services = @business.services.active.positioned %>
     <% if @services.any? %>
-      <div>
+      <div class="service-list-section">
         <h2 class="text-3xl font-semibold mb-6">Our Services</h2>
         <div class="space-y-4">
           <% @services.each do |service| %>
             <% variants = service.service_variants.active.by_position %>
-            <% has_variants = variants.count > 1 %>
+            <% has_variants = variants.any? %>
             <% default_variant = variants.first || service %> <%# Fallback to service if no variants %>
             
             <div class="border rounded-lg p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center" data-controller="dropdown-updater" data-dropdown-updater-service-id-value="<%= service.id %>">

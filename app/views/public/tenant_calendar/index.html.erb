@@ -152,7 +152,7 @@
     </div>
   </div>
   
-  <% if @service && @service_variant %>
+  <% if @service && (@service_variant || @service.service_variants.active.empty?) %>
     <div class="bg-white rounded-lg shadow">
       <!-- Calendar header with navigation -->
       <div class="p-4 sm:p-6 border-b border-gray-200">

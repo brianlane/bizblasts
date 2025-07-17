@@ -22,7 +22,7 @@ RSpec.describe "Client Settings Management", type: :system do
   end
 
   it "allows a client to view their settings page" do
-    expect(page).to have_content("My Settings")
+    expect(page).to have_content("Account Settings")
     expect(page).to have_field("user[first_name]", with: client_user.first_name)
     expect(page).to have_field("user[email]", with: client_user.email)
   end
