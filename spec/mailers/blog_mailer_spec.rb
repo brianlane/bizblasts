@@ -20,11 +20,12 @@ RSpec.describe BlogMailer, type: :mailer do
 
   it 'includes unsubscribe link in new post notification' do
     mail = BlogMailer.new_post_notification(user, blog_post)
-    expect(mail.body.encoded).to match(%r{/unsubscribe\?token=#{user.unsubscribe_token}})
+    unsubscribe_link = unsubscribe_url(token: user.unsubscribe_token)
+    expect(mail.body.encoded).to include(unsubscribe_link)
   end
 
   it 'includes manage email preferences link in new post notification' do
     mail = BlogMailer.new_post_notification(user, blog_post)
-    expect(mail.body.encoded).to match(%r{/settings/edit})
+    expect(mail.body.encoded).to include(edit_client_settings_url)
   end
 end 
