@@ -8,13 +8,13 @@ class AddServiceVariantIdToBookings < ActiveRecord::Migration[8.0]
 
     say_with_time "Creating default service variants and attaching to bookings" do
       Service.find_each do |service|
-        # Either fetch the existing default variant or create it if it doesn't exist
-        variant = service.service_variants.find_or_create_by!(name: 'Default') do |v|
-          v.duration = service.duration
-          v.price    = service.price
-          v.active   = service.active
-          v.position = 0
-        end
+        # Either fetch the existing default variant or create or update it
+        variant = service.service_variants.find_or_initialize_by(name: 'Default')
+        variant.duration = service.duration || 0
+        variant.price    = service.price    || 0
+        variant.active   = service.active
+        variant.position = 0
+        variant.save!
 
         # Attach variant to bookings that don't have one yet
         Booking.where(service_id: service.id, service_variant_id: nil).find_in_batches(batch_size: 1_000) do |batch|
