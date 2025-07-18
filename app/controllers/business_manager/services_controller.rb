@@ -181,7 +181,8 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       staff_member_ids: [], # Allow staff assignment via new association
       add_on_product_ids: [], # Allow add-on product assignment
       images: [], # Allow new image uploads
-      images_attributes: [:id, :primary, :position, :_destroy] # Allow managing existing images
+      images_attributes: [:id, :primary, :position, :_destroy],
+      service_variants_attributes: [:id, :name, :duration, :price, :active, :position, :_destroy]
     )
   end
 

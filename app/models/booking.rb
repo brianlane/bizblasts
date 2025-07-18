@@ -22,6 +22,8 @@ class Booking < ApplicationRecord
   has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant
   accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true,
                                 reject_if: proc { |attributes| attributes['quantity'].to_i <= 0 || attributes['product_variant_id'].blank? }
+  belongs_to :service_variant, optional: true
+  delegate :price, :duration, to: :service_variant, prefix: true, allow_nil: true
   
   # Add quantity for multi-client bookings
   attribute :quantity, :integer, default: 1
@@ -39,7 +41,8 @@ class Booking < ApplicationRecord
   delegate :full_name, :email, to: :tenant_customer, prefix: :customer, allow_nil: true
   
   def total_charge
-    service_cost = (self.service&.price || 0) * self.quantity.to_i
+    unit_price = (self.service_variant&.price || self.service&.price || 0)
+    service_cost = unit_price * self.quantity.to_i
     # Use database sum to safely handle nil values
     addons_cost = self.booking_product_add_ons.sum(:total_amount) || 0
     service_cost + addons_cost

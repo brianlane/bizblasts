@@ -35,6 +35,7 @@ FactoryBot.define do
     zip { Faker::Address.zip_code }
     description { Faker::Company.catch_phrase }
     website { Faker::Internet.url }
+
     
     # Set tier, ensuring free tier gets subdomain host_type
     tier do 
@@ -126,6 +127,10 @@ FactoryBot.define do
 
     trait :inactive do
       active { false }
+    end
+
+    trait :with_stripe_account do
+      sequence(:stripe_account_id) { |n| "acct_test#{n}" }
     end
 
     factory :complete_business do

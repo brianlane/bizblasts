@@ -137,7 +137,7 @@
   </div>
 
   <!-- Shipping and Tax -->
-  <div class="grid grid-cols-2 gap-4 mb-4">
+  <div id="shipping_tax_section" class="grid grid-cols-2 gap-4 mb-4 product-dependent">
     <div>
       <%= f.label :shipping_method_id, 'Shipping Method', class: 'block text-sm font-medium text-gray-700 mb-1' %>
       
@@ -287,7 +287,7 @@
   </div>
 
   <!-- Addresses and Notes -->
-  <div class="mb-4">
+  <div id="shipping_address_section" class="mb-4 product-dependent">
     <%= f.label :shipping_address, 'Shipping Address', class: 'block text-sm font-medium text-gray-700 mb-1' %>
     <%= f.text_area :shipping_address, rows: 3, class: 'form-textarea rounded border px-3 py-2 w-full' %>
   </div>
@@ -440,7 +440,16 @@
                 <span class="rich-dropdown-text text-gray-900">
                   <% if item.service_id.present? %>
                     <% service = @services.find { |s| s.id == item.service_id } %>
-                    <%= service ? "#{service.name} (#{service.duration}m)" : 'Select Service' %>
+                    <% if service %>
+                      <% if service.service_variants.active.any? %>
+                        <% variant_match = service.service_variants.find { |v| v.price.to_f == item.price.to_f } %>
+                        <%= variant_match ? "#{service.name} - #{variant_match.name} (#{variant_match.duration}m)" : "#{service.name} (#{service.duration}m)" %>
+                      <% else %>
+                        <%= "#{service.name} (#{service.duration}m)" %>
+                      <% end %>
+                    <% else %>
+                      Select Service
+                    <% end %>
                   <% else %>
                     Select Service
                   <% end %>
@@ -474,28 +483,42 @@
                 </div>
                 
                 <% @services.each do |service| %>
-                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-                       data-item-id="<%= service.id %>"
-                       data-item-text="<%= service.name %> (<%= service.duration %>m)"
-                       data-item-price="<%= service.price %>"
-                       data-dropdown-target="option">
-                    <div class="flex items-center justify-between">
-                      <div class="flex-1">
-                        <div class="font-medium text-gray-900"><%= service.name %></div>
-                        <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
+                  <% variants = service.service_variants.active %>
+                  <% if variants.any? %>
+                    <% variants.each do |variant| %>
+                      <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                           data-item-id="<%= service.id %>"
+                           data-item-text="<%= "#{service.name} - #{variant.name} (#{variant.duration}m)" %>"
+                           data-item-price="<%= variant.price %>"
+                           data-dropdown-target="option">
+                        <div class="flex items-center justify-between">
+                          <div class="flex-1">
+                            <div class="font-medium text-gray-900"><%= service.name %> - <%= variant.name %></div>
+                            <div class="text-sm text-gray-500"><%= variant.duration %> minutes</div>
+                          </div>
+                          <div class="ml-3 text-right">
+                            <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.price) %></div>
+                          </div>
+                        </div>
                       </div>
-                      <div class="ml-3 text-right">
-                        <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                    <% end %>
+                  <% else %>
+                    <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                         data-item-id="<%= service.id %>"
+                         data-item-text="<%= "#{service.name} (#{service.duration}m)" %>"
+                         data-item-price="<%= service.price %>"
+                         data-dropdown-target="option">
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                          <div class="font-medium text-gray-900"><%= service.name %></div>
+                          <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
+                        </div>
+                        <div class="ml-3 text-right">
+                          <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                        </div>
                       </div>
                     </div>
-                    <% if item.service_id == service.id %>
-                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
-                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                      </span>
-                    <% end %>
-                  </div>
+                  <% end %>
                 <% end %>
               </div>
               
@@ -709,21 +732,42 @@
           </div>
           
           <% @services.each do |service| %>
-            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-                 data-item-id="<%= service.id %>"
-                 data-item-text="<%= service.name %> (<%= service.duration %>m)"
-                 data-item-price="<%= service.price %>"
-                 data-dropdown-target="option">
-              <div class="flex items-center justify-between">
-                <div class="flex-1">
-                  <div class="font-medium text-gray-900"><%= service.name %></div>
-                  <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
+            <% variants = service.service_variants.active %>
+            <% if variants.any? %>
+              <% variants.each do |variant| %>
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                     data-item-id="<%= service.id %>"
+                     data-item-text="<%= "#{service.name} - #{variant.name} (#{variant.duration}m)" %>"
+                     data-item-price="<%= variant.price %>"
+                     data-dropdown-target="option">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-900"><%= service.name %> - <%= variant.name %></div>
+                      <div class="text-sm text-gray-500"><%= variant.duration %> minutes</div>
+                    </div>
+                    <div class="ml-3 text-right">
+                      <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.price) %></div>
+                    </div>
+                  </div>
                 </div>
-                <div class="ml-3 text-right">
-                  <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+              <% end %>
+            <% else %>
+              <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                   data-item-id="<%= service.id %>"
+                   data-item-text="<%= "#{service.name} (#{service.duration}m)" %>"
+                   data-item-price="<%= service.price %>"
+                   data-dropdown-target="option">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900"><%= service.name %></div>
+                    <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
+                  </div>
+                  <div class="ml-3 text-right">
+                    <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                  </div>
                 </div>
               </div>
-            </div>
+            <% end %>
           <% end %>
         </div>
         
@@ -802,7 +846,10 @@
 <script>
 // Dynamic order form behavior
 (function() {
+  let productLineItemsInitialized = false;
   function initializeProductLineItems() {
+    if (productLineItemsInitialized) return; // avoid duplicate bindings (Turbo + DOMContentLoaded)
+    productLineItemsInitialized = true;
     // Customer form handling now done by custom dropdown JavaScript below
     // if (window.CustomerFormHelper) {
     //   CustomerFormHelper.initializeOrderForm();
@@ -844,6 +891,10 @@
         return !d || d.value !== 'true';
       });
       if (svcHead) svcHead.style.display = svcRows.length > 0 ? '' : 'none';
+      // Toggle shipping/tax/address visibility
+      document.querySelectorAll('.product-dependent').forEach(el => {
+        el.style.display = prodRows.length > 0 ? '' : 'none';
+      });
     }
     // Expose globally so service script can call it
     window.recalcOrderTotal = recalcOrderTotal;
@@ -918,7 +969,10 @@
 })();
 
 // Extend dynamic form behavior to service rows
+let serviceLineItemsInitialized = false;
 function initializeServiceLineItems() {
+  if (serviceLineItemsInitialized) return; // avoid duplicate bindings
+  serviceLineItemsInitialized = true;
   const addSvcBtn = document.getElementById('add-service-btn');
   const svcTable = document.getElementById('service-line-items-table');
   const svcBody = svcTable.querySelector('tbody');
@@ -1339,6 +1393,10 @@ function initializeShippingAndTaxDropdowns() {
 }
 
 // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+document.addEventListener('DOMContentLoaded', initializeShippingAndTaxDropdowns);
+// Run immediately in case the page is already loaded
+initializeShippingAndTaxDropdowns();
+// Also run on standard lifecycle events for Turbo/Turbolinks
 document.addEventListener('DOMContentLoaded', initializeShippingAndTaxDropdowns);
 document.addEventListener('turbo:load', initializeShippingAndTaxDropdowns);
 </script> 

@@ -64,6 +64,22 @@
 .bg-primary-500, .bg-primary-700, .hover\:bg-primary-700:hover { background-color: #1A5F7A; }
 .bg-secondary-500, .bg-secondary-700, .hover\:bg-secondary-700:hover { background-color: #57C5B6; }
 
+/* Settings Form Input Styles */
+.settings-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.settings-input:focus {
+  border-color: #1A5F7A; /* primary brand */
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.25);
+  outline: none;
+}
+
 /* White Background Opacity Classes for Navigation Buttons */
 .bg-white\/10 {
   background-color: rgba(255, 255, 255, 0.1);
@@ -518,6 +534,34 @@
 }
 
 /* Status badge improvements */
+
+/* Order status color variants */
+.status-pending_payment {
+  background-color: #FEF3C7; /* yellow-100 */
+  color: #92400E;            /* yellow-800 */
+}
+
+.status-processing {
+  background-color: #DBEAFE; /* blue-100 */
+  color: #1E40AF;            /* blue-800 */
+}
+
+.status-paid,
+.status-shipped {
+  background-color: #D1FAE5; /* green-100 */
+  color: #065F46;            /* green-800 */
+}
+
+.status-cancelled {
+  background-color: #FEE2E2; /* red-100 */
+  color: #991B1B;            /* red-800 */
+}
+
+.status-refunded {
+  background-color: #E5E7EB; /* gray-100 */
+  color: #374151;            /* gray-800 */
+}
+
 .status-badge {
   font-weight: 500;
   font-size: 0.75rem;

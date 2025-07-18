@@ -5,6 +5,7 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
     create(:business, name: "Nocturnal Services", time_zone: 'America/Phoenix', subdomain: 'nocturnal')
   end
   let!(:service) { create(:service, business: business, duration: 30, name: 'Late Night Consultation') }
+  let!(:service_variant) { create(:service_variant, service: service, duration: service.duration) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Night Owl') }
   let!(:client) { create(:user, :client) }
 
@@ -38,7 +39,7 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
     # Travel to Wednesday morning to check the initial state
     travel_to wednesday.in_time_zone(business.time_zone).change(hour: 10) do
       with_subdomain(business.subdomain) do
-        visit tenant_calendar_path(service_id: service.id)
+        visit tenant_calendar_path(service_id: service.id, service_variant_id: service_variant.id)
         # Initially, on Wednesday morning, the slot count for Wednesday should be greater than 0
         wednesday_cell = find(".calendar-day[data-date='#{wednesday.to_s}']")
         initial_count_span = wednesday_cell.find('.available-slots-count span')
@@ -49,7 +50,7 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
     # Now, travel to late that same night and revisit the page to test the JS update
     travel_to wednesday.in_time_zone(business.time_zone).change(hour: 22, min: 30) do
       with_subdomain(business.subdomain) do
-        visit tenant_calendar_path(service_id: service.id)
+        visit tenant_calendar_path(service_id: service.id, service_variant_id: service_variant.id)
 
         # The page's JS will run a function to update the count.
         # We need to wait for it to potentially change.

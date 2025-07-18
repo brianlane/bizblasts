@@ -247,6 +247,18 @@ document.addEventListener('turbo:load', initializeFunctionName);
 
 ---
 
+## 🆕 Service Variants
+
+Businesses can now define multiple "variants" of a core service — for example a 30-minute and 60-minute massage — without duplicating the base record.
+
+1. Navigate to **Manage → Services → Edit** and scroll to **Service Variants**.
+2. Add rows specifying `Name`, `Duration (min)`, and `Price`. You can toggle whether each variant is **Active**.
+3. At checkout the customer selects the desired variant; all pricing, duration, and Stripe line-items automatically adjust.
+
+All existing services have been migrated to a single default variant so your data remains intact.
+
+---
+
 ## 🏗️ **Multi-Tenancy Implementation**
 
 This application uses the `acts_as_tenant` gem for multi-tenancy with enhanced Hotwire support:

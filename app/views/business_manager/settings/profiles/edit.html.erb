@@ -37,22 +37,22 @@
 
         <div class="field">
           <%= f.label :first_name %>
-          <%= f.text_field :first_name %>
+          <%= f.text_field :first_name, class: "settings-input" %>
         </div>
 
         <div class="field">
           <%= f.label :last_name %>
-          <%= f.text_field :last_name %>
+          <%= f.text_field :last_name, class: "settings-input" %>
         </div>
 
         <div class="field">
           <%= f.label :email %>
-          <%= f.text_field :email, type: 'email', required: true %> 
+          <%= f.text_field :email, type: 'email', required: true, class: "settings-input" %> 
         </div>
 
         <div class="field">
           <%= f.label :phone %>
-          <%= f.text_field :phone, type: 'tel' %>
+          <%= f.text_field :phone, type: 'tel', class: "settings-input" %>
         </div>
 
         <div class="field">
@@ -139,14 +139,14 @@
 
         <div class="field">
           <%= f.label :password %>
-          <%= f.password_field :password, autocomplete: "new-password" %>
+          <%= f.password_field :password, autocomplete: "new-password", class: "settings-input" %>
           <small>Leave blank if you don't want to change it</small>
           <small>Minimum <%= Devise.password_length.min %> characters (if changing)</small>
         </div>
 
         <div class="field">
           <%= f.label :password_confirmation %>
-          <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+          <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "settings-input" %>
         </div>
 
         <div class="actions">
@@ -218,13 +218,13 @@
           <div class="deletion-form">
             <div class="field">
               <%= form.label :current_password, "Current Password" %>
-              <%= form.password_field :current_password, autocomplete: "current-password", required: true %>
+              <%= form.password_field :current_password, autocomplete: "current-password", required: true, class: "settings-input" %>
               <small>Required to confirm your identity</small>
             </div>
 
             <div class="field">
               <%= form.label :confirm_deletion, "Type DELETE to confirm" %>
-              <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true %>
+              <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true, class: "settings-input" %>
               <small>You must type DELETE exactly as shown</small>
             </div>
 

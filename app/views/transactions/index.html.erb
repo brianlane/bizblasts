@@ -64,7 +64,7 @@
           </td>
           
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-            <%= l transaction.created_at, format: :short %>
+            <%= l transaction.created_at.in_time_zone(transaction_time_zone(transaction)), format: :short_time %>
           </td>
           
           <td class="px-6 py-4 whitespace-nowrap">

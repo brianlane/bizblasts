@@ -23,6 +23,36 @@ module BusinessManager
     def show
     end
     
+    # GET /manage/bookings/new
+    def new
+      @booking = current_business.bookings.new
+      
+      # Handle service selection and variant
+      if params[:service_id].present?
+        @service = current_business.services.find_by(id: params[:service_id])
+        @booking.service = @service if @service
+        
+        # Handle service variant if provided
+        if params[:service_variant_id].present? && @service
+          @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+          @booking.service_variant = @service_variant if @service_variant
+        end
+      end
+      
+      # Pre-fill staff member if provided
+      @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
+      
+      # Pre-fill customer if provided
+      @booking.tenant_customer_id = params[:tenant_customer_id] if params[:tenant_customer_id].present?
+      
+      # Pre-fill date/time if provided via query params
+      if params[:date].present? && params[:start_time].present?
+        current_business.ensure_time_zone! if current_business.respond_to?(:ensure_time_zone!)
+        dt = BookingManager.process_datetime_params(params[:date], params[:start_time], current_business&.time_zone || 'UTC')
+        @booking.start_time = dt if dt
+      end
+    end
+    
     # GET /manage/bookings/:id/edit
     def edit
       # Load all available products for this business that have variants
@@ -407,7 +437,7 @@ module BusinessManager
       # For complex nested attributes like this, we need to build the permitted parameters
       # differently to handle dynamic keys
       params.require(:booking).permit(
-        :service_id, :staff_member_id, :tenant_customer_id,
+        :service_id, :service_variant_id, :staff_member_id, :tenant_customer_id,
         :start_time, :end_time, :status, :notes,
         :amount, :original_amount, :discount_amount, # Allow setting amounts manually if needed
         :cancellation_reason,

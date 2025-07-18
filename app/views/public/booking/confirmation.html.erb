@@ -40,9 +40,9 @@
         Here are your booking details:
       <% end %>
     </p>
-    <p><strong>Service:</strong> <%= @booking.service.name %></p>
+    <p><strong>Service:</strong> <%= service_with_variant(@booking) %></p>
     <p><strong>Business:</strong> <%= @booking.business.name %></p>
-          <p><strong>Date & Time:</strong> <%= l @booking.local_start_time, format: :long %> (until <%= l @booking.local_end_time, format: :short_time %>)</p>
+    <p><strong>Date & Time:</strong> <%= l @booking.local_start_time, format: :long %> (until <%= l @booking.local_end_time, format: :short_time %>)</p>
     <p><strong>Staff:</strong> <%= @booking.staff_member&.name || 'Any available' %></p>
     <p><strong>Your Name:</strong> <%= @booking.tenant_customer.full_name %></p>
     <p><strong>Your Email:</strong> <%= @booking.tenant_customer.email %></p>
@@ -64,7 +64,7 @@
 
     <% if @booking.invoice %>
       <h2 class="text-2xl font-bold mb-4">Invoice Summary:</h2>
-      <p><strong>Service Cost:</strong> <%= number_to_currency @booking.service.price %></p>
+      <p><strong>Service Cost:</strong> <%= number_to_currency service_price(@booking) %></p>
       <% if @booking.booking_product_add_ons.any? %>
         <p><strong>Products Subtotal:</strong> <%= number_to_currency @booking.booking_product_add_ons.sum(&:total_amount) %></p>
       <% end %>
