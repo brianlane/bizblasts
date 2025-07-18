@@ -17,4 +17,15 @@ RSpec.describe BlogMailer, type: :mailer do
     # Verify no emails were actually delivered
     expect(ActionMailer::Base.deliveries.count).to eq(0)
   end
+
+  it 'includes unsubscribe link in new post notification' do
+    mail = BlogMailer.new_post_notification(user, blog_post)
+    unsubscribe_link = unsubscribe_url(token: user.unsubscribe_token)
+    expect(mail.body.encoded).to include(unsubscribe_link)
+  end
+
+  it 'includes manage email preferences link in new post notification' do
+    mail = BlogMailer.new_post_notification(user, blog_post)
+    expect(mail.body.encoded).to include(edit_client_settings_url)
+  end
 end 
