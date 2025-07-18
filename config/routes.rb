@@ -542,7 +542,7 @@ Rails.application.routes.draw do
 
   # Client Settings - moved outside authenticated block to allow proper redirects
   namespace :client, path: '' do # path: '' to avoid /client/client/settings
-    resource :settings, only: [:show, :update, :destroy], controller: 'settings' do
+    resource :settings, only: [:show, :edit, :update, :destroy], controller: 'settings' do
       patch :unsubscribe_all, on: :member
     end
     
