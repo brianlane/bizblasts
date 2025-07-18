@@ -201,8 +201,8 @@ class Service < ApplicationRecord
     true
   end
   
-  def duration_minutes
-    duration
+  def duration_minutes(variant = nil)
+    base_duration(variant)
   end
 
   # Position management methods
@@ -285,6 +285,23 @@ class Service < ApplicationRecord
   def primary_image
     # Return the primary image if marked, otherwise nil
     images.attachments.order(:position).find_by(primary: true)
+  end
+
+  has_many :service_variants, dependent: :destroy
+  accepts_nested_attributes_for :service_variants, allow_destroy: true
+
+  # Return primary (first) variant for convenience
+  def default_variant
+    service_variants.by_position.first
+  end
+
+  # Convenience wrappers to favour variant price/duration when available
+  def base_price(variant = nil)
+    (variant || default_variant)&.price || price
+  end
+
+  def base_duration(variant = nil)
+    (variant || default_variant)&.duration || duration
   end
 
   private

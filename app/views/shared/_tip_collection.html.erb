@@ -40,7 +40,7 @@
         <div class="ml-3">
           <h4 class="text-sm font-medium text-blue-800">Your Recent Experience</h4>
           <p class="text-sm text-blue-700 mt-1">
-            <%= booking.service.name %> with <%= booking.staff_member&.name || 'our team' %>
+            <%= service_with_variant(booking) %> with <%= booking.staff_member&.name || 'our team' %>
             <br>
             <span class="text-blue-600"><%= booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></span>
           </p>

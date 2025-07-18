@@ -10,7 +10,7 @@
   <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
     <div class="p-6">
       <div class="flex justify-between mb-4">
-        <h2 class="text-xl font-semibold"><%= @booking.service.name %></h2>
+        <h2 class="text-xl font-semibold"><%= service_with_variant(@booking) %></h2>
         <span class="px-3 py-1 rounded-full text-sm font-medium
           <%= @booking.status == 'confirmed' ? 'bg-green-100 text-green-800' : '' %>
           <%= @booking.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' %>
@@ -88,7 +88,7 @@
                   <%= @booking.invoice.status.titleize %>
                 </span>
               </p>
-              <p><span class="font-medium">Service Cost:</span> <%= number_to_currency @booking.service.price %></p>
+              <p><span class="font-medium">Service Cost:</span> <%= number_to_currency service_price(@booking) %></p>
             </div>
             <div>
               <p><span class="font-medium">Total Items:</span> <%= number_to_currency @booking.invoice.original_amount %></p>

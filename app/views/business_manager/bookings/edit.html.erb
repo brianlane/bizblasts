@@ -186,7 +186,7 @@
   function initializeBookingEditPage() {
     const quantityInput = document.getElementById('booking_quantity');
     const totalPriceSpan = document.getElementById('total-booking-price');
-    const baseServicePrice = <%= @booking.service.price || 0 %>;
+    const baseServicePrice = <%= service_price(@booking) || 0 %>;
     const addonQuantityInputs = document.querySelectorAll('.addon-quantity-input');
     const addonPrices = {}; // Store add-on prices by product variant ID
 

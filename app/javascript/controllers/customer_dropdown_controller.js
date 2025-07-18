@@ -21,7 +21,7 @@ export default class extends Controller {
     // Set initial selected state if we have a selected value
     if (this.selectedValueValue) {
       const selectedOption = this.optionTargets.find(option => 
-        option.dataset.itemId === this.selectedValueValue
+        (option.dataset.itemId || option.dataset.customerId) === this.selectedValueValue
       )
       if (selectedOption) {
         this.selectOption(selectedOption, false)
@@ -62,11 +62,15 @@ export default class extends Controller {
   }
   
   selectOption(optionElement, shouldClose = true) {
-    const itemId = optionElement.dataset.itemId
-    const itemText = optionElement.dataset.itemText
+    // Support both data-item-* and data-customer-* attribute conventions
+    const itemId   = optionElement.dataset.itemId   || optionElement.dataset.customerId
+    const itemText = optionElement.dataset.itemText || optionElement.dataset.customerName || optionElement.textContent.trim()
     
-    // Update hidden field
-    this.hiddenTarget.value = itemId
+    // Locate the hidden field even if it exists outside the controller element
+    const hiddenField = this.hasHiddenTarget ? this.hiddenTarget : this.element.closest('form')?.querySelector('[data-customer-dropdown-target="hidden"]')
+    if (hiddenField) {
+      hiddenField.value = itemId
+    }
     
     // Update button text
     const textElement = this.buttonTarget.querySelector('.customer-dropdown-text')
@@ -90,7 +94,9 @@ export default class extends Controller {
     }
     
     // Trigger change event for form validation
-    this.hiddenTarget.dispatchEvent(new Event('change', { bubbles: true }))
+    if (hiddenField) {
+      hiddenField.dispatchEvent(new Event('change', { bubbles: true }))
+    }
     
     // Trigger custom event for other listeners
     this.dispatch('selected', { 
@@ -101,32 +107,34 @@ export default class extends Controller {
       } 
     })
   }
+
   
   toggleNewCustomerFields(show) {
-    if (this.hasNewCustomerFieldsTarget) {
-      if (show) {
-        this.newCustomerFieldsTarget.classList.remove('hidden')
-        this.newCustomerFieldsTarget.style.display = ''
-        
-        // Enable required validation for customer fields
-        const fields = this.newCustomerFieldsTarget.querySelectorAll('input[name*="[first_name]"], input[name*="[last_name]"], input[name*="[email]"]')
-        fields.forEach(field => {
-          field.required = true
-          field.disabled = false
-        })
-      } else {
-        this.newCustomerFieldsTarget.classList.add('hidden')
-        this.newCustomerFieldsTarget.style.display = 'none'
-        
-        // Remove required validation for customer fields
-        const fields = this.newCustomerFieldsTarget.querySelectorAll('input[name*="[first_name]"], input[name*="[last_name]"], input[name*="[email]"]')
-        fields.forEach(field => {
-          field.required = false
-          field.disabled = false // Keep enabled for better UX
-        })
-      }
+    const container = this.hasNewCustomerFieldsTarget
+      ? this.newCustomerFieldsTarget
+      : this.element.closest('form')?.querySelector('[data-customer-dropdown-target="newCustomerFields"]')
+
+    if (!container) return
+
+    const fields = container.querySelectorAll('input[name*="[first_name]"], input[name*="[last_name]"], input[name*="[email]"], input[name*="[phone]"]')
+
+    if (show) {
+      container.classList.remove('hidden')
+      container.style.display = ''
+      fields.forEach(field => {
+        field.required = true
+        field.disabled = false
+      })
+    } else {
+      container.classList.add('hidden')
+      container.style.display = 'none'
+      fields.forEach(field => {
+        field.required = false
+        field.disabled = false
+      })
     }
   }
+
   
   clearSelectedStates() {
     this.optionTargets.forEach(option => {

@@ -26,7 +26,7 @@
     <% @order = @transaction %>
     <div class="border-b border-gray-200 pb-4 mb-6">
       <h1 class="text-2xl font-bold text-gray-900">Order Details: <%= @order.order_number %></h1>
-      <p class="text-sm text-gray-500 mt-1">Order placed on <%= l @order.created_at, format: :long %></p>
+      <p class="text-sm text-gray-500 mt-1">Order placed on <%= @order.created_at.in_time_zone(transaction_time_zone(@order)).strftime('%B %-d, %Y %l:%M %p') %></p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -45,7 +45,7 @@
           </span>
         </div>
         <p class="mb-2"><span class="font-semibold">Type:</span> <%= @order.order_type.titleize %></p>
-        <p class="mb-2"><span class="font-semibold">Date:</span> <%= l @order.created_at, format: :long %></p>
+        <p class="mb-2"><span class="font-semibold">Date:</span> <%= @order.created_at.in_time_zone(transaction_time_zone(@order)).strftime('%B %-d, %Y %l:%M %p') %></p>
         <% if @order.tenant_customer %>
           <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @order.tenant_customer.full_name %></p>
           <p class="mb-2"><span class="font-semibold">Customer Email:</span> <%= @order.tenant_customer.email %></p>
@@ -89,7 +89,7 @@
             </p>
           </div>
           <div>
-            <p><span class="font-medium">Due Date:</span> <%= l @order.invoice.due_date, format: :short if @order.invoice.due_date %></p>
+            <p><span class="font-medium">Due Date:</span> <%= @order.invoice.due_date&.in_time_zone(transaction_time_zone(@order.invoice))&.strftime('%B %-d, %Y %l:%M %p') if @order.invoice.due_date %></p>
             <p><span class="font-medium">Total:</span> <%= number_to_currency @order.invoice.total_amount %></p>
           </div>
         </div>
@@ -170,7 +170,7 @@
     <% @invoice = @transaction %>
     <div class="border-b border-gray-200 pb-4 mb-6">
       <h1 class="text-2xl font-bold text-gray-900">Invoice Details: <%= @invoice.invoice_number %></h1>
-      <p class="text-sm text-gray-500 mt-1">Invoice created on <%= l @invoice.created_at, format: :long %></p>
+      <p class="text-sm text-gray-500 mt-1">Invoice created on <%= @invoice.created_at.in_time_zone(transaction_time_zone(@invoice)).strftime('%B %-d, %Y %l:%M %p') %></p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -187,7 +187,7 @@
             <%= @invoice.status.titleize %>
           </span>
         </div>
-        <p class="mb-2"><span class="font-semibold">Due Date:</span> <%= l @invoice.due_date, format: :long if @invoice.due_date %></p>
+        <p class="mb-2"><span class="font-semibold">Due Date:</span> <%= @invoice.due_date&.in_time_zone(transaction_time_zone(@invoice))&.strftime('%B %-d, %Y %l:%M %p') if @invoice.due_date %></p>
         <% if @invoice.tenant_customer %>
           <p class="mb-2"><span class="font-semibold">Customer Name:</span> <%= @invoice.tenant_customer.full_name %></p>
           <p class="mb-2"><span class="font-semibold">Customer Email:</span> <%= @invoice.tenant_customer.email %></p>
@@ -232,7 +232,7 @@
                 <%= @invoice.order.status.titleize %>
               </span>
             </p>
-            <p><span class="font-medium">Order Date:</span> <%= l @invoice.order.created_at, format: :short %></p>
+            <p><span class="font-medium">Order Date:</span> <%= @invoice.order.created_at.in_time_zone(transaction_time_zone(@invoice.order)).strftime('%B %-d, %Y %l:%M %p') %></p>
           </div>
         </div>
         <div class="mt-3">
@@ -245,7 +245,7 @@
         <h3 class="text-lg font-semibold mb-2 text-green-800">Related Booking</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p><span class="font-medium">Service:</span> <%= @invoice.booking.service.name %></p>
+            <p><span class="font-medium">Service:</span> <%= service_with_variant(@invoice.booking) %></p>
             <p><span class="font-medium">Staff:</span> <%= @invoice.booking.staff_member&.name || 'Any Staff' %></p>
           </div>
           <div>
@@ -273,10 +273,10 @@
     <% if @invoice.booking %>
       <h2 class="text-xl font-semibold mb-4">Service Details</h2>
       <div class="bg-gray-50 p-4 rounded mb-6">
-        <p class="mb-2"><span class="font-semibold">Service:</span> <%= @invoice.booking.service.name %></p>
+        <p class="mb-2"><span class="font-semibold">Service:</span> <%= service_with_variant(@invoice.booking) %></p>
         <p class="mb-2"><span class="font-semibold">Scheduled:</span> <%= l @invoice.booking.local_start_time, format: :long %></p>
         <p class="mb-2"><span class="font-semibold">Staff:</span> <%= @invoice.booking.staff_member&.name || 'Any Staff' %></p>
-        <p class="mb-2"><span class="font-semibold">Service Cost:</span> <%= number_to_currency @invoice.booking.service.price %></p>
+        <p class="mb-2"><span class="font-semibold">Service Cost:</span> <%= number_to_currency service_price(@invoice.booking) %></p>
       </div>
 
       <% if @invoice.booking.booking_product_add_ons.any? %>

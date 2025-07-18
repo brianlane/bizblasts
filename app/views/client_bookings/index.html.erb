@@ -20,7 +20,7 @@
         <% @bookings.each do |booking| %>
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-2 border-b"><%= booking.business.name %></td>
-            <td class="px-4 py-2 border-b"><%= booking.service.name %></td>
+            <td class="px-4 py-2 border-b"><%= service_with_variant(booking) %></td>
             <td class="px-4 py-2 border-b"><%= booking.staff_member.name %></td>
             <td class="px-4 py-2 border-b">
               <%= booking.local_start_time.strftime("%b %d, %Y at %I:%M %p") %>

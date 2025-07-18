@@ -31,7 +31,7 @@ en:
   hello: "Hello world"
   time:
     formats:
-      short_time: "%H:%M"
+      short_time: "%-l:%M %p"
   activerecord:
     errors:
       models:
