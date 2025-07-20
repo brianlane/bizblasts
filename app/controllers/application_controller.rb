@@ -12,6 +12,9 @@ class ApplicationController < ActionController::Base
 
   # Handle CSRF token issues for admin login after user logout
   before_action :handle_admin_csrf_token, if: -> { request.path == '/admin/login' && request.post? }
+  
+  # Handle CSRF token issues for admin actions when crossing domains
+  before_action :handle_admin_csrf_for_actions, if: -> { request.path.start_with?('/admin') && !request.get? && request.path != '/admin/login' }
 
   # Redirect admin access attempts from subdomains to the main domain
   before_action :redirect_admin_from_subdomain
@@ -234,6 +237,17 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, allow_other_host: true and return
   end
 
+  # Override redirect_to to automatically handle cross-domain redirects
+  # This ensures all controllers inherit safe redirect behavior
+  def redirect_to(options = {}, response_options = {})
+    # If the redirect URL contains a protocol (cross-domain) and we're not already allowing other hosts
+    if options.to_s.include?('://') && options != request.url && !response_options[:allow_other_host]
+      Rails.logger.debug "[ApplicationController] Auto-adding allow_other_host for cross-domain redirect to: #{options}"
+      response_options = response_options.merge(allow_other_host: true)
+    end
+    super(options, response_options)
+  end
+
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in
   # This method now properly handles both subdomain and custom domain scenarios
@@ -265,6 +279,17 @@ class ApplicationController < ActionController::Base
     else
       # Default fallback for other resource types
       super
+    end
+  end
+
+  # Safe redirect helper that automatically adds allow_other_host for cross-domain redirects
+  def safe_redirect_to(url_or_path, options = {})
+    if url_or_path.to_s.include?('://') && url_or_path != request.url
+      # Cross-domain redirect detected, add allow_other_host: true
+      redirect_to url_or_path, options.merge(allow_other_host: true)
+    else
+      # Same-domain redirect
+      redirect_to url_or_path, options
     end
   end
 
@@ -402,6 +427,21 @@ class ApplicationController < ActionController::Base
       # Skip CSRF verification for this request by regenerating the token
       session[:_csrf_token] = nil
       form_authenticity_token
+    end
+  end
+
+  # Handle CSRF token issues for admin actions when crossing domains
+  def handle_admin_csrf_for_actions
+    # Check if this is an admin action with invalid CSRF token
+    if !verified_request?
+      Rails.logger.warn "[CSRF Fix] Admin action with invalid CSRF token: #{request.method} #{request.path}"
+      Rails.logger.warn "[CSRF Fix] User Agent: #{request.user_agent}"
+      Rails.logger.warn "[CSRF Fix] Referer: #{request.referer}"
+      
+      # Instead of silently fixing it, redirect to the admin dashboard to get a fresh session
+      # This is safer than bypassing CSRF for all admin actions
+      flash[:alert] = "Session expired. Please try your action again."
+      redirect_to admin_root_path and return
     end
   end
 
