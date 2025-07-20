@@ -1,4 +1,4 @@
-class CustomDeviseMailer < Devise::Mailer
+class CustomDeviseMailer < Devise::Passwordless::Mailer
   # Override confirmation_instructions to use different templates based on user role
   def confirmation_instructions(record, token, opts = {})
     @token = token

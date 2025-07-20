@@ -29,7 +29,7 @@ Rails.application.configure do
   config.logger = ActiveSupport::Logger.new(Rails.root.join("log", "test.log"))
 
   # Devise
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -42,7 +42,7 @@ Rails.application.configure do
 
   config.action_mailer.delivery_method = :test
   config.action_mailer.perform_deliveries = true
-  config.action_mailer.default_url_options = { host: "example.com" }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr

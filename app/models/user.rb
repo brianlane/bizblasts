@@ -28,7 +28,7 @@ class User < ApplicationRecord
   
   # Devise modules - Removed :validatable to use custom email uniqueness
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :confirmable, :trackable # Added :confirmable for email verification and :trackable for login tracking
+         :recoverable, :rememberable, :confirmable, :trackable, :magic_link_authenticatable # Added :confirmable for email verification and :trackable for login tracking
 
   # Callbacks
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
