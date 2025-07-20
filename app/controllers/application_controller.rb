@@ -239,11 +239,7 @@ class ApplicationController < ActionController::Base
     end
     
     # Otherwise redirect to root path
-    if Rails.env.test?
-      redirect_to root_path and return
-    else
-      redirect_to root_path, allow_other_host: true and return
-    end
+    redirect_to root_path, allow_other_host: true and return
   end
 
 
@@ -343,11 +339,7 @@ class ApplicationController < ActionController::Base
       main_domain_url = construct_main_domain_url
       
       Rails.logger.info "[Redirect Admin] Redirecting admin access from #{request.host} to #{main_domain_url}"
-      if Rails.env.test?
-        redirect_to main_domain_url, status: :moved_permanently
-      else
-        redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
-      end
+      redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
     end
   end
   
