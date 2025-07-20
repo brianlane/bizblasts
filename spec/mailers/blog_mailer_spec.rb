@@ -1,6 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe BlogMailer, type: :mailer do
+  include UnsubscribeHelper
+  
   let(:user) { create(:user, email: 'bloguser@example.com') }
   let(:blog_post) { create(:blog_post, title: 'Test Post') }
 
@@ -18,14 +20,17 @@ RSpec.describe BlogMailer, type: :mailer do
     expect(ActionMailer::Base.deliveries.count).to eq(0)
   end
 
-  it 'includes unsubscribe link in new post notification' do
+  it 'includes unsubscribe magic link in new post notification' do
     mail = BlogMailer.new_post_notification(user, blog_post)
-    unsubscribe_link = unsubscribe_url(token: user.unsubscribe_token)
-    expect(mail.body.encoded).to include(unsubscribe_link)
+    # The unsubscribe link should be a magic link that includes the user's email (URL encoded)
+    expect(mail.body.encoded).to include('users/magic_link')
+    expect(mail.body.encoded).to include(CGI.escape(user.email)) # URL encoded email
+    expect(mail.body.encoded).to include('Unsubscribe')
   end
 
-  it 'includes manage email preferences link in new post notification' do
+  it 'includes correct redirect path for client users in magic link' do
     mail = BlogMailer.new_post_notification(user, blog_post)
-    expect(mail.body.encoded).to include(edit_client_settings_url)
+    # For client users, the magic link should redirect to /settings/edit
+    expect(mail.body.encoded).to include('%2Fsettings%2Fedit') # URL encoded /settings/edit
   end
 end 

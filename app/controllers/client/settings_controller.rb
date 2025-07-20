@@ -126,9 +126,12 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       notification_preferences: [
         :email_booking_confirmation,
         :sms_booking_reminder,
+        :email_booking_updates,
         :email_order_updates,
         :sms_order_updates,
+        :email_payment_confirmations,
         :email_promotions,
+        :email_blog_updates,
         :sms_promotions
       ]
     )
@@ -147,9 +150,12 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       notification_preferences: [
         :email_booking_confirmation,
         :sms_booking_reminder,
+        :email_booking_updates,
         :email_order_updates,
         :sms_order_updates,
+        :email_payment_confirmations,
         :email_promotions,
+        :email_blog_updates,
         :sms_promotions
       ]
     )

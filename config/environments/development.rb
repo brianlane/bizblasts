@@ -28,7 +28,7 @@ Rails.application.configure do
   end
 
   # Devise
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
   # Change to :null_store to avoid any caching.
   config.cache_store = :memory_store
@@ -41,7 +41,7 @@ Rails.application.configure do
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_caching = false
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
   
   # Default email options
   config.action_mailer.default_options = {

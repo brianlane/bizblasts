@@ -117,14 +117,7 @@
         <strong>Thanks for being part of the BizBlasts community!</strong><br>
         The BizBlasts Team
       </p>
-      <p style="margin: 10px 0; font-size: 12px;">
-        You're receiving this because you have blog notifications enabled.<br>
-        <% if @user.client? %>
-          <a href="<%= edit_client_settings_url %>" style="color: #667eea;">Manage email preferences</a>
-        <% elsif @user.manager? || @user.staff? %>
-          <a href="<%= edit_business_manager_settings_profile_url(subdomain: @user.business.subdomain) %>" style="color: #667eea;">Manage email preferences</a>
-        <% end %>
-      </p>
+
     </div>
   </div>
   

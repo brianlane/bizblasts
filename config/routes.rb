@@ -36,7 +36,14 @@ Rails.application.routes.draw do
   
   devise_for :users, skip: [:registrations], controllers: {
     sessions: 'users/sessions',
+    magic_links: 'users/magic_links'
   }
+
+  namespace :passwordless do
+    devise_for :users, skip: [:registrations], controllers: {
+      sessions: 'devise/passwordless/sessions'
+    }
+  end
 
   devise_for :businesses, skip: [:registrations], controllers: {
     sessions: 'businesses/sessions',
@@ -498,10 +505,8 @@ Rails.application.routes.draw do
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
 
-  # Universal unsubscribe routes
-  get '/unsubscribe', to: 'public/unsubscribe#show', as: :unsubscribe
-  patch '/unsubscribe', to: 'public/unsubscribe#update'
-  patch '/unsubscribe/resubscribe', to: 'public/unsubscribe#resubscribe', as: :resubscribe_unsubscribe
+  # Magic link-based unsubscribe route
+  get '/unsubscribe/magic_link', to: 'public/unsubscribe#magic_link', as: :unsubscribe_magic_link
 
   # Policy acceptance routes
   resources :policy_acceptances, only: [:create, :show]
