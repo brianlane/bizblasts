@@ -1,11 +1,15 @@
 class Users::MagicLinksController < Devise::MagicLinksController
   # Override the show method to allow cross-host redirects
   def show
-    self.resource = resource_class.find_by(email: params[resource_name][:email])
+    resource_params = params.fetch(resource_name, {})
+    email = resource_params[:email]
+    token = resource_params[:token]
+    redirect_param = resource_params[:redirect_to]
+    self.resource = resource_class.find_by(email: email)
     
     # Validate the token using GlobalID approach like devise-passwordless does
     begin
-      token_resource = GlobalID::Locator.locate_signed(params[resource_name][:token], for: 'login')
+      token_resource = GlobalID::Locator.locate_signed(token, for: 'login')
       token_valid = token_resource == resource
     rescue => e
       token_valid = false
@@ -19,15 +23,16 @@ class Users::MagicLinksController < Devise::MagicLinksController
       set_flash_message!(:notice, :signed_in)
       
       # Get the redirect path from params
-      redirect_path = params[resource_name][:redirect_to]
+      # Validate and sanitize the redirect path for security
+      safe_redirect_path = safe_redirect_path(redirect_param)
       
       # Special handling for business users who need to be redirected to their subdomain
-      if redirect_path.present? && redirect_path != '/' && (resource.manager? || resource.staff?) && resource.business.present?
-        business_url = generate_business_dashboard_url(resource.business, redirect_path)
+      if safe_redirect_path.present? && safe_redirect_path != '/' && (resource.manager? || resource.staff?) && resource.business.present?
+        business_url = generate_business_dashboard_url(resource.business, safe_redirect_path)
         redirect_to business_url, allow_other_host: true
-      elsif redirect_path.present? && redirect_path != '/'
+      elsif safe_redirect_path.present? && safe_redirect_path != '/'
         # For client users or other cases, use the redirect_path directly
-        redirect_to redirect_path, allow_other_host: true
+        redirect_to safe_redirect_path, allow_other_host: true
       else
         # Fall back to the default after_sign_in_path which handles business user redirects
         redirect_to after_sign_in_path_for(resource), allow_other_host: true
@@ -35,6 +40,52 @@ class Users::MagicLinksController < Devise::MagicLinksController
     else
       # Invalid token, redirect to sign in
       redirect_to new_user_session_path, alert: 'Invalid or expired magic link.'
+    end
+  end
+
+  private
+
+  # Validate and sanitize redirect paths to prevent open redirect attacks
+  def safe_redirect_path(redirect_path)
+    return nil unless redirect_path.present?
+    
+    # Only allow relative paths that start with /
+    # This prevents redirects to external domains
+    return nil unless redirect_path.start_with?('/')
+    
+    # Whitelist of allowed path patterns for additional security
+    allowed_paths = [
+      %r{\A/\z},                                    # Root path
+      %r{\A/dashboard\z},                           # Dashboard
+      %r{\A/settings/edit\z},                       # Client settings edit
+      %r{\A/client/settings\z},                     # Client settings (legacy)
+      %r{\A/manage/settings/profile/edit\z},        # Business settings profile
+      %r{\A/manage/dashboard\z},                    # Business dashboard
+      %r{\A/manage/settings\z}                      # Business settings
+    ]
+    
+    # Check if the path matches any allowed pattern
+    return redirect_path if allowed_paths.any? { |pattern| redirect_path.match?(pattern) }
+    
+    # If path doesn't match whitelist, return nil for fallback behavior
+    nil
+  end
+
+  # Generate the correct dashboard URL for a business (subdomain or custom domain)
+  def generate_business_dashboard_url(business, path = '/manage/dashboard')
+    if Rails.env.development? || Rails.env.test?
+      if business.host_type_subdomain?
+        "http://#{business.hostname}.lvh.me:#{request.port}#{path}"
+      else
+        "http://#{business.hostname}:#{request.port}#{path}"
+      end
+    else
+      protocol = request.ssl? ? 'https://' : 'http://'
+      if business.host_type_custom_domain?
+        "#{protocol}#{business.hostname}#{path}"
+      else
+        "#{protocol}#{business.hostname}.bizblasts.com#{path}"
+      end
     end
   end
 end

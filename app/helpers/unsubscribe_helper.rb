@@ -7,7 +7,7 @@ module UnsubscribeHelper
 
     # Determine the redirect path based on user role
     if user.client?
-      redirect_path = client_settings_path
+      redirect_path = edit_client_settings_path
     elsif user.manager? || user.staff?
       # For manager/staff users, redirect directly to their business settings profile page
       # This will be handled by the magic links controller with cross-domain redirect
