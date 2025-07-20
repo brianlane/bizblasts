@@ -15,6 +15,14 @@ class ApplicationController < ActionController::Base
 
   # Redirect admin access attempts from subdomains to the main domain
   before_action :redirect_admin_from_subdomain
+  
+  # Handle CSRF token issues for admin actions when crossing domains (non-test environments only)
+  before_action :handle_admin_csrf_for_actions, if: -> { 
+    !Rails.env.test? && 
+    request.path.start_with?('/admin') && 
+    !request.get? && 
+    request.path != '/admin/login' 
+  }
 
   # Set current tenant based on subdomain/custom domain
   # This filter should be skipped in specific controllers where tenant context is handled differently
@@ -234,6 +242,7 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, allow_other_host: true and return
   end
 
+
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in
   # This method now properly handles both subdomain and custom domain scenarios
@@ -267,6 +276,7 @@ class ApplicationController < ActionController::Base
       super
     end
   end
+
 
   # Generate the correct dashboard URL for a business (subdomain or custom domain)
   def generate_business_dashboard_url(business, path = '/manage/dashboard')
@@ -402,6 +412,21 @@ class ApplicationController < ActionController::Base
       # Skip CSRF verification for this request by regenerating the token
       session[:_csrf_token] = nil
       form_authenticity_token
+    end
+  end
+
+  # Handle CSRF token issues for admin actions when crossing domains (production only)
+  def handle_admin_csrf_for_actions
+    # Check if this is an admin action with invalid CSRF token
+    if !verified_request?
+      Rails.logger.warn "[CSRF Fix] Admin action with invalid CSRF token: #{request.method} #{request.path}"
+      Rails.logger.warn "[CSRF Fix] User Agent: #{request.user_agent}"
+      Rails.logger.warn "[CSRF Fix] Referer: #{request.referer}"
+      
+      # Instead of silently fixing it, redirect to the admin dashboard to get a fresh session
+      # This is safer than bypassing CSRF for all admin actions
+      flash[:alert] = "Session expired. Please try your action again."
+      redirect_to admin_root_path and return
     end
   end
 
