@@ -289,7 +289,7 @@ class ApplicationController < ActionController::Base
 
   # Safe redirect helper that automatically adds allow_other_host for cross-domain redirects
   def safe_redirect_to(url_or_path, options = {})
-    if url_or_path.to_s.include?('://') && url_or_path != request.url
+    if url_or_path.to_s.include?('://') && is_cross_domain_redirect?(url_or_path)
       # Cross-domain redirect detected, add allow_other_host: true
       redirect_to url_or_path, options.merge(allow_other_host: true)
     else
