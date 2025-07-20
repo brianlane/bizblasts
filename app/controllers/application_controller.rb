@@ -12,17 +12,17 @@ class ApplicationController < ActionController::Base
 
   # Handle CSRF token issues for admin login after user logout
   before_action :handle_admin_csrf_token, if: -> { request.path == '/admin/login' && request.post? }
+
+  # Redirect admin access attempts from subdomains to the main domain
+  before_action :redirect_admin_from_subdomain
   
-  # Handle CSRF token issues for admin actions when crossing domains (production only)
+  # Handle CSRF token issues for admin actions when crossing domains (non-test environments only)
   before_action :handle_admin_csrf_for_actions, if: -> { 
     !Rails.env.test? && 
     request.path.start_with?('/admin') && 
     !request.get? && 
     request.path != '/admin/login' 
   }
-
-  # Redirect admin access attempts from subdomains to the main domain
-  before_action :redirect_admin_from_subdomain
 
   # Set current tenant based on subdomain/custom domain
   # This filter should be skipped in specific controllers where tenant context is handled differently
