@@ -240,8 +240,13 @@ class ApplicationController < ActionController::Base
   # Override redirect_to to automatically handle cross-domain redirects
   # This ensures all controllers inherit safe redirect behavior
   def redirect_to(options = {}, response_options = {})
-    # If the redirect URL contains a protocol (cross-domain) and we're not already allowing other hosts
-    if options.to_s.include?('://') && options != request.url && !response_options[:allow_other_host]
+    # Only auto-add allow_other_host if:
+    # 1. The redirect URL contains a protocol (cross-domain)
+    # 2. allow_other_host is not explicitly set (nil)
+    # 3. The redirect is actually to a different host
+    if options.to_s.include?('://') && 
+       !response_options.key?(:allow_other_host) &&
+       is_cross_domain_redirect?(options)
       Rails.logger.debug "[ApplicationController] Auto-adding allow_other_host for cross-domain redirect to: #{options}"
       response_options = response_options.merge(allow_other_host: true)
     end
@@ -316,6 +321,20 @@ class ApplicationController < ActionController::Base
 
   # Keep other methods private
   private
+
+  # Check if the redirect is actually cross-domain by comparing hosts
+  def is_cross_domain_redirect?(options)
+    begin
+      redirect_uri = URI.parse(options.to_s)
+      request_uri = URI.parse(request.url)
+      
+      # Compare the host and port to determine if it's cross-domain
+      redirect_uri.host != request_uri.host || redirect_uri.port != request_uri.port
+    rescue URI::InvalidURIError
+      # If we can't parse the URI, assume it's not cross-domain (likely a path)
+      false
+    end
+  end
 
   def skip_user_authentication?
     devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
