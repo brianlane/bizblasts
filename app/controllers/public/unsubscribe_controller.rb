@@ -32,7 +32,7 @@ class Public::UnsubscribeController < Public::BaseController
 
   def unsubscribe_settings_path_for_user(user)
     if user.client?
-      '/client/settings'
+      edit_client_settings_path
     elsif user.manager? || user.staff?
       '/manage/settings/profile/edit'
     else
