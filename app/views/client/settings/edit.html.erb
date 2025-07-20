@@ -103,7 +103,9 @@
       </div>
       <div class="px-6 py-6">
         <fieldset <%= 'disabled' if @user.unsubscribed_at.present? %> class="<%= 'opacity-50' if @user.unsubscribed_at.present? %>">
-          <%= form.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
+          <% require 'ostruct' %>
+          <% prefs_object = OpenStruct.new(@user.notification_preferences || {}) %>
+          <%= form.fields_for :notification_preferences, prefs_object do |prefs_fields| %>
             <div class="space-y-8">
               <!-- Booking & Service Notifications -->
               <div>
@@ -214,7 +216,7 @@
 
     <!-- Save Settings Button -->
     <div class="flex justify-end">
-      <%= form.submit "Save Settings", class: "bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200" %>
+      <%= form.submit "Save Settings", class: "bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 cursor-pointer" %>
     </div>
   <% end %>
 
@@ -231,7 +233,7 @@
             <h3 class="text-sm font-medium text-gray-900">Unsubscribe from all emails</h3>
             <p class="text-sm text-gray-500">You'll stop receiving all email notifications, but can re-subscribe anytime.</p>
           </div>
-          <%= form.submit "Unsubscribe From All Emails", class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200" %>
+          <%= form.submit "Unsubscribe From All Emails", class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer" %>
         </div>
       <% end %>
     </div>

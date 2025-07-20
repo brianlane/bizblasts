@@ -6,6 +6,13 @@ RSpec.describe Business::RegistrationsController, type: :controller do
   before do
     # Configure devise for controller tests
     @request.env["devise.mapping"] = Devise.mappings[:user]
+    # Configure mailer URL options for CI/test environment
+    ActionMailer::Base.default_url_options = { host: 'example.com', port: 3000 }
+  end
+  
+  after do
+    # Reset mailer URL options
+    ActionMailer::Base.default_url_options = {}
   end
 
   describe '#create' do
