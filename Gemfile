@@ -28,6 +28,7 @@ gem "aws-sdk-s3", require: false
 # Authentication
 gem "devise"
 gem "devise-jwt"
+gem "devise-passwordless"
 
 # Email delivery
 gem "resend"

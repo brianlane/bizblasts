@@ -8,6 +8,7 @@ class ApplicationMailer < ActionMailer::Base
   # Include all helpers so that mailer views can access view helpers such as
   # service_with_variant, service_duration, etc.
   helper :application
+  helper :unsubscribe
   
   # Override mail method to add logging
   def mail(headers = {}, &block)
