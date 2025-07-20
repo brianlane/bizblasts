@@ -44,8 +44,8 @@ RSpec.describe 'Magic Link Unsubscribe', type: :system do
         # Visit the unsubscribe magic link
         visit unsubscribe_url
         
-        # Should be signed in and redirected to client settings
-        expect(page).to have_current_path(client_settings_path)
+        # Should be signed in and redirected to client settings edit page
+        expect(page).to have_current_path(edit_client_settings_path)
         expect(page).to have_content('Settings') # or whatever content indicates we're on settings page
       end
     end

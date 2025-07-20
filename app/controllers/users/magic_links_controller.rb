@@ -1,4 +1,4 @@
-class Users::MagicLinksController < Devise::MagicLinksController
+class Users::MagicLinksController < Devise::Passwordless::SessionsController
   # Override the show method to allow cross-host redirects
   def show
     resource_params = params.fetch(resource_name, {})
