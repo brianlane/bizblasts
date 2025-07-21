@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_20_234535) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_21_205723) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -127,6 +127,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_20_234535) do
     t.integer "interval_mins", default: 30
     t.index ["business_id"], name: "index_booking_policies_on_business_id"
     t.index ["min_advance_mins"], name: "index_booking_policies_on_min_advance_mins"
+    t.index ["use_fixed_intervals"], name: "index_booking_policies_on_use_fixed_intervals"
   end
 
   create_table "booking_product_add_ons", force: :cascade do |t|
