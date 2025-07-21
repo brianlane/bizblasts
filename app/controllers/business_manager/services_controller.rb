@@ -185,7 +185,12 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
           redirect_to business_manager_services_path, notice: 'Availability was successfully updated.'
         else
           @calendar_data = {}
-          (@start_date..@end_date).each{|date| @calendar_data[date.to_s]= BookingService.fetch_available_slots(service:@service,date:date)}
+          (@start_date..@end_date).each do |date|
+            slots = @service.staff_members.active.flat_map do |staff|
+              AvailabilityService.available_slots(staff, date, @service)
+            end
+            @calendar_data[date.to_s] = slots.sort_by { |slot| slot[:start_time] }
+          end
           render 'availability', status: :unprocessable_entity
         end
       else
@@ -194,8 +199,13 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
           @service.availability={'monday'=>[],'tuesday'=>[],'wednesday'=>[],'thursday'=>[],'friday'=>[],'saturday'=>[],'sunday'=>[],'exceptions'=>{}}
           @service.save(validate:false)
         end
-        @calendar_data={}
-        (@start_date..@end_date).each{|date| @calendar_data[date.to_s]= BookingService.fetch_available_slots(service:@service,date:date)}
+        @calendar_data = {}
+        (@start_date..@end_date).each do |date|
+          slots = @service.staff_members.active.flat_map do |staff|
+            AvailabilityService.available_slots(staff, date, @service)
+          end
+          @calendar_data[date.to_s] = slots.sort_by { |slot| slot[:start_time] }
+        end
         render 'availability'
       end
     end
@@ -219,6 +229,22 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :tips_enabled,
+      # (moved availability to end)
+      :service_type,
+      :min_bookings,
+      :max_bookings,
+      :subscription_enabled,
+      :subscription_discount_percentage,
+      :subscription_billing_cycle,
+      :subscription_rebooking_preference,
+      :allow_customer_preferences,
+      :allow_discounts,
+      :position, # Allow position updates
+      staff_member_ids: [], # Allow staff assignment via new association
+      add_on_product_ids: [], # Allow add-on product assignment
+      images: [], # Allow new image uploads
+      images_attributes: [:id, :primary, :position, :_destroy],
+      service_variants_attributes: [:id, :name, :duration, :price, :active, :position, :_destroy],
       availability: {
         monday: permit_dynamic_slots,
         tuesday: permit_dynamic_slots,
@@ -228,17 +254,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         saturday: permit_dynamic_slots,
         sunday: permit_dynamic_slots,
         exceptions: {}
-      },
-      :service_type,
-      :min_bookings,
-      :max_bookings,
-      :subscription_enabled, :subscription_discount_percentage, :subscription_billing_cycle, :subscription_rebooking_preference, :allow_customer_preferences,
-      :position, # Allow position updates
-      staff_member_ids: [], # Allow staff assignment via new association
-      add_on_product_ids: [], # Allow add-on product assignment
-      images: [], # Allow new image uploads
-      images_attributes: [:id, :primary, :position, :_destroy],
-      service_variants_attributes: [:id, :name, :duration, :price, :active, :position, :_destroy]
+      }
     )
   end
 
