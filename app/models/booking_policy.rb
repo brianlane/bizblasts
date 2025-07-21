@@ -11,7 +11,7 @@ class BookingPolicy < ApplicationRecord
   validates :min_duration_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :max_duration_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :min_advance_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :interval_mins, numericality: { only_integer: true, greater_than_or_equal_to: 5, less_than_or_equal_to: 120, multiple_of: 5 }, 
+  validates :interval_mins, numericality: { only_integer: true, greater_than_or_equal_to: 5, less_than_or_equal_to: 120 }, 
                             if: :use_fixed_intervals?
 
   # Consider adding serialization for intake_fields if complex structure is needed
@@ -179,14 +179,10 @@ class BookingPolicy < ApplicationRecord
 
   def fixed_interval_validation
     return unless use_fixed_intervals?
+    return if interval_mins.blank? # Let numericality validation handle blank/nil values
     
-    if interval_mins.blank?
-      errors.add(:interval_mins, 'must be present when using fixed intervals')
-    elsif interval_mins < 5
-      errors.add(:interval_mins, 'must be at least 5 minutes when using fixed intervals')
-    elsif interval_mins > 120
-      errors.add(:interval_mins, 'must be at most 120 minutes when using fixed intervals')
-    elsif interval_mins % 5 != 0
+    # Only check divisibility by 5 since numericality validation handles the rest
+    if interval_mins % 5 != 0
       errors.add(:interval_mins, 'must be divisible by 5 when using fixed intervals')
     end
   end
