@@ -67,7 +67,9 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
       :max_duration_mins,
       :cancellation_window_hours,
       :min_advance_hours,
-      :auto_confirm_bookings
+      :auto_confirm_bookings,
+      :use_fixed_intervals,
+      :interval_mins
     )
   end
 end 

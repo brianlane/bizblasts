@@ -188,11 +188,20 @@ class AvailabilityService
 
     Time.use_zone(tz) do
       slot_duration = service&.duration || interval
-      step_interval = interval
-      time_slots = []
       
-      # Policy checks
+      # Policy checks and step interval calculation
       policy = business&.booking_policy
+      step_interval = if policy&.use_fixed_intervals?
+                        (policy.interval_mins || 30).clamp(5, 120)
+                      elsif policy
+                        # Policy exists but fixed intervals disabled: use service duration for step interval
+                        (service&.duration || interval || 30).clamp(5, 480)
+                      else
+                        # No policy: use passed interval for step interval (original behavior)
+                        (interval || 30).clamp(5, 480)
+                      end
+      
+      time_slots = []
       if policy
         # Adjust to minimum duration
         if policy.min_duration_mins.present? && slot_duration < policy.min_duration_mins
