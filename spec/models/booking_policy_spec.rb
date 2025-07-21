@@ -68,5 +68,70 @@ RSpec.describe BookingPolicy, type: :model do
         expect(policy.errors[:min_advance_mins]).to include('must be greater than or equal to 0')
       end
     end
+
+    context 'fixed intervals validations' do
+      it 'allows valid fixed intervals when enabled' do
+        policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 30)
+        expect(policy).to be_valid
+      end
+      
+      it 'does not require interval_mins when fixed intervals is disabled' do
+        policy = build(:booking_policy, business: business, use_fixed_intervals: false, interval_mins: nil)
+        expect(policy).to be_valid
+      end
+      
+      it 'requires interval_mins when fixed intervals is enabled' do
+        policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: nil)
+        expect(policy).not_to be_valid
+        expect(policy.errors[:interval_mins]).to include('must be present when using fixed intervals')
+      end
+      
+      it 'rejects interval_mins less than 5 minutes' do
+        policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 3)
+        expect(policy).not_to be_valid
+        expect(policy.errors[:interval_mins]).to include('must be at least 5 minutes when using fixed intervals')
+      end
+      
+      it 'rejects interval_mins not divisible by 5' do
+        policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 23)
+        expect(policy).not_to be_valid
+        expect(policy.errors[:interval_mins]).to include('must be divisible by 5 when using fixed intervals')
+      end
+      
+      it 'accepts valid interval_mins values' do
+        [5, 10, 15, 30, 60].each do |interval|
+          policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: interval)
+          expect(policy).to be_valid
+        end
+      end
+    end
+  end
+
+  describe '#slot_interval_mins' do
+    let(:service) { build(:service, duration: 32) }
+    
+    context 'when use_fixed_intervals is false' do
+      let(:policy) { build(:booking_policy, business: business, use_fixed_intervals: false, interval_mins: 30) }
+      
+      it 'returns the service duration' do
+        expect(policy.slot_interval_mins(service)).to eq(32)
+      end
+      
+      it 'returns 30 when service is nil' do
+        expect(policy.slot_interval_mins(nil)).to eq(30)
+      end
+    end
+    
+    context 'when use_fixed_intervals is true' do
+      let(:policy) { build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 30) }
+      
+      it 'returns the interval_mins regardless of service duration' do
+        expect(policy.slot_interval_mins(service)).to eq(30)
+      end
+      
+      it 'returns the interval_mins when service is nil' do
+        expect(policy.slot_interval_mins(nil)).to eq(30)
+      end
+    end
   end
 end 
