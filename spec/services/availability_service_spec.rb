@@ -763,7 +763,7 @@ RSpec.describe AvailabilityService, type: :service do
     end
     
     context 'with minimum advance booking time policy' do
-      let!(:policy) { create(:booking_policy, business: business, min_advance_mins: 30) }
+      let!(:policy) { create(:booking_policy, business: business, min_advance_mins: 30, use_fixed_intervals: true, interval_mins: 30) }
       
       before do
         travel_to Time.zone.local(today.year, today.month, today.day, 11, 0) # 11:00 AM
@@ -778,7 +778,7 @@ RSpec.describe AvailabilityService, type: :service do
       after { travel_back }
       
       it 'excludes slots within the minimum advance time window' do
-        slots = described_class.available_slots(staff_member, today, service)
+        slots = described_class.available_slots(staff_member, today, service, interval: 30)
         slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
         
         # Should exclude slots within 30 minutes (before 11:30)
@@ -791,7 +791,7 @@ RSpec.describe AvailabilityService, type: :service do
       it 'applies no advance time filter when policy is not set' do
         policy.update!(min_advance_mins: nil)
         
-        slots = described_class.available_slots(staff_member, today, service)
+        slots = described_class.available_slots(staff_member, today, service, interval: 30)
         slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
         
         # Should only filter exactly current time (11:00), not future times
@@ -802,7 +802,7 @@ RSpec.describe AvailabilityService, type: :service do
       it 'applies zero advance time when policy is set to 0' do
         policy.update!(min_advance_mins: 0)
         
-        slots = described_class.available_slots(staff_member, today, service)
+        slots = described_class.available_slots(staff_member, today, service, interval: 30)
         slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
         
         # Should filter only past times, include current and future
