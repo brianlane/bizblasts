@@ -113,12 +113,12 @@ RSpec.describe BookingPolicy, type: :model do
     context 'when use_fixed_intervals is false' do
       let(:policy) { build(:booking_policy, business: business, use_fixed_intervals: false, interval_mins: 30) }
       
-      it 'returns the service duration' do
-        expect(policy.slot_interval_mins(service)).to eq(32)
+      it 'returns nil to let calling code use default logic' do
+        expect(policy.slot_interval_mins(service)).to be_nil
       end
       
-      it 'returns 30 when service is nil' do
-        expect(policy.slot_interval_mins(nil)).to eq(30)
+      it 'returns nil when service is nil' do
+        expect(policy.slot_interval_mins(nil)).to be_nil
       end
     end
     

@@ -153,12 +153,12 @@ class BookingPolicy < ApplicationRecord
 
   # Returns the interval to use for slot generation
   # If use_fixed_intervals is enabled, returns interval_mins
-  # Otherwise, returns the service duration (current behavior)
+  # Otherwise, returns nil to indicate the calling code should use its default logic
   def slot_interval_mins(service)
     if use_fixed_intervals?
       interval_mins
     else
-      service&.duration || 30 # Fallback to 30 minutes if service is nil
+      nil # Let the calling code use its default interval logic
     end
   end
 
