@@ -11,11 +11,14 @@ class BookingPolicy < ApplicationRecord
   validates :min_duration_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :max_duration_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :min_advance_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :interval_mins, numericality: { only_integer: true, greater_than_or_equal_to: 5, multiple_of: 5 }, 
+                            if: :use_fixed_intervals?
 
   # Consider adding serialization for intake_fields if complex structure is needed
   # serialize :intake_fields, JSON
 
   validate :min_not_greater_than_max
+  validate :fixed_interval_validation
 
   # Customer-friendly policy display methods
   def customer_friendly_cancellation_policy
@@ -148,12 +151,35 @@ class BookingPolicy < ApplicationRecord
     cancellation_allowed_for?(user, booking)
   end
 
+  # Returns the interval to use for slot generation
+  # If use_fixed_intervals is enabled, returns interval_mins
+  # Otherwise, returns the service duration (current behavior)
+  def slot_interval_mins(service)
+    if use_fixed_intervals?
+      interval_mins
+    else
+      service&.duration || 30 # Fallback to 30 minutes if service is nil
+    end
+  end
+
   private
 
   def min_not_greater_than_max
     return if min_duration_mins.nil? || max_duration_mins.nil?
     if min_duration_mins > max_duration_mins
       errors.add(:min_duration_mins, 'cannot be greater than maximum duration')
+    end
+  end
+
+  def fixed_interval_validation
+    return unless use_fixed_intervals?
+    
+    if interval_mins.blank?
+      errors.add(:interval_mins, 'must be present when using fixed intervals')
+    elsif interval_mins < 5
+      errors.add(:interval_mins, 'must be at least 5 minutes when using fixed intervals')
+    elsif interval_mins % 5 != 0
+      errors.add(:interval_mins, 'must be divisible by 5 when using fixed intervals')
     end
   end
 end 
