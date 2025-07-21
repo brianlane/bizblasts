@@ -1004,6 +1004,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_21_213000) do
     t.boolean "allow_customer_preferences", default: true, null: false
     t.boolean "allow_discounts", default: true, null: false
     t.integer "position", default: 0
+    t.jsonb "availability", default: {}, null: false
+    t.boolean "enforce_service_availability", default: true, null: false
     t.index ["allow_customer_preferences"], name: "index_services_on_allow_customer_preferences"
     t.index ["allow_discounts"], name: "index_services_on_allow_discounts"
     t.index ["business_id", "position"], name: "index_services_on_business_id_and_position"

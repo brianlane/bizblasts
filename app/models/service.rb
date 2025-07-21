@@ -40,7 +40,53 @@ class Service < ApplicationRecord
 
   # Define service types
   enum :service_type, { standard: 0, experience: 1 }
-  
+  # Service-specific availability configuration
+  before_validation :process_service_availability
+
+  # Normalize availability JSON before validation
+  def process_service_availability
+    return if availability.blank? || !availability.is_a?(Hash)
+    days = %w[monday tuesday wednesday thursday friday saturday sunday]
+    days.each do |day|
+      if availability[day].is_a?(Array)
+        availability[day] = availability[day].select { |s| s.is_a?(Hash) && s['start'].present? && s['end'].present? }
+      else
+        availability[day] = []
+      end
+    end
+    if availability['exceptions'].is_a?(Hash)
+      availability['exceptions'].each do |date, slots|
+        availability['exceptions'][date] = Array(slots).select { |s| s.is_a?(Hash) && s['start'].present? && s['end'].present? }
+      end
+    else
+      availability['exceptions'] = {}
+    end
+  end
+
+  # Check if service is available at a given datetime
+  def available_at?(datetime)
+    return true unless enforce_service_availability
+    return true if availability.blank?
+    time_to_check = Tod::TimeOfDay.parse(datetime.strftime('%H:%M'))
+    data = availability.with_indifferent_access
+    exceptions = data[:exceptions] || {}
+    weekly    = data.except(:exceptions)
+    key = datetime.to_date.iso8601
+    intervals = exceptions.key?(key) ? Array(exceptions[key]) : Array(weekly[datetime.strftime('%A').downcase])
+    intervals.any? do |int|
+      start_tod = parse_time_of_day(int['start'])
+      end_tod   = parse_time_of_day(int['end'])
+      next false unless start_tod && end_tod
+      if start_tod == Tod::TimeOfDay.new(0,0) && end_tod == Tod::TimeOfDay.new(23,59)
+        true
+      elsif start_tod < end_tod
+        time_to_check >= start_tod && time_to_check < end_tod
+      else
+        false
+      end
+    end
+  end
+
   # Callbacks
   # before_destroy :orphan_bookings  # Removed - Business model handles orphaning
   
@@ -370,5 +416,13 @@ class Service < ApplicationRecord
     business.services.positioned.each_with_index do |service, index|
       service.update_column(:position, index) if service.position != index
     end
+  end
+
+  private
+
+  def parse_time_of_day(time_str)
+    Tod::TimeOfDay.parse(time_str)
+  rescue ArgumentError
+    nil
   end
 end 

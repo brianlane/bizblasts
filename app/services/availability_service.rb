@@ -30,6 +30,8 @@ class AvailabilityService
     tz = staff_member.business&.time_zone.presence || 'UTC'
     tz_component = tz.parameterize(separator: '_')
     cache_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
+    # Append service update timestamp to bust cache when availability changes
+    cache_key = "#{cache_key}_svc_#{service&.updated_at.to_i}"
     
     # Bust the cache if requested
     Rails.cache.delete(cache_key) if bust_cache
@@ -115,6 +117,8 @@ class AvailabilityService
     # masking misconfiguration when the staff member has no active services.
     
     cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
+    # Append service update timestamp to bust cache when availability changes
+    cache_key = "#{cache_key}/svc_#{service&.updated_at.to_i}"
 
     # Bust the cache if requested
     Rails.cache.delete(cache_key) if bust_cache
@@ -274,7 +278,12 @@ class AvailabilityService
         end
       end
       
-      filter_booked_slots(time_slots, staff_member, date, slot_duration)
+      result = filter_booked_slots(time_slots, staff_member, date, slot_duration)
+      # Apply service availability filtering if enforced
+      if service.present? && service.enforce_service_availability?
+        result = result.select { |slot| service.available_at?(slot[:start_time]) && service.available_at?(slot[:end_time] - 1.minute) }
+      end
+      result
     end
   end
 

@@ -1,0 +1,49 @@
+<%# app/views/business_manager/services/availability.html.erb %>
+<div class="container mx-auto p-4">
+  <h1 class="text-2xl font-bold mb-4">Manage Availability for <%= @service.name %></h1>
+  <%= form_with model: @service, url: manage_availability_business_manager_service_path(@service, date: @date), method: :patch, data: { turbo: false }, class: "space-y-6" do |f| %>
+    <% (@start_date..@end_date).each do |date| %>
+      <% day = date.strftime('%A').downcase %>
+      <div class="border p-4 rounded">
+        <h2 class="font-semibold mb-2"><%= day.capitalize %> (<%= date.strftime('%b %d, %Y') %>)</h2>
+        <div class="mb-2">
+          <input type="hidden" name="full_day[<%= day %>]" value="0">
+          <%= check_box_tag "full_day[#{day}]", '1', @service.availability&.dig(day)&.any? { |s| s['start']=='00:00' && s['end']=='23:59' }, id: "full_day_#{day}", class: "mr-2" %>
+          <label for="full_day_<%= day %>">Full 24 Hour Availability</label>
+        </div>
+        <div id="<%= day %>-slots" class="space-y-2">
+          <% slots = @service.availability&.dig(day) || [{}] %>
+          <% slots.each_with_index do |slot, idx| %>
+            <div class="flex items-center gap-2">
+              <input type="time" name="service[availability][<%= day %>][<%= idx %>][start]" value="<%= slot['start'] %>" class="border px-2 py-1">
+              <span>→</span>
+              <input type="time" name="service[availability][<%= day %>][<%= idx %>][end]" value="<%= slot['end'] %>" class="border px-2 py-1">
+            </div>
+          <% end %>
+          <button type="button" data-day="<%= day %>" class="add-slot-btn text-sm text-blue-600">Add Slot</button>
+        </div>
+      </div>
+    <% end %>
+    <div>
+      <%= f.submit "Save Availability", class: "px-4 py-2 bg-blue-600 text-white rounded" %>
+    </div>
+  <% end %>
+
+  <h2 class="text-xl font-semibold mt-8 mb-4">Calendar Preview</h2>
+  <% @calendar_data.each do |date_str, slots| %>
+    <div class="mb-3">
+      <strong><%= Date.parse(date_str).strftime('%A, %b %-d') %>:</strong>
+      <% if slots.any? %>
+        <% slots.each do |slot| %>
+          <div><%= slot[:start_time].strftime('%l:%M %p').strip %> - <%= slot[:end_time].strftime('%l:%M %p').strip %></div>
+        <% end %>
+      <% else %>
+        <div class="italic text-gray-500">No slots</div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="mt-6">
+    <%= link_to 'Back to Services', business_manager_services_path, class: "text-blue-600 hover:underline" %>
+  </div>
+</div> 
