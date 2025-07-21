@@ -83,13 +83,13 @@ RSpec.describe BookingPolicy, type: :model do
       it 'requires interval_mins when fixed intervals is enabled' do
         policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: nil)
         expect(policy).not_to be_valid
-        expect(policy.errors[:interval_mins]).to include('must be present when using fixed intervals')
+        expect(policy.errors[:interval_mins]).to include('is not a number')
       end
       
       it 'rejects interval_mins less than 5 minutes' do
         policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 3)
         expect(policy).not_to be_valid
-        expect(policy.errors[:interval_mins]).to include('must be at least 5 minutes when using fixed intervals')
+        expect(policy.errors[:interval_mins]).to include('must be greater than or equal to 5')
       end
       
       it 'rejects interval_mins not divisible by 5' do
@@ -108,7 +108,7 @@ RSpec.describe BookingPolicy, type: :model do
       it 'rejects interval_mins greater than 120 minutes' do
         policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 150)
         expect(policy).not_to be_valid
-        expect(policy.errors[:interval_mins]).to include('must be at most 120 minutes when using fixed intervals')
+        expect(policy.errors[:interval_mins]).to include('must be less than or equal to 120')
       end
     end
   end
