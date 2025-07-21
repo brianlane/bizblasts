@@ -99,10 +99,16 @@ RSpec.describe BookingPolicy, type: :model do
       end
       
       it 'accepts valid interval_mins values' do
-        [5, 10, 15, 30, 60].each do |interval|
+        [5, 10, 15, 30, 60, 120].each do |interval|
           policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: interval)
           expect(policy).to be_valid
         end
+      end
+      
+      it 'rejects interval_mins greater than 120 minutes' do
+        policy = build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 150)
+        expect(policy).not_to be_valid
+        expect(policy.errors[:interval_mins]).to include('must be at most 120 minutes when using fixed intervals')
       end
     end
   end

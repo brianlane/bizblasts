@@ -32,6 +32,7 @@ RSpec.describe Booking, type: :model do
 
     it { should belong_to(:promotion).optional }
     it { should have_one(:invoice) }
+    it { should belong_to(:service_variant).optional }
   end
   
   describe "validations" do
