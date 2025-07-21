@@ -1,6 +1,9 @@
 <h1>Editing Service: <%= @service.name %></h1>
 
 <%= render 'form', service: @service %>
+<div class="mt-4">
+  <%= link_to 'Manage Availability', manage_availability_business_manager_service_path(@service), class: "inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md" %>
+</div>
 
 <!-- Navigation Links -->
 <div class="mt-6 border-t pt-6">

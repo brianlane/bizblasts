@@ -2,7 +2,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
-  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down]
+  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :manage_availability]
 
   # GET /business_manager/services
   def index
@@ -152,7 +152,55 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       end
     end
 
-    private
+    # Manage service-specific availability schedule
+    def manage_availability
+      @date = params[:date] ? Date.parse(params[:date]) : Date.today
+      @start_date = @date.beginning_of_week
+      @end_date = @date.end_of_week
+      if request.patch?
+        availability_data = {
+          'monday'=>[], 'tuesday'=>[], 'wednesday'=>[], 'thursday'=>[], 'friday'=>[], 'saturday'=>[], 'sunday'=>[], 'exceptions'=>{}
+        }
+        avail_params = params.require(:service).require(:availability).permit(
+          monday: permit_dynamic_slots,
+          tuesday: permit_dynamic_slots,
+          wednesday: permit_dynamic_slots,
+          thursday: permit_dynamic_slots,
+          friday: permit_dynamic_slots,
+          saturday: permit_dynamic_slots,
+          sunday: permit_dynamic_slots,
+          exceptions: {}
+        ).to_h
+        days = (0..6).map{|i| (@start_date + i.days).strftime('%A').downcase}
+        days.each do |day|
+          full = params.dig(:full_day, day) == '1'
+          if full
+            availability_data[day] = [{'start'=>'00:00','end'=>'23:59'}]
+          else
+            slots = Array(avail_params[day]).values.compact.map{|s| {'start'=>s['start'],'end'=>s['end']} if s['start'].present? && s['end'].present? }.compact
+            availability_data[day]=slots
+          end
+        end
+        if @service.update(availability: availability_data)
+          redirect_to business_manager_services_path, notice: 'Availability was successfully updated.'
+        else
+          @calendar_data = {}
+          (@start_date..@end_date).each{|date| @calendar_data[date.to_s]= BookingService.fetch_available_slots(service:@service,date:date)}
+          render 'availability', status: :unprocessable_entity
+        end
+      else
+        bust = params[:bust_cache]=='true'
+        unless @service.availability.is_a?(Hash)
+          @service.availability={'monday'=>[],'tuesday'=>[],'wednesday'=>[],'thursday'=>[],'friday'=>[],'saturday'=>[],'sunday'=>[],'exceptions'=>{}}
+          @service.save(validate:false)
+        end
+        @calendar_data={}
+        (@start_date..@end_date).each{|date| @calendar_data[date.to_s]= BookingService.fetch_available_slots(service:@service,date:date)}
+        render 'availability'
+      end
+    end
+
+  private
 
   # Use callbacks to share common setup or constraints between actions.
   def set_service
@@ -171,8 +219,16 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :tips_enabled,
-      :allow_discounts,
-      :availability_settings,
+      availability: {
+        monday: permit_dynamic_slots,
+        tuesday: permit_dynamic_slots,
+        wednesday: permit_dynamic_slots,
+        thursday: permit_dynamic_slots,
+        friday: permit_dynamic_slots,
+        saturday: permit_dynamic_slots,
+        sunday: permit_dynamic_slots,
+        exceptions: {}
+      },
       :service_type,
       :min_bookings,
       :max_bookings,
@@ -213,6 +269,11 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   rescue => e
     @service.errors.add(:images, "Error processing images: #{e.message}")
     return false
+  end
+
+  # Helper to permit dynamic slot hashes
+  def permit_dynamic_slots
+    Hash.new { |h,k| h[k]=[:start,:end] }
   end
 
 end
