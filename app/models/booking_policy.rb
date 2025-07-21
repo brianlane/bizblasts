@@ -155,11 +155,17 @@ class BookingPolicy < ApplicationRecord
   # If use_fixed_intervals is enabled, returns interval_mins
   # Otherwise, returns nil to indicate the calling code should use its default logic
   def slot_interval_mins(service)
-    if use_fixed_intervals?
-      interval_mins
-    else
-      nil # Let the calling code use its default interval logic
-    end
+    use_fixed_intervals? ? interval_mins : nil
+  end
+
+  # Returns true if this policy has fixed intervals properly configured
+  def fixed_interval_configured?
+    use_fixed_intervals? && interval_mins.present?
+  end
+
+  # Returns true if this policy specifies fixed intervals (alias for backward compatibility)
+  def uses_fixed_intervals?
+    fixed_interval_configured?
   end
 
   private
