@@ -192,13 +192,13 @@ class AvailabilityService
       # Policy checks and step interval calculation
       policy = business&.booking_policy
       step_interval = if policy&.use_fixed_intervals?
-                        policy.interval_mins&.clamp(5, 120) || 30
+                        (policy.interval_mins || 30).clamp(5, 120)
                       elsif policy
-                        # When policy exists but fixed intervals is false, use service duration as step interval (original behavior)
-                        (service&.duration || interval)&.clamp(5, 480) || interval
+                        # Policy exists but fixed intervals disabled: use service duration for step interval
+                        (service&.duration || interval || 30).clamp(5, 480)
                       else
-                        # No policy, use passed interval
-                        interval&.clamp(5, 480) || interval
+                        # No policy: use passed interval for step interval (original behavior)
+                        (interval || 30).clamp(5, 480)
                       end
       
       time_slots = []
