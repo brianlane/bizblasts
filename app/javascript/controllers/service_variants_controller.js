@@ -59,7 +59,7 @@ export default class extends Controller {
       <div class="variant-field bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
         <div class="flex items-center justify-between mb-4">
           <h4 class="text-md font-medium text-gray-900">Service Variant</h4>
-          <button type="button" class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md" data-action="click->service-variants#removeVariant">
+          <button type="button" class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md cursor-pointer" data-action="click->service-variants#removeVariant">
             Remove Variant
           </button>
         </div>

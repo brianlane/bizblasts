@@ -29,9 +29,16 @@ class AvailabilityService
     # Include the business time zone in the cache key so slots are cached per-timezone.
     tz = staff_member.business&.time_zone.presence || 'UTC'
     tz_component = tz.parameterize(separator: '_')
-    cache_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
-    # Append service update timestamp to bust cache when availability changes
-    cache_key = "#{cache_key}_svc_#{service&.updated_at.to_i}"
+    
+    # Build cache key with all relevant components
+    cache_key = build_availability_cache_key(
+      staff_member: staff_member,
+      date: date,
+      service: service,
+      interval: interval,
+      time_component: time_component,
+      tz_component: tz_component
+    )
     
     # Bust the cache if requested
     Rails.cache.delete(cache_key) if bust_cache
@@ -116,9 +123,15 @@ class AvailabilityService
     # member offers multiple services with varying durations and also avoids
     # masking misconfiguration when the staff member has no active services.
     
-    cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
-    # Append service update timestamp to bust cache when availability changes
-    cache_key = "#{cache_key}/svc_#{service&.updated_at.to_i}"
+    # Build cache key with all relevant components
+    cache_key = build_calendar_cache_key(
+      staff_member: staff_member,
+      start_date: start_date,
+      end_date: end_date,
+      service: service,
+      interval: interval,
+      tz: tz
+    )
 
     # Bust the cache if requested
     Rails.cache.delete(cache_key) if bust_cache
@@ -476,5 +489,92 @@ class AvailabilityService
     Rails.logger.debug("Past time filtering: #{slots.count} original slots, #{filtered_slots.count} after filtering")
     
     filtered_slots
+  end
+
+  # Build cache key for availability slots with granular versioning
+  def self.build_availability_cache_key(staff_member:, date:, service:, interval:, time_component:, tz_component:)
+    base_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
+    
+    # Add version components for more granular invalidation
+    version_components = []
+    
+    # Staff availability version (changes when staff schedule changes)
+    if staff_member.updated_at.present?
+      version_components << "staff_#{staff_member.updated_at.to_i}"
+    end
+    
+    # Service availability version (changes when service availability changes)  
+    if service&.updated_at.present?
+      version_components << "svc_#{service.updated_at.to_i}"
+    end
+    
+    # Service enforcement version (separate from service updates)
+    if service&.enforce_service_availability?
+      version_components << "enf_#{service.enforce_service_availability? ? 1 : 0}"
+    end
+    
+    # Business booking policy version (affects minimum advance booking)
+    business = staff_member.business
+    if business&.booking_policy&.updated_at.present?
+      version_components << "policy_#{business.booking_policy.updated_at.to_i}"
+    end
+    
+    # Combine base key with version components
+    "#{base_key}_v_#{version_components.join('_')}"
+  end
+
+  # Build cache key for availability calendar with granular versioning
+  def self.build_calendar_cache_key(staff_member:, start_date:, end_date:, service:, interval:, tz:)
+    base_key = "availability_calendar_#{staff_member.id}_#{start_date}_#{end_date}_#{service&.id}_#{interval}_#{tz.parameterize(separator: '_')}"
+    
+    # Add version components
+    version_components = []
+    
+    # Staff availability version
+    if staff_member.updated_at.present?
+      version_components << "staff_#{staff_member.updated_at.to_i}"
+    end
+    
+    # Service availability version
+    if service&.updated_at.present?
+      version_components << "svc_#{service.updated_at.to_i}"
+    end
+    
+    # Business booking policy version
+    business = staff_member.business
+    if business&.booking_policy&.updated_at.present?
+      version_components << "policy_#{business.booking_policy.updated_at.to_i}"
+    end
+    
+    # Existing bookings change frequently, so include a less granular component
+    # that changes every 15 minutes to balance performance with accuracy
+    time_bucket = (Time.current.to_i / 900) * 900  # 15-minute buckets
+    version_components << "bookings_#{time_bucket}"
+    
+    "#{base_key}_v_#{version_components.join('_')}"
+  end
+
+  # Clear all availability caches for a staff member
+  def self.clear_staff_availability_cache(staff_member)
+    cache_pattern = "avail_#{staff_member.id}_*"
+    calendar_pattern = "availability_calendar_#{staff_member.id}_*"
+    
+    Rails.logger.info("Clearing availability cache for staff member #{staff_member.id}")
+    
+    # In production, we'd want a more sophisticated cache clearing strategy
+    # For now, we'll rely on the versioned cache keys to naturally expire
+    
+    # Clear specific patterns if using a cache store that supports it
+    if Rails.cache.respond_to?(:delete_matched)
+      Rails.cache.delete_matched(cache_pattern)
+      Rails.cache.delete_matched(calendar_pattern)
+    end
+  end
+
+  # Clear all availability caches for a service
+  def self.clear_service_availability_cache(service)
+    # With versioned cache keys, old entries will naturally expire
+    # This method is here for explicit cache clearing if needed
+    Rails.logger.info("Service #{service.id} availability cache will be invalidated via version keys")
   end
 end
