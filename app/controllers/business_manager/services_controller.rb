@@ -154,7 +154,16 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
     # Manage service-specific availability schedule
     def manage_availability
-      @date = params[:date] ? Date.parse(params[:date]) : Date.today
+      # Safely parse date parameter, defaulting to today on error or absence
+      @date = if params[:date].present?
+        begin
+          Date.parse(params[:date])
+        rescue ArgumentError, TypeError
+          Date.today
+        end
+      else
+        Date.today
+      end
       @start_date = @date.beginning_of_week
       @end_date = @date.end_of_week
       if request.patch?
@@ -229,7 +238,6 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :tips_enabled,
-      # (moved availability to end)
       :service_type,
       :min_bookings,
       :max_bookings,
@@ -245,16 +253,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       images: [], # Allow new image uploads
       images_attributes: [:id, :primary, :position, :_destroy],
       service_variants_attributes: [:id, :name, :duration, :price, :active, :position, :_destroy],
-      availability: {
-        monday: permit_dynamic_slots,
-        tuesday: permit_dynamic_slots,
-        wednesday: permit_dynamic_slots,
-        thursday: permit_dynamic_slots,
-        friday: permit_dynamic_slots,
-        saturday: permit_dynamic_slots,
-        sunday: permit_dynamic_slots,
-        exceptions: {}
-      }
+      availability: {}
     )
   end
 
