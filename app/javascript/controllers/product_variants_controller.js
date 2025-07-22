@@ -131,7 +131,7 @@ export default class extends Controller {
       <div class="flex items-center justify-between mb-4">
         <h4 class="text-md font-medium text-gray-900">Product Variant</h4>
         <button type="button" 
-                class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+                class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors cursor-pointer"
                 data-action="click->product-variants#removeVariant">
           Remove Variant
         </button>

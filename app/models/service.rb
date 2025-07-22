@@ -45,46 +45,126 @@ class Service < ApplicationRecord
 
   # Normalize availability JSON before validation
   def process_service_availability
-    return if availability.blank? || !availability.is_a?(Hash)
-    days = %w[monday tuesday wednesday thursday friday saturday sunday]
-    days.each do |day|
-      if availability[day].is_a?(Array)
-        availability[day] = availability[day].select { |s| s.is_a?(Hash) && s['start'].present? && s['end'].present? }
+    return if availability.blank?
+    
+    begin
+      unless availability.is_a?(Hash)
+        Rails.logger.warn("Service #{id}: Invalid availability format (not a hash), resetting to default")
+        self.availability = default_availability_structure
+        return
+      end
+      
+      days = %w[monday tuesday wednesday thursday friday saturday sunday]
+      processed_days = 0
+      
+      days.each do |day|
+        if availability[day].is_a?(Array)
+          original_count = availability[day].length
+          availability[day] = availability[day].select { |s| 
+            s.is_a?(Hash) && s['start'].present? && s['end'].present? && 
+            valid_time_format?(s['start']) && valid_time_format?(s['end'])
+          }
+          
+          if availability[day].length != original_count
+            Rails.logger.info("Service #{id}: Filtered invalid time slots for #{day} (#{original_count} -> #{availability[day].length})")
+          end
+          processed_days += 1
+        else
+          availability[day] = []
+          Rails.logger.debug("Service #{id}: Initialized empty array for #{day}")
+        end
+      end
+      
+      # Process exceptions
+      if availability['exceptions'].is_a?(Hash)
+        exceptions_processed = 0
+        availability['exceptions'].each do |date, slots|
+          if valid_date_format?(date)
+            availability['exceptions'][date] = Array(slots).select { |s| 
+              s.is_a?(Hash) && s['start'].present? && s['end'].present? &&
+              valid_time_format?(s['start']) && valid_time_format?(s['end'])
+            }
+            exceptions_processed += 1
+          else
+            Rails.logger.warn("Service #{id}: Removing invalid date exception: #{date}")
+            availability['exceptions'].delete(date)
+          end
+        end
+        
+        Rails.logger.debug("Service #{id}: Processed #{exceptions_processed} date exceptions") if exceptions_processed > 0
       else
-        availability[day] = []
+        availability['exceptions'] = {}
+        Rails.logger.debug("Service #{id}: Initialized empty exceptions hash")
       end
-    end
-    if availability['exceptions'].is_a?(Hash)
-      availability['exceptions'].each do |date, slots|
-        availability['exceptions'][date] = Array(slots).select { |s| s.is_a?(Hash) && s['start'].present? && s['end'].present? }
-      end
-    else
-      availability['exceptions'] = {}
+      
+      Rails.logger.info("Service #{id}: Successfully processed availability for #{processed_days} days")
+      
+    rescue => e
+      Rails.logger.error("Service #{id}: Exception in process_service_availability: #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      
+      # Reset to safe default on any error
+      self.availability = default_availability_structure
+      errors.add(:availability, "Failed to process availability settings")
     end
   end
 
   # Check if service is available at a given datetime
   def available_at?(datetime)
-    return true unless enforce_service_availability
-    return true if availability.blank?
-    time_to_check = Tod::TimeOfDay.parse(datetime.strftime('%H:%M'))
-    data = availability.with_indifferent_access
-    exceptions = data[:exceptions] || {}
-    weekly    = data.except(:exceptions)
-    key = datetime.to_date.iso8601
-    intervals = exceptions.key?(key) ? Array(exceptions[key]) : Array(weekly[datetime.strftime('%A').downcase])
-    intervals.any? do |int|
-      start_tod = parse_time_of_day(int['start'])
-      end_tod   = parse_time_of_day(int['end'])
-      next false unless start_tod && end_tod
-      if start_tod == Tod::TimeOfDay.new(0,0) && end_tod == Tod::TimeOfDay.new(23,59)
-        true
-      elsif start_tod < end_tod
-        time_to_check >= start_tod && time_to_check < end_tod
-      else
-        # Overnight interval (e.g., 22:00-02:00)
-        time_to_check >= start_tod || time_to_check < end_tod
+    begin
+      return true unless enforce_service_availability
+      return true if availability.blank?
+      
+      unless datetime.respond_to?(:strftime)
+        Rails.logger.error("Service #{id}: Invalid datetime object in available_at?: #{datetime.class}")
+        return false
       end
+      
+      time_to_check = parse_time_of_day(datetime.strftime('%H:%M'))
+      return false unless time_to_check
+      
+      data = availability.with_indifferent_access
+      exceptions = data[:exceptions] || {}
+      weekly = data.except(:exceptions)
+      
+      # Check for date-specific exceptions first
+      date_key = datetime.to_date.iso8601
+      intervals = if exceptions.key?(date_key)
+        Array(exceptions[date_key])
+      else
+        day_name = datetime.strftime('%A').downcase
+        Array(weekly[day_name])
+      end
+      
+      Rails.logger.debug("Service #{id}: Checking availability at #{datetime} - found #{intervals.count} intervals")
+      
+      # Check if time falls within any interval
+      intervals.any? do |interval|
+        next false unless interval.is_a?(Hash)
+        
+        start_tod = parse_time_of_day(interval['start'])
+        end_tod = parse_time_of_day(interval['end'])
+        
+        next false unless start_tod && end_tod
+        
+        # Handle full day availability
+        if start_tod == Tod::TimeOfDay.new(0, 0) && end_tod == Tod::TimeOfDay.new(23, 59)
+          true
+        elsif start_tod < end_tod
+          # Normal interval (same day)
+          time_to_check >= start_tod && time_to_check < end_tod
+        else
+          # Overnight interval (e.g., 22:00-02:00)
+          time_to_check >= start_tod || time_to_check < end_tod
+        end
+      end
+      
+    rescue => e
+      Rails.logger.error("Service #{id}: Exception in available_at?(#{datetime}): #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      
+      # Default to false for safety when there's an error
+      false
     end
   end
 
@@ -421,9 +501,49 @@ class Service < ApplicationRecord
 
   private
 
+  # Default availability structure
+  def default_availability_structure
+    {
+      'monday' => [],
+      'tuesday' => [],
+      'wednesday' => [],
+      'thursday' => [],
+      'friday' => [],
+      'saturday' => [],
+      'sunday' => [],
+      'exceptions' => {}
+    }
+  end
+
+  # Validate time format (HH:MM or H:MM)
+  def valid_time_format?(time_str)
+    return false unless time_str.is_a?(String)
+    time_str.match?(/\A([01]?[0-9]|2[0-3]):[0-5][0-9]\z/)
+  end
+
+  # Validate date format (YYYY-MM-DD)
+  def valid_date_format?(date_str)
+    return false unless date_str.is_a?(String)
+    begin
+      Date.parse(date_str)
+      date_str.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+    rescue ArgumentError
+      false
+    end
+  end
+
+  # Parse time string to Tod::TimeOfDay with error handling
   def parse_time_of_day(time_str)
-    Tod::TimeOfDay.parse(time_str)
-  rescue ArgumentError
-    nil
+    return nil unless time_str.present?
+    
+    begin
+      Tod::TimeOfDay.parse(time_str.to_s)
+    rescue ArgumentError => e
+      Rails.logger.warn("Service #{id}: Invalid time format '#{time_str}': #{e.message}")
+      nil
+    rescue => e
+      Rails.logger.error("Service #{id}: Unexpected error parsing time '#{time_str}': #{e.message}")
+      nil
+    end
   end
 end 

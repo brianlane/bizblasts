@@ -27,10 +27,15 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
   # POST /business_manager/services
   def create
-    @service = current_business.services.new(service_params)
+    @service = current_business.services.new(service_params_without_availability)
     # authorize @service # Add Pundit authorization later
 
     if @service.save
+      # Process availability data if provided
+      if availability_data_present?
+        process_availability_data(@service)
+      end
+      
       redirect_to business_manager_services_path, notice: 'Service was successfully created.'
     else
       render :new, status: :unprocessable_entity
@@ -48,8 +53,29 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     # @service is set by before_action
     # authorize @service # Add Pundit authorization later
 
-    if @service.update(service_params_without_images) && handle_image_updates
-      redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
+    # Check if this is a "Use Default" action (clearing availability) before processing
+    is_clearing_availability = clearing_availability?
+    
+    if @service.update(service_params_without_images_and_availability) && handle_image_updates
+      # Process availability data if provided and not clearing
+      if availability_data_present? && !is_clearing_availability
+        process_availability_data(@service)
+      elsif is_clearing_availability
+        # Clear availability when using default
+        process_clear_availability_data(@service)
+      end
+      
+      # Redirect based on whether we're clearing availability
+      if is_clearing_availability
+        if request.referer&.include?('edit')
+          redirect_to edit_business_manager_service_path(@service), 
+                      notice: 'Service availability has been cleared. Using staff availability only.'
+        else
+          redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
+        end
+      else
+        redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
+      end
     else
       render :edit, status: :unprocessable_entity
     end
@@ -154,77 +180,45 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
     # Manage service-specific availability schedule
     def manage_availability
-      # Safely parse date parameter, defaulting to today on error or absence
-      @date = if params[:date].present?
-        begin
-          Date.parse(params[:date])
-        rescue ArgumentError, TypeError
-          Date.today
-        end
-      else
-        Date.today
-      end
-      @start_date = @date.beginning_of_week
-      @end_date = @date.end_of_week
+      @availability_manager = ServiceAvailabilityManager.new(
+        service: @service,
+        date: params[:date],
+        logger: logger
+      )
+      
+      date_info = @availability_manager.date_info
+      @date = date_info[:current_date]
+      @start_date = date_info[:start_date]
+      @end_date = date_info[:end_date]
+      
       if request.patch?
-        availability_data = {
-          'monday'=>[], 'tuesday'=>[], 'wednesday'=>[], 'thursday'=>[], 'friday'=>[], 'saturday'=>[], 'sunday'=>[], 'exceptions'=>{}
-        }
-        avail_params = params.require(:service).require(:availability).permit(
-          monday: permit_dynamic_slots,
-          tuesday: permit_dynamic_slots,
-          wednesday: permit_dynamic_slots,
-          thursday: permit_dynamic_slots,
-          friday: permit_dynamic_slots,
-          saturday: permit_dynamic_slots,
-          sunday: permit_dynamic_slots,
-          exceptions: {}
-        ).to_h
-        days = (0..6).map{|i| (@start_date + i.days).strftime('%A').downcase}
-        days.each do |day|
-          full = params.dig(:full_day, day) == '1'
-          if full
-            availability_data[day] = [{'start'=>'00:00','end'=>'23:59'}]
-          else
-            raw = avail_params[day] || {}
-            slots = raw.values.map do |s|
-              if s['start'].present? && s['end'].present?
-                { 'start' => s['start'], 'end' => s['end'] }
-              end
-            end.compact
-            availability_data[day]=slots
-          end
-        end
-        if @service.update(availability: availability_data)
-          redirect_to business_manager_services_path, notice: 'Availability was successfully updated.'
-        else
-          @calendar_data = {}
-          (@start_date..@end_date).each do |date|
-            slots = @service.staff_members.active.flat_map do |staff|
-              AvailabilityService.available_slots(staff, date, @service)
-            end
-            @calendar_data[date.to_s] = slots.sort_by { |slot| slot[:start_time] }
-          end
-          render 'availability', status: :unprocessable_entity
-        end
+        handle_availability_update
       else
-        bust = params[:bust_cache]=='true'
-        unless @service.availability.is_a?(Hash)
-          @service.availability={'monday'=>[],'tuesday'=>[],'wednesday'=>[],'thursday'=>[],'friday'=>[],'saturday'=>[],'sunday'=>[],'exceptions'=>{}}
-          @service.save(validate:false)
-        end
-        @calendar_data = {}
-        (@start_date..@end_date).each do |date|
-          slots = @service.staff_members.active.flat_map do |staff|
-            AvailabilityService.available_slots(staff, date, @service)
-          end
-          @calendar_data[date.to_s] = slots.sort_by { |slot| slot[:start_time] }
-        end
-        render 'availability'
+        handle_availability_display
       end
     end
 
   private
+
+  # Check if this request is clearing availability (Use Default button)
+  def clearing_availability?
+    service_params = params[:service] || {}
+    
+    # Use string keys since Rails params use strings
+    return false unless service_params.key?('enforce_service_availability')
+    
+    # Check if enforcement is being disabled (main indicator of Use Default)
+    enforcement_disabled = service_params['enforce_service_availability'] == 'false' || service_params['enforce_service_availability'] == false
+    
+    # If availability is provided, it should be empty. If not provided, assume clearing.
+    if service_params.key?('availability')
+      availability_empty = service_params['availability'].blank? || service_params['availability'] == {}
+      availability_empty && enforcement_disabled
+    else
+      # No availability key means we're not processing availability, check if just disabling enforcement
+      enforcement_disabled
+    end
+  end
 
   # Use callbacks to share common setup or constraints between actions.
   def set_service
@@ -253,6 +247,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :allow_customer_preferences,
       :allow_discounts,
       :position, # Allow position updates
+      :enforce_service_availability, # Allow enforcement setting
       staff_member_ids: [], # Allow staff assignment via new association
       add_on_product_ids: [], # Allow add-on product assignment
       images: [], # Allow new image uploads
@@ -264,6 +259,14 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
   def service_params_without_images
     service_params.except(:images)
+  end
+
+  def service_params_without_availability
+    service_params.except(:availability)
+  end
+
+  def service_params_without_images_and_availability
+    service_params.except(:images, :availability)
   end
 
   def handle_image_updates
@@ -294,6 +297,125 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # Helper to permit dynamic slot hashes
   def permit_dynamic_slots
     Hash.new { |h,k| h[k]=[:start,:end] }
+  end
+
+  # Handle availability update (PATCH request)
+  def handle_availability_update
+    service_params = params.require(:service)
+    availability_params = service_params.fetch(:availability, {}).permit(
+      monday: permit_dynamic_slots,
+      tuesday: permit_dynamic_slots,
+      wednesday: permit_dynamic_slots,
+      thursday: permit_dynamic_slots,
+      friday: permit_dynamic_slots,
+      saturday: permit_dynamic_slots,
+      sunday: permit_dynamic_slots,
+      exceptions: {}
+    ).to_h
+
+    full_day_params = params.fetch(:full_day, {})
+    
+    # Update enforcement setting if provided
+    if service_params[:enforce_service_availability].present?
+      @availability_manager.update_enforcement(service_params[:enforce_service_availability])
+    end
+
+    success = @availability_manager.update_availability(availability_params, full_day_params)
+
+    if success
+      redirect_to business_manager_services_path, 
+                  notice: "Availability settings for \"#{@service.name}\" were successfully updated."
+    else
+      logger.error("Failed to update service availability: #{@availability_manager.errors}")
+      @calendar_data = @availability_manager.generate_calendar_data(bust_cache: true)
+      
+      flash.now[:alert] = @availability_manager.errors.any? ? 
+        @availability_manager.errors.join(', ') : 
+        'Failed to update availability settings. Please check your input and try again.'
+      
+      render 'availability', status: :unprocessable_entity
+    end
+  rescue => e
+    logger.error("Exception in availability update: #{e.message}")
+    logger.error(e.backtrace.join("\n"))
+    redirect_to business_manager_services_path, 
+                alert: 'An unexpected error occurred while updating availability settings.'
+  end
+
+  # Handle availability display (GET request)
+  def handle_availability_display
+    bust_cache = params[:bust_cache] == 'true'
+    @calendar_data = @availability_manager.generate_calendar_data(bust_cache: bust_cache)
+    
+    if @availability_manager.errors.any?
+      logger.warn("Errors generating calendar data: #{@availability_manager.errors}")
+      flash.now[:notice] = 'Some preview data could not be loaded. The form is still functional.'
+    end
+    
+    render 'availability'
+  rescue => e
+    logger.error("Exception in availability display: #{e.message}")
+    logger.error(e.backtrace.join("\n"))
+    redirect_to business_manager_services_path, 
+                alert: 'Unable to load availability settings at this time.'
+  end
+
+  # Check if availability data is present in params
+  def availability_data_present?
+    params[:service].present? && (
+      params[:service][:availability].present? || 
+      params[:full_day].present? ||
+      params[:enforce_service_availability].present?
+    )
+  end
+
+  # Process clearing availability data (Use Default action)
+  def process_clear_availability_data(service)
+    availability_manager = ServiceAvailabilityManager.new(
+      service: service,
+      logger: logger
+    )
+
+    # Clear availability and disable enforcement 
+    availability_manager.update_availability({})
+    availability_manager.update_enforcement(false)
+    
+    # Also update the service directly to ensure enforcement is disabled
+    service.update_column(:enforce_service_availability, false)
+    
+    Rails.logger.info("Cleared availability for service #{service.id} - using staff availability only")
+  end
+
+  # Process availability data using ServiceAvailabilityManager
+  def process_availability_data(service)
+    availability_manager = ServiceAvailabilityManager.new(
+      service: service,
+      logger: logger
+    )
+
+    availability_params = params[:service][:availability] || {}
+    full_day_params = params[:full_day] || {}
+    
+    # Update enforcement setting if provided
+    if params[:enforce_service_availability].present?
+      availability_manager.update_enforcement(params[:enforce_service_availability])
+    end
+
+    # Update availability if data provided
+    if availability_params.present? || full_day_params.present?
+      success = availability_manager.update_availability(availability_params, full_day_params)
+      
+      unless success
+        logger.warn("Failed to update availability during service save: #{availability_manager.errors}")
+        # Don't fail the whole service save, but log the issue
+        flash[:notice] = "Service saved successfully, but there were issues with availability settings."
+      end
+    end
+  rescue => e
+    logger.error("Exception processing availability data: #{e.message}")
+    logger.error(e.backtrace.join("\n"))
+    # Don't fail the whole service save
+    flash[:notice] = "Service saved successfully, but availability settings could not be processed."
   end
 
 end
