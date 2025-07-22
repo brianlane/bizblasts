@@ -990,7 +990,8 @@ RSpec.describe AvailabilityService, type: :service do
     end
 
     it 'filters slots outside service availability' do
-      date = Date.parse('2025-07-21') # Monday
+      # Use next Monday relative to today to avoid past-date filtering
+      date = Date.current.next_occurring(:monday)
       slots = AvailabilityService.available_slots(staff, date, service, interval: 60)
       times = slots.map { |s| s[:start_time].strftime('%H:%M') }
       expect(times).to all(be >= '10:00')
@@ -999,7 +1000,8 @@ RSpec.describe AvailabilityService, type: :service do
 
     it 'does not filter when enforce flag is false' do
       service.update!(enforce_service_availability: false)
-      date = Date.parse('2025-07-21')
+      # Use next Monday relative to today to avoid past-date filtering
+      date = Date.current.next_occurring(:monday)
       slots = AvailabilityService.available_slots(staff, date, service, interval: 60)
       # expect a slot at midnight
       expect(slots.map { |s| s[:start_time].strftime('%H:%M') }).to include('00:00')
