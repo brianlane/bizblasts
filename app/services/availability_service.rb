@@ -271,6 +271,9 @@ class AvailabilityService
         last_possible_start_time = interval_end - slot_duration.minutes
         
         while current <= last_possible_start_time
+          # Stop if slot start spills into the next calendar day; business does not allow post-midnight starts
+          break if current.to_date != date
+
           st = current
           en = current + slot_duration.minutes
           time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)

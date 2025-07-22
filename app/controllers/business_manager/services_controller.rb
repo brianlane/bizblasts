@@ -186,7 +186,12 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
           if full
             availability_data[day] = [{'start'=>'00:00','end'=>'23:59'}]
           else
-            slots = Array(avail_params[day]).values.compact.map{|s| {'start'=>s['start'],'end'=>s['end']} if s['start'].present? && s['end'].present? }.compact
+            raw = avail_params[day] || {}
+            slots = raw.values.map do |s|
+              if s['start'].present? && s['end'].present?
+                { 'start' => s['start'], 'end' => s['end'] }
+              end
+            end.compact
             availability_data[day]=slots
           end
         end

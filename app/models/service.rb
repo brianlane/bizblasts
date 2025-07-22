@@ -82,7 +82,8 @@ class Service < ApplicationRecord
       elsif start_tod < end_tod
         time_to_check >= start_tod && time_to_check < end_tod
       else
-        false
+        # Overnight interval (e.g., 22:00-02:00)
+        time_to_check >= start_tod || time_to_check < end_tod
       end
     end
   end
