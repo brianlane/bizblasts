@@ -983,6 +983,9 @@ RSpec.describe AvailabilityService, type: :service do
     let(:service)  { create(:service, business: business, duration: 60, enforce_service_availability: true) }
 
     before do
+      # Link staff to the service being tested
+      create(:services_staff_member, service: service, staff_member: staff)
+
       # staff availability covers full day
       staff.update!(availability: { 'monday'=>[{'start'=>'00:00','end'=>'23:59'}], 'exceptions'=>{} })
       # service availability only 10:00-12:00
