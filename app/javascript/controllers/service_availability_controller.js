@@ -23,6 +23,7 @@ export default class extends Controller {
   }
 
   connect() {
+    if (!this.hasErrorsListTarget) return
     console.log(`Service Availability Controller connected for: ${this.serviceNameValue}`)
     console.log('Controller element:', this.element)
     console.log('Available targets:', this.targets)
@@ -341,6 +342,7 @@ export default class extends Controller {
 
   // Update error display
   updateErrorDisplay(errors) {
+    if (!this.hasErrorsListTarget) return
     const errorsContainer = this.element.querySelector('#availability-errors')
     const errorsList = this.errorsListTarget
     
