@@ -381,8 +381,13 @@ class User < ApplicationRecord
       email_marketing_updates: true
     }
     
-    update_column(:notification_preferences, default_preferences)
-    Rails.logger.info "[USER] Set default notification preferences for User ##{id} (#{email})"
+    # Use update_attribute to ensure the change persists even in CI environments
+    # and reload to ensure we have the latest state
+    if update_attribute(:notification_preferences, default_preferences)
+      Rails.logger.info "[USER] Set default notification preferences for User ##{id} (#{email})"
+    else
+      Rails.logger.error "[USER] Failed to set default notification preferences for User ##{id} (#{email})"
+    end
   end
 
   def add_client_warnings(result)
