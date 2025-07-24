@@ -42,12 +42,12 @@ class Business::RegistrationsController < Users::RegistrationsController
       build_resource(user_params)
 
       business_attrs = raw_business_params.except(:industry)
-      business_attrs = if business_attrs.respond_to?(:permit!)
-                         business_attrs.permit!.to_h
+      allowed_business_keys = [:name, :phone, :email, :address, :city, :state, :zip, :description, :tier, :hostname, :platform_referral_code]
+      business_attrs = if business_attrs.respond_to?(:permit)
+                         business_attrs.permit(*allowed_business_keys).to_h
                        else
-                         business_attrs
+                         business_attrs.slice(*allowed_business_keys)
                        end
-
       resource.build_business(business_attrs)
 
       clean_up_passwords resource

@@ -319,9 +319,13 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
     full_day_params = params.fetch(:full_day, {})
     
-    # Update enforcement setting if provided
-    if service_params[:enforce_service_availability].present?
-      @availability_manager.update_enforcement(service_params[:enforce_service_availability])
+    # Update enforcement setting if provided **only** when nested under the
+    # :service param key. Avoid processing a top-level parameter that might
+    # be sent unintentionally.
+    nested_enforcement_param = params.dig(:service, :enforce_service_availability)
+
+    if nested_enforcement_param.present?
+      @availability_manager.update_enforcement(nested_enforcement_param)
     end
 
     success = @availability_manager.update_availability(availability_params, full_day_params)
@@ -366,11 +370,13 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
   # Check if availability data is present in params
   def availability_data_present?
-    params[:service].present? && (
-      params[:service][:availability].present? || 
+    return false unless params[:service].present?
+
+    service_scope = params[:service]
+
+    service_scope[:availability].present? ||
       params[:full_day].present? ||
-      params[:enforce_service_availability].present?
-    )
+      service_scope[:enforce_service_availability].present?
   end
 
   # Process clearing availability data (Use Default action)
@@ -400,9 +406,13 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     availability_params = params[:service][:availability] || {}
     full_day_params = params[:full_day] || {}
     
-    # Update enforcement setting if provided
-    if params[:enforce_service_availability].present?
-      availability_manager.update_enforcement(params[:enforce_service_availability])
+    # Update enforcement setting if provided **only** when nested under the
+    # :service param key. Avoid processing a top-level parameter that might
+    # be sent unintentionally.
+    nested_enforcement_param = params.dig(:service, :enforce_service_availability)
+
+    if nested_enforcement_param.present?
+      availability_manager.update_enforcement(nested_enforcement_param)
     end
 
     # Update availability if data provided
