@@ -444,9 +444,11 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         }
 
         manager_user.reload
-        # Should preserve existing preferences or set to empty hash (empty hash is not present but is not nil)
+        # Should preserve existing preferences when empty hash is submitted (controller preserves existing)
         expect(manager_user.notification_preferences).not_to be_nil
-        expect(manager_user.notification_preferences).to eq({})
+        # Since users now have default preferences set, they should be preserved when no preferences are explicitly submitted
+        expect(manager_user.notification_preferences).to be_present
+        expect(manager_user.first_name).to eq('Test')
       end
 
       it 'handles form submission without notification preferences key' do

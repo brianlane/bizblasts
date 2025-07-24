@@ -85,7 +85,7 @@ RSpec.describe "Client Settings Management", type: :system do
   end
 
   it "shows the 'Unsubscribed Successfully' banner and disables notification toggles if unsubscribed" do
-    client_user.update!(unsubscribed_at: Time.current)
+    client_user.unsubscribe_from_emails!
     visit client_settings_path
     
     # Check that notification preferences are disabled when unsubscribed

@@ -32,6 +32,7 @@ class TenantCustomer < ApplicationRecord
   # Callbacks
   after_create :send_business_customer_notification
   after_create :generate_unsubscribe_token
+  after_create :set_default_email_preferences
   
   # Add accessor to skip email notifications when handled by staggered delivery
   attr_accessor :skip_notification_email
@@ -207,6 +208,17 @@ class TenantCustomer < ApplicationRecord
   end
   
   private
+
+  def set_default_email_preferences
+    # TenantCustomers are simpler - ensure email_marketing_opt_out defaults to false (allowing emails)
+    # and unsubscribed_at remains nil (subscribed by default)
+    return if email_marketing_opt_out == true || unsubscribed_at.present?
+    
+    # Explicitly set to false to ensure emails are enabled by default
+    update_column(:email_marketing_opt_out, false) if email_marketing_opt_out.nil?
+    
+    Rails.logger.info "[TENANT_CUSTOMER] Set default email preferences for TenantCustomer ##{id} (#{email})"
+  end
   
   def send_business_customer_notification
     # Skip if explicitly disabled (used by staggered email service)
