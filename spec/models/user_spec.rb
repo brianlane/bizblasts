@@ -323,7 +323,7 @@ RSpec.describe User, type: :model do
       expect(user.unsubscribe_token).to be_present
       expect(user.unsubscribe_token.length).to eq(64) # 32 hex chars = 64 characters
     end
-    
+
     it 'ensures tokens are unique across User and TenantCustomer tables' do
       # Create a user with a specific token
       user = create(:user, role: :client)
@@ -348,6 +348,24 @@ RSpec.describe User, type: :model do
       
       expect(user.unsubscribe_token).not_to eq(original_token)
       expect(user.unsubscribe_token).to be_present
+    end
+  end
+
+  describe 'notification preferences initialization' do
+    it 'sets all notifications enabled by default upon user creation' do
+      user = create(:user)
+      expected_keys = %w[
+        email_marketing_notifications email_promotional_offers email_marketing_updates email_promotions
+        email_blog_notifications email_blog_updates blog_post_notifications
+        email_booking_notifications email_booking_confirmation email_booking_updates
+        email_order_notifications email_order_updates
+        email_payment_notifications email_payment_confirmations email_failed_payment_notifications
+        system_notifications email_system_notifications email_subscription_notifications
+        sms_booking_reminder sms_order_updates sms_promotions
+      ]
+      expected_keys.each do |key|
+        expect(user.notification_preferences[key]).to eq(true), "Expected #{key} to be enabled"
+      end
     end
   end
 end
