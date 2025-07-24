@@ -34,6 +34,7 @@ class User < ApplicationRecord
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
   after_create :generate_unsubscribe_token
+  after_create :initialize_notification_preferences
 
   # Validations
   validates :email, presence: true,
@@ -300,6 +301,34 @@ class User < ApplicationRecord
   end
 
   private # Ensure private keyword exists or add it if needed
+
+  # Initialize notification preferences with all notifications enabled for new users
+  def initialize_notification_preferences
+    default_prefs = {
+      'email_marketing_notifications' => true,
+      'email_promotional_offers' => true,
+      'email_marketing_updates' => true,
+      'email_promotions' => true,
+      'email_blog_notifications' => true,
+      'email_blog_updates' => true,
+      'blog_post_notifications' => true,
+      'email_booking_notifications' => true,
+      'email_booking_confirmation' => true,
+      'email_booking_updates' => true,
+      'email_order_notifications' => true,
+      'email_order_updates' => true,
+      'email_payment_notifications' => true,
+      'email_payment_confirmations' => true,
+      'email_failed_payment_notifications' => true,
+      'system_notifications' => true,
+      'email_system_notifications' => true,
+      'email_subscription_notifications' => true,
+      'sms_booking_reminder' => true,
+      'sms_order_updates' => true,
+      'sms_promotions' => true
+    }
+    update_column(:notification_preferences, default_prefs)
+  end
 
   def add_client_warnings(result)
     if client_businesses.any?
