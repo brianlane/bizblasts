@@ -105,7 +105,7 @@ RSpec.describe "BusinessManager::Services", type: :system do
       # Unassign staff
       uncheck staff_member.name # Use label text
       click_button 'Update Service'
-
+      
       expect(page).to have_content('Service was successfully updated.')
       expect(find_content_across_pages('Updated Test Service')).to be true
       

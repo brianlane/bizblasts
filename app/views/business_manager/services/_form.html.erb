@@ -181,7 +181,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h4 class="font-medium text-gray-900">Current Availability</h4>
-            <p class="text-sm text-gray-600">
+            <p class="text-sm text-gray-600" data-service-form-target="availabilityStatus">
               <% if service.enforce_service_availability? %>
                 <span class="text-green-600">✓ Enforcement enabled</span> - 
                 <% total_slots = service.availability&.values&.flatten&.reject(&:blank?)&.count || 0 %>
@@ -200,24 +200,16 @@
               Manage Availability
             <% end %>
             
-            <%= button_to business_manager_service_path(service), 
-                  method: :patch,
-                  params: { service: { availability: {}, enforce_service_availability: false } },
-                  class: "inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors cursor-pointer",
-                  confirm: "This will remove all service availability restrictions and use staff availability only. Continue?",
-                  form: { 
-                    data: { 
-                      turbo_confirm: "This will remove all service availability restrictions and use staff availability only. Continue?",
-                      turbo_method: "patch",
-                      turbo_frame: "_top"
-                    } 
-                  },
-                  remote: true do %>
+            <button type="button"
+                    class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors cursor-pointer"
+                    data-action="click->service-form#clearAvailability"
+                    data-service-id="<%= service.id %>"
+                    data-confirm="This will remove all service availability restrictions and use staff availability only. Continue?">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
               Use Default (Staff Availability Only)
-            <% end %>
+            </button>
           </div>
         </div>
       </div>

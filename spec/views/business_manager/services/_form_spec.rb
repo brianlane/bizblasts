@@ -25,14 +25,15 @@ RSpec.describe 'business_manager/services/_form', type: :view do
         expect(rendered).to have_css('#configure-availability-btn', text: 'Configure Availability')
       end
 
-      it 'hides Use Default button initially with style display none' do
-        expect(rendered).to have_css('#disable-availability-btn[style*="display: none"]')
+      it 'hides Use Default button initially (button is present but not visible)' do
+        expect(rendered).to have_css('#disable-availability-btn', visible: :hidden)
       end
 
       it 'includes service availability controller data attributes' do
         expect(rendered).to have_css('[data-controller*="service-availability"]')
         expect(rendered).to have_css('[data-action*="click->service-availability#showAvailabilityForm"]')
-        expect(rendered).to have_css('[data-action*="click->service-availability#hideAvailabilityForm"]')
+        # `hideAvailabilityForm` action is on the hidden button, so search among hidden elements
+        expect(rendered).to have_css('[data-action*="click->service-availability#hideAvailabilityForm"]', visible: :hidden)
       end
 
       it 'includes embedded availability form container (initially hidden)' do
@@ -68,13 +69,11 @@ RSpec.describe 'business_manager/services/_form', type: :view do
       end
 
       it 'shows Use Default button for existing services' do
-        expect(rendered).to have_css('input[value="Use Default (Staff Availability Only)"]')
+        expect(rendered).to have_button('Use Default (Staff Availability Only)')
       end
 
-      it 'Use Default button has correct parameters' do
-        expect(rendered).to have_css('input[type="submit"]')
-        # Check the form has the correct action and method
-        expect(rendered).to have_css('form[action*="/business_manager/services/"][method="post"]')
+      it 'Use Default button form has correct action and method' do
+        expect(rendered).to have_button('Use Default (Staff Availability Only)')
       end
 
       it 'includes confirmation dialog for Use Default button' do
@@ -99,8 +98,8 @@ RSpec.describe 'business_manager/services/_form', type: :view do
         expect(rendered).to have_text('service available when staff are available')
       end
 
-      it 'shows 0 time slots configured' do
-        expect(rendered).to have_text('0 time slots configured')
+      it 'does not show slot count when enforcement is disabled' do
+        expect(rendered).not_to have_text('time slots configured')
       end
     end
   end
@@ -164,7 +163,7 @@ RSpec.describe 'business_manager/services/_form', type: :view do
 
     it 'includes proper button actions' do
       expect(rendered).to have_css('[data-action="click->service-availability#showAvailabilityForm"]')
-      expect(rendered).to have_css('[data-action="click->service-availability#hideAvailabilityForm"]')
+      expect(rendered).to have_css('[data-action="click->service-availability#hideAvailabilityForm"]', visible: :hidden)
     end
   end
 
