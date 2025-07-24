@@ -224,6 +224,42 @@ RSpec.describe AvailabilityService, type: :service do
       end
     end
 
+    context 'when staff member has an overnight availability interval that crosses midnight' do
+      let(:overnight_date) { Date.current.next_occurring(:saturday) }
+
+      let(:overnight_availability) do
+        {
+          saturday: [{ "start" => "22:00", "end" => "02:00" }],
+          exceptions: {}
+        }
+      end
+
+      before do
+        staff_member.update!(availability: overnight_availability)
+        # Ensure our service is linked to the staff member for the test setup
+        create(:services_staff_member, service: service, staff_member: staff_member)
+      end
+
+      it 'includes slots that begin before midnight and finish after midnight, but excludes slots that start after midnight' do
+        slots = described_class.available_slots(staff_member, overnight_date, service, interval: 30)
+
+        start_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+
+        # Slots that should be present (start before midnight)
+        expect(start_times).to include('22:00', '22:30', '23:00', '23:30')
+
+        # Slot that starts exactly at midnight or later should not be present for the original date
+        expect(start_times).not_to include('00:00', '00:30', '01:00')
+
+        # Verify every slot still has the correct duration and structure
+        slots.each do |slot|
+          expect(slot[:end_time] - slot[:start_time]).to eq(60.minutes)
+          expect(slot).to have_key(:start_time)
+          expect(slot).to have_key(:end_time)
+        end
+      end
+    end
+
     # TODO: Add tests for non-standard availability, exceptions, etc.
   end
 
