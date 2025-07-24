@@ -30,6 +30,31 @@ class Business::RegistrationsController < Users::RegistrationsController
     user_params = sign_up_params.except(:business_attributes)
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
+
+    # If the submitted industry is not recognised, notify the user that we defaulted to "Other".
+    submitted_industry = raw_business_params[:industry]
+    if submitted_industry.present? &&
+       !Business::SHOWCASE_INDUSTRY_MAPPINGS.values.include?(submitted_industry) &&
+       !Business.industries.key?(submitted_industry.to_s)
+      flash[:alert] = "\"#{submitted_industry}\" is not a recognised industry. Please select one from the list."
+
+      # Rebuild a minimal resource for re-rendering the form without attempting to build an invalid Business record.
+      build_resource(user_params)
+
+      business_attrs = raw_business_params.except(:industry)
+      allowed_business_keys = [:name, :phone, :email, :address, :city, :state, :zip, :description, :tier, :hostname, :platform_referral_code]
+      business_attrs = if business_attrs.respond_to?(:permit)
+                         business_attrs.permit(*allowed_business_keys).to_h
+                       else
+                         business_attrs.slice(*allowed_business_keys)
+                       end
+      resource.build_business(business_attrs)
+
+      clean_up_passwords resource
+      set_minimum_password_length
+      render :new, status: :unprocessable_entity
+      return
+    end
     
     # Build objects for validation only - DO NOT SAVE YET
     build_resource(user_params) 
@@ -138,7 +163,23 @@ class Business::RegistrationsController < Users::RegistrationsController
     industry_val = processed_params["industry"] || processed_params[:industry]
     if industry_val.present?
       key = Business::SHOWCASE_INDUSTRY_MAPPINGS.key(industry_val)
-      processed_params["industry"] = key.to_s if key
+
+      if key
+        # Mapped value from the showcase list (e.g. "Hair Salons" -> :hair_salons)
+        processed_params["industry"] = key.to_s
+      elsif Business.industries.key?(industry_val.to_s)
+        # Already passed as enum key (e.g. "hair_salons") – leave as-is
+        processed_params["industry"] = industry_val.to_s
+      else
+        # Unrecognised value – remove to avoid ArgumentError; will be handled upstream
+        processed_params["industry"] = nil
+      end
+    end
+    
+    # Normalize blank platform_referral_code to nil to avoid unique index collisions
+    if processed_params.key?(:platform_referral_code)
+      code_val = processed_params[:platform_referral_code]
+      processed_params[:platform_referral_code] = nil if code_val.respond_to?(:strip) && code_val.strip.blank?
     end
     
     processed_params

@@ -1,5 +1,6 @@
 /* Custom Brand & Functional Colors (manual CSS, not via tailwind.config.js) */
 .bg-primary    { background-color: #1A5F7A; }
+.bg-primary:hover { background-color: #134a60; } /* Darker shade on hover */
 .bg-secondary  { background-color: #57C5B6; }
 .bg-accent     { background-color: #FF8C42; }
 .bg-dark       { background-color: #333333; }
@@ -62,6 +63,7 @@
 .bg-brand-500, .bg-brand-700, .hover\:bg-brand-700:hover { background-color: #1A5F7A; }
 .bg-success-500, .bg-success-700, .hover\:bg-success-700:hover { background-color: #28A745; }
 .bg-primary-500, .bg-primary-700, .hover\:bg-primary-700:hover { background-color: #1A5F7A; }
++.hover\:bg-primary-700:hover { background-color: #134a60; }
 .bg-secondary-500, .bg-secondary-700, .hover\:bg-secondary-700:hover { background-color: #57C5B6; }
 
 /* Settings Form Input Styles */
