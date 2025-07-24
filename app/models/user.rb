@@ -34,7 +34,7 @@ class User < ApplicationRecord
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
   after_create :generate_unsubscribe_token
-  after_create :initialize_notification_preferences
+  after_create :set_default_notification_preferences
 
   # Validations
   validates :email, presence: true,
@@ -300,34 +300,89 @@ class User < ApplicationRecord
     end
   end
 
+  # Unsubscribe system methods
+
+  def unsubscribe_from_emails!
+    update!(
+      unsubscribed_at: Time.current,
+      email_marketing_opt_out: true
+    )
+    # Update notification preferences to disable email notifications
+    update_notification_preferences_for_unsubscribe
+  end
+
+  def resubscribe_to_emails!
+    update!(
+      unsubscribed_at: nil,
+      email_marketing_opt_out: false
+    )
+    regenerate_unsubscribe_token
+  end
+
+  def update_notification_preferences_for_unsubscribe
+    return unless notification_preferences.present?
+    
+    # Disable all email-related notification preferences
+    updated_preferences = notification_preferences.dup
+    email_preferences = %w[
+      email_booking_confirmation
+      email_booking_updates
+      email_order_updates
+      email_payment_confirmations
+      email_promotions
+      email_blog_updates
+      email_booking_notifications
+      email_customer_notifications
+      email_payment_notifications
+      email_subscription_notifications
+      email_marketing_notifications
+      email_blog_notifications
+      email_system_notifications
+      email_marketing_updates
+    ]
+    
+    email_preferences.each do |pref|
+      updated_preferences[pref] = false
+    end
+    
+    update_column(:notification_preferences, updated_preferences)
+  end
+
   private # Ensure private keyword exists or add it if needed
 
-  # Initialize notification preferences with all notifications enabled for new users
-  def initialize_notification_preferences
-    default_prefs = {
-      'email_marketing_notifications' => true,
-      'email_promotional_offers' => true,
-      'email_marketing_updates' => true,
-      'email_promotions' => true,
-      'email_blog_notifications' => true,
-      'email_blog_updates' => true,
-      'blog_post_notifications' => true,
-      'email_booking_notifications' => true,
-      'email_booking_confirmation' => true,
-      'email_booking_updates' => true,
-      'email_order_notifications' => true,
-      'email_order_updates' => true,
-      'email_payment_notifications' => true,
-      'email_payment_confirmations' => true,
-      'email_failed_payment_notifications' => true,
-      'system_notifications' => true,
-      'email_system_notifications' => true,
-      'email_subscription_notifications' => true,
-      'sms_booking_reminder' => true,
-      'sms_order_updates' => true,
-      'sms_promotions' => true
+  def set_default_notification_preferences
+    # Only set defaults if notification_preferences is nil or empty
+    return if notification_preferences.present?
+    
+    default_preferences = {
+      # Booking & Service Notifications
+      email_booking_confirmation: true,
+      sms_booking_reminder: true,
+      email_booking_updates: true,
+      
+      # Order & Product Notifications
+      email_order_updates: true,
+      sms_order_updates: true,
+      email_payment_confirmations: true,
+      
+      # Marketing & Promotional
+      email_promotions: true,
+      email_blog_updates: true,
+      sms_promotions: true,
+      
+      # Additional notification types from the system
+      email_booking_notifications: true,
+      email_customer_notifications: true,
+      email_payment_notifications: true,
+      email_subscription_notifications: true,
+      email_marketing_notifications: true,
+      email_blog_notifications: true,
+      email_system_notifications: true,
+      email_marketing_updates: true
     }
-    update_column(:notification_preferences, default_prefs)
+    
+    update_column(:notification_preferences, default_preferences)
+    Rails.logger.info "[USER] Set default notification preferences for User ##{id} (#{email})"
   end
 
   def add_client_warnings(result)
@@ -510,45 +565,6 @@ class User < ApplicationRecord
   # Helper method for conditional password validation (mimics Devise behavior)
   def password_required?
     !persisted? || password.present? || password_confirmation.present?
-  end
-
-  # Unsubscribe system methods
-
-  def unsubscribe_from_emails!
-    update!(
-      unsubscribed_at: Time.current,
-      email_marketing_opt_out: true
-    )
-    # Update notification preferences to disable email notifications
-    update_notification_preferences_for_unsubscribe
-  end
-
-  def resubscribe_to_emails!
-    update!(
-      unsubscribed_at: nil,
-      email_marketing_opt_out: false
-    )
-    regenerate_unsubscribe_token
-  end
-
-  def update_notification_preferences_for_unsubscribe
-    return unless notification_preferences.present?
-    
-    # Disable all email-related notification preferences
-    updated_preferences = notification_preferences.dup
-    email_preferences = %w[
-      email_booking_notifications
-      email_customer_notifications
-      email_payment_notifications
-      email_subscription_notifications
-      email_marketing_notifications
-    ]
-    
-    email_preferences.each do |pref|
-      updated_preferences[pref] = false
-    end
-    
-    update_column(:notification_preferences, updated_preferences)
   end
 
   def email_uniqueness_by_role_type

@@ -323,7 +323,7 @@ RSpec.describe User, type: :model do
       expect(user.unsubscribe_token).to be_present
       expect(user.unsubscribe_token.length).to eq(64) # 32 hex chars = 64 characters
     end
-
+    
     it 'ensures tokens are unique across User and TenantCustomer tables' do
       # Create a user with a specific token
       user = create(:user, role: :client)
@@ -351,20 +351,39 @@ RSpec.describe User, type: :model do
     end
   end
 
-  describe 'notification preferences initialization' do
-    it 'sets all notifications enabled by default upon user creation' do
-      user = create(:user)
-      expected_keys = %w[
-        email_marketing_notifications email_promotional_offers email_marketing_updates email_promotions
-        email_blog_notifications email_blog_updates blog_post_notifications
-        email_booking_notifications email_booking_confirmation email_booking_updates
-        email_order_notifications email_order_updates
-        email_payment_notifications email_payment_confirmations email_failed_payment_notifications
-        system_notifications email_system_notifications email_subscription_notifications
-        sms_booking_reminder sms_order_updates sms_promotions
-      ]
-      expected_keys.each do |key|
-        expect(user.notification_preferences[key]).to eq(true), "Expected #{key} to be enabled"
+  describe 'default notification preferences' do
+    it 'sets default notification preferences for new users' do
+      user = create(:user, role: :client)
+      
+      expect(user.notification_preferences).to be_present
+      expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
+      expect(user.notification_preferences['sms_booking_reminder']).to eq(true)
+      expect(user.notification_preferences['email_booking_updates']).to eq(true)
+      expect(user.notification_preferences['email_order_updates']).to eq(true)
+      expect(user.notification_preferences['sms_order_updates']).to eq(true)
+      expect(user.notification_preferences['email_payment_confirmations']).to eq(true)
+      expect(user.notification_preferences['email_promotions']).to eq(true)
+      expect(user.notification_preferences['email_blog_updates']).to eq(true)
+      expect(user.notification_preferences['sms_promotions']).to eq(true)
+      expect(user.notification_preferences['email_booking_notifications']).to eq(true)
+      expect(user.notification_preferences['email_marketing_notifications']).to eq(true)
+    end
+
+    it 'does not override existing notification preferences' do
+      existing_prefs = { 'email_booking_confirmation' => false, 'sms_booking_reminder' => true }
+      user = create(:user, role: :client, notification_preferences: existing_prefs)
+      
+      expect(user.notification_preferences).to eq(existing_prefs)
+      expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
+    end
+
+    it 'sets defaults for all user roles' do
+      [:client, :manager, :staff].each do |role|
+        business = role.in?([:manager, :staff]) ? create(:business) : nil
+        user = create(:user, role: role, business: business)
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
       end
     end
   end

@@ -167,4 +167,37 @@ RSpec.describe TenantCustomer, type: :model do
       end
     end
   end
+
+  describe 'default email preferences' do
+    let(:business) { create(:business) }
+    
+    it 'sets email_marketing_opt_out to false by default for new customers' do
+      customer = nil
+      ActsAsTenant.with_tenant(business) do
+        customer = create(:tenant_customer, business: business)
+      end
+      
+      expect(customer.email_marketing_opt_out).to eq(false)
+      expect(customer.unsubscribed_at).to be_nil
+    end
+
+    it 'does not override existing email preferences' do
+      customer = nil
+      ActsAsTenant.with_tenant(business) do
+        customer = create(:tenant_customer, business: business, email_marketing_opt_out: true)
+      end
+      
+      expect(customer.email_marketing_opt_out).to eq(true)
+    end
+
+    it 'allows emails for marketing by default' do
+      customer = nil
+      ActsAsTenant.with_tenant(business) do
+        customer = create(:tenant_customer, business: business)
+      end
+      
+      expect(customer.can_receive_email?(:marketing)).to be true
+      expect(customer.subscribed_to_emails?).to be true
+    end
+  end
 end 
