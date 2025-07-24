@@ -284,18 +284,6 @@ class AvailabilityService
         last_possible_start_time = interval_end - slot_duration.minutes
         
         while current <= last_possible_start_time
-          # If the prospective start time has moved into the next calendar day, we should
-          #   1. *not* add a slot that starts after midnight (business date has changed)
-          #   2. *continue* iterating so that any remaining intervals for the original date
-          #      are still processed (instead of exiting the loop prematurely).
-          #
-          # This prevents premature termination for overnight availability windows such as
-          # 22:30-01:00 while still ensuring we never create slots that *start* after midnight.
-          if current.to_date != date
-            current += step_interval.minutes
-            next
-          end
-
           st = current
           en = current + slot_duration.minutes
           time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)
