@@ -131,9 +131,17 @@ export default class extends Controller {
   addTimeSlotToContainer(day, slotsContainer) {
     const index = slotsContainer.children.length
     
-    // Determine if we're in a nested form (service form) or standalone form (availability management)
+    // Determine parameter prefix based on whether the availability fields are nested
+    // inside a service form (e.g., service[availability][monday][0]...) or used as a
+    // standalone availability form (e.g., availability[monday][0]...). This ensures the
+    // submitted params match the structure expected by the corresponding controller.
     const isNestedForm = this.element.closest('form').querySelector('input[name*="service["]') !== null
-    const namePrefix = isNestedForm ? `service[availability][${day}][${index}]` : `service[availability][${day}][${index}]`
+
+    // Nested service form -> service[availability][day][index]
+    // Stand-alone availability form -> availability[day][index]
+    const namePrefix = isNestedForm
+      ? `service[availability][${day}][${index}]`
+      : `availability[${day}][${index}]`
     
     const slotHtml = `
       <div class="time-slot-row" data-service-availability-target="timeSlot">
