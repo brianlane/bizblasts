@@ -9,13 +9,14 @@ class ServiceAvailabilityManager
 
   def initialize(service:, date: nil, logger: Rails.logger)
     @service = service
+    @logger = logger
+    @errors = []
+    @calendar_data = {}
+    
     @date = parse_date(date)
     @start_date = @date.beginning_of_week
     @end_date = @date.end_of_week
     @date_range = (@start_date..@end_date)
-    @logger = logger
-    @errors = []
-    @calendar_data = {}
 
     ensure_availability_structure
   end

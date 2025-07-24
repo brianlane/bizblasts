@@ -2,7 +2,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
-  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :manage_availability]
+  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :manage_availability, :clear_availability]
 
   # GET /business_manager/services
   def index
@@ -53,31 +53,35 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     # @service is set by before_action
     # authorize @service # Add Pundit authorization later
 
-    # Check if this is a "Use Default" action (clearing availability) before processing
-    is_clearing_availability = clearing_availability?
-    
     if @service.update(service_params_without_images_and_availability) && handle_image_updates
-      # Process availability data if provided and not clearing
-      if availability_data_present? && !is_clearing_availability
+      # Process availability data if provided
+      if availability_data_present?
         process_availability_data(@service)
-      elsif is_clearing_availability
-        # Clear availability when using default
-        process_clear_availability_data(@service)
       end
       
-      # Redirect based on whether we're clearing availability
-      if is_clearing_availability
+      redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  # PATCH /business_manager/services/:id/clear_availability
+  def clear_availability
+    # @service is set by before_action
+    # authorize @service # Add Pundit authorization later
+
+    process_clear_availability_data(@service)
+    
+    respond_to do |format|
+      format.json { render json: { status: 'success', message: 'Service availability has been cleared. Using staff availability only.' } }
+      format.html { 
         if request.referer&.include?('edit')
           redirect_to edit_business_manager_service_path(@service), 
                       notice: 'Service availability has been cleared. Using staff availability only.'
         else
-          redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
+          redirect_to business_manager_services_path, notice: 'Service availability has been cleared. Using staff availability only.'
         end
-      else
-        redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
-      end
-    else
-      render :edit, status: :unprocessable_entity
+      }
     end
   end
 
