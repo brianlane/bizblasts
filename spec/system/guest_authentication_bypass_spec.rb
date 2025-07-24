@@ -18,7 +18,7 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
       
       # Should NOT redirect to sign-in page (allow flexible paths)
-      expect(current_path).to include('/book')
+      expect(page).to have_current_path(/book/, wait: 5)
       expect(page).not_to have_content('You need to sign in')
       
       # Should show booking form - check for actual content on the page
@@ -50,7 +50,7 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       click_button 'Confirm Booking'
 
       # Should successfully create booking and redirect to confirmation
-      expect(current_path).to match(%r{/booking/\d+/confirmation})
+      expect(page).to have_current_path(%r{/booking/\d+/confirmation}, wait: 5)
       expect(page).to have_content('Booking confirmed')
       
       # Verify booking was created
@@ -65,7 +65,7 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       visit products_path
       
       # Should NOT redirect to sign-in page
-      expect(current_path).to eq(products_path)
+      expect(page).to have_current_path(products_path, wait: 5)
       expect(page).not_to have_content('You need to sign in')
       
       # Should show products
@@ -99,12 +99,12 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       
       # View cart
       visit cart_path
-      expect(current_path).to eq(cart_path)
+      expect(page).to have_current_path(cart_path, wait: 5)
       expect(page).to have_content('Test Product')
       
       # Proceed to checkout
       click_link 'Proceed to Checkout'
-      expect(current_path).to eq(new_order_path)
+      expect(page).to have_current_path(new_order_path, wait: 5)
       expect(page).to have_field('First Name')
       expect(page).to have_field('Email')
     end
@@ -114,12 +114,12 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
     it 'correctly allows guest access to booking and cart functionality' do
       # Test that guests can access booking without authentication
       visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
-      expect(current_path).to include('/book')
+      expect(page).to have_current_path(/book/, wait: 5)
       expect(page).not_to have_content('sign in')
       
       # Test that guests can access products without authentication  
       visit products_path
-      expect(current_path).to eq(products_path)
+      expect(page).to have_current_path(products_path, wait: 5)
       expect(page).not_to have_content('sign in')
     end
   end

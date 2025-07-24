@@ -215,9 +215,13 @@ class TenantCustomer < ApplicationRecord
     return if email_marketing_opt_out == true || unsubscribed_at.present?
     
     # Explicitly set to false to ensure emails are enabled by default
-    update_column(:email_marketing_opt_out, false) if email_marketing_opt_out.nil?
-    
-    Rails.logger.info "[TENANT_CUSTOMER] Set default email preferences for TenantCustomer ##{id} (#{email})"
+    if email_marketing_opt_out.nil?
+      if update_attribute(:email_marketing_opt_out, false)
+        Rails.logger.info "[TENANT_CUSTOMER] Set default email preferences for TenantCustomer ##{id} (#{email})"
+      else
+        Rails.logger.error "[TENANT_CUSTOMER] Failed to set default email preferences for TenantCustomer ##{id} (#{email})"
+      end
+    end
   end
   
   def send_business_customer_notification
