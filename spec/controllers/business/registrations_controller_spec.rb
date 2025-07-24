@@ -157,6 +157,41 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         expect(User.count).to eq(1)
         expect(Business.count).to eq(1)
       end
+
+      it 'treats blank platform referral code as nil to avoid uniqueness errors' do
+        # First request with blank code
+        attrs1 = valid_attributes.deep_dup
+        attrs1[:business_attributes][:platform_referral_code] = ''
+        attrs1[:business_attributes][:hostname] = "biz1-#{SecureRandom.hex(4)}"
+
+        expect {
+          post :create, params: { user: attrs1 }
+        }.to change(Business, :count).by(1)
+
+        # Second request also with blank code should succeed
+        attrs2 = valid_attributes.deep_dup
+        attrs2[:email] = "user2-#{SecureRandom.hex(4)}@example.com"
+        attrs2[:business_attributes][:platform_referral_code] = ''
+        attrs2[:business_attributes][:hostname] = "biz2-#{SecureRandom.hex(4)}"
+
+        expect {
+          post :create, params: { user: attrs2 }
+        }.to change(Business, :count).by(1)
+      end
+
+      it 'does not create resources and re-renders the form with flash alert when an unrecognised industry is supplied' do
+        unrecognised_industry = 'Chef Jenn LLC'
+        attributes_with_bad_industry = valid_attributes.deep_dup
+        attributes_with_bad_industry[:business_attributes][:industry] = unrecognised_industry
+
+        expect {
+          post :create, params: { user: attributes_with_bad_industry }
+        }.not_to change(Business, :count)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to render_template(:new)
+        expect(flash[:alert]).to match(/not a recognised industry/i)
+      end
     end
 
     context 'with invalid params' do

@@ -598,4 +598,48 @@ RSpec.describe Service, type: :model do
       expect(service.discount_eligible?).to be false
     end
   end
+
+  describe '#process_service_availability' do
+    let(:service) { build(:service) }
+
+    it 'normalizes availability hashes and removes invalid slots' do
+      service.availability = {
+        'monday' => [{'start'=>'09:00','end'=>'12:00'}, {'start'=>nil,'end'=>'10:00'}],
+        'exceptions' => {'2025-07-21' => [{'start'=>'13:00','end'=>'15:00'}, {}]}
+      }
+      service.valid? # triggers before_validation
+      expect(service.availability['monday']).to eq([{'start'=>'09:00','end'=>'12:00'}])
+      expect(service.availability['exceptions']['2025-07-21']).to eq([{'start'=>'13:00','end'=>'15:00'}])
+    end
+  end
+
+  describe '#available_at?' do
+    let(:service) { build(:service, enforce_service_availability: true) }
+
+    before do
+      service.availability = {
+        'monday'=>[{'start'=>'09:00','end'=>'17:00'}],
+        'exceptions'=>{}
+      }
+    end
+
+    it 'returns true when time is within availability window' do
+      monday = Date.parse('2025-07-21')
+      dt = Time.zone.parse("#{monday} 10:00")
+      expect(service.available_at?(dt)).to be true
+    end
+
+    it 'returns false when time is outside availability window' do
+      monday = Date.parse('2025-07-21')
+      dt = Time.zone.parse("#{monday} 08:00")
+      expect(service.available_at?(dt)).to be false
+    end
+
+    it 'ignores availability when enforce flag is false' do
+      service.enforce_service_availability = false
+      monday = Date.parse('2025-07-21')
+      dt = Time.zone.parse("#{monday} 00:00")
+      expect(service.available_at?(dt)).to be true
+    end
+  end
 end

@@ -976,4 +976,38 @@ RSpec.describe AvailabilityService, type: :service do
 
   describe '.available_slots with booking policies' do
   end
+
+  describe '.available_slots' do
+    let(:business) { create(:business) }
+    let(:staff)    { create(:staff_member, business: business) }
+    let(:service)  { create(:service, business: business, duration: 60, enforce_service_availability: true) }
+
+    before do
+      # Link staff to the service being tested
+      create(:services_staff_member, service: service, staff_member: staff)
+
+      # staff availability covers full day
+      staff.update!(availability: { 'monday'=>[{'start'=>'00:00','end'=>'23:59'}], 'exceptions'=>{} })
+      # service availability only 10:00-12:00
+      service.update!(availability: { 'monday'=>[{'start'=>'10:00','end'=>'12:00'}], 'exceptions'=>{} })
+    end
+
+    it 'filters slots outside service availability' do
+      # Use next Monday relative to today to avoid past-date filtering
+      date = Date.current.next_occurring(:monday)
+      slots = AvailabilityService.available_slots(staff, date, service, interval: 60)
+      times = slots.map { |s| s[:start_time].strftime('%H:%M') }
+      expect(times).to all(be >= '10:00')
+      expect(times).to all(be < '12:00')
+    end
+
+    it 'does not filter when enforce flag is false' do
+      service.update!(enforce_service_availability: false)
+      # Use next Monday relative to today to avoid past-date filtering
+      date = Date.current.next_occurring(:monday)
+      slots = AvailabilityService.available_slots(staff, date, service, interval: 60)
+      # expect a slot at midnight
+      expect(slots.map { |s| s[:start_time].strftime('%H:%M') }).to include('00:00')
+    end
+  end
 end

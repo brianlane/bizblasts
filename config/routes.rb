@@ -92,6 +92,9 @@ Rails.application.routes.draw do
           patch :update_position
           patch :move_up
           patch :move_down
+          get 'manage_availability'
+          patch 'manage_availability'
+          patch :clear_availability
         end
         resources :service_variants, except: [:show]
       end
