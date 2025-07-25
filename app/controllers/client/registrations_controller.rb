@@ -23,7 +23,7 @@ class Client::RegistrationsController < Users::RegistrationsController
   # Permit additional parameters for client sign-up.
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
-      :first_name, :last_name, :referral_code, :phone, :bizblasts_email_consent,
+      :first_name, :last_name, :referral_code, :phone, :bizblasts_notification_consent,
       policy_acceptances: {}
     ])
     # Role is automatically set to client by default in the model

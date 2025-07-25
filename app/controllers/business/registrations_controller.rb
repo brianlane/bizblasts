@@ -115,7 +115,7 @@ class Business::RegistrationsController < Users::RegistrationsController
   # Permit nested parameters for business details.
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
-      :first_name, :last_name, :bizblasts_email_consent,
+      :first_name, :last_name, :bizblasts_notification_consent,
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
         :description, :tier, 

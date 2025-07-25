@@ -9,8 +9,8 @@ class User < ApplicationRecord
   # Custom exception for account deletion errors
   class AccountDeletionError < StandardError; end
   
-  # Virtual attribute for email consent checkbox in registration
-  attr_accessor :bizblasts_email_consent
+  # Virtual attribute for notification consent checkbox in registration
+  attr_accessor :bizblasts_notification_consent
 
   # Associations
   belongs_to :business, optional: true, inverse_of: :users
@@ -357,10 +357,10 @@ class User < ApplicationRecord
     # Only set defaults if notification_preferences is nil or empty
     return if notification_preferences.present?
     
-    # Check if user consented to emails during registration
-    # If bizblasts_email_consent is explicitly false (unchecked), set all notifications to false
+    # Check if user consented to notifications during registration
+    # If bizblasts_notification_consent is explicitly false (unchecked), set all notifications to false
     # If not provided or true (checked), enable all notifications
-    consent_given = bizblasts_email_consent != false && bizblasts_email_consent != '0'
+    consent_given = bizblasts_notification_consent != false && bizblasts_notification_consent != '0'
     
     default_preferences = {
       # Booking & Service Notifications
