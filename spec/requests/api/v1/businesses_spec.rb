@@ -4,6 +4,8 @@ require 'rails_helper'
 
 RSpec.describe Api::V1::BusinessesController, type: :request do
   let(:headers) { { 'Accept' => 'application/json', 'Content-Type' => 'application/json' } }
+  let(:api_key) { ENV['API_KEY'] || 'demo_api_key_for_testing' }
+  let(:auth_headers) { headers.merge({ 'X-API-Key' => api_key }) }
 
   # Test data setup
   let!(:active_business1) do
@@ -58,9 +60,30 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
   end
 
   describe 'GET /api/v1/businesses' do
-    context 'successful requests' do
-      it 'returns successful response with active businesses' do
+    context 'without API key' do
+      it 'returns unauthorized' do
         get '/api/v1/businesses', headers: headers
+        
+        expect(response).to have_http_status(:unauthorized)
+        json_response = JSON.parse(response.body)
+        expect(json_response['error']).to eq('API authentication required')
+      end
+    end
+
+    context 'with invalid API key' do
+      it 'returns unauthorized' do
+        invalid_headers = headers.merge({ 'X-API-Key' => 'invalid_key' })
+        get '/api/v1/businesses', headers: invalid_headers
+        
+        expect(response).to have_http_status(:unauthorized)
+        json_response = JSON.parse(response.body)
+        expect(json_response['error']).to eq('API authentication required')
+      end
+    end
+
+    context 'successful requests with API key' do
+      it 'returns successful response with active businesses' do
+        get '/api/v1/businesses', headers: auth_headers
         
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to eq('application/json; charset=utf-8')
@@ -77,18 +100,18 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
         expect(business_names).not_to include('Closed Business', 'No Hostname Business')
       end
 
-      it 'includes proper business summary data' do
-        get '/api/v1/businesses', headers: headers
+      it 'includes proper business summary data with limited fields' do
+        get '/api/v1/businesses', headers: auth_headers
         
         json_response = JSON.parse(response.body)
         business = json_response['businesses'].find { |b| b['name'] == 'Pro Landscaping' }
         
+        # New secure API returns limited data
         expect(business).to include(
           'id' => active_business1.id,
           'name' => 'Pro Landscaping',
           'hostname' => 'prolandscaping',
-          'industry' => 'landscaping',
-          'services_count' => 2
+          'industry' => 'landscaping'
         )
         
         expect(business['location']).to include(
@@ -96,14 +119,13 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
           'state' => 'TX'
         )
         
-        expect(business['contact']).to include(
-          'phone' => '555-0123',
-          'email' => 'info@prolandscaping.com'
-        )
+        # Contact information is no longer exposed in index for security
+        expect(business).not_to have_key('contact')
+        expect(business).not_to have_key('services_count')
       end
 
       it 'includes proper meta information' do
-        get '/api/v1/businesses', headers: headers
+        get '/api/v1/businesses', headers: auth_headers
         
         json_response = JSON.parse(response.body)
         meta = json_response['meta']
@@ -113,38 +135,39 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
           'api_version' => 'v1'
         )
         expect(meta).to have_key('timestamp')
+        expect(meta).to have_key('note')
       end
 
-      it 'limits results to 50 businesses' do
-        # Create more than 50 businesses
-        51.times do |i|
+      it 'limits results to 20 businesses' do
+        # Create more than 20 businesses
+        25.times do |i|
           create(:business, 
                  name: "Business #{i}",
                  hostname: "business#{i}",
                  active: true)
         end
         
-        get '/api/v1/businesses', headers: headers
+        get '/api/v1/businesses', headers: auth_headers
         
         json_response = JSON.parse(response.body)
-        expect(json_response['businesses'].length).to eq(50)
+        expect(json_response['businesses'].length).to eq(20)
       end
     end
 
     context 'CORS headers' do
       it 'includes proper CORS headers' do
-        get '/api/v1/businesses', headers: headers
+        get '/api/v1/businesses', headers: auth_headers
         
         expect(response.headers['Access-Control-Allow-Origin']).to eq('*')
         expect(response.headers['Access-Control-Allow-Methods']).to include('GET')
-        expect(response.headers['Access-Control-Allow-Headers']).to include('Content-Type')
+        expect(response.headers['Access-Control-Allow-Headers']).to include('X-API-Key')
       end
     end
 
     context 'rate limiting' do
       it 'allows requests within limit' do
         50.times do
-          get '/api/v1/businesses', headers: headers
+          get '/api/v1/businesses', headers: auth_headers
           expect(response).to have_http_status(:ok)
         end
       end
@@ -153,7 +176,7 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
         # Mock the cache to simulate rate limit exceeded
         allow(Rails.cache).to receive(:read).and_return(101)
         
-        get '/api/v1/businesses', headers: headers
+        get '/api/v1/businesses', headers: auth_headers
         
         expect(response).to have_http_status(:too_many_requests)
         json_response = JSON.parse(response.body)
@@ -163,9 +186,19 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
   end
 
   describe 'GET /api/v1/businesses/:id' do
+    context 'without API key' do
+      it 'returns unauthorized' do
+        get "/api/v1/businesses/#{active_business1.id}", headers: headers
+        
+        expect(response).to have_http_status(:unauthorized)
+        json_response = JSON.parse(response.body)
+        expect(json_response['error']).to eq('API authentication required')
+      end
+    end
+
     context 'when business exists' do
       it 'returns business details by ID' do
-        get "/api/v1/businesses/#{active_business1.id}", headers: headers
+        get "/api/v1/businesses/#{active_business1.id}", headers: auth_headers
         
         expect(response).to have_http_status(:ok)
         json_response = JSON.parse(response.body)
@@ -173,14 +206,19 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
         business = json_response['business']
         expect(business['id']).to eq(active_business1.id)
         expect(business['name']).to eq('Pro Landscaping')
-        expect(business['services'].length).to eq(2)
+        expect(business['services'].length).to be <= 10  # Limited to 10 services
         
         service_names = business['services'].map { |s| s['name'] }
         expect(service_names).to include('Lawn Mowing', 'Garden Design')
+        
+        # Verify prices are not exposed
+        business['services'].each do |service|
+          expect(service).not_to have_key('price')
+        end
       end
 
       it 'returns business details by hostname' do
-        get "/api/v1/businesses/prolandscaping", headers: headers
+        get "/api/v1/businesses/prolandscaping", headers: auth_headers
         
         expect(response).to have_http_status(:ok)
         json_response = JSON.parse(response.body)
@@ -191,39 +229,47 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       end
 
       it 'includes complete business detail structure' do
-        get "/api/v1/businesses/#{active_business2.id}", headers: headers
+        get "/api/v1/businesses/#{active_business2.id}", headers: auth_headers
         
         json_response = JSON.parse(response.body)
         business = json_response['business']
         
         expect(business).to have_key('location')
-        expect(business).to have_key('contact')
-        expect(business).to have_key('social_media')
         expect(business).to have_key('services')
         expect(business).to have_key('products')
         expect(business).to have_key('features')
         
+        # Contact information is no longer exposed
+        expect(business).not_to have_key('contact')
+        expect(business).not_to have_key('social_media')
+        
+        # Location should only have city and state
+        expect(business['location']).to have_key('city')
+        expect(business['location']).to have_key('state')
+        expect(business['location']).not_to have_key('address')
+        expect(business['location']).not_to have_key('zip')
+        
         expect(business['features']).to include(
           'online_booking' => true,
-          'payment_processing' => true,
-          'staff_management' => true
+          'payment_processing' => true
         )
       end
 
       it 'includes meta information with timestamps' do
-        get "/api/v1/businesses/#{active_business1.id}", headers: headers
+        get "/api/v1/businesses/#{active_business1.id}", headers: auth_headers
         
         json_response = JSON.parse(response.body)
         meta = json_response['meta']
         
         expect(meta).to have_key('last_updated')
         expect(meta).to have_key('generated_at')
+        expect(meta).to have_key('data_policy')
       end
     end
 
     context 'when business does not exist' do
       it 'returns 404 for non-existent ID' do
-        get "/api/v1/businesses/999999", headers: headers
+        get "/api/v1/businesses/999999", headers: auth_headers
         
         expect(response).to have_http_status(:not_found)
         json_response = JSON.parse(response.body)
@@ -231,7 +277,7 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       end
 
       it 'returns 404 for non-existent hostname' do
-        get "/api/v1/businesses/nonexistent", headers: headers
+        get "/api/v1/businesses/nonexistent", headers: auth_headers
         
         expect(response).to have_http_status(:not_found)
         json_response = JSON.parse(response.body)
@@ -239,7 +285,7 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       end
 
       it 'returns 404 for inactive business' do
-        get "/api/v1/businesses/#{inactive_business.id}", headers: headers
+        get "/api/v1/businesses/#{inactive_business.id}", headers: auth_headers
         
         expect(response).to have_http_status(:not_found)
       end
@@ -398,22 +444,30 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
   end
 
   describe 'security and edge cases' do
-    it 'skips authentication for all endpoints' do
-      # These endpoints should be publicly accessible without authentication
+    it 'requires authentication for sensitive endpoints' do
+      # These endpoints require API key authentication
       [
         '/api/v1/businesses',
-        '/api/v1/businesses/categories', 
-        '/api/v1/businesses/ai_summary',
         "/api/v1/businesses/#{active_business1.id}"
       ].each do |endpoint|
         get endpoint, headers: headers
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    it 'allows public access to non-sensitive endpoints' do
+      # These endpoints should be publicly accessible without authentication
+      [
+        '/api/v1/businesses/categories', 
+        '/api/v1/businesses/ai_summary'
+      ].each do |endpoint|
+        get endpoint, headers: headers
         expect(response).not_to have_http_status(:unauthorized)
-        expect(response).not_to redirect_to(new_user_session_path)
       end
     end
 
     it 'handles malformed IDs gracefully' do
-      get '/api/v1/businesses/invalid-id-with-special-chars!', headers: headers
+      get '/api/v1/businesses/invalid-id-with-special-chars!', headers: auth_headers
       
       expect(response).to have_http_status(:not_found)
       json_response = JSON.parse(response.body)
@@ -424,15 +478,19 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       malicious_id = "1'; DROP TABLE businesses; --"
       
       expect {
-        get "/api/v1/businesses/#{CGI.escape(malicious_id)}", headers: headers
+        get "/api/v1/businesses/#{CGI.escape(malicious_id)}", headers: auth_headers
       }.not_to raise_error
       
       expect(Business.count).to be > 0 # Businesses should still exist
     end
 
-    it 'returns proper JSON content type for all endpoints' do
+    it 'returns proper JSON content type for authenticated endpoints' do
+      get '/api/v1/businesses', headers: auth_headers
+      expect(response.content_type).to include('application/json')
+    end
+
+    it 'returns proper JSON content type for public endpoints' do
       [
-        '/api/v1/businesses',
         '/api/v1/businesses/categories',
         '/api/v1/businesses/ai_summary'
       ].each do |endpoint|
@@ -461,7 +519,7 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
     end
 
     it 'generates correct URLs for custom domain businesses' do
-      get "/api/v1/businesses/#{custom_domain_business.id}", headers: headers
+      get "/api/v1/businesses/#{custom_domain_business.id}", headers: auth_headers
       
       json_response = JSON.parse(response.body)
       business = json_response['business']
@@ -470,7 +528,7 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
     end
 
     it 'generates correct URLs for subdomain businesses' do
-      get "/api/v1/businesses/#{subdomain_business.id}", headers: headers
+      get "/api/v1/businesses/#{subdomain_business.id}", headers: auth_headers
       
       json_response = JSON.parse(response.body)
       business = json_response['business']
