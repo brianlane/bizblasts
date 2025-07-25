@@ -1,6 +1,6 @@
 class Api::V1::BusinessesController < ApplicationController
-  # Skip authentication for specific public endpoints only
-  skip_before_action :authenticate_user!, only: [:categories, :ai_summary]
+  # Skip Rails authentication for all API endpoints - we use API key auth instead
+  skip_before_action :authenticate_user!
   skip_before_action :verify_authenticity_token
   
   # Add CORS headers for API access
@@ -14,7 +14,7 @@ class Api::V1::BusinessesController < ApplicationController
     # This prevents mass data harvesting while allowing legitimate API usage
     @businesses = Business.active
                          .where.not(hostname: nil)
-                         .select(:id, :name, :hostname, :industry, :city, :state)
+                         .select(:id, :name, :hostname, :industry, :city, :state, :host_type)
                          .limit(20)
                          .order(:name)
     
