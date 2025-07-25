@@ -13,6 +13,19 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 **📖 See [docs/HOTWIRE_SETUP.md](docs/HOTWIRE_SETUP.md) for complete documentation**
 
+## 🔒 **Security & Compliance (January 2025)**
+
+**BizBlasts implements enterprise-grade security measures:**
+- ✅ **Multi-Tenant Isolation** - Complete data separation between businesses
+- ✅ **API Authentication** - Secure API access with key-based authentication
+- ✅ **Email Enumeration Protection** - Prevents user discovery attacks
+- ✅ **Audit Logging** - Comprehensive security event monitoring
+- ✅ **Automated Security Alerts** - Real-time notifications for suspicious activity
+- ✅ **Data Sanitization** - Automatic removal of sensitive data from logs
+- ✅ **Cross-Tenant Access Prevention** - Strict authorization controls
+
+**📖 See [Security Documentation](#security) section below for implementation details**
+
 ---
 
 ## Prerequisites
@@ -464,6 +477,158 @@ Tests automatically run on GitHub Actions:
 
 ---
 
+## 🔒 Security
+
+BizBlasts implements comprehensive security measures to protect multi-tenant data and prevent unauthorized access.
+
+### Security Architecture
+
+#### Multi-Tenant Isolation
+- **ActsAsTenant Gem**: Automatic tenant scoping for all business data
+- **Tenant Context Management**: Secure tenant switching with business verification
+- **Cross-Tenant Protection**: Prevents access to data from other businesses
+- **Database Constraints**: Foreign key relationships enforce tenant boundaries
+
+#### API Security
+- **Authentication Required**: All sensitive endpoints require API key authentication
+- **Rate Limiting**: 100 requests per hour per IP address
+- **Data Minimization**: API responses exclude sensitive information (emails, phone numbers, addresses)
+- **Tenant-Aware Responses**: API results are properly scoped to authorized businesses
+
+#### Authorization & Access Control
+- **Pundit Policies**: Comprehensive authorization rules for all resources
+- **Role-Based Access**: Manager, staff, and client roles with appropriate permissions
+- **Business Ownership Validation**: All actions verify user belongs to the target business
+- **Admin Separation**: Platform administrators use separate AdminUser model
+
+#### Security Monitoring & Logging
+
+##### Audit Logging System
+```ruby
+# Automatically logs all security events
+SecureLogger.security_event('unauthorized_access', {
+  user_id: current_user&.id,
+  ip: request.remote_ip,
+  path: request.fullpath,
+  method: request.method
+})
+```
+
+##### Automated Security Alerts
+- **Real-time Monitoring**: Suspicious activity triggers immediate alerts
+- **Email Notifications**: Critical security events are emailed to administrators
+- **Event Types Monitored**:
+  - Unauthorized access attempts
+  - Cross-tenant boundary violations
+  - Email enumeration attacks
+  - Suspicious request patterns
+  - Authorization failures
+
+##### Data Sanitization
+```ruby
+# Automatic removal of sensitive data from logs
+SecureLogger.info("User login attempt: user@example.com")
+# Logs as: "User login attempt: use***@***"
+```
+
+**Sensitive Data Patterns Removed:**
+- Email addresses → `use***@***`
+- Phone numbers → `***-***-1234`
+- SSN numbers → `[REDACTED_SSN]`
+- Credit card numbers → `[REDACTED_CREDIT_CARD]`
+- API keys → `[REDACTED_API_KEY]`
+
+### Security Features
+
+#### Email Enumeration Protection
+- **Consistent Responses**: Same response for existing and non-existing emails
+- **Rate Limiting**: Prevents automated email discovery attempts
+- **Security Logging**: Failed enumeration attempts are logged and monitored
+
+#### Input Validation & Sanitization
+- **XSS Prevention**: All user input is sanitized before display
+- **SQL Injection Protection**: Parameterized queries and ORM usage
+- **Path Traversal Prevention**: File access controls and validation
+- **Command Injection Protection**: Input sanitization for system commands
+
+#### Session & Authentication Security
+- **CSRF Protection**: Rails authenticity tokens for all forms
+- **Secure Sessions**: HTTPOnly and secure cookie flags
+- **Magic Link Authentication**: Secure passwordless login option
+- **Session Timeout**: Automatic logout after inactivity
+
+### Security Testing
+
+#### Automated Security Tests
+```bash
+# Run security-specific test suite
+rspec spec/security/
+
+# Test categories:
+# - API Security (authentication, rate limiting, data exposure)
+# - Tenant Isolation (cross-tenant access prevention)
+# - Policy Security (authorization rules)
+# - Secure Logging (data sanitization)
+```
+
+#### Security Test Coverage
+- **API Authentication**: Verifies all endpoints require proper authentication
+- **Tenant Boundary Testing**: Ensures users cannot access other businesses' data
+- **Policy Enforcement**: Tests all Pundit policies for proper authorization
+- **Data Sanitization**: Verifies sensitive data is removed from logs
+- **Email Enumeration**: Confirms protection against user discovery attacks
+
+### Security Configuration
+
+#### Environment Variables
+```bash
+# Required security configuration
+ADMIN_EMAIL=admin@yourcompany.com  # Security alert recipient
+API_KEY=your_secure_api_key_here   # API authentication key
+SECRET_KEY_BASE=your_rails_secret  # Rails session encryption
+```
+
+#### Production Security Checklist
+- [ ] Set strong API keys in environment variables
+- [ ] Configure ADMIN_EMAIL for security alerts
+- [ ] Enable SSL/TLS encryption (HTTPS)
+- [ ] Set up log monitoring and retention
+- [ ] Configure rate limiting rules
+- [ ] Review and test tenant isolation
+- [ ] Verify backup encryption and access controls
+
+### Security Incident Response
+
+#### Monitoring Dashboard
+Security events are automatically logged and can be monitored through:
+- Application logs (`Rails.logger`)
+- Security event logs (`SecureLogger`)
+- Email alerts for critical events
+- Database audit trail for sensitive actions
+
+#### Incident Types & Responses
+- **Unauthorized Access**: Automatic user session termination and alert
+- **Cross-Tenant Violation**: Immediate access blocking and investigation
+- **Enumeration Attack**: IP rate limiting and monitoring escalation
+- **Data Breach Attempt**: Full security audit and incident response activation
+
+### Security Maintenance
+
+#### Regular Security Tasks
+- **Weekly**: Review security logs for anomalies
+- **Monthly**: Update dependencies and security patches
+- **Quarterly**: Comprehensive security testing and audit
+- **Annually**: Third-party security assessment and penetration testing
+
+#### Security Updates
+Security fixes are prioritized and deployed immediately. Monitor:
+- Rails security announcements
+- Dependency vulnerability alerts (Dependabot)
+- Security audit logs for emerging threats
+- Industry security best practices
+
+---
+
 **Last Updated:** January 2025  
 **BizBlasts Technical Team**  
-**Status:** ✅ Production Ready with Enhanced Hotwire Integration
+**Status:** ✅ Production Ready with Enhanced Security & Hotwire Integration

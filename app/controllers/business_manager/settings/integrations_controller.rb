@@ -1,6 +1,7 @@
 module BusinessManager
   module Settings
     class IntegrationsController < BusinessManager::BaseController
+      include SecurityMonitoring
       before_action :set_business
       before_action :set_integration, only: [:show, :edit, :update, :destroy]
 
