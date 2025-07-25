@@ -136,7 +136,11 @@ Rails.application.routes.draw do
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
       
       # Business transactions management (unified orders and invoices)
-      resources :transactions, only: [:index, :show]
+      resources :transactions, only: [:index, :show] do
+        collection do
+          get :download_csv
+        end
+      end
       
       # Business orders management
       resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
