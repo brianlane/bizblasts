@@ -193,7 +193,7 @@ module BusinessManager
 
     def format_order_items(order)
       items = order.line_items.map do |item|
-        if item.product_variant
+        if item.product_variant&.product
           "#{item.product_variant.product.name} (#{item.product_variant.name}) x#{item.quantity}"
         elsif item.service
           "#{item.service.name} x#{item.quantity}"
@@ -205,10 +205,22 @@ module BusinessManager
     end
 
     def format_invoice_items(invoice)
-      if invoice.booking
+      if invoice.booking&.service
         items = [invoice.booking.service.name]
         if invoice.booking.booking_product_add_ons.any?
-          add_ons = invoice.booking.booking_product_add_ons.map { |addon| addon.product_variant.name }
+          add_ons = invoice.booking.booking_product_add_ons.filter_map do |addon|
+            addon.product_variant&.name
+          end
+          items += add_ons
+        end
+        items.join('; ')
+      elsif invoice.booking
+        # Handle case where booking exists but service is nil
+        items = ['Service (deleted)']
+        if invoice.booking.booking_product_add_ons.any?
+          add_ons = invoice.booking.booking_product_add_ons.filter_map do |addon|
+            addon.product_variant&.name
+          end
           items += add_ons
         end
         items.join('; ')
