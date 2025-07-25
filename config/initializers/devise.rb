@@ -315,13 +315,13 @@ Devise.setup do |config|
       end
       
       if user
-        Rails.logger.debug "[Devise Setup Warden Hook] Serialize From Session - User found: #{user.email}"
+        Rails.logger.debug "[Devise Setup Warden Hook] Serialize From Session - User ID: #{user.id}"
         # Explicitly set the user in Warden for this request
         # env = manager.env # Get the Rack env from the manager instance
         # env['warden']&.set_user(user, scope: :user, store: false) # store: false prevents reserialization loop
         # Rails.logger.debug "[Devise Setup Warden Hook] Explicitly set user in warden session"
       else
-        Rails.logger.warn "[Devise Setup Warden Hook] Serialize From Session - User NOT found for ID: #{user_id}"
+        Rails.logger.warn "[Devise Setup Warden Hook] Serialize From Session - User not found for ID: [REDACTED]"
       end
       user # Return user or nil
     end

@@ -68,12 +68,47 @@ class ApplicationPolicy
     end
   end
 
-  private
+  protected
 
   # Helper method available to all policies inheriting from ApplicationPolicy.
   def admin?
     # Check if the user is an instance of AdminUser
     # Adjust this check if other admin types exist.
     user.is_a?(AdminUser)
+  end
+
+  # Helper methods for tenant-aware policies
+  def user_owns_business?
+    user.respond_to?(:business_id) && user.business_id.present?
+  end
+
+  def record_belongs_to_user_business?
+    return false unless user_owns_business?
+    return false unless record.respond_to?(:business_id)
+    
+    record.business_id == user.business_id
+  end
+
+  def user_is_business_manager?
+    user.respond_to?(:manager?) && user.manager? && user_owns_business?
+  end
+
+  def user_is_business_staff?
+    user.respond_to?(:staff?) && user.staff? && user_owns_business?
+  end
+
+  def user_is_client?
+    user.respond_to?(:client?) && user.client?
+  end
+
+  # Log security violations for monitoring
+  def log_authorization_failure(action)
+    SecureLogger.security_event('authorization_failure', {
+      user_id: user&.id,
+      user_type: user.class.name,
+      action: action,
+      resource: record.class.name,
+      resource_id: record.respond_to?(:id) ? record.id : nil
+    })
   end
 end

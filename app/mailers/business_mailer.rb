@@ -108,6 +108,16 @@ class BusinessMailer < ApplicationMailer
     # Handle case where business might be nil or deleted
     return unless @business.present?
     
+    # Check if customer has an associated user account (tenant-scoped lookup)
+    ActsAsTenant.current_tenant = @business
+    @customer_user_account = nil
+    
+    if @customer.email.present?
+      # Look for user account within business context
+      @customer_user_account = @business.users.find_by(email: @customer.email) ||
+                              @business.client_businesses.joins(:user).find_by(users: { email: @customer.email })&.user
+    end
+    
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
     return unless business_user.present?

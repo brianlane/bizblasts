@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Security Alert - BizBlasts</title>
+    <style>
+      .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+      .header { background-color: #dc3545; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+      .content { padding: 30px; background-color: #ffffff; border: 1px solid #dee2e6; }
+      .alert-box { background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545; }
+      .footer { background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef; }
+      .timestamp { font-family: monospace; font-size: 14px; color: #6c757d; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2 style="margin: 0;">🚨 Security Alert</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Event Type: <%= @event_type.to_s.humanize %></p>
+      </div>
+
+      <div class="content">
+        <div class="alert-box">
+          <h3 style="margin-top: 0; color: #721c24;">Security Event Detected</h3>
+          <p><strong>Event:</strong> <%= @event_type.to_s.humanize %></p>
+          <p class="timestamp"><strong>Time:</strong> <%= @timestamp.strftime("%Y-%m-%d %H:%M:%S %Z") %></p>
+        </div>
+
+        <h4>Event Details:</h4>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-size: 13px; overflow-x: auto;"><%= @message %></pre>
+
+        <p><strong>Recommended Actions:</strong></p>
+        <ul>
+          <li>Review application logs for additional context</li>
+          <li>Check for suspicious patterns in access logs</li>
+          <li>Verify user permissions and access controls</li>
+          <li>Consider implementing additional security measures if needed</li>
+        </ul>
+      </div>
+
+      <div class="footer">
+        <p style="margin: 0; color: #6c757d; font-size: 14px;">
+          This is an automated security alert from BizBlasts.<br>
+          Please investigate this event promptly.
+        </p>
+        <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 12px;">
+          Generated at <%= Time.current.strftime("%Y-%m-%d %H:%M:%S %Z") %>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
