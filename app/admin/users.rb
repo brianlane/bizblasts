@@ -182,10 +182,17 @@ ActiveAdmin.register User do
       user.staff_member&.position
     end
     column "Last Login" do |user|
-      if user.last_sign_in_at
+      # Show the most recent sign-in time (current session or last session)
+      most_recent_signin = user.current_sign_in_at || user.last_sign_in_at
+      
+      if most_recent_signin
+        # Use business time zone or fallback to system default
+        business_tz = user.business&.time_zone.presence || Time.zone.name
+        local_time = most_recent_signin.in_time_zone(business_tz)
+        
         div do
-          div time_ago_in_words(user.last_sign_in_at) + " ago"
-          small user.last_sign_in_at.strftime("%b %d, %Y at %I:%M %p"), style: "color: #6c757d; font-size: 0.85em;"
+          div time_ago_in_words(most_recent_signin) + " ago"
+          small local_time.strftime("%b %d, %Y at %I:%M %p %Z"), style: "color: #6c757d; font-size: 0.85em;"
         end
       else
         "Never"
@@ -234,14 +241,18 @@ ActiveAdmin.register User do
       # Login Activity Section
       row :last_sign_in_at do |user|
         if user.last_sign_in_at
-          "#{time_ago_in_words(user.last_sign_in_at)} ago (#{user.last_sign_in_at.strftime('%B %d, %Y at %I:%M %p')})"
+          business_tz = user.business&.time_zone.presence || Time.zone.name
+          local_time = user.last_sign_in_at.in_time_zone(business_tz)
+          "#{time_ago_in_words(user.last_sign_in_at)} ago (#{local_time.strftime('%B %d, %Y at %I:%M %p %Z')})"
         else
           "Never logged in"
         end
       end
       row :current_sign_in_at do |user|
         if user.current_sign_in_at
-          "#{time_ago_in_words(user.current_sign_in_at)} ago (#{user.current_sign_in_at.strftime('%B %d, %Y at %I:%M %p')})"
+          business_tz = user.business&.time_zone.presence || Time.zone.name
+          local_time = user.current_sign_in_at.in_time_zone(business_tz)
+          "#{time_ago_in_words(user.current_sign_in_at)} ago (#{local_time.strftime('%B %d, %Y at %I:%M %p %Z')})"
         else
           "No current session"
         end
