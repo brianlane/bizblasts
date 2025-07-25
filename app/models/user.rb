@@ -8,6 +8,9 @@ class User < ApplicationRecord
   
   # Custom exception for account deletion errors
   class AccountDeletionError < StandardError; end
+  
+  # Virtual attribute for email consent checkbox in registration
+  attr_accessor :bizblasts_email_consent
 
   # Associations
   belongs_to :business, optional: true, inverse_of: :users
@@ -354,37 +357,41 @@ class User < ApplicationRecord
     # Only set defaults if notification_preferences is nil or empty
     return if notification_preferences.present?
     
+    # Check if user consented to emails during registration
+    # If bizblasts_email_consent is explicitly false (unchecked), set all notifications to false
+    # If not provided or true (checked), enable all notifications
+    consent_given = bizblasts_email_consent != false && bizblasts_email_consent != '0'
+    
     default_preferences = {
       # Booking & Service Notifications
-      email_booking_confirmation: true,
-      sms_booking_reminder: true,
-      email_booking_updates: true,
+      email_booking_confirmation: consent_given,
+      sms_booking_reminder: consent_given,
+      email_booking_updates: consent_given,
       
       # Order & Product Notifications
-      email_order_updates: true,
-      sms_order_updates: true,
-      email_payment_confirmations: true,
+      email_order_updates: consent_given,
+      sms_order_updates: consent_given,
+      email_payment_confirmations: consent_given,
       
       # Marketing & Promotional
-      email_promotions: true,
-      email_blog_updates: true,
-      sms_promotions: true,
+      email_promotions: consent_given,
+      email_blog_updates: consent_given,
+      sms_promotions: consent_given,
       
       # Additional notification types from the system
-      email_booking_notifications: true,
-      email_customer_notifications: true,
-      email_payment_notifications: true,
-      email_subscription_notifications: true,
-      email_marketing_notifications: true,
-      email_blog_notifications: true,
-      email_system_notifications: true,
-      email_marketing_updates: true
+      email_booking_notifications: consent_given,
+      email_customer_notifications: consent_given,
+      email_payment_notifications: consent_given,
+      email_subscription_notifications: consent_given,
+      email_marketing_notifications: consent_given,
+      email_blog_notifications: consent_given,
+      email_system_notifications: consent_given,
+      email_marketing_updates: consent_given
     }
     
     # Use update_attribute to ensure the change persists even in CI environments
-    # and reload to ensure we have the latest state
     if update_attribute(:notification_preferences, default_preferences)
-      Rails.logger.info "[USER] Set default notification preferences for User ##{id} (#{email})"
+      Rails.logger.info "[USER] Set default notification preferences for User ##{id} (#{email}) - consent: #{consent_given}"
     else
       Rails.logger.error "[USER] Failed to set default notification preferences for User ##{id} (#{email})"
     end
