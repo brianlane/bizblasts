@@ -387,21 +387,22 @@ RSpec.describe User, type: :model do
       end
     end
     
-    context 'with email consent during registration' do
+    context 'with notification consent during registration' do
       it 'enables all notifications when consent is given (default)' do
         user = build(:user, role: :client)
-        user.bizblasts_email_consent = '1'
+        user.bizblasts_notification_consent = '1'
         user.save!
         
         expect(user.notification_preferences).to be_present
         expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
         expect(user.notification_preferences['email_promotions']).to eq(true)
         expect(user.notification_preferences['email_marketing_notifications']).to eq(true)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(true)
       end
       
       it 'disables all notifications when consent is not given' do
         user = build(:user, role: :client)
-        user.bizblasts_email_consent = '0'
+        user.bizblasts_notification_consent = '0'
         user.save!
         
         expect(user.notification_preferences).to be_present
@@ -409,37 +410,41 @@ RSpec.describe User, type: :model do
         expect(user.notification_preferences['email_promotions']).to eq(false)
         expect(user.notification_preferences['email_marketing_notifications']).to eq(false)
         expect(user.notification_preferences['sms_booking_reminder']).to eq(false)
+        expect(user.notification_preferences['sms_promotions']).to eq(false)
       end
       
       it 'enables notifications when consent is explicitly true' do
         user = build(:user, role: :client)
-        user.bizblasts_email_consent = true
+        user.bizblasts_notification_consent = true
         user.save!
         
         expect(user.notification_preferences).to be_present
         expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
         expect(user.notification_preferences['email_promotions']).to eq(true)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(true)
       end
       
       it 'disables notifications when consent is explicitly false' do
         user = build(:user, role: :client)
-        user.bizblasts_email_consent = false
+        user.bizblasts_notification_consent = false
         user.save!
         
         expect(user.notification_preferences).to be_present
         expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
         expect(user.notification_preferences['email_promotions']).to eq(false)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(false)
       end
       
       it 'works for business users too' do
         business = create(:business)
         user = build(:user, role: :manager, business: business)
-        user.bizblasts_email_consent = '0'
+        user.bizblasts_notification_consent = '0'
         user.save!
         
         expect(user.notification_preferences).to be_present
         expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
         expect(user.notification_preferences['email_system_notifications']).to eq(false)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(false)
       end
     end
   end
