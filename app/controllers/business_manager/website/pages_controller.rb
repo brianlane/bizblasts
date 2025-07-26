@@ -1,11 +1,25 @@
 class BusinessManager::Website::PagesController < BusinessManager::Website::BaseController
-  before_action :set_page, except: [:index, :new, :create]
+  before_action :set_page, except: [:index, :new, :create, :bulk_action, :update_priority]
   
   def index
+    sort_param = params[:sort] || 'default'
     @pages = current_business.pages.includes(:page_sections, :page_versions)
-                            .order(:page_type, :title)
+    
+    @pages = case sort_param
+             when 'priority' then @pages.by_priority
+             when 'popular' then @pages.popular
+             when 'recent' then @pages.recent
+             else @pages.order(:page_type, :title)
+             end
+             
     @published_pages = @pages.published
     @draft_pages = @pages.draft
+    @sort_options = [
+      ['Default', 'default'],
+      ['By Priority', 'priority'],
+      ['Most Popular', 'popular'],
+      ['Recently Updated', 'recent']
+    ]
   end
   
   def show
@@ -104,6 +118,8 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     new_page.slug = "#{@page.slug}-copy"
     new_page.status = :draft
     new_page.published_at = nil
+    new_page.view_count = 0
+    new_page.priority = 0
     
     if new_page.save
       # Duplicate sections
@@ -121,6 +137,54 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     else
       redirect_to business_manager_website_page_path(@page), 
                   alert: 'Failed to duplicate page'
+    end
+  end
+  
+  def bulk_action
+    page_ids = params[:page_ids] || []
+    action = params[:bulk_action]
+    
+    return redirect_to business_manager_website_pages_path, alert: 'No pages selected' if page_ids.empty?
+    
+    pages = current_business.pages.where(id: page_ids)
+    
+    case action
+    when 'publish'
+      pages.update_all(status: :published, published_at: Time.current)
+      message = "#{pages.count} pages published successfully"
+    when 'draft'
+      pages.update_all(status: :draft)
+      message = "#{pages.count} pages moved to draft"
+    when 'archive'
+      pages.update_all(status: :archived)
+      message = "#{pages.count} pages archived"
+    when 'delete'
+      pages.each(&:destroy)
+      message = "#{pages.count} pages deleted successfully"
+    else
+      return redirect_to business_manager_website_pages_path, alert: 'Invalid action'
+    end
+    
+    redirect_to business_manager_website_pages_path, notice: message
+  end
+  
+  def update_priority
+    page_ids = params[:page_ids] || []
+    
+    page_ids.each_with_index do |page_id, index|
+      current_business.pages.where(id: page_id).update_all(priority: page_ids.length - index)
+    end
+    
+    respond_to do |format|
+      format.json { render json: { status: 'success', message: 'Page order updated' } }
+    end
+  end
+  
+  def track_view
+    @page.increment_view_count!
+    
+    respond_to do |format|
+      format.json { render json: { status: 'success', view_count: @page.view_count } }
     end
   end
   

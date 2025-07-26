@@ -179,6 +179,8 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   private
   
   def set_page
+    Rails.logger.debug "SectionsController#set_page: params[:page_id] = #{params[:page_id]}"
+    Rails.logger.debug "SectionsController#set_page: request.url = #{request.url}"
     @page = current_business.pages.find(params[:page_id])
   end
   
@@ -188,8 +190,11 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   
   def section_params
     permitted_params = params.require(:page_section).permit(
-      :section_type, :content, :position, :active, :custom_css_classes,
-      :animation_type, section_config: {}, background_settings: {}
+      :section_type, :position, :active, :custom_css_classes,
+      :animation_type, 
+      content: {}, 
+      section_config: {}, 
+      background_settings: {}
     )
     
     # Handle custom content format from edit form
