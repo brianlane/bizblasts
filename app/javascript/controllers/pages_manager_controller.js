@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 
 export default class extends Controller {
-  static targets = ["pageGrid", "bulkActions", "selectAll", "pageCheckbox", "sortSelect"]
+  static targets = ["pageGrid", "bulkActions", "pageCheckbox", "sortSelect"]
   static values = { 
     updatePriorityUrl: String,
     bulkActionUrl: String
@@ -35,23 +35,9 @@ export default class extends Controller {
     })
   }
 
-  selectAllChanged() {
-    const isChecked = this.selectAllTarget.checked
-    this.pageCheckboxTargets.forEach(checkbox => {
-      checkbox.checked = isChecked
-    })
-    this.updateBulkActionsVisibility()
-  }
-
   pageCheckboxChanged() {
     this.updateBulkActionsVisibility()
     
-    // Update select all checkbox state
-    const totalCheckboxes = this.pageCheckboxTargets.length
-    const checkedCheckboxes = this.getSelectedPageIds().length
-    
-    this.selectAllTarget.checked = checkedCheckboxes === totalCheckboxes
-    this.selectAllTarget.indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes
   }
 
   updateBulkActionsVisibility() {
@@ -191,33 +177,6 @@ export default class extends Controller {
       document.querySelectorAll('[data-page-menu]').forEach(menu => {
         menu.classList.add('hidden')
       })
-    }
-  }
-
-  // Keyboard shortcuts
-  handleKeyDown(event) {
-    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
-    
-    switch(event.key) {
-      case 'Delete':
-      case 'Backspace':
-        if (this.getSelectedPageIds().length > 0) {
-          event.preventDefault()
-          this.performBulkAction({ currentTarget: { dataset: { bulkAction: 'delete' } } })
-        }
-        break
-      case 'a':
-        if (event.ctrlKey || event.metaKey) {
-          event.preventDefault()
-          this.selectAllTarget.checked = true
-          this.selectAllChanged()
-        }
-        break
-      case 'Escape':
-        this.selectAllTarget.checked = false
-        this.selectAllChanged()
-        this.closeMenus({ target: document.body })
-        break
     }
   }
 }
