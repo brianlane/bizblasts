@@ -81,7 +81,7 @@ export default class extends Controller {
   }
 
   async performBulkAction(event) {
-    const action = event.currentTarget.dataset.action
+    const action = event.currentTarget.dataset.bulkAction
     const selectedIds = this.getSelectedPageIds()
     
     if (selectedIds.length === 0) {
