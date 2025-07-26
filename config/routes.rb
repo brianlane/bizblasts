@@ -278,12 +278,17 @@ Rails.application.routes.draw do
       # Website customization routes (Standard & Premium only)
       namespace :website do
         resources :pages do
+          collection do
+            post :bulk_action
+            patch :update_priority
+          end
           member do
             get :preview
             patch :publish
             post :create_version
             patch :restore_version
             post :duplicate
+            post :track_view
           end
           
           resources :sections, except: [:show] do

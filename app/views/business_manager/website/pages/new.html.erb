@@ -13,9 +13,46 @@
     </div>
   </div>
 
+  <!-- Flash Messages -->
+  <% if flash[:alert] %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm font-medium text-red-800"><%= flash[:alert] %></p>
+      </div>
+    </div>
+  <% end %>
+
+  <% if flash[:notice] %>
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <p class="text-sm font-medium text-green-800"><%= flash[:notice] %></p>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Template Indicator -->
+  <% if params[:template].present? %>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p class="text-sm font-medium text-blue-800">
+          <%= "#{params[:template].humanize} template selected" %> - Fields have been pre-filled for you
+        </p>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Form -->
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <%= form_with model: @page, url: business_manager_website_pages_path, local: true, class: "space-y-6" do |form| %>
+    <%= form_with model: @page, url: business_manager_website_pages_path, local: true, class: "space-y-6", data: { controller: "page-form-validation" } do |form| %>
       
       <!-- Error Messages -->
       <% if @page.errors.any? %>
@@ -35,10 +72,16 @@
           <%= form.label :title, class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= form.text_field :title, 
                 class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 #{@page.errors[:title].any? ? 'border-red-300' : ''}",
-                placeholder: "Enter page title" %>
+                placeholder: "Enter page title",
+                required: true,
+                data: { 
+                  "page-form-validation-target" => "titleField",
+                  action: "input->page-form-validation#validateTitle"
+                } %>
           <% if @page.errors[:title].any? %>
             <p class="mt-1 text-sm text-red-600"><%= @page.errors[:title].first %></p>
           <% end %>
+          <div class="mt-1 text-sm text-red-600 hidden" data-page-form-validation-target="titleError"></div>
         </div>
         
         <div>
@@ -57,30 +100,44 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <%= form.label :page_type, class: "block text-sm font-medium text-gray-700 mb-2" %>
-          <%= form.select :page_type, 
-                options_for_select([
-                  ['home', 'home'],
-                  ['about', 'about'],
-                  ['services', 'services'],
-                  ['contact', 'contact'],
-                  ['portfolio', 'portfolio'],
-                  ['team', 'team'],
-                  ['pricing', 'pricing'],
-                  ['custom', 'custom']
-                ], @page.page_type),
-                { prompt: 'Select page type' },
-                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+          <%= render 'shared/rich_dropdown',
+                collection: [
+                  ['Home Page', 'home'],
+                  ['About Us', 'about'],
+                  ['Services', 'services'],
+                  ['Contact', 'contact'],
+                  ['Portfolio', 'portfolio'],
+                  ['Team', 'team'],
+                  ['Pricing', 'pricing'],
+                  ['Custom Page', 'custom']
+                ],
+                field_name: 'page[page_type]',
+                selected_value: @page.page_type,
+                prompt_text: 'Select page type',
+                value_method: :last,
+                text_method: :first,
+                required: true,
+                dropdown_id: 'page_type_dropdown',
+                hidden_field_data: { 
+                  "data-page-form-validation-target" => "pageTypeField",
+                  "data-action" => "change->page-form-validation#validatePageType"
+                } %>
+          <div class="mt-1 text-sm text-red-600 hidden" data-page-form-validation-target="pageTypeError"></div>
         </div>
         
         <div>
           <%= form.label :status, class: "block text-sm font-medium text-gray-700 mb-2" %>
-          <%= form.select :status, 
-                options_for_select([
+          <%= render 'shared/rich_dropdown',
+                collection: [
                   ['Draft', 'draft'],
                   ['Published', 'published']
-                ], @page.status || 'draft'),
-                {},
-                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+                ],
+                field_name: 'page[status]',
+                selected_value: @page.status || 'draft',
+                prompt_text: 'Select status',
+                value_method: :last,
+                text_method: :first,
+                dropdown_id: 'page_status_dropdown' %>
         </div>
       </div>
 
@@ -134,7 +191,11 @@
         <%= link_to "Cancel", business_manager_website_pages_path, 
               class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
         <%= form.submit "Create Page", 
-              class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+              class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer",
+              data: { 
+                "page-form-validation-target" => "submitButton",
+                action: "click->page-form-validation#validateForm"
+              } %>
       </div>
     <% end %>
   </div>

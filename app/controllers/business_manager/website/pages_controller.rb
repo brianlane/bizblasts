@@ -1,11 +1,25 @@
 class BusinessManager::Website::PagesController < BusinessManager::Website::BaseController
-  before_action :set_page, except: [:index, :new, :create]
+  before_action :set_page, except: [:index, :new, :create, :bulk_action, :update_priority]
   
   def index
+    sort_param = params[:sort] || 'default'
     @pages = current_business.pages.includes(:page_sections, :page_versions)
-                            .order(:page_type, :title)
+    
+    @pages = case sort_param
+             when 'priority' then @pages.by_priority
+             when 'popular' then @pages.popular
+             when 'recent' then @pages.recent
+             else @pages.order(:page_type, :title)
+             end
+             
     @published_pages = @pages.published
     @draft_pages = @pages.draft
+    @sort_options = [
+      ['Default', 'default'],
+      ['By Priority', 'priority'],
+      ['Most Popular', 'popular'],
+      ['Recently Updated', 'recent']
+    ]
   end
   
   def show
@@ -16,6 +30,11 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
   def new
     @page = current_business.pages.build
     @available_page_types = Page.page_types.keys
+    
+    # Handle quick template autofill
+    if params[:template].present?
+      apply_template_defaults(@page, params[:template])
+    end
   end
   
   def create
@@ -29,7 +48,8 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
                   notice: 'Page was successfully created.'
     else
       @available_page_types = Page.page_types.keys
-      render :new
+      flash.now[:alert] = 'Please fix the errors below to create the page.'
+      render :new, status: :unprocessable_entity
     end
   end
   
@@ -104,6 +124,8 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     new_page.slug = "#{@page.slug}-copy"
     new_page.status = :draft
     new_page.published_at = nil
+    new_page.view_count = 0
+    new_page.priority = 0
     
     if new_page.save
       # Duplicate sections
@@ -121,6 +143,55 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     else
       redirect_to business_manager_website_page_path(@page), 
                   alert: 'Failed to duplicate page'
+    end
+  end
+  
+  def bulk_action
+    page_ids = params[:page_ids] || []
+    action = params[:bulk_action]
+    
+    return redirect_to business_manager_website_pages_path, alert: 'No pages selected' if page_ids.empty?
+    
+    pages = current_business.pages.where(id: page_ids)
+    
+    case action
+    when 'publish'
+      pages.update_all(status: :published, published_at: Time.current)
+      message = "#{pages.count} pages published successfully"
+    when 'draft'
+      pages.update_all(status: :draft)
+      message = "#{pages.count} pages moved to draft"
+    when 'archive'
+      pages.update_all(status: :archived)
+      message = "#{pages.count} pages archived"
+    when 'delete'
+      deleted_count = pages.count
+      pages.each(&:destroy)
+      message = "#{deleted_count} pages deleted successfully"
+    else
+      return redirect_to business_manager_website_pages_path, alert: 'Invalid action'
+    end
+    
+    redirect_to business_manager_website_pages_path, notice: message
+  end
+  
+  def update_priority
+    page_ids = params[:page_ids] || []
+    
+    page_ids.each_with_index do |page_id, index|
+      current_business.pages.where(id: page_id).update_all(priority: page_ids.length - index)
+    end
+    
+    respond_to do |format|
+      format.json { render json: { status: 'success', message: 'Page order updated' } }
+    end
+  end
+  
+  def track_view
+    @page.increment_view_count!
+    
+    respond_to do |format|
+      format.json { render json: { status: 'success', view_count: @page.view_count } }
     end
   end
   
@@ -152,5 +223,58 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     sections += premium_sections if current_business.premium_tier?
     
     sections
+  end
+  
+  def apply_template_defaults(page, template)
+    case template
+    when 'about_us'
+      page.title = 'About Us'
+      page.page_type = 'about'
+      page.slug = 'about'
+      page.meta_description = 'Learn more about our company, mission, and team.'
+      page.seo_title = 'About Us - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 2
+    when 'services'
+      page.title = 'Our Services'
+      page.page_type = 'services'
+      page.slug = 'services'
+      page.meta_description = 'Explore our comprehensive range of professional services.'
+      page.seo_title = 'Services - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 3
+    when 'portfolio'
+      page.title = 'Portfolio'
+      page.page_type = 'portfolio'
+      page.slug = 'portfolio'
+      page.meta_description = 'View our portfolio of completed projects and success stories.'
+      page.seo_title = 'Portfolio - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 4
+    when 'team'
+      page.title = 'Our Team'
+      page.page_type = 'team'
+      page.slug = 'team'
+      page.meta_description = 'Meet our talented team of professionals.'
+      page.seo_title = 'Our Team - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 5
+    when 'pricing'
+      page.title = 'Pricing'
+      page.page_type = 'pricing'
+      page.slug = 'pricing'
+      page.meta_description = 'View our competitive pricing and service packages.'
+      page.seo_title = 'Pricing - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 6
+    when 'contact'
+      page.title = 'Contact Us'
+      page.page_type = 'contact'
+      page.slug = 'contact'
+      page.meta_description = 'Get in touch with us for inquiries and support.'
+      page.seo_title = 'Contact Us - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 7
+    end
   end
 end 
