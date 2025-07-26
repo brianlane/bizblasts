@@ -2,15 +2,21 @@ module BusinessManager
   module Settings
     class IntegrationCredentialPolicy < ApplicationPolicy
       def index?
-        user.manager?
+        authorized = user_is_business_manager?
+        log_authorization_failure(:index) unless authorized
+        authorized
       end
 
       def show?
-        user.manager?
+        authorized = user_is_business_manager? && record_belongs_to_user_business?
+        log_authorization_failure(:show) unless authorized
+        authorized
       end
 
       def create?
-        user.manager?
+        authorized = user_is_business_manager?
+        log_authorization_failure(:create) unless authorized
+        authorized
       end
 
       def new?
@@ -18,7 +24,9 @@ module BusinessManager
       end
 
       def update?
-        user.manager?
+        authorized = user_is_business_manager? && record_belongs_to_user_business?
+        log_authorization_failure(:update) unless authorized
+        authorized
       end
 
       def edit?
@@ -26,11 +34,15 @@ module BusinessManager
       end
 
       def destroy?
-        user.manager?
+        authorized = user_is_business_manager? && record_belongs_to_user_business?
+        log_authorization_failure(:destroy) unless authorized
+        authorized
       end
 
       def edit_credentials?
-        user.manager?
+        authorized = user_is_business_manager? && record_belongs_to_user_business?
+        log_authorization_failure(:edit_credentials) unless authorized
+        authorized
       end
 
       class Scope < Scope

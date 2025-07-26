@@ -108,6 +108,16 @@ class BusinessMailer < ApplicationMailer
     # Handle case where business might be nil or deleted
     return unless @business.present?
     
+    # Set tenant context properly for secure scoping
+    ActsAsTenant.with_tenant(@business) do
+      @customer_user_account = nil
+      
+      if @customer.email.present?
+        # Look for user account within business context only
+        @customer_user_account = @business.users.find_by(email: @customer.email)
+      end
+    end
+    
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
     return unless business_user.present?
