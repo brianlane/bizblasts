@@ -30,6 +30,11 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
   def new
     @page = current_business.pages.build
     @available_page_types = Page.page_types.keys
+    
+    # Handle quick template autofill
+    if params[:template].present?
+      apply_template_defaults(@page, params[:template])
+    end
   end
   
   def create
@@ -218,5 +223,58 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     sections += premium_sections if current_business.premium_tier?
     
     sections
+  end
+  
+  def apply_template_defaults(page, template)
+    case template
+    when 'about_us'
+      page.title = 'About Us'
+      page.page_type = 'about'
+      page.slug = 'about'
+      page.meta_description = 'Learn more about our company, mission, and team.'
+      page.seo_title = 'About Us - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 2
+    when 'services'
+      page.title = 'Our Services'
+      page.page_type = 'services'
+      page.slug = 'services'
+      page.meta_description = 'Explore our comprehensive range of professional services.'
+      page.seo_title = 'Services - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 3
+    when 'portfolio'
+      page.title = 'Portfolio'
+      page.page_type = 'portfolio'
+      page.slug = 'portfolio'
+      page.meta_description = 'View our portfolio of completed projects and success stories.'
+      page.seo_title = 'Portfolio - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 4
+    when 'team'
+      page.title = 'Our Team'
+      page.page_type = 'team'
+      page.slug = 'team'
+      page.meta_description = 'Meet our talented team of professionals.'
+      page.seo_title = 'Our Team - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 5
+    when 'pricing'
+      page.title = 'Pricing'
+      page.page_type = 'pricing'
+      page.slug = 'pricing'
+      page.meta_description = 'View our competitive pricing and service packages.'
+      page.seo_title = 'Pricing - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 6
+    when 'contact'
+      page.title = 'Contact Us'
+      page.page_type = 'contact'
+      page.slug = 'contact'
+      page.meta_description = 'Get in touch with us for inquiries and support.'
+      page.seo_title = 'Contact Us - ' + current_business.name
+      page.show_in_menu = true
+      page.menu_order = 7
+    end
   end
 end 
