@@ -203,7 +203,7 @@ export default class extends Controller {
       case 'Backspace':
         if (this.getSelectedPageIds().length > 0) {
           event.preventDefault()
-          this.performBulkAction({ currentTarget: { dataset: { action: 'delete' } } })
+          this.performBulkAction({ currentTarget: { dataset: { bulkAction: 'delete' } } })
         }
         break
       case 'a':
