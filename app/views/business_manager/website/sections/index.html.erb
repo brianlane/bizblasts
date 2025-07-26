@@ -18,7 +18,7 @@
         
         <div class="flex items-center space-x-3">
           <button type="button" 
-                  class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+                  class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors cursor-pointer"
                   data-action="click->page-editor#togglePreview">
             <span data-page-editor-target="previewToggleText">Show Preview</span>
           </button>
@@ -65,7 +65,7 @@
                     <p class="text-xs text-gray-500"><%= section[:description] %></p>
                   </div>
                   <button type="button" 
-                          class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                          class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors cursor-pointer"
                           data-action="click->page-editor#addNewSection"
                           data-section-type="<%= section[:type] %>">
                     Add Section
@@ -151,13 +151,13 @@
                       
                       <div class="flex space-x-2">
                         <button type="button" 
-                                class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors"
+                                class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors cursor-pointer"
                                 data-action="click->page-editor#editSection"
                                 data-section-id="<%= section.id %>">
                           Edit
                         </button>
                         <button type="button" 
-                                class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
+                                class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors cursor-pointer"
                                 data-action="click->page-editor#deleteSection"
                                 data-section-id="<%= section.id %>">
                           Delete
