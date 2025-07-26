@@ -215,10 +215,12 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
         if parsed_content.is_a?(Hash)
           temp_params = ActionController::Parameters.new(parsed_content)
           permitted_params[:content] = temp_params.permit(allowed_content_keys).to_h
+        else
+          # If parsed content is not a hash, convert to string and assign
+          permitted_params[:content] = parsed_content.to_s
         end
       rescue JSON::ParserError
-        # If JSON parsing fails, keep existing content or set to empty hash
-        permitted_params[:content] = {}
+        # If JSON parsing fails, keep the original content unchanged
       end
     end
     
