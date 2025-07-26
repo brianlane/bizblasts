@@ -135,7 +135,7 @@ export default class extends Controller {
   // Quick actions
   async duplicatePage() {
     try {
-      const response = await fetch(`/business-manager/website/pages/${this.pageIdValue}/duplicate`, {
+      const response = await fetch(`/manage/website/pages/${this.pageIdValue}/duplicate`, {
         method: 'POST',
         headers: {
           'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
@@ -155,7 +155,7 @@ export default class extends Controller {
 
   async publishPage() {
     try {
-      const response = await fetch(`/business-manager/website/pages/${this.pageIdValue}/publish`, {
+      const response = await fetch(`/manage/website/pages/${this.pageIdValue}/publish`, {
         method: 'PATCH',
         headers: {
           'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
@@ -176,7 +176,7 @@ export default class extends Controller {
   // Analytics tracking
   trackView() {
     // Increment view count when page is visited via the admin interface
-    fetch(`/business-manager/website/pages/${this.pageIdValue}/track_view`, {
+    fetch(`/manage/website/pages/${this.pageIdValue}/track_view`, {
       method: 'POST',
       headers: {
         'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
