@@ -179,8 +179,6 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   private
   
   def set_page
-    Rails.logger.debug "SectionsController#set_page: params[:page_id] = #{params[:page_id]}"
-    Rails.logger.debug "SectionsController#set_page: request.url = #{request.url}"
     @page = current_business.pages.find(params[:page_id])
   end
   
@@ -189,13 +187,29 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   end
   
   def section_params
-    permitted_params = params.require(:page_section).permit(
+    # First, get the basic parameters without content
+    basic_params = params.require(:page_section).permit(
       :section_type, :position, :active, :custom_css_classes,
       :animation_type, 
-      content: {}, 
       section_config: {}, 
       background_settings: {}
     )
+    
+    # Handle content parameter - can be string, hash, or nil
+    content_param = params[:page_section][:content]
+    if content_param.present?
+      if content_param.is_a?(String)
+        # Content is a string (e.g., from text editor)
+        basic_params[:content] = content_param
+      elsif content_param.is_a?(Hash) || content_param.is_a?(ActionController::Parameters)
+        # Content is a hash (e.g., from section builder)
+        basic_params[:content] = content_param.to_unsafe_h if content_param.respond_to?(:to_unsafe_h)
+        basic_params[:content] = content_param.to_h if content_param.respond_to?(:to_h) && !content_param.respond_to?(:to_unsafe_h)
+        basic_params[:content] = content_param if basic_params[:content].nil?
+      end
+    end
+    
+    permitted_params = basic_params
     
     # Handle custom content format from edit form
     if params[:section_content].present?
