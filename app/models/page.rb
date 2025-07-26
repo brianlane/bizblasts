@@ -64,9 +64,6 @@ class Page < ApplicationRecord
     page_sections.where.not(section_type: ['text', 'header', 'contact_form']).exists?
   end
   
-  def essential_page?
-    ['home', 'about', 'contact'].include?(page_type)
-  end
   
   def increment_view_count!
     increment!(:view_count)

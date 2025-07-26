@@ -159,8 +159,9 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
       pages.update_all(status: :archived)
       message = "#{pages.count} pages archived"
     when 'delete'
+      deleted_count = pages.count
       pages.each(&:destroy)
-      message = "#{pages.count} pages deleted successfully"
+      message = "#{deleted_count} pages deleted successfully"
     else
       return redirect_to business_manager_website_pages_path, alert: 'Invalid action'
     end
