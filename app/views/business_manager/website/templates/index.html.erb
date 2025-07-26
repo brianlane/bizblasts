@@ -53,21 +53,21 @@
   <div class="bg-white border border-gray-200 rounded-lg p-1">
     <nav class="flex space-x-1">
       <button type="button" 
-              class="filter-tab active px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              class="filter-tab active px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
               data-template-browser-target="filterTabs"
               data-action="click->template-browser#filterTemplates"
               data-filter="all">
         All Templates
       </button>
       <button type="button" 
-              class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
               data-template-browser-target="filterTabs"
               data-action="click->template-browser#filterTemplates"
               data-filter="universal">
         Universal
       </button>
       <button type="button" 
-              class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
               data-template-browser-target="filterTabs"
               data-action="click->template-browser#filterTemplates"
               data-filter="industry">
@@ -75,7 +75,7 @@
       </button>
       <% if current_business.premium_tier? %>
         <button type="button" 
-                class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
                 data-template-browser-target="filterTabs"
                 data-action="click->template-browser#filterTemplates"
                 data-filter="premium">
