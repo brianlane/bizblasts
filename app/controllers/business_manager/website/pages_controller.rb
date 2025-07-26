@@ -43,7 +43,8 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
                   notice: 'Page was successfully created.'
     else
       @available_page_types = Page.page_types.keys
-      render :new
+      flash.now[:alert] = 'Please fix the errors below to create the page.'
+      render :new, status: :unprocessable_entity
     end
   end
   
