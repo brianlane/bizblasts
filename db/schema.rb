@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_21_213000) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -692,9 +692,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_21_213000) do
     t.json "custom_theme_settings", default: {}
     t.string "seo_title"
     t.text "seo_keywords"
+    t.integer "view_count", default: 0, null: false
+    t.integer "priority", default: 0, null: false
+    t.string "thumbnail_url"
+    t.datetime "last_viewed_at"
+    t.decimal "performance_score", precision: 5, scale: 2
     t.index ["business_id"], name: "index_pages_on_business_id"
+    t.index ["last_viewed_at"], name: "index_pages_on_last_viewed_at"
+    t.index ["priority"], name: "index_pages_on_priority"
     t.index ["status"], name: "index_pages_on_status"
     t.index ["template_applied"], name: "index_pages_on_template_applied"
+    t.index ["view_count"], name: "index_pages_on_view_count"
   end
 
   create_table "payments", force: :cascade do |t|
