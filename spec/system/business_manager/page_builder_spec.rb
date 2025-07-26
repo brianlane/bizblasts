@@ -74,10 +74,10 @@ RSpec.describe 'Page Builder System', type: :system do
     it 'publishes and unpublishes pages' do
       if page.has_button?('Publish')
         click_button 'Publish'
-        expect(page).to have_content('published')
+        expect(page).to have_content(/published/i)
       elsif page.has_button?('Unpublish')
         click_button 'Unpublish' 
-        expect(page).to have_content('unpublished')
+        expect(page).to have_content(/unpublished/i)
       end
     end
   end

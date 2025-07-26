@@ -43,6 +43,8 @@ module Public
         
         # If we found a website builder page, render it
         if @page.present?
+          # Track page view for analytics
+          @page.increment_view_count!
           @business = current_tenant
           render template: 'public/pages/website_builder_page'
           return

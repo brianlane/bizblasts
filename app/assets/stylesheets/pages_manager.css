@@ -1,0 +1,66 @@
+/* Page Manager Styles */
+.page-card-hover-buttons {
+  opacity: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.page-card:hover .page-card-hover-buttons {
+  opacity: 1;
+}
+
+.page-grid-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.page-grid-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Bulk selection styles */
+.bulk-actions-bar {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Status indicators with better visibility */
+.status-published {
+  background-color: #10b981;
+  color: white;
+}
+
+.status-draft {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.status-archived {
+  background-color: #6b7280;
+  color: white;
+}
+
+/* Clear button styles for better UX */
+.btn-delete {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+.btn-delete:hover {
+  background-color: #dc2626 !important;
+}
+
+.btn-protected {
+  background-color: #d1d5db !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
+}
