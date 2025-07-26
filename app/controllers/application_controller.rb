@@ -122,7 +122,7 @@ class ApplicationController < ActionController::Base
     # Set the tenant using ActsAsTenant if found
     if business
       ActsAsTenant.current_tenant = business
-      Rails.logger.info "[SetTenant] Tenant set: Business ##{business.id} (#{business.hostname})"
+      Rails.logger.info "[SetTenant] Tenant set: Business ID #{business.id}"
       return
     end
     
@@ -140,7 +140,7 @@ class ApplicationController < ActionController::Base
       fallback_business = Business.find_by(id: session[:signed_up_business_id])
       if fallback_business
         Business.set_current_tenant(fallback_business) # Use the Business model's method
-        Rails.logger.info "Tenant set from session fallback: Business ##{fallback_business.id}"
+        Rails.logger.info "Tenant set from session fallback: Business ID #{fallback_business.id}"
         # Consider clearing session after successful tenant switch
       else
         clear_tenant_and_log("Session fallback business ID not found: #{session[:signed_up_business_id]}")
@@ -231,6 +231,14 @@ class ApplicationController < ActionController::Base
 
   # Pundit authorization failure handler
   def user_not_authorized
+    # Log security event for unauthorized access attempts
+    SecureLogger.security_event('unauthorized_access', {
+      user_id: current_user&.id,
+      ip: request.remote_ip,
+      path: request.fullpath,
+      method: request.method
+    })
+    
     flash[:alert] = "You are not authorized to access this area."
     
     # For clients, redirect to their dashboard
@@ -257,7 +265,7 @@ class ApplicationController < ActionController::Base
         # This logic handles both subdomain and custom domain cases
         if resource.business.present?
           redirect_url = generate_business_dashboard_url(resource.business)
-          Rails.logger.debug "[after_sign_in] Manager/Staff redirecting to: #{redirect_url}"
+          Rails.logger.debug "[after_sign_in] Manager/Staff redirecting to business dashboard"
           redirect_url
         else
           # Fallback if user has no business (should not happen for manager/staff)
@@ -338,7 +346,7 @@ class ApplicationController < ActionController::Base
       # Construct the main domain URL
       main_domain_url = construct_main_domain_url
       
-      Rails.logger.info "[Redirect Admin] Redirecting admin access from #{request.host} to #{main_domain_url}"
+      Rails.logger.info "[Redirect Admin] Redirecting admin access to main domain"
       redirect_to main_domain_url, status: :moved_permanently, allow_other_host: true
     end
   end
@@ -420,8 +428,8 @@ class ApplicationController < ActionController::Base
     # Check if this is an admin action with invalid CSRF token
     if !verified_request?
       Rails.logger.warn "[CSRF Fix] Admin action with invalid CSRF token: #{request.method} #{request.path}"
-      Rails.logger.warn "[CSRF Fix] User Agent: #{request.user_agent}"
-      Rails.logger.warn "[CSRF Fix] Referer: #{request.referer}"
+      Rails.logger.warn "[CSRF Fix] User Agent: #{request.user_agent&.truncate(50)}"
+      Rails.logger.warn "[CSRF Fix] Referer: [REDACTED]"
       
       # Instead of silently fixing it, redirect to the admin dashboard to get a fresh session
       # This is safer than bypassing CSRF for all admin actions

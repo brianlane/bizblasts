@@ -44,9 +44,9 @@ module Admin
     private
 
     # Helper method to check if the user is an admin.
-    # Assumes the user object is an AdminUser or responds to :admin?.
+    # Ensures user is actually an AdminUser instance for security
     def admin?
-      user.present? # Basic check: is there a logged-in admin user?
+      user.is_a?(AdminUser)
     end
   end
 end 

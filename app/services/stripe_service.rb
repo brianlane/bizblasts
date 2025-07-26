@@ -1102,7 +1102,7 @@ class StripeService
         return
       end
       
-      Rails.logger.info "[BOOKING] Creating booking for customer #{tenant_customer.email} at business #{business.name}"
+      Rails.logger.info "[BOOKING] Creating booking for customer ID #{tenant_customer.id} at business ID #{business.id}"
       
       ActiveRecord::Base.transaction do
         # Save the Stripe customer ID if we don't have it yet
@@ -1561,7 +1561,7 @@ class StripeService
         return
       end
       
-      Rails.logger.info "[SUBSCRIPTION] Creating subscription for customer #{tenant_customer.email} at business #{business.name}"
+      Rails.logger.info "[SUBSCRIPTION] Creating subscription for customer ID #{tenant_customer.id} at business ID #{business.id}"
       
       ActiveRecord::Base.transaction do
         # Save the Stripe customer ID if we don't have it yet
