@@ -105,9 +105,9 @@ class ApplicationPolicy
   def log_authorization_failure(action)
     SecureLogger.security_event('authorization_failure', {
       user_id: user&.id,
-      user_type: user.class.name,
+      user_type: user&.class&.name || 'anonymous',
       action: action,
-      resource: record.class.name,
+      resource: record.is_a?(Class) ? record.name : record.class.name,
       resource_id: record.respond_to?(:id) ? record.id : nil
     })
   end
