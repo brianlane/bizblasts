@@ -117,3 +117,12 @@ gem 'ostruct'
 gem "kaminari", "~> 1.2"
 gem "rspec-retry", "~> 0.6.2", group: :test
 gem 'geocoder'
+
+# Calendar integrations
+gem 'google-apis-calendar_v3', '~> 0.31'
+gem 'googleauth', '~> 1.8'
+gem 'microsoft_graph', '~> 0.22'
+gem 'oauth2', '~> 2.0'
+gem 'icalendar', '~> 2.10'
+gem 'httparty', '~> 0.21'
+# gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues

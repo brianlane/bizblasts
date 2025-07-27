@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_27_031332) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -165,10 +165,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
     t.integer "cancelled_by"
     t.boolean "manager_override"
     t.bigint "service_variant_id"
+    t.integer "calendar_event_status", default: 0
+    t.string "calendar_event_id"
     t.index ["applied_promo_code"], name: "index_bookings_on_applied_promo_code"
     t.index ["business_id", "staff_member_id"], name: "index_bookings_on_business_and_staff_member"
     t.index ["business_id", "start_time"], name: "index_bookings_on_business_id_and_start_time"
     t.index ["business_id"], name: "index_bookings_on_business_id"
+    t.index ["calendar_event_id"], name: "index_bookings_on_calendar_event_id"
+    t.index ["calendar_event_status"], name: "index_bookings_on_calendar_event_status"
     t.index ["promo_code_type"], name: "index_bookings_on_promo_code_type"
     t.index ["promotion_id"], name: "index_bookings_on_promotion_id"
     t.index ["service_id"], name: "index_bookings_on_service_id"
@@ -257,6 +261,60 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
     t.index ["subscription_discount_enabled"], name: "index_businesses_on_subscription_discount_enabled"
     t.check_constraint "subscription_discount_value >= 0::numeric", name: "businesses_subscription_discount_value_positive"
+  end
+
+  create_table "calendar_connections", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "staff_member_id", null: false
+    t.integer "provider", null: false
+    t.string "uid"
+    t.text "access_token"
+    t.text "refresh_token"
+    t.datetime "token_expires_at"
+    t.text "scopes"
+    t.string "sync_token"
+    t.datetime "connected_at"
+    t.datetime "last_synced_at"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_calendar_connections_on_active"
+    t.index ["business_id", "staff_member_id", "provider"], name: "index_calendar_connections_on_business_staff_provider"
+    t.index ["business_id"], name: "index_calendar_connections_on_business_id"
+    t.index ["last_synced_at"], name: "index_calendar_connections_on_last_synced_at"
+    t.index ["staff_member_id"], name: "index_calendar_connections_on_staff_member_id"
+  end
+
+  create_table "calendar_event_mappings", force: :cascade do |t|
+    t.bigint "booking_id", null: false
+    t.bigint "calendar_connection_id", null: false
+    t.string "external_event_id", null: false
+    t.string "external_calendar_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "last_synced_at"
+    t.text "last_error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id", "calendar_connection_id"], name: "index_calendar_event_mappings_on_booking_connection"
+    t.index ["booking_id"], name: "index_calendar_event_mappings_on_booking_id"
+    t.index ["calendar_connection_id"], name: "index_calendar_event_mappings_on_calendar_connection_id"
+    t.index ["external_event_id"], name: "index_calendar_event_mappings_on_external_event_id"
+    t.index ["status"], name: "index_calendar_event_mappings_on_status"
+  end
+
+  create_table "calendar_sync_logs", force: :cascade do |t|
+    t.bigint "calendar_event_mapping_id", null: false
+    t.integer "action", null: false
+    t.integer "outcome", null: false
+    t.text "message"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action"], name: "index_calendar_sync_logs_on_action"
+    t.index ["calendar_event_mapping_id"], name: "index_calendar_sync_logs_on_calendar_event_mapping_id"
+    t.index ["created_at"], name: "index_calendar_sync_logs_on_created_at"
+    t.index ["metadata"], name: "index_calendar_sync_logs_on_metadata", using: :gin
+    t.index ["outcome"], name: "index_calendar_sync_logs_on_outcome"
   end
 
   create_table "campaign_recipients", force: :cascade do |t|
@@ -404,6 +462,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
     t.index ["booking_id"], name: "index_estimates_on_booking_id"
     t.index ["business_id"], name: "index_estimates_on_business_id"
     t.index ["tenant_customer_id"], name: "index_estimates_on_tenant_customer_id"
+  end
+
+  create_table "external_calendar_events", force: :cascade do |t|
+    t.bigint "calendar_connection_id", null: false
+    t.string "external_event_id", null: false
+    t.string "external_calendar_id"
+    t.datetime "starts_at", null: false
+    t.datetime "ends_at", null: false
+    t.text "summary"
+    t.datetime "last_imported_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["calendar_connection_id", "external_event_id"], name: "index_external_calendar_events_on_connection_event_id", unique: true
+    t.index ["calendar_connection_id"], name: "index_external_calendar_events_on_calendar_connection_id"
+    t.index ["external_event_id"], name: "index_external_calendar_events_on_external_event_id"
+    t.index ["last_imported_at"], name: "index_external_calendar_events_on_last_imported_at"
+    t.index ["starts_at", "ends_at"], name: "index_external_calendar_events_on_starts_at_and_ends_at"
   end
 
   create_table "friendly_id_slugs", id: :serial, force: :cascade do |t|
@@ -1231,7 +1306,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
     t.string "timezone", default: "UTC"
     t.jsonb "availability"
     t.string "color"
+    t.bigint "default_calendar_connection_id"
     t.index ["business_id"], name: "index_staff_members_on_business_id"
+    t.index ["default_calendar_connection_id"], name: "index_staff_members_on_default_calendar_connection_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
   end
 
@@ -1479,6 +1556,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
   add_foreign_key "bookings", "staff_members", on_delete: :nullify
   add_foreign_key "bookings", "tenant_customers", on_delete: :nullify
   add_foreign_key "businesses", "service_templates"
+  add_foreign_key "calendar_connections", "businesses"
+  add_foreign_key "calendar_connections", "staff_members"
+  add_foreign_key "calendar_event_mappings", "bookings"
+  add_foreign_key "calendar_event_mappings", "calendar_connections"
+  add_foreign_key "calendar_sync_logs", "calendar_event_mappings"
   add_foreign_key "campaign_recipients", "marketing_campaigns"
   add_foreign_key "campaign_recipients", "tenant_customers"
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
@@ -1498,6 +1580,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
   add_foreign_key "estimates", "bookings"
   add_foreign_key "estimates", "businesses"
   add_foreign_key "estimates", "tenant_customers"
+  add_foreign_key "external_calendar_events", "calendar_connections"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "bookings", on_delete: :nullify
@@ -1581,6 +1664,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_004544) do
   add_foreign_key "staff_assignments", "services"
   add_foreign_key "staff_assignments", "users"
   add_foreign_key "staff_members", "businesses", on_delete: :cascade
+  add_foreign_key "staff_members", "calendar_connections", column: "default_calendar_connection_id"
   add_foreign_key "staff_members", "users", on_delete: :nullify
   add_foreign_key "stock_movements", "products"
   add_foreign_key "stock_reservations", "orders"

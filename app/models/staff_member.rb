@@ -16,6 +16,8 @@ class StaffMember < ApplicationRecord
   has_many :bookings, dependent: :restrict_with_error
   has_many :services_staff_members, dependent: :destroy
   has_many :services, through: :services_staff_members
+  has_many :calendar_connections, dependent: :destroy
+  belongs_to :default_calendar_connection, class_name: 'CalendarConnection', optional: true
   
   # Bidirectional deletion: when staff member is deleted, delete associated user
   before_destroy :delete_associated_user, if: -> { user.present? }
@@ -141,6 +143,44 @@ class StaffMember < ApplicationRecord
         0.0
       end
     end
+  end
+  
+  # Calendar integration methods
+  def has_calendar_integrations?
+    calendar_connections.active.any?
+  end
+  
+  def google_calendar_connected?
+    calendar_connections.google_connections.active.any?
+  end
+  
+  def microsoft_calendar_connected?
+    calendar_connections.microsoft_connections.active.any?
+  end
+  
+  def caldav_calendar_connected?
+    calendar_connections.caldav_connections.active.any?
+  end
+  
+  def active_calendar_connections
+    calendar_connections.active
+  end
+  
+  def calendar_sync_status
+    connections = active_calendar_connections
+    return 'No integrations' if connections.empty?
+    
+    if connections.all? { |conn| conn.last_synced_at && conn.last_synced_at > 1.hour.ago }
+      'All synced'
+    elsif connections.any? { |conn| conn.last_synced_at.nil? || conn.last_synced_at < 6.hours.ago }
+      'Sync issues'
+    else
+      'Needs sync'
+    end
+  end
+  
+  def primary_calendar_connection
+    default_calendar_connection || active_calendar_connections.first
   end
   
   private

@@ -438,7 +438,38 @@ class AvailabilityService
     query = query.where.not(id: exclude_booking_id) if exclude_booking_id.present?
     
     # PERFORMANCE OPTIMIZATION: Use pluck to get only needed data instead of full objects
-    query.pluck(:id, :start_time, :end_time, :status)
+    bookings = query.pluck(:id, :start_time, :end_time, :status)
+    
+    # Also check external calendar events for conflicts
+    external_conflicts = fetch_external_calendar_conflicts(staff_member, query_start, query_end)
+    
+    # Combine internal bookings and external calendar conflicts
+    bookings + external_conflicts
+  end
+  
+  # Fetch conflicting events from external calendars
+  def self.fetch_external_calendar_conflicts(staff_member, start_time, end_time)
+    return [] unless staff_member.has_calendar_integrations?
+    
+    # Get all active calendar connections for this staff member
+    calendar_connections = staff_member.calendar_connections.active
+    return [] if calendar_connections.empty?
+    
+    # Find external calendar events that overlap with the requested time
+    external_events = ExternalCalendarEvent.joins(:calendar_connection)
+                                          .where(calendar_connections: { id: calendar_connections.ids })
+                                          .where('starts_at < ? AND ends_at > ?', end_time, start_time)
+                                          .pluck(:id, :starts_at, :ends_at, 'NULL')  # NULL for status to match booking format
+    
+    # Transform to match booking format [id, start_time, end_time, status]
+    external_events.map do |event_data|
+      [
+        "external_#{event_data[0]}", # Prefix ID to distinguish from bookings
+        event_data[1], # starts_at
+        event_data[2], # ends_at  
+        'external'     # status
+      ]
+    end
   end
 
   # Check the number of bookings for a staff member on a given date
