@@ -8,6 +8,9 @@ class Booking < ApplicationRecord
   
   # Callbacks
   after_save :schedule_tip_reminder_if_needed
+  after_create :sync_to_calendar_async
+  after_update :handle_calendar_sync_on_update
+  before_destroy :remove_from_calendar_async
   
   acts_as_tenant(:business)
   belongs_to :business, optional: true
@@ -19,6 +22,7 @@ class Booking < ApplicationRecord
   has_one :invoice, dependent: :nullify
   has_one :tip, dependent: :destroy
   has_many :booking_product_add_ons, dependent: :destroy
+  has_many :calendar_event_mappings, dependent: :destroy
   has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant
   accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true,
                                 reject_if: proc { |attributes| attributes['quantity'].to_i <= 0 || attributes['product_variant_id'].blank? }
@@ -27,6 +31,14 @@ class Booking < ApplicationRecord
   
   # Add quantity for multi-client bookings
   attribute :quantity, :integer, default: 1
+
+  # Calendar sync status enum
+  enum :calendar_event_status, {
+    not_synced: 0,
+    sync_pending: 1,
+    synced: 2,
+    sync_failed: 3
+  }, prefix: :calendar
 
   # Validations
   validates :quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
@@ -153,6 +165,69 @@ class Booking < ApplicationRecord
   # Example migration: create_index :bookings, :staff_member_id
   # Example migration: add_index :bookings, [:start_time, :end_time], using: :gist
   # --- End Database Indexes Recommendation ---
+
+  # Calendar sync methods
+  def calendar_sync_required?
+    staff_member&.calendar_connections&.active&.any?
+  end
+  
+  def calendar_sync_status_display
+    case calendar_event_status
+    when 'not_synced'
+      'Not synced'
+    when 'sync_pending'
+      'Sync pending'
+    when 'synced'
+      'Synced'
+    when 'sync_failed'
+      'Sync failed'
+    else
+      'Unknown'
+    end
+  end
+  
+  def has_calendar_conflicts?
+    return false unless staff_member && start_time && end_time
+    
+    ExternalCalendarEvent.conflicts_with_booking(self).exists?
+  end
+  
+  def calendar_conflicts
+    return ExternalCalendarEvent.none unless staff_member && start_time && end_time
+    
+    ExternalCalendarEvent.conflicts_with_booking(self)
+  end
+
+  # Calendar sync callback methods
+  def sync_to_calendar_async
+    return unless calendar_sync_required?
+    return if calendar_synced?
+    
+    update_column(:calendar_event_status, :sync_pending)
+    Calendar::SyncBookingJob.perform_later(id)
+  end
+  
+  def handle_calendar_sync_on_update
+    return unless calendar_sync_required?
+    
+    # Check if relevant fields changed
+    relevant_changes = %w[start_time end_time service_id staff_member_id tenant_customer_id notes status]
+    
+    if (saved_changes.keys & relevant_changes).any?
+      if cancelled? || business_deleted?
+        remove_from_calendar_async
+      else
+        update_column(:calendar_event_status, :sync_pending) unless calendar_sync_pending?
+        Calendar::SyncBookingJob.perform_later(id)
+      end
+    end
+  end
+  
+  def remove_from_calendar_async
+    return unless calendar_event_mappings.any?
+    
+    Calendar::DeleteBookingJob.perform_later(id, business_id)
+  end
 
   # Add callback for scheduling tip reminders
   def schedule_tip_reminder_if_needed

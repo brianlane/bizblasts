@@ -1,180 +1,130 @@
+# frozen_string_literal: true
+
 class CalendarSyncService
-  # This service handles synchronization with external calendar providers
-  # such as Google Calendar, Apple Calendar, and Outlook
+  # Legacy service that delegates to the new Calendar architecture
+  # This maintains backward compatibility while using the new implementation
   
   def self.sync_booking_to_provider(booking, provider = :google)
-    # In a real implementation, this would interact with the calendar API
-    # This is a placeholder for the API interaction
+    Rails.logger.warn("CalendarSyncService.sync_booking_to_provider is deprecated. Use Calendar::SyncCoordinator instead.")
     
-    # Find staff member's calendar integration if this is a staff booking
-    staff_member = get_staff_member_from_booking(booking)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    result = sync_coordinator.sync_booking(booking)
     
-    return { success: false, error: "No calendar integration found" } unless staff_member
-    
-    case provider
-    when :google
-      sync_to_google_calendar(booking, staff_member)
-    when :microsoft
-      sync_to_microsoft_calendar(booking, staff_member)
-    when :apple
-      sync_to_apple_calendar(booking, staff_member)
+    if result
+      { success: true, event_id: booking.calendar_event_id }
     else
-      { success: false, error: "Unsupported calendar provider" }
+      { success: false, error: sync_coordinator.errors.full_messages.join(', ') }
     end
   end
   
   def self.update_booking_in_provider(booking, provider = :google)
-    # Update an existing calendar event
-    # Similar to sync_booking_to_provider but updates instead of creates
+    Rails.logger.warn("CalendarSyncService.update_booking_in_provider is deprecated. Use Calendar::SyncCoordinator instead.")
     
-    staff_member = get_staff_member_from_booking(booking)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    result = sync_coordinator.update_booking(booking)
     
-    return { success: false, error: "No calendar integration found" } unless staff_member
-    
-    # Get the external calendar event ID
-    external_id = booking.calendar_event_id
-    
-    return { success: false, error: "No external calendar event found" } unless external_id
-    
-    case provider
-    when :google
-      update_in_google_calendar(booking, external_id, staff_member)
-    when :microsoft
-      update_in_microsoft_calendar(booking, external_id, staff_member)
-    when :apple
-      update_in_apple_calendar(booking, external_id, staff_member)
+    if result
+      { success: true, event_id: booking.calendar_event_id }
     else
-      { success: false, error: "Unsupported calendar provider" }
+      { success: false, error: sync_coordinator.errors.full_messages.join(', ') }
     end
   end
   
   def self.delete_booking_from_provider(booking, provider = :google)
-    # Delete an event from the external calendar
+    Rails.logger.warn("CalendarSyncService.delete_booking_from_provider is deprecated. Use Calendar::SyncCoordinator instead.")
     
-    staff_member = get_staff_member_from_booking(booking)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    result = sync_coordinator.delete_booking(booking)
     
-    return { success: false, error: "No calendar integration found" } unless staff_member
-    
-    # Get the external calendar event ID
-    external_id = booking.calendar_event_id
-    
-    return { success: false, error: "No external calendar event found" } unless external_id
-    
-    case provider
-    when :google
-      delete_from_google_calendar(external_id, staff_member)
-    when :microsoft
-      delete_from_microsoft_calendar(external_id, staff_member)
-    when :apple
-      delete_from_apple_calendar(external_id, staff_member)
+    if result
+      { success: true }
     else
-      { success: false, error: "Unsupported calendar provider" }
+      { success: false, error: sync_coordinator.errors.full_messages.join(', ') }
     end
   end
   
   def self.import_events_from_provider(staff_member, provider = :google, start_date = Date.today, end_date = 30.days.from_now)
-    # Import events from an external calendar to check for conflicts
+    Rails.logger.warn("CalendarSyncService.import_events_from_provider is deprecated. Use Calendar::SyncCoordinator instead.")
     
     return { success: false, error: "Staff member not provided" } unless staff_member
     
-    case provider
-    when :google
-      import_from_google_calendar(staff_member, start_date, end_date)
-    when :microsoft
-      import_from_microsoft_calendar(staff_member, start_date, end_date)
-    when :apple
-      import_from_apple_calendar(staff_member, start_date, end_date)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    result = sync_coordinator.import_availability(staff_member, start_date, end_date)
+    
+    if result
+      events = staff_member.calendar_connections.active
+                          .flat_map(&:external_calendar_events)
+                          .where(starts_at: start_date..end_date)
+                          .map do |event|
+        {
+          id: event.external_event_id,
+          summary: event.summary,
+          start: event.starts_at,
+          end: event.ends_at
+        }
+      end
+      
+      { success: true, events: events }
     else
-      { success: false, error: "Unsupported calendar provider" }
+      { success: false, error: sync_coordinator.errors.full_messages.join(', ') }
     end
   end
   
-  private
+  # New methods for the updated architecture
+  
+  def self.sync_booking(booking)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    sync_coordinator.sync_booking(booking)
+  end
+  
+  def self.update_booking(booking)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    sync_coordinator.update_booking(booking)
+  end
+  
+  def self.delete_booking(booking)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    sync_coordinator.delete_booking(booking)
+  end
+  
+  def self.import_availability(staff_member, start_date = Date.current, end_date = 30.days.from_now.to_date)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    sync_coordinator.import_availability(staff_member, start_date, end_date)
+  end
+  
+  # Helper methods for backward compatibility
   
   def self.get_staff_member_from_booking(booking)
-    if booking.bookable_type == 'StaffMember'
-      booking.bookable
-    else
-      # Placeholder: In a real implementation, there might be additional logic to find staff
-      nil
-    end
+    booking.staff_member
   end
   
-  # Google Calendar implementation placeholders
+  # Queue background jobs for async processing
   
-  def self.sync_to_google_calendar(booking, staff_member)
-    # In a real implementation, this would use the Google Calendar API
-    
-    # Placeholder implementation
-    event_id = "event_#{SecureRandom.hex(10)}"
-    
-    # Update the booking with the external event ID
-    booking.update(calendar_event_id: event_id)
-    
-    { success: true, event_id: event_id }
+  def self.sync_booking_async(booking)
+    Calendar::SyncBookingJob.perform_later(booking.id)
   end
   
-  def self.update_in_google_calendar(booking, event_id, staff_member)
-    # Placeholder implementation
-    { success: true, event_id: event_id }
+  def self.delete_booking_async(booking)
+    Calendar::DeleteBookingJob.perform_later(booking.id, booking.business_id)
   end
   
-  def self.delete_from_google_calendar(event_id, staff_member)
-    # Placeholder implementation
-    { success: true }
+  def self.import_availability_async(staff_member, start_date = nil, end_date = nil)
+    Calendar::ImportAvailabilityJob.perform_later(staff_member.id, start_date, end_date)
   end
   
-  def self.import_from_google_calendar(staff_member, start_date, end_date)
-    # Placeholder implementation
-    events = []
-    
-    # Simulate some random events
-    (0..5).each do |i|
-      start_time = rand(start_date..end_date)
-      end_time = start_time + rand(1..3).hours
-      
-      events << {
-        id: "imported_event_#{i}",
-        summary: "External Event #{i}",
-        start: start_time,
-        end: end_time
-      }
-    end
-    
-    { success: true, events: events }
+  def self.batch_sync_business_async(business)
+    Calendar::BatchSyncJob.perform_later(business.id)
   end
   
-  # Stubs for other providers - would be implemented similarly
+  # Statistics and monitoring
   
-  def self.sync_to_microsoft_calendar(booking, staff_member)
-    { success: false, error: "Microsoft Calendar integration not implemented" }
+  def self.sync_statistics(business = nil, since = 24.hours.ago)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    sync_coordinator.sync_statistics(business, since)
   end
   
-  def self.update_in_microsoft_calendar(booking, event_id, staff_member)
-    { success: false, error: "Microsoft Calendar integration not implemented" }
-  end
-  
-  def self.delete_from_microsoft_calendar(event_id, staff_member)
-    { success: false, error: "Microsoft Calendar integration not implemented" }
-  end
-  
-  def self.import_from_microsoft_calendar(staff_member, start_date, end_date)
-    { success: false, error: "Microsoft Calendar integration not implemented" }
-  end
-  
-  def self.sync_to_apple_calendar(booking, staff_member)
-    { success: false, error: "Apple Calendar integration not implemented" }
-  end
-  
-  def self.update_in_apple_calendar(booking, event_id, staff_member)
-    { success: false, error: "Apple Calendar integration not implemented" }
-  end
-  
-  def self.delete_from_apple_calendar(event_id, staff_member)
-    { success: false, error: "Apple Calendar integration not implemented" }
-  end
-  
-  def self.import_from_apple_calendar(staff_member, start_date, end_date)
-    { success: false, error: "Apple Calendar integration not implemented" }
+  def self.retry_failed_syncs(business = nil, limit = 50)
+    sync_coordinator = Calendar::SyncCoordinator.new
+    sync_coordinator.retry_failed_syncs(business, limit)
   end
 end

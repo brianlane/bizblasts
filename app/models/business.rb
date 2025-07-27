@@ -171,6 +171,9 @@ class Business < ApplicationRecord
   has_many :tips, dependent: :destroy
   has_one :tip_configuration, dependent: :destroy
   
+  # Calendar integration associations
+  has_many :calendar_connections, dependent: :destroy
+  
   # Website customization associations
   has_many :website_themes, dependent: :destroy
   has_one :active_website_theme, -> { where(active: true) }, class_name: 'WebsiteTheme'
