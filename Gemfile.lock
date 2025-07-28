@@ -322,7 +322,11 @@ GEM
     parser (3.3.8.0)
       ast (~> 2.4.1)
       racc
-    pg (1.5.9)
+    pg (1.6.0)
+    pg (1.6.0-aarch64-linux)
+    pg (1.6.0-arm64-darwin)
+    pg (1.6.0-x86_64-darwin)
+    pg (1.6.0-x86_64-linux)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -575,7 +579,7 @@ DEPENDENCIES
   kaminari (~> 1.2)
   ostruct
   parallel_tests
-  pg (~> 1.1)
+  pg (~> 1.6)
   propshaft
   puma (>= 5.0)
   pundit
