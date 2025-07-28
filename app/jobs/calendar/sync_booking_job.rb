@@ -4,8 +4,8 @@ module Calendar
   class SyncBookingJob < ApplicationJob
     queue_as :default
     
-    retry_on Net::TimeoutError, Net::HTTPServerError, wait: :exponentially_longer, attempts: 3
-    retry_on ActiveRecord::DeadlockRetry, wait: 1.second, attempts: 3
+    retry_on Net::ReadTimeout, Net::OpenTimeout, Net::HTTPServerError, wait: :exponentially_longer, attempts: 3
+    retry_on ActiveRecord::Deadlocked, wait: 1.second, attempts: 3
     
     discard_on ActiveRecord::RecordNotFound do |job, error|
       Rails.logger.warn("Discarding job #{job.class.name} due to missing record: #{error.message}")
