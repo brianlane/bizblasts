@@ -36,7 +36,7 @@ module Calendar
             calendar_event_id: response['id']
           )
           
-          log_sync_attempt(mapping, :create, :success, "Event created successfully")
+          log_sync_attempt(mapping, :event_create, :success, "Event created successfully")
           
           {
             success: true,
@@ -66,7 +66,7 @@ module Calendar
           mapping.mark_synced!(external_event_id)
           booking.update!(calendar_event_status: :synced)
           
-          log_sync_attempt(mapping, :update, :success, "Event updated successfully")
+          log_sync_attempt(mapping, :event_update, :success, "Event updated successfully")
           
           {
             success: true,
@@ -94,7 +94,7 @@ module Calendar
         mappings.each do |mapping|
           mapping.mark_deleted!
           mapping.booking&.update(calendar_event_status: :not_synced)
-          log_sync_attempt(mapping, :delete, :success, "Event deleted successfully")
+          log_sync_attempt(mapping, :event_delete, :success, "Event deleted successfully")
         end
         
         { success: true }

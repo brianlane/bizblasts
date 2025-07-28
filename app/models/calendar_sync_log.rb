@@ -5,11 +5,11 @@ class CalendarSyncLog < ApplicationRecord
   
   # Enum for sync actions
   enum :action, {
-    create: 0,
-    update: 1,
-    delete: 2,
-    import: 3,
-    refresh_token: 4
+    event_create: 0,
+    event_update: 1,
+    event_delete: 2,
+    event_import: 3,
+    token_refresh: 4
   }
   
   # Enum for sync outcomes
@@ -64,15 +64,15 @@ class CalendarSyncLog < ApplicationRecord
   
   def action_description
     case action
-    when 'create'
+    when 'event_create'
       'Creating calendar event'
-    when 'update'
+    when 'event_update'
       'Updating calendar event'
-    when 'delete'
+    when 'event_delete'
       'Deleting calendar event'
-    when 'import'
+    when 'event_import'
       'Importing external events'
-    when 'refresh_token'
+    when 'token_refresh'
       'Refreshing OAuth token'
     else
       action.humanize

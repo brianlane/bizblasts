@@ -4,8 +4,8 @@ module Calendar
   class BatchSyncJob < ApplicationJob
     queue_as :default
     
-    retry_on Net::TimeoutError, Net::HTTPServerError, wait: :exponentially_longer, attempts: 2
-    retry_on ActiveRecord::DeadlockRetry, wait: 1.second, attempts: 3
+    retry_on Net::ReadTimeout, Net::OpenTimeout, Net::HTTPServerError, wait: :exponentially_longer, attempts: 2
+    retry_on ActiveRecord::Deadlocked, wait: 1.second, attempts: 3
     
     def perform(business_id, options = {})
       business = Business.find(business_id)
