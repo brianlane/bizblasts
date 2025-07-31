@@ -60,7 +60,7 @@ module Calendar
       
       state = generate_state(business_id, staff_member_id, 'google')
       
-      client_id = Rails.application.credentials.dig(:google_calendar, :client_id)
+      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
       unless client_id
         add_error(:missing_credentials, "Google Calendar client ID not configured")
         return nil
@@ -82,7 +82,7 @@ module Calendar
     def microsoft_authorization_url(business_id, staff_member_id, redirect_uri)
       state = generate_state(business_id, staff_member_id, 'microsoft')
       
-      client_id = Rails.application.credentials.dig(:microsoft_graph, :client_id)
+      client_id = ENV['MICROSOFT_CLIENT_ID']
       unless client_id
         add_error(:missing_credentials, "Microsoft Graph client ID not configured")
         return nil
@@ -104,8 +104,8 @@ module Calendar
       require 'googleauth'
       require 'google/apis/calendar_v3'
       
-      client_id = Rails.application.credentials.dig(:google_calendar, :client_id)
-      client_secret = Rails.application.credentials.dig(:google_calendar, :client_secret)
+      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+      client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
       
       unless client_id && client_secret
         add_error(:missing_credentials, "Google Calendar credentials not configured")
@@ -155,8 +155,8 @@ module Calendar
     end
     
     def handle_microsoft_callback(code, state_data, redirect_uri)
-      client_id = Rails.application.credentials.dig(:microsoft_graph, :client_id)
-      client_secret = Rails.application.credentials.dig(:microsoft_graph, :client_secret)
+      client_id = ENV['MICROSOFT_CLIENT_ID']
+      client_secret = ENV['MICROSOFT_CLIENT_SECRET']
       
       unless client_id && client_secret
         add_error(:missing_credentials, "Microsoft Graph credentials not configured")
@@ -208,8 +208,8 @@ module Calendar
     def refresh_google_token(calendar_connection)
       require 'googleauth'
       
-      client_id = Rails.application.credentials.dig(:google_calendar, :client_id)
-      client_secret = Rails.application.credentials.dig(:google_calendar, :client_secret)
+      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+      client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
       
       auth_client = Signet::OAuth2::Client.new(
         client_id: client_id,
@@ -236,8 +236,8 @@ module Calendar
     end
     
     def refresh_microsoft_token(calendar_connection)
-      client_id = Rails.application.credentials.dig(:microsoft_graph, :client_id)
-      client_secret = Rails.application.credentials.dig(:microsoft_graph, :client_secret)
+      client_id = ENV['MICROSOFT_CLIENT_ID']
+      client_secret = ENV['MICROSOFT_CLIENT_SECRET']
       
       oauth_client = OAuth2::Client.new(
         client_id,
@@ -312,7 +312,14 @@ module Calendar
         existing = staff_member.calendar_connections
                                 .where(provider: attributes[:provider])
                                 .first
-        existing&.destroy
+        
+        if existing
+          # Remove default calendar connection reference first
+          if staff_member.default_calendar_connection == existing
+            staff_member.update(default_calendar_connection: nil)
+          end
+          existing.destroy
+        end
         
         calendar_connection = staff_member.calendar_connections.build(
           business: business,

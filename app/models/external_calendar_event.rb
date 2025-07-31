@@ -32,6 +32,11 @@ class ExternalCalendarEvent < ApplicationRecord
   # Callbacks
   before_validation :normalize_times
   after_create :log_import
+
+  # Invalidate cached availability whenever external events change
+  after_create_commit :clear_staff_availability_cache
+  after_update_commit :clear_staff_availability_cache
+  after_destroy_commit :clear_staff_availability_cache
   
   def self.import_for_connection(connection, events_data)
     imported_count = 0
@@ -154,5 +159,10 @@ class ExternalCalendarEvent < ApplicationRecord
   
   def log_import
     Rails.logger.info "Imported external calendar event: #{external_event_id} for #{provider_display_name}"
+  end
+
+  def clear_staff_availability_cache
+    AvailabilityService.clear_staff_availability_cache(calendar_connection.staff_member)
+    calendar_connection.staff_member.touch
   end
 end

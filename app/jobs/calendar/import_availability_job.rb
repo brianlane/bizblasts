@@ -44,6 +44,9 @@ module Calendar
             "Date range: #{start_date} to #{end_date}"
           ].join(' | '))
           
+          # Invalidate availability caches so month view updates immediately
+          AvailabilityService.clear_staff_availability_cache(staff_member)
+          
           # Schedule next import
           schedule_next_import(staff_member_id)
         end

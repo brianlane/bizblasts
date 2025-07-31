@@ -70,5 +70,12 @@ module Bizblasts
 
     # Set the start of the week to Sunday for consistency across the app
     config.beginning_of_week = :sunday
+
+    # Configure Active Record encryption to use environment variables
+    if ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY'].present?
+      config.active_record.encryption.primary_key = ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY']
+      config.active_record.encryption.deterministic_key = ENV['ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY']
+      config.active_record.encryption.key_derivation_salt = ENV['ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT']
+    end
   end
 end
