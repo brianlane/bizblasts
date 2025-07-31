@@ -528,7 +528,7 @@ class AvailabilityService
     
     # Staff availability version (changes when staff schedule changes)
     if staff_member.updated_at.present?
-      version_components << "staff_#{staff_member.updated_at.to_i}"
+      version_components << "staff_#{(staff_member.updated_at.to_f * 1000).to_i}"
     end
     
     # Service availability version (changes when service availability changes)  
@@ -547,6 +547,10 @@ class AvailabilityService
       version_components << "policy_#{business.booking_policy.updated_at.to_i}"
     end
     
+    # Always include a cache-buster token tied to the staff member so we can
+    # invalidate keys even when the backing cache store cannot delete by pattern.
+    version_components << "v_#{cache_buster_token(staff_member)}"
+    
     # Combine base key with version components
     "#{base_key}_v_#{version_components.join('_')}"
   end
@@ -560,7 +564,7 @@ class AvailabilityService
     
     # Staff availability version
     if staff_member.updated_at.present?
-      version_components << "staff_#{staff_member.updated_at.to_i}"
+      version_components << "staff_#{(staff_member.updated_at.to_f * 1000).to_i}"
     end
     
     # Service availability version
@@ -578,6 +582,9 @@ class AvailabilityService
     # that changes every 15 minutes to balance performance with accuracy
     time_bucket = (Time.current.to_i / 900) * 900  # 15-minute buckets
     version_components << "bookings_#{time_bucket}"
+
+    # Include the same cache-buster token so month view follows external-event changes
+    version_components << "v_#{cache_buster_token(staff_member)}"
     
     "#{base_key}_v_#{version_components.join('_')}"
   end
@@ -591,12 +598,18 @@ class AvailabilityService
     
     # In production, we'd want a more sophisticated cache clearing strategy
     # For now, we'll rely on the versioned cache keys to naturally expire
-    
+
     # Clear specific patterns if using a cache store that supports it
     if Rails.cache.respond_to?(:delete_matched)
       Rails.cache.delete_matched(cache_pattern)
       Rails.cache.delete_matched(calendar_pattern)
     end
+
+    # Rotate cache-buster token
+    Rails.cache.write(cache_buster_key(staff_member), SecureRandom.hex(6))
+
+    # Also bump service-level tokens so calendar grid cache refreshes
+    staff_member.services.each { |svc| BookingService.invalidate_calendar_cache(svc) }
   end
 
   # Clear all availability caches for a service
@@ -604,5 +617,14 @@ class AvailabilityService
     # With versioned cache keys, old entries will naturally expire
     # This method is here for explicit cache clearing if needed
     Rails.logger.info("Service #{service.id} availability cache will be invalidated via version keys")
+  end
+
+  # ---------------- Cache-buster helpers ----------------
+  def self.cache_buster_token(staff_member)
+    Rails.cache.fetch(cache_buster_key(staff_member)) { SecureRandom.hex(6) }
+  end
+
+  def self.cache_buster_key(staff_member)
+    "avail_buster_#{staff_member.id}"
   end
 end

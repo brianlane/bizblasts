@@ -45,7 +45,7 @@ module Calendar
     
     def handle_api_error(error)
       case error
-      when Net::TimeoutError, Timeout::Error
+      when Timeout::Error
         add_error(:timeout, "Request timed out. Please try again.")
       when Net::HTTPUnauthorized, Signet::AuthorizationError
         add_error(:unauthorized, "Calendar authorization expired. Please reconnect.")
@@ -160,7 +160,7 @@ module Calendar
     
     def retryable_error?(error)
       case error
-      when Net::TimeoutError, Timeout::Error
+      when Timeout::Error
         true
       when Net::HTTPTooManyRequests
         true

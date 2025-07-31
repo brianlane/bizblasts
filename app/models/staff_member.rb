@@ -170,9 +170,14 @@ class StaffMember < ApplicationRecord
     connections = active_calendar_connections
     return 'No integrations' if connections.empty?
     
-    if connections.all? { |conn| conn.last_synced_at && conn.last_synced_at > 1.hour.ago }
+    # All connections have never completed a sync yet (just connected)
+    if connections.all? { |c| c.last_synced_at.nil? }
+      'Syncing'
+    # Every connection synced in the last hour
+    elsif connections.all? { |c| c.last_synced_at && c.last_synced_at > 1.hour.ago }
       'All synced'
-    elsif connections.any? { |conn| conn.last_synced_at.nil? || conn.last_synced_at < 6.hours.ago }
+    # One or more connections have not synced in 6+ hours
+    elsif connections.any? { |c| c.last_synced_at.nil? || c.last_synced_at < 6.hours.ago }
       'Sync issues'
     else
       'Needs sync'

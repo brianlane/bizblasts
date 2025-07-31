@@ -115,6 +115,13 @@ module Calendar
           calendar_connection,
           events
         )
+
+        # Remove events that were deleted from Google Calendar
+        remote_ids = events.map { |e| e[:external_event_id] }
+        stale_events = calendar_connection.external_calendar_events
+                                         .where(starts_at: start_date.beginning_of_day..end_date.end_of_day)
+                                         .where.not(external_event_id: remote_ids)
+        stale_events.find_each(&:destroy)
         
         calendar_connection.mark_synced!
         
@@ -146,8 +153,8 @@ module Calendar
     def setup_authorization
       return unless calendar_connection.access_token
       
-      client_id = Rails.application.credentials.dig(:google_calendar, :client_id)
-      client_secret = Rails.application.credentials.dig(:google_calendar, :client_secret)
+      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+      client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
       
       @auth_client = Signet::OAuth2::Client.new(
         client_id: client_id,
@@ -230,9 +237,13 @@ module Calendar
       return nil unless datetime_obj
       
       if datetime_obj.date_time
-        Time.parse(datetime_obj.date_time)
+        datetime_val = datetime_obj.date_time
+        datetime_val = datetime_val.to_s if datetime_val.is_a?(DateTime)
+        Time.parse(datetime_val.to_s)
       elsif datetime_obj.date
-        Date.parse(datetime_obj.date).beginning_of_day
+        # "date" may already be a Date object or a String (YYYY-MM-DD)
+        date_val = datetime_obj.date.is_a?(String) ? Date.parse(datetime_obj.date) : datetime_obj.date
+        date_val.to_time
       else
         nil
       end

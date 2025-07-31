@@ -37,6 +37,10 @@ class CalendarConnection < ApplicationRecord
   
   # Callbacks
   before_create :set_connected_at
+  after_create_commit :enqueue_initial_import
+  after_create_commit :clear_staff_availability_cache
+  after_update_commit :clear_staff_availability_cache, if: :saved_change_to_last_synced_at?
+  after_destroy_commit :clear_staff_availability_cache
   
   def oauth_provider?
     google? || microsoft?
@@ -87,6 +91,8 @@ class CalendarConnection < ApplicationRecord
   # Mark connection as synced
   def mark_synced!
     update!(last_synced_at: Time.current)
+    # Run cache clear immediately so callers in the same transaction see fresh data
+    clear_staff_availability_cache
   end
   
   # Deactivate connection (e.g., after revocation)
@@ -114,5 +120,19 @@ class CalendarConnection < ApplicationRecord
   
   def set_connected_at
     self.connected_at ||= Time.current
+  end
+
+  # Enqueue an initial availability import so the connection begins syncing immediately
+  def enqueue_initial_import
+    return unless active? && staff_member_id.present?
+
+    Calendar::ImportAvailabilityJob.perform_later(staff_member_id)
+  end
+
+  # Clear cached availability when a connection is removed so blocked slots are freed immediately
+  def clear_staff_availability_cache
+    AvailabilityService.clear_staff_availability_cache(staff_member)
+    # Bump timestamp so versioned cache keys change even if store doesn't support delete_matched
+    staff_member.touch
   end
 end

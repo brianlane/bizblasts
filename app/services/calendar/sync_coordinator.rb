@@ -155,8 +155,8 @@ module Calendar
         total_attempts: base_scope.count,
         successful: base_scope.successful_syncs.count,
         failed: base_scope.failed_attempts.count,
-        success_rate: CalendarSyncLog.success_rate_for_provider('google', since),
-        recent_failures: CalendarSyncLog.recent_failures(10)
+        success_rate: CalendarSyncLog.success_rate_for_provider('google', since: since),
+        recent_failures: CalendarSyncLog.recent_failures(limit: 10)
       }
     end
     

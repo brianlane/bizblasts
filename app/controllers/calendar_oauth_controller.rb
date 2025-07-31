@@ -81,14 +81,11 @@ class CalendarOauthController < ApplicationController
     redirect_to_error("Failed to connect calendar: #{error_messages}")
   end
   
-  def redirect_to_business_calendar_settings(business)
-    if business.subdomain.present?
-      # Redirect to business subdomain calendar settings
-      redirect_to "#{request.protocol}#{business.subdomain}.#{request.domain}/manage/settings/calendar_integrations"
-    else
-      # Fallback to main domain
-      redirect_to root_path, notice: flash[:notice]
-    end
+  # Always send the user back to the host that handled the OAuth callback so
+  # we do not unexpectedly switch between custom-domain and sub-domain URLs.
+  def redirect_to_business_calendar_settings(_business)
+    target_url = "#{request.protocol}#{request.host_with_port}/manage/settings/calendar_integrations"
+    redirect_to target_url, allow_other_host: true
   end
   
   def redirect_to_error(message)

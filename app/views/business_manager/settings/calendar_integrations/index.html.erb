@@ -93,7 +93,8 @@
                                   connect_business_manager_settings_calendar_integrations_path, 
                                   params: { provider: provider, staff_member_id: staff_member.id },
                                   method: :post,
-                                  class: "btn btn-sm btn-primary connect-#{provider}" %>
+                                  class: "btn btn-sm btn-primary connect-#{provider}",
+                                  data: { turbo: false } %>
                   <% end %>
                 <% end %>
               </div>
@@ -180,6 +181,7 @@
     }
     .sync-status.all-synced { background: #d4edda; color: #155724; }
     .sync-status.needs-sync { background: #fff3cd; color: #856404; }
+    .sync-status.syncing { background: #fff3cd; color: #856404; }
     .sync-status.sync-issues { background: #f8d7da; color: #721c24; }
     .sync-status.no-integrations { background: #e2e3e5; color: #383d41; }
 

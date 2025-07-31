@@ -11,11 +11,11 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
   end
   
   def show
-    @sync_logs = @calendar_connection.calendar_event_mappings
-                                   .includes(:calendar_sync_logs)
-                                   .flat_map(&:calendar_sync_logs)
-                                   .order(created_at: :desc)
-                                   .limit(20)
+    @sync_logs = CalendarSyncLog.joins(:calendar_event_mapping)
+                                .where(calendar_event_mappings: { calendar_connection_id: @calendar_connection.id })
+                                .includes(calendar_event_mapping: [:booking, :calendar_connection])
+                                .order(created_at: :desc)
+                                .limit(20)
   end
   
   def connect
@@ -65,6 +65,12 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
   def destroy
     provider_name = @calendar_connection.provider_display_name
     staff_name = @calendar_connection.staff_member.name
+    
+    # Remove default calendar connection reference first
+    staff_member = @calendar_connection.staff_member
+    if staff_member.default_calendar_connection == @calendar_connection
+      staff_member.update(default_calendar_connection: nil)
+    end
     
     @calendar_connection.destroy
     
@@ -133,24 +139,18 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
   end
   
   def available_providers
-    providers = ['google', 'microsoft']
+    providers = []
     
-    # For development/demo purposes, show providers even without credentials
-    # In production, you'd want to uncomment the credential checks below
+    # Check if Google Calendar credentials are configured
+    if ENV['GOOGLE_CALENDAR_CLIENT_ID'].present? && ENV['GOOGLE_CALENDAR_CLIENT_SECRET'].present?
+      providers << 'google'
+    end
     
-    # Check if credentials are configured for each provider
-    # providers.select do |provider|
-    #   case provider
-    #   when 'google'
-    #     Rails.application.credentials.dig(:google_calendar, :client_id).present?
-    #   when 'microsoft'
-    #     Rails.application.credentials.dig(:microsoft_graph, :client_id).present?
-    #   else
-    #     false
-    #   end
-    # end
+    # Check if Microsoft Graph credentials are configured
+    if ENV['MICROSOFT_CLIENT_ID'].present? && ENV['MICROSOFT_CLIENT_SECRET'].present?
+      providers << 'microsoft'
+    end
     
-    # For now, return all providers for UI testing
     providers
   end
   
