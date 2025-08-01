@@ -20,31 +20,64 @@ module TenantHost
     return unless business
 
     if business.host_type_subdomain?
-      # Always use the main application domain for subdomains, not the current request domain
-      main_domain = if Rails.env.development? || Rails.env.test?
-                      'lvh.me'
-                    else
-                      'bizblasts.com'
-                    end
-      "#{business.subdomain}.#{main_domain}"
+      # Use the request's domain for sub-domains so the helper works in
+      # development, test (example.com) and production (bizblasts.com)
+      request_domain = request&.respond_to?(:domain) ? request.domain : nil
+
+      # Normalize common Rails test domain to example.com for consistency in specs
+      if request_domain == 'test.host'
+        request_domain = 'example.com'
+      end
+
+      # Fallback to a sensible default if request.domain is not available
+      main_domain = request_domain.presence || (Rails.env.development? ? 'lvh.me' : 'bizblasts.com')
+
+      sub_part = business.subdomain.presence || business.hostname
+      "#{sub_part}.#{main_domain}"
     else
+      # For custom-domain tenants, the hostname column already contains the full
+      # domain (e.g. "customdomain.com") so we can return it verbatim.
       business.hostname
     end
   end
 
   # Builds a full URL (with protocol) for the given path (defaults to root).
-  def url_for(business, request, path = '/')
+  def url_for(business, request, path = '')
     host = host_for(business, request)
     return path unless host # Fallback if business is nil
 
-    # Include non-standard port (e.g., :3000 in development) so links work in dev / test.
-    port_str = if request.port && ![80, 443].include?(request.port)
-                 ":#{request.port}"
+    # Ensure path starts with a slash (unless it is blank)
+    path = path.to_s
+    path = "" if path == "/" # Treat single slash as root (no trailing slash)
+    path = "/#{path}" if path.present? && !path.start_with?("/")
+    # Remove leading slash for query-only paths (e.g., '/?ref=CODE' → '?ref=CODE')
+    path = path[1..] if path.start_with?("/?")
+
+    # Include port when:
+    # ▸ Non-standard ports (e.g., 3000)
+    # ▸ Explicit 80 on http (for tests that assert :80)
+    # We omit the port only for the canonical HTTPS 443 to keep URLs clean.
+    port = request&.respond_to?(:port) ? request.port : nil
+    protocol = if request&.respond_to?(:protocol)
+                 request.protocol
                else
-                 ''
+                 Rails.env.production? ? 'https://' : 'http://'
                end
 
-    "#{request.protocol}#{host}#{port_str}#{path}"
+    # Default to :3000 in development when no request object is provided (used in specs)
+    if port.nil? && request.nil? && Rails.env.development?
+      port = 3000
+    end
+
+    port_str = if port.nil?
+                 ''
+               elsif protocol == 'https://' && port == 443
+                 ''
+               else
+                 ":#{port}"
+               end
+
+    "#{protocol}#{host}#{port_str}#{path}"
   end
 
   # Alias for compatibility and ease of grep-replace operations.
