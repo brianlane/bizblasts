@@ -30,12 +30,17 @@ module TenantHost
                     end
       
       # Use subdomain field if present, otherwise fall back to hostname
-      subdomain_part = business.subdomain.presence || business.hostname
+      subdomain_part = business.subdomain.presence || business.hostname.presence
+      
+      # Return nil if no valid subdomain part to prevent invalid URLs like ".lvh.me"
+      return unless subdomain_part
+      
       "#{subdomain_part}.#{main_domain}"
     else
       # For custom-domain tenants, the hostname column already contains the full
       # domain (e.g. "customdomain.com") so we can return it verbatim.
-      business.hostname
+      # Return nil if hostname is blank to prevent invalid URLs
+      business.hostname.presence
     end
   end
 
@@ -74,7 +79,7 @@ module TenantHost
 
     port_str = if port.nil?
                  ''
-               elsif protocol == 'https://' && port == 443
+               elsif (protocol == 'https://' && port == 443) || (protocol == 'http://' && port == 80)
                  ''
                else
                  ":#{port}"
