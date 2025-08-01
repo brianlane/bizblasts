@@ -147,7 +147,7 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
     end
     
     # Check if Microsoft Graph credentials are configured
-    if ENV['MICROSOFT_CLIENT_ID'].present? && ENV['MICROSOFT_CLIENT_SECRET'].present?
+    if ENV['MICROSOFT_CALENDAR_CLIENT_ID'].present? && ENV['MICROSOFT_CALENDAR_CLIENT_SECRET'].present?
       providers << 'microsoft'
     end
     
