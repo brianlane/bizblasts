@@ -22,7 +22,7 @@ module Bizblasts
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
     # Configure main domain for multi-tenant OAuth redirects
-    config.main_domain = Rails.env.production? ? 'bizblasts.com' : 'lvh.me:3000'
+    config.main_domain = Rails.env.production? ? 'bizblasts.com' : 'lvh.me'
 
     # Explicitly add ActsAsTenant middleware by requiring its specific file
     # require "acts_as_tenant/middleware" # Reverted - Let gem handle it

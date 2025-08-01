@@ -44,8 +44,10 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
     
     # Generate OAuth URL
     oauth_handler = Calendar::OauthHandler.new
-    scheme = Rails.env.production? ? 'https' : 'http'
-    redirect_uri = "#{scheme}://#{Rails.application.config.main_domain}/oauth/calendar/#{provider}/callback"
+    scheme = request.ssl? ? 'https' : 'http'
+    host = Rails.application.config.main_domain
+    port_str = request.port && ![80, 443].include?(request.port) ? ":#{request.port}" : ''
+    redirect_uri = "#{scheme}://#{host}#{port_str}/oauth/calendar/#{provider}/callback"
     
     auth_url = oauth_handler.authorization_url(
       provider,
