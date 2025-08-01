@@ -687,7 +687,8 @@ RSpec.describe AvailabilityService, type: :service do
       end
       
       it 'has reduced cache duration for same-day slots' do
-        # Mock Rails.cache to verify cache duration
+        # Mock Rails.cache to verify cache duration - allow cache buster calls
+        allow(Rails.cache).to receive(:fetch).and_call_original
         expect(Rails.cache).to receive(:fetch).with(
           anything, 
           hash_including(expires_in: 2.minutes)
@@ -699,6 +700,8 @@ RSpec.describe AvailabilityService, type: :service do
       it 'has standard cache duration for future dates' do
         future_date = Date.current + 1.day
         
+        # Allow cache buster calls, expect the main cache call
+        allow(Rails.cache).to receive(:fetch).and_call_original
         expect(Rails.cache).to receive(:fetch).with(
           anything,
           hash_including(expires_in: 10.minutes)
@@ -709,10 +712,11 @@ RSpec.describe AvailabilityService, type: :service do
       
       it 'includes current hour in cache key for same-day slots' do
         # The cache key should include the current hour for same-day slots
-        allow(Rails.cache).to receive(:fetch) do |cache_key, options|
-          expect(cache_key).to include(Time.current.hour.to_s)
-          []
-        end
+        allow(Rails.cache).to receive(:fetch).and_call_original
+        expect(Rails.cache).to receive(:fetch).with(
+          a_string_including(Time.current.hour.to_s),
+          hash_including(expires_in: 2.minutes)
+        ).and_return([])
         
         described_class.available_slots(staff_member, today, service)
       end
@@ -720,10 +724,11 @@ RSpec.describe AvailabilityService, type: :service do
       it 'uses static cache key component for future dates' do
         future_date = Date.current + 1.day
         
-        allow(Rails.cache).to receive(:fetch) do |cache_key, options|
-          expect(cache_key).to include('static')
-          []
-        end
+        allow(Rails.cache).to receive(:fetch).and_call_original
+        expect(Rails.cache).to receive(:fetch).with(
+          a_string_including('static'),
+          hash_including(expires_in: 10.minutes)
+        ).and_return([])
         
         described_class.available_slots(staff_member, future_date, service)
       end

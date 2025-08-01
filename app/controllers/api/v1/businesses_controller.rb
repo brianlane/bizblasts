@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Api::V1::BusinessesController < ApplicationController
   # Skip Rails authentication for all API endpoints - we use API key auth instead
   skip_before_action :authenticate_user!
@@ -14,7 +16,7 @@ class Api::V1::BusinessesController < ApplicationController
     # This prevents mass data harvesting while allowing legitimate API usage
     @businesses = Business.active
                          .where.not(hostname: nil)
-                         .select(:id, :name, :hostname, :industry, :city, :state, :host_type)
+                         .select(:id, :name, :hostname, :subdomain, :industry, :city, :state, :host_type)
                          .limit(20)
                          .order(:name)
     
@@ -265,11 +267,25 @@ class Api::V1::BusinessesController < ApplicationController
   end
   
   def business_website_url(business)
-    if business.host_type == 'custom_domain'
-      "https://#{business.hostname}"
+    # Use TenantHost helper for consistent URL generation
+    # Use environment-appropriate domain and protocol
+    domain = Rails.env.production? ? 'bizblasts.com' : 'lvh.me'
+    protocol = Rails.env.production? ? 'https://' : 'http://'
+    
+    # For custom domains, use standard ports (80/443) to avoid adding port numbers
+    # For subdomain businesses in test, use Capybara server port
+    if business.host_type_custom_domain?
+      port = Rails.env.production? ? 443 : 80
     else
-      "https://#{business.hostname}.bizblasts.com"
+      port = Rails.env.production? ? 443 : (Rails.env.test? && defined?(Capybara) && Capybara.server_port ? Capybara.server_port : 3000)
     end
+    
+    mock_request = OpenStruct.new(
+      protocol: protocol,
+      domain: domain,
+      port: port
+    )
+    TenantHost.url_for(business, mock_request)
   end
   
   def service_categories_data

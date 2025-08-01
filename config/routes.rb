@@ -21,6 +21,9 @@ Rails.application.routes.draw do
   get '/theme-test/business/:business_subdomain', to: 'theme_test#preview', as: :theme_test_business
   
   post '/webhooks/stripe', to: 'stripe_webhooks#create'
+  
+  # Calendar OAuth callback (outside subdomain constraint for security)
+  get '/oauth/calendar/:provider/callback', to: 'calendar_oauth#callback', as: :calendar_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -196,6 +199,20 @@ Rails.application.routes.draw do
         
         # Tips configuration
         resource :tips, only: [:show, :update]
+        
+        # Calendar integrations
+        resources :calendar_integrations, only: [:index, :show, :destroy] do
+          member do
+            patch :toggle_default
+            post :resync
+          end
+          collection do
+            post :connect
+            get :oauth_callback
+            post :batch_sync
+            post :import_availability
+          end
+        end
 
         resource :sidebar, only: [:show], controller: 'sidebar' do
           get :edit_sidebar

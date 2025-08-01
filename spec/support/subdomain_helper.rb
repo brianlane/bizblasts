@@ -4,8 +4,21 @@ module SubdomainHelper
   def with_subdomain(subdomain)
     # Save original host
     original_host = Capybara.app_host
-    # Set subdomain
-    Capybara.app_host = subdomain ? "http://#{subdomain}.lvh.me:#{Capybara.server_port}" : "http://lvh.me:#{Capybara.server_port}"
+    
+    # Set subdomain using TenantHost helper for consistency
+    if subdomain
+      mock_business = double('Business', 
+        subdomain: subdomain, 
+        hostname: subdomain, 
+        host_type_subdomain?: true, 
+        host_type_custom_domain?: false
+      )
+      request = create_test_request(port: Capybara.server_port)
+      Capybara.app_host = TenantHost.url_for(mock_business, request, '')
+    else
+      Capybara.app_host = "http://lvh.me:#{Capybara.server_port}"
+    end
+    
     yield
   ensure
     # Restore original host

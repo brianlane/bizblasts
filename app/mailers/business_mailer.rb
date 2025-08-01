@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ostruct'
+
 class BusinessMailer < ApplicationMailer
   # Send domain request notification to premium business users after email confirmation
   def domain_request_notification(user)
@@ -366,4 +368,16 @@ class BusinessMailer < ApplicationMailer
     # Check the specific notification type
     preferences[notification_type] == true
   end
+
+  # Helper to generate tenant URLs in mailer templates
+  def tenant_url_for(business, path = '/')
+    # Create a proper mock request object for mailer context
+    mock_request = OpenStruct.new(
+      protocol: Rails.env.production? ? 'https://' : 'http://',
+      domain: Rails.env.development? || Rails.env.test? ? 'lvh.me' : 'bizblasts.com',
+      port: Rails.env.development? ? 3000 : (Rails.env.production? ? 443 : 80)
+    )
+    TenantHost.url_for(business, mock_request, path)
+  end
+  helper_method :tenant_url_for
 end 

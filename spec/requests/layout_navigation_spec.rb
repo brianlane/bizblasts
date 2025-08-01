@@ -183,7 +183,8 @@ RSpec.describe 'Layout Navigation', type: :request do
         # Should show Manage Business button
         expect(response.body).to include('Manage Business')
         # Should link to their business subdomain dashboard
-        expected_url = "http://#{business.hostname}.lvh.me:80/manage/dashboard"
+        # In request specs, port 80 is omitted per HTTP standards
+        expected_url = "http://#{business.hostname}.lvh.me/manage/dashboard"
         expect(response.body).to include("href=\"#{expected_url}\"")
       end
     end
@@ -202,7 +203,8 @@ RSpec.describe 'Layout Navigation', type: :request do
         # Should show Manage Business button
         expect(response.body).to include('Manage Business')
         # Should link to their own business subdomain dashboard, not the current one
-        expected_url = "http://#{business.hostname}.lvh.me:80/manage/dashboard"
+        # In request specs, port 80 is omitted per HTTP standards
+        expected_url = "http://#{business.hostname}.lvh.me/manage/dashboard"
         expect(response.body).to include("href=\"#{expected_url}\"")
       end
     end

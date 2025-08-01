@@ -23,7 +23,7 @@ class BookingService
     # PERFORMANCE OPTIMIZATION: Use bulk caching and parallel processing for multiple staff
     tz = tenant&.time_zone.presence || service.business&.time_zone.presence || 'UTC'
     slot_interval = interval || service.duration
-    cache_key = "calendar_data_#{service.id}_#{range_start}_#{range_end}_#{staff_members.pluck(:id).join(',')}_interval_#{slot_interval}_tz_#{tz.parameterize(separator: '_')}"
+    cache_key = "calendar_data_#{service.id}_#{range_start}_#{range_end}_#{staff_members.pluck(:id).join(',')}_interval_#{slot_interval}_tz_#{tz.parameterize(separator: '_')}_v_#{calendar_data_token(service)}"
     
     Rails.cache.fetch(cache_key, expires_in: 30.minutes) do
       calendar_data = {}
@@ -165,5 +165,22 @@ class BookingService
       end_time: end_time,
       exclude_booking_id: exclude_booking_id
     )
+  end
+
+  # Rotate service calendar token (called from availability cache clears)
+  def self.invalidate_calendar_cache(service)
+    rotate_calendar_data_token(service)
+  end
+
+  private
+
+  # Token used to version calendar data cache keys per service
+  def self.calendar_data_token(service)
+    Rails.cache.fetch("calendar_data_token_#{service.id}") { SecureRandom.hex(6) }
+  end
+
+  # Rotate token to invalidate cached month grid when availability changes
+  def self.rotate_calendar_data_token(service)
+    Rails.cache.write("calendar_data_token_#{service.id}", SecureRandom.hex(6))
   end
 end 

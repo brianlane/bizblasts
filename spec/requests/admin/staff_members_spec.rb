@@ -28,7 +28,7 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
         sign_in admin_user # Sign in within tenant context if needed?
         
         # Set the subdomain for the request
-        host! "#{business.subdomain}.example.com"
+        host! host_for(business)
         
         example.run
       end

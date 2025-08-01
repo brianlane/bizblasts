@@ -16,6 +16,17 @@ class StaffMember < ApplicationRecord
   has_many :bookings, dependent: :restrict_with_error
   has_many :services_staff_members, dependent: :destroy
   has_many :services, through: :services_staff_members
+  has_many :calendar_connections, dependent: :destroy
+  belongs_to :default_calendar_connection, class_name: 'CalendarConnection', optional: true
+
+  # --------------------------------------------------------------------------
+  # Calendar connection integrity
+  # --------------------------------------------------------------------------
+  # Ensure the chosen default connection actually belongs to this staff member
+  validate  :default_calendar_connection_must_belong_to_staff_member
+  # Break the circular foreign-key dependency between staff_members.default_calendar_connection_id
+  # and calendar_connections.staff_member_id by clearing the reference before destroy.
+  before_destroy :clear_default_calendar_connection_id
   
   # Bidirectional deletion: when staff member is deleted, delete associated user
   before_destroy :delete_associated_user, if: -> { user.present? }
@@ -143,6 +154,71 @@ class StaffMember < ApplicationRecord
     end
   end
   
+  # Calendar integration methods
+  def has_calendar_integrations?
+    calendar_connections.active.any?
+  end
+  
+  def google_calendar_connected?
+    calendar_connections.google_connections.active.any?
+  end
+  
+  def microsoft_calendar_connected?
+    calendar_connections.microsoft_connections.active.any?
+  end
+  
+  def caldav_calendar_connected?
+    calendar_connections.caldav_connections.active.any?
+  end
+  
+  def active_calendar_connections
+    calendar_connections.active
+  end
+  
+  def calendar_sync_status
+    connections = active_calendar_connections
+    return 'No integrations' if connections.empty?
+    
+    # All connections have never completed a sync yet (just connected)
+    if connections.all? { |c| c.last_synced_at.nil? }
+      'Syncing'
+    # Every connection synced in the last hour
+    elsif connections.all? { |c| c.last_synced_at && c.last_synced_at > 1.hour.ago }
+      'All synced'
+    # One or more connections have not synced in 6+ hours
+    elsif connections.any? { |c| c.last_synced_at.nil? || c.last_synced_at < 6.hours.ago }
+      'Sync issues'
+    else
+      'Needs sync'
+    end
+  end
+  
+  def primary_calendar_connection
+    default_calendar_connection || active_calendar_connections.first
+  end
+  
+  private
+
+  # --------------------------------------------------------------------------
+  # Validation helpers
+  # --------------------------------------------------------------------------
+  def default_calendar_connection_must_belong_to_staff_member
+    return if default_calendar_connection.blank?
+
+    if default_calendar_connection.staff_member_id != id
+      errors.add(:default_calendar_connection_id, :invalid, message: 'must reference a calendar connection belonging to the same staff member')
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  # Callback helpers
+  # --------------------------------------------------------------------------
+  def clear_default_calendar_connection_id
+    # Use update_column to avoid validation callbacks which could fail if the
+    # default connection is already being destroyed in the same transaction.
+    update_column(:default_calendar_connection_id, nil) if default_calendar_connection_id.present?
+  end
+
   private
 
   def set_default_name_from_user

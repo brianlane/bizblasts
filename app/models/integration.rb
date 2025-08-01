@@ -3,6 +3,7 @@
 class Integration < ApplicationRecord
   belongs_to :business
 
+  # TODO: Add more integrations
   enum :kind, {
     google_calendar: 0,
     zapier: 1,
