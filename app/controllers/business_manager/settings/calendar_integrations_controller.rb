@@ -44,7 +44,15 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
     
     # Generate OAuth URL
     oauth_handler = Calendar::OauthHandler.new
-    redirect_uri = calendar_oauth_callback_url(provider)
+    scheme = request.ssl? ? 'https' : 'http'
+    host = Rails.application.config.main_domain
+    # Append port only if main_domain does NOT already include one
+    port_str = if host.include?(':') || request.port.nil? || [80, 443].include?(request.port)
+                 ''
+               else
+                 ":#{request.port}"
+               end
+    redirect_uri = "#{scheme}://#{host}#{port_str}/oauth/calendar/#{provider}/callback"
     
     auth_url = oauth_handler.authorization_url(
       provider,
@@ -147,7 +155,7 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
     end
     
     # Check if Microsoft Graph credentials are configured
-    if ENV['MICROSOFT_CLIENT_ID'].present? && ENV['MICROSOFT_CLIENT_SECRET'].present?
+    if ENV['MICROSOFT_CALENDAR_CLIENT_ID'].present? && ENV['MICROSOFT_CALENDAR_CLIENT_SECRET'].present?
       providers << 'microsoft'
     end
     
