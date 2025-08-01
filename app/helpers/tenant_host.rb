@@ -14,13 +14,19 @@ module TenantHost
   module_function
 
   # Returns the host (without protocol) appropriate for the business.
-  # ▸ Sub-domain tenants → "subdomain.example.com"
+  # ▸ Sub-domain tenants → "subdomain.lvh.me" (dev) or "subdomain.bizblasts.com" (prod)
   # ▸ Custom-domain tenants → "custom-domain.com"
   def host_for(business, request)
     return unless business
 
     if business.host_type_subdomain?
-      "#{business.subdomain}.#{request.domain}"
+      # Always use the main application domain for subdomains, not the current request domain
+      main_domain = if Rails.env.development? || Rails.env.test?
+                      'lvh.me'
+                    else
+                      'bizblasts.com'
+                    end
+      "#{business.subdomain}.#{main_domain}"
     else
       business.hostname
     end
