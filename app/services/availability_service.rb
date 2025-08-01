@@ -599,8 +599,12 @@ class AvailabilityService
     # In production, we'd want a more sophisticated cache clearing strategy
     # For now, we'll rely on the versioned cache keys to naturally expire
 
-    # Clear specific patterns if using a cache store that supports it
-    if Rails.cache.respond_to?(:delete_matched)
+    # Clear specific patterns only if the cache store implements its own
+    # `delete_matched`. SolidCache exposes the method via inheritance but
+    # does not implement it, so we verify that the method is defined at the
+    # concrete store class level (i.e., not inherited from
+    # ActiveSupport::Cache::Store).
+    if Rails.cache.class.instance_methods(false).include?(:delete_matched)
       Rails.cache.delete_matched(cache_pattern)
       Rails.cache.delete_matched(calendar_pattern)
     end
