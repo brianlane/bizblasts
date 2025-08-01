@@ -97,7 +97,7 @@ class InvoiceReminderJob < ApplicationJob
     # In a real implementation, this might include a secure token
     mock_request = OpenStruct.new(
       protocol: Rails.env.production? ? 'https://' : 'http://',
-      domain: Rails.env.development? || Rails.env.test? ? 'example.com' : 'bizblasts.com',
+      domain: Rails.env.development? || Rails.env.test? ? 'lvh.me' : 'bizblasts.com',
       port: Rails.env.development? ? 3000 : (Rails.env.production? ? 443 : 80)
     )
     TenantHost.url_for(invoice.business, mock_request, "/invoices/#{invoice.id}/pay")
