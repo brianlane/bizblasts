@@ -11,7 +11,7 @@ RSpec.describe 'Promotional Pricing System', type: :system do
   
   before do
     ActsAsTenant.current_tenant = business
-    Capybara.app_host = "http://#{business.hostname}.lvh.me"
+    Capybara.app_host = "http://#{host_for(business)}"
   end
 
   describe 'Product promotional pricing display' do

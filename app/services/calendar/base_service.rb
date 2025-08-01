@@ -74,8 +74,8 @@ module Calendar
       Rails.logger.error([
         "[#{self.class.name}] Error: #{error.class.name}",
         "Message: #{error.message}",
-        "Backtrace: #{error.backtrace&.first(5)&.join('\n')}"
-      ].join('\n'))
+        "Backtrace: #{error.backtrace&.first(5)&.join("\n")}"
+      ].join("\n"))
     end
     
     def deactivate_connection
@@ -108,7 +108,7 @@ module Calendar
       lines << "Email: #{booking.customer_email}" if booking.customer_email
       lines << "Notes: #{booking.notes}" if booking.notes.present?
       lines << "Booking ID: #{booking.id}"
-      lines.join('\n')
+      lines.join("\n")
     end
     
     def booking_location(booking)

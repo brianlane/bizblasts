@@ -20,20 +20,18 @@ module TenantHost
     return unless business
 
     if business.host_type_subdomain?
-      # Use the request's domain for sub-domains so the helper works in
-      # development, test (example.com) and production (bizblasts.com)
-      request_domain = request&.respond_to?(:domain) ? request.domain : nil
-
-      # Normalize common Rails test domain to example.com for consistency in specs
-      if request_domain == 'test.host'
-        request_domain = 'example.com'
-      end
-
-      # Fallback to a sensible default if request.domain is not available
-      main_domain = request_domain.presence || (Rails.env.development? ? 'lvh.me' : 'bizblasts.com')
-
-      sub_part = business.subdomain.presence || business.hostname
-      "#{sub_part}.#{main_domain}"
+      # Always use the main application domain for subdomains, not the current request domain
+      # This prevents issues like generating "subdomain.custom-domain.com" when the current 
+      # request is from a custom domain business
+      main_domain = if Rails.env.development? || Rails.env.test?
+                      'lvh.me'
+                    else
+                      'bizblasts.com'
+                    end
+      
+      # Use subdomain field if present, otherwise fall back to hostname
+      subdomain_part = business.subdomain.presence || business.hostname
+      "#{subdomain_part}.#{main_domain}"
     else
       # For custom-domain tenants, the hostname column already contains the full
       # domain (e.g. "customdomain.com") so we can return it verbatim.
@@ -65,8 +63,13 @@ module TenantHost
                end
 
     # Default to :3000 in development when no request object is provided (used in specs)
-    if port.nil? && request.nil? && Rails.env.development?
-      port = 3000
+    # In test environment, use Capybara server port if available
+    if port.nil? && request.nil?
+      if Rails.env.test? && defined?(Capybara) && Capybara.server_port
+        port = Capybara.server_port
+      elsif Rails.env.development?
+        port = 3000
+      end
     end
 
     port_str = if port.nil?
@@ -108,8 +111,8 @@ module TenantHost
                     'bizblasts.com'
                   end
 
-    # Include non-standard port for development
-    port_str = if request.port && ![80, 443].include?(request.port)
+    # Include non-standard port for development and tests
+    port_str = if request&.port && ![80, 443].include?(request.port)
                  ":#{request.port}"
                else
                  ''

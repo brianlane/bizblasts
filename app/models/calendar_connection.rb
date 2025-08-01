@@ -41,7 +41,7 @@ class CalendarConnection < ApplicationRecord
   after_create_commit :clear_staff_availability_cache
   after_update_commit :clear_staff_availability_cache, if: :saved_change_to_last_synced_at?
   after_destroy_commit :clear_staff_availability_cache
-  after_destroy_commit :remove_default_reference_from_staff_member
+  before_destroy :remove_default_reference_from_staff_member
   
   def oauth_provider?
     google? || microsoft?

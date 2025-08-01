@@ -41,7 +41,7 @@ RSpec.describe "Business Manager Orders", type: :system do
 
   before do
     # Set up Capybara to use the business's subdomain
-    Capybara.app_host = "http://#{business.hostname}.lvh.me"
+    Capybara.app_host = "http://#{host_for(business)}"
     
     # Log in as the business manager
     visit '/users/sign_in'
