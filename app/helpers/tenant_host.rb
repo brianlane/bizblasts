@@ -110,11 +110,8 @@ module TenantHost
   #   main_domain_url_for(request, '/admin') #=> "https://bizblasts.com/admin"
   def main_domain_url_for(request, path = '/')
     # Determine main domain based on environment
-    main_domain = if Rails.env.development? || Rails.env.test?
-                    'lvh.me'
-                  else
-                    'bizblasts.com'
-                  end
+    # Use configured main domain for consistency across environments
+    main_domain = Rails.application.config.main_domain.split(':').first
 
     # Include non-standard port for development and tests
     port_str = if request&.port && ![80, 443].include?(request.port)

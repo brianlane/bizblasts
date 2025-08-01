@@ -23,7 +23,8 @@ class CalendarOauthController < ApplicationController
     
     # Process the OAuth callback
     oauth_handler = Calendar::OauthHandler.new
-    redirect_uri = calendar_oauth_callback_url(provider)
+    scheme = Rails.env.production? ? 'https' : 'http'
+    redirect_uri = "#{scheme}://#{Rails.application.config.main_domain}/oauth/calendar/#{provider}/callback"
     
     calendar_connection = oauth_handler.handle_callback(provider, code, state, redirect_uri)
     
