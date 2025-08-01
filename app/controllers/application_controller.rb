@@ -288,21 +288,25 @@ class ApplicationController < ActionController::Base
 
   # Generate the correct dashboard URL for a business (subdomain or custom domain)
   def generate_business_dashboard_url(business, path = '/manage/dashboard')
+    return TenantHost.url_for(business, request, path) if defined?(TenantHost) && business.present?
+
+    # Legacy fallback (should be removed after full refactor)
     if Rails.env.development? || Rails.env.test?
-      # Development: Always use subdomain with lvh.me
+      # Development hosts
       if business.host_type_subdomain?
-        "http://#{business.hostname}.lvh.me:#{request.port}#{path}"
+        # Use the dedicated subdomain column for subdomain tenants
+        "http://#{business.subdomain}.lvh.me:#{request.port}#{path}"
       else
-        # For testing custom domains in development
+        # Custom domains in development
         "http://#{business.hostname}:#{request.port}#{path}"
       end
     else
-      # Production: Handle both subdomain and custom domain
+      # Production hosts
       protocol = request.ssl? ? 'https://' : 'http://'
       if business.host_type_custom_domain?
         "#{protocol}#{business.hostname}#{path}"
       else
-        "#{protocol}#{business.hostname}.bizblasts.com#{path}"
+        "#{protocol}#{business.subdomain}.bizblasts.com#{path}"
       end
     end
   end

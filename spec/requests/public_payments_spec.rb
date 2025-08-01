@@ -7,7 +7,7 @@ RSpec.describe 'Public Payments', type: :request do
   let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 10.00) }
 
   before do
-    host! "#{business.subdomain}.example.com"
+    host! host_for(business)
     ActsAsTenant.current_tenant = business
   end
 
@@ -27,8 +27,8 @@ RSpec.describe 'Public Payments', type: :request do
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
           invoice: invoice,
-          success_url: tenant_transaction_url(invoice, type: 'invoice', payment_success: true, host: "#{business.subdomain}.example.com"),
-          cancel_url: tenant_transaction_url(invoice, type: 'invoice', payment_cancelled: true, host: "#{business.subdomain}.example.com")
+          success_url: tenant_transaction_url(invoice, type: 'invoice', payment_success: true, host: host_for(business)),
+          cancel_url: tenant_transaction_url(invoice, type: 'invoice', payment_cancelled: true, host: host_for(business))
         )
       end
 
@@ -88,8 +88,8 @@ RSpec.describe 'Public Payments', type: :request do
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_guest_456')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
           invoice: invoice,
-          success_url: tenant_invoice_url(invoice, payment_success: true, token: invoice.guest_access_token, host: "#{business.subdomain}.example.com"),
-          cancel_url: tenant_invoice_url(invoice, payment_cancelled: true, token: invoice.guest_access_token, host: "#{business.subdomain}.example.com")
+          success_url: tenant_invoice_url(invoice, payment_success: true, token: invoice.guest_access_token, host: host_for(business)),
+          cancel_url: tenant_invoice_url(invoice, payment_cancelled: true, token: invoice.guest_access_token, host: host_for(business))
         )
       end
 

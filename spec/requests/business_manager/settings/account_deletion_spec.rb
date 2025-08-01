@@ -8,7 +8,7 @@ RSpec.describe "BusinessManager::Settings Account Deletion", type: :request do
     
     before do
       # Simulate subdomain in host for routes under SubdomainConstraint
-      host! "#{business.hostname}.example.com"
+      host! host_for(business)
       # Set current tenant for the request context
       ActsAsTenant.current_tenant = business
     end
@@ -177,7 +177,7 @@ RSpec.describe "BusinessManager::Settings Account Deletion", type: :request do
     
     before do
       # Simulate subdomain in host for routes under SubdomainConstraint
-      host! "#{business.hostname}.example.com"
+      host! host_for(business)
       # Set current tenant for the request context
       ActsAsTenant.current_tenant = business
     end
@@ -233,7 +233,7 @@ RSpec.describe "BusinessManager::Settings Account Deletion", type: :request do
     
     before do
       # Simulate subdomain in host for routes under SubdomainConstraint
-      host! "#{business.hostname}.example.com"
+      host! host_for(business)
       # Set current tenant for the request context
       ActsAsTenant.current_tenant = business
       sign_in manager_user

@@ -54,7 +54,7 @@
 
       <% if @business.hostname && !@business.hostname.empty? %>
         <p>You can book another appointment at any time by visiting our booking page:</p>
-        <a href="<%= new_tenant_booking_url(host: @business.hostname + '.lvh.me') %>" class="button">Book Another Appointment</a>
+        <a href="<%= tenant_url_for(@business, '/booking/new') %>" class="button">Book Another Appointment</a>
       <% end %>
     </div>
 

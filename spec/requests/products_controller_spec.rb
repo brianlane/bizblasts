@@ -14,7 +14,7 @@ RSpec.describe ProductsController, type: :request do
 
   before do
     # Explicitly set the request host for the request spec
-    host! "#{business.hostname}.example.com"
+    host! host_for(business)
     # Load two different fixture files
     file1 = fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg')
     file2 = fixture_file_upload('spec/fixtures/files/new-item.jpg', 'image/jpeg') # Use the new fixture

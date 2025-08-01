@@ -5,7 +5,7 @@ RSpec.describe BusinessManager::ProductsController, type: :controller do
   let(:manager_user) { create(:user, :manager, business: business) }
 
   before do
-    request.host = "#{business.subdomain}.example.com"
+    request.host = host_for(business)
     ActsAsTenant.current_tenant = business
     sign_in manager_user
   end

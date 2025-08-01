@@ -97,8 +97,8 @@
           <div class="border rounded-lg p-4 shadow hover:shadow-md transition-shadow flex flex-col justify-between">
             <div> <%# Top content section %>
               <h2 class="text-xl font-semibold mb-2">
-                <%# Construct subdomain URL using helper %>
-                <% if (url = tenant_url(business)) %>
+                <%# Construct subdomain URL using TenantHost helper %>
+                <% if (url = TenantHost.url_for(business, request)) %>
                   <%= link_to business.name, url, class: "text-blue-600 hover:underline", target: "_blank" %>
                 <% else %>
                   <%= business.name %> <%# Fallback if URL can't be generated %>

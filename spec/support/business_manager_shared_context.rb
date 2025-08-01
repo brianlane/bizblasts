@@ -12,7 +12,11 @@ RSpec.shared_context 'setup business context' do
   let!(:other_user)   { FactoryBot.create(:user, :manager, business: other_business) }
 
   def switch_to_subdomain(subdomain)
-    Capybara.app_host = "http://#{subdomain}.lvh.me"
+    # Use a mock business to generate consistent host URL
+    mock_business = double('Business', subdomain: subdomain, hostname: subdomain, host_type_subdomain?: true, host_type_custom_domain?: false)
+    request = create_test_request
+    host_url = TenantHost.url_for(mock_business, request)
+    Capybara.app_host = host_url
     # Optionally set server host/port if needed for rack_test
     # Capybara.server_host = 'lvh.me'
   end

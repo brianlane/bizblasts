@@ -36,7 +36,7 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <% if order.business %>
                 <% if order.business.hostname.present? %>
-                  <%= link_to order.business.name, "http://#{order.business.hostname}.#{request.domain}:#{request.port}", 
+                  <%= link_to order.business.name, TenantHost.url_for(order.business, request), 
                       class: "text-blue-600 hover:underline", target: "_blank" %>
                 <% else %>
                   <%= order.business.name %>

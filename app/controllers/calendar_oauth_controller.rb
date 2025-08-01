@@ -81,10 +81,10 @@ class CalendarOauthController < ApplicationController
     redirect_to_error("Failed to connect calendar: #{error_messages}")
   end
   
-  # Always send the user back to the host that handled the OAuth callback so
-  # we do not unexpectedly switch between custom-domain and sub-domain URLs.
-  def redirect_to_business_calendar_settings(_business)
-    target_url = "#{request.protocol}#{request.host_with_port}/manage/settings/calendar_integrations"
+  # Redirect the user back to their business settings page, preserving
+  # custom-domain vs subdomain hosting.
+  def redirect_to_business_calendar_settings(business)
+    target_url = TenantHost.url_for(business, request, '/manage/settings/calendar_integrations')
     redirect_to target_url, allow_other_host: true
   end
   
@@ -97,9 +97,9 @@ class CalendarOauthController < ApplicationController
         state_data = Rails.application.message_verifier(:calendar_oauth).verify(params[:state])
         business = Business.find(state_data['business_id'])
         
-        if business.subdomain.present?
-          redirect_to "#{request.protocol}#{business.subdomain}.#{request.domain}/manage/settings/calendar_integrations",
-                     alert: message
+        if business.present?
+          # Redirect back to the business-appropriate host (subdomain or custom domain)
+          redirect_to TenantHost.url_for(business, request, '/manage/settings/calendar_integrations'), alert: message
           return
         end
       rescue => e

@@ -22,7 +22,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
       it "allows creating customers with same email in different businesses" do
         # Create customer in business1
         ActsAsTenant.current_tenant = business1
-        host! "#{business1.subdomain}.example.com"
+        host! host_for(business1)
         
         post "/booking", params: {
           booking: {
@@ -41,7 +41,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
         
         # Create customer with same email in business2
         ActsAsTenant.current_tenant = business2
-        host! "#{business2.subdomain}.example.com"
+        host! host_for(business2)
         
         post "/booking", params: {
           booking: {
@@ -68,7 +68,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
     context "same email within same business" do
       it "finds existing customer instead of creating duplicate" do
         ActsAsTenant.current_tenant = business1
-        host! "#{business1.subdomain}.example.com"
+        host! host_for(business1)
         
         # Create first booking with customer
         post "/booking", params: {
