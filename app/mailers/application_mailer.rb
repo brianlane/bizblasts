@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ostruct'
+
 # Base mailer class for all application mailers
 # Sets default from address and layout
 class ApplicationMailer < ActionMailer::Base
@@ -51,9 +53,12 @@ class ApplicationMailer < ActionMailer::Base
 
   # Helper to generate tenant URLs in mailer templates
   def tenant_url_for(business, path = '/')
-    # Create a mock request for mailer context
-    mock_request = ActionDispatch::Request.empty
-    mock_request.protocol = Rails.env.production? ? 'https://' : 'http://'
+    # Create a proper mock request object for mailer context
+    mock_request = OpenStruct.new(
+      protocol: Rails.env.production? ? 'https://' : 'http://',
+      domain: Rails.env.development? || Rails.env.test? ? 'example.com' : 'bizblasts.com',
+      port: Rails.env.development? ? 3000 : (Rails.env.production? ? 443 : 80)
+    )
     TenantHost.url_for(business, mock_request, path)
   end
   helper_method :tenant_url_for

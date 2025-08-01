@@ -40,4 +40,45 @@ module TenantHost
 
     "#{request.protocol}#{host}#{port_str}#{path}"
   end
+
+  # Alias for compatibility and ease of grep-replace operations.
+  #
+  # @param business [Business] The business object
+  # @param request [ActionDispatch::Request] The current request object
+  # @param path [String] The path to append (defaults to root '/')
+  # @return [String] The complete URL
+  # @see #url_for
+  alias_method :full_url, :url_for
+
+  # Generates a URL for the main application domain (no subdomain/tenant).
+  #
+  # @param request [ActionDispatch::Request] The current request object
+  # @param path [String] The path to append (defaults to root '/')
+  # @return [String] The complete URL on the main domain
+  #
+  # @example Development
+  #   main_domain_url_for(request, '/dashboard') #=> "http://lvh.me:3000/dashboard"
+  #
+  # @example Production
+  #   main_domain_url_for(request, '/admin') #=> "https://bizblasts.com/admin"
+  def main_domain_url_for(request, path = '/')
+    # Determine main domain based on environment
+    main_domain = if Rails.env.development? || Rails.env.test?
+                    'lvh.me'
+                  else
+                    'bizblasts.com'
+                  end
+
+    # Include non-standard port for development
+    port_str = if request.port && ![80, 443].include?(request.port)
+                 ":#{request.port}"
+               else
+                 ''
+               end
+
+    # Ensure path starts with a slash
+    path = path.start_with?('/') ? path : "/#{path}"
+
+    "#{request.protocol}#{main_domain}#{port_str}#{path}"
+  end
 end

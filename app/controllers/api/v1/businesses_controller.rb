@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Api::V1::BusinessesController < ApplicationController
   # Skip Rails authentication for all API endpoints - we use API key auth instead
   skip_before_action :authenticate_user!
@@ -266,8 +268,11 @@ class Api::V1::BusinessesController < ApplicationController
   
   def business_website_url(business)
     # Use TenantHost helper for consistent URL generation
-    mock_request = ActionDispatch::Request.empty
-    mock_request.protocol = 'https://'
+    mock_request = OpenStruct.new(
+      protocol: 'https://',
+      domain: 'bizblasts.com',
+      port: 443
+    )
     TenantHost.url_for(business, mock_request)
   end
   
