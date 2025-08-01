@@ -18,6 +18,15 @@ class StaffMember < ApplicationRecord
   has_many :services, through: :services_staff_members
   has_many :calendar_connections, dependent: :destroy
   belongs_to :default_calendar_connection, class_name: 'CalendarConnection', optional: true
+
+  # --------------------------------------------------------------------------
+  # Calendar connection integrity
+  # --------------------------------------------------------------------------
+  # Ensure the chosen default connection actually belongs to this staff member
+  validate  :default_calendar_connection_must_belong_to_staff_member
+  # Break the circular foreign-key dependency between staff_members.default_calendar_connection_id
+  # and calendar_connections.staff_member_id by clearing the reference before destroy.
+  before_destroy :clear_default_calendar_connection_id
   
   # Bidirectional deletion: when staff member is deleted, delete associated user
   before_destroy :delete_associated_user, if: -> { user.present? }
@@ -188,6 +197,28 @@ class StaffMember < ApplicationRecord
     default_calendar_connection || active_calendar_connections.first
   end
   
+  private
+
+  # --------------------------------------------------------------------------
+  # Validation helpers
+  # --------------------------------------------------------------------------
+  def default_calendar_connection_must_belong_to_staff_member
+    return if default_calendar_connection.blank?
+
+    if default_calendar_connection.staff_member_id != id
+      errors.add(:default_calendar_connection_id, :invalid, message: 'must reference a calendar connection belonging to the same staff member')
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  # Callback helpers
+  # --------------------------------------------------------------------------
+  def clear_default_calendar_connection_id
+    # Use update_column to avoid validation callbacks which could fail if the
+    # default connection is already being destroyed in the same transaction.
+    update_column(:default_calendar_connection_id, nil) if default_calendar_connection_id.present?
+  end
+
   private
 
   def set_default_name_from_user

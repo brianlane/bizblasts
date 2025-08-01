@@ -41,6 +41,7 @@ class CalendarConnection < ApplicationRecord
   after_create_commit :clear_staff_availability_cache
   after_update_commit :clear_staff_availability_cache, if: :saved_change_to_last_synced_at?
   after_destroy_commit :clear_staff_availability_cache
+  after_destroy_commit :remove_default_reference_from_staff_member
   
   def oauth_provider?
     google? || microsoft?
@@ -116,6 +117,16 @@ class CalendarConnection < ApplicationRecord
     end
   end
   
+  # --------------------------------------------------------------------------
+  # Callback helpers
+  # --------------------------------------------------------------------------
+  def remove_default_reference_from_staff_member
+    return unless staff_member&.default_calendar_connection_id == id
+
+    # Skip validations to avoid potential circular dependency or validation failures
+    staff_member.update_column(:default_calendar_connection_id, nil)
+  end
+
   private
   
   def set_connected_at

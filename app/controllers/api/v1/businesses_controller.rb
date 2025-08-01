@@ -16,7 +16,7 @@ class Api::V1::BusinessesController < ApplicationController
     # This prevents mass data harvesting while allowing legitimate API usage
     @businesses = Business.active
                          .where.not(hostname: nil)
-                         .select(:id, :name, :hostname, :industry, :city, :state, :host_type)
+                         .select(:id, :name, :hostname, :subdomain, :industry, :city, :state, :host_type)
                          .limit(20)
                          .order(:name)
     
