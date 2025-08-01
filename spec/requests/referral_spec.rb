@@ -6,7 +6,7 @@ RSpec.describe '/referral', type: :request do
   let(:manager_user) { create(:user, role: :manager, business: business) }
 
   before do
-    host! "#{business.subdomain}.example.com"
+    host! host_for(business)
     ActsAsTenant.current_tenant = business
     
     business.create_referral_program!(

@@ -254,19 +254,8 @@ module ApplicationHelper
   def public_page_url(page, business = nil)
     business ||= current_business
     
-    # Build the URL for the public page
-    if business.host_type_custom_domain?
-      "#{request.protocol}#{business.hostname}/#{page.slug}"
-    elsif business.host_type_subdomain?
-      if Rails.env.development? || Rails.env.test?
-        "http://#{business.hostname}.lvh.me:#{request.port}/#{page.slug}"
-      else
-        "#{request.protocol}#{business.hostname}.bizblasts.com/#{page.slug}"
-      end
-    else
-      # Fallback to current domain with page slug
-      "/#{page.slug}"
-    end
+    # Build the URL for the public page using TenantHost helper
+    TenantHost.url_for(business, request, "/#{page.slug}")
   end
 
   def format_next_billing_date(date)

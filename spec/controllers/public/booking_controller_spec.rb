@@ -5,7 +5,7 @@ RSpec.describe Public::BookingController, type: :controller do
   
   before do
     ActsAsTenant.current_tenant = business
-    request.host = "#{business.subdomain}.example.com"
+    request.host = host_for(business)
   end
 
   describe 'POST #create' do

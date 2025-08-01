@@ -125,9 +125,7 @@
               <% if business.hostname.present? %>
                 <div class="mt-2">
                   <%= link_to "Visit Website", 
-                        (Rails.env.development? ? 
-                          "http://#{business.hostname}.lvh.me:#{request.port}" : 
-                          "https://#{business.hostname}.bizblasts.com"), 
+                        TenantHost.url_for(business, request), 
                         target: "_blank", 
                         class: "text-primary hover:underline text-xs sm:text-sm" %>
                 </div>

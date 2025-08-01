@@ -9,7 +9,7 @@ RSpec.describe Public::TipsController, type: :controller do
   let(:token) { booking.generate_tip_token }
 
   before do
-    request.host = "#{business.subdomain}.example.com"
+    request.host = host_for(business)
     ActsAsTenant.current_tenant = business
     sign_in user
     

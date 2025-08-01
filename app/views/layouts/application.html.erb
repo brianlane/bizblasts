@@ -188,19 +188,7 @@
                   <% dashboard_path = business_manager_dashboard_path %>
                 <% else %>
                   <%# User is on main domain or different business subdomain - redirect to their own business %>
-                  <% if Rails.env.development? || Rails.env.test? %>
-                    <% if business.host_type_subdomain? %>
-                      <% dashboard_path = "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard" %>
-                    <% else %>
-                      <% dashboard_path = "http://#{business.hostname}:#{request.port}/manage/dashboard" %>
-                    <% end %>
-                  <% else %>
-                    <% if business.host_type_custom_domain? %>
-                      <% dashboard_path = "#{request.protocol}#{business.hostname}/manage/dashboard" %>
-                    <% else %>
-                      <% dashboard_path = "#{request.protocol}#{business.hostname}.bizblasts.com/manage/dashboard" %>
-                    <% end %>
-                  <% end %>
+                  <% dashboard_path = TenantHost.url_for(business, request, '/manage/dashboard') %>
                 <% end %>
               <% else %>
                 <% dashboard_path = root_path %>

@@ -265,11 +265,10 @@ class Api::V1::BusinessesController < ApplicationController
   end
   
   def business_website_url(business)
-    if business.host_type == 'custom_domain'
-      "https://#{business.hostname}"
-    else
-      "https://#{business.hostname}.bizblasts.com"
-    end
+    # Use TenantHost helper for consistent URL generation
+    mock_request = ActionDispatch::Request.empty
+    mock_request.protocol = 'https://'
+    TenantHost.url_for(business, mock_request)
   end
   
   def service_categories_data

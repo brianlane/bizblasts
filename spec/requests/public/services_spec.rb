@@ -29,7 +29,7 @@ RSpec.describe 'Services', type: :request do
   end
 
   before do
-    host! "#{business.subdomain}.example.com"
+    host! host_for(business)
     ActsAsTenant.current_tenant = business
   end
 

@@ -156,7 +156,7 @@ RSpec.describe 'Policy Acceptance Modal', type: :system do
       driven_by(:rack_test)
       
       # Configure Capybara for subdomain
-      Capybara.app_host = "http://#{business.subdomain}.example.com"
+      Capybara.app_host = "http://#{host_for(business)}"
       
       # Set tenant context for the business
       ActsAsTenant.current_tenant = business

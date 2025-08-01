@@ -60,27 +60,7 @@ module Users
         # Construct the URL for the tenant's dashboard based on the business setup
         # This handles both subdomain and custom domain configurations
         business = resource.business
-        
-        if Rails.env.development? || Rails.env.test?
-          # Development: Use lvh.me with port for local testing
-          # Supports both subdomain and custom domain testing scenarios
-          if business.host_type_subdomain?
-            return "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard"
-          else
-            # For testing custom domains in development
-            return "http://#{business.hostname}:#{request.port}/manage/dashboard"
-          end
-        else
-          # Production: Use actual domains with HTTPS
-          protocol = request.protocol
-          if business.host_type_custom_domain?
-            # Custom domain: hostname contains the full domain (e.g., app.mycompany.com)
-            return "#{protocol}#{business.hostname}/manage/dashboard"
-          else
-            # Subdomain: hostname contains just the subdomain part
-            return "#{protocol}#{business.hostname}.bizblasts.com/manage/dashboard"
-          end
-        end
+        return TenantHost.url_for(business, request, '/manage/dashboard')
       end
       
       # Redirect clients to their dashboard

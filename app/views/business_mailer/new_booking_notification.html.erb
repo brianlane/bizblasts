@@ -83,7 +83,7 @@
         </div>
 
         <div style="text-align: center;">
-          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/bookings/<%= @booking.id %>" class="cta-button">
+          <a href="<%= tenant_url_for(@business, "/manage/bookings/#{@booking.id}") %>" class="cta-button">
             View Booking Details
           </a>
         </div>
@@ -94,7 +94,7 @@
       <div class="footer">
         <p style="margin: 0; color: #6c757d; font-size: 14px;">
           This notification was sent because you have business booking notifications enabled.<br>
-          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/settings/profile/edit" style="color: #007bff;">Manage notification preferences</a>
+          <a href="<%= tenant_url_for(@business, '/manage/settings/profile/edit') %>" style="color: #007bff;">Manage notification preferences</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 12px;">
           © <%= Date.current.year %> BizBlasts. All rights reserved.

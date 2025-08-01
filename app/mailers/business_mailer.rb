@@ -366,4 +366,13 @@ class BusinessMailer < ApplicationMailer
     # Check the specific notification type
     preferences[notification_type] == true
   end
+
+  # Helper to generate tenant URLs in mailer templates
+  def tenant_url_for(business, path = '/')
+    # Create a mock request for mailer context
+    mock_request = ActionDispatch::Request.empty
+    mock_request.protocol = Rails.env.production? ? 'https://' : 'http://'
+    TenantHost.url_for(business, mock_request, path)
+  end
+  helper_method :tenant_url_for
 end 

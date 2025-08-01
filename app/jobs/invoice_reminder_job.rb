@@ -91,8 +91,10 @@ class InvoiceReminderJob < ApplicationJob
   end
   
   def payment_url(invoice)
-    # This would generate a URL to the payment page
+    # This would generate a URL to the payment page using TenantHost helper
     # In a real implementation, this might include a secure token
-    "https://#{invoice.business.subdomain}.example.com/invoices/#{invoice.id}/pay"
+    mock_request = ActionDispatch::Request.empty
+    mock_request.protocol = Rails.env.production? ? 'https://' : 'http://'
+    TenantHost.url_for(invoice.business, mock_request, "/invoices/#{invoice.id}/pay")
   end
 end
