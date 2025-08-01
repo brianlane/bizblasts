@@ -268,10 +268,22 @@ class Api::V1::BusinessesController < ApplicationController
   
   def business_website_url(business)
     # Use TenantHost helper for consistent URL generation
+    # Use environment-appropriate domain and protocol
+    domain = Rails.env.production? ? 'bizblasts.com' : 'lvh.me'
+    protocol = Rails.env.production? ? 'https://' : 'http://'
+    
+    # For custom domains, use standard ports (80/443) to avoid adding port numbers
+    # For subdomain businesses in test, use Capybara server port
+    if business.host_type_custom_domain?
+      port = Rails.env.production? ? 443 : 80
+    else
+      port = Rails.env.production? ? 443 : (Rails.env.test? && defined?(Capybara) && Capybara.server_port ? Capybara.server_port : 3000)
+    end
+    
     mock_request = OpenStruct.new(
-      protocol: 'https://',
-      domain: 'bizblasts.com',
-      port: 443
+      protocol: protocol,
+      domain: domain,
+      port: port
     )
     TenantHost.url_for(business, mock_request)
   end

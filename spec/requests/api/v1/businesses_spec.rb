@@ -524,7 +524,8 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       json_response = JSON.parse(response.body)
       business = json_response['business']
       
-      expect(business['website_url']).to eq('https://customdomain.com')
+      # In test environment, custom domains should use http protocol
+      expect(business['website_url']).to eq('http://customdomain.com')
     end
 
     it 'generates correct URLs for subdomain businesses' do
@@ -533,7 +534,9 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       json_response = JSON.parse(response.body)
       business = json_response['business']
       
-      expect(business['website_url']).to eq('https://subdomain.bizblasts.com')
+      # In test environment, expect lvh.me domain with http protocol
+      expected_url = "http://subdomain.lvh.me:#{Capybara.server_port}"
+      expect(business['website_url']).to eq(expected_url)
     end
   end
 end 
