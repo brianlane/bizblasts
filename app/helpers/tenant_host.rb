@@ -23,11 +23,7 @@ module TenantHost
       # Always use the main application domain for subdomains, not the current request domain
       # This prevents issues like generating "subdomain.custom-domain.com" when the current 
       # request is from a custom domain business
-      main_domain = if Rails.env.development? || Rails.env.test?
-                      'lvh.me'
-                    else
-                      'bizblasts.com'
-                    end
+      main_domain = Rails.application.config.main_domain.split(':').first
       
       # Use subdomain field if present, otherwise fall back to hostname
       subdomain_part = business.subdomain.presence || business.hostname.presence
