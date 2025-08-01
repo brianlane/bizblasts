@@ -54,7 +54,8 @@ end
 
 # Configure the default host for Capybara tests
 Capybara.server_host = 'lvh.me'
-Capybara.server_port = 3001 # Use a specific port
+# Don't override server_port here - let rails_helper.rb set it for parallel tests
+# Capybara.server_port = 3001 # Use a specific port
 Capybara.app_host = "http://#{Capybara.server_host}:#{Capybara.server_port}"
 Capybara.default_host = Capybara.app_host
 

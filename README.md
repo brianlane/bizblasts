@@ -35,6 +35,31 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 * Node.js and Yarn/Bun
 * Rails 8.0.2
 
+## Domain Architecture: Subdomain vs Custom Domain
+
+BizBlasts supports two tenant hosting modes:
+
+| Host Type            | Database Columns Used | Example |
+|----------------------|-----------------------|---------|
+| `subdomain` (default)| `subdomain` contains the subdomain **only** (e.g. `acme`) <br/> `hostname` may also be populated but is ignored for routing | `https://acme.bizblasts.com` (production) <br/> `http://acme.lvh.me:3000` (development) |
+| `custom_domain`      | `hostname` stores the full custom domain (e.g. `acme-corp.com`) | `https://acme-corp.com` |
+
+When generating links or redirects **always use the `TenantHost` helper (it automatically adds `:port` in dev/test)**:
+
+```
+if business.host_type_subdomain?
+  # Use the subdomain column
+  "#{business.subdomain}.#{request.domain}"
+else # host_type_custom_domain?
+  # Use the hostname column
+  business.hostname
+end
+```
+
+This convention is enforced throughout the codebase (controllers, helpers, mailers, etc.) to ensure users remain on the correct host.
+
+---
+
 ## Getting Started
 
 1. Clone the repository

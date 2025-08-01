@@ -27,7 +27,7 @@ RSpec.describe 'Authentication', type: :system do
       login_as(manager_user, scope: :user)
       
       # Visit the business manager dashboard directly
-      host = "#{test_business.hostname}.example.com"
+      host = host_for(test_business)
       visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
@@ -57,7 +57,7 @@ RSpec.describe 'Authentication', type: :system do
       login_as(user, scope: :user)
       
       # Visit the business manager dashboard directly
-      host = "#{user.business.hostname}.example.com"
+      host = host_for(user.business)
       visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
@@ -118,7 +118,7 @@ RSpec.describe 'Authentication', type: :system do
       login_as(user, scope: :user)
       
       # Visit the business manager dashboard directly
-      host = "#{user.business.hostname}.example.com"
+      host = host_for(user.business)
       visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard
@@ -147,14 +147,14 @@ RSpec.describe 'Authentication', type: :system do
       login_as(manager, scope: :user)
       
       # Visit the business manager dashboard directly
-      host = "#{test_business.hostname}.example.com"
-      visit "http://#{host}/manage/dashboard"
+      dashboard_url = url_for_business(test_business, '/manage/dashboard')
+      visit dashboard_url
       
       # Verify we're on the dashboard
       expect(page).to have_content("Dashboard")
       
-      # Construct the expected URL
-      expected_url = "http://#{test_business.hostname}.example.com/manage/dashboard"
+      # Construct the expected URL using the same logic as TenantHost
+      expected_url = url_for_business(test_business, '/manage/dashboard')
       # Assert current_url
       expect(current_url).to match(/#{Regexp.escape(expected_url)}(\/?)$/)
       expect(page).to have_content("Welcome") # Check for dashboard content
@@ -170,7 +170,7 @@ RSpec.describe 'Authentication', type: :system do
       login_as(manager, scope: :user)
       
       # Visit the business manager dashboard - construct URL manually
-      host = "#{business.hostname}.example.com"
+      host = host_for(business)
       visit "http://#{host}/manage/dashboard"
       
       # Verify we're on the dashboard

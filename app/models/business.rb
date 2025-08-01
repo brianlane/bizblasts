@@ -171,6 +171,9 @@ class Business < ApplicationRecord
   has_many :tips, dependent: :destroy
   has_one :tip_configuration, dependent: :destroy
   
+  # Calendar integration associations
+  has_many :calendar_connections, dependent: :destroy
+  
   # Website customization associations
   has_many :website_themes, dependent: :destroy
   has_one :active_website_theme, -> { where(active: true) }, class_name: 'WebsiteTheme'
@@ -520,13 +523,13 @@ class Business < ApplicationRecord
     # Determine host based on environment and host_type
     host = if Rails.env.development?
       # Development: use lvh.me with subdomain
-      "#{hostname}.lvh.me"
+      "#{(subdomain.presence || hostname)}.lvh.me"
     elsif host_type_custom_domain?
       # Custom domain: use full hostname
       hostname
     else
       # Subdomain in other envs: append main domain
-      "#{hostname}.bizblasts.com"
+      "#{(subdomain.presence || hostname)}.bizblasts.com"
     end
 
     # Determine protocol

@@ -55,7 +55,7 @@
           <% end %>
           <% if @order.business.hostname.present? %>
             <p class="mb-2">
-              <%= link_to "Visit Business Website", "http://#{@order.business.hostname}.#{request.domain}:#{request.port}", 
+              <%= link_to "Visit Business Website", TenantHost.url_for(@order.business, request), 
                   class: "text-blue-600 hover:underline", target: "_blank" %>
             </p>
           <% end %>

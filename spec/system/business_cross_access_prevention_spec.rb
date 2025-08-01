@@ -24,7 +24,7 @@ RSpec.describe 'Business Cross-Access Prevention', type: :system do
 
   # Helper method to visit a business subdomain
   def visit_business_subdomain(business, path = '/')
-    host = "#{business.hostname}.example.com"
+    host = host_for(business)
     visit "http://#{host}#{path}"
   end
 

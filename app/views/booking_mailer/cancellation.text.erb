@@ -28,7 +28,7 @@ We sincerely apologize for any inconvenience this may cause. If you have any que
 
 <% if @business.hostname && !@business.hostname.empty? %>
 You can book another appointment at any time by visiting our booking page:
-<%= new_tenant_booking_url(host: @business.hostname + '.lvh.me') %>
+<%= tenant_url_for(@business, '/booking/new') %>
 
 <% end %>
 We appreciate your understanding and look forward to serving you in the future.

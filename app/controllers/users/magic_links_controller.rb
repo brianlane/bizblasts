@@ -71,21 +71,8 @@ class Users::MagicLinksController < Devise::Passwordless::SessionsController
     nil
   end
 
-  # Generate the correct dashboard URL for a business (subdomain or custom domain)
+  # Generate a tenant-aware URL using the central helper
   def generate_business_dashboard_url(business, path = '/manage/dashboard')
-    if Rails.env.development? || Rails.env.test?
-      if business.host_type_subdomain?
-        "http://#{business.hostname}.lvh.me:#{request.port}#{path}"
-      else
-        "http://#{business.hostname}:#{request.port}#{path}"
-      end
-    else
-      protocol = request.ssl? ? 'https://' : 'http://'
-      if business.host_type_custom_domain?
-        "#{protocol}#{business.hostname}#{path}"
-      else
-        "#{protocol}#{business.hostname}.bizblasts.com#{path}"
-      end
-    end
+    TenantHost.url_for(business, request, path)
   end
 end
