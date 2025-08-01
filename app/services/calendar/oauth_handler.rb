@@ -82,7 +82,7 @@ module Calendar
     def microsoft_authorization_url(business_id, staff_member_id, redirect_uri)
       state = generate_state(business_id, staff_member_id, 'microsoft')
       
-      client_id = ENV['MICROSOFT_CLIENT_ID']
+      client_id = ENV['MICROSOFT_CALENDAR_CLIENT_ID']
       unless client_id
         add_error(:missing_credentials, "Microsoft Graph client ID not configured")
         return nil
@@ -155,8 +155,8 @@ module Calendar
     end
     
     def handle_microsoft_callback(code, state_data, redirect_uri)
-      client_id = ENV['MICROSOFT_CLIENT_ID']
-      client_secret = ENV['MICROSOFT_CLIENT_SECRET']
+      client_id = ENV['MICROSOFT_CALENDAR_CLIENT_ID']
+      client_secret = ENV['MICROSOFT_CALENDAR_CLIENT_SECRET']
       
       unless client_id && client_secret
         add_error(:missing_credentials, "Microsoft Graph credentials not configured")
@@ -236,8 +236,8 @@ module Calendar
     end
     
     def refresh_microsoft_token(calendar_connection)
-      client_id = ENV['MICROSOFT_CLIENT_ID']
-      client_secret = ENV['MICROSOFT_CLIENT_SECRET']
+      client_id = ENV['MICROSOFT_CALENDAR_CLIENT_ID']
+      client_secret = ENV['MICROSOFT_CALENDAR_CLIENT_SECRET']
       
       oauth_client = OAuth2::Client.new(
         client_id,
