@@ -7,7 +7,7 @@ RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
   
   before do
     ActsAsTenant.current_tenant = business
-    Capybara.app_host = "http://#{business.hostname}.lvh.me"
+    Capybara.app_host = "http://#{host_for(business)}"
     # Associate staff with services for testing
     services.each { |service| create(:services_staff_member, service: service, staff_member: staff_members.first) }
   end

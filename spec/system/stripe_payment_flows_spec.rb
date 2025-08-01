@@ -10,6 +10,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   before do
     ActsAsTenant.current_tenant = business
     set_tenant(business)
+    Capybara.app_host = url_for_business(business)
     
     # Mock StripeService payment intent creation - will be called with the actual invoice
     allow(StripeService).to receive(:create_payment_intent) do |args|

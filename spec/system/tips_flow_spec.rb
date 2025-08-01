@@ -12,6 +12,7 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
   before do
     ActsAsTenant.current_tenant = business
     set_tenant(business)
+    Capybara.app_host = url_for_business(business)
     
     # Mock Stripe tip checkout session creation
     allow(StripeService).to receive(:create_tip_payment_session).and_return({
