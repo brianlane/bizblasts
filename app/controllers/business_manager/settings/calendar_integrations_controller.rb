@@ -150,9 +150,13 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
     providers = []
     
     # Check if Google Calendar credentials are configured
-    if ENV['GOOGLE_CALENDAR_CLIENT_ID'].present? && ENV['GOOGLE_CALENDAR_CLIENT_SECRET'].present?
-      providers << 'google'
-    end
+    google_configured = if Rails.env.development? || Rails.env.test?
+                          ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV'].present? && ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV'].present?
+                        else
+                          ENV['GOOGLE_CALENDAR_CLIENT_ID'].present? && ENV['GOOGLE_CALENDAR_CLIENT_SECRET'].present?
+                        end
+    
+    providers << 'google' if google_configured
     
     # Check if Microsoft Graph credentials are configured
     if ENV['MICROSOFT_CALENDAR_CLIENT_ID'].present? && ENV['MICROSOFT_CALENDAR_CLIENT_SECRET'].present?
