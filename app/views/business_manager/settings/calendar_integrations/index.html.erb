@@ -46,6 +46,24 @@
               <span class="sync-status <%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') %>">
                 <%= staff_member.calendar_sync_status %>
               </span>
+              
+              <% if staff_member.has_calendar_integrations? %>
+                <div class="booking-sync-stats">
+                  <small class="sync-stat">
+                    <strong><%= staff_member.synced_bookings_count %></strong> bookings synced
+                  </small>
+                  <% if staff_member.pending_sync_bookings_count > 0 %>
+                    <small class="sync-stat pending">
+                      <strong><%= staff_member.pending_sync_bookings_count %></strong> pending sync
+                    </small>
+                  <% end %>
+                  <% if staff_member.failed_sync_bookings_count > 0 %>
+                    <small class="sync-stat failed">
+                      <strong><%= staff_member.failed_sync_bookings_count %></strong> failed sync
+                    </small>
+                  <% end %>
+                </div>
+              <% end %>
             </div>
             
             <div class="calendar-connections">
@@ -184,6 +202,23 @@
     .sync-status.syncing { background: #fff3cd; color: #856404; }
     .sync-status.sync-issues { background: #f8d7da; color: #721c24; }
     .sync-status.no-integrations { background: #e2e3e5; color: #383d41; }
+    
+    .booking-sync-stats { 
+      margin-top: 8px; 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 12px; 
+    }
+    .sync-stat { 
+      font-size: 11px; 
+      color: #666; 
+      background: #f8f9fa; 
+      padding: 2px 6px; 
+      border-radius: 3px; 
+      white-space: nowrap; 
+    }
+    .sync-stat.pending { background: #fff3cd; color: #856404; }
+    .sync-stat.failed { background: #f8d7da; color: #721c24; }
 
     .calendar-connections { }
     .connection-item { 
