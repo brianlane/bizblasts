@@ -153,28 +153,45 @@ module Calendar
     def setup_authorization
       return unless calendar_connection.access_token
       
-      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
-      client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
-      
-      @auth_client = Signet::OAuth2::Client.new(
-        client_id: client_id,
-        client_secret: client_secret,
-        token_credential_uri: 'https://oauth2.googleapis.com/token',
-        access_token: calendar_connection.access_token,
-        refresh_token: calendar_connection.refresh_token,
-        expires_at: calendar_connection.token_expires_at
-      )
-      
-      # Enable automatic token refresh
-      @auth_client.update_token_callback = proc do |token_data|
-        calendar_connection.update!(
-          access_token: token_data[:access_token],
-          token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
-        )
-        Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+      # Use dev credentials in development/test environments
+      if Rails.env.development? || Rails.env.test?
+        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
+        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV']
+      else
+        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
       end
       
-      @calendar_service.authorization = @auth_client
+      # Skip setup if credentials are missing (common in tests)
+      unless client_id && client_secret
+        Rails.logger.warn("Google Calendar credentials not configured, skipping authorization setup")
+        return
+      end
+      
+      begin
+        @auth_client = Signet::OAuth2::Client.new(
+          client_id: client_id,
+          client_secret: client_secret,
+          token_credential_uri: 'https://oauth2.googleapis.com/token',
+          access_token: calendar_connection.access_token,
+          refresh_token: calendar_connection.refresh_token,
+          expires_at: calendar_connection.token_expires_at
+        )
+        
+        # Enable automatic token refresh
+        @auth_client.update_token_callback = proc do |token_data|
+          calendar_connection.update!(
+            access_token: token_data[:access_token],
+            token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
+          )
+          Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+        end
+        
+        @calendar_service.authorization = @auth_client
+      rescue => e
+        Rails.logger.warn("Failed to setup Google Calendar authorization: #{e.message}")
+        add_error(:authorization_setup_failed, "Failed to setup calendar authorization")
+      end
     end
     
     def build_google_event(event_data)

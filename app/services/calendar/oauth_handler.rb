@@ -60,7 +60,13 @@ module Calendar
       
       state = generate_state(business_id, staff_member_id, 'google')
       
-      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+      # Use dev credentials in development/test environments
+      client_id = if Rails.env.development? || Rails.env.test?
+                    ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
+                  else
+                    ENV['GOOGLE_CALENDAR_CLIENT_ID']
+                  end
+      
       unless client_id
         add_error(:missing_credentials, "Google Calendar client ID not configured")
         return nil
@@ -104,8 +110,14 @@ module Calendar
       require 'googleauth'
       require 'google/apis/calendar_v3'
       
-      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
-      client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
+      # Use dev credentials in development/test environments
+      if Rails.env.development? || Rails.env.test?
+        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
+        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV']
+      else
+        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
+      end
       
       unless client_id && client_secret
         add_error(:missing_credentials, "Google Calendar credentials not configured")
@@ -208,8 +220,14 @@ module Calendar
     def refresh_google_token(calendar_connection)
       require 'googleauth'
       
-      client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
-      client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
+      # Use dev credentials in development/test environments
+      if Rails.env.development? || Rails.env.test?
+        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
+        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV']
+      else
+        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
+        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
+      end
       
       auth_client = Signet::OAuth2::Client.new(
         client_id: client_id,
