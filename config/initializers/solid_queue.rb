@@ -32,6 +32,17 @@ if defined?(SolidQueue)
         task.description = 'Auto cancel unpaid product orders after tier-specific deadlines'
       end
       
+      # Schedule token refresh for calendar integrations every 5 minutes
+      SolidQueue::RecurringTask.find_or_create_by!(key: 'calendar_token_refresh') do |task|
+        task.schedule    = '*/5 * * * *' # every 5 minutes
+        task.class_name  = 'Calendar::TokenRefreshJob'
+        task.arguments   = '[]'
+        task.queue_name  = 'low_priority'
+        task.priority    = 10
+        task.static      = true
+        task.description = 'Proactively refresh expiring calendar OAuth tokens'
+      end
+      
       Rails.logger.info "SolidQueue recurring tasks configured successfully"
       
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError, PG::ConnectionBad => e
