@@ -70,7 +70,7 @@
     <div data-navbar-target="overlay" data-action="click->navbar#overlayClick" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
 
     <!-- Sidebar -->
-    <div id="sidebar" data-navbar-target="sidebar" class="fixed lg:relative w-64 bg-gray-800 text-white h-screen lg:h-full flex flex-col z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto">
+    <div id="sidebar" data-navbar-target="sidebar" class="fixed lg:relative w-64 bg-gray-800 text-white h-screen lg:h-full flex flex-col z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto" style="height: calc(100dvh - env(safe-area-inset-top, 0px));">
       <div class="p-4 flex-shrink-0">
         <div class="flex items-center justify-between">
           <h2 class="text-xl lg:text-2xl font-semibold"><%= @current_business&.name %></h2>
