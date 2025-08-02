@@ -178,19 +178,29 @@ module Calendar
           expires_at: calendar_connection.token_expires_at
         )
         
-        # Enable automatic token refresh
-        @auth_client.update_token_callback = proc do |token_data|
-          calendar_connection.update!(
-            access_token: token_data[:access_token],
-            token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
-          )
-          Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+        # Always set the authorization on the calendar service first
+        @calendar_service.authorization = @auth_client
+        
+        # Enable automatic token refresh (this might fail but shouldn't break auth)
+        begin
+          @auth_client.update_token_callback = proc do |token_data|
+            calendar_connection.update!(
+              access_token: token_data[:access_token],
+              token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
+            )
+            Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+          end
+        rescue => callback_error
+          Rails.logger.warn("Failed to setup token refresh callback: #{callback_error.message}")
+          # Don't fail the whole setup if callback fails
         end
         
-        @calendar_service.authorization = @auth_client
+        Rails.logger.debug("Google Calendar authorization setup completed for connection #{calendar_connection.id}")
+        
       rescue => e
-        Rails.logger.warn("Failed to setup Google Calendar authorization: #{e.message}")
-        add_error(:authorization_setup_failed, "Failed to setup calendar authorization")
+        Rails.logger.error("Failed to setup Google Calendar authorization: #{e.message}")
+        Rails.logger.error("Backtrace: #{e.backtrace[0..2].join("\n")}")
+        add_error(:authorization_setup_failed, "Failed to setup calendar authorization: #{e.message}")
       end
     end
     
@@ -216,17 +226,7 @@ module Calendar
           )
         end,
         reminders: Google::Apis::CalendarV3::Event::Reminders.new(
-          use_default: false,
-          overrides: [
-            Google::Apis::CalendarV3::EventReminder.new(
-              method: 'email',
-              minutes: 60
-            ),
-            Google::Apis::CalendarV3::EventReminder.new(
-              method: 'popup',
-              minutes: 15
-            )
-          ]
+          use_default: true
         )
       )
     end
