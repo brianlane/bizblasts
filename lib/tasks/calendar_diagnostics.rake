@@ -35,6 +35,29 @@ namespace :calendar do
     puts "✅ Sync jobs enqueued"
   end
   
+  desc "Retry failed sync bookings for a business"
+  task :retry_failed, [:business_id] => :environment do |t, args|
+    business = Business.find(args[:business_id])
+    
+    puts "🔄 Retrying failed sync bookings for #{business.name}"
+    
+    failed_bookings = business.bookings
+                             .joins(:staff_member)
+                             .joins('LEFT JOIN calendar_connections ON calendar_connections.staff_member_id = staff_members.id')
+                             .where(calendar_connections: { active: true })
+                             .where(calendar_event_status: :sync_failed)
+    
+    puts "Found #{failed_bookings.count} failed bookings to retry"
+    
+    failed_bookings.find_each do |booking|
+      puts "Retrying booking #{booking.id} (#{booking.service_name} - #{booking.start_time})"
+      booking.update!(calendar_event_status: :sync_pending)
+      Calendar::SyncBookingJob.perform_later(booking.id)
+    end
+    
+    puts "✅ Failed booking sync jobs enqueued"
+  end
+  
   desc "Check calendar connection health"
   task :health_check, [:business_id] => :environment do |t, args|
     business = Business.find(args[:business_id])
