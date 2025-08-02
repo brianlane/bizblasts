@@ -197,6 +197,37 @@ class StaffMember < ApplicationRecord
     default_calendar_connection || active_calendar_connections.first
   end
   
+  # Booking sync statistics
+  def synced_bookings_count(since: 30.days.ago)
+    bookings.where(calendar_event_status: :synced)
+            .where(created_at: since..)
+            .count
+  end
+  
+  def pending_sync_bookings_count
+    bookings.where(calendar_event_status: [:not_synced, :sync_pending]).count
+  end
+  
+  def failed_sync_bookings_count
+    bookings.where(calendar_event_status: :sync_failed).count
+  end
+  
+  def total_bookings_requiring_sync_count(since: 30.days.ago)
+    return 0 unless has_calendar_integrations?
+    
+    bookings.where(created_at: since..)
+            .where.not(calendar_event_status: :not_synced)
+            .count
+  end
+  
+  def calendar_sync_success_rate(since: 30.days.ago)
+    total = total_bookings_requiring_sync_count(since: since)
+    return 0 if total.zero?
+    
+    synced = synced_bookings_count(since: since)
+    (synced.to_f / total * 100).round(1)
+  end
+  
   private
 
   # --------------------------------------------------------------------------

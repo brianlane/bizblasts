@@ -604,7 +604,8 @@ class AvailabilityService
     # does not implement it, so we verify that the method is defined at the
     # concrete store class level (i.e., not inherited from
     # ActiveSupport::Cache::Store).
-    if Rails.cache.class.instance_methods(false).include?(:delete_matched)
+    if Rails.cache.respond_to?(:delete_matched) &&
+       Rails.cache.method(:delete_matched).owner != ActiveSupport::Cache::Store
       Rails.cache.delete_matched(cache_pattern)
       Rails.cache.delete_matched(calendar_pattern)
     end
