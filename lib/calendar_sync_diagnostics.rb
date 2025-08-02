@@ -92,14 +92,22 @@ class CalendarSyncDiagnostics
   private
   
   def self.check_environment_variables
-    google_client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID'].present?
-    google_client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET'].present?
-    microsoft_client_id = ENV['MICROSOFT_CALENDAR_CLIENT_ID'].present?
-    microsoft_client_secret = ENV['MICROSOFT_CALENDAR_CLIENT_SECRET'].present?
+    # Check Google Calendar credentials based on environment
+    if Rails.env.development? || Rails.env.test?
+      google_client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV'].present?
+      google_client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV'].present?
+      puts "Google Calendar API (DEV):"
+    else
+      google_client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID'].present?
+      google_client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET'].present?
+      puts "Google Calendar API (PROD):"
+    end
     
-    puts "Google Calendar API:"
     puts "  - Client ID: #{google_client_id ? '✅ Set' : '❌ Missing'}"
     puts "  - Client Secret: #{google_client_secret ? '✅ Set' : '❌ Missing'}"
+    
+    microsoft_client_id = ENV['MICROSOFT_CALENDAR_CLIENT_ID'].present?
+    microsoft_client_secret = ENV['MICROSOFT_CALENDAR_CLIENT_SECRET'].present?
     
     puts "Microsoft Calendar API:"
     puts "  - Client ID: #{microsoft_client_id ? '✅ Set' : '❌ Missing'}"
