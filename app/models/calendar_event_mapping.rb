@@ -94,7 +94,7 @@ class CalendarEventMapping < ApplicationRecord
   
   def log_creation
     calendar_sync_logs.create!(
-      action: :create,
+      action: :event_create,
       outcome: :pending,
       message: "Calendar event mapping created for #{provider_display_name}",
       metadata: {
@@ -107,7 +107,7 @@ class CalendarEventMapping < ApplicationRecord
   
   def log_status_change
     calendar_sync_logs.create!(
-      action: :update,
+      action: :event_update,
       outcome: status,
       message: "Status changed to #{status}",
       metadata: {
