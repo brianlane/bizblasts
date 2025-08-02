@@ -373,6 +373,10 @@
 
     <div class="container mx-auto px-4 text-center text-sm text-gray-500 mt-8">
       <a href="#" class="termly-display-preferences">Consent Preferences</a>
+      •
+      <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+      •
+      <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences", data: { turbo: false } %>
     </div>
 
     <%# Policy Acceptance Modal - Only render for users who need policy acceptance %>

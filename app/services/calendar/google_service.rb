@@ -165,6 +165,15 @@ module Calendar
         expires_at: calendar_connection.token_expires_at
       )
       
+      # Enable automatic token refresh
+      @auth_client.update_token_callback = proc do |token_data|
+        calendar_connection.update!(
+          access_token: token_data[:access_token],
+          token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
+        )
+        Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+      end
+      
       @calendar_service.authorization = @auth_client
     end
     
@@ -265,6 +274,15 @@ module Calendar
     def handle_api_error(error)
       case error
       when Google::Apis::AuthorizationError
+        # Try to refresh token before giving up
+        if calendar_connection.needs_refresh?
+          Rails.logger.info("Attempting to refresh expired Google Calendar token for connection #{calendar_connection.id}")
+          if refresh_access_token
+            Rails.logger.info("Token refresh successful, retrying API call")
+            return :retry_request
+          end
+        end
+        
         add_error(:unauthorized, "Google Calendar authorization expired. Please reconnect.")
         deactivate_connection
       when Google::Apis::RateLimitError
