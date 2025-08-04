@@ -6,7 +6,7 @@ module Calendar
     
     def initialize(calendar_connection)
       super(calendar_connection)
-      @discovered_calendar_url = nil
+      @discovered_calendar_urls = nil
     end
     
     protected

@@ -5,7 +5,7 @@ module Calendar
     def initialize(calendar_connection)
       super(calendar_connection)
       @base_url = normalize_base_url(calendar_connection.caldav_url)
-      @discovered_calendar_url = nil
+      @discovered_calendar_urls = nil
     end
     
     protected
@@ -138,8 +138,8 @@ module Calendar
       })
     end
     
-    def put_headers
-      super.merge({
+    def put_headers(is_new_event = false)
+      super(is_new_event).merge({
         'User-Agent' => 'BizBlasts Calendar Sync/1.0 (Nextcloud CalDAV)'
       })
     end
