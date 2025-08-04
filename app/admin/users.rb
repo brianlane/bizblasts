@@ -201,6 +201,14 @@ ActiveAdmin.register User do
     column "Sign-in Count" do |user|
       user.sign_in_count
     end
+    column "Notifications Enabled" do |user|
+      if user.notification_preferences.present?
+        enabled_count = user.notification_preferences.count { |_k, v| v == true || v == '1' || v == 1 }
+        "#{enabled_count}/#{user.notification_preferences.size} enabled"
+      else
+        "None"
+      end
+    end
     column :active
     column :confirmed_at
     column :created_at
@@ -267,6 +275,19 @@ ActiveAdmin.register User do
       row :updated_at
       row :reset_password_sent_at
       row :remember_created_at
+      row "Notification Preferences" do |user|
+        if user.notification_preferences.present?
+          ul do
+            user.notification_preferences.keys.sort.each do |key|
+              value = user.notification_preferences[key]
+              enabled = (value == true || value == '1' || value == 1)
+              li "#{key.to_s.humanize}: #{enabled ? 'Enabled' : 'Disabled'}"
+            end
+          end
+        else
+          "No preferences configured"
+        end
+      end
     end
     
     # Add a panel showing user's login activity timeline
