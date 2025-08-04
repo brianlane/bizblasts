@@ -16,14 +16,17 @@ class CalendarConnection < ApplicationRecord
     caldav: 2
   }
   
-  # Encrypt sensitive OAuth tokens
+  # Encrypt sensitive OAuth tokens and CalDAV credentials
   encrypts :access_token
   encrypts :refresh_token
+  encrypts :caldav_password
   
   validates :business_id, presence: true
   validates :staff_member_id, presence: true
   validates :provider, presence: true
   validates :access_token, presence: true, if: :oauth_provider?
+  validates :caldav_username, presence: true, if: :caldav_provider?
+  validates :caldav_password, presence: true, if: :caldav_provider?
   validates :active, inclusion: { in: [true, false] }
   
   # Uniqueness constraint per staff member and provider
@@ -67,9 +70,22 @@ class CalendarConnection < ApplicationRecord
     when 'microsoft'
       'Microsoft Outlook'
     when 'caldav'
-      'CalDAV'
+      caldav_provider_display_name
     else
       provider.humanize
+    end
+  end
+
+  def caldav_provider_display_name
+    case caldav_provider
+    when 'icloud'
+      'iCloud Calendar'
+    when 'nextcloud'
+      'Nextcloud Calendar'
+    when 'generic'
+      'CalDAV Calendar'
+    else
+      'CalDAV Calendar'
     end
   end
   

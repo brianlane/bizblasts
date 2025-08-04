@@ -106,9 +106,18 @@ class CalendarEventMapping < ApplicationRecord
   end
   
   def log_status_change
+    # Map CalendarEventMapping status to CalendarSyncLog outcome
+    sync_outcome = case status
+                   when 'synced' then :success
+                   when 'failed' then :failed
+                   when 'pending' then :pending
+                   when 'deleted' then :success
+                   else :pending
+                   end
+    
     calendar_sync_logs.create!(
       action: :event_update,
-      outcome: status,
+      outcome: sync_outcome,
       message: "Status changed to #{status}",
       metadata: {
         previous_status: status_before_last_save,
