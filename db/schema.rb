@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_27_031332) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_03_175636) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -278,6 +278,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_27_031332) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "caldav_username"
+    t.text "caldav_password"
+    t.string "caldav_url"
+    t.string "caldav_provider"
     t.index ["active"], name: "index_calendar_connections_on_active"
     t.index ["business_id", "staff_member_id", "provider"], name: "index_calendar_connections_on_business_staff_provider"
     t.index ["business_id"], name: "index_calendar_connections_on_business_id"
