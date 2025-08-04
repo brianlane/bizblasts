@@ -4,7 +4,7 @@ module Calendar
   class GenericCaldavService < CaldavService
     def initialize(calendar_connection)
       super(calendar_connection)
-      @discovered_calendar_url = nil
+      @discovered_calendar_urls = nil
     end
     
     protected
@@ -50,7 +50,7 @@ module Calendar
       begin
         response = propfind_request(url, calendar_check_xml, '0')
         
-        if response.success?
+        if response.code.to_i.between?(200, 299)
           # Check if the response indicates this is a calendar collection
           response.body.include?('calendar') && 
           (response.body.include?('collection') || response.body.include?('VEVENT'))
@@ -102,7 +102,7 @@ module Calendar
       begin
         response = propfind_request(url, calendar_list_xml, '1')
         
-        if response.success?
+        if response.code.to_i.between?(200, 299)
           calendars = parse_generic_calendar_list(response.body, url)
         end
       rescue => e
@@ -196,8 +196,8 @@ module Calendar
       })
     end
     
-    def put_headers
-      super.merge({
+    def put_headers(is_new_event = false)
+      super(is_new_event).merge({
         'User-Agent' => 'BizBlasts Calendar Sync/1.0 (Generic CalDAV)'
       })
     end
