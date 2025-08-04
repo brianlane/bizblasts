@@ -42,34 +42,98 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
       return
     end
     
-    # Generate OAuth URL
-    oauth_handler = Calendar::OauthHandler.new
-    scheme = request.ssl? ? 'https' : 'http'
-    host = Rails.application.config.main_domain
-    # Append port only if main_domain does NOT already include one
-    port_str = if host.include?(':') || request.port.nil? || [80, 443].include?(request.port)
-                 ''
-               else
-                 ":#{request.port}"
-               end
-    redirect_uri = "#{scheme}://#{host}#{port_str}/oauth/calendar/#{provider}/callback"
-    
-    auth_url = oauth_handler.authorization_url(
-      provider,
-      current_business.id,
-      staff_member.id,
-      redirect_uri
-    )
-    
-    if auth_url
-      redirect_to auth_url, allow_other_host: true
+    if provider == 'caldav'
+      # CalDAV uses manual setup, redirect to setup form
+      redirect_to new_caldav_business_manager_settings_calendar_integrations_path(staff_member_id: staff_member_id)
     else
-      error_message = oauth_handler.errors.full_messages.join(', ')
-      redirect_to business_manager_settings_calendar_integrations_path,
-                  alert: "Failed to initiate calendar connection: #{error_message}"
+      # OAuth providers (Google, Microsoft)
+      oauth_handler = Calendar::OauthHandler.new
+      scheme = request.ssl? ? 'https' : 'http'
+      host = Rails.application.config.main_domain
+      # Append port only if main_domain does NOT already include one
+      port_str = if host.include?(':') || request.port.nil? || [80, 443].include?(request.port)
+                   ''
+                 else
+                   ":#{request.port}"
+                 end
+      redirect_uri = "#{scheme}://#{host}#{port_str}/oauth/calendar/#{provider}/callback"
+      
+      auth_url = oauth_handler.authorization_url(
+        provider,
+        current_business.id,
+        staff_member.id,
+        redirect_uri
+      )
+      
+      if auth_url
+        redirect_to auth_url, allow_other_host: true
+      else
+        error_message = oauth_handler.errors.full_messages.join(', ')
+        redirect_to business_manager_settings_calendar_integrations_path,
+                    alert: "Failed to initiate calendar connection: #{error_message}"
+      end
     end
   end
   
+  def new_caldav
+    @staff_member = current_business.staff_members.find(params[:staff_member_id])
+    @caldav_providers = Calendar::CaldavFactory.available_providers
+    @calendar_connection = CalendarConnection.new(
+      business: current_business,
+      staff_member: @staff_member,
+      provider: :caldav
+    )
+  end
+  
+  def create_caldav
+    staff_member_id = params[:staff_member_id] || caldav_connection_params[:staff_member_id]
+    @staff_member = current_business.staff_members.find(staff_member_id)
+    @caldav_providers = Calendar::CaldavFactory.available_providers
+    
+    connection_params = caldav_connection_params.except(:staff_member_id)
+    connection_params[:business] = current_business
+    connection_params[:staff_member] = @staff_member
+    connection_params[:provider] = :caldav
+    
+    @calendar_connection = CalendarConnection.new(connection_params)
+    
+    if @calendar_connection.valid?
+      # Test the connection before saving
+      test_result = Calendar::CaldavFactory.test_connection(
+        @calendar_connection.caldav_username,
+        @calendar_connection.caldav_password,
+        @calendar_connection.caldav_url,
+        @calendar_connection.caldav_provider
+      )
+      
+      if test_result[:success]
+        @calendar_connection.active = true
+        if @calendar_connection.save
+          redirect_to business_manager_settings_calendar_integrations_path,
+                      notice: "Successfully connected #{@calendar_connection.provider_display_name} for #{@staff_member.name}"
+        else
+          render :new_caldav
+        end
+      else
+        @calendar_connection.errors.add(:base, test_result[:message])
+        render :new_caldav
+      end
+    else
+      render :new_caldav
+    end
+  end
+  
+  def test_caldav
+    result = Calendar::CaldavFactory.test_connection(
+      params[:username],
+      params[:password],
+      params[:url],
+      params[:provider_type]
+    )
+    
+    render json: result
+  end
+
   def destroy
     provider_name = @calendar_connection.provider_display_name
     staff_name = @calendar_connection.staff_member.name
@@ -163,9 +227,16 @@ class BusinessManager::Settings::CalendarIntegrationsController < BusinessManage
       providers << 'microsoft'
     end
     
+    # CalDAV is always available (no external credentials needed)
+    providers << 'caldav'
+    
     providers
   end
   
+  def caldav_connection_params
+    params.require(:calendar_connection).permit(:staff_member_id, :caldav_username, :caldav_password, :caldav_url, :caldav_provider)
+  end
+
   def calculate_sync_statistics
     return {} if current_business.calendar_connections.empty?
     
