@@ -211,6 +211,9 @@ Rails.application.routes.draw do
             get :oauth_callback
             post :batch_sync
             post :import_availability
+            get :new_caldav
+            post :create_caldav
+            post :test_caldav
           end
         end
 

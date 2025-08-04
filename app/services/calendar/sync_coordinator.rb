@@ -250,6 +250,8 @@ module Calendar
         GoogleService.new(connection)
       when 'microsoft'
         MicrosoftService.new(connection)
+      when 'caldav'
+        CaldavFactory.create_service(connection)
       else
         Rails.logger.warn("Unsupported calendar provider: #{connection.provider}")
         nil
