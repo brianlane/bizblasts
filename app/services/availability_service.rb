@@ -604,7 +604,11 @@ class AvailabilityService
     # does not implement it, so we verify that the method is defined at the
     # concrete store class level (i.e., not inherited from
     # ActiveSupport::Cache::Store).
+    # Skip pattern deletion when using SolidCache because its implementation
+    # intentionally raises NotImplementedError. We rely on the rotating
+    # version-token below instead.
     if Rails.cache.respond_to?(:delete_matched) &&
+       Rails.cache.class.name != "SolidCache::Store" &&
        Rails.cache.method(:delete_matched).owner != ActiveSupport::Cache::Store
       Rails.cache.delete_matched(cache_pattern)
       Rails.cache.delete_matched(calendar_pattern)
