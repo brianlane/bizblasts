@@ -37,6 +37,18 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
+  # -----------------------------------------------------------------
+  # Active Record Encryption keys (fallback for GitHub Actions CI)
+  # If environment variables are not provided (e.g. in PRs from forks
+  # where secrets are not exposed) configure deterministic dummy keys so
+  # that encryption features can still initialize.
+  # -----------------------------------------------------------------
+  unless ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY'].present?
+    config.active_record.encryption.primary_key = '0' * 32
+    config.active_record.encryption.deterministic_key = '1' * 32
+    config.active_record.encryption.key_derivation_salt = '2' * 32
+  end
+
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
