@@ -37,24 +37,27 @@ jobs:
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: brakeman --no-pager
 
-  claude_security_review:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      pull-requests: write
-      contents: read
+  # claude_security_review:
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'pull_request'
+  #   permissions:
+  #     pull-requests: write
+  #     contents: read
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Claude Code Security Review
-        uses: anthropics/claude-code-security-review@main
-        with:
-          comment-pr: true
-          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+  #     # NOTE: The anthropics/claude-code-security-review action does not exist
+  #     # This was added based on a non-existent GitHub Action
+  #     # When re-enabling, verify the action exists and pin to a specific version
+  #     # - name: Claude Code Security Review
+  #     #   uses: anthropics/claude-code-security-review@v1.0.0  # Pin to specific version
+  #     #   with:
+  #     #     comment-pr: true
+  #     #     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
 
   scan_js:
     runs-on: ubuntu-latest
