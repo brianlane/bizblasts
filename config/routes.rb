@@ -202,29 +202,24 @@ Rails.application.routes.draw do
             post 'google-business/connect', action: :google_business_connect
             delete 'google-business/disconnect', action: :google_business_disconnect
             get 'google-business/status', action: :google_business_status
+            
+            # Calendar integration routes
+            post 'calendar-integrations/connect', action: :calendar_integration_connect, as: :calendar_integration_connect
+            get 'calendar-integrations/new-caldav', action: :calendar_integration_new_caldav, as: :calendar_integration_new_caldav
+            post 'calendar-integrations/create-caldav', action: :calendar_integration_create_caldav, as: :calendar_integration_create_caldav
+            post 'calendar-integrations/test-caldav', action: :calendar_integration_test_caldav, as: :calendar_integration_test_caldav
+            post 'calendar-integrations/batch-sync', action: :calendar_integration_batch_sync, as: :calendar_integration_batch_sync
+            post 'calendar-integrations/import-availability', action: :calendar_integration_import_availability, as: :calendar_integration_import_availability
+            get 'calendar-integrations/:calendar_integration_id', action: :calendar_integration_show, as: :calendar_integration_show
+            delete 'calendar-integrations/:calendar_integration_id', action: :calendar_integration_destroy, as: :calendar_integration_destroy
+            patch 'calendar-integrations/:calendar_integration_id/toggle-default', action: :calendar_integration_toggle_default, as: :calendar_integration_toggle_default
+            post 'calendar-integrations/:calendar_integration_id/resync', action: :calendar_integration_resync, as: :calendar_integration_resync
           end
         end
         resource :website_pages, only: [:edit, :update]
         
         # Tips configuration
         resource :tips, only: [:show, :update]
-        
-        # Calendar integrations
-        resources :calendar_integrations, only: [:index, :show, :destroy] do
-          member do
-            patch :toggle_default
-            post :resync
-          end
-          collection do
-            post :connect
-            get :oauth_callback
-            post :batch_sync
-            post :import_availability
-            get :new_caldav
-            post :create_caldav
-            post :test_caldav
-          end
-        end
 
         resource :sidebar, only: [:show], controller: 'sidebar' do
           get :edit_sidebar
