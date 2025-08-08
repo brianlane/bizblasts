@@ -176,8 +176,14 @@ class Invoice < ApplicationRecord
         tracking_token: tracking_token
       }
       
-      # Send the review request email
-      ReviewRequestMailer.review_request_email(request_data).deliver_later
+      # Send the review request email (guard if mailer returns nil)
+      mail = ReviewRequestMailer.review_request_email(request_data)
+      if mail.present?
+        mail.deliver_later
+      else
+        Rails.logger.warn "[ReviewRequest] Mailer returned nil for Invoice ##{invoice_number}; email not enqueued"
+        return
+      end
       
       Rails.logger.info "[ReviewRequest] Sent review request email for Invoice ##{invoice_number} to #{tenant_customer.email}"
     rescue => e
