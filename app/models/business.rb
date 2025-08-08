@@ -199,6 +199,7 @@ class Business < ApplicationRecord
   validates :zip, presence: true # Consider adding format validation
   validates :description, presence: true
   validates :tier, presence: true, inclusion: { in: tiers.keys }
+  validates :google_place_id, uniqueness: true, allow_nil: true
   
   # New Validations for hostname/host_type
   validates :hostname, presence: true, uniqueness: { case_sensitive: false }

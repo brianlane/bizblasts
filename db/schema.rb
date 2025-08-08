@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_03_175636) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_07_173511) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -167,6 +167,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_03_175636) do
     t.bigint "service_variant_id"
     t.integer "calendar_event_status", default: 0
     t.string "calendar_event_id"
+    t.boolean "review_request_suppressed", default: false, null: false
     t.index ["applied_promo_code"], name: "index_bookings_on_applied_promo_code"
     t.index ["business_id", "staff_member_id"], name: "index_bookings_on_business_and_staff_member"
     t.index ["business_id", "start_time"], name: "index_bookings_on_business_id_and_start_time"
@@ -245,6 +246,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_03_175636) do
     t.text "subscription_discount_message"
     t.string "template_applied"
     t.boolean "stock_management_enabled", default: true, null: false
+    t.string "google_place_id"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -536,6 +538,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_03_175636) do
     t.bigint "order_id"
     t.string "guest_access_token"
     t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.boolean "review_request_suppressed", default: false, null: false
     t.index ["booking_id"], name: "index_invoices_on_booking_id"
     t.index ["business_id"], name: "index_invoices_on_business_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
@@ -706,6 +709,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_03_175636) do
     t.decimal "promo_discount_amount", precision: 10, scale: 2
     t.string "promo_code_type"
     t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.boolean "review_request_suppressed", default: false, null: false
     t.index ["applied_promo_code"], name: "index_orders_on_applied_promo_code"
     t.index ["booking_id"], name: "index_orders_on_booking_id"
     t.index ["business_id", "created_at"], name: "index_orders_on_business_id_and_created_at"

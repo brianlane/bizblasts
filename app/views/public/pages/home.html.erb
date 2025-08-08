@@ -179,6 +179,11 @@
     <% end %>
   <% end %>
 
+  <%# Google Reviews Section %>
+  <div class="mt-12">
+    <%= render 'shared/google_reviews', business: @business %>
+  </div>
+
   <%# Links to other tenant pages (Optional Footer Section) %>
   <div class="mt-12 pt-6 text-center text-sm text-gray-600">
     <%= link_to "About Us", tenant_about_page_path, class: "hover:underline mx-2" %>

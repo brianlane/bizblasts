@@ -106,6 +106,7 @@ import HelloController from "./controllers/hello_controller"
 import ServiceVariantsController from "./controllers/service_variants_controller"
 import DropdownUpdaterController from "./controllers/dropdown_updater_controller"
 import ServiceAvailabilityController from "./controllers/service_availability_controller"
+import GoogleBusinessSearchController from "./controllers/google_business_search_controller"
 
 application.register("page-editor", PageEditorController)
 application.register("theme-editor", ThemeEditorController)
@@ -121,6 +122,7 @@ application.register("hello", HelloController)
 application.register("service-variants", ServiceVariantsController)
 application.register("dropdown-updater", DropdownUpdaterController)
 application.register("service-availability", ServiceAvailabilityController)
+application.register("google-business-search", GoogleBusinessSearchController)
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -135,7 +137,8 @@ function autoDiscoverControllers() {
     // Get list of manually registered controllers to avoid duplicates
     const manuallyRegistered = new Set([
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
-      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello'
+      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
+      'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search'
     ]);
     
     // Dynamically import and register each controller
