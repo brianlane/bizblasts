@@ -96,7 +96,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
   def business_params
     # Permit base attributes
     permitted = params.require(:business).permit(
-      :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled,
+      :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled, :google_place_id,
       # Permit individual hour fields, which will be processed into a JSON hash
       *days_of_week.flat_map { |day| ["hours_#{day}_open", "hours_#{day}_close"] }
     )

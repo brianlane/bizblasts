@@ -194,7 +194,16 @@ Rails.application.routes.draw do
         post 'stripe_events', to: 'subscriptions#webhook'
 
         # Integrations (Module 9)
-        resources :integrations, controller: 'integrations'
+        resources :integrations, only: [:index] do
+          collection do
+            # Google Business connection routes
+            get 'google-business/search', action: :google_business_search
+            get 'google-business/details/:place_id', action: :google_business_details, as: :google_business_details
+            post 'google-business/connect', action: :google_business_connect
+            delete 'google-business/disconnect', action: :google_business_disconnect
+            get 'google-business/status', action: :google_business_status
+          end
+        end
         resource :website_pages, only: [:edit, :update]
         
         # Tips configuration
@@ -539,6 +548,9 @@ Rails.application.routes.draw do
 
   # Magic link-based unsubscribe route
   get '/unsubscribe/magic_link', to: 'public/unsubscribe#magic_link', as: :unsubscribe_magic_link
+  
+  # Review request unsubscribe route
+  get '/unsubscribe/review_requests/:token', to: 'review_request_unsubscribes#show', as: :unsubscribe_review_requests
 
   # Policy acceptance routes
   resources :policy_acceptances, only: [:create, :show]

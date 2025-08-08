@@ -128,6 +128,7 @@ class Invoice < ApplicationRecord
   before_validation :set_invoice_number, on: :create
   before_validation :set_guest_access_token, on: :create
   after_create :send_invoice_created_email
+  after_update :send_review_request_email, if: :saved_change_to_status_to_paid?
 
   # Tip-related methods
   def has_tip_eligible_items?
@@ -142,7 +143,68 @@ class Invoice < ApplicationRecord
     has_tip_eligible_items?
   end
 
+  # Check if status changed to paid
+  def saved_change_to_status_to_paid?
+    saved_change_to_status? && status == 'paid'
+  end
+  
   private
+  
+  # Send review request email after invoice is paid
+  def send_review_request_email
+    # Skip if review requests are suppressed for this invoice
+    return if review_request_suppressed?
+    
+    # Skip if business doesn't have Google Place ID configured
+    return unless business&.google_place_id.present?
+    
+    # Skip if customer can't receive emails
+    return unless tenant_customer&.can_receive_email?(:customer)
+    
+    # Generate signed tracking token for unsubscribe
+    tracking_token = generate_review_request_tracking_token
+    return unless tracking_token
+    
+    begin
+      # Prepare request data for mailer
+      request_data = {
+        business: business,
+        customer: tenant_customer,
+        booking: booking,
+        order: order,
+        invoice: self,
+        tracking_token: tracking_token
+      }
+      
+      # Send the review request email
+      ReviewRequestMailer.review_request_email(request_data).deliver_later
+      
+      Rails.logger.info "[ReviewRequest] Sent review request email for Invoice ##{invoice_number} to #{tenant_customer.email}"
+    rescue => e
+      Rails.logger.error "[ReviewRequest] Failed to send review request email for Invoice ##{invoice_number}: #{e.message}"
+    end
+  end
+  
+  # Generate signed tracking token for review request unsubscribe
+  def generate_review_request_tracking_token
+    return nil unless tenant_customer && business
+    
+    token_data = {
+      business_id: business.id,
+      customer_id: tenant_customer.id,
+      invoice_id: id,
+      booking_id: booking&.id,
+      order_id: order&.id,
+      generated_at: Time.current.to_i
+    }
+    
+    # Use Rails message verifier to create signed token
+    verifier = Rails.application.message_verifier('review_request_tracking')
+    verifier.generate(token_data)
+  rescue => e
+    Rails.logger.error "[ReviewRequest] Failed to generate tracking token for Invoice ##{invoice_number}: #{e.message}"
+    nil
+  end
 
   def set_invoice_number
     return if invoice_number.present?
