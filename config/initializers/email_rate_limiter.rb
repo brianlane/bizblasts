@@ -14,10 +14,15 @@ module EmailRateLimiter
   RATE_PER_SECOND = (ENV.fetch("EMAIL_RATE_LIMIT_PER_SECOND", 2).to_i).positive? ? ENV.fetch("EMAIL_RATE_LIMIT_PER_SECOND", 2).to_i : 2
   MIN_INTERVAL   = 1.0 / RATE_PER_SECOND
 
-  def perform(*args)
+  # Support Rails 7/8 MailDeliveryJob signature (keywords) and older forms
+  def perform(*args, **kwargs)
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
 
-    super
+    if kwargs.empty?
+      super(*args)
+    else
+      super(*args, **kwargs)
+    end
   ensure
     elapsed   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) - started_at
     # Sleep long enough so that this worker thread respects the global rate.

@@ -89,6 +89,7 @@ RSpec.configure do |config|
   config.include TenantHelpers
   config.include LoginHelpers
   config.include ActiveSupport::Testing::TimeHelpers
+  config.include ActiveJob::TestHelper
   
   # Include mock asset helpers
   config.include MockAssetHelpers, type: :request

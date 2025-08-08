@@ -39,10 +39,13 @@ RSpec.describe ReviewRequestUnsubscribesController, type: :controller do
 
       it 'marks related records as review request suppressed' do
         # Add review_request_suppressed column to test models if they respond to it
+        allow(booking).to receive(:respond_to?).and_call_original
         allow(booking).to receive(:respond_to?).with(:review_request_suppressed).and_return(true)
         allow(booking).to receive(:update_column)
+        allow(order).to receive(:respond_to?).and_call_original
         allow(order).to receive(:respond_to?).with(:review_request_suppressed).and_return(true)
         allow(order).to receive(:update_column)
+        allow(invoice).to receive(:respond_to?).and_call_original
         allow(invoice).to receive(:respond_to?).with(:review_request_suppressed).and_return(true)
         allow(invoice).to receive(:update_column)
 
@@ -138,6 +141,7 @@ RSpec.describe ReviewRequestUnsubscribesController, type: :controller do
 
     context 'when an exception occurs during processing' do
       before do
+        allow(controller).to receive(:set_tenant).and_return(true)
         allow(Business).to receive(:find_by).and_raise(StandardError.new('Database error'))
         allow(Rails.logger).to receive(:error)
       end
@@ -155,9 +159,11 @@ RSpec.describe ReviewRequestUnsubscribesController, type: :controller do
 
     context 'with missing token parameter' do
       it 'returns error message' do
-        get :show, params: { token: nil }
+        # Bypass routing constraint that requires :token in path
+        allow(controller).to receive(:params).and_return({})
+        allow(controller).to receive(:render).and_return(nil)
+        controller.show
 
-        expect(response).to have_http_status(:success)
         expect(assigns(:success)).to be false
         expect(assigns(:message)).to eq('Invalid or expired unsubscribe link.')
       end
@@ -233,28 +239,32 @@ RSpec.describe ReviewRequestUnsubscribesController, type: :controller do
       end
 
       it 'updates booking when present and column exists' do
-        allow(booking).to receive(:respond_to?).and_return(true)
+        allow(booking).to receive(:respond_to?).and_call_original
+        allow(booking).to receive(:respond_to?).with(:review_request_suppressed).and_return(true)
         expect(booking).to receive(:update_column).with(:review_request_suppressed, true)
 
         controller_instance.send(:mark_unsubscribed, valid_token_data)
       end
 
       it 'updates order when present and column exists' do
-        allow(order).to receive(:respond_to?).and_return(true)
+        allow(order).to receive(:respond_to?).and_call_original
+        allow(order).to receive(:respond_to?).with(:review_request_suppressed).and_return(true)
         expect(order).to receive(:update_column).with(:review_request_suppressed, true)
 
         controller_instance.send(:mark_unsubscribed, valid_token_data)
       end
 
       it 'updates invoice when present and column exists' do
-        allow(invoice).to receive(:respond_to?).and_return(true)
+        allow(invoice).to receive(:respond_to?).and_call_original
+        allow(invoice).to receive(:respond_to?).with(:review_request_suppressed).and_return(true)
         expect(invoice).to receive(:update_column).with(:review_request_suppressed, true)
 
         controller_instance.send(:mark_unsubscribed, valid_token_data)
       end
 
       it 'skips update when column does not exist' do
-        allow(booking).to receive(:respond_to?).and_return(false)
+        allow(booking).to receive(:respond_to?).and_call_original
+        allow(booking).to receive(:respond_to?).with(:review_request_suppressed).and_return(false)
         expect(booking).not_to receive(:update_column)
 
         controller_instance.send(:mark_unsubscribed, valid_token_data)

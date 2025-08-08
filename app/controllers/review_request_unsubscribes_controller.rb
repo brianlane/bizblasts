@@ -50,7 +50,10 @@ class ReviewRequestUnsubscribesController < ApplicationController
     
     # Use Rails message verifier to verify and decode the signed token
     verifier = Rails.application.message_verifier('review_request_tracking')
-    verifier.verified(token)
+    data = verifier.verified(token)
+    return nil if data.blank? || (data.respond_to?(:empty?) && data.empty?)
+    # Normalize keys for downstream usage
+    data.respond_to?(:to_h) ? data.to_h.symbolize_keys : nil
   rescue ActiveSupport::MessageVerifier::InvalidSignature
     nil
   end
