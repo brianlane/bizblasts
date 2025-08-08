@@ -59,7 +59,7 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
       end
 
       it 'includes unsubscribe link with tracking token' do
-        expect(mail.body.encoded).to include("unsubscribe_review_requests_url(#{tracking_token})")
+        expect(mail.body.encoded).to include("/unsubscribe/review_requests/#{tracking_token}")
       end
 
       it 'includes Google policy compliant language' do
@@ -77,13 +77,11 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
       it 'sets correct mailer variables' do
         # Trigger mail generation to set instance variables
         mail.body
-
-        mailer = mail.delivery_method.instance_variable_get(:@mailer_class)
-        expect(mail.instance_variable_get(:@business)).to eq(business)
-        expect(mail.instance_variable_get(:@customer)).to eq(tenant_customer)
-        expect(mail.instance_variable_get(:@booking)).to eq(booking)
-        expect(mail.instance_variable_get(:@invoice)).to eq(invoice)
-        expect(mail.instance_variable_get(:@tracking_token)).to eq(tracking_token)
+        # In Rails 7, instance variables are not directly accessible on MessageDelivery
+        # Assert via content instead
+        expect(mail.body.encoded).to include('Hi John,')
+        expect(mail.body.encoded).to include('Test Business')
+        expect(mail.body.encoded).to include("/unsubscribe/review_requests/#{tracking_token}")
       end
     end
 
@@ -104,7 +102,9 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
 
     context 'with order instead of booking' do
       let(:order) { create(:order, business: business, tenant_customer: tenant_customer) }
-      let(:service_line_item) { create(:line_item, lineable: order, service: service) }
+      let(:service_line_item) do
+        double('LineItem', service: service)
+      end
       
       let(:request_data_with_order) do
         {
@@ -118,7 +118,6 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
 
       before do
         allow(order).to receive(:service_line_items).and_return([service_line_item])
-        allow(service_line_item).to receive(:service).and_return(service)
       end
 
       it 'extracts service name from order line items' do

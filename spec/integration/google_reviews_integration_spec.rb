@@ -14,6 +14,7 @@ RSpec.describe 'Google Reviews Integration', type: :integration do
     # Clear any existing deliveries
     ActionMailer::Base.deliveries.clear
     # Mock the Google API key
+    allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with('GOOGLE_API_KEY').and_return('test_api_key')
   end
 

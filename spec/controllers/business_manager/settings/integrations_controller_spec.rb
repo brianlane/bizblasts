@@ -208,6 +208,7 @@ RSpec.describe BusinessManager::Settings::IntegrationsController, type: :control
 
     before do
       allow(GooglePlacesSearchService).to receive(:get_business_details).and_return(business_details)
+      allow(GoogleBusinessVerificationService).to receive(:verify_match).and_return({ ok: true })
     end
 
     it 'connects business to Google Place ID' do
@@ -272,6 +273,7 @@ RSpec.describe BusinessManager::Settings::IntegrationsController, type: :control
         allow_any_instance_of(Business).to receive(:errors).and_return(
           double(full_messages: ['Validation failed'])
         )
+        allow(GoogleBusinessVerificationService).to receive(:verify_match).and_return({ ok: true })
       end
 
       it 'returns unprocessable entity error' do

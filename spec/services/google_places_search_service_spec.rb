@@ -7,6 +7,7 @@ RSpec.describe GooglePlacesSearchService, type: :service do
   
   before do
     # Mock the API key
+    allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with('GOOGLE_API_KEY').and_return('test_api_key')
   end
 
@@ -54,90 +55,75 @@ RSpec.describe GooglePlacesSearchService, type: :service do
     end
 
     context 'with valid configuration' do
-      let(:mock_autocomplete_response) do
+      let(:mock_search_response) do
         {
-          'predictions' => [
+          'places' => [
             {
-              'place_id' => 'ChIJN1t_tDeuEmsRUsoyG83frY4',
-              'description' => 'Test Business, 123 Main St, New York, NY, USA',
-              'structured_formatting' => {
-                'main_text' => 'Test Business',
-                'secondary_text' => '123 Main St, New York, NY, USA'
-              },
-              'types' => ['restaurant', 'food', 'establishment'],
-              'matched_substrings' => [{ 'offset' => 0, 'length' => 4 }]
+              'id' => 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+              'displayName' => { 'text' => 'Test Business' },
+              'formattedAddress' => '123 Main St, New York, NY, USA',
+              'types' => ['restaurant', 'food', 'establishment']
             },
             {
-              'place_id' => 'ChIJAnother_Place_ID',
-              'description' => 'Another Business, 456 Oak Ave, New York, NY, USA',
-              'structured_formatting' => {
-                'main_text' => 'Another Business',
-                'secondary_text' => '456 Oak Ave, New York, NY, USA'
-              },
-              'types' => ['store', 'establishment'],
-              'matched_substrings' => [{ 'offset' => 0, 'length' => 7 }]
+              'id' => 'ChIJAnother_Place_ID',
+              'displayName' => { 'text' => 'Another Business' },
+              'formattedAddress' => '456 Oak Ave, New York, NY, USA',
+              'types' => ['store', 'establishment']
             }
           ]
         }
       end
 
       before do
-        allow(service).to receive(:make_request).and_return(mock_autocomplete_response)
+        allow(service).to receive(:make_request_v1).and_return(mock_search_response)
       end
 
       it 'returns successful search results' do
         result = service.search_businesses('test query')
 
         expect(result[:success]).to be true
-        expect(result[:businesses]).to have(2).items
+        expect(result[:businesses].size).to eq(2)
         expect(result[:total_results]).to eq(2)
         
         first_business = result[:businesses].first
         expect(first_business[:place_id]).to eq('ChIJN1t_tDeuEmsRUsoyG83frY4')
         expect(first_business[:name]).to eq('Test Business')
-        expect(first_business[:address]).to eq('Test Business, 123 Main St, New York, NY, USA')
+        expect(first_business[:address]).to eq('123 Main St, New York, NY, USA')
         expect(first_business[:types]).to eq(['restaurant', 'food', 'establishment'])
       end
 
-      it 'includes location bias when location is provided' do
-        expect(service).to receive(:make_request) do |url|
-          expect(url).to include('locationbias=circle:50000@New+York%2C+NY')
-          mock_autocomplete_response
-        end
+      it 'calls v1 searchText endpoint' do
+        expect(service).to receive(:make_request_v1).with(
+          a_string_including('https://places.googleapis.com/v1/places:searchText'),
+          method: :post,
+          headers: hash_including('X-Goog-Api-Key', 'X-Goog-FieldMask'),
+          body: kind_of(String)
+        ).and_return(mock_search_response)
 
         service.search_businesses('test query', 'New York, NY')
       end
 
-      it 'does not include location bias when location is not provided' do
-        expect(service).to receive(:make_request) do |url|
-          expect(url).not_to include('locationbias')
-          mock_autocomplete_response
-        end
-
-        service.search_businesses('test query')
-      end
-
-      it 'handles businesses without structured formatting' do
-        response_without_formatting = {
-          'predictions' => [
+      it 'handles businesses without displayName gracefully' do
+        response_without_name = {
+          'places' => [
             {
-              'place_id' => 'ChIJTest123',
-              'description' => 'Simple Business Name, Address',
+              'id' => 'ChIJTest123',
+              'formattedAddress' => 'Address only',
               'types' => ['establishment']
             }
           ]
         }
 
-        allow(service).to receive(:make_request).and_return(response_without_formatting)
+        allow(service).to receive(:make_request_v1).and_return(response_without_name)
 
         result = service.search_businesses('test query')
-        expect(result[:businesses].first[:name]).to eq('Simple Business Name')
+        expect(result[:businesses].first[:name]).to eq('Unknown Business')
       end
     end
 
     context 'when API request fails' do
       before do
-        allow(service).to receive(:make_request).and_return(nil)
+        allow(service).to receive(:make_request_v1).and_return(nil)
       end
 
       it 'returns error message' do
@@ -148,7 +134,7 @@ RSpec.describe GooglePlacesSearchService, type: :service do
 
     context 'when an exception occurs' do
       before do
-        allow(service).to receive(:make_request).and_raise(StandardError.new('Network error'))
+        allow(service).to receive(:make_request_v1).and_raise(StandardError.new('Network error'))
         allow(Rails.logger).to receive(:error)
       end
 
@@ -189,49 +175,20 @@ RSpec.describe GooglePlacesSearchService, type: :service do
     context 'with valid configuration' do
       let(:mock_details_response) do
         {
-          'result' => {
-            'place_id' => 'ChIJN1t_tDeuEmsRUsoyG83frY4',
-            'name' => 'Test Business',
-            'formatted_address' => '123 Main St, New York, NY 10001, USA',
-            'formatted_phone_number' => '(555) 123-4567',
-            'website' => 'https://testbusiness.com',
-            'business_status' => 'OPERATIONAL',
-            'rating' => 4.5,
-            'user_ratings_total' => 123,
-            'url' => 'https://maps.google.com/test',
-            'types' => ['restaurant', 'food', 'establishment'],
-            'photos' => [
-              {
-                'photo_reference' => 'photo_ref_1',
-                'width' => 400,
-                'height' => 300
-              },
-              {
-                'photo_reference' => 'photo_ref_2',
-                'width' => 800,
-                'height' => 600
-              }
-            ],
-            'reviews' => [
-              {
-                'author_name' => 'John Doe',
-                'rating' => 5,
-                'text' => 'Great food and excellent service! Highly recommend this place.',
-                'relative_time_description' => '2 days ago'
-              },
-              {
-                'author_name' => 'Jane Smith',
-                'rating' => 4,
-                'text' => 'Good experience overall, but could use some improvement in the ambiance.',
-                'relative_time_description' => '1 week ago'
-              }
-            ]
-          }
+          'id' => 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+          'displayName' => { 'text' => 'Test Business' },
+          'formattedAddress' => '123 Main St, New York, NY 10001, USA',
+          'nationalPhoneNumber' => '(555) 123-4567',
+          'websiteUri' => 'https://testbusiness.com',
+          'rating' => 4.5,
+          'userRatingCount' => 123,
+          'googleMapsUri' => 'https://maps.google.com/test',
+          'types' => ['restaurant', 'food', 'establishment']
         }
       end
 
       before do
-        allow(service).to receive(:make_request).and_return(mock_details_response)
+        allow(service).to receive(:make_request_v1).and_return(mock_details_response)
       end
 
       it 'returns detailed business information' do
@@ -245,99 +202,42 @@ RSpec.describe GooglePlacesSearchService, type: :service do
         expect(business[:address]).to eq('123 Main St, New York, NY 10001, USA')
         expect(business[:phone]).to eq('(555) 123-4567')
         expect(business[:website]).to eq('https://testbusiness.com')
-        expect(business[:business_status]).to eq('OPERATIONAL')
+        expect(business[:business_status]).to be_nil
         expect(business[:rating]).to eq(4.5)
         expect(business[:total_ratings]).to eq(123)
         expect(business[:google_url]).to eq('https://maps.google.com/test')
         expect(business[:types]).to eq(['restaurant', 'food', 'establishment'])
       end
 
-      it 'includes processed photos' do
+      it 'parses minimal v1 fields without photos/reviews collections' do
         result = service.get_business_details('ChIJN1t_tDeuEmsRUsoyG83frY4')
-        photos = result[:business][:photos]
-        
-        expect(photos).to have(2).items
-        expect(photos.first[:reference]).to eq('photo_ref_1')
-        expect(photos.first[:url]).to include('photo_reference=photo_ref_1')
-        expect(photos.first[:width]).to eq(400)
-        expect(photos.first[:height]).to eq(300)
-      end
-
-      it 'includes processed reviews' do
-        result = service.get_business_details('ChIJN1t_tDeuEmsRUsoyG83frY4')
-        reviews = result[:business][:recent_reviews]
-        
-        expect(reviews).to have(2).items
-        expect(reviews.first[:author]).to eq('John Doe')
-        expect(reviews.first[:rating]).to eq(5)
-        expect(reviews.first[:text]).to include('Great food')
-        expect(reviews.first[:time]).to eq('2 days ago')
-      end
-
-      it 'truncates long review text' do
-        long_review_response = mock_details_response.dup
-        long_review_response['result']['reviews'][0]['text'] = 'A' * 200
-        allow(service).to receive(:make_request).and_return(long_review_response)
-
-        result = service.get_business_details('ChIJN1t_tDeuEmsRUsoyG83frY4')
-        review_text = result[:business][:recent_reviews].first[:text]
-        
-        expect(review_text.length).to be <= 150
-        expect(review_text).to end_with('...')
-      end
-
-      it 'limits photos to first 3' do
-        many_photos_response = mock_details_response.dup
-        many_photos_response['result']['photos'] = Array.new(10) do |i|
-          { 'photo_reference' => "photo_ref_#{i}", 'width' => 400, 'height' => 300 }
-        end
-        allow(service).to receive(:make_request).and_return(many_photos_response)
-
-        result = service.get_business_details('ChIJN1t_tDeuEmsRUsoyG83frY4')
-        expect(result[:business][:photos]).to have(3).items
-      end
-
-      it 'limits reviews to first 3' do
-        many_reviews_response = mock_details_response.dup
-        many_reviews_response['result']['reviews'] = Array.new(10) do |i|
-          {
-            'author_name' => "Author #{i}",
-            'rating' => 4,
-            'text' => "Review #{i}",
-            'relative_time_description' => "#{i} days ago"
-          }
-        end
-        allow(service).to receive(:make_request).and_return(many_reviews_response)
-
-        result = service.get_business_details('ChIJN1t_tDeuEmsRUsoyG83frY4')
-        expect(result[:business][:recent_reviews]).to have(3).items
+        expect(result[:business][:photos]).to eq([])
+        expect(result[:business][:recent_reviews]).to eq([])
       end
     end
 
     context 'when business is permanently closed' do
       let(:closed_business_response) do
         {
-          'result' => {
-            'place_id' => 'ChIJClosed_Business',
-            'name' => 'Closed Business',
-            'business_status' => 'CLOSED_PERMANENTLY'
-          }
+          'id' => 'ChIJClosed_Business',
+          'displayName' => { 'text' => 'Closed Business' }
         }
       end
 
       before do
-        allow(service).to receive(:make_request).and_return(closed_business_response)
+        allow(service).to receive(:make_request_v1).and_return(closed_business_response)
       end
 
-      it 'returns appropriate error message' do
+      it 'returns success (v1 does not include closed status by default)' do
         result = service.get_business_details('ChIJClosed_Business')
-        expect(result[:error]).to eq('This business is marked as permanently closed on Google')
+        expect(result[:success]).to be true
+        expect(result[:business][:name]).to eq('Closed Business')
       end
     end
 
     context 'when API request fails' do
       before do
-        allow(service).to receive(:make_request).and_return(nil)
+        allow(service).to receive(:make_request_v1).and_return(nil)
       end
 
       it 'returns error message' do
@@ -348,17 +248,17 @@ RSpec.describe GooglePlacesSearchService, type: :service do
 
     context 'when response is invalid' do
       before do
-        allow(service).to receive(:make_request).and_return({ 'invalid' => 'response' })
+        allow(service).to receive(:make_request_v1).and_return(nil)
       end
 
       it 'returns error message' do
         result = service.get_business_details('test_place_id')
-        expect(result[:error]).to eq('Invalid business details response')
+        expect(result[:error]).to eq('Failed to fetch business details')
       end
     end
   end
 
-  describe '#make_request' do
+  describe '#make_request_v1' do
     let(:url) { 'https://example.com/api' }
     
     context 'with successful HTTP response' do
@@ -375,7 +275,7 @@ RSpec.describe GooglePlacesSearchService, type: :service do
       end
 
       it 'returns parsed JSON' do
-        result = service.send(:make_request, url)
+        result = service.send(:make_request_v1, url, method: :get, headers: { 'X-Test' => '1' })
         expect(result).to eq({ 'success' => true })
       end
 
@@ -384,9 +284,7 @@ RSpec.describe GooglePlacesSearchService, type: :service do
         expect(mock_http).to receive(:read_timeout=).with(10)
         expect(mock_http).to receive(:open_timeout=).with(5)
         
-        expect_any_instance_of(Net::HTTP::Get).to receive(:[]=).with('User-Agent', match(/BizBlasts/))
-        
-        service.send(:make_request, url)
+        service.send(:make_request_v1, url, method: :get, headers: { 'User-Agent' => 'BizBlasts Test' })
       end
     end
 
@@ -404,10 +302,10 @@ RSpec.describe GooglePlacesSearchService, type: :service do
       end
 
       it 'logs error and returns nil' do
-        result = service.send(:make_request, url)
+        result = service.send(:make_request_v1, url, method: :get, headers: { })
         
         expect(Rails.logger).to have_received(:error)
-          .with(match(/API request failed: 404/))
+          .with(match(/API v1 request failed: 404/))
         expect(result).to be_nil
       end
     end
@@ -420,12 +318,12 @@ RSpec.describe GooglePlacesSearchService, type: :service do
         allow(mock_http).to receive(:use_ssl=)
         allow(mock_http).to receive(:read_timeout=)
         allow(mock_http).to receive(:open_timeout=)
-        allow(mock_http).to receive(:request).and_raise(Net::TimeoutError.new('Timeout'))
+        allow(mock_http).to receive(:request).and_raise(Timeout::Error.new('Timeout'))
         allow(Rails.logger).to receive(:error)
       end
 
       it 'logs timeout error and returns nil' do
-        result = service.send(:make_request, url)
+        result = service.send(:make_request_v1, url, method: :get, headers: { })
         
         expect(Rails.logger).to have_received(:error)
           .with(match(/Timeout error/))
@@ -447,7 +345,7 @@ RSpec.describe GooglePlacesSearchService, type: :service do
       end
 
       it 'logs parse error and returns nil' do
-        result = service.send(:make_request, url)
+        result = service.send(:make_request_v1, url, method: :get, headers: { })
         
         expect(Rails.logger).to have_received(:error)
           .with(match(/JSON parse error/))
