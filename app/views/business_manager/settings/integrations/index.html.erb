@@ -34,6 +34,141 @@
   <!-- Google Business Reviews Integration -->
   <%= render 'shared/google_business_connection', business: @business %>
 
+  <!-- Calendar Integration Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mt-8">
+    <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Calendar Integrations
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Connect your team's calendars to automatically sync bookings and prevent double-booking conflicts</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <% if @sync_statistics.present? && @sync_statistics[:total_attempts] > 0 %>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+          <h3 class="font-medium text-gray-900 mb-3">Sync Statistics (Last 24 Hours)</h3>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div class="text-2xl font-bold text-green-600"><%= @sync_statistics[:successful] %></div>
+              <div class="text-xs text-gray-600">Successful Syncs</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-red-600"><%= @sync_statistics[:failed] %></div>
+              <div class="text-xs text-gray-600">Failed Syncs</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-blue-600"><%= @sync_statistics[:success_rate].round(1) %>%</div>
+              <div class="text-xs text-gray-600">Success Rate</div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="space-y-6">
+        <% @staff_members.each do |staff_member| %>
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="font-medium text-gray-900"><%= staff_member.name %></h3>
+                <p class="text-sm text-gray-600"><%= staff_member.email %></p>
+                <span class="inline-block mt-2 px-2 py-1 text-xs rounded-full bg-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-100 text-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-800">
+                  <%= staff_member.calendar_sync_status %>
+                </span>
+              </div>
+            </div>
+
+            <% if staff_member.calendar_connections.active.any? %>
+              <div class="space-y-3 mb-4">
+                <% staff_member.calendar_connections.active.each do |connection| %>
+                  <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                    <div>
+                      <span class="font-medium text-gray-900">
+                        <%= connection.provider_display_name %>
+                        <% if staff_member.default_calendar_connection == connection %>
+                          <span class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Default</span>
+                        <% end %>
+                      </span>
+                      <div class="text-sm text-gray-600">Last sync: <%= connection.last_sync_status %></div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                      <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                    method: :post, 
+                                    class: "px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" %>
+                      
+                      <% if staff_member.default_calendar_connection == connection %>
+                        <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      method: :patch, 
+                                      class: "px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
+                      <% else %>
+                        <%= button_to "Set Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      method: :patch, 
+                                      class: "px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
+                      <% end %>
+                      
+                      <%= link_to "Details", calendar_integration_show_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                  class: "px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700" %>
+                      
+                      <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                    method: :delete, 
+                                    class: "px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700",
+                                    confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div class="flex flex-wrap gap-2">
+              <% @providers.each do |provider| %>
+                <% unless staff_member.calendar_connections.active.exists?(provider: provider) %>
+                  <%= button_to "Connect #{provider.humanize} Calendar", 
+                                calendar_integration_connect_business_manager_settings_integrations_path, 
+                                params: { provider: provider, staff_member_id: staff_member.id },
+                                method: :post,
+                                class: "px-4 py-2 text-sm bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-600 text-white rounded hover:bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-700",
+                                data: { turbo: false } %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @staff_members.empty? %>
+          <div class="text-center py-8">
+            <p class="text-gray-600">No active staff members found. <%= link_to "Add staff members", business_manager_staff_members_path, class: "text-blue-600 hover:underline" %> to enable calendar integrations.</p>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @calendar_connections.any? %>
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <h3 class="font-medium text-gray-900 mb-4">Bulk Actions</h3>
+          <div class="flex flex-wrap gap-3">
+            <%= button_to "Sync All Pending Bookings", 
+                          calendar_integration_batch_sync_business_manager_settings_integrations_path, 
+                          method: :post, 
+                          class: "px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700",
+                          confirm: "This will sync all pending bookings for all staff members. Continue?" %>
+            
+            <%= button_to "Import All Availability", 
+                          calendar_integration_import_availability_business_manager_settings_integrations_path, 
+                          method: :post, 
+                          class: "px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700",
+                          confirm: "This will import calendar events from all connected calendars. Continue?" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
   <!-- Additional Integrations Section -->
   <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mt-8">
     <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -69,18 +204,6 @@
         <p class="text-gray-600 mb-6">We're working on additional integrations to help grow your business:</p>
         
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <!-- Calendar Integration Preview -->
-          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
-              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-            </div>
-            <h4 class="font-medium text-gray-900 text-sm">Calendar Sync</h4>
-            <p class="text-xs text-gray-600 mt-1">Google Calendar, Outlook integration</p>
-            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
-          </div>
-
           <!-- Email Marketing Preview -->
           <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
             <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
