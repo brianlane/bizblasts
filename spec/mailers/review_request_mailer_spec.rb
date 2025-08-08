@@ -31,7 +31,7 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
   end
 
   describe '#review_request_email' do
-    let(:mail) { described_class.review_request_email(request_data) }
+  let(:mail) { described_class.review_request_email(request_data) }
 
     context 'with valid request data' do
       it 'renders the email' do
@@ -63,15 +63,16 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
       end
 
       it 'includes Google policy compliant language' do
-        expect(mail.body.encoded).to include('Your feedback is important to us')
-        expect(mail.body.encoded).to include('helps other customers make informed decisions')
-        expect(mail.body.encoded).not_to include('positive review')
-        expect(mail.body.encoded).not_to include('5 stars')
+        text_body = mail.text_part.body.to_s
+        expect(text_body).to include('Your feedback is important to us')
+        expect(text_body).to include('helps other customers make informed decisions')
+        expect(text_body.downcase).not_to include('positive review')
+        expect(text_body.downcase).not_to include('5 stars')
       end
 
       it 'includes one-time request disclaimer' do
-        expect(mail.body.encoded).to include('one-time request')
-        expect(mail.body.encoded).to include("won't send additional review requests")
+        expect(mail.text_part.body.to_s).to include('one-time request')
+        expect(mail.text_part.body.to_s).to include("won't send additional review requests")
       end
 
       it 'sets correct mailer variables' do
@@ -133,9 +134,10 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
         request_data.merge(business: business_without_place_id)
       end
 
-      it 'returns nil and does not send email' do
-        mail = described_class.review_request_email(request_data_invalid)
-        expect(mail).to be_nil
+      it 'returns NullMail and does not send email' do
+        delivery = described_class.review_request_email(request_data_invalid)
+        expect(delivery).to be_a(ActionMailer::MessageDelivery)
+        expect(delivery.message).to be_a(ActionMailer::Base::NullMail)
       end
     end
 
@@ -144,45 +146,49 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
         allow(tenant_customer).to receive(:can_receive_email?).with(:customer).and_return(false)
       end
 
-      it 'returns nil and does not send email' do
-        mail = described_class.review_request_email(request_data)
-        expect(mail).to be_nil
+      it 'returns NullMail and does not send email' do
+        delivery = described_class.review_request_email(request_data)
+        expect(delivery).to be_a(ActionMailer::MessageDelivery)
+        expect(delivery.message).to be_a(ActionMailer::Base::NullMail)
       end
     end
 
     context 'when required data is missing' do
-      it 'returns nil when business is missing' do
+      it 'returns NullMail when business is missing' do
         invalid_data = request_data.merge(business: nil)
-        mail = described_class.review_request_email(invalid_data)
-        expect(mail).to be_nil
+        delivery = described_class.review_request_email(invalid_data)
+        expect(delivery).to be_a(ActionMailer::MessageDelivery)
+        expect(delivery.message).to be_a(ActionMailer::Base::NullMail)
       end
 
-      it 'returns nil when customer is missing' do
+      it 'returns NullMail when customer is missing' do
         invalid_data = request_data.merge(customer: nil)
-        mail = described_class.review_request_email(invalid_data)
-        expect(mail).to be_nil
+        delivery = described_class.review_request_email(invalid_data)
+        expect(delivery).to be_a(ActionMailer::MessageDelivery)
+        expect(delivery.message).to be_a(ActionMailer::Base::NullMail)
       end
 
-      it 'returns nil when tracking token is missing' do
+      it 'returns NullMail when tracking token is missing' do
         invalid_data = request_data.merge(tracking_token: nil)
-        mail = described_class.review_request_email(invalid_data)
-        expect(mail).to be_nil
+        delivery = described_class.review_request_email(invalid_data)
+        expect(delivery).to be_a(ActionMailer::MessageDelivery)
+        expect(delivery.message).to be_a(ActionMailer::Base::NullMail)
       end
     end
 
     context 'when an error occurs' do
       before do
         allow(Rails.logger).to receive(:error)
-        # Simulate an error in the mailer
-        allow(tenant_customer).to receive(:email).and_raise(StandardError.new('Test error'))
+        # Simulate an error raised during mail creation
+        allow_any_instance_of(ReviewRequestMailer).to receive(:mail).and_raise(StandardError.new('Test error'))
       end
 
-      it 'logs the error and returns nil' do
-        mail = described_class.review_request_email(request_data)
-        
-        expect(Rails.logger).to have_received(:error)
-          .with(match(/Failed to send review request to.*Test error/))
-        expect(mail).to be_nil
+      it 'logs the error and returns a NullMail via MessageDelivery' do
+        expect(Rails.logger).to receive(:error).with(match(/Failed to send review request to.*Test error/))
+        delivery = described_class.review_request_email(request_data)
+        expect(delivery).to be_a(ActionMailer::MessageDelivery)
+        expect { delivery.message }.not_to raise_error
+        expect(delivery.message).to be_a(ActionMailer::Base::NullMail)
       end
     end
 
@@ -218,7 +224,7 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
     let(:mail) { described_class.review_request_email(request_data) }
 
     it 'does not bias toward positive reviews' do
-      body = mail.body.encoded.downcase
+      body = mail.text_part.body.to_s.downcase
       
       # Should not contain biasing language
       expect(body).not_to include('positive')
@@ -229,7 +235,7 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
     end
 
     it 'uses neutral language' do
-      body = mail.body.encoded.downcase
+      body = mail.text_part.body.to_s.downcase
       
       expect(body).to include('your feedback')
       expect(body).to include('share your experience')
