@@ -11,6 +11,7 @@ class ReviewRequestMailer < ApplicationMailer
   
   # Send a review request email after successful payment
   # @param request_data [Hash] Contains business, customer, booking/order, and tracking token
+  # @return [ActionMailer::MessageDelivery] Always returns a delivery object, never nil
   def review_request_email(request_data)
     @business = request_data[:business]
     @customer = request_data[:customer] 
@@ -19,13 +20,27 @@ class ReviewRequestMailer < ApplicationMailer
     @invoice = request_data[:invoice]
     @tracking_token = request_data[:tracking_token]
     
-    # Validate required data
-    return unless @business.present? && @customer.present?
-    return unless @business.google_place_id.present?
-    return unless @tracking_token.present?
+    # Validate required data - Rails automatically returns proper ActionMailer object on early return
+    unless @business.present? && @customer.present?
+      Rails.logger.warn "[ReviewRequestMailer] Missing required data: business or customer not present"
+      return
+    end
+    
+    unless @business.google_place_id.present?
+      Rails.logger.warn "[ReviewRequestMailer] Business #{@business.id} has no Google Place ID"
+      return
+    end
+    
+    unless @tracking_token.present?
+      Rails.logger.warn "[ReviewRequestMailer] No tracking token provided for review request"
+      return
+    end
     
     # Check if customer can receive review request emails
-    return unless @customer.can_receive_email?(:customer)
+    unless @customer.can_receive_email?(:customer)
+      Rails.logger.info "[ReviewRequestMailer] Customer #{@customer.id} cannot receive review request emails"
+      return
+    end
     
     # Generate the Google review URL
     @review_url = "https://search.google.com/local/writereview?placeid=#{@business.google_place_id}"
@@ -50,7 +65,9 @@ class ReviewRequestMailer < ApplicationMailer
     
   rescue => e
     Rails.logger.error "[ReviewRequestMailer] Failed to send review request to #{@customer&.email}: #{e.message}"
-    nil
+    Rails.logger.error "[ReviewRequestMailer] Error details: #{e.backtrace.first(5).join(', ')}"
+    # Rails automatically returns proper ActionMailer object, don't return nil
+    return
   end
   
   private

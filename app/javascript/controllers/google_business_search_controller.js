@@ -453,8 +453,58 @@ export default class extends Controller {
     }
   }
 
-  showError(message, details = []) {
+  /**
+   * Display error message in the UI
+   * Handles both direct calls and ajax:error events from Rails UJS
+   * @param {string|Event} eventOrMessage - Error message string or ajax:error Event object
+   * @param {Array} details - Array of error detail strings (when called directly)
+   */
+  showError(eventOrMessage, details = []) {
     if (!this.hasErrorMessageTarget) return
+
+    let message, errorDetails
+    
+    // Check if this is being called from an ajax:error event (Event object)
+    if (eventOrMessage instanceof Event) {
+      const event = eventOrMessage
+      
+      // Extract error information from event.detail
+      // Rails UJS ajax:error event structure: [xhr, status, error]
+      const [xhr, status, error] = event.detail || []
+      
+      // Debug logging to help developers
+      console.debug('[GoogleBusinessSearch] Handling ajax:error event:', {
+        status,
+        error,
+        responseText: xhr?.responseText,
+        responseJSON: xhr?.responseJSON
+      })
+      
+      if (xhr && xhr.responseJSON) {
+        // Try to get structured error from JSON response
+        const responseData = xhr.responseJSON
+        message = responseData.error || responseData.message || 'Connection failed'
+        errorDetails = responseData.details || responseData.errors || []
+      } else if (xhr && xhr.responseText) {
+        // Fallback to plain text response
+        try {
+          const responseData = JSON.parse(xhr.responseText)
+          message = responseData.error || responseData.message || 'Connection failed'
+          errorDetails = responseData.details || responseData.errors || []
+        } catch (e) {
+          message = 'Connection failed. Please try again.'
+          errorDetails = []
+        }
+      } else {
+        // Fallback for no response data
+        message = error || 'Connection failed. Please try again.'
+        errorDetails = []
+      }
+    } else {
+      // Called directly with message and details (existing behavior)
+      message = eventOrMessage
+      errorDetails = details
+    }
 
     const container = this.errorMessageTarget
     // If container has a paragraph child, use it; otherwise write to container
@@ -465,10 +515,10 @@ export default class extends Controller {
     const existingList = container.querySelector('ul')
     if (existingList) existingList.remove()
 
-    if (Array.isArray(details) && details.length > 0) {
+    if (Array.isArray(errorDetails) && errorDetails.length > 0) {
       const list = document.createElement('ul')
       list.className = 'mt-2 list-disc list-inside text-sm text-red-700'
-      details.forEach((d) => {
+      errorDetails.forEach((d) => {
         const li = document.createElement('li')
         li.textContent = d
         list.appendChild(li)
