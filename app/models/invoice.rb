@@ -176,16 +176,21 @@ class Invoice < ApplicationRecord
         tracking_token: tracking_token
       }
       
-      # Send the review request email (guard if mailer returns nil)
+      # Send the review request email (check for NullMail to avoid sending non-existent emails)
       mail = ReviewRequestMailer.review_request_email(request_data)
-      if mail.present?
+      
+      # Check if the mail is actually a NullMail (validation failed, ineligible customer, etc.)
+      if mail&.message&.is_a?(ActionMailer::Base::NullMail)
+        Rails.logger.info "[ReviewRequest] Review request email skipped for Invoice ##{invoice_number} (validation failed or ineligible)"
+        return
+      elsif mail.present?
         mail.deliver_later
+        Rails.logger.info "[ReviewRequest] Review request email enqueued for Invoice ##{invoice_number} to #{tenant_customer.email}"
       else
+        # This shouldn't happen with current mailer implementation, but kept for safety
         Rails.logger.warn "[ReviewRequest] Mailer returned nil for Invoice ##{invoice_number}; email not enqueued"
         return
       end
-      
-      Rails.logger.info "[ReviewRequest] Sent review request email for Invoice ##{invoice_number} to #{tenant_customer.email}"
     rescue => e
       Rails.logger.error "[ReviewRequest] Failed to send review request email for Invoice ##{invoice_number}: #{e.message}"
     end
