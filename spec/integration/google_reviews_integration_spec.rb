@@ -38,6 +38,7 @@ RSpec.describe 'Google Reviews Integration', type: :integration do
     context 'when invoice is marked as paid' do
       before do
         @delivery = instance_double(ActionMailer::MessageDelivery, deliver_later: true)
+        allow(@delivery).to receive(:message).and_return(instance_double(Mail::Message))
         allow(ReviewRequestMailer).to receive(:review_request_email).and_return(@delivery)
       end
 
@@ -284,6 +285,7 @@ RSpec.describe 'Google Reviews Integration', type: :integration do
   describe 'Google Policy Compliance' do
     it 'sends Google policy compliant review request emails (content covered in mailer specs)' do
       @delivery = instance_double(ActionMailer::MessageDelivery, deliver_later: true)
+      allow(@delivery).to receive(:message).and_return(instance_double(Mail::Message))
       allow(ReviewRequestMailer).to receive(:review_request_email).and_return(@delivery)
       invoice.mark_as_paid!
       perform_enqueued_jobs
