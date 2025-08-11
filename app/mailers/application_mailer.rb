@@ -40,9 +40,17 @@ class ApplicationMailer < ActionMailer::Base
   # Set unsubscribe token for email recipient
   def set_unsubscribe_token(recipient)
     if recipient.is_a?(User)
+      # Ensure unsubscribe token exists, generate if missing
+      if recipient.unsubscribe_token.blank?
+        recipient.send(:generate_unsubscribe_token)
+      end
       @unsubscribe_token = recipient.unsubscribe_token
       @user = recipient
     elsif recipient.is_a?(TenantCustomer)
+      # Ensure unsubscribe token exists, generate if missing
+      if recipient.unsubscribe_token.blank?
+        recipient.send(:generate_unsubscribe_token)
+      end
       @unsubscribe_token = recipient.unsubscribe_token
       @user = nil
     else

@@ -1,6 +1,6 @@
 <!-- Google Policy Compliant Review Request Email Template -->
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2>Hi <%= @customer.first_name || @customer.name.split.first %>,</h2>
+  <h2>Hi <%= @customer.first_name.present? ? @customer.first_name : (@customer.name&.split&.first) || 'there' %>,</h2>
   
   <p>Thank you for choosing <%= @business.name %>! 
   <% if @booking && @service_name %>

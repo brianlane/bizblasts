@@ -252,6 +252,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_173511) do
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
     t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"
     t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
+    t.index ["google_place_id"], name: "index_businesses_on_google_place_id", unique: true
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"

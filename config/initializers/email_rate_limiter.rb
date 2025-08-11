@@ -18,7 +18,14 @@ module EmailRateLimiter
   def perform(*args, **kwargs)
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
 
-    if kwargs.empty?
+    # Rails 8.0.2 ActionMailer::MailDeliveryJob expects:
+    # perform(mailer_class, method_name, delivery_method, args:)
+    # But jobs may be enqueued with 4 positional arguments, where the 4th should be the args: keyword
+    if kwargs.empty? && args.length == 4 && args[3].is_a?(Hash) && args[3].key?('args')
+      # Convert 4th positional argument to keyword argument
+      mailer_class, method_name, delivery_method, args_hash = args
+      super(mailer_class, method_name, delivery_method, args: args_hash['args'])
+    elsif kwargs.empty?
       super(*args)
     else
       super(*args, **kwargs)
