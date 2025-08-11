@@ -161,6 +161,9 @@ class GoogleReviewsService
     "https://search.google.com/local/writereview?placeid=#{@place_id}"
   end
   
+  public
+  
+  # Logger method required by ActiveSupport::Benchmarkable
   def logger
     Rails.logger
   end

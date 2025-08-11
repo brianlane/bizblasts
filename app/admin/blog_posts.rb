@@ -16,7 +16,10 @@ ActiveAdmin.register BlogPost do
       status_tag(post.published? ? "Published" : "Draft", class: post.published? ? "published" : "draft")
     end
     column :published_at do |post|
-      post.published_at&.strftime("%B %d, %Y")
+      if post.published_at
+        content_tag :span, post.published_at.strftime("%B %d, %Y"), 
+                    data: { timestamp: post.published_at.iso8601 }
+      end
     end
     column "Preview" do |post|
       if post.published?
@@ -229,10 +232,21 @@ ActiveAdmin.register BlogPost do
       row :published do |post|
         status_tag(post.published? ? "Published" : "Draft", class: post.published? ? "published" : "draft")
       end
-      row :published_at
+      row :published_at do |post|
+        if post.published_at
+          content_tag :span, post.published_at.strftime("%B %d, %Y at %I:%M %p UTC"), 
+                      data: { timestamp: post.published_at.iso8601 }
+        end
+      end
       row :release_date
-      row :created_at
-      row :updated_at
+      row :created_at do |post|
+        content_tag :span, post.created_at.strftime("%B %d, %Y at %I:%M %p UTC"), 
+                    data: { timestamp: post.created_at.iso8601 }
+      end
+      row :updated_at do |post|
+        content_tag :span, post.updated_at.strftime("%B %d, %Y at %I:%M %p UTC"), 
+                    data: { timestamp: post.updated_at.iso8601 }
+      end
     end
     
     panel "Excerpt Preview" do
