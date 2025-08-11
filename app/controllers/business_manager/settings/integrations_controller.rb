@@ -200,9 +200,9 @@ module BusinessManager
           # OAuth providers (Google, Microsoft)
           oauth_handler = Calendar::OauthHandler.new
           scheme = request.ssl? ? 'https' : 'http'
-          host = Rails.application.config.main_domain
-          # Append port only if main_domain does NOT already include one
-          port_str = if host.include?(':') || request.port.nil? || [80, 443].include?(request.port)
+          host = Rails.application.config.main_domain || request.host
+          # Append port only if host does NOT already include one or is on standard ports
+          port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
                        ''
                      else
                        ":#{request.port}"

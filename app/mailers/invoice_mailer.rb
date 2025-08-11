@@ -102,7 +102,7 @@ class InvoiceMailer < ApplicationMailer
       )
     else
       # For guest users, use guest access token
-      Rails.application.routes.url_helpers.tenant_invoice_url(
+      Rails.application.routes.url_helpers.tenant_transaction_url(
         invoice,
         token: invoice.guest_access_token,
         subdomain: @business.hostname,
