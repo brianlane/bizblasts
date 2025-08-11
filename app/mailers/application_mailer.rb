@@ -40,23 +40,47 @@ class ApplicationMailer < ActionMailer::Base
   # Set unsubscribe token for email recipient
   def set_unsubscribe_token(recipient)
     if recipient.is_a?(User)
-      # Ensure unsubscribe token exists, generate if missing
-      if recipient.unsubscribe_token.blank?
-        recipient.send(:generate_unsubscribe_token)
-      end
-      @unsubscribe_token = recipient.unsubscribe_token
+      @unsubscribe_token = ensure_unsubscribe_token(recipient)
       @user = recipient
     elsif recipient.is_a?(TenantCustomer)
-      # Ensure unsubscribe token exists, generate if missing
-      if recipient.unsubscribe_token.blank?
-        recipient.send(:generate_unsubscribe_token)
-      end
-      @unsubscribe_token = recipient.unsubscribe_token
+      @unsubscribe_token = ensure_unsubscribe_token(recipient)
       @user = nil
     else
       @unsubscribe_token = nil
       @user = nil
     end
+  end
+
+  private
+
+  # Ensures the recipient has an unsubscribe token, generating and persisting one if needed
+  def ensure_unsubscribe_token(recipient)
+    return recipient.unsubscribe_token if recipient.unsubscribe_token.present?
+    
+    # Check if recipient responds to the token generation method
+    unless recipient.respond_to?(:generate_unsubscribe_token, true)
+      Rails.logger.warn "[EMAIL] #{recipient.class.name}##{recipient.id} does not support unsubscribe token generation"
+      return nil
+    end
+    
+    # Generate token using the private method, with retry for potential race conditions
+    recipient.send(:generate_unsubscribe_token)
+    
+    # Ensure the token was persisted by checking the database
+    recipient.reload
+    token = recipient.unsubscribe_token
+    
+    if token.blank?
+      Rails.logger.warn "[EMAIL] Generated token was not persisted for #{recipient.class.name}##{recipient.id}"
+      return nil
+    end
+    
+    Rails.logger.debug "[EMAIL] Generated unsubscribe token for #{recipient.class.name}##{recipient.id}"
+    token
+  rescue => e
+    Rails.logger.error "[EMAIL] Failed to generate unsubscribe token for #{recipient.class.name}##{recipient.id}: #{e.message}"
+    Rails.logger.error "[EMAIL] Backtrace: #{e.backtrace.first(3).join('\n')}"
+    nil
   end
 
   # Helper to generate tenant URLs in mailer templates

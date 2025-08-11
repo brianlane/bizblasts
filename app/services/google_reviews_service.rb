@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'time'
+
 # GoogleReviewsService handles fetching Google Place reviews
 # while maintaining Google Policy compliance:
 #
@@ -140,21 +142,39 @@ class GoogleReviewsService
   # Process individual review from Places API v1
   def process_review_v1(review)
     author = review['authorAttribution'] || review['reviewer'] || {}
+    
+    # Extract review text from nested structure
+    # Google Places API v1 returns text as: { "text": "actual review text", "languageCode": "en" }
+    review_text = if review['text'].is_a?(Hash)
+                    review['text']['text']
+                  else
+                    review['text']
+                  end
+    
     {
       author_name: author['displayName'],
       author_url: author['uri'],
       profile_photo_url: author['photoUri'],
       rating: review['rating'],
       relative_time_description: nil,
-      text: review['text'],
-      time: begin
-        ts = review['publishTime']
-        ts ? Time.parse(ts) : nil
-      rescue
-        nil
-      end
+      text: review_text,
+      time: parse_review_time(review['publishTime'])
     }
   end
+  
+  private
+  
+  # Parse review timestamp safely
+  def parse_review_time(timestamp)
+    return nil unless timestamp.present?
+    
+    Time.parse(timestamp)
+  rescue ArgumentError, TypeError => e
+    Rails.logger.warn "[GoogleReviews] Failed to parse timestamp '#{timestamp}': #{e.message}"
+    nil
+  end
+  
+  public
   
   # Generate Google Reviews URL for "Write a Review" link
   def generate_google_reviews_url
