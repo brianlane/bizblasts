@@ -92,7 +92,7 @@ class CalendarOauthController < ApplicationController
   # Redirect the user back to their business settings page, preserving
   # custom-domain vs subdomain hosting.
   def redirect_to_business_calendar_settings(business)
-    target_url = TenantHost.url_for(business, request, '/manage/settings/calendar_integrations')
+    target_url = TenantHost.url_for(business, request, '/manage/settings/integrations')
     redirect_to target_url, allow_other_host: true
   end
   
@@ -107,7 +107,7 @@ class CalendarOauthController < ApplicationController
         
         if business.present?
           # Redirect back to the business-appropriate host (subdomain or custom domain)
-          redirect_to TenantHost.url_for(business, request, '/manage/settings/calendar_integrations'), alert: message
+          redirect_to TenantHost.url_for(business, request, '/manage/settings/integrations'), alert: message
           return
         end
       rescue => e

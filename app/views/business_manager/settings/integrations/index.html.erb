@@ -119,7 +119,7 @@
                       <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
                                     method: :delete, 
                                     class: "px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700",
-                                    confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." %>
+                                    data: { turbo_confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." } %>
                     </div>
                   </div>
                 <% end %>
@@ -156,13 +156,13 @@
                           calendar_integration_batch_sync_business_manager_settings_integrations_path, 
                           method: :post, 
                           class: "px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700",
-                          confirm: "This will sync all pending bookings for all staff members. Continue?" %>
+                          data: { turbo_confirm: "This will sync all pending bookings for all staff members. Continue?" } %>
             
             <%= button_to "Import All Availability", 
                           calendar_integration_import_availability_business_manager_settings_integrations_path, 
                           method: :post, 
                           class: "px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700",
-                          confirm: "This will import calendar events from all connected calendars. Continue?" %>
+                          data: { turbo_confirm: "This will import calendar events from all connected calendars. Continue?" } %>
           </div>
         </div>
       <% end %>
