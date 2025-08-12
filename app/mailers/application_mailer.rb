@@ -79,7 +79,7 @@ class ApplicationMailer < ActionMailer::Base
     token
   rescue => e
     Rails.logger.error "[EMAIL] Failed to generate unsubscribe token for #{recipient.class.name}##{recipient.id}: #{e.message}"
-    Rails.logger.error "[EMAIL] Backtrace: #{e.backtrace.first(3).join('\n')}"
+    Rails.logger.error "[EMAIL] Backtrace: #{e.backtrace.first(3).join("\n") }"
     nil
   end
 
