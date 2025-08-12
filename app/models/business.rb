@@ -199,6 +199,7 @@ class Business < ApplicationRecord
   validates :zip, presence: true # Consider adding format validation
   validates :description, presence: true
   validates :tier, presence: true, inclusion: { in: tiers.keys }
+  validates :google_place_id, uniqueness: true, allow_nil: true
   
   # New Validations for hostname/host_type
   validates :hostname, presence: true, uniqueness: { case_sensitive: false }
@@ -231,6 +232,7 @@ class Business < ApplicationRecord
   
   before_validation :normalize_hostname
   before_validation :ensure_hours_is_hash
+  before_validation :normalize_stripe_customer_id
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
@@ -665,6 +667,12 @@ class Business < ApplicationRecord
     self.hostname = hostname.downcase.strip
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
+  end
+
+  def normalize_stripe_customer_id
+    # Convert empty strings to nil to avoid unique constraint violations
+    # since multiple nil values are allowed but multiple empty strings are not
+    self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
   
   def free_tier_requires_subdomain_host_type

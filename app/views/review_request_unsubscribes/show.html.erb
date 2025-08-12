@@ -1,0 +1,101 @@
+<%# Review Request Unsubscribe Page %>
+
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="text-center">
+      <% if @success %>
+        <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-green-100">
+          <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <h2 class="mt-6 text-3xl font-bold text-gray-900">Successfully Unsubscribed</h2>
+      <% else %>
+        <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
+          <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </div>
+        <h2 class="mt-6 text-3xl font-bold text-gray-900">Unsubscribe Failed</h2>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <% if @success %>
+        <div class="space-y-4">
+          <div class="bg-green-50 border border-green-200 rounded-md p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-green-800">
+                  <%= @message %>
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <% if @business %>
+            <div class="text-center">
+              <p class="text-sm text-gray-600 mb-4">
+                You will no longer receive review requests for this specific service from <%= @business.name %>.
+              </p>
+              
+              <div class="space-y-2">
+                <p class="text-xs text-gray-500">
+                  You may still receive other important communications like booking confirmations and receipts.
+                </p>
+                
+                <% if @customer&.unsubscribe_token %>
+                  <p class="text-xs text-gray-500">
+                    To unsubscribe from all emails, 
+                    <a href="<%= unsubscribe_magic_link_url(token: @customer.unsubscribe_token) %>" class="text-blue-600 hover:text-blue-800 underline">
+                      click here
+                    </a>.
+                  </p>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <div class="bg-red-50 border border-red-200 rounded-md p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-red-800">
+                  <%= @message %>
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-center text-sm text-gray-600">
+            <p>If you need assistance, please contact support.</p>
+          </div>
+        </div>
+      <% end %>
+      
+      <!-- Footer -->
+      <div class="mt-8 pt-6 border-t border-gray-200">
+        <div class="text-center">
+          <p class="text-xs text-gray-500">
+            Powered by 
+            <%= link_to "BizBlasts", root_url(host: Rails.env.development? ? 'localhost:3000' : 'bizblasts.com'), 
+                class: "text-blue-600 hover:text-blue-800" %>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
