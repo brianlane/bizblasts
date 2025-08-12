@@ -162,7 +162,7 @@ export default class extends Controller {
             ).join('')}
           </div>
         </div>
-        <button class="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors connect-button">
+        <button class="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors connect-button cursor-pointer">
           Connect This Business
         </button>
       </div>
@@ -239,7 +239,7 @@ export default class extends Controller {
         </div>
         
         <div class="mt-6 flex gap-3">
-          <button class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 connect-preview-button">
+          <button class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 connect-preview-button cursor-pointer">
             Connect This Business
           </button>
           <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 close-preview">
