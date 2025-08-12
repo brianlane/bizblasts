@@ -14,7 +14,13 @@ module UnsubscribeTokenGenerator
       break unless User.exists?(unsubscribe_token: unsubscribe_token) || 
                    TenantCustomer.exists?(unsubscribe_token: unsubscribe_token)
     end
-    save(validate: false) if persisted?
+    
+    # Save the token if the record is persisted, with error handling
+    if persisted?
+      unless save(validate: false)
+        Rails.logger.error "[TOKEN] Failed to save unsubscribe token for #{self.class.name}##{id}: #{errors.full_messages.join(', ')}"
+      end
+    end
   end
 
   def regenerate_unsubscribe_token

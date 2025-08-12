@@ -95,6 +95,8 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
 
   def business_params
     # Permit base attributes
+    # NOTE: google_place_id is NOT permitted here - it must be set via the verified integrations flow
+    # in IntegrationsController to ensure proper verification through GoogleBusinessVerificationService
     permitted = params.require(:business).permit(
       :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled,
       # Permit individual hour fields, which will be processed into a JSON hash

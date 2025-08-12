@@ -1,0 +1,21 @@
+Hi <%= @customer.first_name.present? ? @customer.first_name : (@customer.name&.split&.first) || 'there' %>,
+
+Thank you for choosing <%= @business.name %>! <% if @booking && @service_name %>We hope you're satisfied with the <%= @service_name %> service we provided.<% else %>We hope you're satisfied with our service.<% end %>
+
+Your feedback is important to us and helps other customers make informed decisions. If you have a moment, we'd appreciate if you could share your experience on Google.
+
+Share Your Experience on Google:
+<%= @review_url %>
+
+This will take you directly to Google where you can write about your experience.
+
+Thank you for your time!
+
+Best regards,
+The <%= @business.name %> Team
+
+---
+
+This is a one-time request. We respect your privacy and won't send additional review requests for this service.
+
+<% if @tracking_token %>Unsubscribe from review requests: <%= unsubscribe_review_requests_url(token: @tracking_token) %><% end %>

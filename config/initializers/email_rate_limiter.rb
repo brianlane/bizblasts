@@ -14,10 +14,41 @@ module EmailRateLimiter
   RATE_PER_SECOND = (ENV.fetch("EMAIL_RATE_LIMIT_PER_SECOND", 2).to_i).positive? ? ENV.fetch("EMAIL_RATE_LIMIT_PER_SECOND", 2).to_i : 2
   MIN_INTERVAL   = 1.0 / RATE_PER_SECOND
 
-  def perform(*args)
+  # Support Rails 7/8 MailDeliveryJob signature (keywords) and older forms
+  def perform(*args, **kwargs)
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
 
-    super
+    # Rails 8.0.2 ActionMailer::MailDeliveryJob expects:
+    # perform(mailer_class, method_name, delivery_method, args:)
+    # But jobs may be enqueued with 4 positional arguments, where the 4th should be the args: keyword
+    # ActiveJob serialization can use symbol or string keys; support both.
+    if kwargs.empty? && args.length == 4 && args[3].is_a?(Hash)
+      mailer_class, method_name, delivery_method, args_hash = args
+      actual_args   = args_hash.key?(:args)   ? args_hash[:args]   : args_hash['args']
+      actual_kwargs = args_hash.key?(:kwargs) ? args_hash[:kwargs] : args_hash['kwargs']
+      actual_params = args_hash.key?(:params) ? args_hash[:params] : args_hash['params']
+
+      if !actual_args.nil? || !actual_kwargs.nil? || !actual_params.nil?
+        # Ensure kwargs keys are symbols so Ruby keyword splat works reliably on Ruby 3+
+        actual_kwargs = actual_kwargs.transform_keys(&:to_sym) if actual_kwargs.is_a?(Hash)
+        # Always provide args: (required by Rails 8 signature), default to []
+        if actual_kwargs && actual_params
+          super(mailer_class, method_name, delivery_method, args: (actual_args || []), kwargs: actual_kwargs, params: actual_params)
+        elsif actual_kwargs
+          super(mailer_class, method_name, delivery_method, args: (actual_args || []), kwargs: actual_kwargs)
+        elsif actual_params
+          super(mailer_class, method_name, delivery_method, args: (actual_args || []), params: actual_params)
+        else
+          super(mailer_class, method_name, delivery_method, args: actual_args)
+        end
+      else
+        super(*args)
+      end
+    elsif kwargs.empty?
+      super(*args)
+    else
+      super(*args, **kwargs)
+    end
   ensure
     elapsed   = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) - started_at
     # Sleep long enough so that this worker thread respects the global rate.
