@@ -138,7 +138,7 @@
         <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: @calendar_connection.id), 
                       method: :delete, 
                       class: "px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2",
-                      confirm: "Are you sure you want to disconnect #{@calendar_connection.provider_display_name}? This will stop syncing bookings to #{@calendar_connection.staff_member.name}'s calendar." %>
+                      data: { turbo_confirm: "Are you sure you want to disconnect #{@calendar_connection.provider_display_name}? This will stop syncing bookings to #{@calendar_connection.staff_member.name}'s calendar." } %>
       </div>
     </div>
   </div>

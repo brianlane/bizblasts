@@ -29,6 +29,8 @@ module EmailRateLimiter
       actual_params = args_hash.key?(:params) ? args_hash[:params] : args_hash['params']
 
       if !actual_args.nil? || !actual_kwargs.nil? || !actual_params.nil?
+        # Ensure kwargs keys are symbols so Ruby keyword splat works reliably on Ruby 3+
+        actual_kwargs = actual_kwargs.transform_keys(&:to_sym) if actual_kwargs.is_a?(Hash)
         # Always provide args: (required by Rails 8 signature), default to []
         if actual_kwargs && actual_params
           super(mailer_class, method_name, delivery_method, args: (actual_args || []), kwargs: actual_kwargs, params: actual_params)
