@@ -18,4 +18,4 @@ The <%= @business.name %> Team
 
 This is a one-time request. We respect your privacy and won't send additional review requests for this service.
 
-<% if @tracking_token %>Unsubscribe from review requests: <%= unsubscribe_review_requests_url(@tracking_token) %><% end %>
+<% if @tracking_token %>Unsubscribe from review requests: <%= unsubscribe_review_requests_url(token: @tracking_token) %><% end %>

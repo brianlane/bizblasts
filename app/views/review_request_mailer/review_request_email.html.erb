@@ -34,7 +34,7 @@
     This is a one-time request. We respect your privacy and won't send additional review requests for this service.
     <br>
     <% if @tracking_token %>
-      <a href="<%= unsubscribe_review_requests_url(@tracking_token) %>">Unsubscribe from review requests</a>
+      <a href="<%= unsubscribe_review_requests_url(token: @tracking_token) %>">Unsubscribe from review requests</a>
     <% end %>
   </p>
 </div>
