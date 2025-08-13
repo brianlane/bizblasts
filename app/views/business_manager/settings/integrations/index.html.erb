@@ -54,7 +54,7 @@
       <% if @sync_statistics.present? && @sync_statistics[:total_attempts] > 0 %>
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
           <h3 class="font-medium text-gray-900 mb-3">Sync Statistics (Last 24 Hours)</h3>
-          <div class="grid grid-cols-3 gap-4 text-center">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div>
               <div class="text-2xl font-bold text-green-600"><%= @sync_statistics[:successful] %></div>
               <div class="text-xs text-gray-600">Successful Syncs</div>
@@ -73,70 +73,147 @@
 
       <div class="space-y-6">
         <% @staff_members.each do |staff_member| %>
-          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-            <div class="flex items-start justify-between mb-4">
-              <div>
-                <h3 class="font-medium text-gray-900"><%= staff_member.name %></h3>
-                <p class="text-sm text-gray-600"><%= staff_member.email %></p>
-                <span class="inline-block mt-2 px-2 py-1 text-xs rounded-full bg-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-100 text-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-800">
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <!-- Staff Member Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100">
+              <div class="flex items-start justify-between">
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 truncate"><%= staff_member.name %></h3>
+                  <p class="text-sm text-gray-600 mt-1 truncate"><%= staff_member.email %></p>
+                </div>
+                <span class="ml-3 inline-flex px-3 py-1 text-xs font-medium rounded-full bg-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-100 text-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-800">
                   <%= staff_member.calendar_sync_status %>
                 </span>
               </div>
             </div>
 
+            <!-- Calendar Connections Content -->
+            <div class="p-4 sm:p-5">
+
             <% if staff_member.calendar_connections.active.any? %>
               <div class="space-y-3 mb-4">
                 <% staff_member.calendar_connections.active.each do |connection| %>
-                  <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
-                    <div>
-                      <span class="font-medium text-gray-900">
-                        <%= connection.provider_display_name %>
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                    <!-- Desktop Layout: Horizontal -->
+                    <div class="hidden sm:flex items-center justify-between p-4">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-gray-900">
+                            <%= connection.provider_display_name %>
+                          </span>
+                          <% if staff_member.default_calendar_connection == connection %>
+                            <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">Default</span>
+                          <% end %>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-1">Last sync: <%= connection.last_sync_status %></div>
+                      </div>
+                      
+                      <div class="flex items-center space-x-2">
+                        <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      method: :post, 
+                                      class: "cursor-pointer px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" %>
+                        
                         <% if staff_member.default_calendar_connection == connection %>
-                          <span class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Default</span>
+                          <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :patch, 
+                                        class: "cursor-pointer px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
+                        <% else %>
+                          <%= button_to "Set Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :patch, 
+                                        class: "cursor-pointer px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
                         <% end %>
-                      </span>
-                      <div class="text-sm text-gray-600">Last sync: <%= connection.last_sync_status %></div>
+                        
+                        <%= link_to "Details", calendar_integration_show_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                    class: "cursor-pointer px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700" %>
+                        
+                        <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      method: :delete, 
+                                      class: "cursor-pointer px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700",
+                                      data: { turbo_confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." } %>
+                      </div>
                     </div>
-                    
-                    <div class="flex items-center space-x-2">
-                      <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
-                                    method: :post, 
-                                    class: "px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" %>
+
+                    <!-- Mobile Layout: Vertical Stack -->
+                    <div class="sm:hidden">
+                      <!-- Header Section -->
+                      <div class="bg-white p-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <h4 class="font-semibold text-gray-900 text-base">
+                              <%= connection.provider_display_name %>
+                            </h4>
+                            <p class="text-sm text-gray-600 mt-1">Last sync: <%= connection.last_sync_status %></p>
+                          </div>
+                          <% if staff_member.default_calendar_connection == connection %>
+                            <span class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">Default</span>
+                          <% end %>
+                        </div>
+                      </div>
                       
-                      <% if staff_member.default_calendar_connection == connection %>
-                        <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
-                                      method: :patch, 
-                                      class: "px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
-                      <% else %>
-                        <%= button_to "Set Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
-                                      method: :patch, 
-                                      class: "px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
-                      <% end %>
-                      
-                      <%= link_to "Details", calendar_integration_show_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
-                                  class: "px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700" %>
-                      
-                      <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
-                                    method: :delete, 
-                                    class: "px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700",
-                                    data: { turbo_confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." } %>
+                      <!-- Actions Section -->
+                      <div class="bg-gray-50 p-4">
+                        <div class="grid grid-cols-2 gap-3">
+                          <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :post, 
+                                        class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          
+                          <% if staff_member.default_calendar_connection == connection %>
+                            <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                          method: :patch, 
+                                          class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          <% else %>
+                            <%= button_to "Set Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                          method: :patch, 
+                                          class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          <% end %>
+                          
+                          <%= link_to "Details", calendar_integration_show_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          
+                          <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :delete, 
+                                        class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center",
+                                        data: { turbo_confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." } %>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 <% end %>
               </div>
             <% end %>
 
-            <div class="flex flex-wrap gap-2">
-              <% @providers.each do |provider| %>
-                <% unless staff_member.calendar_connections.active.exists?(provider: provider) %>
-                  <%= button_to "Connect #{provider.humanize} Calendar", 
-                                calendar_integration_connect_business_manager_settings_integrations_path, 
-                                params: { provider: provider, staff_member_id: staff_member.id },
-                                method: :post,
-                                class: "px-4 py-2 text-sm bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-600 text-white rounded hover:bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-700",
-                                data: { turbo: false } %>
-                <% end %>
-              <% end %>
+            <% if @providers.any? { |provider| !staff_member.calendar_connections.active.exists?(provider: provider) } %>
+              <!-- Connect New Calendar Section -->
+              <div class="border-t border-gray-200 pt-4">
+                <h5 class="text-sm font-medium text-gray-900 mb-3">Connect Additional Calendars</h5>
+                <!-- Desktop Layout: Inline buttons -->
+                <div class="hidden sm:flex flex-wrap gap-3">
+                  <% @providers.each do |provider| %>
+                    <% unless staff_member.calendar_connections.active.exists?(provider: provider) %>
+                      <%= button_to "Connect #{provider.humanize} Calendar", 
+                                    calendar_integration_connect_business_manager_settings_integrations_path, 
+                                    params: { provider: provider, staff_member_id: staff_member.id },
+                                    method: :post,
+                                    class: "cursor-pointer px-4 py-2 text-sm font-medium bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-600 text-white rounded-lg hover:bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-700 focus:ring-2 focus:ring-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-500 focus:ring-offset-2 transition-colors",
+                                    data: { turbo: false } %>
+                    <% end %>
+                  <% end %>
+                </div>
+                <!-- Mobile Layout: Full width buttons -->
+                <div class="sm:hidden grid grid-cols-1 gap-3">
+                  <% @providers.each do |provider| %>
+                    <% unless staff_member.calendar_connections.active.exists?(provider: provider) %>
+                      <%= button_to "Connect #{provider.humanize} Calendar", 
+                                    calendar_integration_connect_business_manager_settings_integrations_path, 
+                                    params: { provider: provider, staff_member_id: staff_member.id },
+                                    method: :post,
+                                    class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-600 text-white rounded-lg hover:bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-700 focus:ring-2 focus:ring-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-500 focus:ring-offset-2 transition-colors",
+                                    data: { turbo: false } %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
             </div>
           </div>
         <% end %>
@@ -151,17 +228,17 @@
       <% if @calendar_connections.any? %>
         <div class="mt-8 pt-6 border-t border-gray-200">
           <h3 class="font-medium text-gray-900 mb-4">Bulk Actions</h3>
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-col sm:flex-row gap-3">
             <%= button_to "Sync All Pending Bookings", 
                           calendar_integration_batch_sync_business_manager_settings_integrations_path, 
                           method: :post, 
-                          class: "px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700",
+                          class: "cursor-pointer w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-center",
                           data: { turbo_confirm: "This will sync all pending bookings for all staff members. Continue?" } %>
             
             <%= button_to "Import All Availability", 
                           calendar_integration_import_availability_business_manager_settings_integrations_path, 
                           method: :post, 
-                          class: "px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700",
+                          class: "cursor-pointer w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-center",
                           data: { turbo_confirm: "This will import calendar events from all connected calendars. Continue?" } %>
           </div>
         </div>
