@@ -1,0 +1,76 @@
+name: Cursor Pointer Lint
+
+on:
+  pull_request:
+    paths:
+      - 'app/views/**/*.html.erb'
+      - 'app/views/**/*.html.haml'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'app/views/**/*.html.erb'
+      - 'app/views/**/*.html.haml'
+
+jobs:
+  cursor-pointer-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.2
+        
+    - name: Run cursor-pointer linter
+      run: |
+        echo "🔍 Checking for missing cursor-pointer classes..."
+        ruby lib/linters/cursor_pointer_linter.rb --verbose
+        
+    - name: Comment on PR if issues found
+      if: failure() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { execSync } = require('child_process');
+          
+          try {
+            // Run linter to get detailed output
+            execSync('ruby lib/linters/cursor_pointer_linter.rb', { stdio: 'pipe' });
+          } catch (error) {
+            const output = error.stdout.toString();
+            
+            const comment = `## 🔍 Cursor Pointer Linting Issues
+            
+The cursor-pointer linter found interactive elements missing the \`cursor-pointer\` CSS class:
+
+\`\`\`
+${output}
+\`\`\`
+
+### How to fix:
+1. **Auto-fix**: Run \`ruby lib/linters/cursor_pointer_linter.rb --fix\`
+2. **Manual fix**: Add \`cursor-pointer\` to the class attribute of the highlighted elements
+3. **Rake task**: Run \`rake lint:cursor_pointer_fix\`
+
+### Why this matters:
+Interactive elements should have a pointer cursor to indicate they're clickable, improving user experience and accessibility.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+          
+    - name: Suggest auto-fix in PR
+      if: failure() && github.event_name == 'pull_request'
+      run: |
+        echo "💡 To auto-fix these issues locally:"
+        echo "   ruby lib/linters/cursor_pointer_linter.rb --fix"
+        echo "   git add ."
+        echo "   git commit -m 'Add missing cursor-pointer classes'"
