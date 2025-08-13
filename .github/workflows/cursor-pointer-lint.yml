@@ -42,22 +42,15 @@ jobs:
           } catch (error) {
             const output = error.stdout.toString();
             
-            const comment = `## 🔍 Cursor Pointer Linting Issues
-            
-The cursor-pointer linter found interactive elements missing the \`cursor-pointer\` CSS class:
-
-\`\`\`
-${output}
-\`\`\`
-
-### How to fix:
-1. **Auto-fix**: Run \`ruby lib/linters/cursor_pointer_linter.rb --fix\`
-2. **Manual fix**: Add \`cursor-pointer\` to the class attribute of the highlighted elements
-3. **Rake task**: Run \`rake lint:cursor_pointer_fix\`
-
-### Why this matters:
-Interactive elements should have a pointer cursor to indicate they're clickable, improving user experience and accessibility.
-            `;
+            const comment = "## 🔍 Cursor Pointer Linting Issues\n\n" +
+              "The cursor-pointer linter found interactive elements missing the cursor-pointer CSS class:\n\n" +
+              "```\n" + output + "\n```\n\n" +
+              "### How to fix:\n" +
+              "1. **Auto-fix**: Run 'ruby lib/linters/cursor_pointer_linter.rb --fix'\n" +
+              "2. **Manual fix**: Add 'cursor-pointer' to the class attribute of the highlighted elements\n" +
+              "3. **Rake task**: Run 'rake lint:cursor_pointer_fix'\n\n" +
+              "### Why this matters:\n" +
+              "Interactive elements should have a pointer cursor to indicate they're clickable, improving user experience and accessibility.";
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
