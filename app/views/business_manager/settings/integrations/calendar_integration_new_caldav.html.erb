@@ -12,7 +12,7 @@
           </div>
           <div>
             <h1 class="text-xl sm:text-2xl font-bold text-white">
-              Connect CalDAV Calendar
+              iCloud, Nextcloud, etc. (CalDAV)
             </h1>
             <p class="text-orange-100 text-sm mt-1">
               Set up calendar sync for <%= @staff_member.name %>
@@ -115,7 +115,7 @@
           <div class="flex items-center justify-between">
             <button type="button" 
                     id="test-connection-btn"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
               Test Connection
             </button>
             <div id="test-result" class="text-sm"></div>
@@ -148,10 +148,10 @@
         <!-- Form Actions -->
         <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
           <%= link_to "Cancel", business_manager_settings_integrations_path, 
-                      class: "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" %>
+                      class: "cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" %>
           
           <%= form.submit "Connect Calendar", 
-                          class: "px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                          class: "cursor-pointer px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
                           id: "submit-btn" %>
         </div>
       <% end %>

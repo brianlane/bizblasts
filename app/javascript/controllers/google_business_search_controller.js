@@ -152,8 +152,9 @@ export default class extends Controller {
     div.className = 'p-4 border border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors bg-white'
     
     div.innerHTML = `
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
+      <!-- Desktop Layout -->
+      <div class="hidden sm:flex items-start justify-between">
+        <div class="flex-1 min-w-0">
           <h4 class="font-semibold text-gray-900 text-lg">${this.escapeHtml(business.name)}</h4>
           <p class="text-gray-600 text-sm mt-1">${this.escapeHtml(business.address)}</p>
           <div class="mt-2 flex flex-wrap gap-1">
@@ -162,17 +163,37 @@ export default class extends Controller {
             ).join('')}
           </div>
         </div>
-        <button class="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors connect-button">
+        <div class="ml-4 flex-shrink-0">
+          <button class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors connect-button cursor-pointer whitespace-nowrap">
+            Connect This Business
+          </button>
+        </div>
+      </div>
+      
+      <!-- Mobile Layout -->
+      <div class="block sm:hidden">
+        <div class="mb-4">
+          <h4 class="font-semibold text-gray-900 text-lg leading-tight">${this.escapeHtml(business.name)}</h4>
+          <p class="text-gray-600 text-sm mt-1 leading-tight">${this.escapeHtml(business.address)}</p>
+          <div class="mt-2 flex flex-wrap gap-1">
+            ${business.types.slice(0, 3).map(type => 
+              `<span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">${this.formatBusinessType(type)}</span>`
+            ).join('')}
+          </div>
+        </div>
+        <button class="w-full px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors connect-button cursor-pointer">
           Connect This Business
         </button>
       </div>
     `
     
-    // Add click handler for the connect button
-    const connectButton = div.querySelector('.connect-button')
-    connectButton.addEventListener('click', (e) => {
-      e.stopPropagation()
-      this.connectBusiness(business.place_id, business.name)
+    // Add click handler for all connect buttons (desktop and mobile)
+    const connectButtons = div.querySelectorAll('.connect-button')
+    connectButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation()
+        this.connectBusiness(business.place_id, business.name)
+      })
     })
     
     // Add click handler for the whole div (for preview)
@@ -239,7 +260,7 @@ export default class extends Controller {
         </div>
         
         <div class="mt-6 flex gap-3">
-          <button class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 connect-preview-button">
+          <button class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 connect-preview-button cursor-pointer">
             Connect This Business
           </button>
           <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 close-preview">
