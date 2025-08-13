@@ -33,13 +33,13 @@
               <!-- Order Controls Row -->
               <div class="flex items-center justify-center py-3 border-b border-gray-100">
                 <div class="position-indicator-with-arrows flex items-center gap-2">
-                  <button type="button" class="position-arrow #{'disabled' if index == 0}" title="Move up" data-item-id="<%= service.id %>" data-action="move_up">
+                  <button type="button" class="cursor-pointer position-arrow #{"disabled' if index == 0}" title="Move up" data-item-id="<%= service.id %>" data-action="move_up">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
                     </svg>
                   </button>
                   <div class="position-number sortable-handle flex items-center justify-center"><%= index + 1 %></div>
-                  <button type="button" class="position-arrow #{'disabled' if index == @services.count - 1}" title="Move down" data-item-id="<%= service.id %>" data-action="move_down">
+                  <button type="button" class="cursor-pointer position-arrow #{"disabled' if index == @services.count - 1}" title="Move down" data-item-id="<%= service.id %>" data-action="move_down">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
@@ -163,13 +163,13 @@
                       data-item-id="<%= service.id %>">
                     <td class="px-4 py-4 whitespace-nowrap">
                       <div class="position-indicator-with-arrows flex items-center gap-2">
-                        <button type="button" class="position-arrow #{'disabled' if index == 0}" title="Move up" data-item-id="<%= service.id %>" data-action="move_up">
+                        <button type="button" class="cursor-pointer position-arrow #{"disabled' if index == 0}" title="Move up" data-item-id="<%= service.id %>" data-action="move_up">
                           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
                           </svg>
                         </button>
                         <div class="position-number sortable-handle flex items-center justify-center"><%= index + 1 %></div>
-                        <button type="button" class="position-arrow #{'disabled' if index == @services.count - 1}" title="Move down" data-item-id="<%= service.id %>" data-action="move_down">
+                        <button type="button" class="cursor-pointer position-arrow #{"disabled' if index == @services.count - 1}" title="Move down" data-item-id="<%= service.id %>" data-action="move_down">
                           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                           </svg>

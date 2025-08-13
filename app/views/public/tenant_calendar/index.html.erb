@@ -187,7 +187,7 @@
           <% is_past_date = current_date < today %>
           <% next current_date += 1.day if is_past_date %>
           <div class="border-b border-gray-200 last:border-b-0">
-            <button class="w-full p-4 text-left hover:bg-gray-50 transition-colors mobile-calendar-day"
+            <button class="cursor-pointer w-full p-4 text-left hover:bg-gray-50 transition-colors mobile-calendar-day"
                     data-date="<%= current_date.to_s %>">
               <div class="flex items-center justify-between">
                 <div class="flex-1">
@@ -536,7 +536,7 @@
                 <h3 class="text-lg sm:text-xl font-bold">Available Time Slots</h3>
                 <p class="text-sm sm:text-base text-gray-600 mt-1">${formattedDate}</p>
               </div>
-              <button class="close-button p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <button class="cursor-pointer close-button p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>

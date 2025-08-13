@@ -52,12 +52,12 @@
         </div>
         
         <div class="day-selector-actions flex gap-3 mb-4">
-          <button type="button" class="text-blue-500 text-sm"
+          <button type="button" class="cursor-pointer text-blue-500 text-sm"
                  data-action="click->availability-form#toggleAllDays"
                  data-action="select">
             Select All
           </button>
-          <button type="button" class="text-blue-500 text-sm"
+          <button type="button" class="cursor-pointer text-blue-500 text-sm"
                  data-action="click->availability-form#toggleAllDays"
                  data-action="deselect">
             Deselect All
@@ -100,7 +100,7 @@
             </div>
             
             <div class="remove-button-container self-end">
-              <button type="button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+              <button type="button" class="cursor-pointer bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
                      data-action="click->availability-form#removeTimeRange">
                 Remove
               </button>
@@ -121,7 +121,7 @@
           </div>
           
           <div class="remove-button-container self-end">
-            <button type="button" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+            <button type="button" class="cursor-pointer bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
                    data-action="click->availability-form#removeTimeRange">
               Remove
             </button>
@@ -130,7 +130,7 @@
       </div>
       
       <div class="add-time-range-container mb-6">
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        <button type="button" class="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                data-action="click->availability-form#addTimeRange">
           Add Another Time Range
         </button>
@@ -138,7 +138,7 @@
       
       <!-- Form actions -->
       <div class="form-actions">
-        <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        <button type="submit" class="cursor-pointer bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                data-availability-form-target="submitButton">
           Save Availability
         </button>

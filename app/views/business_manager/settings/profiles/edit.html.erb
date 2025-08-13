@@ -237,7 +237,7 @@
             <% end %>
 
             <div class="actions">
-              <%= form.submit "Delete My Account", class: "btn-danger", 
+              <%= form.submit "Delete My Account", class: "cursor-pointer btn-danger", 
                   data: { 
                     confirm: @user.manager? && @user.business.users.where.not(id: @user.id).empty? ? 
                       "This will permanently delete your account AND the entire business. Are you sure?" : 

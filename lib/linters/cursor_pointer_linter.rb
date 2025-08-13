@@ -32,7 +32,10 @@ class CursorPointerLinter
     /disabled.*cursor-not-allowed/,
     /cursor-default/,
     /cursor-wait/,
-    /cursor-help/
+    /cursor-help/,
+    # Mobile-only responsive layout divs (not interactive)
+    /sm:hidden/,
+    /hidden\s+sm:/
   ].freeze
 
   def initialize(options = {})
@@ -133,21 +136,26 @@ class CursorPointerLinter
     # Add cursor-pointer to the class list
     new_classes = css_classes.empty? ? 'cursor-pointer' : "cursor-pointer #{css_classes}"
     
-    # Replace the class attribute
-    BUTTON_PATTERNS.each do |pattern|
-      if line.match?(pattern)
-        new_line = line.gsub(pattern) do |match|
-          match.gsub(/class:\s*["']([^"']*)["']/, "class: \"#{new_classes}\"")
-                .gsub(/class=["']([^"']*)["']/, "class=\"#{new_classes}\"")
-        end
-        
-        lines[line_number - 1] = new_line
-        File.write(file_path, lines.join)
-        
-        puts "✅ Fixed: #{file_path}:#{line_number}" if @verbose
-        return
-      end
+    # Replace the class attribute directly in the line
+    new_line = line.dup
+    
+    # Try Rails helper format first (class: "...")
+    if new_line.gsub!(/class:\s*["']([^"']*)["']/, "class: \"#{new_classes}\"")
+      lines[line_number - 1] = new_line
+      File.write(file_path, lines.join)
+      puts "✅ Fixed: #{file_path}:#{line_number}" if @verbose
+      return
     end
+    
+    # Try HTML format (class="...")
+    if new_line.gsub!(/class=["']([^"']*)["']/, "class=\"#{new_classes}\"")
+      lines[line_number - 1] = new_line
+      File.write(file_path, lines.join)
+      puts "✅ Fixed: #{file_path}:#{line_number}" if @verbose
+      return
+    end
+    
+    puts "⚠️  Could not fix: #{file_path}:#{line_number} (complex class attribute)" if @verbose
   end
 
   def print_results
