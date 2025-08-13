@@ -1,0 +1,33 @@
+#!/bin/bash
+# Pre-commit hook to check for cursor-pointer issues
+
+echo "🔍 Checking for cursor-pointer issues..."
+
+# Get list of staged ERB files
+staged_erb_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.html\.erb$')
+
+if [ -z "$staged_erb_files" ]; then
+  echo "ℹ️  No ERB files to check"
+  exit 0
+fi
+
+# Run cursor-pointer linter on staged files
+ruby lib/linters/cursor_pointer_linter.rb $staged_erb_files
+
+exit_code=$?
+
+if [ $exit_code -ne 0 ]; then
+  echo ""
+  echo "❌ Cursor-pointer linting failed!"
+  echo ""
+  echo "💡 To fix automatically, run:"
+  echo "    ruby lib/linters/cursor_pointer_linter.rb --fix $staged_erb_files"
+  echo ""
+  echo "🚫 To bypass this check (not recommended), run:"
+  echo "    git commit --no-verify"
+  echo ""
+  exit 1
+fi
+
+echo "✅ Cursor-pointer check passed!"
+exit 0
