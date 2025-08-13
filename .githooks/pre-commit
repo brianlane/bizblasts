@@ -3,16 +3,23 @@
 
 echo "🔍 Checking for cursor-pointer issues..."
 
-# Get list of staged ERB files
-staged_erb_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.html\.erb$')
+# Get list of staged ERB files (handle spaces/special characters safely)
+staged_erb_files=()
+while IFS= read -r -d '' file; do
+  case "$file" in
+    *.html.erb)
+      staged_erb_files+=("$file")
+      ;;
+  esac
+done < <(git diff --cached --name-only --diff-filter=ACM -z)
 
-if [ -z "$staged_erb_files" ]; then
+if [ ${#staged_erb_files[@]} -eq 0 ]; then
   echo "ℹ️  No ERB files to check"
   exit 0
 fi
 
 # Run cursor-pointer linter on staged files
-ruby lib/linters/cursor_pointer_linter.rb $staged_erb_files
+ruby lib/linters/cursor_pointer_linter.rb "${staged_erb_files[@]}"
 
 exit_code=$?
 

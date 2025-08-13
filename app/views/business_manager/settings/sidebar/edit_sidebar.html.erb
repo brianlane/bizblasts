@@ -17,9 +17,9 @@
             <li class="sidebar-item" data-key="<%= item[:key] %>">
               <span class="drag-handle">☰</span>
               <span class="sidebar-order">
-                <button type="button" class="arrow-up" <%= 'disabled' if idx == 0 %> aria-label="Move up">&#8593;</button>
+                <button type="button" class="cursor-pointer arrow-up" <%= 'disabled' if idx == 0 %> aria-label="Move up">&#8593;</button>
                 <span class="order-number"><%= idx + 1 %></span>
-                <button type="button" class="arrow-down" <%= 'disabled' if idx == @sidebar_items.size - 1 %> aria-label="Move down">&#8595;</button>
+                <button type="button" class="cursor-pointer arrow-down" <%= 'disabled' if idx == @sidebar_items.size - 1 %> aria-label="Move down">&#8595;</button>
               </span>
               <%= hidden_field_tag "sidebar_items[#{idx}][visible]", false %>
               <%= check_box_tag "sidebar_items[#{idx}][visible]", true, visible, id: "sidebar_item_visible_#{item[:key]}" %>

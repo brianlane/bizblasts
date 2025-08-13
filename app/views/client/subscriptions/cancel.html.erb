@@ -3,7 +3,7 @@
   <p>Are you sure you want to cancel your subscription to <strong><%= @customer_subscription.product.name %></strong>?</p>
   <%= form_with url: cancel_client_subscription_path(@customer_subscription), method: :post, local: true do |form| %>
     <%= form.hidden_field :confirmed, value: 'true' %>
-    <%= form.submit "Yes, Cancel Subscription", class: "btn btn-danger" %>
+    <%= form.submit "Yes, Cancel Subscription", class: "cursor-pointer btn btn-danger" %>
   <% end %>
-  <%= link_to "No, Keep Subscription", client_subscription_path(@customer_subscription), class: "btn btn-secondary" %>
+  <%= link_to "No, Keep Subscription", client_subscription_path(@customer_subscription), class: "cursor-pointer btn btn-secondary" %>
 </div> 

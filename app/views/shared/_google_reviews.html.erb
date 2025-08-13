@@ -16,11 +16,12 @@
     <section class="bg-white py-8 px-6 rounded-lg shadow-sm border border-gray-200">
       <div class="max-w-4xl mx-auto">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center space-x-3">
+        <!-- Desktop Layout -->
+        <div class="hidden lg:flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-4">
             <h2 class="text-2xl font-bold text-gray-900">Customer Reviews</h2>
-            <div class="flex items-center space-x-2">
-              <% if reviews_data[:place][:rating] %>
+            <% if reviews_data[:place][:rating] %>
+              <div class="flex items-center space-x-2">
                 <div class="flex items-center">
                   <% (1..5).each do |star| %>
                     <% if star <= reviews_data[:place][:rating].to_i %>
@@ -43,15 +44,15 @@
                       </svg>
                     <% end %>
                   <% end %>
-                  <span class="ml-2 text-sm font-medium text-gray-700">
-                    <%= reviews_data[:place][:rating] %> 
-                    <% if reviews_data[:place][:user_ratings_total] %>
-                      (<%= reviews_data[:place][:user_ratings_total] %> reviews)
-                    <% end %>
-                  </span>
                 </div>
-              <% end %>
-            </div>
+                <span class="text-sm font-medium text-gray-700">
+                  <%= reviews_data[:place][:rating] %> 
+                  <% if reviews_data[:place][:user_ratings_total] %>
+                    (<%= reviews_data[:place][:user_ratings_total] %> reviews)
+                  <% end %>
+                </span>
+              </div>
+            <% end %>
           </div>
           
           <!-- Write Review Button -->
@@ -59,7 +60,7 @@
             <a href="<%= reviews_data[:google_url] %>" 
                target="_blank"
                rel="noopener noreferrer"
-               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200">
+               class="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
               </svg>
@@ -73,12 +74,75 @@
             </div>
           </div>
         </div>
+
+        <!-- Mobile/Tablet Layout -->
+        <div class="lg:hidden mb-6">
+          <div class="flex flex-col space-y-4">
+            <!-- Title and Rating Row -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Customer Reviews</h2>
+              <% if reviews_data[:place][:rating] %>
+                <div class="flex items-center space-x-2">
+                  <div class="flex items-center">
+                    <% (1..5).each do |star| %>
+                      <% if star <= reviews_data[:place][:rating].to_i %>
+                        <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                      <% elsif star == reviews_data[:place][:rating].to_i + 1 && reviews_data[:place][:rating] % 1 != 0 %>
+                        <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <defs>
+                            <linearGradient id="half-star-mobile">
+                              <stop offset="50%" stop-color="currentColor"/>
+                              <stop offset="50%" stop-color="#E5E7EB"/>
+                            </linearGradient>
+                          </defs>
+                          <path fill="url(#half-star-mobile)" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                      <% else %>
+                        <svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                      <% end %>
+                    <% end %>
+                  </div>
+                  <span class="text-sm font-medium text-gray-700">
+                    <%= reviews_data[:place][:rating] %> 
+                    <% if reviews_data[:place][:user_ratings_total] %>
+                      (<%= reviews_data[:place][:user_ratings_total] %> reviews)
+                    <% end %>
+                  </span>
+                </div>
+              <% end %>
+            </div>
+
+            <!-- Button and Attribution Row -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <a href="<%= reviews_data[:google_url] %>" 
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="cursor-pointer inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
+                </svg>
+                Write a Review
+              </a>
+              <div class="text-xs text-gray-500 text-center sm:text-right">
+                Powered by 
+                <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800">
+                  Google
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
         
         <!-- Reviews Grid -->
         <div class="space-y-6">
           <% reviews_data[:reviews].each do |review| %>
             <article class="border-b border-gray-200 last:border-b-0 pb-6 last:pb-0">
-              <div class="flex items-start space-x-4">
+              <!-- Desktop Layout -->
+              <div class="hidden sm:flex items-start space-x-4">
                 <!-- Author Photo -->
                 <% if review[:profile_photo_url] %>
                   <img src="<%= review[:profile_photo_url] %>" 
@@ -128,7 +192,7 @@
                     
                     <!-- Time -->
                     <% if review[:relative_time_description] %>
-                      <time class="text-sm text-gray-500">
+                      <time class="text-sm text-gray-500 flex-shrink-0">
                         <%= review[:relative_time_description] %>
                       </time>
                     <% end %>
@@ -137,6 +201,74 @@
                   <!-- Review Text -->
                   <% if review[:text].present? %>
                     <div class="mt-2 text-gray-700 leading-relaxed">
+                      <%= simple_format(h(review[:text]), {}, wrapper_tag: "div") %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <!-- Mobile Layout -->
+              <div class="sm:hidden">
+                <div class="flex flex-col space-y-3">
+                  <!-- Header Row: Photo, Name, Rating -->
+                  <div class="flex items-start space-x-3">
+                    <!-- Author Photo -->
+                    <% if review[:profile_photo_url] %>
+                      <img src="<%= review[:profile_photo_url] %>" 
+                           alt="<%= review[:author_name] %>"
+                           class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                    <% else %>
+                      <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                        </svg>
+                      </div>
+                    <% end %>
+                    
+                    <div class="flex-1 min-w-0">
+                      <!-- Author Name -->
+                      <div class="flex items-center justify-between">
+                        <% if review[:author_url] %>
+                          <a href="<%= review[:author_url] %>" 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             class="font-semibold text-gray-900 hover:text-blue-600 text-sm">
+                            <%= review[:author_name] %>
+                          </a>
+                        <% else %>
+                          <span class="font-semibold text-gray-900 text-sm">
+                            <%= review[:author_name] %>
+                          </span>
+                        <% end %>
+                        
+                        <!-- Time (mobile) -->
+                        <% if review[:relative_time_description] %>
+                          <time class="text-xs text-gray-500 flex-shrink-0">
+                            <%= review[:relative_time_description] %>
+                          </time>
+                        <% end %>
+                      </div>
+                      
+                      <!-- Rating Row -->
+                      <div class="flex items-center mt-1">
+                        <% (1..5).each do |star| %>
+                          <% if star <= review[:rating] %>
+                            <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                          <% else %>
+                            <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Review Text (full width on mobile) -->
+                  <% if review[:text].present? %>
+                    <div class="text-gray-700 leading-relaxed text-sm">
                       <%= simple_format(h(review[:text]), {}, wrapper_tag: "div") %>
                     </div>
                   <% end %>

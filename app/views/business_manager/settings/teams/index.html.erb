@@ -34,7 +34,7 @@
                   <td><%= member.phone %></td>
                   <td><%= member.user&.role&.titleize || member.position.presence || 'N/A' %></td>
                   <td>
-                    <%= button_to "Remove", business_manager_settings_team_path(member), method: :delete, data: { confirm: "Are you sure?" }, class: "action-link" %>
+                    <%= button_to "Remove", business_manager_settings_team_path(member), method: :delete, data: { confirm: "Are you sure?" }, class: "cursor-pointer action-link" %>
                   </td>
                 </tr>
               <% end %>

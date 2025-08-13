@@ -187,11 +187,13 @@ export default class extends Controller {
       </div>
     `
     
-    // Add click handler for the connect button
-    const connectButton = div.querySelector('.connect-button')
-    connectButton.addEventListener('click', (e) => {
-      e.stopPropagation()
-      this.connectBusiness(business.place_id, business.name)
+    // Add click handler for all connect buttons (desktop and mobile)
+    const connectButtons = div.querySelectorAll('.connect-button')
+    connectButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation()
+        this.connectBusiness(business.place_id, business.name)
+      })
     })
     
     // Add click handler for the whole div (for preview)
