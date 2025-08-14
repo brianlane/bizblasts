@@ -60,15 +60,11 @@ module Calendar
       
       state = generate_state(business_id, staff_member_id, 'google')
       
-      # Use dev credentials in development/test environments
-      client_id = if Rails.env.development? || Rails.env.test?
-                    ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
-                  else
-                    ENV['GOOGLE_CALENDAR_CLIENT_ID']
-                  end
+      # Use unified Google OAuth credentials
+      client_id = GoogleOauthCredentials.client_id
       
-      unless client_id
-        add_error(:missing_credentials, "Google Calendar client ID not configured")
+      unless GoogleOauthCredentials.configured?
+        add_error(:missing_credentials, "Google OAuth credentials not configured")
         return nil
       end
       
@@ -110,17 +106,13 @@ module Calendar
       require 'googleauth'
       require 'google/apis/calendar_v3'
       
-      # Use dev credentials in development/test environments
-      if Rails.env.development? || Rails.env.test?
-        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
-        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV']
-      else
-        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
-        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
-      end
+      # Use unified Google OAuth credentials
+      credentials = GoogleOauthCredentials.credentials
+      client_id = credentials[:client_id]
+      client_secret = credentials[:client_secret]
       
-      unless client_id && client_secret
-        add_error(:missing_credentials, "Google Calendar credentials not configured")
+      unless GoogleOauthCredentials.configured?
+        add_error(:missing_credentials, "Google OAuth credentials not configured")
         return nil
       end
       
@@ -221,17 +213,12 @@ module Calendar
       require 'googleauth'
       
       # Use dev credentials in development/test environments
-      if Rails.env.development? || Rails.env.test?
-        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
-        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV']
-      else
-        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
-        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
-      end
+      # Use unified Google OAuth credentials
+      credentials = GoogleOauthCredentials.credentials
       
       auth_client = Signet::OAuth2::Client.new(
-        client_id: client_id,
-        client_secret: client_secret,
+        client_id: credentials[:client_id],
+        client_secret: credentials[:client_secret],
         token_credential_uri: 'https://oauth2.googleapis.com/token',
         refresh_token: calendar_connection.refresh_token
       )

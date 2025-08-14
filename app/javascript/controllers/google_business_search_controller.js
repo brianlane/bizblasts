@@ -78,6 +78,29 @@ export default class extends Controller {
     }
   }
 
+  // Handle Service Business OAuth button click
+  onServiceBusinessClick(event) {
+    console.log('Service Business button clicked', event)
+    event.preventDefault()
+    
+    try {
+      this.initiateServiceBusinessOAuth()
+    } catch (error) {
+      console.error('Error in onServiceBusinessClick:', error)
+    }
+  }
+
+  // Initiate OAuth flow for service businesses
+  async initiateServiceBusinessOAuth() {
+    try {
+      // Redirect to OAuth authorization URL
+      window.location.href = '/manage/settings/integrations/google-business/oauth/authorize'
+    } catch (error) {
+      console.error('OAuth initiation error:', error)
+      this.showError('Failed to start OAuth process. Please try again.')
+    }
+  }
+
   // Perform the actual search
   async performSearch() {
     const query = this.searchInputTarget.value.trim()
@@ -116,10 +139,10 @@ export default class extends Controller {
         this.showError(errorMessage)
         this.clearResults()
       } else if (data.businesses && data.businesses.length > 0) {
-        this.displayResults(data.businesses)
+        this.displayResults(data.businesses, data)
       } else {
-        this.showError('No businesses found. Try adjusting your search terms or location.')
-        this.clearResults()
+        // Show no results found with manual entry option
+        this.showNoResultsWithManualOption(data, this.searchInputTarget.value.trim())
       }
     } catch (error) {
       console.error('Search error:', error)
@@ -131,8 +154,14 @@ export default class extends Controller {
   }
 
   // Display search results
-  displayResults(businesses) {
+  displayResults(businesses, searchData = {}) {
     this.searchResultsTarget.innerHTML = ''
+    
+    // Add search strategy notification if available
+    if (searchData.search_strategy && searchData.search_strategy !== 'original') {
+      const strategyNotice = this.createSearchStrategyNotice(searchData)
+      this.searchResultsTarget.appendChild(strategyNotice)
+    }
     
     const resultsContainer = document.createElement('div')
     resultsContainer.className = 'space-y-3 max-h-96 overflow-y-auto'
@@ -144,6 +173,38 @@ export default class extends Controller {
     
     this.searchResultsTarget.appendChild(resultsContainer)
     this.searchResultsTarget.classList.remove('hidden')
+  }
+
+  // Create search strategy notice
+  createSearchStrategyNotice(searchData) {
+    const div = document.createElement('div')
+    div.className = 'mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm'
+    
+    const strategyMessages = {
+      'original_with_location': 'Found results by adding your location to the search',
+      'cleaned_name': 'Found results by simplifying your business name',
+      'cleaned_with_location': 'Found results by simplifying your business name and adding location',
+      'core_name': 'Found results using just the core business name',
+      'category_search': 'Found results by searching for your business category in your area'
+    }
+    
+    const message = strategyMessages[searchData.search_strategy] || 'Found results using an optimized search'
+    
+    div.innerHTML = `
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="w-4 h-4 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-2">
+          <p class="text-blue-800 font-medium">Smart Search</p>
+          <p class="text-blue-700">${this.escapeHtml(message)}. These businesses match your search criteria.</p>
+        </div>
+      </div>
+    `
+    
+    return div
   }
 
   // Create individual business result element
@@ -550,6 +611,357 @@ export default class extends Controller {
 
     container.classList.remove('hidden')
   }
+
+  // Show no results found with manual entry option
+  showNoResultsWithManualOption(data, query) {
+    this.clearResults()
+    
+    // Create a comprehensive no results section
+    const noResultsSection = document.createElement('div')
+    noResultsSection.className = 'space-y-4'
+    
+    // Main message
+    const message = data.message || 'No businesses found matching your search criteria.'
+    const messageEl = document.createElement('div')
+    messageEl.className = 'p-4 bg-yellow-50 border border-yellow-200 rounded-lg'
+    messageEl.innerHTML = `
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-yellow-800 font-medium">Business Not Found</h3>
+          <p class="text-yellow-700 text-sm mt-1">${this.escapeHtml(message)}</p>
+        </div>
+      </div>
+    `
+    noResultsSection.appendChild(messageEl)
+    
+    // Suggestions
+    const suggestionsEl = document.createElement('div')
+    suggestionsEl.className = 'p-4 bg-blue-50 border border-blue-200 rounded-lg'
+    
+    let suggestions = []
+    if (query.length > 20) {
+      suggestions.push("Try a shorter business name")
+    }
+    if (query.includes('&') || query.includes('and')) {
+      suggestions.push("Remove connecting words like '&' or 'and'")
+    }
+    if (query.match(/detail|protection|service/i)) {
+      suggestions.push("Search by business category (e.g., 'auto detail')")
+    }
+    suggestions.push("Try just your business name without services")
+    suggestions.push("Search for nearby businesses in your category")
+    
+    suggestionsEl.innerHTML = `
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-blue-800 font-medium">Try These Search Tips</h3>
+          <ul class="text-blue-700 text-sm mt-2 space-y-1 list-disc list-inside">
+            ${suggestions.map(suggestion => `<li>${this.escapeHtml(suggestion)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `
+    noResultsSection.appendChild(suggestionsEl)
+    
+    // Manual entry option
+    const manualEntryEl = document.createElement('div')
+    manualEntryEl.className = 'p-4 bg-green-50 border border-green-200 rounded-lg'
+    manualEntryEl.innerHTML = `
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-green-800 font-medium">Can't Find Your Business?</h3>
+          <p class="text-green-700 text-sm mt-1 mb-3">
+            Some businesses exist on Google but aren't discoverable through search. If you know your exact address exists on Google Maps, you can connect it using its Place ID. Otherwise, please use the Service Businesses option if you don't have an exact address.
+          </p>
+          <button class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors manual-entry-button cursor-pointer">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Connect Using Place ID
+          </button>
+        </div>
+      </div>
+    `
+    
+    // Add click handler for manual entry
+    const manualButton = manualEntryEl.querySelector('.manual-entry-button')
+    manualButton.addEventListener('click', () => {
+      this.showManualEntryForm(query)
+    })
+    
+    noResultsSection.appendChild(manualEntryEl)
+    
+    // Show the complete no results section
+    this.searchResultsTarget.innerHTML = ''
+    this.searchResultsTarget.appendChild(noResultsSection)
+    this.searchResultsTarget.classList.remove('hidden')
+  }
+
+  // Show manual entry form for businesses that can't be found
+  showManualEntryForm(prefillName = '') {
+    this.clearResults()
+    this.clearError()
+    
+    const manualForm = document.createElement('div')
+    manualForm.className = 'p-6 bg-white border border-gray-200 rounded-lg shadow-sm'
+    
+    manualForm.innerHTML = `
+      <div class="mb-4">
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Add Your Business Manually</h3>
+        <p class="text-sm text-gray-600">
+          If your business exists on Google Maps but can't be found through search, you can add it using its Google Place ID or by providing basic details.
+        </p>
+      </div>
+      
+      <div class="space-y-4">
+        <!-- Option 1: Place ID Entry -->
+        <div class="border border-gray-200 rounded-lg p-4">
+          <h4 class="font-medium text-gray-900 mb-2">Option 1: Enter Google Place ID</h4>
+          <p class="text-sm text-gray-600 mb-3">
+            Find your business on <a href="https://maps.google.com" target="_blank" class="text-blue-600 hover:underline">Google Maps</a>, 
+            copy the URL, and we'll extract the Place ID for you.
+          </p>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Google Maps URL or Place ID</label>
+              <input type="text" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                     placeholder="https://maps.google.com/... or ChIJAbCdEfGhIjKlMnOpQrStUvWxYz"
+                     id="place-id-input">
+            </div>
+            <button type="button" 
+                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors connect-place-id-button cursor-pointer">
+              Connect Using Place ID
+            </button>
+          </div>
+        </div>
+        
+        <!-- Option 2: Service Businesses -->
+        <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+          <h4 class="font-medium text-gray-900 mb-2">Option 2: Service Businesses (No Exact Address)</h4>
+          <p class="text-sm text-gray-600 mb-3">
+            For mobile or service-area businesses that don't have a specific street address. Connect using Google Business Profile OAuth to access your business listings directly.
+          </p>
+          <div class="space-y-3">
+            <div class="p-3 bg-white border border-green-200 rounded-md">
+              <h5 class="text-sm font-medium text-green-800 mb-1">Perfect for:</h5>
+              <ul class="text-sm text-green-700 space-y-1">
+                <li>• Mobile services (cleaning, detailing, repair)</li>
+                <li>• Consultants and freelancers</li>
+                <li>• Service-area businesses</li>
+                <li>• Home-based businesses</li>
+              </ul>
+            </div>
+            <button type="button" 
+                    class="w-full px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors service-oauth-button cursor-pointer">
+              <div class="flex items-center justify-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                Connect with Google Business Profile
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <button type="button" 
+                class="text-sm text-gray-600 hover:text-gray-800 transition-colors back-to-search-button cursor-pointer">
+          ← Back to Search
+        </button>
+      </div>
+    `
+    
+    // Add event listeners
+    const placeIdButton = manualForm.querySelector('.connect-place-id-button')
+    placeIdButton.addEventListener('click', () => {
+      this.handlePlaceIdEntry()
+    })
+    
+    const serviceOAuthButton = manualForm.querySelector('.service-oauth-button')
+    serviceOAuthButton.addEventListener('click', () => {
+      this.initiateServiceBusinessOAuth()
+    })
+    
+    const backButton = manualForm.querySelector('.back-to-search-button')
+    backButton.addEventListener('click', () => {
+      this.clearResults()
+      this.clearSearchInput()
+    })
+    
+    this.searchResultsTarget.innerHTML = ''
+    this.searchResultsTarget.appendChild(manualForm)
+    this.searchResultsTarget.classList.remove('hidden')
+  }
+  
+  // Handle Place ID entry
+  handlePlaceIdEntry() {
+    const input = document.getElementById('place-id-input')
+    const value = input.value.trim()
+    
+    if (!value) {
+      alert('Please enter a Google Maps URL or Place ID')
+      return
+    }
+    
+    // Extract Place ID from Google Maps URL if needed
+    let placeId = value
+    
+    // If it's a Google Maps URL, try multiple extraction approaches
+    if (value.includes('maps.google') || value.includes('google.com/maps')) {
+      // First, try to extract coordinates and search nearby
+      const coordMatch = value.match(/@([-\d.]+),([-\d.]+)/)
+      if (coordMatch) {
+        const latitude = parseFloat(coordMatch[1])
+        const longitude = parseFloat(coordMatch[2])
+        
+        // Extract business name from URL
+        const nameMatch = value.match(/place\/([^@\/]+)/)
+        let businessName = ''
+        if (nameMatch) {
+          businessName = decodeURIComponent(nameMatch[1]).replace(/\+/g, ' ')
+        }
+        
+        alert(`Found coordinates in Google Maps URL: ${latitude}, ${longitude}
+
+We'll try to find your business using coordinate-based search...`)
+        
+        this.searchByCoordinates(latitude, longitude, businessName)
+        return
+      }
+      
+      // If no coordinates, try Place ID extraction patterns
+      const patterns = [
+        /\/place\/[^\/]+\/([A-Za-z0-9_-]+)/,  // New format
+        /place\/([^\/\?#]+)/,                  // Basic format
+        /\/([A-Za-z0-9_-]{27,})/,              // Long ID format
+        /1s([A-Za-z0-9_-]+)/,                  // 1s parameter
+        /16s%2Fg%2F([a-zA-Z0-9_-]+)/,          // Encoded ftid
+        /ChIJ[A-Za-z0-9_-]+/                   // Direct ChIJ format
+      ]
+      
+      let extracted = null
+      for (const pattern of patterns) {
+        const match = value.match(pattern)
+        if (match) {
+          extracted = match[1] || match[0]
+          break
+        }
+      }
+      
+      if (extracted) {
+        placeId = extracted
+      } else {
+        alert(`Could not extract Place ID from this Google Maps URL. 
+
+This business may not be available through the Google Places API.`)
+        return
+      }
+    }
+    
+    // Validate Place ID format - be more flexible since Google uses different formats
+    if (placeId.length < 10) {
+      alert('Place ID seems too short. Please check the URL or try a different option.')
+      return
+    }
+    
+    // Show loading and attempt connection
+    this.showLoading()
+    this.connectBusiness(placeId, 'Manual Entry').catch(error => {
+      this.hideLoading()
+      alert(`Connection failed: The Place ID from this Google Maps URL doesn't work with our API.
+
+This often happens with:
+• Service-area businesses (like mobile services)
+• Recently added businesses
+• Businesses with unverified addresses
+
+This business may not be available through the Google Places API.`)
+    })
+  }
+  
+  // Search by coordinates extracted from Google Maps URL
+  async searchByCoordinates(latitude, longitude, businessName) {
+    this.showLoading()
+    
+    try {
+      const response = await fetch(`/manage/settings/integrations/google-business/search-nearby?latitude=${latitude}&longitude=${longitude}&query=${encodeURIComponent(businessName)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        this.showError(`Coordinate search failed: ${data.error}`)
+      } else if (data.businesses && data.businesses.length > 0) {
+        // Show results with coordinate search info
+        this.displayCoordinateSearchResults(data.businesses, businessName, latitude, longitude)
+      } else {
+        this.showError(`No businesses found near coordinates ${latitude}, ${longitude}. The business may not be available through the Google Places API.`)
+      }
+    } catch (error) {
+      console.error('Coordinate search error:', error)
+      this.showError('Coordinate search failed. Please try a different option.')
+    } finally {
+      this.hideLoading()
+    }
+  }
+  
+  // Display results from coordinate search
+  displayCoordinateSearchResults(businesses, originalName, latitude, longitude) {
+    this.searchResultsTarget.innerHTML = ''
+    
+    // Add notice about coordinate search
+    const notice = document.createElement('div')
+    notice.className = 'mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm'
+    notice.innerHTML = `
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="w-4 h-4 text-purple-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-2">
+          <p class="text-purple-800 font-medium">Coordinate-Based Search</p>
+          <p class="text-purple-700">Found ${businesses.length} businesses near ${latitude}, ${longitude}. Look for "${this.escapeHtml(originalName)}" below.</p>
+        </div>
+      </div>
+    `
+    this.searchResultsTarget.appendChild(notice)
+    
+    // Show regular results
+    const resultsContainer = document.createElement('div')
+    resultsContainer.className = 'space-y-3 max-h-96 overflow-y-auto'
+    
+    businesses.forEach(business => {
+      const businessElement = this.createBusinessResultElement(business)
+      resultsContainer.appendChild(businessElement)
+    })
+    
+    this.searchResultsTarget.appendChild(resultsContainer)
+    this.searchResultsTarget.classList.remove('hidden')
+  }
+  
 
   clearError() {
     if (this.hasErrorMessageTarget) {

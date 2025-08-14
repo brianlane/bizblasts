@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_07_173511) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -247,11 +247,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_173511) do
     t.string "template_applied"
     t.boolean "stock_management_enabled", default: true, null: false
     t.string "google_place_id"
+    t.string "google_business_name"
+    t.text "google_business_address"
+    t.string "google_business_phone"
+    t.string "google_business_website"
+    t.boolean "google_business_manual", default: false
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
     t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"
     t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
+    t.index ["google_business_manual"], name: "index_businesses_on_google_business_manual"
     t.index ["google_place_id"], name: "index_businesses_on_google_place_id", unique: true
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true

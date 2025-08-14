@@ -153,18 +153,14 @@ module Calendar
     def setup_authorization
       return unless calendar_connection.access_token
       
-      # Use dev credentials in development/test environments
-      if Rails.env.development? || Rails.env.test?
-        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV']
-        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV']
-      else
-        client_id = ENV['GOOGLE_CALENDAR_CLIENT_ID']
-        client_secret = ENV['GOOGLE_CALENDAR_CLIENT_SECRET']
-      end
+      # Use unified Google OAuth credentials
+      credentials = GoogleOauthCredentials.credentials
+      client_id = credentials[:client_id]
+      client_secret = credentials[:client_secret]
       
       # Skip setup if credentials are missing (common in tests)
-      unless client_id && client_secret
-        Rails.logger.warn("Google Calendar credentials not configured, skipping authorization setup")
+      unless GoogleOauthCredentials.configured?
+        Rails.logger.warn("Google OAuth credentials not configured, skipping authorization setup")
         return
       end
       

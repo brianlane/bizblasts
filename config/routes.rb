@@ -24,6 +24,9 @@ Rails.application.routes.draw do
   
   # Calendar OAuth callback (outside subdomain constraint for security)
   get '/oauth/calendar/:provider/callback', to: 'calendar_oauth#callback', as: :calendar_oauth_callback
+  
+  # Google Business Profile OAuth callback (outside subdomain constraint)
+  get '/oauth/google-business/callback', to: 'google_business_oauth#callback', as: :google_business_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -198,10 +201,15 @@ Rails.application.routes.draw do
           collection do
             # Google Business connection routes
             get 'google-business/search', action: :google_business_search
+            get 'google-business/search-nearby', action: :google_business_search_nearby
             get 'google-business/details/:place_id', action: :google_business_details, as: :google_business_details
             post 'google-business/connect', action: :google_business_connect
+            post 'google-business/connect-manual', action: :google_business_connect_manual
             delete 'google-business/disconnect', action: :google_business_disconnect
             get 'google-business/status', action: :google_business_status
+            
+            # Google Business Profile OAuth routes
+            get 'google-business/oauth/authorize', action: :google_business_oauth_authorize
             
             # Calendar integration routes
             post 'calendar-integrations/connect', action: :calendar_integration_connect, as: :calendar_integration_connect
