@@ -440,6 +440,108 @@ RSpec.describe BusinessManager::Settings::IntegrationsController, type: :control
     end
   end
 
+  describe '#google_business_oauth_callback_url (private method)' do
+    let(:integrations_controller) { described_class.new }
+
+    before do
+      # Set up request object mock for the controller
+      allow(integrations_controller).to receive(:request).and_return(request)
+    end
+
+    context 'when main_domain is configured' do
+      before do
+        allow(Rails.application.config).to receive(:main_domain).and_return('example.com')
+      end
+
+      it 'uses main_domain for URL generation' do
+        allow(request).to receive(:ssl?).and_return(false)
+        allow(request).to receive(:port).and_return(3000)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('http://example.com:3000/oauth/google-business/callback')
+      end
+
+      it 'uses https when request is SSL' do
+        allow(request).to receive(:ssl?).and_return(true)
+        allow(request).to receive(:port).and_return(443)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('https://example.com/oauth/google-business/callback')
+      end
+
+      it 'excludes port for standard SSL port' do
+        allow(request).to receive(:ssl?).and_return(true)
+        allow(request).to receive(:port).and_return(443)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('https://example.com/oauth/google-business/callback')
+      end
+
+      it 'excludes port for standard HTTP port' do
+        allow(request).to receive(:ssl?).and_return(false)
+        allow(request).to receive(:port).and_return(80)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('http://example.com/oauth/google-business/callback')
+      end
+
+      it 'handles main_domain that already includes port' do
+        allow(Rails.application.config).to receive(:main_domain).and_return('example.com:8080')
+        allow(request).to receive(:ssl?).and_return(false)
+        allow(request).to receive(:port).and_return(3000)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('http://example.com:8080/oauth/google-business/callback')
+      end
+    end
+
+    context 'when main_domain is nil' do
+      before do
+        allow(Rails.application.config).to receive(:main_domain).and_return(nil)
+        allow(request).to receive(:host).and_return('localhost')
+      end
+
+      it 'falls back to request.host' do
+        allow(request).to receive(:ssl?).and_return(false)
+        allow(request).to receive(:port).and_return(3000)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('http://localhost:3000/oauth/google-business/callback')
+      end
+
+      it 'handles nil request.port gracefully' do
+        allow(request).to receive(:ssl?).and_return(false)
+        allow(request).to receive(:port).and_return(nil)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('http://localhost/oauth/google-business/callback')
+      end
+    end
+
+    context 'edge cases' do
+      before do
+        allow(Rails.application.config).to receive(:main_domain).and_return('')
+        allow(request).to receive(:host).and_return('fallback.com')
+      end
+
+      it 'handles empty string main_domain by falling back to request.host' do
+        allow(request).to receive(:ssl?).and_return(true)
+        allow(request).to receive(:port).and_return(443)
+
+        url = integrations_controller.send(:google_business_oauth_callback_url)
+
+        expect(url).to eq('https://fallback.com/oauth/google-business/callback')
+      end
+    end
+  end
+
   private
 
   def json_response
