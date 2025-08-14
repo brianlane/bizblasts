@@ -68,6 +68,9 @@ class CursorPointerLinter
     content = File.read(file_path)
     lines = content.lines
     
+    # Extract CSS styles from the file to check for cursor: pointer
+    @css_styles = extract_css_styles(content)
+    
     lines.each_with_index do |line, index|
       line_number = index + 1
       check_line(file_path, line, line_number, content)
@@ -108,10 +111,39 @@ class CursorPointerLinter
   end
 
   def has_cursor_class?(css_classes)
-    css_classes.include?('cursor-pointer') || 
-    css_classes.include?('cursor-not-allowed') ||
-    css_classes.include?('cursor-default') ||
-    css_classes.include?('cursor-wait')
+    # Check for Tailwind cursor classes
+    return true if css_classes.include?('cursor-pointer') || 
+                   css_classes.include?('cursor-not-allowed') ||
+                   css_classes.include?('cursor-default') ||
+                   css_classes.include?('cursor-wait')
+    
+    # Check if any of the CSS classes have cursor: pointer defined in <style> tags
+    css_classes.split(/\s+/).each do |class_name|
+      next if class_name.empty?
+      if @css_styles && @css_styles[class_name]&.include?('cursor: pointer')
+        return true
+      end
+    end
+    
+    false
+  end
+
+  def extract_css_styles(content)
+    styles = {}
+    
+    # Extract content within <style> tags
+    style_blocks = content.scan(/<style[^>]*>(.*?)<\/style>/m)
+    
+    style_blocks.each do |style_block|
+      css_content = style_block[0]
+      
+      # Parse CSS rules - simple regex-based parser for basic cases
+      css_content.scan(/\.([a-zA-Z0-9_-]+)\s*\{([^}]+)\}/) do |class_name, css_rules|
+        styles[class_name] = css_rules.strip
+      end
+    end
+    
+    styles
   end
 
   def excluded_element?(line)
