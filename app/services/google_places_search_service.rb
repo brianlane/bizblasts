@@ -31,7 +31,7 @@ class GooglePlacesSearchService
   end
   
   def initialize
-    @api_key = ENV.fetch('GOOGLE_API_KEY', nil)
+    @api_key = ENV['GOOGLE_API_KEY']
   end
   
   # Search for businesses using Google Places API with smart query optimization
@@ -80,6 +80,7 @@ class GooglePlacesSearchService
   def smart_search_with_fallbacks(original_query, location)
     # Try different query optimization strategies in order of preference
     queries_to_try = generate_query_variations(original_query, location)
+    last_error_message = nil
     
     queries_to_try.each_with_index do |query_info, index|
       Rails.logger.debug do
@@ -87,6 +88,11 @@ class GooglePlacesSearchService
       end
       
       result = search_with_places_v1(query_info[:query], query_info[:location])
+      # Capture any error so we can surface it if no attempts succeed
+      if result.is_a?(Hash) && result[:error].present?
+        last_error_message = result[:error]
+        next
+      end
       
       next unless result[:success] && result[:businesses]&.any?
 
@@ -96,10 +102,13 @@ class GooglePlacesSearchService
       return result
     end
     
-    # If no queries returned results, return the last result with helpful message
-    { 
-      success: true, 
-      businesses: [], 
+    # If every attempt failed with an API error, surface the error instead of a success response
+    return { error: last_error_message } if last_error_message.present?
+
+    # If no queries returned results and there were no API errors, return a helpful empty-success response
+    {
+      success: true,
+      businesses: [],
       total_results: 0,
       message: generate_helpful_no_results_message(original_query, location),
       queries_tried: queries_to_try.map { |q| q[:query] }
