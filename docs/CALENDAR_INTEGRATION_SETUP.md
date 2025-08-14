@@ -98,10 +98,17 @@ The calendar integration system provides:
 
 1. **Environment Variables** (if not using Rails credentials)
    ```bash
-   GOOGLE_CALENDAR_CLIENT_ID=your_google_client_id
-   GOOGLE_CALENDAR_CLIENT_SECRET=your_google_client_secret
-   MICROSOFT_GRAPH_CLIENT_ID=your_azure_application_id
-   MICROSOFT_GRAPH_CLIENT_SECRET=your_azure_client_secret
+   # Google OAuth (unified for Calendar and Business Profile APIs)
+   GOOGLE_OAUTH_CLIENT_ID=your_google_client_id
+   GOOGLE_OAUTH_CLIENT_SECRET=your_google_client_secret
+   
+   # Development environment (for testing)
+   GOOGLE_OAUTH_CLIENT_ID_DEV=your_dev_google_client_id
+   GOOGLE_OAUTH_CLIENT_SECRET_DEV=your_dev_google_client_secret
+   
+   # Microsoft Calendar (if using)
+   MICROSOFT_CALENDAR_CLIENT_ID=your_azure_application_id
+   MICROSOFT_CALENDAR_CLIENT_SECRET=your_azure_client_secret
    ```
 
 2. **Background Job Processing**

@@ -13,6 +13,19 @@ module BusinessManager
         @calendar_connections = current_business.calendar_connections.includes(:staff_member).active
         @sync_statistics = calculate_sync_statistics
         @providers = available_providers
+        
+        # Handle OAuth callback flash messages passed as URL parameters
+        if params[:oauth_notice]
+          flash.now[:notice] = params[:oauth_notice]
+        elsif params[:oauth_alert] 
+          flash.now[:alert] = params[:oauth_alert]
+        end
+        
+        # Handle Google Business Profile account selection
+        if params[:show_google_accounts] && session[:google_business_accounts]
+          @google_business_accounts = session[:google_business_accounts]
+          @google_oauth_tokens = session[:google_oauth_tokens]
+        end
       end
 
       # Google Business Search and Connection Actions
@@ -53,6 +66,25 @@ module BusinessManager
       rescue => e
         Rails.logger.error "[IntegrationsController] Google Business details error: #{e.message}"
         render json: { error: 'Failed to fetch business details' }, status: :internal_server_error
+      end
+
+      # GET /manage/settings/integrations/google-business/search-nearby
+      def google_business_search_nearby
+        latitude = params[:latitude]&.strip
+        longitude = params[:longitude]&.strip
+        query = params[:query]&.strip
+        radius = params[:radius]&.to_i || 1000
+        
+        if latitude.blank? || longitude.blank?
+          render json: { error: 'Latitude and longitude are required' }, status: :bad_request
+          return
+        end
+        
+        result = GooglePlacesSearchService.search_nearby(latitude, longitude, query, radius)
+        render json: result
+      rescue => e
+        Rails.logger.error "[IntegrationsController] Google Business nearby search error: #{e.message}"
+        render json: { error: 'Failed to search nearby businesses' }, status: :internal_server_error
       end
 
       # POST /manage/settings/integrations/google-business/connect
@@ -125,6 +157,56 @@ module BusinessManager
         render json: { error: 'Disconnection failed' }, status: :internal_server_error
       end
 
+      # POST /manage/settings/integrations/google-business/connect-manual
+      def google_business_connect_manual
+        business_name = params[:business_name]&.strip
+        business_address = params[:business_address]&.strip
+        business_phone = params[:business_phone]&.strip
+        business_website = params[:business_website]&.strip
+        
+        if business_name.blank?
+          render json: { error: 'Business name is required for manual entry' }, status: :bad_request
+          return
+        end
+        
+        # Store manual business information
+        manual_business_data = {
+          name: business_name,
+          address: business_address,
+          phone: business_phone,
+          website: business_website,
+          manual_entry: true,
+          connected_at: Time.current
+        }
+        
+        # Update business with manual Google Business info (no Place ID)
+        if @business.update(
+          google_business_name: business_name,
+          google_business_address: business_address,
+          google_business_phone: business_phone,
+          google_business_website: business_website,
+          google_business_manual: true,
+          google_place_id: nil # Explicitly no Place ID for manual entries
+        )
+          Rails.logger.info "[GoogleBusiness] Manually connected business #{@business.id}: #{business_name}"
+          
+          render json: { 
+            success: true, 
+            message: 'Google Business information saved successfully',
+            business: manual_business_data,
+            note: 'Reviews cannot be automatically fetched for manually entered businesses'
+          }
+        else
+          render json: { 
+            error: 'Failed to save Google Business information', 
+            details: @business.errors.full_messages 
+          }, status: :unprocessable_entity
+        end
+      rescue => e
+        Rails.logger.error "[IntegrationsController] Manual Google Business connect error: #{e.message}"
+        render json: { error: 'Manual connection failed' }, status: :internal_server_error
+      end
+
       # GET /manage/settings/integrations/google-business/status
       def google_business_status
         if @business.google_place_id.present?
@@ -157,6 +239,49 @@ module BusinessManager
           error: 'Unable to check connection status'
         }
       end
+
+      # GET /manage/settings/integrations/google-business/oauth/authorize
+      def google_business_oauth_authorize
+        # Generate OAuth URL for Google Business Profile API using unified OAuth credentials
+        client_id = GoogleOauthCredentials.client_id
+        redirect_uri = google_business_oauth_callback_url
+        
+        unless GoogleOauthCredentials.configured?
+          redirect_to business_manager_settings_integrations_path,
+                      alert: 'Google OAuth not configured. Please contact support.'
+          return
+        end
+        
+        # Store business ID and user ID in session for callback
+        session[:oauth_business_id] = @business.id
+        session[:oauth_user_id] = current_user.id
+        
+        # OAuth scopes for Google Business Profile API
+        scopes = [
+          'https://www.googleapis.com/auth/business.manage'
+        ].join(' ')
+        
+        # Generate state parameter for security
+        state = SecureRandom.hex(32)
+        session[:oauth_state] = state
+        
+        auth_url = "https://accounts.google.com/o/oauth2/auth?" \
+                   "client_id=#{CGI.escape(client_id)}&" \
+                   "redirect_uri=#{CGI.escape(redirect_uri)}&" \
+                   "scope=#{CGI.escape(scopes)}&" \
+                   "response_type=code&" \
+                   "access_type=offline&" \
+                   "prompt=consent&" \
+                   "state=#{state}"
+        
+        Rails.logger.info "[GoogleBusinessOAuth] Redirecting to OAuth for business #{@business.id}"
+        redirect_to auth_url, allow_other_host: true
+      rescue => e
+        Rails.logger.error "[GoogleBusinessOAuth] Authorization error: #{e.message}"
+        redirect_to business_manager_settings_integrations_path,
+                    alert: 'Failed to start OAuth process. Please try again.'
+      end
+
 
       # Calendar Integration Actions
       
@@ -361,16 +486,21 @@ module BusinessManager
       def authorize_business_settings
         authorize @business, :update_settings?, policy_class: ::Settings::BusinessPolicy
       end
+      
+      def google_business_oauth_callback_url
+        # Use the global OAuth callback route (not tenant-specific)
+        if Rails.env.development?
+          'http://lvh.me:3000/oauth/google-business/callback'
+        else
+          'https://app.bizblasts.com/oauth/google-business/callback'
+        end
+      end
 
       def available_providers
         providers = []
         
-        # Check if Google Calendar credentials are configured
-        google_configured = if Rails.env.development? || Rails.env.test?
-                              ENV['GOOGLE_CALENDAR_CLIENT_ID_DEV'].present? && ENV['GOOGLE_CALENDAR_CLIENT_SECRET_DEV'].present?
-                            else
-                              ENV['GOOGLE_CALENDAR_CLIENT_ID'].present? && ENV['GOOGLE_CALENDAR_CLIENT_SECRET'].present?
-                            end
+        # Check if Google OAuth credentials are configured (used for both Calendar and Business Profile)
+        google_configured = GoogleOauthCredentials.configured?
         
         providers << 'google' if google_configured
         
