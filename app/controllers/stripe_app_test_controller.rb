@@ -5,6 +5,6 @@ class StripeAppTestController < ApplicationController
   
   def show
     # This renders the test page for deep link validation
-    render 'stripe_app_test', layout: false
+    render layout: false
   end
 end
