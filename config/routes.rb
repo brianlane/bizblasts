@@ -20,6 +20,9 @@ Rails.application.routes.draw do
   get '/theme-test/preview/:theme_id', to: 'theme_test#preview', as: :theme_test_preview
   get '/theme-test/business/:business_subdomain', to: 'theme_test#preview', as: :theme_test_business
   
+  # Stripe app deep link test (for development/testing)
+  get '/stripe-app-test', to: 'stripe_app_test#show', as: :stripe_app_test
+  
   post '/webhooks/stripe', to: 'stripe_webhooks#create'
   
   # Calendar OAuth callback (outside subdomain constraint for security)

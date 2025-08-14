@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stripe App Deep Link Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .test-button {
+            background: #6772e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            min-width: 200px;
+        }
+        .test-button:hover {
+            background: #5469d4;
+        }
+        .fallback-button {
+            background: #87ceeb;
+            color: #333;
+        }
+        .fallback-button:hover {
+            background: #7bb3d9;
+        }
+        .app-store-button {
+            background: #28a745;
+        }
+        .app-store-button:hover {
+            background: #218838;
+        }
+        .url-display {
+            background: #e9ecef;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            border-left: 4px solid #6772e5;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .result-log {
+            background: #f1f3f4;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Stripe App Deep Link Validation Test</h1>
+    
+    <div class="instructions">
+        <h3>📱 Testing Instructions:</h3>
+        <ol>
+            <li><strong>Install Stripe Dashboard App:</strong> Make sure you have the official Stripe Dashboard app installed on your iOS device</li>
+            <li><strong>Open this page on your iPhone:</strong> Navigate to this test page in Safari on your phone</li>
+            <li><strong>Test each URL format:</strong> Tap the buttons below to test different deep link approaches</li>
+            <li><strong>Observe behavior:</strong> Note which URLs successfully open the Stripe app vs. which ones fail</li>
+            <li><strong>Document results:</strong> The log below will track success/failure for each attempt</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>🎯 Test 1: Universal Link (Preferred Method)</h3>
+        <p>This should be the most reliable method on iOS:</p>
+        <div class="url-display" id="universal-url"></div>
+        <button class="test-button" onclick="testUniversalLink()">Test Universal Link</button>
+    </div>
+
+    <div class="test-section">
+        <h3>🔗 Test 2: Custom URL Scheme</h3>
+        <p>Traditional app deep linking method:</p>
+        <div class="url-display" id="custom-url"></div>
+        <button class="test-button" onclick="testCustomScheme()">Test Custom URL Scheme</button>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 Test 3: Web Dashboard Fallback</h3>
+        <p>Should open Stripe web dashboard in browser:</p>
+        <div class="url-display" id="web-url"></div>
+        <button class="test-button fallback-button" onclick="testWebFallback()">Test Web Dashboard</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📱 Test 4: App Store Link</h3>
+        <p>Link to install Stripe Dashboard app:</p>
+        <button class="test-button app-store-button" onclick="openAppStore()">Open App Store</button>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Test 5: Progressive Fallback</h3>
+        <p>Simulates the full BizBlasts implementation with automatic fallbacks:</p>
+        <button class="test-button" onclick="testProgressiveFallback()">Test Full Fallback Chain</button>
+    </div>
+
+    <div class="result-log" id="log">
+        <div class="info">Test results will appear here...</div>
+    </div>
+
+    <script>
+        // Test Payment Intent ID (you can replace with a real one)
+        const testPaymentIntentId = 'pi_test_123456789';
+        const testReturnUrl = 'https://bizblasts.com/stripe_app_return?session_token=test123';
+        const encodedReturnUrl = encodeURIComponent(testReturnUrl);
+
+        // Generate test URLs
+        const universalLinkUrl = `https://dashboard.stripe.app.link/payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`;
+        const customSchemeUrl = `stripe-dashboard://payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`;
+        const webDashboardUrl = `https://dashboard.stripe.com/terminal/collect-payment?payment_intent=${testPaymentIntentId}&return_url=${encodedReturnUrl}`;
+
+        // Display URLs
+        document.getElementById('universal-url').textContent = universalLinkUrl;
+        document.getElementById('custom-url').textContent = customSchemeUrl;
+        document.getElementById('web-url').textContent = webDashboardUrl;
+
+        function logResult(message, type = 'info') {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function detectAppLaunch(url, timeout = 3000) {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                
+                // Try to detect if the page loses focus (app opened)
+                const checkFocus = () => {
+                    if (document.hidden || !document.hasFocus()) {
+                        resolve(true);
+                    }
+                };
+
+                // Listen for visibility changes
+                document.addEventListener('visibilitychange', checkFocus);
+                window.addEventListener('blur', checkFocus);
+
+                // Attempt the deep link
+                window.location.href = url;
+
+                // Cleanup and resolve/reject after timeout
+                setTimeout(() => {
+                    document.removeEventListener('visibilitychange', checkFocus);
+                    window.removeEventListener('blur', checkFocus);
+                    
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed < timeout && (document.hidden || !document.hasFocus())) {
+                        resolve(true);
+                    } else {
+                        reject(false);
+                    }
+                }, timeout);
+            });
+        }
+
+        async function testUniversalLink() {
+            logResult('Testing Universal Link...', 'info');
+            try {
+                await detectAppLaunch(universalLinkUrl);
+                logResult('✅ Universal Link SUCCESS - Stripe app opened!', 'success');
+            } catch {
+                logResult('❌ Universal Link FAILED - App did not open', 'error');
+            }
+        }
+
+        async function testCustomScheme() {
+            logResult('Testing Custom URL Scheme...', 'info');
+            try {
+                await detectAppLaunch(customSchemeUrl);
+                logResult('✅ Custom Scheme SUCCESS - Stripe app opened!', 'success');
+            } catch {
+                logResult('❌ Custom Scheme FAILED - App did not open', 'error');
+            }
+        }
+
+        function testWebFallback() {
+            logResult('Opening Web Dashboard fallback...', 'info');
+            window.open(webDashboardUrl, '_blank');
+            logResult('📄 Web Dashboard opened in new tab', 'info');
+        }
+
+        function openAppStore() {
+            logResult('Opening App Store...', 'info');
+            window.open('https://apps.apple.com/app/stripe-dashboard/id978516833', '_blank');
+            logResult('🏪 App Store opened', 'info');
+        }
+
+        async function testProgressiveFallback() {
+            logResult('🚀 Starting Progressive Fallback Test...', 'info');
+            
+            // Attempt 1: Universal Link
+            logResult('Attempt 1: Universal Link...', 'info');
+            try {
+                await detectAppLaunch(universalLinkUrl, 2000);
+                logResult('✅ SUCCESS: Universal Link opened Stripe app!', 'success');
+                return;
+            } catch {
+                logResult('❌ Universal Link failed, trying custom scheme...', 'error');
+            }
+
+            // Attempt 2: Custom URL Scheme
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay
+            logResult('Attempt 2: Custom URL Scheme...', 'info');
+            try {
+                await detectAppLaunch(customSchemeUrl, 2000);
+                logResult('✅ SUCCESS: Custom scheme opened Stripe app!', 'success');
+                return;
+            } catch {
+                logResult('❌ Custom scheme failed, opening web fallback...', 'error');
+            }
+
+            // Attempt 3: Web Fallback
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay
+            logResult('Attempt 3: Web Dashboard fallback...', 'info');
+            window.open(webDashboardUrl, '_blank');
+            logResult('📄 Opened web dashboard as final fallback', 'info');
+        }
+
+        // Initialize
+        logResult('🧪 Stripe App Deep Link Test Ready', 'info');
+        logResult('📱 Make sure you have the Stripe Dashboard app installed!', 'info');
+        
+        // Detect if running on iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+            logResult('✅ iOS device detected - deep links should work', 'success');
+        } else {
+            logResult('⚠️  Non-iOS device detected - deep links may not work properly', 'error');
+        }
+    </script>
+</body>
+</html>
