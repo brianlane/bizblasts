@@ -489,11 +489,15 @@ module BusinessManager
       
       def google_business_oauth_callback_url
         # Use the global OAuth callback route (not tenant-specific)
-        if Rails.env.development?
-          'http://lvh.me:3000/oauth/google-business/callback'
-        else
-          'https://app.bizblasts.com/oauth/google-business/callback'
-        end
+        # Follow the same pattern as calendar OAuth for consistency
+        scheme = Rails.env.production? ? 'https' : 'http'
+        host = Rails.application.config.main_domain
+        port_str = if host.include?(':') || Rails.env.production?
+                     ''
+                   else
+                     ':3000'
+                   end
+        "#{scheme}://#{host}#{port_str}/oauth/google-business/callback"
       end
 
       def available_providers
