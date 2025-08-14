@@ -819,18 +819,63 @@ Based on Stripe Payment Links documentation:
 - [ ] Create clear success/failure confirmation pages
 - [ ] Add instructional copy for first-time users
 
-### 🔍 **Outstanding Validation Items**
+## 🚨 **CRITICAL UPDATE: Deep Link Testing Results**
 
-#### **Critical Path:**
-1. **URL Schema Validation**: Test exact Universal Link and Custom URL scheme formats with real Stripe Dashboard app
-2. **Parameter Requirements**: Confirm required vs. optional parameters for payment collection
-3. **Return URL Format**: Validate return URL parameter encoding and business subdomain handling
-4. **Session Management**: Test cross-session continuity across app transitions
+### ❌ **Deep Linking Not Supported (Tested 2025-08-14)**
 
-#### **Nice-to-Have:**
-1. **Tipping Support**: Confirm if Stripe app supports variable tipping via PaymentIntent metadata
-2. **Business Branding**: Investigate customization options within Stripe app payment flow
-3. **Receipt Options**: Determine if Stripe app can trigger custom receipt flows
+After testing with actual Stripe Dashboard iOS app, **deep linking appears to not be supported**:
+
+#### **Test Results:**
+1. **Universal Link** (`https://dashboard.stripe.app.link/...`)
+   - ❌ Shows security warning 
+   - ❌ Results in "link not found" error
+   - ❌ Does not open iOS app
+
+2. **Custom URL Scheme** (`stripe-dashboard://...`)
+   - ❌ Safari reports "invalid address"
+   - ❌ Does not attempt to open app
+
+3. **Web Dashboard** (`https://dashboard.stripe.com/...`)
+   - ✅ Opens successfully in browser
+   - ❌ No access to Tap to Pay functionality
+
+4. **App Store Link**
+   - ✅ Opens App Store correctly
+
+#### **Research Conclusion:**
+- No public documentation exists for Stripe Dashboard app URL schemes
+- Stripe's deep link documentation focuses on custom Stripe Apps, not the mobile Dashboard app
+- Official Stripe payment integrations use custom schemes for merchant apps, not external deep linking into their app
+
+### 🔄 **Revised Implementation Strategy**
+
+Given that deep linking is not supported, we need alternative approaches:
+
+#### **Option A: Contact Stripe Support**
+- Request official deep link specification for Dashboard app
+- Ask if undocumented URL schemes exist for payment collection
+- Inquire about roadmap for external deep linking support
+
+#### **Option B: Third-Party Stripe Apps**  
+- Test apps like "Tap to Pay with Stripe - Paid" (App Store ID: 1539500858)
+- Investigate if these apps support deep linking
+- Compare functionality and fee structures
+
+#### **Option C: Hybrid Implementation**
+- Use Stripe Terminal SDK for basic card reader functionality
+- Implement progressive web app (PWA) for native-like experience  
+- Create QR code workflow where customers scan codes with Stripe app
+
+#### **Option D: Alternative User Flow**
+- SMS/Email payment links sent directly to customer
+- Point-of-sale QR codes for payment initiation
+- Manual entry workflow within existing Stripe Dashboard app
+
+### 📋 **Next Steps:**
+1. **Immediate**: Contact Stripe Support for official guidance
+2. **Short-term**: Test third-party app deep linking capabilities  
+3. **Medium-term**: Develop alternative implementation if deep linking unavailable
+4. **Documentation**: Update strategy based on Stripe Support response
 
 ## 12. References & Resources
 * **Stripe Dashboard App** — [App Store](https://apps.apple.com/app/stripe-dashboard/id978516833)
