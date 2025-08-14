@@ -82,47 +82,84 @@
     <h1>🧪 Stripe App Deep Link Validation Test</h1>
     
     <div class="instructions">
-        <h3>📱 Testing Instructions:</h3>
+        <h3>📱 Enhanced Testing Instructions:</h3>
         <ol>
+            <li><strong>Create Test PaymentIntent:</strong> 
+                <details>
+                    <summary>Click to see PaymentIntent creation code</summary>
+                    <pre style="background: #f4f4f4; padding: 10px; margin: 10px 0; border-radius: 4px;">
+# In Rails console or Stripe Dashboard API explorer:
+intent = Stripe::PaymentIntent.create({
+  amount: 1000, # $10.00
+  currency: 'usd',
+  payment_method_types: ['card_present'],
+  capture_method: 'automatic'
+}, {
+  stripe_account: 'your_connected_account_id' # if using Connect
+})
+
+puts intent.id # Use this ID in the test
+                    </pre>
+                </details>
+            </li>
             <li><strong>Install Stripe Dashboard App:</strong> Make sure you have the official Stripe Dashboard app installed on your iOS device</li>
+            <li><strong>Enter Real PaymentIntent:</strong> When prompted, enter your actual test PaymentIntent ID (starts with pi_)</li>
             <li><strong>Open this page on your iPhone:</strong> Navigate to this test page in Safari on your phone</li>
-            <li><strong>Test each URL format:</strong> Tap the buttons below to test different deep link approaches</li>
-            <li><strong>Observe behavior:</strong> Note which URLs successfully open the Stripe app vs. which ones fail</li>
+            <li><strong>Test URL formats:</strong> Try the most likely candidates first (stripe:// schemes)</li>
             <li><strong>Document results:</strong> The log below will track success/failure for each attempt</li>
         </ol>
+        <div style="background: #e3f2fd; padding: 10px; border-radius: 4px; margin-top: 10px;">
+            <strong>💡 Pro Tip:</strong> Use "Test All URL Formats" to automatically try all variations in sequence!
+        </div>
     </div>
 
     <div class="test-section">
-        <h3>🎯 Test 1: Universal Link (Preferred Method)</h3>
-        <p>This should be the most reliable method on iOS:</p>
+        <h3>🆕 Test 1: stripe:// URL Schemes (Most Likely)</h3>
+        <p>Testing the most accurate URL formats:</p>
+        <div class="url-display" id="stripe-scheme-url-1"></div>
+        <button class="test-button" onclick="testStripeScheme1()">Test stripe://payment_intents/</button>
+        
+        <div class="url-display" id="stripe-scheme-url-2"></div>
+        <button class="test-button" onclick="testStripeScheme2()">Test stripe://terminal/collect-payment</button>
+        
+        <div class="url-display" id="stripe-scheme-url-3"></div>
+        <button class="test-button" onclick="testStripeScheme3()">Test stripe://collect-payment</button>
+    </div>
+
+    <div class="test-section">
+        <h3>🔄 Test 2: Enhanced Dashboard Schemes</h3>
+        <p>Testing stripe-dashboard:// with terminal paths:</p>
+        <div class="url-display" id="dashboard-terminal-url"></div>
+        <button class="test-button" onclick="testDashboardTerminal()">Test stripe-dashboard://terminal/</button>
+        
+        <div class="url-display" id="dashboard-scheme-url"></div>
+        <button class="test-button" onclick="testDashboardScheme()">Test stripe-dashboard://payment_intents/</button>
+    </div>
+
+    <div class="test-section">
+        <h3>❌ Test 3: Previously Failed Formats</h3>
+        <p>These failed in initial testing:</p>
         <div class="url-display" id="universal-url"></div>
-        <button class="test-button" onclick="testUniversalLink()">Test Universal Link</button>
+        <button class="test-button" onclick="testUniversalLink()">Test Universal Link (Failed)</button>
     </div>
 
     <div class="test-section">
-        <h3>🔗 Test 2: Custom URL Scheme</h3>
-        <p>Traditional app deep linking method:</p>
-        <div class="url-display" id="custom-url"></div>
-        <button class="test-button" onclick="testCustomScheme()">Test Custom URL Scheme</button>
-    </div>
-
-    <div class="test-section">
-        <h3>🌐 Test 3: Web Dashboard Fallback</h3>
+        <h3>🌐 Test 4: Web Dashboard Fallback</h3>
         <p>Should open Stripe web dashboard in browser:</p>
         <div class="url-display" id="web-url"></div>
         <button class="test-button fallback-button" onclick="testWebFallback()">Test Web Dashboard</button>
     </div>
 
     <div class="test-section">
-        <h3>📱 Test 4: App Store Link</h3>
+        <h3>📱 Test 5: App Store Link</h3>
         <p>Link to install Stripe Dashboard app:</p>
         <button class="test-button app-store-button" onclick="openAppStore()">Open App Store</button>
     </div>
 
     <div class="test-section">
-        <h3>🚀 Test 5: Progressive Fallback</h3>
-        <p>Simulates the full BizBlasts implementation with automatic fallbacks:</p>
-        <button class="test-button" onclick="testProgressiveFallback()">Test Full Fallback Chain</button>
+        <h3>🚀 Test 6: Progressive Fallback</h3>
+        <p>Tests all formats in sequence:</p>
+        <button class="test-button" onclick="testAllFormats()">Test All URL Formats</button>
     </div>
 
     <div class="result-log" id="log">
@@ -130,20 +167,37 @@
     </div>
 
     <script>
-        // Test Payment Intent ID (you can replace with a real one)
-        const testPaymentIntentId = 'pi_test_123456789';
+        // Real test PaymentIntent ID - REPLACE WITH YOUR ACTUAL TEST PAYMENT INTENT
+        const testPaymentIntentId = prompt('Enter your test PaymentIntent ID (starts with pi_):') || 'pi_test_123456789';
         const testReturnUrl = 'https://bizblasts.com/stripe_app_return?session_token=test123';
         const encodedReturnUrl = encodeURIComponent(testReturnUrl);
 
-        // Generate test URLs
-        const universalLinkUrl = `https://dashboard.stripe.app.link/payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`;
-        const customSchemeUrl = `stripe-dashboard://payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`;
-        const webDashboardUrl = `https://dashboard.stripe.com/terminal/collect-payment?payment_intent=${testPaymentIntentId}&return_url=${encodedReturnUrl}`;
+        // Enhanced URL formats to test
+        const testUrls = {
+            // Previously tested (failed)
+            universalLink: `https://dashboard.stripe.app.link/payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`,
+            dashboardScheme: `stripe-dashboard://payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`,
+            
+            // New accurate formats to test
+            stripeScheme1: `stripe://payment_intents/${testPaymentIntentId}?return_url=${encodedReturnUrl}`,
+            stripeScheme2: `stripe://terminal/collect-payment?payment_intent=${testPaymentIntentId}&return_url=${encodedReturnUrl}`,
+            stripeScheme3: `stripe://collect-payment?payment_intent=${testPaymentIntentId}&return_url=${encodedReturnUrl}`,
+            
+            // Alternative dashboard formats
+            dashboardTerminal: `stripe-dashboard://terminal/collect-payment?payment_intent=${testPaymentIntentId}&return_url=${encodedReturnUrl}`,
+            
+            // Web fallback
+            webDashboard: `https://dashboard.stripe.com/terminal/collect-payment?payment_intent=${testPaymentIntentId}&return_url=${encodedReturnUrl}`
+        };
 
-        // Display URLs
-        document.getElementById('universal-url').textContent = universalLinkUrl;
-        document.getElementById('custom-url').textContent = customSchemeUrl;
-        document.getElementById('web-url').textContent = webDashboardUrl;
+        // Display URLs in the interface
+        document.getElementById('stripe-scheme-url-1').textContent = testUrls.stripeScheme1;
+        document.getElementById('stripe-scheme-url-2').textContent = testUrls.stripeScheme2;
+        document.getElementById('stripe-scheme-url-3').textContent = testUrls.stripeScheme3;
+        document.getElementById('dashboard-terminal-url').textContent = testUrls.dashboardTerminal;
+        document.getElementById('dashboard-scheme-url').textContent = testUrls.dashboardScheme;
+        document.getElementById('universal-url').textContent = testUrls.universalLink;
+        document.getElementById('web-url').textContent = testUrls.webDashboard;
 
         function logResult(message, type = 'info') {
             const log = document.getElementById('log');
@@ -188,29 +242,70 @@
             });
         }
 
-        async function testUniversalLink() {
-            logResult('Testing Universal Link...', 'info');
+        // New enhanced test functions
+        async function testStripeScheme1() {
+            logResult('Testing stripe://payment_intents/ scheme...', 'info');
             try {
-                await detectAppLaunch(universalLinkUrl);
-                logResult('✅ Universal Link SUCCESS - Stripe app opened!', 'success');
+                await detectAppLaunch(testUrls.stripeScheme1);
+                logResult('✅ stripe://payment_intents/ SUCCESS - Stripe app opened!', 'success');
             } catch {
-                logResult('❌ Universal Link FAILED - App did not open', 'error');
+                logResult('❌ stripe://payment_intents/ FAILED - App did not open', 'error');
             }
         }
 
-        async function testCustomScheme() {
-            logResult('Testing Custom URL Scheme...', 'info');
+        async function testStripeScheme2() {
+            logResult('Testing stripe://terminal/collect-payment scheme...', 'info');
             try {
-                await detectAppLaunch(customSchemeUrl);
-                logResult('✅ Custom Scheme SUCCESS - Stripe app opened!', 'success');
+                await detectAppLaunch(testUrls.stripeScheme2);
+                logResult('✅ stripe://terminal/collect-payment SUCCESS - Stripe app opened!', 'success');
             } catch {
-                logResult('❌ Custom Scheme FAILED - App did not open', 'error');
+                logResult('❌ stripe://terminal/collect-payment FAILED - App did not open', 'error');
+            }
+        }
+
+        async function testStripeScheme3() {
+            logResult('Testing stripe://collect-payment scheme...', 'info');
+            try {
+                await detectAppLaunch(testUrls.stripeScheme3);
+                logResult('✅ stripe://collect-payment SUCCESS - Stripe app opened!', 'success');
+            } catch {
+                logResult('❌ stripe://collect-payment FAILED - App did not open', 'error');
+            }
+        }
+
+        async function testDashboardTerminal() {
+            logResult('Testing stripe-dashboard://terminal/ scheme...', 'info');
+            try {
+                await detectAppLaunch(testUrls.dashboardTerminal);
+                logResult('✅ stripe-dashboard://terminal/ SUCCESS - Stripe app opened!', 'success');
+            } catch {
+                logResult('❌ stripe-dashboard://terminal/ FAILED - App did not open', 'error');
+            }
+        }
+
+        async function testDashboardScheme() {
+            logResult('Testing stripe-dashboard://payment_intents/ scheme...', 'info');
+            try {
+                await detectAppLaunch(testUrls.dashboardScheme);
+                logResult('✅ stripe-dashboard://payment_intents/ SUCCESS - Stripe app opened!', 'success');
+            } catch {
+                logResult('❌ stripe-dashboard://payment_intents/ FAILED - App did not open', 'error');
+            }
+        }
+
+        async function testUniversalLink() {
+            logResult('Testing Universal Link (previously failed)...', 'info');
+            try {
+                await detectAppLaunch(testUrls.universalLink);
+                logResult('✅ Universal Link SUCCESS - Stripe app opened!', 'success');
+            } catch {
+                logResult('❌ Universal Link FAILED - App did not open (expected)', 'error');
             }
         }
 
         function testWebFallback() {
             logResult('Opening Web Dashboard fallback...', 'info');
-            window.open(webDashboardUrl, '_blank');
+            window.open(testUrls.webDashboard, '_blank');
             logResult('📄 Web Dashboard opened in new tab', 'info');
         }
 
@@ -220,35 +315,43 @@
             logResult('🏪 App Store opened', 'info');
         }
 
-        async function testProgressiveFallback() {
-            logResult('🚀 Starting Progressive Fallback Test...', 'info');
+        async function testAllFormats() {
+            logResult('🚀 Starting Comprehensive URL Format Test...', 'info');
+            logResult(`📋 Testing with PaymentIntent: ${testPaymentIntentId}`, 'info');
             
-            // Attempt 1: Universal Link
-            logResult('Attempt 1: Universal Link...', 'info');
-            try {
-                await detectAppLaunch(universalLinkUrl, 2000);
-                logResult('✅ SUCCESS: Universal Link opened Stripe app!', 'success');
-                return;
-            } catch {
-                logResult('❌ Universal Link failed, trying custom scheme...', 'error');
+            const urlsToTest = [
+                { name: 'stripe://payment_intents/', url: testUrls.stripeScheme1 },
+                { name: 'stripe://terminal/collect-payment', url: testUrls.stripeScheme2 },
+                { name: 'stripe://collect-payment', url: testUrls.stripeScheme3 },
+                { name: 'stripe-dashboard://terminal/', url: testUrls.dashboardTerminal },
+                { name: 'stripe-dashboard://payment_intents/', url: testUrls.dashboardScheme },
+                { name: 'Universal Link', url: testUrls.universalLink }
+            ];
+
+            for (let i = 0; i < urlsToTest.length; i++) {
+                const test = urlsToTest[i];
+                logResult(`Attempt ${i + 1}: ${test.name}...`, 'info');
+                
+                try {
+                    await detectAppLaunch(test.url, 3000);
+                    logResult(`✅ SUCCESS: ${test.name} opened Stripe app!`, 'success');
+                    logResult(`🎯 WINNER: Use this format: ${test.name}`, 'success');
+                    return; // Stop testing on first success
+                } catch {
+                    logResult(`❌ ${test.name} failed`, 'error');
+                }
+                
+                // Brief delay between attempts
+                if (i < urlsToTest.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
             }
 
-            // Attempt 2: Custom URL Scheme
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay
-            logResult('Attempt 2: Custom URL Scheme...', 'info');
-            try {
-                await detectAppLaunch(customSchemeUrl, 2000);
-                logResult('✅ SUCCESS: Custom scheme opened Stripe app!', 'success');
-                return;
-            } catch {
-                logResult('❌ Custom scheme failed, opening web fallback...', 'error');
-            }
-
-            // Attempt 3: Web Fallback
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay
-            logResult('Attempt 3: Web Dashboard fallback...', 'info');
-            window.open(webDashboardUrl, '_blank');
-            logResult('📄 Opened web dashboard as final fallback', 'info');
+            // If all deep links fail, open web fallback
+            logResult('❌ All deep link attempts failed', 'error');
+            logResult('📄 Opening web dashboard as final fallback...', 'info');
+            window.open(testUrls.webDashboard, '_blank');
+            logResult('💡 Recommendation: Contact Stripe Support for official deep link spec', 'info');
         }
 
         // Initialize
