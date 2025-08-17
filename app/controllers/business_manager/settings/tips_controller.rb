@@ -77,10 +77,27 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
   def update_service_tip_settings
     service_tip_params.each do |service_id, settings|
       service = current_business.services.find(service_id)
-      service.update!(
-        tips_enabled: settings[:tips_enabled],
-        tip_mailer_if_no_tip_received: settings[:tip_mailer_if_no_tip_received]
-      )
+
+      # Filter out nil values so we don't overwrite existing settings with nil and
+      # unintentionally trigger validation failures (e.g., inclusion validations
+      # that disallow nil). This allows callers to send only the attributes they
+      # wish to update.
+      update_attrs = settings.to_h.compact
+
+      # Cast boolean-like strings ("0"/"1") to actual booleans for inclusion
+      # validations. Rails normally handles this when assigning directly, but we
+      # ensure clean values when passed through a hash.
+      if update_attrs.key?('tips_enabled') || update_attrs.key?(:tips_enabled)
+        raw = update_attrs.delete('tips_enabled') || update_attrs.delete(:tips_enabled)
+        update_attrs[:tips_enabled] = ActiveModel::Type::Boolean.new.cast(raw)
+      end
+
+      if update_attrs.key?('tip_mailer_if_no_tip_received') || update_attrs.key?(:tip_mailer_if_no_tip_received)
+        raw = update_attrs.delete('tip_mailer_if_no_tip_received') || update_attrs.delete(:tip_mailer_if_no_tip_received)
+        update_attrs[:tip_mailer_if_no_tip_received] = ActiveModel::Type::Boolean.new.cast(raw)
+      end
+
+      service.update!(update_attrs) if update_attrs.present?
     end
   end
 

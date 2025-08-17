@@ -169,7 +169,7 @@ Rails.application.routes.draw do
       resources :payments, only: [:index, :show]
       
       # Payment collection (singular resource for new payment collection)
-      resource :payment, only: [:new, :create, :show]
+      resource :payment, only: [:new, :create]
       
       # Redirect /manage/payment to /manage/payment/new to prevent 404s
       get '/payment', to: redirect('/manage/payment/new')
