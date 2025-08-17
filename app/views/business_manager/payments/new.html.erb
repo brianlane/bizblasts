@@ -1,0 +1,298 @@
+<%# app/views/business_manager/payments/new.html.erb %>
+<div class="container mx-auto px-4 py-8" data-controller="customer-dropdown">
+  <h1 class="text-2xl font-bold mb-4">Collect Payment Now</h1>
+  <p class="text-gray-600 mb-6">Create a payment link with QR code for immediate customer payment collection</p>
+
+  <!-- Flash Messages -->
+  <% if flash[:error] %>
+    <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4">
+      <%= flash[:error] %>
+    </div>
+  <% end %>
+  
+  <% if flash[:notice] %>
+    <div class="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-4">
+      <%= flash[:notice] %>
+    </div>
+  <% end %>
+
+  <%= form_with url: "/manage/payment", method: :post, local: true, class: "space-y-6", data: { turbo: false } do |form| %>
+    
+    <!-- Customer Selection -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+      
+      <!-- Custom Customer Dropdown -->
+      <div class="customer-dropdown relative" 
+           data-controller="customer-dropdown" 
+           data-customer-dropdown-selected-value-value="">
+        <button type="button" 
+                class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px] flex items-center justify-between"
+                data-customer-dropdown-target="button"
+                data-action="click->customer-dropdown#toggle">
+          <span class="customer-dropdown-text text-gray-900 flex-1">
+            Select existing customer
+          </span>
+          <span class="flex items-center pl-2">
+            <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        
+        <!-- Dropdown Menu -->
+        <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-customer-dropdown-target="menu">
+          
+          <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="Select existing customer"
+               data-customer-dropdown-target="option"
+               data-action="click->customer-dropdown#select">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-gray-500">Select existing customer</div>
+              </div>
+            </div>
+          </div>
+          
+          <% @customers.each do |customer| %>
+            <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= customer.id %>"
+                 data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
+                 data-customer-dropdown-target="option"
+                 data-action="click->customer-dropdown#select">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900"><%= customer.full_name %></div>
+                  <% if customer.email.present? %>
+                    <div class="text-sm text-gray-500 mt-1"><%= customer.email %></div>
+                  <% end %>
+                  <% if customer.phone.present? %>
+                    <div class="text-xs text-gray-400 mt-1"><%= customer.phone %></div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+          
+          <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+               data-item-id="new"
+               data-item-text="Create new customer"
+               data-customer-dropdown-target="option"
+               data-action="click->customer-dropdown#select">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="font-medium text-blue-600">+ Create new customer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Hidden field to store the selected customer ID -->
+        <input type="hidden" name="tenant_customer_id" id="payment_tenant_customer_id" data-customer-dropdown-target="hidden" required />
+      </div>
+    </div>
+
+    <div id="new-customer-fields" class="hidden mb-4" data-customer-dropdown-target="newCustomerFields">
+      <h3 class="text-lg font-medium mb-2">New Customer Details</h3>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+          <input type="text" name="tenant_customer[first_name]" placeholder="First Name" class="form-input rounded border px-3 py-2 w-full" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+          <input type="text" name="tenant_customer[last_name]" placeholder="Last Name" class="form-input rounded border px-3 py-2 w-full" />
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" name="tenant_customer[email]" placeholder="Customer Email" class="form-input rounded border px-3 py-2 w-full" />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+        <input type="tel" name="tenant_customer[phone]" placeholder="Customer Phone" class="form-input rounded border px-3 py-2 w-full" />
+      </div>
+    </div>
+
+    <!-- Payment Amount -->
+    <div>
+      <label for="payment_amount" class="block text-sm font-medium text-gray-700 mb-2">Payment Amount *</label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <span class="text-gray-500 sm:text-sm">$</span>
+        </div>
+        <input type="number" 
+               name="payment_amount" 
+               id="payment_amount"
+               step="0.01" 
+               min="0.50"
+               placeholder="0.00"
+               class="pl-7 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+               onwheel="return false;"
+               required>
+      </div>
+      <p class="mt-1 text-xs text-gray-500">Minimum payment amount is $0.50</p>
+    </div>
+
+    <!-- Notes (Optional) -->
+    <div>
+      <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+      <textarea name="notes" 
+                id="notes"
+                rows="3"
+                placeholder="Add any notes about this payment..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+    </div>
+
+    <!-- Order Total Display -->
+    <div class="bg-gray-50 p-4 rounded-lg">
+      <div class="flex justify-between items-center text-lg font-medium">
+        <span>Order Total:</span>
+        <span id="order-total">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-4">
+      <%= link_to 'Cancel', business_manager_transactions_path, 
+                  class: "px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+      
+      <button type="submit" 
+              class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer"
+              data-turbo="false">
+        Create Order & Show QR Code
+      </button>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  // Update order total when payment amount changes
+  function updateOrderTotal() {
+    const paymentAmountInput = document.getElementById('payment_amount');
+    const orderTotalSpan = document.getElementById('order-total');
+    const amount = parseFloat(paymentAmountInput.value) || 0;
+    orderTotalSpan.textContent = '$' + amount.toFixed(2);
+  }
+  
+  function showValidationError(message) {
+    // Remove any existing error message
+    const existingError = document.querySelector('.validation-error');
+    if (existingError) {
+      existingError.remove();
+    }
+    
+    // Create and show error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'validation-error bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4';
+    errorDiv.textContent = message;
+    
+    // Insert before the action buttons
+    const actionButtons = document.querySelector('.flex.gap-4');
+    actionButtons.parentNode.insertBefore(errorDiv, actionButtons);
+    
+    // Remove error after 5 seconds
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.remove();
+      }
+    }, 5000);
+  }
+  
+  function validateForm() {
+    try {
+      console.log('validateForm called'); // Debug log
+      
+      const customerDropdown = document.querySelector('[data-customer-dropdown-target="hidden"]');
+      const paymentAmountInput = document.getElementById('payment_amount');
+      
+      if (!customerDropdown) {
+        console.error('Customer dropdown not found');
+        alert('Form error: Customer dropdown not found.');
+        return false;
+      }
+      
+      if (!paymentAmountInput) {
+        console.error('Payment amount input not found');
+        alert('Form error: Payment amount input not found.');
+        return false;
+      }
+      
+      console.log('Customer dropdown value:', customerDropdown.value); // Debug log
+      console.log('Payment amount:', paymentAmountInput.value); // Debug log
+      
+      const customerSelected = customerDropdown.value && customerDropdown.value !== '';
+      const paymentAmount = parseFloat(paymentAmountInput.value) || 0;
+      
+      if (!customerSelected) {
+        console.log('No customer selected');
+        alert('Please select a customer or create a new customer.');
+        return false;
+      }
+      
+      if (customerDropdown.value === 'new') {
+        const firstNameInput = document.querySelector('input[name="tenant_customer[first_name]"]');
+        const lastNameInput = document.querySelector('input[name="tenant_customer[last_name]"]');
+        const emailInput = document.querySelector('input[name="tenant_customer[email]"]');
+        
+        if (!firstNameInput || !firstNameInput.value.trim()) {
+          alert('Please enter the customer\'s first name.');
+          firstNameInput && firstNameInput.focus();
+          return false;
+        }
+        
+        if (!lastNameInput || !lastNameInput.value.trim()) {
+          alert('Please enter the customer\'s last name.');
+          lastNameInput && lastNameInput.focus();
+          return false;
+        }
+        
+        if (!emailInput || !emailInput.value.trim()) {
+          alert('Please enter the customer\'s email address.');
+          emailInput && emailInput.focus();
+          return false;
+        }
+      }
+      
+      if (paymentAmount < 0.50) {
+        console.log('Payment amount too low:', paymentAmount);
+        alert('Payment amount must be at least $0.50.');
+        paymentAmountInput.focus();
+        return false;
+      }
+      
+      // If validation passes, allow normal form submission
+      console.log('Validation passed, allowing form submission'); // Debug log
+      return true;
+      
+    } catch (error) {
+      console.error('Error in validateForm:', error);
+      alert('An error occurred during validation. Please try again.');
+      return false;
+    }
+  }
+  
+  // Set up event listeners when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    const paymentAmountInput = document.getElementById('payment_amount');
+    
+    // Update order total when payment amount changes
+    paymentAmountInput.addEventListener('input', updateOrderTotal);
+    updateOrderTotal(); // Set initial value
+    
+    // Prevent scroll wheel from changing the payment amount
+    paymentAmountInput.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      this.blur(); // Remove focus to prevent any scroll behavior
+    });
+    
+    // Also prevent scroll when the input is focused but not being actively typed in
+    paymentAmountInput.addEventListener('focus', function() {
+      this.addEventListener('wheel', function(e) {
+        e.preventDefault();
+      });
+    });
+  });
+</script>

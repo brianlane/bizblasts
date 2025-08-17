@@ -11,6 +11,11 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
     @tip_configuration = @business.tip_configuration_or_default
     
     ActiveRecord::Base.transaction do
+      # Update business tip mailer setting
+      if business_tip_params.present?
+        @business.update!(business_tip_params)
+      end
+      
       # Update or create tip configuration if provided
       if tip_configuration_params.present?
         if @tip_configuration.persisted?
@@ -34,6 +39,12 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
   
   private
   
+  def business_tip_params
+    return {} unless params[:business].present?
+    
+    params.require(:business).permit(:tip_mailer_if_no_tip_received)
+  end
+  
   def tip_configuration_params
     return {} unless params[:tip_configuration].present?
     
@@ -53,7 +64,7 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
   def service_tip_params
     return {} unless params[:services].present?
     
-    params.require(:services).permit(params[:services].keys.map { |key| { key => [:tips_enabled] } })
+    params.require(:services).permit(params[:services].keys.map { |key| { key => [:tips_enabled, :tip_mailer_if_no_tip_received] } })
   end
   
   def update_product_tip_settings
@@ -66,7 +77,10 @@ class BusinessManager::Settings::TipsController < BusinessManager::BaseControlle
   def update_service_tip_settings
     service_tip_params.each do |service_id, settings|
       service = current_business.services.find(service_id)
-      service.update!(tips_enabled: settings[:tips_enabled])
+      service.update!(
+        tips_enabled: settings[:tips_enabled],
+        tip_mailer_if_no_tip_received: settings[:tip_mailer_if_no_tip_received]
+      )
     end
   end
 

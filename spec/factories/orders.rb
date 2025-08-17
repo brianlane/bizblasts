@@ -28,6 +28,8 @@ FactoryBot.define do
     total_amount { 99.99 } # Placeholder, will be recalculated
     tax_amount { 9.99 }    # Placeholder
     shipping_amount { 5.99 } # Placeholder
+    tip_received_on_initial_payment { false }
+    tip_amount_received_initially { 0.0 }
 
     trait :pending_payment do
       status { :pending_payment }
