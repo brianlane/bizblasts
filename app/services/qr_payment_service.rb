@@ -26,7 +26,7 @@ class QrPaymentService
       payment_link_url: invoice_url,
       amount: invoice.total_amount,
       invoice_number: invoice.invoice_number,
-      customer_name: invoice.tenant_customer.name,
+      customer_name: invoice.tenant_customer.full_name,
       business_name: invoice.business.name
     }
   rescue => e
