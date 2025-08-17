@@ -372,14 +372,9 @@ class Order < ApplicationRecord
     
     current_time = Time.current
     
-    # Use end_time if available, otherwise calculate from start_time + duration
-    end_time = if booking.end_time.present?
-                 booking.end_time
-               elsif booking.start_time.present? && booking.duration.present?
-                 booking.start_time + booking.duration.minutes
-               else
-                 return false # Can't determine end time
-               end
+    # Prefer booking.end_time; if it's absent we cannot reliably determine.
+    end_time = booking.end_time
+    return false unless end_time.present?
     
     current_time >= end_time
   end
