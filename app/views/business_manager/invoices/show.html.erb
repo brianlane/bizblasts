@@ -1,14 +1,27 @@
 <%# app/views/business_manager/invoices/show.html.erb %>
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8" data-controller="qr-payment">
   <h1 class="text-2xl font-bold mb-4">Invoice <%= @invoice.invoice_number %></h1>
 
   <div class="mb-4 flex space-x-2">
-    <%= button_to 'Resend to Customer', resend_business_manager_invoice_path(@invoice), method: :post,
-                  data: { confirm: 'Resend this invoice to the customer?' },
-                  class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
-    <%= button_to 'Cancel Invoice', cancel_business_manager_invoice_path(@invoice), method: :patch,
-                  data: { confirm: 'Are you sure you want to cancel this invoice? This action cannot be undone.' },
-                  class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+    <% unless @invoice.paid? %>
+      <%= button_to 'Resend to Customer', resend_business_manager_invoice_path(@invoice), method: :post,
+                    data: { confirm: 'Resend this invoice to the customer?' },
+                    class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+      <% if (@invoice.pending? || @invoice.overdue?) && @invoice.total_amount >= 0.50 %>
+        <%= button_to 'Display QR Code', qr_payment_business_manager_invoice_path(@invoice), method: :get,
+                      data: { 
+                        action: 'click->qr-payment#showModal',
+                        'qr-payment-invoice-id-value': @invoice.id
+                      },
+                      class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+      <% end %>
+      <%= button_to 'Mark as Paid', mark_as_paid_business_manager_invoice_path(@invoice), method: :patch,
+                    data: { confirm: 'Mark this invoice as paid? This will create a payment record and cannot be undone.' },
+                    class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+      <%= button_to 'Cancel Invoice', cancel_business_manager_invoice_path(@invoice), method: :patch,
+                    data: { confirm: 'Are you sure you want to cancel this invoice? This action cannot be undone.' },
+                    class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+    <% end %>
   </div>
   <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
     <dl class="divide-y divide-gray-200">
@@ -50,4 +63,20 @@
 
   <%= link_to 'Back to Invoices', business_manager_invoices_path, class: "text-blue-600 hover:text-blue-800" %>
   <%= link_to 'Back to Customer', business_manager_customer_path(@invoice.tenant_customer), class: "ml-4 text-blue-600 hover:text-blue-800" %>
+
+  <!-- QR Payment Modal -->
+  <div data-qr-payment-target="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="mt-3 text-center">
+        <div data-qr-payment-target="content">
+          <!-- QR code content will be loaded here -->
+        </div>
+        <div class="flex justify-center mt-4">
+          <button data-action="click->qr-payment#closeModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div> 

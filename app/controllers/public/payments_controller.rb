@@ -75,19 +75,31 @@ module Public
         @tenant_customer = current_tenant.tenant_customers.find_by(email: current_user.email)
         raise ActiveRecord::RecordNotFound unless @tenant_customer
       else
-        # For guest checkout, find tenant customer from invoice
-        invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
+        # For guest checkout, find tenant customer from invoice with token verification
+        if params[:token].present?
+          invoice = current_tenant.invoices.find_by(id: params[:invoice_id], guest_access_token: params[:token])
+        else
+          invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
+        end
         @tenant_customer = invoice&.tenant_customer
         raise ActiveRecord::RecordNotFound unless @tenant_customer
       end
     end
 
     def set_invoice
-      @invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
-      # Verify the invoice belongs to the tenant customer
-      if @tenant_customer && @invoice&.tenant_customer != @tenant_customer
-        raise ActiveRecord::RecordNotFound
+      # Handle both authenticated and guest access
+      if params[:token].present?
+        # Guest access via token
+        @invoice = current_tenant.invoices.find_by(id: params[:invoice_id], guest_access_token: params[:token])
+      else
+        # Authenticated user access
+        @invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
+        # Verify the invoice belongs to the tenant customer for authenticated users
+        if @tenant_customer && @invoice&.tenant_customer != @tenant_customer
+          raise ActiveRecord::RecordNotFound
+        end
       end
+      
       raise ActiveRecord::RecordNotFound unless @invoice
     end
 

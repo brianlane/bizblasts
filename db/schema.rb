@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_17_174318) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -252,6 +252,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
     t.string "google_business_phone"
     t.string "google_business_website"
     t.boolean "google_business_manual", default: false
+    t.boolean "tip_mailer_if_no_tip_received", default: true, null: false
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
@@ -546,6 +547,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
     t.string "guest_access_token"
     t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
     t.boolean "review_request_suppressed", default: false, null: false
+    t.boolean "tip_received_on_initial_payment", default: false, null: false
+    t.decimal "tip_amount_received_initially", precision: 10, scale: 2, default: "0.0"
     t.index ["booking_id"], name: "index_invoices_on_booking_id"
     t.index ["business_id"], name: "index_invoices_on_business_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
@@ -717,6 +720,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
     t.string "promo_code_type"
     t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
     t.boolean "review_request_suppressed", default: false, null: false
+    t.boolean "tip_received_on_initial_payment", default: false, null: false
+    t.decimal "tip_amount_received_initially", precision: 10, scale: 2, default: "0.0"
     t.index ["applied_promo_code"], name: "index_orders_on_applied_promo_code"
     t.index ["booking_id"], name: "index_orders_on_booking_id"
     t.index ["business_id", "created_at"], name: "index_orders_on_business_id_and_created_at"
@@ -729,7 +734,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -817,6 +822,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.decimal "tip_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.boolean "tip_received_on_initial_payment", default: false, null: false
+    t.decimal "tip_amount_received_initially", precision: 10, scale: 2, default: "0.0"
     t.index ["business_id", "paid_at"], name: "index_payments_on_business_id_and_paid_at"
     t.index ["business_id", "status"], name: "index_payments_on_business_id_and_status"
     t.index ["business_id"], name: "index_payments_on_business_id"
@@ -1104,6 +1111,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_215911) do
     t.integer "position", default: 0
     t.jsonb "availability", default: {}, null: false
     t.boolean "enforce_service_availability", default: true, null: false
+    t.boolean "tip_mailer_if_no_tip_received", default: true, null: false
     t.index ["allow_customer_preferences"], name: "index_services_on_allow_customer_preferences"
     t.index ["allow_discounts"], name: "index_services_on_allow_discounts"
     t.index ["business_id", "position"], name: "index_services_on_business_id_and_position"

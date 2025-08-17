@@ -241,6 +241,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :featured,
       :active,
       :tips_enabled,
+      :tip_mailer_if_no_tip_received,
       :service_type,
       :min_bookings,
       :max_bookings,

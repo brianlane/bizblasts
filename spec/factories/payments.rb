@@ -25,6 +25,8 @@ FactoryBot.define do
     failure_reason { nil }
     refunded_amount { 0.0 }
     refund_reason { nil }
+    tip_received_on_initial_payment { false }
+    tip_amount_received_initially { 0.0 }
     
     trait :pending do
       status { :pending }

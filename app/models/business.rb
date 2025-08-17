@@ -200,6 +200,7 @@ class Business < ApplicationRecord
   validates :description, presence: true
   validates :tier, presence: true, inclusion: { in: tiers.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
+  validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
   
   # New Validations for hostname/host_type
   validates :hostname, presence: true, uniqueness: { case_sensitive: false }

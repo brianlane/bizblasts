@@ -21,6 +21,21 @@ class InvoicePolicy < BusinessPolicy
     show?
   end
 
+  # Can generate QR payment code for invoice
+  def qr_payment?
+    show?
+  end
+
+  # Can check payment status of invoice
+  def payment_status?
+    show?
+  end
+
+  # Can manually mark invoice as paid
+  def mark_as_paid?
+    show?
+  end
+
   class Scope < Scope
     def resolve
       if user.present? && user.business_id.present? && user.has_any_role?(:manager, :staff)

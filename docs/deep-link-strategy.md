@@ -1,47 +1,44 @@
-# BizBlasts – **Tap to Pay via Stripe iOS App** Integration Plan
+# BizBlasts – **In-Person Payment Collection** Strategy
 
-**Last updated:** 2025-02-14  
+**Last updated:** 2025-08-15  
 **Owner:** o3-pro AI pair-programmer  
-**Updated:** Resolved open questions and enhanced implementation details
+**Status:** Pivoted to QR Code Implementation
 
 ---
 
-## 1. Objective
-Provide BizBlasts business users with **true Tap-to-Pay on iPhone** (contactless, card-present pricing) *without* building or publishing a native BizBlasts app.  
-We will leverage Stripe's **native "Tap to Pay with Stripe" iOS app** and orchestrate the flow from our Rails web app via deep linking and webhooks.
+## 1. Objective  
+Provide BizBlasts business users with **convenient in-person payment collection** for orders, bookings, and invoices using existing Stripe infrastructure and QR code technology.
 
 ---
 
-## 2. End-to-End User Flow (Revised)
-1. **Existing Workflow** – Business owner creates booking/order/invoice in current BizBlasts interface.  
-2. **"Collect In-Person Payment" Button** – Available on pending bookings, orders, and invoices.
-3. **Payment Intent Creation** – BizBlasts backend calls Stripe to create **card_present PaymentIntent**.  
-4. **Enhanced Deep Link Launch** – JavaScript uses iframe technique to open Stripe app with fallback handling.  
-5. **Tap to Pay in Stripe App** – Customer taps card, Stripe app handles tipping during transaction.  
-6. **Processing** – Stripe app processes the PaymentIntent with final amount including tip.  
-7. **Return** – Stripe app opens the supplied return URL → BizBlasts shows success/failure.  
-8. **Webhook** – Standard webhook finalizes status and updates booking/order/invoice.  
-9. **Status Update** – Original booking/order/invoice marked as paid.
+## 2. QR Code Payment Flow (Current Implementation)
+1. **Existing Workflow** – Business owner creates booking/order/invoice in current BizBlasts interface  
+2. **"Display QR Code" Button** – Available on pending orders in Transactions view with footnote "Collect payment now"
+3. **Payment Link Generation** – BizBlasts generates Stripe Payment Link for the order amount
+4. **QR Code Display** – Business shows QR code on their device screen  
+5. **Customer Scans** – Customer scans QR code with their phone camera
+6. **Payment Processing** – Customer completes payment on Stripe-hosted page via their device
+7. **Webhook Confirmation** – Standard webhook updates order status to paid
+8. **Real-time Updates** – Business sees payment confirmation in BizBlasts interface
 
 ```mermaid
 sequenceDiagram
     participant B as BizBlasts Web App
     participant S as Stripe API
-    participant A as Stripe iOS App
-    participant C as Customer Card
+    participant QR as QR Code Display
+    participant CP as Customer Phone
+    participant C as Customer
 
-    Note over B: User clicks "Collect In-Person Payment"<br/>on existing booking/order/invoice
-    B->>S: Create \"card_present\" PaymentIntent
-    S-->>B: intent.id + client_secret
-    B->>A: Enhanced deep link with iframe fallback
-    Note over A: Customer selects tip in Stripe app
-    A->>C: Tap to Pay prompt (amount + tip)
-    C-->>A: Contactless tap
-    A->>S: Confirm PaymentIntent (final amount)
-    S-->>A: Success/Failure
-    A-->>B: Redirect to returnURL
-    S-->>B: Webhook confirmation
-    Note over B: Update original booking/order/invoice status
+    Note over B: Business clicks "Display QR Code"<br/>on pending order
+    B->>S: Create Stripe Payment Link
+    S-->>B: Payment Link URL
+    B->>QR: Generate & display QR code
+    Note over QR: Business shows screen to customer
+    C->>CP: Scans QR code with phone camera
+    CP->>S: Opens Stripe payment page
+    C->>S: Completes payment on their device
+    S-->>B: Webhook: payment completed
+    Note over B: Order marked as paid
 ```
 
 ---
@@ -819,63 +816,40 @@ Based on Stripe Payment Links documentation:
 - [ ] Create clear success/failure confirmation pages
 - [ ] Add instructional copy for first-time users
 
-## 🚨 **CRITICAL UPDATE: Deep Link Testing Results**
+## 🚨 **CRITICAL FINDINGS: Deep Link Testing Results**
 
-### ❌ **Deep Linking Not Supported (Tested 2025-08-14)**
+### ❌ **Stripe Dashboard App Deep Linking Not Supported (Tested 2025-08-15)**
 
-After testing with actual Stripe Dashboard iOS app, **deep linking appears to not be supported**:
+After comprehensive testing with actual Stripe Dashboard iOS app and research:
 
 #### **Test Results:**
-1. **Universal Link** (`https://dashboard.stripe.app.link/...`)
-   - ❌ Shows security warning 
-   - ❌ Results in "link not found" error
-   - ❌ Does not open iOS app
+1. **✅ `stripe://` schemes DO open the app** - All variations successfully opened Stripe Dashboard app
+2. **❌ Payment collection not accessible** - Deep links only open to main dashboard, no payment flow initiated  
+3. **❌ Third-party limitations** - "Payment: Stripe Tap to Pay" doesn't support Stripe Connect accounts in deep links
+4. **✅ Official Stripe app works** - But only for app opening, not specific payment collection
 
-2. **Custom URL Scheme** (`stripe-dashboard://...`)
-   - ❌ Safari reports "invalid address"
-   - ❌ Does not attempt to open app
+#### **Key Discoveries:**
+- **Stripe official app**: Deep linking only works from mobile apps to mobile apps, not from web browsers
+- **Web browser limitation**: Deep links from web pages cannot reliably trigger payment collection flows
+- **Connect account issue**: Third-party apps don't support platform/Connect account payments via deep links  
+- **Architecture mismatch**: Stripe Dashboard app designed for manual entry, not external automation
 
-3. **Web Dashboard** (`https://dashboard.stripe.com/...`)
-   - ✅ Opens successfully in browser
-   - ❌ No access to Tap to Pay functionality
+### ✅ **Adopted Solution: QR Code Implementation**
 
-4. **App Store Link**
-   - ✅ Opens App Store correctly
+**Current approach leverages existing BizBlasts Stripe integration:**
+- **Reuses existing Payment Link infrastructure** 
+- **Works with all devices** (not iOS-specific)
+- **Supports Stripe Connect accounts** seamlessly
+- **No app installation required** for customers
+- **Immediate implementation** using proven technology
 
-#### **Research Conclusion:**
-- No public documentation exists for Stripe Dashboard app URL schemes
-- Stripe's deep link documentation focuses on custom Stripe Apps, not the mobile Dashboard app
-- Official Stripe payment integrations use custom schemes for merchant apps, not external deep linking into their app
+### 🔮 **Future Roadmap: Native iOS Companion App**
 
-### 🔄 **Revised Implementation Strategy**
-
-Given that deep linking is not supported, we need alternative approaches:
-
-#### **Option A: Contact Stripe Support**
-- Request official deep link specification for Dashboard app
-- Ask if undocumented URL schemes exist for payment collection
-- Inquire about roadmap for external deep linking support
-
-#### **Option B: Third-Party Stripe Apps**  
-- Test apps like "Tap to Pay with Stripe - Paid" (App Store ID: 1539500858)
-- Investigate if these apps support deep linking
-- Compare functionality and fee structures
-
-#### **Option C: Hybrid Implementation**
-- Use Stripe Terminal SDK for basic card reader functionality
-- Implement progressive web app (PWA) for native-like experience  
-- Create QR code workflow where customers scan codes with Stripe app
-
-#### **Option D: Alternative User Flow**
-- SMS/Email payment links sent directly to customer
-- Point-of-sale QR codes for payment initiation
-- Manual entry workflow within existing Stripe Dashboard app
-
-### 📋 **Next Steps:**
-1. **Immediate**: Contact Stripe Support for official guidance
-2. **Short-term**: Test third-party app deep linking capabilities  
-3. **Medium-term**: Develop alternative implementation if deep linking unavailable
-4. **Documentation**: Update strategy based on Stripe Support response
+**For true Tap-to-Pay functionality:**
+- Build minimal iOS companion app for BizBlasts
+- Integrate Stripe Terminal SDK directly  
+- Enable true contactless card reading on business device
+- Maintain web app as primary interface with native payment component
 
 ## 12. References & Resources
 * **Stripe Dashboard App** — [App Store](https://apps.apple.com/app/stripe-dashboard/id978516833)
