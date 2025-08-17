@@ -120,10 +120,7 @@ module BusinessManager
       @order.tenant_customer = current_business.tenant_customers.build
     end
     
-    # Handle any requests to /manage/payment (without /new) - redirect to new
-    def show
-      redirect_to new_business_manager_payment_path
-    end
+    # Note: Requests to /manage/payment (without /new) are redirected to the new payment form via routes configuration.
     
     # POST /manage/payment
     def create
