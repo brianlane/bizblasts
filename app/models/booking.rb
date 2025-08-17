@@ -66,8 +66,9 @@ class Booking < ApplicationRecord
     return false unless service&.tips_enabled?
     return false if tip_processed?
     
-    # Tips are only available for experience services
-    service.experience?
+    # Tips are now available for all service types (removed experience-only restriction)
+    # Previously: Tips were only available for experience services (service.experience?)
+    true
   end
   
   # Check if tip has already been processed
@@ -94,13 +95,21 @@ class Booking < ApplicationRecord
     nil
   end
 
-  # Schedule experience tip reminder after completion
-  def schedule_experience_tip_reminder
-    return unless completed? && service&.experience? && service&.tips_enabled?
+  # Schedule tip reminder after completion (renamed from schedule_experience_tip_reminder)
+  def schedule_tip_reminder
+    return unless completed? && service&.tips_enabled?
     return if tip.present? # Don't send if tip already collected
+    
+    # Previously: Only for experience services (service&.experience?)
+    # Now: Available for all service types with tips enabled
     
     # Schedule reminder for 2 hours after completion
     ExperienceTipReminderJob.set(wait: 2.hours).perform_later(id)
+  end
+  
+  # Legacy method for backward compatibility - will be deprecated
+  def schedule_experience_tip_reminder
+    schedule_tip_reminder
   end
   
   # Returns the booking's time zone, preferring the associated business's configured zone.
@@ -232,7 +241,8 @@ class Booking < ApplicationRecord
   # Add callback for scheduling tip reminders
   def schedule_tip_reminder_if_needed
     if status_changed? && completed?
-      schedule_experience_tip_reminder
+      # Updated to use new method that works for all service types
+      schedule_tip_reminder
     end
   end
 end

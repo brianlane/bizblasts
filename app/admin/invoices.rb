@@ -4,6 +4,18 @@ ActiveAdmin.register Invoice do
                 :total_amount, :due_date, :status, :invoice_number, 
                 :original_amount, :discount_amount, :tip_amount
 
+  # Define explicit filters to avoid ransack errors
+  filter :invoice_number
+  filter :business
+  filter :tenant_customer
+  filter :status, as: :select, collection: Invoice.statuses.keys.map { |k| [k.humanize, k] }
+  filter :amount
+  filter :total_amount
+  filter :due_date
+  filter :review_request_suppressed, as: :select, collection: [['Yes', true], ['No', false]]
+  filter :created_at
+  filter :updated_at
+
   # See permitted parameters documentation:
   # https://github.com/activeadmin/activeadmin/blob/master/docs/2-resource-customization.md#setting-up-strong-parameters
 

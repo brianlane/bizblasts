@@ -196,16 +196,25 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <% @payments.each do |payment| %>
+          <% @payment_items.each do |payment_item| %>
             <tr class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex flex-col">
-                  <div class="text-sm font-medium text-gray-900">
-                    Payment #<%= payment.id %>
-                  </div>
-                  <% if payment.stripe_payment_intent_id.present? %>
+                  <% if payment_item[:type] == :payment %>
+                    <div class="text-sm font-medium text-gray-900">
+                      Payment #<%= payment_item[:item].id %>
+                    </div>
+                    <% if payment_item[:item].stripe_payment_intent_id.present? %>
+                      <div class="text-xs text-gray-500">
+                        <%= payment_item[:item].stripe_payment_intent_id %>
+                      </div>
+                    <% end %>
+                  <% else %>
+                    <div class="text-sm font-medium text-gray-900">
+                      <%= payment_item[:item].order.order_number %>
+                    </div>
                     <div class="text-xs text-gray-500">
-                      <%= payment.stripe_payment_intent_id %>
+                      QR Payment Request
                     </div>
                   <% end %>
                 </div>
@@ -213,25 +222,25 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex flex-col">
                   <div class="text-sm font-medium text-gray-900">
-                    <%= payment.tenant_customer.full_name %>
+                    <%= payment_item[:customer]&.full_name || 'N/A' %>
                   </div>
                   <div class="text-sm text-gray-500">
-                    <%= payment.tenant_customer.email %>
+                    <%= payment_item[:customer]&.email || 'N/A' %>
                   </div>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">
-                  <%= number_to_currency(payment.amount) %>
+                  <%= number_to_currency(payment_item[:amount]) %>
                 </div>
-                <% if payment.business_amount != payment.amount %>
+                <% if payment_item[:type] == :payment && payment_item[:item].business_amount != payment_item[:item].amount %>
                   <div class="text-xs text-gray-500">
-                    Net: <%= number_to_currency(payment.business_amount) %>
+                    Net: <%= number_to_currency(payment_item[:item].business_amount) %>
                   </div>
                 <% end %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <% case payment.status %>
+                <% case payment_item[:status].to_s %>
                 <% when 'completed' %>
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Completed
@@ -251,15 +260,25 @@
                 <% end %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <%= payment.payment_method.humanize %>
+                <% if payment_item[:type] == :payment %>
+                  <%= payment_item[:item].payment_method.humanize %>
+                <% else %>
+                  QR Code
+                <% end %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= l payment.created_at, format: :short %>
+                <%= l payment_item[:date], format: :short %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <%= link_to "View", 
-                      business_manager_payment_path(payment), 
-                      class: "text-indigo-600 hover:text-indigo-900" %>
+                <% if payment_item[:type] == :payment %>
+                  <%= link_to "View", 
+                        business_manager_payment_path(payment_item[:item]), 
+                        class: "text-indigo-600 hover:text-indigo-900" %>
+                <% else %>
+                  <%= link_to "View", 
+                        business_manager_invoice_path(payment_item[:item]), 
+                        class: "text-indigo-600 hover:text-indigo-900" %>
+                <% end %>
               </td>
             </tr>
           <% end %>
@@ -267,7 +286,7 @@
       </table>
     </div>
     
-    <% if @payments.empty? %>
+    <% if @payment_items.empty? %>
       <div class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -279,9 +298,9 @@
   </div>
 
   <!-- Pagination -->
-  <% if @payments.respond_to?(:total_pages) && @payments.total_pages > 1 %>
+  <% if @payment_items.respond_to?(:total_pages) && @payment_items.total_pages > 1 %>
     <div class="mt-6">
-      <%= paginate @payments, theme: 'twitter-bootstrap-4' %>
+      <%= paginate @payment_items, theme: 'twitter-bootstrap-4' %>
     </div>
   <% end %>
 </div>

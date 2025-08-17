@@ -82,7 +82,7 @@ class Invoice < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[amount business_id created_at due_date guest_access_token id invoice_number original_amount discount_amount status tenant_customer_id total_amount updated_at tax_amount tip_amount]
+    %w[amount business_id created_at due_date guest_access_token id invoice_number original_amount discount_amount status tenant_customer_id total_amount updated_at tax_amount tip_amount review_request_suppressed]
   end
 
   def self.ransackable_associations(auth_object = nil)

@@ -1,0 +1,142 @@
+<%# app/views/business_manager/payments/show_qr.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-md mx-auto">
+    
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Payment QR Code Ready</h1>
+      <p class="text-sm text-gray-600">Order <%= @order.order_number %> created successfully</p>
+    </div>
+
+    <!-- QR Code Display -->
+    <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">
+        Payment for <%= @qr_data[:customer_name] %>
+      </h3>
+      
+      <div class="mb-4">
+        <p class="text-xl font-bold text-gray-900">
+          <%= number_to_currency(@qr_data[:amount]) %>
+        </p>
+      </div>
+      
+      <div class="mb-4">
+        <img src="<%= @qr_data[:qr_code_data_url] %>" 
+             alt="QR Code for Payment" 
+             class="mx-auto max-w-full h-auto"
+             style="max-width: 300px;" />
+      </div>
+      
+      <div class="text-sm text-gray-600 mb-4">
+        <p class="mb-2">Have your customer scan this QR code with their phone to pay instantly.</p>
+        <p class="text-xs">Payment will be processed through Stripe and you'll be notified when complete.</p>
+      </div>
+      
+      <!-- Payment Status Section -->
+      <div data-qr-payment-target="status" class="mt-4 p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center justify-center">
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+          <span class="text-sm text-gray-600">Waiting for payment...</span>
+        </div>
+      </div>
+      
+      <!-- Payment Success Message (hidden by default) -->
+      <div data-qr-payment-target="success" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div class="flex items-center justify-center text-green-700">
+          <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span class="font-medium">Payment Successful!</span>
+        </div>
+        <p class="text-sm text-green-600 mt-1 text-center">Payment received. This page will refresh automatically.</p>
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="mt-6 flex gap-4">
+      <%= link_to 'View Order Details', business_manager_order_path(@order), 
+                  class: "flex-1 text-center px-4 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+      
+      <%= link_to 'Create Another Payment', new_business_manager_payment_path, 
+                  class: "flex-1 text-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
+      
+      <%= link_to 'Back to Payments', business_manager_payments_path, 
+                  class: "flex-1 text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" %>
+    </div>
+    
+    <!-- Order Summary -->
+    <div class="mt-6 bg-gray-50 rounded-lg p-4">
+      <h4 class="text-sm font-medium text-gray-700 mb-3">Order Summary</h4>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Order Number:</span>
+          <span class="font-medium"><%= @order.order_number %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Customer:</span>
+          <span class="font-medium"><%= @order.tenant_customer.full_name %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Amount:</span>
+          <span class="font-medium"><%= number_to_currency(@order.total_amount) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Status:</span>
+          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <%= @order.status.titleize %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Simple payment status polling for QR payment page
+  document.addEventListener('DOMContentLoaded', function() {
+    const statusElement = document.querySelector('[data-qr-payment-target="status"]');
+    const successElement = document.querySelector('[data-qr-payment-target="success"]');
+    const invoiceId = <%= @order.invoice.id %>;
+    
+    if (!statusElement || !invoiceId) {
+      console.log('Payment status polling not available');
+      return;
+    }
+    
+    // Poll for payment status every 10 seconds
+    const pollingInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/manage/invoices/${invoiceId}/payment_status`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.paid) {
+            // Payment successful!
+            clearInterval(pollingInterval);
+            
+            if (statusElement) statusElement.classList.add('hidden');
+            if (successElement) successElement.classList.remove('hidden');
+            
+            // Refresh page after 3 seconds to show updated status
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        console.log('Payment status check failed:', error);
+        // Continue polling even if there's an error
+      }
+    }, 10000);
+    
+    // Stop polling after 10 minutes
+    setTimeout(() => {
+      clearInterval(pollingInterval);
+    }, 600000);
+  });
+</script>

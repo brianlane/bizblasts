@@ -20,6 +20,7 @@ class Order < ApplicationRecord
   #   shipped         → Product sent to customer
   #   refunded        → Order funds sent back to customer
   #   processing      → Paid, but service not yet completed
+  #   completed       → Service delivered, product shipped, or mixed order fulfilled
   #   business_deleted → Business was deleted, order orphaned
   enum :status, {
     pending_payment: 'pending_payment',
@@ -28,6 +29,7 @@ class Order < ApplicationRecord
     shipped:         'shipped',
     refunded:        'refunded',
     processing:      'processing',
+    completed:       'completed',
     business_deleted: 'business_deleted'
   }, prefix: true
 
@@ -57,6 +59,9 @@ class Order < ApplicationRecord
   
   # Virtual attribute for promo code form submission
   attr_accessor :promo_code
+  
+  # Virtual attribute to skip total calculation (for payment collection orders)
+  attr_accessor :skip_total_calculation
 
   scope :products, -> { where(order_type: order_types[:product]) }
   scope :services, -> { where(order_type: order_types[:service]) }
@@ -181,6 +186,9 @@ class Order < ApplicationRecord
   end
 
   def calculate_totals!
+    # Skip calculation if explicitly requested (for payment collection orders)
+    return if skip_total_calculation
+    
     # Sum totals on in-memory line_items, excluding those marked for destruction
     items = line_items.reject(&:marked_for_destruction?)
     items_total = items.sum { |item| item.total_amount.to_f }
@@ -303,7 +311,14 @@ class Order < ApplicationRecord
   def refundable?
     return false if status_refunded? || status_cancelled? || status_business_deleted?
     return false unless invoice
-    invoice.payments.successful.where.not(status: :refunded).exists?
+    
+    # Must have successful payments that aren't already refunded
+    refundable_payments = invoice.payments.successful.where.not(status: :refunded)
+    return false unless refundable_payments.exists?
+    
+    # All payments must have been processed through Stripe (have stripe_payment_intent_id)
+    # Manual payments (marked as paid) cannot be refunded through Stripe
+    refundable_payments.where.not(stripe_payment_intent_id: nil).count == refundable_payments.count
   end
 
   # Check if all payments on the associated invoice are refunded and update order status accordingly
@@ -318,6 +333,62 @@ class Order < ApplicationRecord
     else
       Rails.logger.info "[ORDER] Order ##{order_number} not yet refunded - #{invoice.payments.where.not(status: :refunded).count} payments still pending refund"
     end
+  end
+
+  # Check if order should be automatically completed based on business rules
+  def should_complete?
+    return false if status_completed? || status_cancelled? || status_refunded? || status_business_deleted?
+    
+    case order_type
+    when 'service'
+      # Service orders: must be paid/processing
+      return false unless status_paid? || status_processing?
+      
+      # No booking: complete immediately after payment
+      return true if booking.nil?
+      
+      # Has booking: complete only if booking time has passed
+      booking_time_passed?
+    when 'product'
+      # Product orders: must be paid and shipped
+      status_paid? && status_shipped?
+    when 'mixed'
+      # Mixed orders: must be paid, shipped, and booking time passed (if booking exists)
+      return false unless status_paid? && status_shipped?
+      
+      # No booking: complete immediately after shipping
+      return true if booking.nil?
+      
+      # Has booking: complete only if booking time has passed
+      booking_time_passed?
+    else
+      false
+    end
+  end
+
+  # Check if booking time has passed (start_time + duration or end_time)
+  def booking_time_passed?
+    return false unless booking
+    
+    current_time = Time.current
+    
+    # Prefer booking.end_time; if it's absent we cannot reliably determine.
+    end_time = booking.end_time
+    return false unless end_time.present?
+    
+    current_time >= end_time
+  end
+
+  # Complete the order if it should be completed
+  def complete_if_ready!
+    return false unless should_complete?
+    
+    update!(status: :completed)
+    Rails.logger.info "[ORDER] Auto-completed order ##{order_number} (#{order_type})"
+    true
+  rescue => e
+    Rails.logger.error "[ORDER] Failed to complete order ##{order_number}: #{e.message}"
+    false
   end
 
 end

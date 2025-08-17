@@ -138,6 +138,9 @@ ActiveAdmin.register Service do
     column :duration
     column :active
     column :featured
+    column :tips_enabled do |service|
+      service.tips_enabled? ? "Yes" : "No"
+    end
     column "Staff Members" do |service|
       service.staff_members.map(&:name).join(", ")
     end
@@ -149,6 +152,7 @@ ActiveAdmin.register Service do
   filter :duration
   filter :active
   filter :featured
+  filter :tips_enabled, as: :select, collection: [['Yes', true], ['No', false]]
 
   # Form definition
   form do |f|
@@ -201,6 +205,9 @@ ActiveAdmin.register Service do
       end
       row :active
       row :featured
+      row :tips_enabled do |service|
+        service.tips_enabled? ? "Yes" : "No"
+      end
       row :service_type do |service|
         service.service_type.humanize if service.service_type
       end

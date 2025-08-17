@@ -1,0 +1,80 @@
+<%# QR Payment View for Invoices %>
+<div class="qr-payment-container max-w-md mx-auto p-6">
+  <div class="text-center mb-6">
+    <h3 class="text-xl font-semibold text-gray-900 mb-2">Payment QR Code</h3>
+    <p class="text-sm text-gray-600">Scan with any mobile device to pay</p>
+  </div>
+
+  <% if @qr_data %>
+    <!-- QR Code Display -->
+    <div class="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6">
+      <div class="flex justify-center">
+        <img src="<%= @qr_data[:qr_code_data_url] %>" 
+             alt="Payment QR Code" 
+             class="w-64 h-64 border border-gray-100 rounded-lg">
+      </div>
+    </div>
+
+    <!-- Payment Details -->
+    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Invoice:</span>
+          <span class="font-medium"><%= @qr_data[:invoice_number] %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Customer:</span>
+          <span class="font-medium"><%= @qr_data[:customer_name] %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Amount:</span>
+          <span class="font-semibold text-lg text-green-600">$<%= sprintf('%.2f', @qr_data[:amount]) %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Status -->
+    <div data-qr-payment-target="status" class="text-center">
+      <div class="flex items-center justify-center">
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+        <span class="text-sm text-gray-600">Waiting for payment...</span>
+      </div>
+    </div>
+
+    <!-- Success Message (Hidden by default) -->
+    <div data-qr-payment-target="success" class="hidden text-center">
+      <div class="flex items-center justify-center text-green-600">
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="font-medium">Payment received!</span>
+      </div>
+      <p class="text-sm text-gray-600 mt-2">Redirecting...</p>
+    </div>
+
+  <% else %>
+    <!-- Error State -->
+    <div class="text-center text-red-600">
+      <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <p class="font-medium">Unable to generate QR code</p>
+      <p class="text-sm mt-2">Please try again in a moment.</p>
+    </div>
+  <% end %>
+
+  <!-- Alternative Payment Link -->
+  <% if @qr_data && @qr_data[:payment_link_url] %>
+    <div class="text-center mt-6 pt-6 border-t border-gray-200">
+      <p class="text-xs text-gray-500 mb-3">Having trouble scanning?</p>
+      <a href="<%= @qr_data[:payment_link_url] %>" 
+         target="_blank"
+         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+        </svg>
+        Open Payment Link
+      </a>
+    </div>
+  <% end %>
+</div>

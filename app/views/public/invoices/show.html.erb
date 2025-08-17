@@ -37,8 +37,10 @@
 
       <% if @invoice.status != 'paid' && @invoice.balance_due > 0 %>
         <div class="payment-action">
+          <% payment_params = { invoice_id: @invoice.id } %>
+          <% payment_params[:token] = @access_token if @access_token.present? %>
           <%= link_to "Pay #{number_to_currency(@invoice.balance_due)}", 
-                new_tenant_payment_path(invoice_id: @invoice.id), 
+                new_tenant_payment_path(payment_params), 
                 class: "btn btn-primary" %>
           <p><small>Secure payment powered by Stripe</small></p>
         </div>

@@ -17,6 +17,9 @@ class BusinessManager::BaseController < ApplicationController
 
   # Check business setup and set flash for managers (not staff)
   before_action :check_business_setup, if: -> { current_user&.manager? }
+  
+  # Handle routing errors gracefully
+  rescue_from ActionController::RoutingError, with: :handle_routing_error
 
   # Endpoint to record dismissal of a specific business setup reminder task for the current user
   def dismiss_setup_reminder
@@ -101,5 +104,13 @@ class BusinessManager::BaseController < ApplicationController
       flash[:alert] = "Invalid access method."
       redirect_to root_path
     end
+  end
+  
+  private
+  
+  def handle_routing_error
+    Rails.logger.warn "BusinessManager: Routing error for path: #{request.path}"
+    flash[:alert] = "The page you're looking for doesn't exist."
+    redirect_to business_manager_root_path
   end
 end 
