@@ -135,7 +135,9 @@ class Public::TipsController < Public::BaseController
 
   def validate_tip_eligibility
     # Check if service is eligible for tips
-    unless @booking.service.experience? && @booking.service.tips_enabled?
+    # Updated: Removed experience-only restriction, now all service types with tips_enabled can accept tips
+    # Previously: Required both experience? AND tips_enabled?
+    unless @booking.service.tips_enabled?
       flash[:alert] = "This service is not eligible for tips."
       redirect_to tenant_my_booking_path(@booking) and return
     end

@@ -3,8 +3,8 @@ require 'rails_helper'
 RSpec.describe Tip, type: :model do
   let(:business) { create(:business) }
   let(:tenant_customer) { create(:tenant_customer, business: business) }
-  let(:experience_service) { create(:service, business: business, service_type: :experience, tips_enabled: true, min_bookings: 1, max_bookings: 10, spots: 10) }
-  let(:booking) { create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer, start_time: 2.hours.ago, end_time: 1.hour.ago) }
+  let(:tippable_service) { create(:service, business: business, service_type: :standard, tips_enabled: true) }
+  let(:booking) { create(:booking, business: business, service: tippable_service, tenant_customer: tenant_customer, start_time: 2.hours.ago, end_time: 1.hour.ago) }
   
   before do
     ActsAsTenant.current_tenant = business
@@ -48,7 +48,7 @@ RSpec.describe Tip, type: :model do
 
   describe 'scopes' do
     let!(:completed_tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer, status: :completed) }
-    let!(:pending_tip) { create(:tip, business: business, booking: create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer), tenant_customer: tenant_customer, status: :pending) }
+    let!(:pending_tip) { create(:tip, business: business, booking: create(:booking, business: business, service: tippable_service, tenant_customer: tenant_customer), tenant_customer: tenant_customer, status: :pending) }
 
     describe '.successful' do
       it 'returns only completed tips' do
@@ -89,10 +89,10 @@ RSpec.describe Tip, type: :model do
   end
 
   describe '#eligible_for_payment?' do
-    context 'when booking is for an experience service' do
+    context 'when booking is for a service with tips enabled' do
       let(:tip) { create(:tip, business: business, booking: booking, tenant_customer: tenant_customer) }
 
-      context 'when experience is completed' do
+      context 'when service is completed' do
         before do
           # Set booking start time to 2 hours ago with 60 minute duration
           booking.update!(start_time: 2.hours.ago)
@@ -103,7 +103,7 @@ RSpec.describe Tip, type: :model do
         end
       end
 
-      context 'when experience is not yet completed' do
+      context 'when service is not yet completed' do
         before do
           # Set booking start time to future
           booking.update!(start_time: 1.hour.from_now, end_time: 2.hours.from_now)
@@ -115,10 +115,10 @@ RSpec.describe Tip, type: :model do
       end
     end
 
-    context 'when booking is for a standard service' do
-      let(:standard_service) { create(:service, business: business, service_type: :standard) }
-      let(:standard_booking) { create(:booking, business: business, service: standard_service, tenant_customer: tenant_customer) }
-      let(:tip) { create(:tip, business: business, booking: standard_booking, tenant_customer: tenant_customer) }
+    context 'when booking is for a service with tips disabled' do
+      let(:non_tippable_service) { create(:service, business: business, service_type: :standard, tips_enabled: false) }
+      let(:non_tippable_booking) { create(:booking, business: business, service: non_tippable_service, tenant_customer: tenant_customer) }
+      let(:tip) { create(:tip, business: business, booking: non_tippable_booking, tenant_customer: tenant_customer) }
 
       it 'returns false' do
         expect(tip.eligible_for_payment?).to be false

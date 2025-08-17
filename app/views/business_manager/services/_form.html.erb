@@ -93,6 +93,12 @@
     <%= form.label :tips_enabled, "Enable tips", class: "ml-2 text-gray-700 text-sm font-bold" %>
   </div>
 
+  <div class="mb-4 ml-6">
+    <%= form.check_box :tip_mailer_if_no_tip_received %>
+    <%= form.label :tip_mailer_if_no_tip_received, "Send tip reminder if no tip received on initial payment", class: "ml-2 text-gray-700 text-sm" %>
+    <div class="text-xs text-gray-500 ml-6 mt-1">Only applies when tips are enabled. Customers will receive a reminder email after service completion if they didn't tip during the initial payment.</div>
+  </div>
+
   <div class="mb-4">
     <%= form.check_box :allow_discounts %>
     <%= form.label :allow_discounts, "Allow discount codes", class: "ml-2 text-gray-700 text-sm font-bold" %>

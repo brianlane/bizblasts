@@ -10,6 +10,8 @@ FactoryBot.define do
     featured { false }
     service_type { :standard }
     allow_discounts { true }
+    tips_enabled { false }
+    tip_mailer_if_no_tip_received { true }
     association :business
     
     availability_settings { {} }

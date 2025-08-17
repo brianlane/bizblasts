@@ -160,10 +160,19 @@ Rails.application.routes.draw do
       resources :invoices, only: [:index, :show] do
         post :resend, on: :member
         patch :cancel, on: :member
+        patch :mark_as_paid, on: :member
+        get :qr_payment, on: :member
+        get :payment_status, on: :member
       end
       
       # Business payments management
       resources :payments, only: [:index, :show]
+      
+      # Payment collection (singular resource for new payment collection)
+      resource :payment, only: [:new, :create]
+      
+      # Redirect /manage/payment to /manage/payment/new to prevent 404s
+      get '/payment', to: redirect('/manage/payment/new')
       get '/settings', to: 'settings#index', as: :settings
 
       # Route to dismiss individual business setup reminder tasks for the current user

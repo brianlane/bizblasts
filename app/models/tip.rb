@@ -32,14 +32,16 @@ class Tip < ApplicationRecord
     update(status: :failed, failure_reason: reason)
   end
   
-  # Check if tip is eligible (experience completed)
+  # Check if tip is eligible (service completed)
   def eligible_for_payment?
     return false unless booking.present?
-    return false unless booking.service&.experience?
+    # Updated: Removed experience-only restriction, now all service types can be tipped
+    # Previously: Required booking.service&.experience?
+    return false unless booking.service&.tips_enabled?
     
-    # Check if experience is completed (start_time + duration has passed)
-    experience_end_time = booking.start_time + booking.service.duration.minutes
-    Time.current >= experience_end_time
+    # Check if service is completed (start_time + duration has passed)
+    service_end_time = booking.start_time + booking.service.duration.minutes
+    Time.current >= service_end_time
   end
   
   # Calculate total fees

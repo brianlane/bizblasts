@@ -50,6 +50,7 @@ FactoryBot.define do
     time_zone { 'UTC' }
     active { true }
     stock_management_enabled { true }
+    tip_mailer_if_no_tip_received { true }
     
     # Set subdomain same as hostname for subdomain host types
     subdomain { hostname }

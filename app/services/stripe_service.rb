@@ -275,6 +275,71 @@ class StripeService
     { session: session, tip: tip }
   end
 
+  # Create a Stripe Payment Link with integrated tipping
+  def self.create_payment_link_with_tipping(invoice:, success_url:)
+    configure_stripe_api_key
+    business = invoice.business
+    tenant_customer = invoice.tenant_customer
+
+    total_amount = invoice.total_amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if total_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{total_amount}"
+    end
+    
+    amount_cents = (total_amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    # Get tip configuration for the business
+    tip_config = business.tip_configuration_or_default
+    tip_percentages = tip_config.tip_percentage_options
+
+    # Create Payment Link with integrated tipping
+    payment_link = Stripe::PaymentLink.create({
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: "Service Fee",
+            description: "Payment for #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      transfer_data: {
+        destination: business.stripe_account_id,
+      },
+      application_fee_amount: platform_fee_cents,
+      after_completion: { type: 'redirect', redirect: { url: success_url } },
+      # Enable tipping with business-configured percentages
+      custom_text: { 
+        submit: { 
+          message: tip_config.tip_message.present? ? tip_config.tip_message : "Add a tip for excellent service!" 
+        } 
+      },
+      tipping: {
+        amount_calculations: tip_percentages.map { |percent| { percent: percent } },
+        # Include tips in application fee calculation
+        application_fee_behavior: 'calculate_from_total'
+      },
+      # Note: Stripe doesn't currently support combining preset tip percentages with custom tip amounts
+      # in the same payment link. Custom amounts would require using custom_unit_amount instead of tipping.
+      metadata: {
+        business_id: business.id,
+        invoice_id: invoice.id,
+        tenant_customer_id: tenant_customer.id,
+        payment_type: 'invoice_with_tipping'
+      }
+    })
+
+    { payment_link: payment_link, invoice: invoice }
+  rescue Stripe::StripeError => e
+    Rails.logger.error "[STRIPE] Failed to create payment link with tipping for invoice #{invoice.id}: #{e.message}"
+    raise
+  end
+
   # Create a payment intent for an invoice or order
   def self.create_payment_intent(invoice:, order: nil, payment_method_id: nil)
     configure_stripe_api_key
@@ -745,6 +810,9 @@ class StripeService
       new_status = order.payment_required? ? :paid : :processing
       order.update!(status: new_status)
       
+      # Check if order should be completed (for service orders without bookings)
+      order.complete_if_ready!
+      
       # Send order confirmation email (available to all tiers)
       begin
         OrderMailer.order_confirmation(order).deliver_later
@@ -806,7 +874,39 @@ class StripeService
                       else :other
                       end
       
-      payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
+      # Check for tip amount from payment link tipping
+      tip_amount = extract_tip_amount_from_payment_intent(pi)
+      
+      # Update payment with tip tracking if tip was received
+      if tip_amount > 0
+        payment.update!(
+          status: :completed, 
+          paid_at: Time.current, 
+          payment_method: payment_method,
+          tip_received_on_initial_payment: true,
+          tip_amount_received_initially: tip_amount
+        )
+        
+        # Also update the invoice and order with tip tracking
+        if payment.invoice
+          payment.invoice.update!(
+            tip_received_on_initial_payment: true,
+            tip_amount_received_initially: tip_amount
+          )
+        end
+        
+        if payment.order
+          payment.order.update!(
+            tip_received_on_initial_payment: true,
+            tip_amount_received_initially: tip_amount
+          )
+        end
+        
+        Rails.logger.info "[PAYMENT] Tip of $#{tip_amount} received with payment #{payment.id}"
+      else
+        payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
+      end
+      
       payment.invoice.mark_as_paid! if payment.invoice&.pending?
       
       # Update order status if applicable
@@ -814,6 +914,9 @@ class StripeService
         # For product or experience orders, mark as paid; for services, mark as processing
         new_status = order.payment_required? ? :paid : :processing
         order.update!(status: new_status)
+        
+        # Check if order should be completed (for service orders without bookings)
+        order.complete_if_ready!
       else
         # No associated order – this is a standalone invoice payment. Send confirmation email.
         begin
@@ -1625,5 +1728,43 @@ class StripeService
       # Re-raise to ensure webhook fails and can be retried
       raise e
     end
+  end
+
+  # Extract tip amount from payment intent for payment link tipping
+  def self.extract_tip_amount_from_payment_intent(payment_intent)
+    # For Stripe Payment Links with tipping, the tip amount is included in the charges
+    # The tip amount can be found in the charge's metadata or calculated from amount difference
+    charges = payment_intent.dig('charges', 'data') || []
+    return 0.0 if charges.empty?
+    
+    charge = charges.first
+    
+    # Check if this charge has tip information in metadata
+    tip_amount_cents = charge.dig('metadata', 'tip_amount_cents')&.to_i
+    if tip_amount_cents && tip_amount_cents > 0
+      return tip_amount_cents / 100.0
+    end
+    
+    # For Payment Links, tip amount might be in the charge description or amount breakdown
+    # Check if the charge description mentions tipping
+    description = charge['description'] || ''
+    if description.include?('tip') || description.include?('gratuity')
+      # Try to extract tip amount from calculation_details if available
+      # This is a best-effort extraction - Stripe provides tip amounts in charge metadata
+      total_amount = charge['amount'] || 0
+      base_amount = payment_intent.dig('metadata', 'base_amount_cents')&.to_i || 0
+      
+      if base_amount > 0 && total_amount > base_amount
+        tip_amount = (total_amount - base_amount) / 100.0
+        Rails.logger.info "[TIP] Extracted tip amount $#{tip_amount} from payment intent #{payment_intent['id']}"
+        return tip_amount
+      end
+    end
+    
+    # Default to no tip if we can't extract it
+    0.0
+  rescue => e
+    Rails.logger.error "[TIP] Failed to extract tip amount from payment intent #{payment_intent['id']}: #{e.message}"
+    0.0
   end
 end

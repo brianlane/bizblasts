@@ -181,6 +181,7 @@ class Service < ApplicationRecord
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
   validates :tips_enabled, inclusion: { in: [true, false] }
+  validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
@@ -223,7 +224,7 @@ class Service < ApplicationRecord
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts]
+    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts tips_enabled tip_mailer_if_no_tip_received]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -278,14 +279,10 @@ class Service < ApplicationRecord
   end
   
   def tip_timing
-    case service_type
-    when 'standard'
-      :after_service  # Tips on invoice payment
-    when 'experience'
-      :after_experience  # Special handling - pay now, tip later
-    else
-      :immediate  # Default behavior
-    end
+    # Updated: All service types now support integrated tipping during initial payment
+    # and optional tip mailer after service completion if no tip was received initially
+    # Previously: Different timing for standard vs experience services
+    :integrated_with_mailer_fallback
   end
 
   # Subscription methods

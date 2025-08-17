@@ -11,6 +11,8 @@ FactoryBot.define do
     tax_amount { 0.00 }
     total_amount { amount + tax_amount }
     status { :pending }
+    tip_received_on_initial_payment { false }
+    tip_amount_received_initially { 0.0 }
     # original_amount, discount_amount are set by PromotionManager
 
     trait :with_booking do
