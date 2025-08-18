@@ -33,6 +33,9 @@ gem "devise-passwordless"
 # Email delivery
 gem "resend"
 
+# SMS delivery
+gem "plivo", "~> 4.59"
+
 # Authorization
 gem "pundit"
 

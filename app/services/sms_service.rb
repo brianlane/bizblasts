@@ -1,5 +1,5 @@
 class SmsService
-  # This service handles sending SMS messages using a third-party provider (e.g., Twilio)
+  # This service handles sending SMS messages using Plivo
   
   def self.send_message(phone_number, message, options = {})
     # Check if the phone number is valid
@@ -10,35 +10,39 @@ class SmsService
     # Create an SMS message record
     sms_message = create_sms_record(phone_number, message, options)
     
-    # In a real implementation, this would use the Twilio API or similar
-    # client = Twilio::REST::Client.new(ENV['TWILIO_ACCOUNT_SID'], ENV['TWILIO_AUTH_TOKEN'])
-    # begin
-    #   response = client.messages.create(
-    #     from: ENV['TWILIO_PHONE_NUMBER'],
-    #     to: phone_number,
-    #     body: message
-    #   )
-    #   sms_message.update(
-    #     status: :sent,
-    #     sent_at: Time.current,
-    #     external_id: response.sid
-    #   )
-    #   { success: true, sms_message: sms_message, external_id: response.sid }
-    # rescue Twilio::REST::RestError => e
-    #   sms_message.update(status: :failed, error_message: e.message)
-    #   { success: false, error: e.message, sms_message: sms_message }
-    # end
-    
-    # Placeholder implementation
-    success = rand > 0.1 # 90% success rate for testing
-    
-    if success
-      external_id = "SM#{SecureRandom.hex(10)}"
-      sms_message.mark_as_sent!
+    # Send SMS via Plivo API
+    begin
+      client = Plivo::RestClient.new(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
+      response = client.messages.create(
+        src: PLIVO_SOURCE_NUMBER,
+        dst: phone_number,
+        text: message
+      )
+      
+      # Plivo returns message_uuid array, take the first one
+      external_id = response.message_uuid.first
+      
+      sms_message.update!(
+        status: :sent,
+        sent_at: Time.current,
+        external_id: external_id
+      )
+      
+      Rails.logger.info "SMS sent successfully to #{phone_number} with Plivo UUID: #{external_id}"
       { success: true, sms_message: sms_message, external_id: external_id }
-    else
-      error_message = "Failed to send SMS (simulated failure)"
+      
+    rescue Plivo::Exceptions::PlivoRESTError => e
+      error_message = "Plivo API error: #{e.message}"
       sms_message.mark_as_failed!(error_message)
+      
+      Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
+      { success: false, error: error_message, sms_message: sms_message }
+      
+    rescue => e
+      error_message = "Unexpected error: #{e.message}"
+      sms_message.mark_as_failed!(error_message)
+      
+      Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
       { success: false, error: error_message, sms_message: sms_message }
     end
   end
@@ -73,24 +77,36 @@ class SmsService
   end
   
   def self.process_webhook(params)
-    # This would handle webhook callbacks from the SMS provider
-    # For example, delivery receipts
+    # Handle Plivo webhook callbacks for delivery receipts
+    # Plivo sends MessageUUID in the webhook payload
     
-    # Placeholder implementation
-    message_id = params[:message_id]
-    status = params[:status]
+    message_uuid = params[:MessageUUID] || params['MessageUUID']
+    status = params[:Status] || params['Status']
     
-    sms_message = SmsMessage.find_by(external_id: message_id)
-    return { success: false, error: "Message not found" } unless sms_message
+    return { success: false, error: "Missing MessageUUID in webhook" } unless message_uuid
+    return { success: false, error: "Missing Status in webhook" } unless status
     
-    if status == "delivered"
+    sms_message = SmsMessage.find_by(external_id: message_uuid)
+    return { success: false, error: "Message not found for UUID: #{message_uuid}" } unless sms_message
+    
+    Rails.logger.info "Processing Plivo webhook for message #{message_uuid} with status: #{status}"
+    
+    case status.downcase
+    when "delivered"
       sms_message.mark_as_delivered!
-      { success: true, sms_message: sms_message }
-    elsif status == "failed"
-      error = params[:error_message] || "Delivery failed"
-      sms_message.mark_as_failed!(error)
-      { success: false, error: error, sms_message: sms_message }
+      { success: true, sms_message: sms_message, status: "delivered" }
+    when "failed", "undelivered"
+      error_code = params[:ErrorCode] || params['ErrorCode']
+      error_message = "Delivery failed"
+      error_message += " (Code: #{error_code})" if error_code
+      
+      sms_message.mark_as_failed!(error_message)
+      { success: false, error: error_message, sms_message: sms_message }
+    when "sent", "queued"
+      # These are intermediate states, don't update our status
+      { success: true, status: "acknowledged", sms_message: sms_message }
     else
+      Rails.logger.warn "Unknown Plivo status received: #{status}"
       { success: true, status: "unknown", sms_message: sms_message }
     end
   end
