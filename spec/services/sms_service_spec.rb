@@ -13,6 +13,7 @@ RSpec.describe SmsService, type: :service do
   let(:plivo_client) { instance_double(Plivo::RestClient) }
   let(:plivo_messages) { double("Messages") }
   let(:plivo_response) { double("Response", message_uuid: ["plivo-uuid-123"]) }
+  let(:plivo_response_empty_uuid) { double("Response", message_uuid: []) }
 
   around do |example|
     ActsAsTenant.with_tenant(tenant) do
@@ -63,6 +64,27 @@ RSpec.describe SmsService, type: :service do
         it 'logs successful SMS send' do
           expect(Rails.logger).to receive(:info).with("SMS sent successfully to #{valid_phone} with Plivo UUID: plivo-uuid-123")
           described_class.send_message(valid_phone, message, { tenant_customer_id: customer.id })
+        end
+
+        context 'when Plivo response lacks a message UUID' do
+          before do
+            allow(plivo_messages).to receive(:create).with(
+              src: PLIVO_SOURCE_NUMBER,
+              dst: valid_phone,
+              text: message
+            ).and_return(plivo_response_empty_uuid)
+          end
+
+          it 'marks the sms as failed and returns an error' do
+            result = described_class.send_message(valid_phone, message, { tenant_customer_id: customer.id })
+
+            expect(result[:success]).to be false
+            expect(result[:error]).to eq("Unexpected error: Plivo did not return a message UUID")
+
+            sms = SmsMessage.last
+            expect(sms.status).to eq('failed')
+            expect(sms.error_message).to eq("Unexpected error: Plivo did not return a message UUID")
+          end
         end
       end
 

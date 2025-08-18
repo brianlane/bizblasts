@@ -19,8 +19,13 @@ class SmsService
         text: message
       )
       
-      # Plivo returns message_uuid array, take the first one
-      external_id = response.message_uuid.first
+      # Plivo returns message_uuid array. Validate it's present and not empty.
+      message_uuids = response.message_uuid
+      if message_uuids.nil? || message_uuids.empty?
+        raise StandardError, "Plivo did not return a message UUID"
+      end
+
+      external_id = message_uuids.first
       
       sms_message.update!(
         status: :sent,
