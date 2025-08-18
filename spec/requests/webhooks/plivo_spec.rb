@@ -60,7 +60,7 @@ RSpec.describe 'Plivo Webhooks', type: :request do
       it 'returns unprocessable entity status' do
         post '/webhooks/plivo', params: invalid_params
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['error']).to include("Message not found")
       end
@@ -91,7 +91,7 @@ RSpec.describe 'Plivo Webhooks', type: :request do
         params_without_uuid = valid_params.except(:MessageUUID)
         post '/webhooks/plivo', params: params_without_uuid
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['error']).to eq('Missing MessageUUID in webhook')
       end
@@ -100,7 +100,7 @@ RSpec.describe 'Plivo Webhooks', type: :request do
         params_without_status = valid_params.except(:Status)
         post '/webhooks/plivo', params: params_without_status
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['error']).to eq('Missing Status in webhook')
       end

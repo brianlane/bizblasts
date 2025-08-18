@@ -27,7 +27,7 @@ module Webhooks
         render json: { status: "success", message: "Webhook processed" }, status: :ok
       else
         Rails.logger.error "Plivo webhook processing failed: #{result[:error]}"
-        render json: { error: result[:error] }, status: :unprocessable_entity
+        render json: { error: result[:error] }, status: :unprocessable_content
       end
       
     rescue => e
