@@ -611,6 +611,11 @@ rspec spec/security/
 ADMIN_EMAIL=admin@yourcompany.com  # Security alert recipient
 API_KEY=your_secure_api_key_here   # API authentication key
 SECRET_KEY_BASE=your_rails_secret  # Rails session encryption
+
+# SMS Configuration (Plivo)
+PLIVO_AUTH_ID=your_plivo_auth_id       # Plivo Auth ID (starts with 'MA')
+PLIVO_AUTH_TOKEN=your_plivo_auth_token # Plivo Auth Token
+PLIVO_SOURCE_NUMBER=+1234567890        # Your Plivo phone number
 ```
 
 #### Production Security Checklist
