@@ -69,7 +69,7 @@ gem "rouge" # For syntax highlighting
 gem "stripe", "~> 15.4"
 
 # QR Code generation for in-person payments
-gem "rqrcode", "~> 2.2"
+gem "rqrcode", "~> 3.1"
 gem "chunky_png", "~> 1.4"
 
 # Use node based css bundling
