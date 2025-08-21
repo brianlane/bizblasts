@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Domain Activated Successfully</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #28A745, #57C5B6);
+        color: white;
+        padding: 30px 20px;
+        border-radius: 8px 8px 0 0;
+        text-align: center;
+      }
+      .content {
+        background: #f8f9fa;
+        padding: 30px 20px;
+        border-radius: 0 0 8px 8px;
+      }
+      .success-box {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .info-box {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .highlight {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 15px 0;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-size: 14px;
+        border-top: 1px solid #ddd;
+        margin-top: 30px;
+      }
+      .button {
+        display: inline-block;
+        background: #28A745;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-weight: bold;
+      }
+      .checkmark {
+        font-size: 48px;
+        color: #28A745;
+        display: block;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="checkmark">✅</div>
+      <h1>Domain Activated!</h1>
+      <p><strong><%= @domain %></strong> is now live</p>
+    </div>
+
+    <div class="content">
+      <p>Hi <%= @user.first_name || @user.email %>,</p>
+
+      <p>Congratulations! Your custom domain <strong><%= @domain %></strong> has been successfully activated for <%= @business.name %>.</p>
+
+      <div class="success-box">
+        <h3>🎉 Your site is now live at:</h3>
+        <p><a href="<%= @domain_url %>" style="font-size: 18px; font-weight: bold; color: #28A745;"><%= @domain %></a></p>
+        <a href="<%= @domain_url %>" class="button">Visit Your Site</a>
+      </div>
+
+      <div class="info-box">
+        <h3>✨ What's included with your custom domain:</h3>
+        <ul>
+          <li><strong>SSL Certificate:</strong> Automatic HTTPS encryption (may take up to 24 hours to fully activate)</li>
+          <li><strong>Automatic Redirects:</strong> HTTP traffic automatically redirects to HTTPS</li>
+          <li><strong>Professional URL:</strong> Your customers can now find you at your own domain</li>
+          <li><strong>SEO Benefits:</strong> Better search engine optimization with your custom domain</li>
+          <li><strong>Email Integration:</strong> All booking confirmations and notifications will use your domain</li>
+        </ul>
+      </div>
+
+      <div class="highlight">
+        <h3>🔄 Important: Update your links</h3>
+        <p>Don't forget to update:</p>
+        <ul>
+          <li>Your Google Business Profile URL</li>
+          <li>Social media links (Facebook, Instagram, etc.)</li>
+          <li>Business cards and marketing materials</li>
+          <li>Any existing bookmarks or saved links</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <h3>📧 What about my old BizBlasts URL?</h3>
+        <p>Your original BizBlasts subdomain (<strong><%= @business.subdomain %>.bizblasts.com</strong>) will continue to work and automatically redirect to your custom domain. This ensures you don't lose any existing traffic or bookings.</p>
+      </div>
+
+      <div class="info-box">
+        <h3>🛟 Need Support?</h3>
+        <p>If you experience any issues with your custom domain or need help updating your online presence, we're here to help!</p>
+        <ul>
+          <li>Reply to this email for technical support</li>
+          <li>Visit our help documentation</li>
+          <li>Contact us through your business dashboard</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>🎊 Thank you for choosing BizBlasts Premium!</p>
+      <p>Your custom domain <strong><%= @domain %></strong> is now ready to help grow your business.</p>
+    </div>
+  </body>
+</html>
