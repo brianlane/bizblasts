@@ -112,6 +112,15 @@ class Business < ApplicationRecord
   enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
   enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
+  enum :status, { 
+    active: 'active', 
+    inactive: 'inactive', 
+    suspended: 'suspended',
+    cname_pending: 'cname_pending',
+    cname_monitoring: 'cname_monitoring',
+    cname_active: 'cname_active',
+    cname_timeout: 'cname_timeout'
+  }, default: 'active'
   
   belongs_to :service_template, optional: true
   
@@ -230,6 +239,9 @@ class Business < ApplicationRecord
   validate :free_tier_requires_subdomain_host_type, if: :free_tier?
   
   scope :active, -> { where(active: true) }
+  scope :cname_pending, -> { where(status: 'cname_pending') }
+  scope :cname_monitoring, -> { where(status: 'cname_monitoring') }
+  scope :monitoring_needed, -> { where(cname_monitoring_active: true, status: 'cname_monitoring') }
   
   before_validation :normalize_hostname
   before_validation :ensure_hours_is_hash
@@ -237,6 +249,7 @@ class Business < ApplicationRecord
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
+  after_update :handle_tier_downgrade, if: :saved_change_to_tier?
   after_validation :set_time_zone_from_address, if: :address_components_changed?
   
   # Find the current tenant
@@ -520,6 +533,57 @@ class Business < ApplicationRecord
     return 0 if domain_coverage_expired?
     (domain_coverage_expires_at - Date.current).to_i
   end
+
+  # CNAME Domain Setup Methods
+  def start_cname_monitoring!
+    return false unless premium_tier? && host_type_custom_domain?
+    
+    update!(
+      status: 'cname_monitoring',
+      cname_monitoring_active: true,
+      cname_check_attempts: 0
+    )
+  end
+
+  def stop_cname_monitoring!
+    update!(
+      cname_monitoring_active: false,
+      status: cname_active? ? 'cname_active' : 'active'
+    )
+  end
+
+  def cname_due_for_check?
+    return false unless cname_monitoring_active?
+    return true if cname_check_attempts == 0
+    
+    # Check every 5 minutes, max 12 attempts (1 hour)
+    return false if cname_check_attempts >= 12
+    
+    last_check = updated_at || Time.current
+    Time.current >= last_check + 5.minutes
+  end
+
+  def increment_cname_check!
+    increment!(:cname_check_attempts)
+  end
+
+  def cname_timeout!
+    update!(
+      status: 'cname_timeout',
+      cname_monitoring_active: false
+    )
+  end
+
+  def cname_success!
+    update!(
+      status: 'cname_active',
+      cname_monitoring_active: false
+    )
+  end
+
+  def can_setup_custom_domain?
+    premium_tier? && host_type_custom_domain? && !cname_active?
+  end
   
   # Method to get the full URL for this business
   def full_url(path = nil)
@@ -750,6 +814,27 @@ class Business < ApplicationRecord
       services_with_loyalty_fallback.update_all(
         subscription_rebooking_preference: 'same_day_next_month'
       )
+    end
+  end
+
+  def handle_tier_downgrade
+    # Only act if tier changed and business has custom domain
+    return unless saved_change_to_tier? && host_type_custom_domain?
+    
+    old_tier, new_tier = saved_change_to_tier
+    
+    # Remove custom domain if downgrading from premium
+    if old_tier == 'premium' && new_tier != 'premium'
+      Rails.logger.info "[TIER DOWNGRADE] Removing custom domain due to tier change from #{old_tier} to #{new_tier} for business #{id}"
+      
+      begin
+        removal_service = DomainRemovalService.new(self)
+        result = removal_service.handle_tier_downgrade!(new_tier)
+        
+        Rails.logger.info "[TIER DOWNGRADE] Domain removal result: #{result[:success] ? 'success' : 'failed'}"
+      rescue => e
+        Rails.logger.error "[TIER DOWNGRADE] Failed to remove domain: #{e.message}"
+      end
     end
   end
 end 
