@@ -1,15 +1,44 @@
 class AddStatusToBusinesses < ActiveRecord::Migration[8.0]
   def up
+    # Store original state for rollback
+    original_default = nil
+    column_existed = column_exists?(:businesses, :status)
+    
+    if column_existed
+      original_default = connection.columns(:businesses).find { |c| c.name == 'status' }&.default
+    end
+    
+    # Store this information for the down migration
+    connection.execute <<~SQL
+      CREATE TABLE IF NOT EXISTS migration_metadata_20250822201249 (
+        key VARCHAR(50) PRIMARY KEY,
+        value TEXT
+      )
+    SQL
+    
+    connection.execute <<~SQL
+      INSERT INTO migration_metadata_20250822201249 (key, value) 
+      VALUES ('column_existed', '#{column_existed}')
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    SQL
+    
+    connection.execute <<~SQL
+      INSERT INTO migration_metadata_20250822201249 (key, value) 
+      VALUES ('original_default', #{original_default ? "'#{original_default}'" : 'NULL'})
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    SQL
+    
     # Add status column if it doesn't exist (production fix)
-    unless column_exists?(:businesses, :status)
+    unless column_existed
       add_column :businesses, :status, :string, null: false, default: 'active'
       say "Added status column with default 'active'"
     else
       # Column exists but may have wrong default - fix it to match the model
-      current_default = connection.columns(:businesses).find { |c| c.name == 'status' }&.default
-      if current_default != 'active'
-        change_column_default :businesses, :status, from: current_default, to: 'active'
-        say "Changed status column default from '#{current_default}' to 'active'"
+      if original_default != 'active'
+        change_column_default :businesses, :status, from: original_default, to: 'active'
+        say "Changed status column default from '#{original_default}' to 'active'"
+      else
+        say "Status column already has correct default 'active'"
       end
     end
     
@@ -21,27 +50,60 @@ class AddStatusToBusinesses < ActiveRecord::Migration[8.0]
   end
 
   def down
-    # Conservative rollback approach:
-    # - Always remove index if it exists (safe operation)
-    # - Never remove column (too risky - could lose data)
-    # - Only revert default if it matches what we would have set
+    # Retrieve original state information
+    metadata_exists = connection.table_exists?('migration_metadata_20250822201249')
+    column_existed = false
+    original_default = nil
     
+    if metadata_exists
+      result = connection.execute("SELECT key, value FROM migration_metadata_20250822201249")
+      result.each do |row|
+        key = row['key'] || row[0]  # Handle different DB adapter result formats
+        value = row['value'] || row[1]
+        
+        case key
+        when 'column_existed'
+          column_existed = value.to_s == 'true'
+        when 'original_default'
+          original_default = value == 'NULL' ? nil : value
+        end
+      end
+    end
+    
+    # Remove index if it exists
     if index_exists?(:businesses, :status)
       remove_index :businesses, :status
       say "Removed status index"
     end
     
     if column_exists?(:businesses, :status)
-      current_default = connection.columns(:businesses).find { |c| c.name == 'status' }&.default
-      
-      # Only revert default if it matches what this migration would set
-      if current_default == 'active'
-        change_column_default :businesses, :status, from: 'active', to: 'pending'
-        say "Reverted status column default from 'active' to 'pending'"
+      if column_existed && metadata_exists
+        # Column existed before migration - restore original default
+        current_default = connection.columns(:businesses).find { |c| c.name == 'status' }&.default
+        
+        if current_default == 'active' && original_default != 'active'
+          if original_default.nil?
+            # Original had no default
+            connection.execute("ALTER TABLE businesses ALTER COLUMN status DROP DEFAULT")
+            say "Removed default from status column (restored original state)"
+          else
+            change_column_default :businesses, :status, from: 'active', to: original_default
+            say "Reverted status column default from 'active' to '#{original_default}'"
+          end
+        end
+        
+        say "Note: status column not removed as it existed before this migration."
+      else
+        # Column was added by this migration or we can't determine - be conservative
+        say "Note: status column not removed to prevent data loss."
+        say "If column was added by this migration and needs removal, create a separate migration."
       end
-      
-      say "Note: status column not removed to prevent data loss."
-      say "If column was added by this migration and needs removal, create a separate migration."
+    end
+    
+    # Clean up metadata table
+    if metadata_exists
+      connection.execute("DROP TABLE migration_metadata_20250822201249")
+      say "Cleaned up migration metadata"
     end
   end
 end
