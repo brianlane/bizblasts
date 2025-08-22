@@ -223,7 +223,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_22_201249) do
     t.string "tiktok_url"
     t.string "youtube_url"
     t.string "stripe_account_id"
-    t.string "status", default: "pending", null: false
     t.boolean "payment_reminders_enabled", default: false, null: false
     t.boolean "domain_coverage_applied", default: false
     t.decimal "domain_cost_covered", precision: 8, scale: 2
@@ -257,6 +256,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_22_201249) do
     t.boolean "cname_monitoring_active", default: false, null: false
     t.integer "cname_check_attempts", default: 0, null: false
     t.boolean "render_domain_added", default: false, null: false
+    t.string "status", default: "active", null: false
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
