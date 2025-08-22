@@ -192,10 +192,6 @@ RSpec.describe "Business::Registrations", type: :request do
       include_examples "successful business sign-up with Stripe integration", :standard_tier_subdomain_attrs, 'standard', 'std-biz', 'subdomain'
     end
 
-    context "with valid parameters (Standard Tier - Domain)" do
-      include_examples "successful business sign-up with Stripe integration", :standard_tier_domain_attrs, 'standard', 'std-biz.com', 'custom_domain'
-    end
-
     context "with valid parameters (Premium Tier - Domain)" do
       include_examples "successful business sign-up with Stripe integration", :premium_tier_domain_attrs, 'premium', 'premium-biz.com', 'custom_domain'
     end
@@ -225,7 +221,7 @@ RSpec.describe "Business::Registrations", type: :request do
         params = build_params(free_tier_attrs)
         params[:user][:business_attributes][:name] = '' # Invalid business name
         post business_registration_path, params: params
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Name can&#39;t be blank/m)
       end
 
@@ -247,7 +243,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname can&#39;t be blank/m)
       end
       
@@ -257,7 +253,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Host type must be &#39;subdomain&#39; for the Free tier/m)
       end
     end
@@ -269,7 +265,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname can&#39;t be blank/m)
       end
     end
@@ -287,7 +283,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Email has already been taken/m)
         expect(response.body).not_to match(/Email has already been taken by another business owner or staff member/m)
       end
@@ -308,7 +304,7 @@ RSpec.describe "Business::Registrations", type: :request do
           post business_registration_path, params: params
         }.to_not change(Business, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Email has already been taken")
       end
 
@@ -318,7 +314,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname has already been taken/m)
       end
 
@@ -328,7 +324,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname has already been taken/m)
       end
     end

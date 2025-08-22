@@ -757,13 +757,17 @@ class Business < ApplicationRecord
   def custom_domain_requires_premium_tier
     return unless host_type_custom_domain?
 
-    # Permit downgrade flow (tier is being changed from premium to non-premium)
-    if will_save_change_to_tier?
-      return
+    # Check the tier that will be saved (new value if changing, current value if not)
+    final_tier = tier_before_last_save || tier
+    if will_save_change_to_tier? && tier
+      final_tier = tier  # Use the new tier value if it's being changed
     end
 
-    # Otherwise require current tier to be premium
-    errors.add(:tier, 'must be premium to use a custom domain') unless premium_tier?
+    # Premium tier can use custom domains, non-premium cannot
+    # This applies to both static records and tier changes
+    unless final_tier == 'premium'
+      errors.add(:tier, 'must be premium to use a custom domain')
+    end
   end
   
   def premium_tier_was?

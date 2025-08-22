@@ -37,7 +37,7 @@ RSpec.describe DomainMonitoringJob, type: :job do
       before do
         allow(monitoring_service).to receive(:perform_check!).and_return(check_result)
         allow(business).to receive(:cname_due_for_check?).and_return(true)
-        allow(Business).to receive(:find_by).with(id: business.id).and_return(business)
+        allow(Business).to receive(:find).with(business.id).and_return(business)
       end
 
       it 'performs monitoring check' do
@@ -64,7 +64,7 @@ RSpec.describe DomainMonitoringJob, type: :job do
         end
 
         it 'does not schedule next check' do
-          allow(Business).to receive(:find_by).with(id: business.id).and_return(business)
+          allow(Business).to receive(:find).with(business.id).and_return(business)
           expect(described_class).not_to receive(:set)
 
           described_class.perform_now(business.id)
@@ -83,7 +83,7 @@ RSpec.describe DomainMonitoringJob, type: :job do
         end
 
         it 'does not schedule next check' do
-          allow(Business).to receive(:find_by).with(id: business.id).and_return(business)
+          allow(Business).to receive(:find).with(business.id).and_return(business)
           expect(described_class).not_to receive(:set)
 
           described_class.perform_now(business.id)
@@ -107,7 +107,7 @@ RSpec.describe DomainMonitoringJob, type: :job do
       before do
         business.update!(updated_at: 2.minutes.ago)
         allow(business).to receive(:cname_due_for_check?).and_return(false)
-        allow(Business).to receive(:find_by).with(id: business.id).and_return(business)
+        allow(Business).to receive(:find).with(business.id).and_return(business)
       end
 
       it 'schedules next check without performing monitoring' do
@@ -135,7 +135,7 @@ RSpec.describe DomainMonitoringJob, type: :job do
       before do
         allow(monitoring_service).to receive(:perform_check!).and_raise(StandardError.new('Monitoring failed'))
         allow(business).to receive(:cname_due_for_check?).and_return(true)
-        allow(Business).to receive(:find_by).with(id: business.id).and_return(business)
+        allow(Business).to receive(:find).with(business.id).and_return(business)
         business.update!(
           status: 'cname_monitoring',
           cname_monitoring_active: true,
