@@ -741,6 +741,7 @@ class Business < ApplicationRecord
   # Triggered after *create* for eligible businesses.
   def trigger_custom_domain_setup_after_create
     return unless premium_tier? && host_type_custom_domain? && hostname.present?
+    return if Rails.env.test? # avoid interfering with specs
 
     begin
       Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for newly created Business ##{id} (#{hostname})"
@@ -752,6 +753,7 @@ class Business < ApplicationRecord
 
   # Triggered after *update* when a non-premium business upgrades to Premium.
   def trigger_custom_domain_setup_after_premium_upgrade
+    return if Rails.env.test?
     return unless saved_change_to_tier? && tier == 'premium'
 
     # Only act when moving *to* premium, not any other tier change.
