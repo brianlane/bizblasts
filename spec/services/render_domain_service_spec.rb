@@ -195,4 +195,124 @@ RSpec.describe RenderDomainService, type: :service do
       end
     end
   end
+
+  describe 'retry logic for rate limiting' do
+    let(:initial_response) { instance_double(Net::HTTPResponse, code: '429', body: '{"error":"Rate limit exceeded"}') }
+    let(:success_response) { instance_double(Net::HTTPResponse, code: '200', body: '{"success":true}') }
+
+    before do
+      # Mock the execute_request method to control responses
+      allow(service).to receive(:sleep) # Don't actually sleep in tests
+    end
+
+    describe '#add_domain with rate limiting' do
+      it 'retries on 429 and succeeds' do
+        # First call returns 429, second call succeeds
+        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:calculate_retry_delay).and_return(0.1)
+
+        # Should not raise error and return parsed success response
+        result = service.add_domain(domain_name)
+        expect(result).to eq({ 'success' => true })
+        
+        # Should have made 2 requests (initial + 1 retry)
+        expect(service).to have_received(:execute_request).twice
+      end
+
+      it 'fails after max retries' do
+        # All calls return 429
+        allow(service).to receive(:execute_request).and_return(initial_response)
+        allow(service).to receive(:calculate_retry_delay).and_return(0.1)
+
+        expect { service.add_domain(domain_name) }.to raise_error(
+          RenderDomainService::RateLimitError, 
+          /Rate limit exceeded after 3 retries/
+        )
+        
+        # Should have made 4 requests (initial + 3 retries)
+        expect(service).to have_received(:execute_request).exactly(4).times
+      end
+
+      it 'respects Retry-After header when present' do
+        response_with_retry_after = instance_double(Net::HTTPResponse, code: '429', body: '{}')
+        allow(response_with_retry_after).to receive(:[]).with('Retry-After').and_return('5')
+        allow(service).to receive(:execute_request).and_return(response_with_retry_after, success_response)
+
+        service.add_domain(domain_name)
+        
+        # Should have calculated delay based on Retry-After header
+        expect(service).to have_received(:sleep).with(5.0)
+      end
+    end
+
+    describe '#calculate_retry_delay' do
+      let(:response_without_retry_after) { instance_double(Net::HTTPResponse) }
+      let(:response_with_retry_after) { instance_double(Net::HTTPResponse) }
+
+      before do
+        allow(response_without_retry_after).to receive(:[]).with('Retry-After').and_return(nil)
+        allow(response_with_retry_after).to receive(:[]).with('Retry-After').and_return('10')
+      end
+
+      it 'uses Retry-After header when present' do
+        delay = service.send(:calculate_retry_delay, 0, response_with_retry_after)
+        expect(delay).to eq(10)
+      end
+
+      it 'uses exponential backoff when no Retry-After header' do
+        # Mock rand to return consistent results for testing
+        allow(service).to receive(:rand).and_return(0.5)
+        
+        # First retry: BASE_DELAY * (2^0) + jitter = 2 * 1 + (0.5 * 2 * 0.1) = 2.1
+        delay = service.send(:calculate_retry_delay, 0, response_without_retry_after)
+        expect(delay).to be_within(0.1).of(2.1)
+        
+        # Second retry: BASE_DELAY * (2^1) + jitter = 2 * 2 + (0.5 * 4 * 0.1) = 4.2
+        delay = service.send(:calculate_retry_delay, 1, response_without_retry_after)
+        expect(delay).to be_within(0.1).of(4.2)
+      end
+
+      it 'caps delay at MAX_DELAY' do
+        delay = service.send(:calculate_retry_delay, 10, response_without_retry_after)
+        expect(delay).to eq(60) # MAX_DELAY
+      end
+
+      it 'caps Retry-After header at MAX_DELAY' do
+        large_retry_after = instance_double(Net::HTTPResponse)
+        allow(large_retry_after).to receive(:[]).with('Retry-After').and_return('120')
+        
+        delay = service.send(:calculate_retry_delay, 0, large_retry_after)
+        expect(delay).to eq(60) # MAX_DELAY
+      end
+    end
+
+    describe 'integration with other methods' do
+      it 'applies retry logic to verify_domain' do
+        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:calculate_retry_delay).and_return(0.1)
+
+        result = service.verify_domain(domain_id)
+        expect(result).to eq({ 'success' => true })
+        expect(service).to have_received(:execute_request).twice
+      end
+
+      it 'applies retry logic to list_domains' do
+        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:calculate_retry_delay).and_return(0.1)
+
+        result = service.list_domains
+        expect(result).to eq({ 'success' => true })
+        expect(service).to have_received(:execute_request).twice
+      end
+
+      it 'applies retry logic to remove_domain' do
+        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:calculate_retry_delay).and_return(0.1)
+
+        result = service.remove_domain(domain_id)
+        expect(result).to be true
+        expect(service).to have_received(:execute_request).twice
+      end
+    end
+  end
 end
