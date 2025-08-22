@@ -319,7 +319,8 @@ RSpec.describe "Business::Registrations", type: :request do
       end
 
       it "fails if hostname (custom domain type) is taken" do
-        params = build_params(standard_tier_domain_attrs)
+        # Use premium tier attributes because custom domains are only allowed on premium tier
+        params = build_params(premium_tier_domain_attrs)
         params[:user][:business_attributes][:hostname] = 'taken.com'
         expect {
           post business_registration_path, params: params
