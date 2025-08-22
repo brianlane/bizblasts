@@ -718,8 +718,62 @@ class Business < ApplicationRecord
     time_zone
   end
   
+  # ---------------------------------------------------------------------------
+  # Automatic custom-domain setup triggers
+  # ---------------------------------------------------------------------------
+
+  # 1. Newly-registered businesses that signed up for the Premium tier **and**
+  #    provided a custom domain should have the CNAME setup sequence started
+  #    automatically right after creation.
+  after_commit :trigger_custom_domain_setup_after_create, on: :create
+
+  # 2. Existing businesses that upgrade to the Premium tier (tier change
+  #    detected) and already have a custom-domain host type should also kick
+  #    off the setup sequence automatically – but only if the setup hasn’t
+  #    already been started/completed.
+  after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
+
+  # ---------------------------------------------------------------------------
+  # Callback helpers (private)
+  # ---------------------------------------------------------------------------
   private
-  
+
+  # Triggered after *create* for eligible businesses.
+  def trigger_custom_domain_setup_after_create
+    return unless premium_tier? && host_type_custom_domain? && hostname.present?
+
+    begin
+      Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for newly created Business ##{id} (#{hostname})"
+      CnameSetupService.new(self).start_setup!
+    rescue => e
+      Rails.logger.error "[BUSINESS CALLBACK] Failed to start custom-domain setup for Business ##{id}: #{e.message}"
+    end
+  end
+
+  # Triggered after *update* when a non-premium business upgrades to Premium.
+  def trigger_custom_domain_setup_after_premium_upgrade
+    return unless saved_change_to_tier? && tier == 'premium'
+
+    # Only act when moving *to* premium, not any other tier change.
+    old_tier, new_tier = saved_change_to_tier
+    return unless old_tier != 'premium' && new_tier == 'premium'
+
+    return unless host_type_custom_domain? && hostname.present?
+
+    # Skip if setup already in progress or completed.
+    return if cname_pending? || cname_monitoring? || cname_active?
+
+    begin
+      Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for Business ##{id} after tier upgrade (#{old_tier} -> premium)"
+      CnameSetupService.new(self).start_setup!
+    rescue => e
+      Rails.logger.error "[BUSINESS CALLBACK] Failed to start custom-domain setup after tier upgrade for Business ##{id}: #{e.message}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Existing private methods continue below
+  # ---------------------------------------------------------------------------
   def process_logo
     return unless logo.attached?
     
@@ -756,15 +810,23 @@ class Business < ApplicationRecord
   # Validation helper: prevent non-premium businesses from using custom domains.
   def custom_domain_requires_premium_tier
     return unless host_type_custom_domain?
-
-    # Check the tier that will be saved (new value if changing, current value if not)
-    final_tier = tier_before_last_save || tier
-    if will_save_change_to_tier? && tier
-      final_tier = tier  # Use the new tier value if it's being changed
+ 
+    # --- Allow downgrades ----------------------------------------------------
+    # If the business is *downgrading* from premium, let the record save so that
+    # the `handle_tier_downgrade` callback can subsequently remove the custom
+    # domain.  A downgrade is detected when the tier is changing **from**
+    # 'premium' **to** a different value.
+    if will_save_change_to_tier? && tier_before_last_save == 'premium' && tier != 'premium'
+      return # skip validation – downgrade will be handled after save
     end
 
-    # Premium tier can use custom domains, non-premium cannot
-    # This applies to both static records and tier changes
+    # For all other cases (creates, upgrades, edits) enforce the rule.
+    final_tier = if will_save_change_to_tier? && tier.present?
+                   tier
+                 else
+                   tier_before_last_save || tier
+                 end
+
     unless final_tier == 'premium'
       errors.add(:tier, 'must be premium to use a custom domain')
     end
