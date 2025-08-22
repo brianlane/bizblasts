@@ -26,6 +26,33 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 **📖 See [Security Documentation](#security) section below for implementation details**
 
+## 🌐 **Custom Domain CNAME Setup (Premium Feature)**
+
+**BizBlasts Premium businesses can connect custom domains using CNAME records:**
+- ✅ **Automated DNS Monitoring** - Real-time verification of CNAME configuration
+- ✅ **Email-Guided Setup** - Step-by-step instructions sent to business owners
+- ✅ **Multi-DNS Server Verification** - Checks across Google DNS, Cloudflare, and OpenDNS
+- ✅ **Render.com Integration** - Automatic domain registration with hosting platform
+- ✅ **ActiveAdmin Management** - Complete admin interface for domain lifecycle
+- ✅ **Automatic SSL** - HTTPS certificates provisioned automatically
+- ✅ **Tier-Based Controls** - Domain removal on tier downgrades
+- ✅ **Timeout Assistance** - Troubleshooting emails when setup fails
+
+**Custom Domain Workflow:**
+1. Premium business configures custom domain in settings
+2. System adds domain to Render.com via API
+3. Email sent with CNAME setup instructions (`domain.com` → `bizblasts.onrender.com`)
+4. DNS monitoring checks every 5 minutes for 1 hour
+5. Domain automatically activated when CNAME verified
+6. SSL certificate provisioned by Render.com
+
+**Environment Variables Required:**
+```bash
+RENDER_API_KEY=your_render_api_key_here
+RENDER_SERVICE_ID=your_render_service_id_here
+SUPPORT_EMAIL=bizblaststeam@gmail.com
+```
+
 ---
 
 ## Prerequisites
