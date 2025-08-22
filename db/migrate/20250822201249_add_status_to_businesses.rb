@@ -3,37 +3,45 @@ class AddStatusToBusinesses < ActiveRecord::Migration[8.0]
     # Add status column if it doesn't exist (production fix)
     unless column_exists?(:businesses, :status)
       add_column :businesses, :status, :string, null: false, default: 'active'
+      say "Added status column with default 'active'"
     else
       # Column exists but may have wrong default - fix it to match the model
-      change_column_default :businesses, :status, from: 'pending', to: 'active'
+      current_default = connection.columns(:businesses).find { |c| c.name == 'status' }&.default
+      if current_default != 'active'
+        change_column_default :businesses, :status, from: current_default, to: 'active'
+        say "Changed status column default from '#{current_default}' to 'active'"
+      end
     end
     
     # Add index if it doesn't exist (handles both missing column and missing index cases)
     unless index_exists?(:businesses, :status)
       add_index :businesses, :status
+      say "Added index on status column"
     end
   end
 
   def down
-    # Remove index if it exists
+    # Conservative rollback approach:
+    # - Always remove index if it exists (safe operation)
+    # - Never remove column (too risky - could lose data)
+    # - Only revert default if it matches what we would have set
+    
     if index_exists?(:businesses, :status)
       remove_index :businesses, :status
+      say "Removed status index"
     end
     
-    # If we added the column, remove it; if we changed default, revert it
     if column_exists?(:businesses, :status)
-      # Try to determine if this migration added the column or just changed the default
-      # If most records have NULL status, we probably added the column
-      total_businesses = connection.execute("SELECT COUNT(*) FROM businesses").first['count'].to_i
-      null_status_count = connection.execute("SELECT COUNT(*) FROM businesses WHERE status IS NULL").first['count'].to_i
+      current_default = connection.columns(:businesses).find { |c| c.name == 'status' }&.default
       
-      if total_businesses > 0 && null_status_count.to_f / total_businesses > 0.5
-        # More than 50% have NULL status, we probably added the column
-        remove_column :businesses, :status
-      else
-        # Column existed before, just revert the default
+      # Only revert default if it matches what this migration would set
+      if current_default == 'active'
         change_column_default :businesses, :status, from: 'active', to: 'pending'
+        say "Reverted status column default from 'active' to 'pending'"
       end
+      
+      say "Note: status column not removed to prevent data loss."
+      say "If column was added by this migration and needs removal, create a separate migration."
     end
   end
 end
