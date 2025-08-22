@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_21_171908) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_22_201249) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -223,7 +223,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_171908) do
     t.string "tiktok_url"
     t.string "youtube_url"
     t.string "stripe_account_id"
-    t.string "status", default: "pending", null: false
     t.boolean "payment_reminders_enabled", default: false, null: false
     t.boolean "domain_coverage_applied", default: false
     t.decimal "domain_cost_covered", precision: 8, scale: 2
@@ -257,6 +256,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_171908) do
     t.boolean "cname_monitoring_active", default: false, null: false
     t.integer "cname_check_attempts", default: 0, null: false
     t.boolean "render_domain_added", default: false, null: false
+    t.string "status", default: "active", null: false
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
@@ -690,6 +690,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_171908) do
     t.index ["business_id"], name: "index_marketing_campaigns_on_business_id"
     t.index ["name", "business_id"], name: "index_marketing_campaigns_on_name_and_business_id", unique: true
     t.index ["promotion_id"], name: "index_marketing_campaigns_on_promotion_id"
+  end
+
+  create_table "migration_metadata_20250822201249", primary_key: "key", id: { type: :string, limit: 50 }, force: :cascade do |t|
+    t.text "value"
   end
 
   create_table "notification_templates", force: :cascade do |t|

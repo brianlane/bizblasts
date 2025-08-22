@@ -41,6 +41,13 @@ puts "Seeding database with sample data..."
 puts "--- DEBUG: Rails environment: #{Rails.env}"
 puts "--- DEBUG: Rails version: #{Rails.version}"
 puts "--- DEBUG: ActiveRecord version: #{ActiveRecord::VERSION::STRING}"
+
+# Safety check: ensure all required columns exist before accessing model enums
+unless Business.column_names.include?('status')
+  puts "ERROR: businesses table is missing 'status' column. Run migrations first!"
+  exit 1
+end
+
 puts "--- DEBUG: Business.industries: #{Business.industries.inspect}"
 puts "--- DEBUG: Business.tiers: #{Business.tiers.inspect}"
 puts "--- DEBUG: Business.host_types: #{Business.host_types.inspect}"
