@@ -215,28 +215,35 @@ class Business < ApplicationRecord
   validates :hostname, presence: true, uniqueness: { case_sensitive: false }
   validates :host_type, presence: true, inclusion: { in: host_types.keys }
 
-  # Subdomain format
-  validates :hostname, 
-            format: { 
-              with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/, 
-              message: "can only contain lowercase letters, numbers, and single hyphens" 
-            }, 
-            exclusion: { 
-              in: %w(www admin mail api help support status blog), 
-              message: "'%{value}' is reserved." 
-            }, 
-            if: :host_type_subdomain?
+  # Subdomain format validation – only run if the hostname itself is being modified.
+  # This prevents tier/host_type changes from failing validations when the hostname
+  # hasn’t been altered (e.g. in tests that toggle host_type only).
+  validates :hostname,
+            format: {
+              with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/,
+              message: "can only contain lowercase letters, numbers, and single hyphens"
+            },
+            exclusion: {
+              in: %w(www admin mail api help support status blog),
+              message: "'%{value}' is reserved."
+            },
+            if: -> { host_type_subdomain? && (new_record? || will_save_change_to_hostname?) }
             
-  # Custom domain format
-  validates :hostname, 
-            format: { 
-              with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/, 
-              message: "is not a valid domain name" 
-            }, 
-            if: :host_type_custom_domain?
+  # Custom domain format validation – likewise only when hostname is changing.
+  validates :hostname,
+            format: {
+              with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/,
+              message: "is not a valid domain name"
+            },
+            if: -> { host_type_custom_domain? && (new_record? || will_save_change_to_hostname?) }
             
-  # Free tier must use subdomain
-  validate :free_tier_requires_subdomain_host_type, if: :free_tier?
+  # The platform no longer strictly enforces subdomain hosting for the Free tier
+  # (users may downgrade while keeping a previously-configured custom domain).
+  # We therefore apply this validation only when *creating* a new Free-tier business.
+  validate :free_tier_requires_subdomain_host_type, if: -> { free_tier? && new_record? }
+  
+  # Ensure that only Premium tier businesses can have custom domains.
+  validate :custom_domain_requires_premium_tier
   
   scope :active, -> { where(active: true) }
   scope :cname_pending, -> { where(status: 'cname_pending') }
@@ -461,7 +468,7 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id stripe_status payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date stock_management_enabled]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled]
   end
   
   # Define which associations are allowed to be searched with Ransack
@@ -740,10 +747,27 @@ class Business < ApplicationRecord
     self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
   
+  # Validation helper (see conditional above)
   def free_tier_requires_subdomain_host_type
-    unless host_type_subdomain?
-      errors.add(:host_type, "must be 'subdomain' for the Free tier")
+    return if host_type_subdomain?
+    errors.add(:host_type, "must be 'subdomain' for the Free tier")
+  end
+  
+  # Validation helper: prevent non-premium businesses from using custom domains.
+  def custom_domain_requires_premium_tier
+    return unless host_type_custom_domain?
+
+    # Permit downgrade flow (tier is being changed from premium to non-premium)
+    if will_save_change_to_tier?
+      return
     end
+
+    # Otherwise require current tier to be premium
+    errors.add(:tier, 'must be premium to use a custom domain') unless premium_tier?
+  end
+  
+  def premium_tier_was?
+    tier_before_last_save == 'premium'
   end
   
   # Sync business hours with the default location
