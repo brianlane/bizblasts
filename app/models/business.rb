@@ -818,7 +818,7 @@ class Business < ApplicationRecord
     # the `handle_tier_downgrade` callback can subsequently remove the custom
     # domain.  A downgrade is detected when the tier is changing **from**
     # 'premium' **to** a different value.
-    if will_save_change_to_tier? && tier_before_last_save == 'premium' && tier != 'premium'
+    if will_save_change_to_tier? && tier_was == 'premium' && tier != 'premium'
       return # skip validation – downgrade will be handled after save
     end
 
