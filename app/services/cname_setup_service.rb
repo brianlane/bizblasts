@@ -7,10 +7,28 @@ class CnameSetupService
   class InvalidBusinessError < SetupError; end
   class DomainAlreadyExistsError < SetupError; end
 
-  def initialize(business)
+  # Initialize the service
+  #
+  # We avoid eagerly instantiating RenderDomainService because many code paths
+  # (e.g. querying the current status) do **not** require hitting the Render API
+  # and therefore should not fail when the Render credentials are not present
+  # (such as in test environments).
+  #
+  # Instead we accept an optional `render_service` dependency that can be
+  # supplied by callers/tests.  When it is first needed we lazily create a
+  # concrete RenderDomainService instance, which will still raise an
+  # InvalidCredentialsError if the credentials are missing *and* we actually
+  # need to talk to the API.
+  def initialize(business, render_service: nil)
     @business = business
-    @render_service = RenderDomainService.new
+    @render_service = render_service # may be nil – we will lazily build when required
     @errors = []
+  end
+
+  # Lazily build or return the RenderDomainService instance.  Use this helper
+  # everywhere instead of referring to `@render_service` directly.
+  def render_service
+    @render_service ||= RenderDomainService.new
   end
 
   # Start the complete CNAME setup process
@@ -204,7 +222,7 @@ class CnameSetupService
     Rails.logger.info "[CnameSetupService] Adding domain to Render: #{@business.hostname}"
 
     # Check if domain already exists
-    existing_domain = @render_service.find_domain_by_name(@business.hostname)
+    existing_domain = render_service.find_domain_by_name(@business.hostname)
     if existing_domain
       Rails.logger.info "[CnameSetupService] Domain already exists in Render"
       @business.update!(render_domain_added: true)
@@ -212,7 +230,7 @@ class CnameSetupService
     end
 
     # Add new domain
-    domain_data = @render_service.add_domain(@business.hostname)
+    domain_data = render_service.add_domain(@business.hostname)
     
     @business.update!(render_domain_added: true)
     
@@ -286,9 +304,9 @@ class CnameSetupService
     # Try to remove domain from Render if it was added
     if @business.render_domain_added?
       begin
-        existing_domain = @render_service.find_domain_by_name(@business.hostname)
+        existing_domain = render_service.find_domain_by_name(@business.hostname)
         if existing_domain
-          @render_service.remove_domain(existing_domain['id'])
+          render_service.remove_domain(existing_domain['id'])
         end
       rescue => e
         Rails.logger.warn "[CnameSetupService] Failed to remove domain during rollback: #{e.message}"

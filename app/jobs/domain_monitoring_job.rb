@@ -14,13 +14,11 @@ class DomainMonitoringJob < ApplicationJob
   def perform(business_id)
     Rails.logger.info "[DomainMonitoringJob] Starting monitoring check for business #{business_id}"
 
-    business = Business.find_by(id: business_id)
+    # Use `find` instead of `find_by` so an exception is raised when the record
+    # is missing, allowing the dedicated rescue block below to handle the
+    # situation uniformly.
+    business = Business.find(business_id)
     
-    if business.nil?
-      Rails.logger.error "[DomainMonitoringJob] Business #{business_id} not found"
-      return
-    end
-
     # Skip if monitoring is no longer needed
     unless should_continue_monitoring?(business)
       Rails.logger.info "[DomainMonitoringJob] Monitoring no longer needed for business #{business_id}"
@@ -47,7 +45,7 @@ class DomainMonitoringJob < ApplicationJob
       Rails.logger.info "[DomainMonitoringJob] Monitoring completed for business #{business_id}"
     end
 
-  rescue Business::RecordNotFound => e
+  rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[DomainMonitoringJob] Business #{business_id} not found: #{e.message}"
   rescue => e
     Rails.logger.error "[DomainMonitoringJob] Error monitoring business #{business_id}: #{e.message}"
