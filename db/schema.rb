@@ -692,6 +692,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_22_201249) do
     t.index ["promotion_id"], name: "index_marketing_campaigns_on_promotion_id"
   end
 
+  create_table "migration_metadata_20250822201249", primary_key: "key", id: { type: :string, limit: 50 }, force: :cascade do |t|
+    t.text "value"
+  end
+
   create_table "notification_templates", force: :cascade do |t|
     t.bigint "business_id", null: false
     t.string "event_type"
