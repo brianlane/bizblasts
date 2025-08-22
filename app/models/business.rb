@@ -824,9 +824,9 @@ class Business < ApplicationRecord
 
     # For all other cases (creates, upgrades, edits) enforce the rule.
     final_tier = if will_save_change_to_tier? && tier.present?
-                   tier
+                   tier                           # new value about to be saved
                  else
-                   tier_before_last_save || tier
+                   tier_was || tier              # previous persisted value (or current)
                  end
 
     unless final_tier == 'premium'
@@ -834,8 +834,11 @@ class Business < ApplicationRecord
     end
   end
   
+  # Returns true if the tier *before the current change* was premium.  Works
+  # in validations (before save) because `tier_was` contains the previously
+  # persisted value.
   def premium_tier_was?
-    tier_before_last_save == 'premium'
+    tier_was == 'premium'
   end
   
   # Sync business hours with the default location
