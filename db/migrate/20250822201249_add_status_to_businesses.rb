@@ -16,15 +16,19 @@ class AddStatusToBusinesses < ActiveRecord::Migration[8.0]
       )
     SQL
     
+    # Use proper SQL escaping to prevent injection and handle special characters
+    escaped_column_existed = connection.quote(column_existed.to_s)
+    escaped_original_default = original_default ? connection.quote(original_default) : 'NULL'
+    
     connection.execute <<~SQL
       INSERT INTO migration_metadata_20250822201249 (key, value) 
-      VALUES ('column_existed', '#{column_existed}')
+      VALUES ('column_existed', #{escaped_column_existed})
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     SQL
     
     connection.execute <<~SQL
       INSERT INTO migration_metadata_20250822201249 (key, value) 
-      VALUES ('original_default', #{original_default ? "'#{original_default}'" : 'NULL'})
+      VALUES ('original_default', #{escaped_original_default})
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     SQL
     
