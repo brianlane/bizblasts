@@ -52,7 +52,7 @@ class Business::RegistrationsController < Users::RegistrationsController
 
       clean_up_passwords resource
       set_minimum_password_length
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
       return
     end
     
@@ -93,7 +93,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       clean_up_passwords resource
       set_minimum_password_length
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
       return
     end
 
@@ -227,7 +227,6 @@ class Business::RegistrationsController < Users::RegistrationsController
   def setup_stripe_integration(business)
     # Only setup Stripe for paid tiers
     return unless business.tier.in?(['standard', 'premium'])
-    
     Rails.logger.info "[REGISTRATION] Setting up Stripe integration for Business ##{business.id} (#{business.tier} tier)"
     
     begin
@@ -324,7 +323,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       clean_up_passwords resource
       set_minimum_password_length
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 

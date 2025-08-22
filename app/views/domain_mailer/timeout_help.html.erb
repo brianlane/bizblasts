@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Domain Setup Help Needed</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #FFC107, #FF8C42);
+        color: white;
+        padding: 30px 20px;
+        border-radius: 8px 8px 0 0;
+        text-align: center;
+      }
+      .content {
+        background: #f8f9fa;
+        padding: 30px 20px;
+        border-radius: 0 0 8px 8px;
+      }
+      .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .help-box {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .code-block {
+        background: #f8f8f8;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        margin: 10px 0;
+        overflow-x: auto;
+      }
+      .step {
+        margin: 15px 0;
+        padding: 15px;
+        border-left: 4px solid #FFC107;
+        background: white;
+      }
+      .step h4 {
+        margin-top: 0;
+        color: #FF8C42;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-size: 14px;
+        border-top: 1px solid #ddd;
+        margin-top: 30px;
+      }
+      .button {
+        display: inline-block;
+        background: #FF8C42;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-weight: bold;
+      }
+      .contact-button {
+        display: inline-block;
+        background: #1A5F7A;
+        color: white;
+        padding: 15px 30px;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-weight: bold;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>⚠️ Help Needed</h1>
+      <p>Custom domain setup for <strong><%= @domain %></strong></p>
+    </div>
+
+    <div class="content">
+      <p>Hi <%= @user.first_name || @user.email %>,</p>
+
+      <p>We've been monitoring your custom domain <strong><%= @domain %></strong> for the past hour, but we haven't detected the required CNAME record yet.</p>
+
+      <div class="warning-box">
+        <h3>🕒 Setup Timed Out</h3>
+        <p>Don't worry - this is common! DNS changes can sometimes take longer than expected, or there might be a small configuration issue we can help you resolve.</p>
+      </div>
+
+      <div class="help-box">
+        <h3>🔍 Let's troubleshoot together</h3>
+        
+        <div class="step">
+          <h4>1. Double-check your CNAME record</h4>
+          <p>Verify these settings in your DNS management panel:</p>
+          <div class="code-block">
+            <strong>Name/Host:</strong> <%= @domain.start_with?('www.') ? 'www' : '@' %><br>
+            <strong>Type:</strong> CNAME<br>
+            <strong>Value/Target:</strong> <%= @render_target %><br>
+            <strong>TTL:</strong> Auto or 300 seconds
+          </div>
+        </div>
+
+        <div class="step">
+          <h4>2. Common issues to check</h4>
+          <ul>
+            <li><strong>Trailing dot:</strong> Some registrars require "<strong><%= @render_target %>.</strong>" (with dot)</li>
+            <li><strong>Conflicting records:</strong> Remove any existing A or AAAA records for this domain</li>
+            <li><strong>Wrong host field:</strong> Use "@" for root domain or "www" for www subdomain</li>
+            <li><strong>Case sensitivity:</strong> Ensure exact capitalization match</li>
+          </ul>
+        </div>
+
+        <div class="step">
+          <h4>3. DNS propagation delay</h4>
+          <p>If your CNAME record looks correct, DNS changes might still be propagating. This can take:</p>
+          <ul>
+            <li>5-15 minutes for most changes</li>
+            <li>Up to 2 hours in some cases</li>
+            <li>Occasionally 24-48 hours for global propagation</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="help-box">
+        <h3>🆘 Get Instant Help</h3>
+        <p>Our support team is ready to help you get your custom domain working. We can:</p>
+        <ul>
+          <li>Check your DNS configuration remotely</li>
+          <li>Provide registrar-specific instructions</li>
+          <li>Restart monitoring if needed</li>
+          <li>Set up the domain for you (with your permission)</li>
+        </ul>
+        
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="mailto:<%= @support_email %>?subject=Help with custom domain <%= @domain %>&body=Hi BizBlasts Support,%0A%0AI need help setting up my custom domain <%= @domain %>. Here's what I've tried:%0A%0A[Please describe what you've done so far]%0A%0AThanks!" class="contact-button">
+            📧 Get Help Now
+          </a>
+        </div>
+      </div>
+
+      <div class="help-box">
+        <h3>📚 Complete Setup Guide</h3>
+        <p>For detailed step-by-step instructions for your registrar:</p>
+        <ul>
+          <li><strong>📖 <a href="https://docs.bizblasts.com/custom-domain-faq" style="color: #1A5F7A; font-weight: bold;">Custom Domain Setup FAQ</a></strong></li>
+          <li>Covers GoDaddy, Namecheap, Cloudflare, Google Domains, and more</li>
+          <li>Screenshots and troubleshooting guides</li>
+          <li>DNS verification tools and timeline expectations</li>
+        </ul>
+        
+        <p>Quick links for popular domain registrars:</p>
+        <ul>
+          <li><strong>GoDaddy:</strong> My Products → DNS → Manage Zones → Add Record</li>
+          <li><strong>Namecheap:</strong> Domain List → Manage → Advanced DNS → Add New Record</li>
+          <li><strong>Cloudflare:</strong> DNS → Add Record → Select CNAME</li>
+          <li><strong>Google Domains:</strong> DNS → Custom Records → Manage Custom Records</li>
+          <li><strong>Hover:</strong> DNS → Add New → CNAME</li>
+        </ul>
+      </div>
+
+      <div class="warning-box">
+        <h3>⏰ What happens now?</h3>
+        <p>We've paused automatic monitoring for now, but you can:</p>
+        <ul>
+          <li><strong>Contact support</strong> - We'll restart monitoring once your DNS is configured</li>
+          <li><strong>Fix the CNAME</strong> - Reply to this email when ready and we'll check again</li>
+          <li><strong>Try later</strong> - Sometimes waiting a few hours helps with DNS propagation</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>Need immediate assistance?</strong><br>
+      Forward this email to <a href="mailto:<%= @support_email %>"><%= @support_email %></a> and we'll get your domain working quickly!</p>
+      
+      <p style="margin-top: 15px;">
+        <small>BizBlasts Support • We're here to help make your custom domain work perfectly</small>
+      </p>
+    </div>
+  </body>
+</html>

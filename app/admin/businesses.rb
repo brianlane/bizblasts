@@ -22,14 +22,15 @@ ActiveAdmin.register Business do
     # Removed custom create action - let ActiveAdmin handle redirect
   end
 
-  # Permit parameters updated for hostname/host_type and domain coverage
+  # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
                 :active, :tier, :service_template_id, 
                 :hostname, :host_type, # Added new fields
                 :stripe_customer_id, # Stripe integration
                 :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
-                :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date # Auto-renewal tracking
+                :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date, # Auto-renewal tracking
+                :status, :cname_setup_email_sent_at, :cname_monitoring_active, :cname_check_attempts, :render_domain_added # CNAME fields
 
   # Enable batch actions
   batch_action :destroy, confirm: "Are you sure you want to delete these businesses?" do |ids|
@@ -95,15 +96,103 @@ ActiveAdmin.register Business do
     end
   end
 
+  # CNAME Domain Management Actions
+  member_action :start_domain_setup, method: :post do
+    begin
+      setup_service = CnameSetupService.new(resource)
+      result = setup_service.start_setup!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource), alert: "Domain setup failed: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource), alert: "Error starting domain setup: #{e.message}"
+    end
+  end
+
+  member_action :restart_domain_monitoring, method: :post do
+    begin
+      setup_service = CnameSetupService.new(resource)
+      result = setup_service.restart_monitoring!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource), alert: "Failed to restart monitoring: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource), alert: "Error restarting monitoring: #{e.message}"
+    end
+  end
+
+  member_action :force_activate_domain, method: :post do
+    begin
+      setup_service = CnameSetupService.new(resource)
+      result = setup_service.force_activate!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource), alert: "Failed to activate domain: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource), alert: "Error activating domain: #{e.message}"
+    end
+  end
+
+  member_action :disable_custom_domain, method: :post do
+    begin
+      removal_service = DomainRemovalService.new(resource)
+      result = removal_service.remove_domain!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource), alert: "Failed to remove domain: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource), alert: "Error removing domain: #{e.message}"
+    end
+  end
+
+  member_action :domain_status, method: :get do
+    begin
+      business = Business.find(params[:id])
+      
+      setup_service = CnameSetupService.new(business)
+      status = setup_service.status
+      
+      # Add real-time DNS check if monitoring
+      if business.cname_monitoring_active?
+        dns_checker = CnameDnsChecker.new(business.hostname)
+        dns_result = dns_checker.verify_cname
+        status[:dns_check] = {
+          verified: dns_result[:verified],
+          target: dns_result[:target],
+          checked_at: dns_result[:checked_at],
+          error: dns_result[:error]
+        }
+      end
+      
+      render json: status
+    rescue => e
+      render json: { error: e.message }, status: :internal_server_error
+    end
+  end
+
   # Filter options updated
   filter :name
   filter :hostname
   filter :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }
+  filter :status, as: :select, collection: Business.statuses.keys.map { |k| [k.humanize, k] }
   filter :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }
   filter :industry
   filter :active
   filter :stripe_status, as: :select, collection: [['Connected', 'connected'], ['Not Connected', 'not_connected']], label: "Stripe Status"
   filter :domain_coverage_applied, as: :select, collection: [['Yes', true], ['No', false]]
+  filter :cname_monitoring_active, as: :select, collection: [['Yes', true], ['No', false]]
   filter :domain_renewal_date
   filter :created_at
 
@@ -114,6 +203,20 @@ ActiveAdmin.register Business do
     column :name
     column :hostname
     column :host_type
+    column :status do |business|
+      case business.status
+      when 'cname_pending'
+        status_tag "Setup Pending", class: "warning"
+      when 'cname_monitoring'
+        status_tag "DNS Monitoring", class: "warning"
+      when 'cname_active'
+        status_tag "Domain Active", class: "ok"
+      when 'cname_timeout'
+        status_tag "Setup Timeout", class: "error"
+      else
+        status_tag business.status.humanize, class: "default"
+      end
+    end
     column :tier
     column "Stripe Status", :stripe_account_id do |business|
       if business.stripe_account_id.present?
@@ -282,6 +385,130 @@ ActiveAdmin.register Business do
           end
           row "Coverage Notes" do |b|
             b.domain_coverage_notes.present? ? simple_format(b.domain_coverage_notes) : "No notes"
+          end
+        end
+      end
+    end
+    
+    # CNAME Custom Domain Panel for Premium businesses with custom domains
+    if business.premium_tier? && business.host_type_custom_domain?
+      panel "Custom Domain Management" do
+        attributes_table_for business do
+          row "Domain Status" do |b|
+            case b.status
+            when 'cname_pending'
+              status_tag "Setup Pending", class: "warning"
+            when 'cname_monitoring'
+              status_tag "DNS Monitoring Active", class: "warning"
+            when 'cname_active'
+              status_tag "Active & Working", class: "ok"
+            when 'cname_timeout'
+              status_tag "Setup Timed Out", class: "error"
+            else
+              status_tag b.status.humanize, class: "default"
+            end
+          end
+          row "Custom Domain" do |b|
+            if b.hostname.present?
+              if b.cname_active?
+                link_to b.hostname, "https://#{b.hostname}", target: "_blank", class: "external-link"
+              else
+                b.hostname
+              end
+            else
+              "Not configured"
+            end
+          end
+          row "Monitoring Active" do |b|
+            b.cname_monitoring_active? ? status_tag("Yes", class: "ok") : status_tag("No", class: "default")
+          end
+          row "DNS Check Attempts" do |b|
+            "#{b.cname_check_attempts}/12"
+          end
+          row "Setup Email Sent" do |b|
+            if b.cname_setup_email_sent_at.present?
+              "#{time_ago_in_words(b.cname_setup_email_sent_at)} ago"
+            else
+              "Not sent"
+            end
+          end
+          row "Render Domain Added" do |b|
+            b.render_domain_added? ? status_tag("Yes", class: "ok") : status_tag("No", class: "error")
+          end
+        end
+        
+        # Live status refresh for monitoring domains
+        if business.cname_monitoring_active?
+          div id: "domain-live-status", style: "margin: 15px 0; padding: 10px; background: #f0f8ff; border-radius: 4px;" do
+            p style: "margin: 0; font-weight: bold;" do
+              "🔄 Live DNS Status: "
+              span "Checking...", id: "live-status-text"
+            end
+            p style: "margin: 5px 0 0 0; font-size: 12px; color: #666;" do
+              "Last checked: "
+              span "Never", id: "last-checked"
+            end
+          end
+          
+          script do
+            raw <<-JAVASCRIPT
+              function updateDomainStatus() {
+                fetch('/admin/businesses/#{business.id}/domain_status')
+                  .then(response => response.json())
+                  .then(data => {
+                    const statusText = document.getElementById('live-status-text');
+                    const lastChecked = document.getElementById('last-checked');
+                    
+                    if (data.dns_check) {
+                      if (data.dns_check.verified) {
+                        statusText.innerHTML = '✅ DNS Verified';
+                        statusText.style.color = 'green';
+                      } else {
+                        statusText.innerHTML = '⏳ DNS Pending';
+                        statusText.style.color = 'orange';
+                      }
+                      lastChecked.textContent = new Date(data.dns_check.checked_at).toLocaleTimeString();
+                    } else {
+                      statusText.innerHTML = '📊 Monitoring Active';
+                      statusText.style.color = 'blue';
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error fetching domain status:', error);
+                  });
+              }
+              
+              // Update immediately and then every 30 seconds
+              updateDomainStatus();
+              setInterval(updateDomainStatus, 30000);
+            JAVASCRIPT
+          end
+        end
+        
+        # Domain management actions
+        div class: "domain-actions", style: "margin-top: 15px;" do
+          if business.can_setup_custom_domain?
+            link_to "Start Domain Setup", start_domain_setup_admin_business_path(business), 
+                    method: :post, class: "button", 
+                    data: { confirm: "This will start the CNAME setup process and send setup instructions via email. Continue?" }
+          end
+          
+          if ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(business.status)
+            link_to "Restart Monitoring", restart_domain_monitoring_admin_business_path(business), 
+                    method: :post, class: "button", 
+                    data: { confirm: "This will restart DNS monitoring for another hour. Continue?" }
+          end
+          
+          if business.premium_tier? && business.host_type_custom_domain?
+            link_to "Force Activate Domain", force_activate_domain_admin_business_path(business), 
+                    method: :post, class: "button", 
+                    data: { confirm: "This will bypass DNS verification and immediately activate the domain. Use only if DNS is properly configured. Continue?" }
+          end
+          
+          if business.cname_active? || business.status.in?(['cname_pending', 'cname_monitoring', 'cname_timeout'])
+            link_to "Remove Custom Domain", disable_custom_domain_admin_business_path(business), 
+                    method: :post, class: "button button-danger", style: "background-color: #dc3545; color: white;",
+                    data: { confirm: "⚠️ WARNING: This will permanently remove the custom domain and revert to subdomain hosting (#{business.subdomain || business.hostname}.bizblasts.com). The domain will no longer work for this business. This action cannot be undone. Are you sure you want to continue?" }
           end
         end
       end
