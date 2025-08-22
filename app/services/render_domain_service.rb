@@ -9,8 +9,14 @@ class RenderDomainService
   class RenderApiError < StandardError; end
   class DomainNotFoundError < RenderApiError; end
   class InvalidCredentialsError < RenderApiError; end
+  class RateLimitError < RenderApiError; end
 
   API_BASE_URL = 'https://api.render.com/v1'
+  
+  # Retry configuration for rate limiting (429 responses)
+  MAX_RETRIES = 3
+  BASE_DELAY = 2 # seconds
+  MAX_DELAY = 60 # seconds
 
   def initialize
     @api_key = ENV['RENDER_API_KEY']
@@ -130,12 +136,52 @@ class RenderDomainService
 
   private
 
-  # Make HTTP request to Render API
+  # Make HTTP request to Render API with retry logic for rate limiting
   # @param url [URI] The request URL
   # @param method [Symbol] HTTP method (:get, :post, :delete)
   # @param body [Hash, nil] Request body for POST requests
   # @return [Net::HTTPResponse] HTTP response
   def make_request(url, method, body = nil)
+    retry_count = 0
+    
+    loop do
+      begin
+        response = execute_request(url, method, body)
+        
+        # Handle rate limiting (429) with exponential backoff
+        if response.code == '429'
+          if retry_count < MAX_RETRIES
+            delay = calculate_retry_delay(retry_count, response)
+            Rails.logger.warn "[RenderDomainService] Rate limited (429), retrying in #{delay}s (attempt #{retry_count + 1}/#{MAX_RETRIES + 1})"
+            sleep(delay)
+            retry_count += 1
+            next
+          else
+            Rails.logger.error "[RenderDomainService] Max retries exceeded for rate limit"
+            raise RateLimitError, "Rate limit exceeded after #{MAX_RETRIES} retries"
+          end
+        end
+        
+        # Log response status
+        Rails.logger.debug "[RenderDomainService] Response: #{response.code}"
+        return response
+        
+      rescue RateLimitError
+        # Re-raise rate limit errors without wrapping them
+        raise
+      rescue => e
+        Rails.logger.error "[RenderDomainService] Request failed: #{e.message}"
+        raise RenderApiError, "Request failed: #{e.message}"
+      end
+    end
+  end
+
+  # Execute a single HTTP request
+  # @param url [URI] The request URL
+  # @param method [Symbol] HTTP method (:get, :post, :delete)
+  # @param body [Hash, nil] Request body for POST requests
+  # @return [Net::HTTPResponse] HTTP response
+  def execute_request(url, method, body = nil)
     http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = true
 
@@ -161,15 +207,26 @@ class RenderDomainService
     # Log request (without sensitive data)
     Rails.logger.debug "[RenderDomainService] #{method.upcase} #{url.path}"
 
-    response = http.request(request)
+    http.request(request)
+  end
+
+  # Calculate retry delay using exponential backoff with jitter
+  # @param retry_count [Integer] Current retry attempt (0-based)
+  # @param response [Net::HTTPResponse] The 429 response (may contain Retry-After header)
+  # @return [Float] Delay in seconds
+  def calculate_retry_delay(retry_count, response)
+    # Check for Retry-After header first
+    if response['Retry-After']
+      retry_after = response['Retry-After'].to_i
+      return [retry_after, MAX_DELAY].min if retry_after > 0
+    end
     
-    # Log response status
-    Rails.logger.debug "[RenderDomainService] Response: #{response.code}"
+    # Use exponential backoff with jitter
+    base_delay = BASE_DELAY * (2 ** retry_count)
+    jitter = rand * base_delay * 0.1 # Add up to 10% jitter
+    delay = base_delay + jitter
     
-    response
-  rescue => e
-    Rails.logger.error "[RenderDomainService] Request failed: #{e.message}"
-    raise RenderApiError, "Request failed: #{e.message}"
+    [delay, MAX_DELAY].min
   end
 
   # Extract error message from API response
