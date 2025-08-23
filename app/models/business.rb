@@ -237,10 +237,9 @@ class Business < ApplicationRecord
             },
             if: -> { host_type_custom_domain? && (new_record? || will_save_change_to_hostname?) }
             
-  # The platform no longer strictly enforces subdomain hosting for the Free tier
-  # (users may downgrade while keeping a previously-configured custom domain).
-  # We therefore apply this validation only when *creating* a new Free-tier business.
-  validate :free_tier_requires_subdomain_host_type, if: -> { free_tier? && new_record? }
+  # Apply subdomain-only rule **only when creating** a Free or Standard business;
+  # allows later downgrades from Premium to proceed so DomainRemovalService can run.
+  validate :non_premium_requires_subdomain_host_type, if: -> { (free_tier? || standard_tier?) && new_record? }
   
   # Ensure that only Premium tier businesses can have custom domains.
   validate :custom_domain_requires_premium_tier
@@ -803,11 +802,15 @@ class Business < ApplicationRecord
     self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
   
-  # Validation helper (see conditional above)
-  def free_tier_requires_subdomain_host_type
+  # Validation helper: Free **and Standard** tiers can only use BizBlasts sub-domains.
+  # Runs only when creating or updating a non-premium business.
+  def non_premium_requires_subdomain_host_type
     return if host_type_subdomain?
-    errors.add(:host_type, "must be 'subdomain' for the Free tier")
+    errors.add(:host_type, "must be 'subdomain' for Free and Standard tiers")
   end
+
+  # Keep old method name as alias for backwards compatibility (e.g., specs).
+  alias_method :free_tier_requires_subdomain_host_type, :non_premium_requires_subdomain_host_type
   
   # Validation helper: prevent non-premium businesses from using custom domains.
   def custom_domain_requires_premium_tier
