@@ -53,7 +53,13 @@
             </div>
             <div>
               <div class="text-sm text-gray-500">Current Period End</div>
-              <div class="text-lg font-medium text-gray-900"><%= l @subscription.current_period_end, format: :long %></div>
+              <div class="text-lg font-medium text-gray-900">
+                <% if @subscription&.current_period_end.present? %>
+                  <%= l @subscription.current_period_end, format: :long %>
+                <% else %>
+                  —
+                <% end %>
+              </div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Business Tier</div>
