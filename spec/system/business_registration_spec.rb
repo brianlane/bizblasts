@@ -79,9 +79,9 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_content("Free Plan")
       expect(page).to have_content("$0/month")
       expect(page).to have_content("Standard Plan")
-      expect(page).to have_content("$49/month")
+      expect(page).to have_content("$9.99/month")
       expect(page).to have_content("Premium Plan")
-      expect(page).to have_content("$99/month")
+      expect(page).to have_content("$29.99/month")
     end
 
     it "shows plan features" do
