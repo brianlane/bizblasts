@@ -273,7 +273,7 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
       let(:stripe_sub_object) do # Mocked Stripe::Subscription object
         Stripe::Subscription.construct_from({
           id: stripe_subscription_id,
-          items: { data: [{ price: { lookup_key: 'basic_plan', product: 'prod_basic' } }] },
+          items: { data: [{ price: { id: 'price_basic_plan', lookup_key: 'basic_plan', product: 'prod_basic' } }] },
           status: 'active',
           current_period_end: Time.now.to_i + (30 * 24 * 60 * 60),
           customer: business.stripe_customer_id
