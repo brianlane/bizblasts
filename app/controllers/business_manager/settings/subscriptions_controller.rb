@@ -240,19 +240,20 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
       Rails.logger.error("Failed to save subscription: #{subscription_record.errors.full_messages.join(', ')}")
     end
 
-    # Handle Premium upgrade with custom domain setup
+    # Handle tier update based on subscription - ALWAYS update tier after successful payment
     premium_price_id = ENV['STRIPE_PREMIUM_PRICE_ID']
     current_price_id = stripe_sub.items.data.first&.price&.id
-    
-    if current_price_id == premium_price_id
-      handle_premium_upgrade_with_custom_domain(business, session)
-    end
-
-    # Update business tier if necessary
     new_tier = map_stripe_plan_to_tier(current_price_id)
+    
+    # Update business tier regardless of domain setup - customer paid for the tier
     if new_tier && business.tier != new_tier
       business.update!(tier: new_tier)
       Rails.logger.info("Updated business tier to #{new_tier} for business_id=#{business.id}")
+    end
+
+    # For Premium upgrades, attempt custom domain setup as an optional feature
+    if current_price_id == premium_price_id
+      attempt_custom_domain_setup(business, session)
     end
   end
 
@@ -314,46 +315,45 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
     premium_price_id = ENV['STRIPE_PREMIUM_PRICE_ID']
     return unless params[:price_id] == premium_price_id
 
-    # If business is not already Premium with custom domain, require hostname parameter
-    unless @business.host_type_custom_domain? && @business.hostname.present?
-      if params[:hostname].blank?
-        flash[:alert] = "A custom domain hostname is required for Premium upgrades."
-        redirect_to business_manager_settings_subscription_path
-        return
-      end
+    # Hostname is now optional for Premium upgrades - only validate if provided
+    return if params[:hostname].blank?
 
-      # Basic hostname validation
-      hostname = params[:hostname].strip.downcase
-      unless hostname.match?(/\A[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)*\z/)
-        flash[:alert] = "Invalid hostname format. Please enter a valid domain name."
-        redirect_to business_manager_settings_subscription_path
-        return
-      end
+    # Basic hostname validation when provided
+    hostname = params[:hostname].strip.downcase
+    unless hostname.match?(/\A[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)*\z/)
+      flash[:alert] = "Invalid hostname format. Please enter a valid domain name."
+      redirect_to business_manager_settings_subscription_path
+      return
+    end
 
-      # Check if hostname is already taken by another business
-      if Business.where.not(id: @business.id).exists?(hostname: hostname)
-        flash[:alert] = "This hostname is already taken. Please choose a different domain."
-        redirect_to business_manager_settings_subscription_path
-        return
-      end
+    # Check if hostname is already taken by another business
+    if Business.where.not(id: @business.id).exists?(hostname: hostname)
+      flash[:alert] = "This hostname is already taken. Please choose a different domain."
+      redirect_to business_manager_settings_subscription_path
+      return
     end
   end
 
-  def handle_premium_upgrade_with_custom_domain(business, session)
-    # Check if this Premium upgrade requires custom domain setup
-    return unless session.metadata&.dig('requires_custom_domain_setup') == 'true'
+  def attempt_custom_domain_setup(business, session)
+    # Check if this Premium upgrade includes custom domain setup
+    unless session.metadata&.dig('requires_custom_domain_setup') == 'true'
+      Rails.logger.info("Premium upgrade for business_id=#{business.id} does not include custom domain setup")
+      return
+    end
     
     hostname = session.metadata&.dig('hostname')
-    return unless hostname.present?
+    unless hostname.present?
+      Rails.logger.warn("Premium upgrade requested custom domain setup but no hostname provided for business_id=#{business.id}")
+      return
+    end
 
-    Rails.logger.info("Setting up custom domain for business_id=#{business.id}, hostname=#{hostname}")
+    Rails.logger.info("Attempting custom domain setup for business_id=#{business.id}, hostname=#{hostname}")
 
     begin
       # Update business with custom domain configuration
       business.update!(
         hostname: hostname,
-        host_type: 'custom_domain',
-        tier: 'premium'
+        host_type: 'custom_domain'
       )
       
       Rails.logger.info("Successfully configured custom domain #{hostname} for business_id=#{business.id}")
@@ -363,7 +363,11 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
       
     rescue ActiveRecord::RecordInvalid => e
       Rails.logger.error("Failed to configure custom domain for business_id=#{business.id}: #{e.message}")
-      # Consider sending notification to business owner about the issue
+      Rails.logger.info("Business_id=#{business.id} will still have Premium tier benefits without custom domain")
+      
+      # Consider sending notification to business owner about domain setup failure
+      # while confirming their Premium benefits are still active
+      # TODO: Send email notification about domain setup failure
     end
   end
 

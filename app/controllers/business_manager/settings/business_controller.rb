@@ -77,6 +77,48 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     end
   end
 
+  def request_domain_change
+    # Extract form parameters
+    requested_domain = params[:requested_domain]&.strip
+    domain_type = params[:domain_type]
+    change_reason = params[:change_reason]&.strip
+
+    # Validate required fields
+    if requested_domain.blank? || domain_type.blank?
+      flash[:alert] = 'Please fill in all required fields.'
+      redirect_to edit_business_manager_settings_business_path
+      return
+    end
+
+    # Validate domain type
+    unless %w[custom_domain subdomain].include?(domain_type)
+      flash[:alert] = 'Invalid domain type selected.'
+      redirect_to edit_business_manager_settings_business_path
+      return
+    end
+
+    begin
+      # Send email notification to bizblasts team
+      DomainMailer.notify_team(
+        business: @business,
+        user: current_user,
+        requested_domain: requested_domain,
+        domain_type: domain_type,
+        change_reason: change_reason
+      ).deliver_now
+
+      Rails.logger.info "[DOMAIN_CHANGE] Request submitted for business_id=#{@business.id}, domain=#{requested_domain}, type=#{domain_type}"
+      
+      flash[:notice] = 'Domain change request submitted successfully! Our team will review and contact you within 24-48 hours.'
+      redirect_to edit_business_manager_settings_business_path
+
+    rescue StandardError => e
+      Rails.logger.error "[DOMAIN_CHANGE] Failed to send email for business_id=#{@business.id}: #{e.message}"
+      flash[:alert] = 'There was an error submitting your request. Please try again or contact support.'
+      redirect_to edit_business_manager_settings_business_path
+    end
+  end
+
   private
 
   def set_business
