@@ -125,36 +125,55 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
     end
 
     begin
-      if target_tier == 'free'
-        if @business.subscription&.stripe_subscription_id.present?
+      subscription = @business.subscription
+
+      case target_tier
+      when 'free'
+        # Schedule cancellation at period end if we have an active Stripe subscription.
+        if subscription&.stripe_subscription_id.present?
           Stripe::Subscription.update(
-            @business.subscription.stripe_subscription_id,
-            {
-              cancel_at_period_end: true
-            }
+            subscription.stripe_subscription_id,
+            { cancel_at_period_end: true }
           )
-          @business.subscription.update(status: 'canceled') if @business.subscription.present?
         end
+
+        # Immediately reflect tier change for feature gating, but leave subscription status untouched
+        # until Stripe webhook updates it. This avoids inconsistent states (local cancelled vs. Stripe active).
         @business.update!(tier: 'free')
-        flash[:notice] = "Your subscription will be cancelled at the end of the current billing period. You'll move to the Free tier."
-      elsif target_tier == 'standard'
-        price_id = ENV['STRIPE_STANDARD_PRICE_ID']
-        if price_id.blank?
-          raise "Standard price id not configured"
+        flash[:notice] = "Your subscription will be cancelled at the end of the current billing period. You'll move to the Free tier." unless flash[:notice]
+
+      when 'standard'
+        unless subscription&.stripe_subscription_id.present?
+          flash[:alert] = "No active subscription found to downgrade."
+          return redirect_to business_manager_settings_subscription_path
         end
-        stripe_sub = Stripe::Subscription.retrieve(@business.subscription.stripe_subscription_id)
+
+        price_id = ENV['STRIPE_STANDARD_PRICE_ID']
+        raise "Standard price ID not configured" if price_id.blank?
+
+        stripe_sub = Stripe::Subscription.retrieve(subscription.stripe_subscription_id)
+        first_item_id = stripe_sub.items&.data&.first&.id
+        unless first_item_id
+          raise "Unable to determine Stripe subscription item to update"
+        end
+
         Stripe::Subscription.update(
-          @business.subscription.stripe_subscription_id,
+          subscription.stripe_subscription_id,
           {
-            items: [{ id: stripe_sub.items.data[0].id, price: price_id }],
+            items: [{ id: first_item_id, price: price_id }],
             proration_behavior: 'create_prorations'
           }
         )
+
         @business.update!(tier: 'standard')
-        flash[:notice] = "Your subscription has been downgraded to the Standard tier."
+        flash[:notice] = "Your subscription has been downgraded to the Standard tier." unless flash[:notice]
       end
+
     rescue Stripe::StripeError => e
       flash[:alert] = "Stripe error: #{e.message}"
+    rescue => e
+      Rails.logger.error("Downgrade error: #{e.message}")
+      flash[:alert] = "Unable to process downgrade. Please try again or contact support."
     end
 
     redirect_to business_manager_settings_subscription_path
