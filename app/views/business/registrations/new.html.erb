@@ -415,7 +415,7 @@
         hostnameFieldDiv.style.display = 'block';
         hostnameInput.required = false; // Optional for paid tiers
         hostnameInput.placeholder = 'yourdomain.com';
-        hostnameHelpText.innerHTML = 'Enter your desired custom domain. Use <a href="https://www.instantdomainsearch.com" target="_blank" class="text-primary hover:text-primary-dark underline">www.instantdomainsearch.com</a> to help you verify availability, submitting unavailable domains lengthens the registration process. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.<br><small class="text-primary font-medium">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we\'ll contact you with alternatives.</small>';
+        hostnameHelpText.innerHTML = 'Enter your desired custom domain or leave blank to skip this feature. Use <a href="https://www.instantdomainsearch.com" target="_blank" class="text-primary hover:text-primary-dark underline">www.instantdomainsearch.com</a> to help you verify availability. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.<br><small class="text-primary font-medium">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we\'ll contact you with alternatives.</small>';
         const desc = tierDescriptionDiv.querySelector(`[data-tier="${selectedTier}"]`);
         if (desc) desc.style.display = 'block';
       } else {

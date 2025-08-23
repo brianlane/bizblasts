@@ -145,8 +145,7 @@
                              name="hostname" 
                              placeholder="yourdomain.com"
                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm mb-4"
-                             required>
-                      <p class="text-xs text-gray-600 mt-2 text-left">Enter your desired custom domain. Use <%= link_to "www.instantdomainsearch.com", "https://www.instantdomainsearch.com", target: "_blank", class: "text-purple-600 hover:text-purple-800 underline" %> to help you verify availability, submitting unavailable domains lengthens the registration process. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.</p>
+                      <p class="text-xs text-gray-600 mt-2 text-left">Enter your desired custom domain or leave blank to skip this feature. Use <%= link_to "www.instantdomainsearch.com", "https://www.instantdomainsearch.com", target: "_blank", class: "text-purple-600 hover:text-purple-800 underline" %> to help you verify availability. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.</p>
                       <p class="text-xs text-purple-600 mt-1 text-left mb-4">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we'll contact you with alternatives.</p>
 
                       <!-- Form for submission -->
@@ -467,8 +466,7 @@
                        name="hostname" 
                        placeholder="yourdomain.com"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm mb-4"
-                       required>
-                <p class="text-xs text-gray-600 mt-2 text-left">Enter your desired custom domain. Use <%= link_to "www.instantdomainsearch.com", "https://www.instantdomainsearch.com", target: "_blank", class: "text-purple-600 hover:text-purple-800 underline" %> to help you verify availability, submitting unavailable domains lengthens the registration process. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.</p>
+                <p class="text-xs text-gray-600 mt-2 text-left">Enter your desired custom domain or leave blank to skip this feature. Use <%= link_to "www.instantdomainsearch.com", "https://www.instantdomainsearch.com", target: "_blank", class: "text-purple-600 hover:text-purple-800 underline" %> to help you verify availability. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.</p>
                 <p class="text-xs text-purple-600 mt-1 text-left mb-4">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we'll contact you with alternatives.</p>
 
                 <!-- Form for submission -->
@@ -501,6 +499,9 @@
 </div>
 
 <script>
+// Store references to event handlers to avoid memory leaks
+const domainInputHandlers = {};
+
 function toggleDomainInput(tier) {
   const domainSection = document.getElementById(tier + '-domain-section');
   const upgradeSection = document.getElementById(tier + '-upgrade-section');
@@ -513,11 +514,19 @@ function toggleDomainInput(tier) {
   const hostnameInput = document.getElementById(tier + '-hostname');
   hostnameInput.focus();
   
-  // Update hidden field when user types
-  hostnameInput.addEventListener('input', function() {
+  // Remove existing event listener if it exists to prevent duplicates
+  if (domainInputHandlers[tier]) {
+    hostnameInput.removeEventListener('input', domainInputHandlers[tier]);
+  }
+  
+  // Create and store the event handler
+  domainInputHandlers[tier] = function() {
     const hiddenField = document.getElementById(tier + '-hostname-hidden');
     hiddenField.value = this.value;
-  });
+  };
+  
+  // Add the event listener
+  hostnameInput.addEventListener('input', domainInputHandlers[tier]);
 }
 
 function hideDomainInput(tier) {
@@ -525,6 +534,12 @@ function hideDomainInput(tier) {
   const upgradeSection = document.getElementById(tier + '-upgrade-section');
   const hostnameInput = document.getElementById(tier + '-hostname');
   const hiddenField = document.getElementById(tier + '-hostname-hidden');
+  
+  // Remove event listener to prevent memory leaks
+  if (domainInputHandlers[tier]) {
+    hostnameInput.removeEventListener('input', domainInputHandlers[tier]);
+    delete domainInputHandlers[tier];
+  }
   
   // Hide domain input section and show upgrade button section
   domainSection.classList.add('hidden');
@@ -547,14 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const hostnameInput = document.getElementById(tier + '-hostname');
         const hiddenField = document.getElementById(tier + '-hostname-hidden');
         
-        if (!hostnameInput.value.trim()) {
-          e.preventDefault();
-          alert('Please enter a hostname for your custom domain.');
-          hostnameInput.focus();
-          return false;
-        }
-        
-        // Update hidden field with current input value
+        // Update hidden field with current input value (can be empty)
         hiddenField.value = hostnameInput.value.trim();
       });
     }

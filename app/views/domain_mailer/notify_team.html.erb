@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Domain Change Request</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9fafb;
+      }
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 20px;
+        margin-bottom: 32px;
+      }
+      .title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 8px 0;
+      }
+      .subtitle {
+        color: #6b7280;
+        margin: 0;
+      }
+      .section {
+        margin-bottom: 24px;
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 12px 0;
+        border-left: 3px solid #3b82f6;
+        padding-left: 12px;
+      }
+      .info-grid {
+        background: #f9fafb;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .info-item {
+        display: flex;
+        margin-bottom: 8px;
+      }
+      .info-item:last-child {
+        margin-bottom: 0;
+      }
+      .info-label {
+        font-weight: 500;
+        color: #374151;
+        min-width: 140px;
+        flex-shrink: 0;
+      }
+      .info-value {
+        color: #111827;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        margin-left: 8px;
+      }
+      .badge-custom {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .badge-subdomain {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .badge-premium {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-standard {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+      .badge-free {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .reason-box {
+        background: #fffbeb;
+        border: 1px solid #fed7aa;
+        border-radius: 6px;
+        padding: 16px;
+        margin-top: 12px;
+      }
+      .footer {
+        margin-top: 32px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        font-size: 14px;
+      }
+      .action-required {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        padding: 16px;
+        margin-top: 20px;
+      }
+      .action-title {
+        font-weight: 600;
+        color: #dc2626;
+        margin: 0 0 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 class="title">Domain Change Request</h1>
+        <p class="subtitle">A business has requested a domain change through the settings page</p>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Business Information</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Business Name:</span>
+            <span class="info-value"><%= @business.name %></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Business ID:</span>
+            <span class="info-value">#<%= @business.id %></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Current Tier:</span>
+            <span class="info-value">
+              <%= @business_tier.titleize %>
+              <span class="badge badge-<%= @business_tier %>"><%= @business_tier %></span>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Owner Email:</span>
+            <span class="info-value"><%= @user.email %></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Owner Name:</span>
+            <span class="info-value"><%= @user.first_name %> <%= @user.last_name %></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Current Domain Configuration</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Current Domain:</span>
+            <span class="info-value">
+              <% if @current_domain_type == 'custom_domain' && @current_domain.present? %>
+                <%= @current_domain %>
+                <span class="badge badge-custom">Custom</span>
+              <% elsif @current_domain.present? %>
+                <%= @current_domain %>.bizblasts.com
+                <span class="badge badge-subdomain">Subdomain</span>
+              <% else %>
+                Not configured
+                <span class="badge badge-free">Default</span>
+              <% end %>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Host Type:</span>
+            <span class="info-value"><%= @current_domain_type&.humanize || 'Not set' %></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Requested Changes</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Requested Domain:</span>
+            <span class="info-value">
+              <strong><%= @requested_domain %></strong>
+              <span class="badge badge-<%= @domain_type == 'custom_domain' ? 'custom' : 'subdomain' %>">
+                <%= @domain_type == 'custom_domain' ? 'Custom' : 'Subdomain' %>
+              </span>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Requested Type:</span>
+            <span class="info-value">
+              <%= @domain_type == 'custom_domain' ? 'Custom Domain' : 'BizBlasts Subdomain' %>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Full URL Preview:</span>
+            <span class="info-value">
+              <% if @domain_type == 'custom_domain' %>
+                https://<%= @requested_domain %>
+              <% else %>
+                https://<%= @requested_domain %>.bizblasts.com
+              <% end %>
+            </span>
+          </div>
+        </div>
+
+        <% if @change_reason.present? %>
+          <div class="reason-box">
+            <strong>Reason for Change:</strong><br>
+            <%= simple_format(h(@change_reason)) %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="action-required">
+        <h3 class="action-title">⚠️ Action Required</h3>
+        <p>Please review this domain change request and contact the business owner within 24-48 hours.</p>
+        <ul>
+          <li>Verify the requested domain is available and appropriate</li>
+          <li>Check if the business tier supports the requested domain type</li>
+          <li>For custom domains, verify ownership requirements</li>
+          <li>Reply to this email or contact <%= @user.email %> directly</li>
+        </ul>
+      </div>
+
+      <div class="footer">
+        <p><strong>Request submitted:</strong> <%= Time.current.strftime("%B %d, %Y at %I:%M %p %Z") %></p>
+        <p><strong>Reply-To:</strong> <%= @user.email %></p>
+        <p>This is an automated notification from the BizBlasts platform.</p>
+      </div>
+    </div>
+  </body>
+</html>

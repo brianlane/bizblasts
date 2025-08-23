@@ -61,4 +61,22 @@ class DomainMailer < ApplicationMailer
       reply_to: ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     )
   end
+
+  # Notify BizBlasts team about domain change requests
+  def notify_team(business:, user:, requested_domain:, domain_type:, change_reason: nil)
+    @business = business
+    @user = user
+    @requested_domain = requested_domain
+    @domain_type = domain_type
+    @change_reason = change_reason
+    @current_domain = business.hostname
+    @current_domain_type = business.host_type
+    @business_tier = business.tier
+
+    mail(
+      to: ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com'),
+      subject: "Domain Change Request: #{@business.name} (##{@business.id})",
+      reply_to: @user.email
+    )
+  end
 end
