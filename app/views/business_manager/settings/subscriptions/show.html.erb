@@ -38,19 +38,28 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div>
               <div class="text-sm text-gray-500">Plan</div>
-              <div class="text-lg font-medium text-gray-900"><%= @subscription.plan_name.titleize %></div>
+              <div class="text-lg font-medium text-gray-900"><%= @subscription&.plan_name&.titleize || '—' %></div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Status</div>
               <div class="text-lg font-medium">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @subscription.status == 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
-                  <%= @subscription.status.titleize %>
+                <% subscription_status = @subscription&.status %>
+                <% status_label = subscription_status.present? ? subscription_status.titleize : 'None' %>
+                <% badge_classes = subscription_status == 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= badge_classes %>">
+                  <%= status_label %>
                 </span>
               </div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Current Period End</div>
-              <div class="text-lg font-medium text-gray-900"><%= l @subscription.current_period_end, format: :long %></div>
+              <div class="text-lg font-medium text-gray-900">
+                <% if @subscription&.current_period_end.present? %>
+                  <%= l @subscription.current_period_end, format: :long %>
+                <% else %>
+                  —
+                <% end %>
+              </div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Business Tier</div>
