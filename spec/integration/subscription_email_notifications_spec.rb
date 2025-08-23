@@ -20,7 +20,7 @@ RSpec.describe "Subscription Email Notifications", type: :request do
            business: business,
            service: service,
            tenant_customer: tenant_customer,
-           subscription_price: 49.99)
+           subscription_price: 29.99)
   end
 
   before do
@@ -56,7 +56,7 @@ RSpec.describe "Subscription Email Notifications", type: :request do
 
       email = ActionMailer::Base.deliveries.last
       expect(email.body.encoded).to include(service.name)
-      expect(email.body.encoded).to include('$49.99')
+      expect(email.body.encoded).to include('$29.99')
       expect(email.body.encoded).to include('monthly') # frequency
       expect(email.body.encoded).to include('1') # quantity
     end
@@ -204,7 +204,7 @@ RSpec.describe "Subscription Email Notifications", type: :request do
         expected_name = CGI.escapeHTML(tenant_customer.full_name)
         expect(email.body.encoded).to include(expected_name)
         expect(email.body.encoded).to include(service.name)
-        expect(email.body.encoded).to include('$49.99')
+        expect(email.body.encoded).to include('$29.99')
         expect(email.body.encoded).to include('monthly')
       end
     end

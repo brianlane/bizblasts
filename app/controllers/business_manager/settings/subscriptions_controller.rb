@@ -5,6 +5,7 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   before_action :set_business, except: [:webhook]
   before_action :set_subscription, only: [:show]
   before_action :set_stripe_api_key, only: [:create_checkout_session, :customer_portal_session, :webhook]
+  before_action :require_custom_domain_for_premium, only: [:create_checkout_session]
 
   # Webhook specific skips - it authenticates via Stripe signature and operates outside user session context
   skip_before_action :verify_authenticity_token, only: [:webhook]
@@ -114,6 +115,70 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
     render json: { message: :ok }, status: :ok
   end
 
+  def downgrade
+    authorize Subscription.new(business: @business), :update?, policy_class: Settings::SubscriptionPolicy
+
+    target_tier = params[:target_tier]
+    unless %w[free standard].include?(target_tier)
+      flash[:alert] = "Invalid downgrade target."
+      return redirect_to business_manager_settings_subscription_path
+    end
+
+    begin
+      subscription = @business.subscription
+
+      case target_tier
+      when 'free'
+        # Schedule cancellation at period end if we have an active Stripe subscription.
+        if subscription&.stripe_subscription_id.present?
+          Stripe::Subscription.update(
+            subscription.stripe_subscription_id,
+            { cancel_at_period_end: true }
+          )
+        end
+
+        # Immediately reflect tier change for feature gating, but leave subscription status untouched
+        # until Stripe webhook updates it. This avoids inconsistent states (local cancelled vs. Stripe active).
+        @business.update!(tier: 'free')
+        flash[:notice] = "Your subscription will be cancelled at the end of the current billing period. You'll move to the Free tier." unless flash[:notice]
+
+      when 'standard'
+        unless subscription&.stripe_subscription_id.present?
+          flash[:alert] = "No active subscription found to downgrade."
+          return redirect_to business_manager_settings_subscription_path
+        end
+
+        price_id = ENV['STRIPE_STANDARD_PRICE_ID']
+        raise "Standard price ID not configured" if price_id.blank?
+
+        stripe_sub = Stripe::Subscription.retrieve(subscription.stripe_subscription_id)
+        first_item_id = stripe_sub.items&.data&.first&.id
+        unless first_item_id
+          raise "Unable to determine Stripe subscription item to update"
+        end
+
+        Stripe::Subscription.update(
+          subscription.stripe_subscription_id,
+          {
+            items: [{ id: first_item_id, price: price_id }],
+            proration_behavior: 'create_prorations'
+          }
+        )
+
+        @business.update!(tier: 'standard')
+        flash[:notice] = "Your subscription has been downgraded to the Standard tier." unless flash[:notice]
+      end
+
+    rescue Stripe::StripeError => e
+      flash[:alert] = "Stripe error: #{e.message}"
+    rescue => e
+      Rails.logger.error("Downgrade error: #{e.message}")
+      flash[:alert] = "Unable to process downgrade. Please try again or contact support."
+    end
+
+    redirect_to business_manager_settings_subscription_path
+  end
+
   private
 
   def set_business
@@ -221,5 +286,15 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
     # Update business tier if necessary
     # current_tier = map_stripe_plan_to_tier(stripe_sub.items.data.first&.price&.id)
     # business.update(tier: current_tier) if current_tier && business.tier != current_tier
+  end
+
+  def require_custom_domain_for_premium
+    premium_price_id = ENV['STRIPE_PREMIUM_PRICE_ID']
+    return unless params[:price_id] == premium_price_id
+
+    unless @business.host_type_custom_domain? && @business.hostname.present?
+      flash[:alert] = "You must configure a custom domain before upgrading to Premium."
+      redirect_to business_manager_settings_business_path # path to business settings where domain can be set
+    end
   end
 end 
