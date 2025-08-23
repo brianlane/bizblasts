@@ -187,7 +187,7 @@
               <div class="subscription-plan bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary transition-all cursor-pointer flex flex-col h-full" data-tier="standard">
                 <div class="text-center flex flex-col h-full">
                   <h3 class="text-xl font-bold text-dark mb-2">Standard Plan</h3>
-                  <div class="text-3xl font-bold text-primary mb-4">$49<span class="text-sm text-gray-500">/month</span></div>
+                  <div class="text-3xl font-bold text-primary mb-4">$9.99<span class="text-sm text-gray-500">/month</span></div>
                   <div class="space-y-2 text-left text-sm text-gray-600 mb-6 flex-grow">
                     <p class="flex items-center"><span class="text-primary mr-2">✓</span>Text Reminders</p>
                     <p class="flex items-center"><span class="text-primary mr-2">✓</span>Customizable pages</p>
@@ -204,7 +204,7 @@
               <div class="subscription-plan bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary transition-all cursor-pointer flex flex-col h-full" data-tier="premium">
                 <div class="text-center flex flex-col h-full">
                   <h3 class="text-xl font-bold text-dark mb-2">Premium Plan</h3>
-                  <div class="text-3xl font-bold text-primary mb-4">$99<span class="text-sm text-gray-500">/month</span></div>
+                  <div class="text-3xl font-bold text-primary mb-4">$29.99<span class="text-sm text-gray-500">/month</span></div>
                   <div class="space-y-2 text-left text-sm text-gray-600 mb-6 flex-grow">
                     <p class="flex items-center"><span class="text-primary mr-2">✓</span>All features</p>
                     <p class="flex items-center"><span class="text-primary mr-2">✓</span>Lower fees</p>
@@ -317,7 +317,7 @@
           <!-- Notification Consent Checkbox -->
           <div class="flex items-start border-t border-gray-200 pt-3 mt-3">
             <%= f.check_box :bizblasts_notification_consent, 
-                  { checked: true, class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" }, 
+                  { class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" }, 
                   "1", "0" %>
             <label for="user_bizblasts_notification_consent" class="ml-3 text-sm text-gray-700">
               I would like to receive notifications from BizBlasts (email confirmations, text alerts, system updates, business tips, etc.)
@@ -415,7 +415,7 @@
         hostnameFieldDiv.style.display = 'block';
         hostnameInput.required = false; // Optional for paid tiers
         hostnameInput.placeholder = 'yourdomain';
-        hostnameHelpText.innerHTML = 'Enter your desired custom domain. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain.<br><small class="text-primary font-medium">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we\'ll contact you with alternatives.</small>';
+        hostnameHelpText.innerHTML = 'Enter your desired custom domain. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.<br><small class="text-primary font-medium">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we\'ll contact you with alternatives.</small>';
         const desc = tierDescriptionDiv.querySelector(`[data-tier="${selectedTier}"]`);
         if (desc) desc.style.display = 'block';
       } else {

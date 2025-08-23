@@ -30,7 +30,7 @@
     </div>
 
     <div class="px-4 py-5 sm:px-6">
-      <% if @subscription && @subscription.persisted? %>
+      <% if (@subscription && @subscription.persisted?) || @business.tier != 'free' %>
         <!-- Current Subscription Details -->
         <div class="bg-gray-50 rounded-lg p-6 mb-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">Current Subscription</h2>
@@ -67,10 +67,65 @@
             </div>
           </div>
 
-          <div class="pt-4 border-t border-gray-200">
-            <%= button_to "Manage Subscription", business_manager_settings_subscription_portal_path, 
-                  method: :post, 
+          <div class="pt-4 border-t border-gray-200 space-y-4">
+            <%= button_to "Manage Subscription", business_manager_settings_subscription_portal_path,
+                  method: :post,
+                  data: { turbo: false },
                   class: "inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+
+            <% if @business.tier == 'standard' %>
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-red-800 mb-2">Downgrade to Free</h3>
+                <p class="text-xs text-red-700 mb-3">You will lose access to the following features:</p>
+                <ul class="list-disc list-inside text-xs text-red-700 mb-3 space-y-1">
+                  <li>More Features</li>
+                  <li>Staff management (1-3 members)</li>
+                  <li>Customizable Pages</li>
+                  <li>Enhanced analytics</li>
+                  <li>Text Reminders</li>
+                </ul>
+                <%= button_to "Downgrade to Free",
+                      business_manager_settings_subscription_downgrade_path(target_tier: 'free'),
+                      method: :post,
+                      data: { turbo_confirm: 'Are you sure you want to downgrade to the Free tier? This will take effect at the end of your current billing period.' },
+                      class: "w-full inline-flex items-center justify-center px-6 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2" %>
+              </div>
+            <% elsif @business.tier == 'premium' %>
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-red-800 mb-2">Downgrade Options</h3>
+                <p class="text-xs text-red-700 mb-1">Features lost when downgrading:</p>
+                <div class="mb-3">
+                  <p class="text-xs font-semibold text-red-700">To Standard:</p>
+                  <ul class="list-disc list-inside text-xs text-red-700 space-y-1">
+                    <li>Custom Domain</li>
+                    <li>Smaller transaction fees (3% -> 5%)</li>
+                    <li>Priority support</li>
+                    <li>Unlimited staff members (limit 3 on Standard)</li>
+                  </ul>
+                  <%= button_to "Downgrade to Standard",
+                        business_manager_settings_subscription_downgrade_path(target_tier: 'standard'),
+                        method: :post,
+                        data: { turbo_confirm: 'Downgrade to Standard tier? Your pricing will change immediately.' },
+                        class: "mt-2 w-full inline-flex items-center justify-center px-6 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" %>
+                </div>
+                <hr class="my-2">
+                <div>
+                  <p class="text-xs font-semibold text-red-700">To Free:</p>
+                  <ul class="list-disc list-inside text-xs text-red-700 space-y-1">
+                    <li>All Premium and Standard features</li>
+                    <li>Staff management</li>
+                    <li>Customizable Pages</li>
+                    <li>Enhanced analytics</li>
+                    <li>Text Reminders</li>
+                  </ul>
+                  <%= button_to "Downgrade to Free",
+                        business_manager_settings_subscription_downgrade_path(target_tier: 'free'),
+                        method: :post,
+                        data: { turbo_confirm: 'Downgrade to Free tier? Your Premium subscription will be cancelled at period end.' },
+                        class: "mt-2 w-full inline-flex items-center justify-center px-6 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2" %>
+                </div>
+              </div>
+            <% end %>
           </div>
         </div>
       <% else %>
@@ -100,7 +155,7 @@
           <div class="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 transition-colors">
             <div class="text-center">
               <h3 class="text-xl font-bold text-gray-900 mb-2">Standard Plan</h3>
-              <div class="text-3xl font-bold text-blue-600 mb-4">$49<span class="text-sm text-gray-500">/month</span></div>
+              <div class="text-3xl font-bold text-blue-600 mb-4">$9.99<span class="text-sm text-gray-500">/month</span></div>
               
               <div class="space-y-3 text-left text-sm text-gray-600 mb-6">
                 <div class="flex items-center">
@@ -138,6 +193,7 @@
               <%= button_to "Upgrade to Standard", 
                     business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_STANDARD_PRICE_ID']), 
                     method: :post, 
+                    data: { turbo: false },
                     class: "w-full inline-flex items-center justify-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer" %>
             </div>
           </div>
@@ -146,7 +202,7 @@
           <div class="border-2 border-purple-300 rounded-xl p-6 relative bg-purple-50">
             <div class="text-center">
               <h3 class="text-xl font-bold text-gray-900 mb-2">Premium Plan</h3>
-              <div class="text-3xl font-bold text-purple-600 mb-4">$99<span class="text-sm text-gray-500">/month</span></div>
+              <div class="text-3xl font-bold text-purple-600 mb-4">$29.99<span class="text-sm text-gray-500">/month</span></div>
               
               <div class="space-y-3 text-left text-sm text-gray-600 mb-6">
                 <div class="flex items-center">
@@ -196,6 +252,7 @@
               <%= button_to "Upgrade to Premium", 
                     business_manager_settings_subscription_checkout_path(price_id: ENV['STRIPE_PREMIUM_PRICE_ID']), 
                     method: :post, 
+                    data: { turbo: false },
                     class: "w-full inline-flex items-center justify-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 cursor-pointer" %>
             </div>
           </div>
