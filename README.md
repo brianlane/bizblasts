@@ -37,14 +37,20 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 - ✅ **Automatic SSL** - HTTPS certificates provisioned automatically
 - ✅ **Tier-Based Controls** - Domain removal on tier downgrades
 - ✅ **Timeout Assistance** - Troubleshooting emails when setup fails
+- ✅ **Domain Change Request Interface** - Intuitive form for requesting domain changes
+- ✅ **Tier-Conditional UI** - Interface adapts based on business subscription tier
+- ✅ **Rich Dropdown Components** - Enhanced UX with fancy JavaScript dropdowns
 
 **Custom Domain Workflow:**
-1. Premium business configures custom domain in settings
-2. System adds domain to Render.com via API
-3. Email sent with CNAME setup instructions (`domain.com` → `bizblasts.onrender.com`)
-4. DNS monitoring checks every 5 minutes for 1 hour
-5. Domain automatically activated when CNAME verified
-6. SSL certificate provisioned by Render.com
+1. Business submits domain change request through settings interface
+2. System sends email notification to BizBlasts team for review
+3. Team reviews request and contacts business within 24-48 hours
+4. For custom domains: Domain ownership verification assistance provided
+5. System adds approved domain to Render.com via API
+6. Email sent with CNAME setup instructions (`domain.com` → `bizblasts.onrender.com`)
+7. DNS monitoring checks every 5 minutes for 1 hour
+8. Domain automatically activated when CNAME verified
+9. SSL certificate provisioned by Render.com
 
 **Environment Variables Required:**
 ```bash
@@ -52,6 +58,26 @@ RENDER_API_KEY=your_render_api_key_here
 RENDER_SERVICE_ID=your_render_service_id_here
 SUPPORT_EMAIL=bizblaststeam@gmail.com
 ```
+
+### **Domain Change Request Features**
+
+**🎨 Tier-Adaptive Interface:**
+- **Premium Tier**: Full access to custom domain and subdomain options
+- **Free/Standard Tier**: Subdomain-only interface with upgrade prompts
+- **Smart Labels**: Contextual field labels based on subscription tier
+- **Conditional Content**: Premium-specific process steps and domain availability tools
+
+**✨ Enhanced UX Components:**
+- **Rich JavaScript Dropdowns**: Replaced HTML selects with interactive dropdowns
+- **Hover Effects**: Proper color transitions for buttons and links
+- **Consistent Spacing**: Uniform `mb-8` spacing between all form sections
+- **Visual Feedback**: Loading states, validation, and success/error messaging
+
+**🔧 Technical Implementation:**
+- **Route Integration**: `/manage/settings/business/edit` with domain change form
+- **Email Notifications**: Automatic team notifications via `DomainMailer`
+- **Turbo Compatible**: Works seamlessly with Rails 8 Hotwire stack
+- **Form Validation**: Real-time validation with proper error handling
 
 ---
 

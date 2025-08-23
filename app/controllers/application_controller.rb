@@ -37,6 +37,9 @@ class ApplicationController < ActionController::Base
 
   # Handle Pundit NotAuthorizedError
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+  
+  # Handle unsafe redirect errors (e.g., when already-signed-in users access registration)
+  rescue_from ActionController::Redirecting::UnsafeRedirectError, with: :handle_unsafe_redirect
 
   # Allow manually setting tenant in tests
   def self.allow_tenant_params
@@ -251,6 +254,13 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, allow_other_host: true and return
   end
 
+  def handle_unsafe_redirect
+    # Log the unsafe redirect attempt for debugging
+    Rails.logger.warn "[UnsafeRedirect] User #{current_user&.id || 'anonymous'} attempted unsafe redirect from #{request.fullpath}"
+    
+    # Render the standard Rails 404 page instead of showing Rails error
+    render file: Rails.root.join('public', '404.html'), status: :not_found, layout: false
+  end
 
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in
