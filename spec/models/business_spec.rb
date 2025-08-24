@@ -106,7 +106,7 @@ RSpec.describe Business, type: :model do
       
       it 'validates that host type must be subdomain' do
         expect(subject).not_to be_valid
-        expect(subject.errors[:host_type]).to include("must be 'subdomain' for the Free tier")
+        expect(subject.errors[:host_type]).to include("must be 'subdomain' for Free and Standard tiers")
       end
     end
   end
