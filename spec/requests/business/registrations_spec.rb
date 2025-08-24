@@ -254,7 +254,7 @@ RSpec.describe "Business::Registrations", type: :request do
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
         expect(response).to have_http_status(:unprocessable_content)
-        expect(response.body).to match(/id="error_explanation".*Host type must be &#39;subdomain&#39; for the Free tier/m)
+        expect(response.body).to match(/id="error_explanation".*Host type must be &#39;subdomain&#39; for Free and Standard tiers/m)
       end
     end
 
