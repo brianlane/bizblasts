@@ -327,7 +327,7 @@ RSpec.describe Business, type: :model do
         free_business = build(:business, tier: 'free', host_type: 'custom_domain')
 
         expect(free_business).not_to be_valid
-        expect(free_business.errors[:host_type]).to include("must be 'subdomain' for the Free tier")
+        expect(free_business.errors[:host_type]).to include("must be 'subdomain' for Free and Standard tiers")
       end
     end
   end
