@@ -5,7 +5,7 @@ require 'ostruct'
 # Base mailer class for all application mailers
 # Sets default from address and layout
 class ApplicationMailer < ActionMailer::Base
-  default from: ENV['MAILER_EMAIL']
+  default from: ENV['MAILER_EMAIL'], reply_to: ENV['SUPPORT_EMAIL']
   layout "mailer"
   # Include all helpers so that mailer views can access view helpers such as
   # service_with_variant, service_duration, etc.

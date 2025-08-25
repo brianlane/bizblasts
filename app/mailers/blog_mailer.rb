@@ -12,7 +12,8 @@ class BlogMailer < ApplicationMailer
     
     mail(
       to: user.email,
-      subject: "New Blog Post: #{blog_post.title} - BizBlasts"
+      subject: "New Blog Post: #{blog_post.title} - BizBlasts",
+      reply_to: @support_email
     )
   end
   
@@ -29,7 +30,8 @@ class BlogMailer < ApplicationMailer
     
     mail(
       to: user.email,
-      subject: "BizBlasts Weekly Update - #{@week_start.strftime('%B %d')} to #{@week_end.strftime('%B %d, %Y')}"
+      subject: "BizBlasts Weekly Update - #{@week_start.strftime('%B %d')} to #{@week_end.strftime('%B %d, %Y')}",
+      reply_to: @support_email
     )
   end
 end 

@@ -217,7 +217,7 @@ class Business < ApplicationRecord
 
   # Subdomain format validation – only run if the hostname itself is being modified.
   # This prevents tier/host_type changes from failing validations when the hostname
-  # hasn’t been altered (e.g. in tests that toggle host_type only).
+  # hasn't been altered (e.g. in tests that toggle host_type only).
   validates :hostname,
             format: {
               with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/,
@@ -227,7 +227,7 @@ class Business < ApplicationRecord
               in: %w(www admin mail api help support status blog),
               message: "'%{value}' is reserved."
             },
-            if: -> { host_type_subdomain? && (new_record? || will_save_change_to_hostname?) }
+            if: -> { host_type_subdomain? }
             
   # Custom domain format validation – likewise only when hostname is changing.
   validates :hostname,
@@ -235,7 +235,7 @@ class Business < ApplicationRecord
               with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/,
               message: "is not a valid domain name"
             },
-            if: -> { host_type_custom_domain? && (new_record? || will_save_change_to_hostname?) }
+            if: -> { host_type_custom_domain? }
             
   # Apply subdomain-only rule **only when creating** a Free or Standard business;
   # allows later downgrades from Premium to proceed so DomainRemovalService can run.
@@ -590,6 +590,16 @@ class Business < ApplicationRecord
   def can_setup_custom_domain?
     premium_tier? && host_type_custom_domain? && !cname_active?
   end
+
+  # ---------------------------------------------------------------------------
+  # Convenience flag
+  # ---------------------------------------------------------------------------
+  # Returns true when the business *should* be served from its custom domain –
+  # i.e., the tenant *is* a custom-domain host *and* the CNAME/DNS has been
+  # validated *and* Render reports the domain attached (SSL issued).
+  def custom_domain_allow?
+    host_type_custom_domain? && cname_active? && render_domain_added?
+  end
   
   # Method to get the full URL for this business
   def full_url(path = nil)
@@ -731,6 +741,7 @@ class Business < ApplicationRecord
   #    off the setup sequence automatically – but only if the setup hasn’t
   #    already been started/completed.
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
+  after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
 
   # ---------------------------------------------------------------------------
   # Callback helpers (private)
@@ -772,6 +783,21 @@ class Business < ApplicationRecord
     end
   end
 
+  # Triggered after *update* when host_type changes from subdomain -> custom_domain on a premium business.
+  def trigger_custom_domain_setup_after_host_type_change
+    return if Rails.env.test?
+    return unless saved_change_to_host_type? && host_type_custom_domain?
+    return unless premium_tier? && hostname.present?
+    # Skip if setup already running or completed
+    return if cname_pending? || cname_monitoring? || cname_active?
+    begin
+      Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for Business ##{id} after host_type change (subdomain -> custom_domain)"
+      CnameSetupService.new(self).start_setup!
+    rescue => e
+      Rails.logger.error "[BUSINESS CALLBACK] Failed to start custom-domain setup after host_type change for Business ##{id}: #{e.message}"
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Existing private methods continue below
   # ---------------------------------------------------------------------------
@@ -791,9 +817,15 @@ class Business < ApplicationRecord
   
   def normalize_hostname
     return if hostname.blank?
-    self.hostname = hostname.downcase.strip
+    self.hostname = hostname.to_s.downcase.strip
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
+  end
+  # Ensure hostname populated for subdomain mode using subdomain column (if provided)
+  before_validation do
+    if host_type_subdomain?
+      self.hostname = subdomain if subdomain.present?
+    end
   end
 
   def normalize_stripe_customer_id

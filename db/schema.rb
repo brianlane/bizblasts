@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_22_201249) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_25_045412) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -257,6 +257,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_22_201249) do
     t.integer "cname_check_attempts", default: 0, null: false
     t.boolean "render_domain_added", default: false, null: false
     t.string "status", default: "active", null: false
+    t.boolean "custom_domain_owned"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"

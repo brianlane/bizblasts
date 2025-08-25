@@ -187,7 +187,7 @@ Rails.application.routes.draw do
           get :stripe_onboarding
           post :refresh_stripe
           delete :disconnect_stripe
-          post :request_domain_change
+          post :check_subdomain_availability
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]

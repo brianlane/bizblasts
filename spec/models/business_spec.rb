@@ -3,7 +3,22 @@
 require 'rails_helper'
 
 RSpec.describe Business, type: :model do
-  subject { build(:business) } # Use subject for concise tests
+  subject { 
+    Business.new(
+      hostname: 'test-business',
+      host_type: 'subdomain',
+      name: 'Test Business',
+      industry: 'other',
+      phone: '555-555-5555',
+      email: 'test@example.com',
+      address: '123 Test St',
+      city: 'Test',
+      state: 'CA',
+      zip: '90210',
+      description: 'A test business',
+      tier: 'free'
+    )
+  }
 
   describe 'associations' do
     it { is_expected.to belong_to(:service_template).optional }
@@ -63,7 +78,21 @@ RSpec.describe Business, type: :model do
 
     # Hostname Format
     context 'when host type is subdomain' do
-      subject { build(:business, host_type: :subdomain) }
+      subject { 
+        Business.new(
+          host_type: :subdomain,
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'free'
+        )
+      }
       
       it { is_expected.to allow_value('valid-subdomain123').for(:hostname) }
       it { is_expected.to allow_value('test').for(:hostname) }
@@ -74,7 +103,21 @@ RSpec.describe Business, type: :model do
     end
     
     context 'when host type is custom domain' do
-      subject { build(:business, host_type: :custom_domain) }
+      subject { 
+        Business.new(
+          host_type: :custom_domain,
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'premium'
+        )
+      }
       
       it { is_expected.to allow_value('example.com').for(:hostname) }
       it { is_expected.to allow_value('sub.example-test.co.uk').for(:hostname) }  
@@ -114,19 +157,58 @@ RSpec.describe Business, type: :model do
   describe 'callbacks' do
     describe '#normalize_hostname' do
       it 'downcases and normalizes hostname for subdomains' do
-        business = build(:business, hostname: '  My-Test--Subdomain123!  ', host_type: 'subdomain')
+        business = Business.new(
+          hostname: '  My-Test--Subdomain123!  ', 
+          host_type: 'subdomain',
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'free'
+        )
         business.valid? # Trigger callback
         expect(business.hostname).to eq('my-test--subdomain123!')
       end
       
       it 'downcases and strips hostname for custom domains' do
-        business = build(:business, hostname: '  EXAMPLE.COM  ', host_type: 'custom_domain')  
+        business = Business.new(
+          hostname: '  EXAMPLE.COM  ',
+          host_type: 'custom_domain',
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'premium'
+        )
         business.valid?
         expect(business.hostname).to eq('example.com')
       end
 
       it 'handles blank hostname' do
-        business = build(:business, hostname: nil)
+        business = Business.new(
+          hostname: nil,
+          host_type: 'subdomain',
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'free'
+        )
         expect(business).not_to be_valid
         expect(business.errors[:hostname]).to include("can't be blank")
       end

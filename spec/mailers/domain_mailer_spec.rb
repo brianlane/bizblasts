@@ -26,7 +26,7 @@ RSpec.describe DomainMailer, type: :mailer do
     it 'renders the headers' do
       expect(mail.subject).to eq('Custom Domain Setup Instructions for Test Business')
       expect(mail.to).to eq(['owner@example.com'])
-      expect(mail.from).to eq(['bizblaststeam@gmail.com'])
+      expect(mail.from).to eq([ENV['MAILER_EMAIL']])
     end
 
     it 'assigns instance variables' do
@@ -196,19 +196,19 @@ RSpec.describe DomainMailer, type: :mailer do
   describe 'default configuration' do
     it 'uses correct default from address' do
       mail = described_class.setup_instructions(business, user)
-      expect(mail.from).to eq(['bizblaststeam@gmail.com'])
+      expect(mail.from).to eq([ENV['MAILER_EMAIL']])
     end
 
     it 'falls back to default support email when ENV not set' do
       ENV.delete('SUPPORT_EMAIL')
       mail = described_class.setup_instructions(business, user)
-      expect(mail.from).to eq(['bizblaststeam@gmail.com'])
+      expect(mail.from).to eq([ENV['MAILER_EMAIL']])
     end
 
     it 'uses custom support email from ENV' do
       ENV['SUPPORT_EMAIL'] = 'custom@example.com'
       mail = described_class.setup_instructions(business, user)
-      expect(mail.from).to eq(['bizblaststeam@gmail.com'])
+      expect(mail.from).to eq([ENV['MAILER_EMAIL']])
       ENV.delete('SUPPORT_EMAIL')
     end
   end

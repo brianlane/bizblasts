@@ -10,6 +10,7 @@ class ContactMailer < ApplicationMailer
 
     mail(to: ENV['SUPPORT_EMAIL'],
          from: email, # Set reply-to to the sender's email
-         subject: "New Contact Form Message: #{subject}")
+         subject: "New Contact Form Message: #{subject}",
+         reply_to: @support_email)
   end
 end 

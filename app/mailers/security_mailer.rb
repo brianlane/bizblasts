@@ -12,7 +12,8 @@ class SecurityMailer < ApplicationMailer
     mail(
       to: admin_email,
       subject: "[SECURITY ALERT] #{event_type.to_s.humanize} - BizBlasts",
-      from: 'security@bizblasts.com'
+      from: 'team@bizblasts.com',
+      reply_to: @support_email
     )
   end
 end

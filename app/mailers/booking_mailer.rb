@@ -25,7 +25,8 @@ class BookingMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Booking Status Update - #{@business.name}"
+      subject: "Booking Status Update - #{@business.name}",
+      reply_to: @business.email
     )
   end
   
@@ -38,7 +39,8 @@ class BookingMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Booking Cancelled - #{@business.name}"
+      subject: "Booking Cancelled - #{@business.name}",
+      reply_to: @business.email
     )
   end
   
@@ -51,7 +53,8 @@ class BookingMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Reminder: Your Upcoming Booking - #{@business.name}"
+      subject: "Reminder: Your Upcoming Booking - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -81,7 +84,8 @@ class BookingMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: subject
+      subject: subject,
+      reply_to: @business.email
     )
   end
 
@@ -97,7 +101,8 @@ class BookingMailer < ApplicationMailer
     mail(
       to: @customer.email,
       subject: "Subscription Booking Scheduled - #{@service.name}",
-      from: @business.email
+      from: @business.email,
+      reply_to: @business.email
     )
   end
 
