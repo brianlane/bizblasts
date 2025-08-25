@@ -7,7 +7,8 @@ class PolicyMailer < ApplicationMailer
     
     mail(
       to: user.email,
-      subject: "Important: BizBlasts Policy Updates - Action Required"
+      subject: "Important: BizBlasts Policy Updates - Action Required",
+      reply_to: @support_email
     )
   end
 end 

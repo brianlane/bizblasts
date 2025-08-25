@@ -217,7 +217,7 @@ class Business < ApplicationRecord
 
   # Subdomain format validation – only run if the hostname itself is being modified.
   # This prevents tier/host_type changes from failing validations when the hostname
-  # hasn’t been altered (e.g. in tests that toggle host_type only).
+  # hasn't been altered (e.g. in tests that toggle host_type only).
   validates :hostname,
             format: {
               with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/,
@@ -227,7 +227,7 @@ class Business < ApplicationRecord
               in: %w(www admin mail api help support status blog),
               message: "'%{value}' is reserved."
             },
-            if: -> { host_type_subdomain? && (new_record? || will_save_change_to_hostname?) }
+            if: -> { host_type_subdomain? }
             
   # Custom domain format validation – likewise only when hostname is changing.
   validates :hostname,
@@ -235,7 +235,7 @@ class Business < ApplicationRecord
               with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/,
               message: "is not a valid domain name"
             },
-            if: -> { host_type_custom_domain? && (new_record? || will_save_change_to_hostname?) }
+            if: -> { host_type_custom_domain? }
             
   # Apply subdomain-only rule **only when creating** a Free or Standard business;
   # allows later downgrades from Premium to proceed so DomainRemovalService can run.
@@ -817,7 +817,7 @@ class Business < ApplicationRecord
   
   def normalize_hostname
     return if hostname.blank?
-    self.hostname = hostname.downcase.strip
+    self.hostname = hostname.to_s.downcase.strip
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
   end

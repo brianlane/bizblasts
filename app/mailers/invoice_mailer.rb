@@ -13,7 +13,8 @@ class InvoiceMailer < ApplicationMailer
     
     result = mail(
       to: @customer.email,
-      subject: "Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
     
     Rails.logger.info "[EMAIL] InvoiceMailer.invoice_created mail object created successfully for: #{@customer.email}"
@@ -37,7 +38,8 @@ class InvoiceMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Payment Received - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Payment Received - Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -57,7 +59,8 @@ class InvoiceMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Payment Reminder - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Payment Reminder - Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -77,7 +80,8 @@ class InvoiceMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Payment Failed - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Payment Failed - Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 

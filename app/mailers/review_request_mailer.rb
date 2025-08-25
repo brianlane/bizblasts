@@ -60,7 +60,8 @@ class ReviewRequestMailer < ApplicationMailer
       to: @customer.email,
       subject: subject_line,
       template_path: 'review_request_mailer',
-      template_name: 'review_request_email'
+      template_name: 'review_request_email',
+      reply_to: @business.email
     )
     
   rescue => e
