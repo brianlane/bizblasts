@@ -13,13 +13,16 @@ class BusinessMailer < ApplicationMailer
     return unless @business.present?
     
     @domain_requested = @business.hostname if @business.host_type_custom_domain?
+    @subdomain_requested = @business.subdomain
+    @custom_domain_owned = @business.custom_domain_owned || false
     
     # Set unsubscribe token for the user
     set_unsubscribe_token(user)
     
     mail(
       to: @user.email,
-      subject: "Custom Domain Request Received - #{@business.name}"
+      subject: "Custom Domain Request Received - #{@business.name}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for domain request notification: #{e.message}"
@@ -63,7 +66,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "New Booking: #{@customer.full_name} - #{@service.name}"
+      subject: "New Booking: #{@customer.full_name} - #{@service.name}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for booking notification: #{e.message}"
@@ -95,7 +99,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "New Order: #{@customer.full_name} - Order ##{@order.id}"
+      subject: "New Order: #{@customer.full_name} - Order ##{@order.id}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for order notification: #{e.message}"
@@ -135,7 +140,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "New Customer: #{@customer.full_name}"
+      subject: "New Customer: #{@customer.full_name}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for customer notification: #{e.message}"
@@ -178,7 +184,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: subject
+      subject: subject,
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for payment notification: #{e.message}"
@@ -208,7 +215,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "New Subscription: #{@customer.full_name} - #{@item.name}"
+      subject: "New Subscription: #{@customer.full_name} - #{@item.name}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for subscription notification: #{e.message}"
@@ -247,7 +255,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "Subscription Order: #{@customer.full_name} - Order ##{@order.id}"
+      subject: "Subscription Order: #{@customer.full_name} - Order ##{@order.id}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for subscription order notification: #{e.message}"
@@ -290,7 +299,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "Subscription Booking: #{@customer.full_name} - #{@service.name}"
+      subject: "Subscription Booking: #{@customer.full_name} - #{@service.name}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for subscription booking notification: #{e.message}"
@@ -320,7 +330,8 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "Subscription Payment Failed: #{@customer.full_name} - #{@item.name}"
+      subject: "Subscription Payment Failed: #{@customer.full_name} - #{@item.name}",
+      reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for payment failed notification: #{e.message}"
@@ -350,8 +361,9 @@ class BusinessMailer < ApplicationMailer
     
     mail(
       to: business_user.email,
-      subject: "Subscription Cancelled: #{@customer.full_name} - #{@item.name}"
-    )
+      subject: "Subscription Cancelled: #{@customer.full_name} - #{@item.name}",
+      reply_to: @support_email
+      )
   rescue ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BusinessMailer] Business not found for subscription cancelled notification: #{e.message}"
     return nil
