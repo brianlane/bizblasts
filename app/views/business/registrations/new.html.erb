@@ -243,6 +243,38 @@
             </div>
           </div>
 
+          <!-- Host Type Handling -->
+          <%= business_f.hidden_field :host_type, value: 'subdomain', id: 'host_type_input' %>
+
+          <!-- Domain Mode toggle appears only when Premium tier selected -->
+          <div id="premium-domain-toggle" class="mt-6" style="display:none;">
+            <label class="block text-sm font-medium text-dark mb-2">Domain Mode</label>
+            <div class="flex items-center gap-6">
+              <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="domain_mode" value="subdomain" id="reg_host_sub" class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" checked>
+                <span class="text-sm">BizBlasts Subdomain</span>
+              </label>
+              <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="domain_mode" value="custom_domain" id="reg_host_custom" class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                <span class="text-sm">Custom Domain</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Dual Inputs -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="premium-domain-inputs" style="display:none;">
+            <div id="reg_subdomain_group">
+              <%= business_f.label :subdomain, "Subdomain", class: "block text-sm font-medium text-dark mb-1" %>
+              <%= business_f.text_field :subdomain, placeholder: "your-biz", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
+              <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
+            </div>
+            <div id="reg_custom_group" style="display:none;">
+              <%= business_f.label :hostname, "Custom Domain", class: "block text-sm font-medium text-dark mb-1" %>
+              <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
+              <p class="text-xs text-gray-500 mt-1">Enter full domain (must point CNAME to BizBlasts)</p>
+            </div>
+          </div>
+
           <!-- Hostname Field -->
           <div id="hostname-field" class="mt-6" style="display: none;">
             <%= business_f.label :hostname, class: "block text-sm font-medium text-dark mb-2" %>
@@ -354,6 +386,13 @@
     const tierDescriptionDiv = document.getElementById('tier-descriptions');
     const planSelectButtons = document.querySelectorAll('.plan-select-btn');
     const subscriptionPlans = document.querySelectorAll('.subscription-plan');
+    const domainToggle = document.getElementById('premium-domain-toggle');
+    const domainInputsWrapper = document.getElementById('premium-domain-inputs');
+    const hostTypeHidden = document.getElementById('host_type_input');
+    const radioRegSub = document.getElementById('reg_host_sub');
+    const radioRegCustom = document.getElementById('reg_host_custom');
+    const regSubGroup = document.getElementById('reg_subdomain_group');
+    const regCustomGroup = document.getElementById('reg_custom_group');
 
     function selectPlan(tier) {
       // Update hidden field
@@ -394,6 +433,16 @@
       }
       
       toggleFields(tier);
+
+      // Premium extra ui
+      if (tier === 'premium') {
+        domainToggle.style.display = '';
+        domainInputsWrapper.style.display = '';
+      } else {
+        domainToggle.style.display = 'none';
+        domainInputsWrapper.style.display = 'none';
+        hostTypeHidden.value = 'subdomain';
+      }
     }
 
     function toggleFields(selectedTier) {
@@ -423,7 +472,47 @@
         hostnameInput.required = false;
         hostnameInput.placeholder = ''; // Clear placeholder
       }
+
+      // Toggle premium domain inputs
+      if (selectedTier === 'premium') {
+        domainToggle.style.display = 'block';
+        domainInputsWrapper.style.display = 'grid';
+        hostTypeHidden.value = 'custom_domain'; // Ensure it's custom_domain for premium
+        radioRegSub.checked = false;
+        radioRegCustom.checked = true;
+        regSubGroup.style.display = 'none';
+        regCustomGroup.style.display = 'block';
+      } else {
+        domainToggle.style.display = 'none';
+        domainInputsWrapper.style.display = 'none';
+        hostTypeHidden.value = 'subdomain'; // Ensure it's subdomain for free/standard
+        radioRegSub.checked = true;
+        radioRegCustom.checked = false;
+        regSubGroup.style.display = 'block';
+        regCustomGroup.style.display = 'none';
+      }
     }
+
+    // handle domain mode radios
+    function updateDomainMode() {
+      if (!radioRegSub || !radioRegCustom) return;
+      if (radioRegSub.checked) {
+        regSubGroup.style.display = '';
+        regCustomGroup.style.display = 'none';
+        hostTypeHidden.value = 'subdomain';
+      } else {
+        regSubGroup.style.display = 'none';
+        regCustomGroup.style.display = '';
+        hostTypeHidden.value = 'custom_domain';
+      }
+    }
+
+    if (radioRegSub && radioRegCustom) {
+      radioRegSub.addEventListener('change', updateDomainMode);
+      radioRegCustom.addEventListener('change', updateDomainMode);
+    }
+
+    updateDomainMode();
 
     // Add click handlers to plan selection buttons
     planSelectButtons.forEach(button => {
