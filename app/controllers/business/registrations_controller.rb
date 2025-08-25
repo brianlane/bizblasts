@@ -119,7 +119,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
         :description, :tier, 
-        :hostname, # Permit the single hostname field
+        :hostname, :subdomain, :host_type,
         :platform_referral_code # Permit platform referral code
         # Removed :subdomain, :domain
       ],
@@ -200,7 +200,7 @@ class Business::RegistrationsController < Users::RegistrationsController
   def business_params
     params.require(:user).fetch(:business_attributes, {}).permit(
       :name, :industry, :phone, :email, :address, :city, :state, :zip,
-      :description, :tier, :hostname 
+      :description, :tier, :hostname, :subdomain, :host_type 
     )
   end
   
