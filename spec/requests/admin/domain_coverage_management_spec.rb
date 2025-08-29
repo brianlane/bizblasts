@@ -127,7 +127,7 @@ RSpec.describe "Admin Domain Coverage Management", type: :request, admin: true d
         
         # Check redirect success instead of follow_redirect! to avoid issues
         expect(response).to have_http_status(:redirect)
-        expect(response).to redirect_to(admin_business_path(new_business))
+        expect(response).to redirect_to(admin_business_path(new_business.id))
       end
     end
 
@@ -152,7 +152,7 @@ RSpec.describe "Admin Domain Coverage Management", type: :request, admin: true d
         expect(premium_business.domain_coverage_notes).to eq('Updated coverage information')
         
         # Check redirect success instead of follow_redirect! to avoid issues
-        expect(response).to redirect_to(admin_business_path(premium_business))
+        expect(response).to redirect_to(admin_business_path(premium_business.id))
       end
     end
   end

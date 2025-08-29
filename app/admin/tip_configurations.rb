@@ -11,7 +11,7 @@ ActiveAdmin.register TipConfiguration do
     selectable_column
     id_column
     column :business do |config|
-      link_to config.business.name, admin_business_path(config.business) if config.business
+      link_to config.business.name, admin_business_path(config.business.id) if config.business
     end
     column :default_tip_percentages do |config|
       config.tip_percentage_options.map { |p| "#{p}%" }.join(", ")
@@ -30,7 +30,7 @@ ActiveAdmin.register TipConfiguration do
     attributes_table do
       row :id
       row :business do |config|
-        link_to config.business.name, admin_business_path(config.business)
+        link_to config.business.name, admin_business_path(config.business.id)
       end
       row :default_tip_percentages do |config|
         config.default_tip_percentages&.join(", ")

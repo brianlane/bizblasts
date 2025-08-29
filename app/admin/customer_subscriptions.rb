@@ -29,7 +29,7 @@ ActiveAdmin.register CustomerSubscription do
     id_column
     
     column :business do |subscription|
-      link_to subscription.business.name, admin_business_path(subscription.business)
+      link_to subscription.business.name, admin_business_path(subscription.business.id)
     end
     
     column :customer do |subscription|
@@ -86,7 +86,7 @@ ActiveAdmin.register CustomerSubscription do
     attributes_table do
       row :id
       row :business do |subscription|
-        link_to subscription.business.name, admin_business_path(subscription.business)
+        link_to subscription.business.name, admin_business_path(subscription.business.id)
       end
       row :customer do |subscription|
         div do
