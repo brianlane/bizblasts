@@ -269,7 +269,7 @@ class Business < ApplicationRecord
   end
   
   def to_param
-    hostname
+    id.to_s
   end
   
   def active_services

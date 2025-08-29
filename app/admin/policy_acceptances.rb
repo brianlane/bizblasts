@@ -53,7 +53,7 @@ ActiveAdmin.register PolicyAcceptance do
           end
           row :business do |user|
             if user.business
-              link_to user.business.name, admin_business_path(user.business)
+              link_to user.business.name, admin_business_path(user.business.id)
             else
               span "No Business", class: 'empty'
             end

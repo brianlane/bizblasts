@@ -15,7 +15,7 @@ ActiveAdmin.register Tip do
     selectable_column
     id_column
     column :business do |tip|
-      link_to tip.business.name, admin_business_path(tip.business) if tip.business
+      link_to tip.business.name, admin_business_path(tip.business.id) if tip.business
     end
     column :booking do |tip|
       link_to "Booking ##{tip.booking.id}", admin_booking_path(tip.booking) if tip.booking
@@ -41,7 +41,7 @@ ActiveAdmin.register Tip do
     attributes_table do
       row :id
       row :business do |tip|
-        link_to tip.business.name, admin_business_path(tip.business)
+        link_to tip.business.name, admin_business_path(tip.business.id)
       end
       row :booking do |tip|
         link_to "Booking ##{tip.booking.id}", admin_booking_path(tip.booking)

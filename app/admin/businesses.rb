@@ -150,12 +150,12 @@ ActiveAdmin.register Business do
       result = setup_service.start_setup!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Domain setup failed: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Domain setup failed: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error starting domain setup: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error starting domain setup: #{e.message}"
     end
   end
 
@@ -165,12 +165,12 @@ ActiveAdmin.register Business do
       result = setup_service.restart_monitoring!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Failed to restart monitoring: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Failed to restart monitoring: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error restarting monitoring: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error restarting monitoring: #{e.message}"
     end
   end
 
@@ -180,12 +180,12 @@ ActiveAdmin.register Business do
       result = setup_service.force_activate!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Failed to activate domain: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Failed to activate domain: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error activating domain: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error activating domain: #{e.message}"
     end
   end
 
@@ -195,12 +195,12 @@ ActiveAdmin.register Business do
       result = removal_service.remove_domain!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Failed to remove domain: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Failed to remove domain: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error removing domain: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error removing domain: #{e.message}"
     end
   end
 
@@ -535,25 +535,25 @@ ActiveAdmin.register Business do
         # Domain management actions
         div class: "domain-actions", style: "margin-top: 15px;" do
           if business.can_setup_custom_domain?
-            link_to "Start Domain Setup", start_domain_setup_admin_business_path(business), 
+            link_to "Start Domain Setup", start_domain_setup_admin_business_path(business.id), 
                     method: :post, class: "button", 
                     data: { confirm: "This will start the CNAME setup process and send setup instructions via email. Continue?" }
           end
           
           if ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(business.status)
-            link_to "Restart Monitoring", restart_domain_monitoring_admin_business_path(business), 
+            link_to "Restart Monitoring", restart_domain_monitoring_admin_business_path(business.id), 
                     method: :post, class: "button", 
                     data: { confirm: "This will restart DNS monitoring for another hour. Continue?" }
           end
           
           if business.premium_tier? && business.host_type_custom_domain?
-            link_to "Force Activate Domain", force_activate_domain_admin_business_path(business), 
+            link_to "Force Activate Domain", force_activate_domain_admin_business_path(business.id), 
                     method: :post, class: "button", 
                     data: { confirm: "This will bypass DNS verification and immediately activate the domain. Use only if DNS is properly configured. Continue?" }
           end
           
           if business.cname_active? || business.status.in?(['cname_pending', 'cname_monitoring', 'cname_timeout'])
-            link_to "Remove Custom Domain", disable_custom_domain_admin_business_path(business), 
+            link_to "Remove Custom Domain", disable_custom_domain_admin_business_path(business.id), 
                     method: :post, class: "button button-danger", style: "background-color: #dc3545; color: white;",
                     data: { confirm: "⚠️ WARNING: This will permanently remove the custom domain and revert to subdomain hosting (#{business.subdomain || business.hostname}.bizblasts.com). The domain will no longer work for this business. This action cannot be undone. Are you sure you want to continue?" }
           end
