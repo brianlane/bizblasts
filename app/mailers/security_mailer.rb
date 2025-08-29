@@ -5,6 +5,7 @@ class SecurityMailer < ApplicationMailer
     @event_type = event_type
     @message = message
     @timestamp = timestamp
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     admin_email = ENV['ADMIN_EMAIL']
     return unless admin_email.present?
@@ -12,7 +13,8 @@ class SecurityMailer < ApplicationMailer
     mail(
       to: admin_email,
       subject: "[SECURITY ALERT] #{event_type.to_s.humanize} - BizBlasts",
-      from: 'security@bizblasts.com'
+      from: 'team@bizblasts.com',
+      reply_to: @support_email
     )
   end
 end

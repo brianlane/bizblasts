@@ -243,13 +243,36 @@
             </div>
           </div>
 
-          <!-- Hostname Field -->
-          <div id="hostname-field" class="mt-6" style="display: none;">
-            <%= business_f.label :hostname, class: "block text-sm font-medium text-dark mb-2" %>
-            <%= business_f.text_field :hostname, placeholder: "your-biz.bizblasts.com or www.yourdomain.com",
-                  class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
-            <p id="hostname-help-text" class="text-xs text-gray-500 mt-1"></p>
+          <!-- Host Type Handling -->
+          <%= business_f.hidden_field :host_type, value: 'subdomain', id: 'host_type_input' %>
+
+          <!-- Subdomain field for all tiers -->
+          <div class="mt-6">
+            <%= business_f.label :subdomain, "Subdomain", class: "block text-sm font-medium text-dark mb-1" %>
+            <%= business_f.text_field :subdomain, placeholder: "your-biz", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors", id: "registration_subdomain_field" %>
+            <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
           </div>
+
+          <!-- Premium Domain Options (additional custom domain option) -->
+          <div id="premium-domain-inputs" class="mt-6" style="display:none;">
+            <div id="reg_custom_group">
+              <%= business_f.label :hostname, "Custom Domain (Optional)", class: "block text-sm font-medium text-dark mb-1" %>
+              <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
+              <p class="text-xs text-gray-500 mt-1">Leave blank if you don't want a custom domain</p>
+            </div>
+          </div>
+
+          <!-- Custom Domain Ownership Checkbox -->
+          <div id="premium-domain-ownership" class="mt-4" style="display:none;">
+            <div class="flex items-start">
+              <%= business_f.check_box :custom_domain_owned, { class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" }, "1", "0" %>
+              <label for="user_business_attributes_custom_domain_owned" class="ml-3 text-sm text-gray-700">
+                Already have my own domain
+                <br><span class="text-xs text-gray-500">If left unchecked, BizBlasts will help you get a custom domain</span>
+              </label>
+            </div>
+          </div>
+
         <% end %>
       </div>
 
@@ -348,12 +371,12 @@
 <script type="text/javascript">
   function initializeBusinessRegistrationPlanSelection() {
     const selectedTierInput = document.getElementById('selected_tier');
-    const hostnameFieldDiv = document.getElementById('hostname-field');
-    const hostnameInput = hostnameFieldDiv?.querySelector('input[name="user[business_attributes][hostname]"]');
-    const hostnameHelpText = document.getElementById('hostname-help-text');
     const tierDescriptionDiv = document.getElementById('tier-descriptions');
     const planSelectButtons = document.querySelectorAll('.plan-select-btn');
     const subscriptionPlans = document.querySelectorAll('.subscription-plan');
+    const domainInputsWrapper = document.getElementById('premium-domain-inputs');
+    const domainOwnershipDiv = document.getElementById('premium-domain-ownership');
+    const hostTypeHidden = document.getElementById('host_type_input');
 
     function selectPlan(tier) {
       // Update hidden field
@@ -394,35 +417,52 @@
       }
       
       toggleFields(tier);
+
+      // Premium extra ui
+      if (tier === 'premium') {
+        domainInputsWrapper.style.display = 'grid';
+        domainOwnershipDiv.style.display = 'block';
+        hostTypeHidden.value = 'subdomain'; // Default to subdomain
+      } else {
+        domainInputsWrapper.style.display = 'none';
+        domainOwnershipDiv.style.display = 'none';
+        hostTypeHidden.value = 'subdomain';
+      }
     }
 
     function toggleFields(selectedTier) {
-      if (!tierDescriptionDiv || !hostnameFieldDiv || !hostnameInput || !hostnameHelpText) return;
+      if (!tierDescriptionDiv) return;
       
       // Hide all descriptions first
       tierDescriptionDiv.querySelectorAll('[data-tier]').forEach(p => p.style.display = 'none');
-      // Clear help text
-      hostnameHelpText.textContent = '';
 
-      if (selectedTier === 'standard' || selectedTier === 'free') {
-        hostnameFieldDiv.style.display = 'block';
-        hostnameInput.required = true;
-        hostnameInput.placeholder = 'your-biz'; // Just the subdomain part
-        hostnameHelpText.textContent = '.bizblasts.com (Required - lowercase letters, numbers, hyphens only)';
-        const desc = tierDescriptionDiv.querySelector(`[data-tier="${selectedTier}"]`);
-        if (desc) desc.style.display = 'block';
-      } else if (selectedTier === 'premium') {
-        hostnameFieldDiv.style.display = 'block';
-        hostnameInput.required = false; // Optional for paid tiers
-        hostnameInput.placeholder = 'yourdomain.com';
-        hostnameHelpText.innerHTML = 'Enter your desired custom domain or leave blank to skip this feature. Use <a href="https://www.instantdomainsearch.com" target="_blank" class="text-primary hover:text-primary-dark underline">www.instantdomainsearch.com</a> to help you verify availability. Our system will automatically add the hostname (yourdomain.bizblasts.com) to our domain. We will contact you to verify ownership of the domain. Bizblasts will maintain and own the domain.<br><small class="text-primary font-medium">💡 Domain Coverage: BizBlasts covers up to $20/year for new domains. For domains over $20/year, we\'ll contact you with alternatives.</small>';
-        const desc = tierDescriptionDiv.querySelector(`[data-tier="${selectedTier}"]`);
-        if (desc) desc.style.display = 'block';
+      // Show description for selected tier
+      const desc = tierDescriptionDiv.querySelector(`[data-tier="${selectedTier}"]`);
+      if (desc) desc.style.display = 'block';
+
+      // Toggle premium domain inputs
+      if (selectedTier === 'premium') {
+        domainInputsWrapper.style.display = 'grid';
+        domainOwnershipDiv.style.display = 'block';
+        hostTypeHidden.value = 'subdomain'; // Default to subdomain for premium
       } else {
-        hostnameFieldDiv.style.display = 'none';
-        hostnameInput.required = false;
-        hostnameInput.placeholder = ''; // Clear placeholder
+        domainInputsWrapper.style.display = 'none';
+        domainOwnershipDiv.style.display = 'none';
+        hostTypeHidden.value = 'subdomain'; // Ensure it's subdomain for free/standard
       }
+    }
+
+    // Handle custom domain field changes to set host_type
+    const customDomainField = document.querySelector('input[name*="[hostname]"]');
+    if (customDomainField) {
+      customDomainField.addEventListener('input', function() {
+        // If custom domain has value, set host_type to custom_domain
+        if (this.value && this.value.trim()) {
+          hostTypeHidden.value = 'custom_domain';
+        } else {
+          hostTypeHidden.value = 'subdomain';
+        }
+      });
     }
 
     // Add click handlers to plan selection buttons
@@ -551,4 +591,122 @@
   document.addEventListener('turbo:load', initializeBusinessRegistrationPlanSelection);
   document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationValidation);
   document.addEventListener('turbo:load', initializeBusinessRegistrationValidation);
+</script>
+
+<!-- Subdomain Availability Checker for Registration -->
+<script type="text/javascript">
+  function initializeRegistrationSubdomainChecker() {
+    const subdomainInput = document.getElementById('registration_subdomain_field');
+    
+    if (!subdomainInput) return;
+    
+    let checkTimeout;
+    let lastCheckedValue = '';
+    
+    function showValidationMessage(input, message, type = 'error') {
+      // Remove existing validation messages
+      const existingMessage = input.parentNode.querySelector('.subdomain-validation');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      
+      if (!message) return;
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `subdomain-validation text-xs mt-1 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : 'text-red-600'}`;
+      messageDiv.innerHTML = message;
+      
+      input.parentNode.appendChild(messageDiv);
+    }
+    
+    function validateSubdomainFormat(subdomain) {
+      if (!subdomain) return { valid: false, message: '' };
+      
+      // Check length (3-63 characters)
+      if (subdomain.length < 3) {
+        return { valid: false, message: 'Subdomain must be at least 3 characters long' };
+      }
+      if (subdomain.length > 63) {
+        return { valid: false, message: 'Subdomain must be 63 characters or less' };
+      }
+      
+      // Check format: alphanumeric and hyphens, no hyphens at start/end
+      const validFormat = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(subdomain);
+      if (!validFormat) {
+        return { valid: false, message: 'Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen' };
+      }
+      
+      // Check for reserved words
+      const reserved = ['www', 'mail', 'ftp', 'admin', 'root', 'api', 'app', 'support', 'help', 'blog', 'shop', 'store', 'manage', 'settings', 'dashboard'];
+      if (reserved.includes(subdomain.toLowerCase())) {
+        return { valid: false, message: 'This subdomain is reserved and cannot be used' };
+      }
+      
+      return { valid: true, message: '' };
+    }
+    
+    async function checkSubdomainAvailability(subdomain) {
+      try {
+        const response = await fetch('/manage/settings/business/check_subdomain_availability', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+          },
+          body: JSON.stringify({ subdomain: subdomain })
+        });
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error checking subdomain availability:', error);
+        return { available: false, message: 'Unable to check availability. Please try again.' };
+      }
+    }
+    
+    function handleSubdomainCheck() {
+      const currentValue = subdomainInput.value.toLowerCase().trim();
+      
+      // Skip if value hasn't changed or is empty
+      if (currentValue === lastCheckedValue || !currentValue) {
+        if (!currentValue) showValidationMessage(subdomainInput, '');
+        return;
+      }
+      
+      lastCheckedValue = currentValue;
+      
+      // Format validation first
+      const formatCheck = validateSubdomainFormat(currentValue);
+      if (!formatCheck.valid) {
+        showValidationMessage(subdomainInput, formatCheck.message, 'error');
+        return;
+      }
+      
+      // Show checking message
+      showValidationMessage(subdomainInput, '⏳ Checking availability...', 'warning');
+      
+      // Check availability
+      checkSubdomainAvailability(currentValue).then(result => {
+        if (result.available) {
+          showValidationMessage(subdomainInput, '✅ Available! Will appear as ' + currentValue + '.bizblasts.com', 'success');
+        } else {
+          showValidationMessage(subdomainInput, '❌ ' + (result.message || 'This subdomain is not available'), 'error');
+        }
+      });
+    }
+    
+    // Add event listeners
+    subdomainInput.addEventListener('input', function() {
+      clearTimeout(checkTimeout);
+      checkTimeout = setTimeout(handleSubdomainCheck, 500); // Debounce 500ms
+    });
+    
+    subdomainInput.addEventListener('blur', function() {
+      clearTimeout(checkTimeout);
+      handleSubdomainCheck();
+    });
+  }
+  
+  document.addEventListener('DOMContentLoaded', initializeRegistrationSubdomainChecker);
+  document.addEventListener('turbo:load', initializeRegistrationSubdomainChecker);
 </script> 

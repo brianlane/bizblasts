@@ -61,7 +61,8 @@ class DomainRemovalService
     Rails.logger.info "[DomainRemovalService] Handling tier downgrade to #{new_tier} for business #{@business.id}"
 
     # Only remove custom domain if downgrading from premium and currently has custom domain
-    if @business.premium_tier? && @business.host_type_custom_domain? && new_tier != 'premium'
+    # Note: Business model already ensures this is only called for appropriate tier downgrades
+    if @business.host_type_custom_domain? && new_tier != 'premium'
       Rails.logger.info "[DomainRemovalService] Removing custom domain due to tier downgrade"
       remove_domain!
     else
@@ -169,6 +170,7 @@ class DomainRemovalService
       host_type: 'subdomain',
       status: 'active',
       hostname: subdomain_value, # Keep hostname field populated with subdomain for compatibility
+      subdomain: subdomain_value, # Ensure subdomain field is also set for consistency
       cname_monitoring_active: false,
       cname_check_attempts: 0,
       cname_setup_email_sent_at: nil,
@@ -179,7 +181,7 @@ class DomainRemovalService
   end
 
   def send_removal_confirmation
-    owner = @business.users.where(role: ['manager', 'client']).first
+    owner = @business.users.where(role: 'manager').first
     
     if owner
       # Would create DomainMailer.domain_removed email template

@@ -12,7 +12,8 @@ class OrderMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Order Confirmation ##{@order.order_number} - #{@business.name}"
+      subject: "Order Confirmation ##{@order.order_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
   
@@ -39,7 +40,8 @@ class OrderMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "#{subject_text} - Order ##{@order.order_number} - #{@business.name}"
+      subject: "#{subject_text} - Order ##{@order.order_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
   
@@ -58,7 +60,8 @@ class OrderMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Refund Processed - Order ##{@order.order_number} - #{@business.name}"
+      subject: "Refund Processed - Order ##{@order.order_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -72,7 +75,8 @@ class OrderMailer < ApplicationMailer
     mail(
       to: @customer.email,
       subject: "Subscription Order Created - #{@business.name}",
-      from: @business.email
+      from: @business.email,
+      reply_to: @business.email
     )
   end
 end 

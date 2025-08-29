@@ -65,6 +65,11 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     Rails.logger.info "[BUSINESS_SETTINGS] sync_location parameter: #{params[:sync_location].inspect}"
     
     if @business.update(business_params)
+      # After update, check if hostname or subdomain changed
+      if (@business.saved_change_to_hostname? || @business.saved_change_to_subdomain?)
+        target_url = TenantHost.url_for(@business, request, edit_business_manager_settings_business_path)
+        return redirect_to target_url, allow_other_host: true
+      end
       # Check if the sync_location parameter is present with a value of '1'
       if params[:sync_location] == '1'
         sync_with_default_location
@@ -77,46 +82,46 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     end
   end
 
-  def request_domain_change
-    # Extract form parameters
-    requested_domain = params[:requested_domain]&.strip
-    domain_type = params[:domain_type]
-    change_reason = params[:change_reason]&.strip
-
-    # Validate required fields
-    if requested_domain.blank? || domain_type.blank?
-      flash[:alert] = 'Please fill in all required fields.'
-      redirect_to edit_business_manager_settings_business_path
+  # POST /manage/settings/business/check_subdomain_availability
+  def check_subdomain_availability
+    subdomain = params[:subdomain]&.downcase&.strip
+    
+    if subdomain.blank?
+      render json: { available: false, message: 'Subdomain cannot be blank' }
       return
     end
-
-    # Validate domain type
-    unless %w[custom_domain subdomain].include?(domain_type)
-      flash[:alert] = 'Invalid domain type selected.'
-      redirect_to edit_business_manager_settings_business_path
+    
+    # Format validation
+    unless subdomain.match?(/\A[a-z0-9]([a-z0-9-]*[a-z0-9])?\z/) && subdomain.length >= 3 && subdomain.length <= 63
+      render json: { available: false, message: 'Invalid subdomain format' }
       return
     end
-
-    begin
-      # Send email notification to bizblasts team
-      DomainMailer.notify_team(
-        business: @business,
-        user: current_user,
-        requested_domain: requested_domain,
-        domain_type: domain_type,
-        change_reason: change_reason
-      ).deliver_now
-
-      Rails.logger.info "[DOMAIN_CHANGE] Request submitted for business_id=#{@business.id}, domain=#{requested_domain}, type=#{domain_type}"
-      
-      flash[:notice] = 'Domain change request submitted successfully! Our team will review and contact you within 24-48 hours.'
-      redirect_to edit_business_manager_settings_business_path
-
-    rescue StandardError => e
-      Rails.logger.error "[DOMAIN_CHANGE] Failed to send email for business_id=#{@business.id}: #{e.message}"
-      flash[:alert] = 'There was an error submitting your request. Please try again or contact support.'
-      redirect_to edit_business_manager_settings_business_path
+    
+    # Reserved words check
+    reserved_words = %w[www mail ftp admin root api app support help blog shop store manage settings admin dashboard]
+    if reserved_words.include?(subdomain)
+      render json: { available: false, message: 'This subdomain is reserved' }
+      return
     end
+    
+    # Check if subdomain is already taken by another business (excluding current business)
+    existing_business = Business.where(subdomain: subdomain).where.not(id: @business.id).first
+    if existing_business
+      render json: { available: false, message: 'This subdomain is already taken' }
+      return
+    end
+    
+    # Check if subdomain is taken as hostname by another business (excluding current business)
+    existing_hostname = Business.where(hostname: subdomain).where.not(id: @business.id).first
+    if existing_hostname
+      render json: { available: false, message: 'This subdomain is already taken' }
+      return
+    end
+    
+    render json: { available: true, message: 'Subdomain is available' }
+  rescue => e
+    Rails.logger.error "[SUBDOMAIN_CHECK] Error checking availability for '#{subdomain}': #{e.message}"
+    render json: { available: false, message: 'Unable to check availability. Please try again.' }
   end
 
   private
@@ -141,6 +146,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     # in IntegrationsController to ensure proper verification through GoogleBusinessVerificationService
     permitted = params.require(:business).permit(
       :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled,
+      :subdomain, :hostname, :host_type, :custom_domain_owned,
       # Permit individual hour fields, which will be processed into a JSON hash
       *days_of_week.flat_map { |day| ["hours_#{day}_open", "hours_#{day}_close"] }
     )
