@@ -200,7 +200,7 @@ class DomainMonitoringService
   end
 
   def send_activation_success_email!
-    owner = @business.users.where(role: ['manager', 'client']).first
+    owner = @business.users.where(role: 'manager').first
     
     if owner
       DomainMailer.activation_success(@business, owner).deliver_now
@@ -210,7 +210,7 @@ class DomainMonitoringService
   end
 
   def send_timeout_help_email!
-    owner = @business.users.where(role: ['manager', 'client']).first
+    owner = @business.users.where(role: 'manager').first
     
     if owner
       DomainMailer.timeout_help(@business, owner).deliver_now
