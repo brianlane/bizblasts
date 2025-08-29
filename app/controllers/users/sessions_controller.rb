@@ -8,6 +8,12 @@ module Users
   # 3. Dynamic domain support (subdomains and custom domains)
   # 4. Environment-aware URL generation (development vs production)
   class SessionsController < Devise::SessionsController
+    # Redirect any new or create (sign-in) request that occurs on a tenant
+    # subdomain or custom domain back to the platform’s main domain. All
+    # authentication should be performed on the base domain to avoid cross-
+    # domain cookie issues and for a consistent user experience.
+    before_action :redirect_auth_from_subdomain, only: [:new, :create]
+    
     # Skip tenant verification for sign out to allow proper cleanup
     # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
     
@@ -132,6 +138,17 @@ module Users
     end
 
     private
+
+    # Redirect sign-in requests that occur on a tenant host (subdomain or custom
+    # domain) back to the platform’s base domain. This avoids cross-domain
+    # cookie issues and keeps authentication UX consistent.
+    def redirect_auth_from_subdomain
+      return if TenantHost.main_domain?(request.host)
+
+      target_url = TenantHost.main_domain_url_for(request, request.fullpath)
+      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}"
+      redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
+    end
 
     # Find the current business based on the request's hostname
     # This method handles both subdomain and custom domain scenarios
