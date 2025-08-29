@@ -97,6 +97,25 @@ module TenantHost
   # @see #url_for
   alias_method :full_url, :url_for
 
+  # Returns true if the given host corresponds to the platform’s main domain in
+  # the current environment. This helps controllers avoid duplicating the
+  # environment-specific host lists.
+  #
+  # @param host [String] The hostname to evaluate (e.g. "biztest.bizblasts.com")
+  # @return [Boolean] Whether the host is considered the main application
+  #   domain (no tenant context)
+  def main_domain?(host)
+    host = host.to_s.downcase
+
+    if Rails.env.development? || Rails.env.test?
+      %w[lvh.me www.lvh.me example.com www.example.com].include?(host)
+    else
+      %w[bizblasts.com www.bizblasts.com bizblasts.onrender.com].include?(host)
+    end
+  end
+
+  module_function :main_domain?
+
   # Generates a URL for the main application domain (no subdomain/tenant).
   #
   # @param request [ActionDispatch::Request] The current request object
