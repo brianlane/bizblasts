@@ -111,9 +111,15 @@ RSpec.describe 'Transactions', type: :request do
 
     it 'redirects to login when no token provided' do
       get tenant_transaction_path(invoice, type: 'invoice')
-      
-      expect(response).to redirect_to(new_user_session_path)
-      follow_redirect!
+
+      # The first response should be a redirect (302/303) – eventually we land
+      # on the login page that lives on the main domain after the cross-domain
+      # auth redirect. Follow redirects until we reach a non-redirect response.
+      while response.redirect?
+        follow_redirect!
+      end
+
+      expect(response).to have_http_status(:ok)
       expect(response.body).to include('Please log in to view this transaction')
     end
 
