@@ -1,6 +1,33 @@
 # frozen_string_literal: true
 
 ActiveAdmin.register Business do
+  # Use numeric ID in action-item links to avoid hostname-with-dot issues
+  config.clear_action_items!
+
+  action_item :edit, only: :show do
+    link_to 'Edit Business', edit_admin_business_path(resource.id)
+  end
+
+  action_item :delete, only: :show do
+    link_to 'Delete Business', admin_business_path(resource.id), method: :delete, data: { confirm: 'Are you sure?' }
+  end
+
+  action_item :start_domain_setup, only: :show, if: proc { resource.can_setup_custom_domain? } do
+    link_to 'Start Domain Setup', start_domain_setup_admin_business_path(resource.id), method: :post, data: { confirm: 'Begin CNAME setup and email instructions?' }
+  end
+
+  action_item :restart_domain_monitoring, only: :show, if: proc { ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(resource.status) } do
+    link_to 'Restart Monitoring', restart_domain_monitoring_admin_business_path(resource.id), method: :post, data: { confirm: 'Restart DNS monitoring for another hour?' }
+  end
+
+  action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
+    link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id), method: :post, data: { confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
+  end
+
+  action_item :disable_custom_domain, only: :show, if: proc { resource.cname_active? || resource.status.in?(['cname_pending','cname_monitoring','cname_timeout']) } do
+    link_to 'Remove Custom Domain', disable_custom_domain_admin_business_path(resource.id), method: :post, class: 'button-danger', data: { confirm: 'Permanently remove custom domain and revert to subdomain hosting?' }
+  end
+
   # Remove tenant scoping for admin panel
   controller do
     # skip_before_action :set_tenant, if: -> { true } # REMOVED: Global filter was removed
@@ -19,7 +46,27 @@ ActiveAdmin.register Business do
       raise ActiveRecord::RecordNotFound, "Couldn't find Business with 'id'=#{params[:id]} or 'hostname'=#{params[:id]}"
     end
 
-    # Removed custom create action - let ActiveAdmin handle redirect
+    # Ensure redirects after create/update use numeric ID to avoid dots in hostname.
+    def create
+      super do |success, _failure|
+        success.html { return redirect_to admin_business_path(resource.id) }
+      end
+    end
+
+    def update
+      super do |success, _failure|
+        success.html { return redirect_to admin_business_path(resource.id) }
+      end
+    end
+
+    # Ensure form actions use numeric ID instead of business.to_param (hostname)
+    def resource_path(resource)
+      admin_business_path(resource.id)
+    end
+
+    def resource_url(resource)
+      admin_business_url(resource.id)
+    end
   end
 
   # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
@@ -222,12 +269,12 @@ ActiveAdmin.register Business do
       if business.stripe_account_id.present?
         begin
           if StripeService.check_onboarding_status(business)
-            status_tag "Connected", class: "ok"
+            status_tag("Connected", class: "ok") + " (Account ID: #{business.stripe_account_id})".html_safe
           else
-            status_tag "Setup Incomplete", class: "warning"
+            status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{business.stripe_account_id})".html_safe
           end
         rescue => e
-          status_tag "Error", class: "error"
+          status_tag("Error", class: "error") + " (Account ID: #{business.stripe_account_id})".html_safe
         end
       else
         status_tag "Not Connected", class: "error"
@@ -306,12 +353,12 @@ ActiveAdmin.register Business do
           if b.stripe_account_id.present?
             begin
               if StripeService.check_onboarding_status(b)
-                status_tag "Connected", class: "ok"
+                status_tag("Connected", class: "ok") + " (Account ID: #{b.stripe_account_id})".html_safe
               else
-                status_tag "Setup Incomplete", class: "warning"
+                status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{b.stripe_account_id})".html_safe
               end
             rescue => e
-              status_tag "Error", class: "error"
+              status_tag("Error", class: "error") + " (Account ID: #{b.stripe_account_id})".html_safe
             end
           else
             status_tag "Not Connected", class: "error"
