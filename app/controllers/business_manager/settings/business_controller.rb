@@ -68,7 +68,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       # After update, check if hostname or subdomain changed
       if (@business.saved_change_to_hostname? || @business.saved_change_to_subdomain?)
         target_url = TenantHost.url_for(@business, request, edit_business_manager_settings_business_path)
-        redirect_to target_url, allow_other_host: true and return
+        return redirect_to target_url, allow_other_host: true
       end
       # Check if the sync_location parameter is present with a value of '1'
       if params[:sync_location] == '1'
