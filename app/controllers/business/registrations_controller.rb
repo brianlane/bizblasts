@@ -119,9 +119,8 @@ class Business::RegistrationsController < Users::RegistrationsController
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
         :description, :tier, 
-        :hostname, :subdomain, :host_type,
+        :hostname, :subdomain, :host_type, :custom_domain_owned,
         :platform_referral_code # Permit platform referral code
-        # Removed :subdomain, :domain
       ],
       policy_acceptances: {}
     ])
@@ -131,26 +130,25 @@ class Business::RegistrationsController < Users::RegistrationsController
   def process_business_host_params(raw_params)
     # Handle both ActionController::Parameters and regular Hash
     if raw_params.respond_to?(:permit!)
-      processed_params = raw_params.except(:hostname).permit! # Permit all *except* hostname initially
+      processed_params = raw_params.except(:hostname, :subdomain).permit! # Remove hostname and subdomain initially
     else
-      # For regular Hash (like in tests), just duplicate and remove hostname
-      processed_params = raw_params.except(:hostname).dup
+      # For regular Hash (like in tests), just duplicate and remove hostname/subdomain
+      processed_params = raw_params.except(:hostname, :subdomain).dup
     end
     
     tier = raw_params[:tier]
-    # Note: Form now submits :hostname directly, not :subdomain/:domain
-    hostname_input = raw_params[:hostname].presence 
+    subdomain_input = raw_params[:subdomain].presence
+    hostname_input = raw_params[:hostname].presence # Custom domain (Premium only)
 
-    if hostname_input.present?
-      # Basic check: Does it look like a custom domain or just a subdomain part?
-      if hostname_input.include?('.') 
-        processed_params[:hostname] = hostname_input
-        processed_params[:host_type] = 'custom_domain'
-      else 
-        # Assume it's intended as a subdomain part
-        processed_params[:hostname] = hostname_input 
-        processed_params[:host_type] = 'subdomain'
-      end
+    # Priority: Custom domain (hostname) > Subdomain
+    if hostname_input.present? && tier == 'premium'
+      # Premium tier with custom domain
+      processed_params[:hostname] = hostname_input
+      processed_params[:host_type] = 'custom_domain'
+    elsif subdomain_input.present?
+      # Use subdomain (for all tiers)
+      processed_params[:hostname] = subdomain_input 
+      processed_params[:host_type] = 'subdomain'
     else
       # Neither provided - set defaults based on tier
       if tier == 'free'
