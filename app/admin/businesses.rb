@@ -353,12 +353,12 @@ ActiveAdmin.register Business do
           if b.stripe_account_id.present?
             begin
               if StripeService.check_onboarding_status(b)
-                status_tag("Connected", class: "ok") + " (Account ID: #{b.stripe_account_id})".html_safe
+                status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(b.stripe_account_id)})".html_safe
               else
-                status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{b.stripe_account_id})".html_safe
+                status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(b.stripe_account_id)})".html_safe
               end
             rescue => e
-              status_tag("Error", class: "error") + " (Account ID: #{b.stripe_account_id})".html_safe
+              status_tag("Error", class: "error") + " (Account ID: #{ERB::Util.h(b.stripe_account_id)})".html_safe
             end
           else
             status_tag "Not Connected", class: "error"
