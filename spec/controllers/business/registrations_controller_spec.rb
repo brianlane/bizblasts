@@ -35,7 +35,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
           zip: '12345',
           description: 'A test business',
           tier: 'free',
-          hostname: "testbusiness-#{SecureRandom.hex(4)}"
+          subdomain: "testbusiness-#{SecureRandom.hex(4)}"
         }
       }
     end
@@ -104,7 +104,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
       let(:valid_attributes_with_referral) do
         valid_attributes.deep_dup.tap do |attrs|
           attrs[:business_attributes][:platform_referral_code] = test_referral_code
-          attrs[:business_attributes][:hostname] = "testbiz-#{SecureRandom.hex(4)}"
+          attrs[:business_attributes][:subdomain] = "testbiz-#{SecureRandom.hex(4)}"
         end
       end
 
@@ -162,7 +162,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         # First request with blank code
         attrs1 = valid_attributes.deep_dup
         attrs1[:business_attributes][:platform_referral_code] = ''
-        attrs1[:business_attributes][:hostname] = "biz1-#{SecureRandom.hex(4)}"
+        attrs1[:business_attributes][:subdomain] = "biz1-#{SecureRandom.hex(4)}"
 
         expect {
           post :create, params: { user: attrs1 }
@@ -172,7 +172,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         attrs2 = valid_attributes.deep_dup
         attrs2[:email] = "user2-#{SecureRandom.hex(4)}@example.com"
         attrs2[:business_attributes][:platform_referral_code] = ''
-        attrs2[:business_attributes][:hostname] = "biz2-#{SecureRandom.hex(4)}"
+        attrs2[:business_attributes][:subdomain] = "biz2-#{SecureRandom.hex(4)}"
 
         expect {
           post :create, params: { user: attrs2 }
