@@ -817,7 +817,7 @@
     
     async function checkSubdomainAvailability(subdomain) {
       try {
-        const response = await fetch('/manage/settings/business/check_subdomain_availability', {
+        const response = await fetch('/subdomains/check', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
