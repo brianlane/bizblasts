@@ -9,10 +9,12 @@ class BlogMailer < ApplicationMailer
     @blog_post = blog_post
     # For manager or staff recipients, capture their business to build tenant-specific URLs in templates
     @business = user.business if user.manager? || user.staff?
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     mail(
       to: user.email,
-      subject: "New Blog Post: #{blog_post.title} - BizBlasts"
+      subject: "New Blog Post: #{blog_post.title} - BizBlasts",
+      reply_to: @support_email
     )
   end
   
@@ -26,10 +28,12 @@ class BlogMailer < ApplicationMailer
     @week_end = Date.current.end_of_week
     # Provide business context for manager or staff recipients so views can generate correct subdomain links
     @business = user.business if user.manager? || user.staff?
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     mail(
       to: user.email,
-      subject: "BizBlasts Weekly Update - #{@week_start.strftime('%B %d')} to #{@week_end.strftime('%B %d, %Y')}"
+      subject: "BizBlasts Weekly Update - #{@week_start.strftime('%B %d')} to #{@week_end.strftime('%B %d, %Y')}",
+      reply_to: @support_email
     )
   end
 end 

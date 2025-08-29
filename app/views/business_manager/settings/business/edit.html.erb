@@ -107,35 +107,34 @@
     </div>
   </div>
 
-  <!-- Business Information Form -->
-  <%= form_with(model: [:business_manager, :settings, @business], url: business_manager_settings_business_path, method: :patch, local: true, html: { class: "space-y-8" }) do |form| %>
-    <!-- Error Messages -->
-    <% if @business.errors.any? %>
-      <div class="bg-red-50 border border-red-300 rounded-xl overflow-hidden shadow-sm">
-        <div class="px-6 py-4 bg-red-100 border-b border-red-200">
-          <div class="flex items-center">
-            <svg class="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-            </svg>
-            <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
-          </div>
-        </div>
-        <div class="px-6 py-4">
-          <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
-            <% @business.errors.full_messages.each do |message| %>
-              <li><%= message %></li>
-            <% end %>
-          </ul>
+  <!-- Error Messages -->
+  <% if @business.errors.any? %>
+    <div class="bg-red-50 border border-red-300 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-4 bg-red-100 border-b border-red-200">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
         </div>
       </div>
-    <% end %>
+      <div class="px-6 py-4">
+        <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+          <% @business.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
 
-    <!-- Branding Section -->
+  <!-- Branding Section -->
+  <%= form_with(model: [:business_manager, :settings, @business], url: business_manager_settings_business_path, method: :patch, local: true, data: { turbo: false }, html: { class: "space-y-8", id: "main-business-form" }) do |form| %>
     <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v3M7 4H5a1 1 0 00-1 1v16a1 1 0 001 1h14a1 1 0 001-1V5a1 1 0 00-1-1h-2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
           Branding
         </h2>
@@ -195,7 +194,7 @@
     </div>
 
     <!-- Contact Information Section -->
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,9 +300,10 @@
         </div>
       </div>
     </div>
+  <!-- Form continues below to include Domain & URL Settings -->
 
-    <!-- Domain Management Section -->
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
+  <!-- Domain Management Section (Independent Form) -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,174 +367,137 @@
 
           <!-- Domain Change Request -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-3">Request Domain Change</label>
-            <%= form_with url: request_domain_change_business_manager_settings_business_path, local: true, html: { class: "space-y-4" } do |change_form| %>
-              <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                <div class="flex items-start gap-3">
-                  <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <div class="text-sm text-blue-800">
-                    <p class="font-medium mb-2">Domain Change Process:</p>
-                    <ul class="text-blue-700 space-y-1 pt-2 pb-2 px-4 rounded-lg mb-3">
-                      <li>• Submit a request with your desired domain</li>
-                      <li>• Our team will review and contact you within 24-48 hours</li>
-                      <% if @business.premium_tier? %>
-                        <li>• We'll help verify domain ownership if needed</li>
-                        <li>• Custom domain setup typically takes 2-3 business days</li>
-                        <li>• Use <a href="https://www.instantdomainsearch.com" target="_blank" class="text-primary hover:text-primary-dark underline">www.instantdomainsearch.com</a> to verify availability</li>
-                      <% end %>
-                    </ul>
-                  </div>
+            <%# --- Host Type Toggle for Premium Users ------------------------------------ %>
+            <% if @business.premium_tier? %>
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Domain Mode</label>
+                <div class="flex items-center gap-6">
+                  <label class="inline-flex items-center gap-2">
+                    <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain"
+                           <%= 'checked' if @business.host_type_subdomain? %>
+                           class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                    <span class="text-sm">BizBlasts Subdomain</span>
+                  </label>
+                  <label class="inline-flex items-center gap-2">
+                    <input type="radio" name="business[host_type]" value="custom_domain" id="host_type_custom"
+                           <%= 'checked' if @business.host_type_custom_domain? %>
+                           class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                    <span class="text-sm">Custom Domain</span>
+                  </label>
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  <% if @business.premium_tier? %>
-                    <%= change_form.label :requested_domain, "Requested Domain", class: "block text-sm font-medium text-gray-700 mb-1" %>
-                    <%= change_form.text_field :requested_domain, 
-                          class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
-                          placeholder: "yourdomain.com or your-subdomain",
-                          required: true %>
-                    <p class="text-xs text-gray-500 mt-1">Enter a custom domain (yourdomain.com) or subdomain (your-name)</p>
-                  <% else %>
-                    <%= change_form.label :requested_domain, "Requested Subdomain", class: "block text-sm font-medium text-gray-700 mb-1" %>
-                    <%= change_form.text_field :requested_domain, 
-                          class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
-                          placeholder: "your-business-name",
-                          required: true %>
-                    <p class="text-xs text-gray-500 mt-1">Enter your desired subdomain name (e.g., "your-business" for your-business.bizblasts.com)</p>
-                  <% end %>
+              <%# Dual input fields %>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="domain-input-wrapper">
+                <div id="subdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_subdomain? %>>
+                  <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
+                  <input type="text" 
+                         id="display_subdomain" 
+                         name="business[subdomain]"
+                         value="<%= @business.subdomain || @business.hostname %>"
+                         placeholder="your-biz"
+                         class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                  <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
                 </div>
-                
-                <div>
-                  <%= change_form.label :domain_type, "Domain Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
-                  <% domain_options = [['BizBlasts Subdomain (yourname.bizblasts.com)', 'subdomain']] %>
-                  <% if @business.premium_tier? %>
-                    <% domain_options.unshift(['Custom Domain (yourdomain.com)', 'custom_domain']) %>
-                  <% end %>
-                  <%= render 'shared/rich_dropdown',
-                        collection: domain_options,
-                        field_name: "#{change_form.object_name}[domain_type]",
-                        selected_value: @business.host_type,
-                        prompt_text: "Select domain type",
-                        value_method: :last,
-                        text_method: :first,
-                        required: true,
-                        css_class: "focus:ring-primary-500 focus:border-primary-500",
-                        dropdown_id: "domain_type_dropdown" %>
-                  <% unless @business.premium_tier? %>
-                    <p class="text-xs text-amber-600 mt-2">
-                      <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                      </svg>
-                      Custom domains require Premium tier subscription. <%= link_to "Upgrade now", business_manager_settings_subscription_path, class: "text-primary hover:text-primary underline font-medium" %>
-                    </p>
-                  <% end %>
-                </div>
-              </div>
 
-              <div>
-                <%= change_form.label :change_reason, "Reason for Change (Optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-                <%= change_form.text_area :change_reason, 
-                      rows: 3,
-                      class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors resize-none",
-                      placeholder: "Let us know why you'd like to change your domain (optional)" %>
-              </div>
-
-              <div class="flex justify-end pt-2 mb-4">
-                <%= change_form.submit "Submit Domain Change Request", 
-                      class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-200 cursor-pointer" %>
-              </div>
-
-              <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div class="flex">
-                  <svg class="flex-shrink-0 h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                  </svg>
-                  <div class="ml-3">
-                    <h4 class="text-sm font-medium text-yellow-800">Important Notes</h4>
-                    <div class="text-sm text-yellow-700 mt-1 space-y-1">
-                      <p>• Custom domains require Premium tier subscription</p>
-                      <p>• Domain changes may affect SEO and existing links</p>
-                      <p>• You'll need to verify ownership for custom domains</p>
-                      <p>• Current domain will remain active during the transition</p>
-                    </div>
-                  </div>
+                <div id="customdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_custom_domain? %>>
+                  <label for="display_hostname" class="block text-sm font-medium text-gray-700 mb-1">Custom Domain</label>
+                  <input type="text" 
+                         id="display_hostname" 
+                         name="business[hostname]"
+                         value="<%= @business.hostname %>"
+                         placeholder="yourdomain.com"
+                         class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                  <p class="text-xs text-gray-500 mt-1">Enter full domain (must point CNAME to BizBlasts)</p>
                 </div>
               </div>
             <% end %>
+            <% unless @business.premium_tier? %>
+              <!-- Non-premium: subdomain only -->
+              <!-- Hidden radio to satisfy JS checker logic -->
+              <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain" checked="checked" hidden>
+              
+              <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
+              <input type="text" 
+                     id="display_subdomain" 
+                     name="business[subdomain]"
+                     value="<%= @business.subdomain || @business.hostname %>"
+                     placeholder="your-biz"
+                     class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+              <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
+            <% end %>
+
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Hours of Operation Section -->
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
-      <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-          <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          Hours of Operation
-        </h2>
-        <p class="text-sm text-gray-600 mt-1">Set your business hours for each day of the week. Only for display purposes.</p>
+  <!-- Continuing with the same form object `form` declared above -->
+  <!-- Hours of Operation Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
+    <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Hours of Operation
+      </h2>
+      <p class="text-sm text-gray-600 mt-1">Set your business hours for each day of the week. Only for display purposes.</p>
+    </div>
+    <div class="p-6">
+      <div class="space-y-4">
+        <% days = %w[mon tue wed thu fri sat sun] %>
+        <% day_labels = { 'mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday' } %>
+        <% current_hours = @business.hours.is_a?(Hash) ? @business.hours.with_indifferent_access : {} %>
+        <% days.each do |day_key|
+          day_label = day_labels[day_key]
+          hours_for_day = current_hours[day_key] || {}
+          open_time = hours_for_day[:open] || hours_for_day['open']
+          close_time = hours_for_day[:close] || hours_for_day['close']
+        %>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="sm:col-span-3">
+              <span class="font-medium text-gray-900"><%= day_label %></span>
+            </div>
+            <div class="sm:col-span-4">
+              <%= form.label "hours_#{day_key}_open", "Open Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
+              <%= form.time_field "hours_#{day_key}_open", 
+                    value: open_time, 
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
+            </div>
+            <div class="sm:col-span-4">
+              <%= form.label "hours_#{day_key}_close", "Close Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
+              <%= form.time_field "hours_#{day_key}_close", 
+                    value: close_time, 
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
+            </div>
+            <div class="sm:col-span-1 text-center">
+              <button type="button" class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors" title="Clear hours">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        <% end %>
       </div>
-      <div class="p-6">
-        <div class="space-y-4">
-          <% days = %w[mon tue wed thu fri sat sun] %>
-          <% day_labels = { 'mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday' } %>
-          <% current_hours = @business.hours.is_a?(Hash) ? @business.hours.with_indifferent_access : {} %>
-          <% days.each do |day_key|
-            day_label = day_labels[day_key]
-            hours_for_day = current_hours[day_key] || {}
-            open_time = hours_for_day[:open] || hours_for_day['open']
-            close_time = hours_for_day[:close] || hours_for_day['close']
-          %>
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div class="sm:col-span-3">
-                <span class="font-medium text-gray-900"><%= day_label %></span>
-              </div>
-              <div class="sm:col-span-4">
-                <%= form.label "hours_#{day_key}_open", "Open Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
-                <%= form.time_field "hours_#{day_key}_open", 
-                      value: open_time, 
-                      class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
-              </div>
-              <div class="sm:col-span-4">
-                <%= form.label "hours_#{day_key}_close", "Close Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
-                <%= form.time_field "hours_#{day_key}_close", 
-                      value: close_time, 
-                      class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
-              </div>
-              <div class="sm:col-span-1 text-center">
-                <button type="button" class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors" title="Clear hours">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          <% end %>
-        </div>
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div class="text-sm text-blue-800">
-              <p class="font-medium mb-1">Hours Tips:</p>
-              <ul class="text-blue-700 space-y-1">
-                <li>• Leave both times blank if closed on that day</li>
-                <li>• Use 24-hour format for clarity (e.g., 14:00 for 2:00 PM)</li>
-                <li>• These hours will be displayed to customers</li>
-              </ul>
-            </div>
+      <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div class="text-sm text-blue-800">
+            <p class="font-medium mb-1">Hours Tips:</p>
+            <ul class="text-blue-700 space-y-1">
+              <li>• Leave both times blank if closed on that day</li>
+              <li>• Use 24-hour format for clarity (e.g., 14:00 for 2:00 PM)</li>
+              <li>• These hours will be displayed to customers</li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
     <!-- Inventory Management Section -->
     <div id="inventory-management" class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
@@ -650,6 +613,7 @@
         Cancel
       <% end %>
       <%= form.submit "Save Business Information", 
+            form: "main-business-form",
             class: "inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer" %>
     </div>
   <% end %>
@@ -768,3 +732,174 @@
   document.addEventListener('DOMContentLoaded', initializeBusinessSettingsForm);
   document.addEventListener('turbo:load', initializeBusinessSettingsForm);
 </script> 
+
+<!-- JS for Domain Mode toggle (premium) -->
+<script type="text/javascript">
+  function initializeDomainModeToggle() {
+    const radioSub = document.getElementById('host_type_subdomain');
+    const radioCustom = document.getElementById('host_type_custom');
+    const subGroup = document.getElementById('subdomain-input-group');
+    const customGroup = document.getElementById('customdomain-input-group');
+
+    if (!radioSub || !radioCustom || !subGroup || !customGroup) return;
+
+    function updateVisibility() {
+      if (radioSub.checked) {
+        subGroup.style.display = '';
+        customGroup.style.display = 'none';
+      } else {
+        subGroup.style.display = 'none';
+        customGroup.style.display = '';
+      }
+    }
+
+    radioSub.addEventListener('change', updateVisibility);
+    radioCustom.addEventListener('change', updateVisibility);
+    updateVisibility();
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeDomainModeToggle);
+  document.addEventListener('turbo:load', initializeDomainModeToggle);
+</script>
+<!-- Subdomain Availability Checker -->
+<script type="text/javascript">
+  function initializeSubdomainChecker() {
+    const subdomainInput = document.getElementById('display_subdomain');
+    const customDomainInput = document.getElementById('display_hostname');
+    const subdomainRadio = document.getElementById('host_type_subdomain');
+    
+    if (!subdomainInput || !subdomainRadio) return;
+    
+    let checkTimeout;
+    let lastCheckedValue = '';
+    
+    function showValidationMessage(input, message, type = 'error') {
+      // Remove existing validation messages
+      const existingMessage = input.parentNode.querySelector('.subdomain-validation');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      
+      if (!message) return;
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `subdomain-validation text-xs mt-1 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : 'text-red-600'}`;
+      messageDiv.innerHTML = message;
+      
+      input.parentNode.appendChild(messageDiv);
+    }
+    
+    function validateSubdomainFormat(subdomain) {
+      if (!subdomain) return { valid: false, message: '' };
+      
+      // Check length (3-63 characters)
+      if (subdomain.length < 3) {
+        return { valid: false, message: 'Subdomain must be at least 3 characters long' };
+      }
+      if (subdomain.length > 63) {
+        return { valid: false, message: 'Subdomain must be 63 characters or less' };
+      }
+      
+      // Check format: alphanumeric and hyphens, no hyphens at start/end
+      const validFormat = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(subdomain);
+      if (!validFormat) {
+        return { valid: false, message: 'Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen' };
+      }
+      
+      // Check for reserved words
+      const reserved = ['www', 'mail', 'ftp', 'admin', 'root', 'api', 'app', 'support', 'help', 'blog', 'shop', 'store'];
+      if (reserved.includes(subdomain.toLowerCase())) {
+        return { valid: false, message: 'This subdomain is reserved and cannot be used' };
+      }
+      
+      return { valid: true, message: '' };
+    }
+    
+    async function checkSubdomainAvailability(subdomain) {
+      try {
+        const response = await fetch('/manage/settings/business/check_subdomain_availability', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+          },
+          body: JSON.stringify({ subdomain: subdomain })
+        });
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error checking subdomain availability:', error);
+        return { available: false, message: 'Unable to check availability. Please try again.' };
+      }
+    }
+    
+    function handleSubdomainCheck() {
+      const currentValue = subdomainInput.value.toLowerCase().trim();
+      
+      // Skip if value hasn't changed or is empty
+      if (currentValue === lastCheckedValue || !currentValue) {
+        if (!currentValue) showValidationMessage(subdomainInput, '');
+        return;
+      }
+      
+      lastCheckedValue = currentValue;
+      
+      // Format validation first
+      const formatCheck = validateSubdomainFormat(currentValue);
+      if (!formatCheck.valid) {
+        showValidationMessage(subdomainInput, formatCheck.message, 'error');
+        return;
+      }
+      
+      // Show checking message
+      showValidationMessage(subdomainInput, '⏳ Checking availability...', 'warning');
+      
+      // Check availability
+      checkSubdomainAvailability(currentValue).then(result => {
+        if (result.available) {
+          showValidationMessage(subdomainInput, '✅ Available! Will appear as ' + currentValue + '.bizblasts.com', 'success');
+        } else {
+          showValidationMessage(subdomainInput, '❌ ' + (result.message || 'This subdomain is not available'), 'error');
+        }
+      });
+    }
+    
+    // Add event listeners
+    subdomainInput.addEventListener('input', function() {
+      // Only check if subdomain radio is selected
+      if (!subdomainRadio.checked) return;
+      
+      clearTimeout(checkTimeout);
+      checkTimeout = setTimeout(handleSubdomainCheck, 500); // Debounce 500ms
+    });
+    
+    subdomainInput.addEventListener('blur', function() {
+      // Only check if subdomain radio is selected
+      if (!subdomainRadio.checked) return;
+      
+      clearTimeout(checkTimeout);
+      handleSubdomainCheck();
+    });
+    
+    // Clear validation when switching away from subdomain
+    subdomainRadio.addEventListener('change', function() {
+      if (!this.checked) {
+        showValidationMessage(subdomainInput, '');
+      }
+    });
+    
+    // Trigger check on radio button change if there's already a value
+    subdomainRadio.addEventListener('change', function() {
+      if (this.checked && subdomainInput.value.trim()) {
+        lastCheckedValue = ''; // Reset to force check
+        handleSubdomainCheck();
+      }
+    });
+  }
+  
+  document.addEventListener('DOMContentLoaded', initializeSubdomainChecker);
+  document.addEventListener('turbo:load', initializeSubdomainChecker);
+</script>
+
+ 

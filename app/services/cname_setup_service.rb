@@ -249,7 +249,7 @@ class CnameSetupService
     Rails.logger.info "[CnameSetupService] Sending setup instructions email"
 
     # Find business owner/admin user
-    owner = @business.users.where(role: ['manager', 'client']).first
+    owner = @business.users.where(role: 'manager').first
     
     if owner
       DomainMailer.setup_instructions(@business, owner).deliver_now
@@ -260,7 +260,7 @@ class CnameSetupService
   end
 
   def send_monitoring_restarted_email!
-    owner = @business.users.where(role: ['manager', 'client']).first
+    owner = @business.users.where(role: 'manager').first
     
     if owner
       DomainMailer.monitoring_restarted(@business, owner).deliver_now
@@ -268,7 +268,7 @@ class CnameSetupService
   end
 
   def send_activation_success_email!
-    owner = @business.users.where(role: ['manager', 'client']).first
+    owner = @business.users.where(role: 'manager').first
     
     if owner
       DomainMailer.activation_success(@business, owner).deliver_now
@@ -293,6 +293,9 @@ class CnameSetupService
   def rollback_changes!
     Rails.logger.info "[CnameSetupService] Rolling back changes"
     
+    # Check if domain was added to Render before updating the flag
+    domain_was_added = @business.render_domain_added?
+    
     # Reset business status
     @business.update!(
       status: 'active',
@@ -302,7 +305,7 @@ class CnameSetupService
     )
 
     # Try to remove domain from Render if it was added
-    if @business.render_domain_added?
+    if domain_was_added
       begin
         existing_domain = render_service.find_domain_by_name(@business.hostname)
         if existing_domain
