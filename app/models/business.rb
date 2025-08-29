@@ -821,11 +821,18 @@ class Business < ApplicationRecord
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
   end
-  # Ensure hostname populated for subdomain mode using subdomain column (if provided)
-  before_validation do
-    if host_type_subdomain?
-      self.hostname = subdomain if subdomain.present?
-    end
+  # Ensure hostname is populated for subdomain host_type.
+  # • Only copy when hostname is blank to avoid overwriting a persisted value.
+  # • Normalise the copied value (downcase / strip) for consistency with
+  #   `normalize_hostname`.
+  before_validation :copy_subdomain_to_hostname, if: :host_type_subdomain?
+
+  def copy_subdomain_to_hostname
+    return if subdomain.blank?
+    # Do not overwrite an existing hostname unless it is blank.
+    return if hostname.present? && !will_save_change_to_hostname?
+
+    self.hostname = subdomain.to_s.downcase.strip
   end
 
   def normalize_stripe_customer_id
