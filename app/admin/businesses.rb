@@ -72,7 +72,7 @@ ActiveAdmin.register Business do
   # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
-                :active, :tier, :service_template_id, 
+                :active, :tier, :subdomain, :service_template_id, 
                 :hostname, :host_type, # Added new fields
                 :stripe_customer_id, # Stripe integration
                 :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
@@ -248,6 +248,7 @@ ActiveAdmin.register Business do
     selectable_column
     column :id
     column :name
+    column :subdomain
     column :hostname
     column :host_type
     column :status do |business|
@@ -311,6 +312,7 @@ ActiveAdmin.register Business do
     attributes_table do
       row :id
       row :name
+      row :subdomain
       row :hostname
       row :host_type
       row :tier
@@ -318,12 +320,12 @@ ActiveAdmin.register Business do
         if business.stripe_account_id.present?
           begin
             if StripeService.check_onboarding_status(business)
-              status_tag("Connected", class: "ok") + " (Account ID: #{business.stripe_account_id})".html_safe
+              status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             else
-              status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{business.stripe_account_id})".html_safe
+              status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             end
           rescue => e
-            status_tag("Error", class: "error") + " (Account ID: #{business.stripe_account_id})".html_safe
+            status_tag("Error", class: "error") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
           end
         else
           status_tag "Not Connected", class: "error"
@@ -582,6 +584,7 @@ ActiveAdmin.register Business do
   form do |f|
     f.inputs "Business Details" do
       f.input :name
+      f.input :subdomain
       f.input :hostname
       f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }, include_blank: false

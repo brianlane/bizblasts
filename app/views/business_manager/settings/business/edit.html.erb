@@ -817,13 +817,10 @@
     
     async function checkSubdomainAvailability(subdomain) {
       try {
-        const response = await fetch('<%= check_subdomain_availability_business_manager_settings_business_path %>', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-          },
-          body: JSON.stringify({ subdomain: subdomain })
+        const url = '<%= check_subdomain_availability_business_manager_settings_business_path %>?subdomain=' + encodeURIComponent(subdomain);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
         });
         
         const data = await response.json();

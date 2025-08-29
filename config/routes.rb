@@ -188,6 +188,7 @@ Rails.application.routes.draw do
           post :refresh_stripe
           delete :disconnect_stripe
           post :check_subdomain_availability
+          get  :check_subdomain_availability
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
@@ -575,7 +576,7 @@ Rails.application.routes.draw do
   post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
 
   # Public subdomain availability endpoint
-  post '/subdomains/check', to: 'public/subdomains#check'
+  get '/subdomains/check', to: 'public/subdomains#check', defaults: { format: :json }
 
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthcheck" => "health#check", as: :health_check
