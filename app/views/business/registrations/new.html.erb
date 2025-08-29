@@ -647,13 +647,9 @@
     
     async function checkSubdomainAvailability(subdomain) {
       try {
-        const response = await fetch('/subdomains/check', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-          },
-          body: JSON.stringify({ subdomain: subdomain })
+        const response = await fetch(`/subdomains/check?subdomain=${encodeURIComponent(subdomain)}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
         });
         
         const data = await response.json();
