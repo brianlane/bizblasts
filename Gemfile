@@ -124,7 +124,7 @@ gem 'geocoder'
 
 # Calendar integrations
 gem 'google-apis-calendar_v3', '~> 0.31'
-gem 'googleauth', '~> 1.8'
+gem 'googleauth', '~> 1.15'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.10'
