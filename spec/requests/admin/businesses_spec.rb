@@ -88,7 +88,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
       expect {
         post admin_businesses_path, params: valid_attributes
       }.to change(Business, :count).by(1)
-      expect(response).to redirect_to(admin_business_path(Business.last.hostname))
+      expect(response).to redirect_to(admin_business_path(Business.last.id))
       follow_redirect!
     end
   end
