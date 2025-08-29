@@ -39,8 +39,8 @@ RSpec.describe BusinessMailer, type: :mailer do
     it 'includes domain coverage information in the email' do
       mail = BusinessMailer.domain_request_notification(premium_user)
       
-      # Check for domain coverage content in HTML version
-      expect(mail.body.encoded).to include('Domain Cost Coverage')
+      # Check for domain coverage content in both HTML and text versions
+      expect(mail.body.encoded).to include('DOMAIN COST COVERAGE')
       expect(mail.body.encoded).to include('$20 per year')
       expect(mail.body.encoded).to include('BizBlasts covers domain registration costs')
       expect(mail.body.encoded).to include('If under $20/year: We handle registration at no cost')

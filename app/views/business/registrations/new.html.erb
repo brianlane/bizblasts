@@ -246,13 +246,15 @@
           <!-- Host Type Handling -->
           <%= business_f.hidden_field :host_type, value: 'subdomain', id: 'host_type_input' %>
 
-          <!-- Premium Domain Options (both available) -->
-          <div id="premium-domain-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6" style="display:none;">
-            <div id="reg_subdomain_group">
-              <%= business_f.label :subdomain, "Subdomain", class: "block text-sm font-medium text-dark mb-1" %>
-              <%= business_f.text_field :subdomain, placeholder: "your-biz", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors", id: "registration_subdomain_field" %>
-              <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
-            </div>
+          <!-- Subdomain field for all tiers -->
+          <div class="mt-6">
+            <%= business_f.label :subdomain, "Subdomain", class: "block text-sm font-medium text-dark mb-1" %>
+            <%= business_f.text_field :subdomain, placeholder: "your-biz", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors", id: "registration_subdomain_field" %>
+            <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
+          </div>
+
+          <!-- Premium Domain Options (additional custom domain option) -->
+          <div id="premium-domain-inputs" class="mt-6" style="display:none;">
             <div id="reg_custom_group">
               <%= business_f.label :hostname, "Custom Domain (Optional)", class: "block text-sm font-medium text-dark mb-1" %>
               <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>

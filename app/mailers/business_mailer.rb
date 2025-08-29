@@ -15,6 +15,7 @@ class BusinessMailer < ApplicationMailer
     @domain_requested = @business.hostname if @business.host_type_custom_domain?
     @subdomain_requested = @business.subdomain
     @custom_domain_owned = @business.custom_domain_owned || false
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Set unsubscribe token for the user
     set_unsubscribe_token(user)
@@ -43,6 +44,7 @@ class BusinessMailer < ApplicationMailer
     @customer = booking.tenant_customer
     @service = booking.service
     @staff_member = booking.staff_member
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Check if business user has this notification enabled (fixed role reference)
     business_user = @business.users.where(role: [:manager]).first
@@ -83,6 +85,7 @@ class BusinessMailer < ApplicationMailer
     return unless @business.present?
     
     @customer = order.tenant_customer
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
@@ -114,6 +117,8 @@ class BusinessMailer < ApplicationMailer
     
     # Handle case where business might be nil or deleted
     return unless @business.present?
+    
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Set tenant context properly for secure scoping
     ActsAsTenant.with_tenant(@business) do
@@ -160,6 +165,7 @@ class BusinessMailer < ApplicationMailer
     @invoice = payment.invoice
     @booking = @invoice&.booking
     @order = @invoice&.order
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
@@ -202,6 +208,7 @@ class BusinessMailer < ApplicationMailer
     
     @customer = customer_subscription.tenant_customer
     @item = customer_subscription.product || customer_subscription.service
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
@@ -242,6 +249,8 @@ class BusinessMailer < ApplicationMailer
     
     # Handle case where business might be nil or deleted
     return unless @business.present?
+    
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
@@ -287,6 +296,8 @@ class BusinessMailer < ApplicationMailer
     # Handle case where business might be nil or deleted
     return unless @business.present?
     
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+    
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
     return unless business_user.present?
@@ -317,6 +328,7 @@ class BusinessMailer < ApplicationMailer
     
     @customer = customer_subscription.tenant_customer
     @item = customer_subscription.product || customer_subscription.service
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
@@ -348,6 +360,7 @@ class BusinessMailer < ApplicationMailer
     
     @customer = customer_subscription.tenant_customer
     @item = customer_subscription.product || customer_subscription.service
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
     
     # Get business manager
     business_user = @business.users.where(role: [:manager]).first
