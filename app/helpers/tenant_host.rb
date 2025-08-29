@@ -108,7 +108,7 @@ module TenantHost
     host = host.to_s.downcase
 
     if Rails.env.development? || Rails.env.test?
-      %w[lvh.me www.lvh.me example.com www.example.com].include?(host)
+      %w[lvh.me www.lvh.me example.com www.example.com test.host].include?(host)
     else
       %w[bizblasts.com www.bizblasts.com bizblasts.onrender.com].include?(host)
     end
