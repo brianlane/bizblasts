@@ -825,14 +825,17 @@ class Business < ApplicationRecord
   # • Only copy when hostname is blank to avoid overwriting a persisted value.
   # • Normalise the copied value (downcase / strip) for consistency with
   #   `normalize_hostname`.
-  before_validation :copy_subdomain_to_hostname, if: :host_type_subdomain?
+  before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
 
-  def copy_subdomain_to_hostname
+  # Keeps hostname in sync with subdomain for subdomain-based tenants.
+  # • Runs when the record is new OR the subdomain itself is being changed.
+  # • Normalises the value for consistency.
+  def sync_hostname_with_subdomain
     return if subdomain.blank?
-    # Do not overwrite an existing hostname unless it is blank.
-    return if hostname.present? && !will_save_change_to_hostname?
 
-    self.hostname = subdomain.to_s.downcase.strip
+    if new_record? || will_save_change_to_subdomain? || hostname.blank?
+      self.hostname = subdomain.to_s.downcase.strip
+    end
   end
 
   def normalize_stripe_customer_id
