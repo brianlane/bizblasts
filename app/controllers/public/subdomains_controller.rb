@@ -2,6 +2,10 @@
 
 module Public
   class SubdomainsController < BaseController
+    protect_from_forgery with: :null_session
+    skip_before_action :authenticate_user!, only: :check
+    before_action :ensure_json_request
+
     # POST /subdomains/check
     def check
       result = SubdomainAvailabilityService.call(params[:subdomain])
@@ -9,6 +13,14 @@ module Public
     rescue StandardError => e
       Rails.logger.error "[PUBLIC_SUBDOMAIN_CHECK] #{e.class}: #{e.message}"
       render json: { available: false, message: 'Unable to check availability. Please try again.' }
+    end
+
+    private
+
+    def ensure_json_request
+      return if request.format.json?
+
+      head :unsupported_media_type
     end
   end
 end
