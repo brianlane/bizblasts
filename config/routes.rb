@@ -574,6 +574,9 @@ Rails.application.routes.draw do
   get '/policy_status', to: 'policy_acceptances#status'
   post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
 
+  # Public subdomain availability endpoint
+  post '/subdomains/check', to: 'public/subdomains#check'
+
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthcheck" => "health#check", as: :health_check
   get "db-check" => "health#db_check", as: :db_check

@@ -84,44 +84,8 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
 
   # POST /manage/settings/business/check_subdomain_availability
   def check_subdomain_availability
-    subdomain = params[:subdomain]&.downcase&.strip
-    
-    if subdomain.blank?
-      render json: { available: false, message: 'Subdomain cannot be blank' }
-      return
-    end
-    
-    # Format validation
-    unless subdomain.match?(/\A[a-z0-9]([a-z0-9-]*[a-z0-9])?\z/) && subdomain.length >= 3 && subdomain.length <= 63
-      render json: { available: false, message: 'Invalid subdomain format' }
-      return
-    end
-    
-    # Reserved words check
-    reserved_words = %w[www mail ftp admin root api app support help blog shop store manage settings admin dashboard]
-    if reserved_words.include?(subdomain)
-      render json: { available: false, message: 'This subdomain is reserved' }
-      return
-    end
-    
-    # Check if subdomain is already taken by another business (excluding current business)
-    existing_business = Business.where(subdomain: subdomain).where.not(id: @business.id).first
-    if existing_business
-      render json: { available: false, message: 'This subdomain is already taken' }
-      return
-    end
-    
-    # Check if subdomain is taken as hostname by another business (excluding current business)
-    existing_hostname = Business.where(hostname: subdomain).where.not(id: @business.id).first
-    if existing_hostname
-      render json: { available: false, message: 'This subdomain is already taken' }
-      return
-    end
-    
-    render json: { available: true, message: 'Subdomain is available' }
-  rescue => e
-    Rails.logger.error "[SUBDOMAIN_CHECK] Error checking availability for '#{subdomain}': #{e.message}"
-    render json: { available: false, message: 'Unable to check availability. Please try again.' }
+    result = SubdomainAvailabilityService.call(params[:subdomain], exclude_business: @business)
+    render json: result.to_h
   end
 
   private
