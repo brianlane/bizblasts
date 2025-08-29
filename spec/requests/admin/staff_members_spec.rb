@@ -46,7 +46,7 @@ RSpec.describe "Admin StaffMembers", type: :request, admin: true do
 
       # Check regular staff 
       expect(body).to include(staff_member.name)
-      expect(body).to match(/<a[^>]*href="\/admin\/businesses\/#{Regexp.escape(business.hostname)}"[^>]*>#{Regexp.escape(business.name)}<\/a>/)
+      expect(body).to match(/<a[^>]*href="\/admin\/businesses\/#{business.id}"[^>]*>#{Regexp.escape(business.name)}<\/a>/)
       expect(body).to include("5 days, 0 exceptions") # Default factory has Mon-Fri (5 days)
       
       # Check staff with empty availability
