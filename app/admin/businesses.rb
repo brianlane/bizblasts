@@ -13,19 +13,27 @@ ActiveAdmin.register Business do
   end
 
   action_item :start_domain_setup, only: :show, if: proc { resource.can_setup_custom_domain? } do
-    link_to 'Start Domain Setup', start_domain_setup_admin_business_path(resource.id), method: :post, data: { confirm: 'Begin CNAME setup and email instructions?' }
+    link_to 'Start Domain Setup', start_domain_setup_admin_business_path(resource.id),
+           data: { turbo_method: :post, turbo_confirm: 'Begin CNAME setup and email instructions?' },
+           class: 'button'
   end
 
   action_item :restart_domain_monitoring, only: :show, if: proc { ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(resource.status) } do
-    link_to 'Restart Monitoring', restart_domain_monitoring_admin_business_path(resource.id), method: :post, data: { confirm: 'Restart DNS monitoring for another hour?' }
+    link_to 'Restart Monitoring', restart_domain_monitoring_admin_business_path(resource.id),
+           data: { turbo_method: :post, turbo_confirm: 'Restart DNS monitoring for another hour?' },
+           class: 'button'
   end
 
   action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
-    link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id), method: :post, data: { confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
+    link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id),
+           data: { turbo_method: :post, turbo_confirm: 'Force-activate domain (bypasses DNS verification). Continue?' },
+           class: 'button'
   end
 
   action_item :disable_custom_domain, only: :show, if: proc { resource.cname_active? || resource.status.in?(['cname_pending','cname_monitoring','cname_timeout']) } do
-    link_to 'Remove Custom Domain', disable_custom_domain_admin_business_path(resource.id), method: :post, class: 'button-danger', data: { confirm: 'Permanently remove custom domain and revert to subdomain hosting?' }
+    link_to 'Remove Custom Domain', disable_custom_domain_admin_business_path(resource.id),
+           data: { turbo_method: :post, turbo_confirm: 'Permanently remove custom domain and revert to subdomain hosting?' },
+           class: 'button button-danger'
   end
 
   # Remove tenant scoping for admin panel
@@ -144,63 +152,63 @@ ActiveAdmin.register Business do
   end
 
   # CNAME Domain Management Actions
-  member_action :start_domain_setup, method: :post do
+  member_action :start_domain_setup, method: [:get, :post] do
     begin
       setup_service = CnameSetupService.new(resource)
       result = setup_service.start_setup!
       
       if result[:success]
-        redirect_to admin_business_path(resource.id), notice: result[:message]
+        redirect_to admin_business_path(resource), notice: result[:message]
       else
-        redirect_to admin_business_path(resource.id), alert: "Domain setup failed: #{result[:error]}"
+        redirect_to admin_business_path(resource), alert: "Domain setup failed: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource.id), alert: "Error starting domain setup: #{e.message}"
+      redirect_to admin_business_path(resource), alert: "Error starting domain setup: #{e.message}"
     end
   end
 
-  member_action :restart_domain_monitoring, method: :post do
+  member_action :restart_domain_monitoring, method: [:get, :post] do
     begin
       setup_service = CnameSetupService.new(resource)
       result = setup_service.restart_monitoring!
       
       if result[:success]
-        redirect_to admin_business_path(resource.id), notice: result[:message]
+        redirect_to admin_business_path(resource), notice: result[:message]
       else
-        redirect_to admin_business_path(resource.id), alert: "Failed to restart monitoring: #{result[:error]}"
+        redirect_to admin_business_path(resource), alert: "Failed to restart monitoring: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource.id), alert: "Error restarting monitoring: #{e.message}"
+      redirect_to admin_business_path(resource), alert: "Error restarting monitoring: #{e.message}"
     end
   end
 
-  member_action :force_activate_domain, method: :post do
+  member_action :force_activate_domain, method: [:get, :post] do
     begin
       setup_service = CnameSetupService.new(resource)
       result = setup_service.force_activate!
       
       if result[:success]
-        redirect_to admin_business_path(resource.id), notice: result[:message]
+        redirect_to admin_business_path(resource), notice: result[:message]
       else
-        redirect_to admin_business_path(resource.id), alert: "Failed to activate domain: #{result[:error]}"
+        redirect_to admin_business_path(resource), alert: "Failed to activate domain: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource.id), alert: "Error activating domain: #{e.message}"
+      redirect_to admin_business_path(resource), alert: "Error activating domain: #{e.message}"
     end
   end
 
-  member_action :disable_custom_domain, method: :post do
+  member_action :disable_custom_domain, method: [:get, :post] do
     begin
       removal_service = DomainRemovalService.new(resource)
       result = removal_service.remove_domain!
       
       if result[:success]
-        redirect_to admin_business_path(resource.id), notice: result[:message]
+        redirect_to admin_business_path(resource), notice: result[:message]
       else
-        redirect_to admin_business_path(resource.id), alert: "Failed to remove domain: #{result[:error]}"
+        redirect_to admin_business_path(resource), alert: "Failed to remove domain: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource.id), alert: "Error removing domain: #{e.message}"
+      redirect_to admin_business_path(resource), alert: "Error removing domain: #{e.message}"
     end
   end
 
@@ -319,7 +327,7 @@ ActiveAdmin.register Business do
       row "Stripe Status" do |business|
         if business.stripe_account_id.present?
           begin
-            if StripeService.check_onboarding_status(business)
+            if StripeService.check_onboarding_status(b)
               status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             else
               status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
