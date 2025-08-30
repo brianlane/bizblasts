@@ -15,28 +15,28 @@ ActiveAdmin.register Business do
   action_item :start_domain_setup, only: :show, if: proc { resource.can_setup_custom_domain? } do
     link_to 'Start Domain Setup', start_domain_setup_admin_business_path(resource.id),
            method: :post,
-           data: { turbo_method: :post, turbo_confirm: 'Begin CNAME setup and email instructions?' },
+           data: { confirm: 'Begin CNAME setup and email instructions?' },
            class: 'button'
   end
 
   action_item :restart_domain_monitoring, only: :show, if: proc { ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(resource.status) } do
     link_to 'Restart Monitoring', restart_domain_monitoring_admin_business_path(resource.id),
            method: :post,
-           data: { turbo_method: :post, turbo_confirm: 'Restart DNS monitoring for another hour?' },
+           data: { confirm: 'Restart DNS monitoring for another hour?' },
            class: 'button'
   end
 
   action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
     link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id),
            method: :post,
-           data: { turbo_method: :post, turbo_confirm: 'Force-activate domain (bypasses DNS verification). Continue?' },
+           data: { confirm: 'Force-activate domain (bypasses DNS verification). Continue?' },
            class: 'button'
   end
 
   action_item :disable_custom_domain, only: :show, if: proc { resource.cname_active? || resource.status.in?(['cname_pending','cname_monitoring','cname_timeout']) } do
     link_to 'Remove Custom Domain', disable_custom_domain_admin_business_path(resource.id),
            method: :post,
-           data: { turbo_method: :post, turbo_confirm: 'Permanently remove custom domain and revert to subdomain hosting?' },
+           data: { confirm: 'Permanently remove custom domain and revert to subdomain hosting?' },
            class: 'button button-danger'
   end
 
