@@ -64,3 +64,4 @@ class SubdomainAvailabilityService
     !scope.exists?
   end
 end
+
