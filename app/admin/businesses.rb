@@ -14,24 +14,28 @@ ActiveAdmin.register Business do
 
   action_item :start_domain_setup, only: :show, if: proc { resource.can_setup_custom_domain? } do
     link_to 'Start Domain Setup', start_domain_setup_admin_business_path(resource.id),
+           method: :post,
            data: { turbo_method: :post, turbo_confirm: 'Begin CNAME setup and email instructions?' },
            class: 'button'
   end
 
   action_item :restart_domain_monitoring, only: :show, if: proc { ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(resource.status) } do
     link_to 'Restart Monitoring', restart_domain_monitoring_admin_business_path(resource.id),
+           method: :post,
            data: { turbo_method: :post, turbo_confirm: 'Restart DNS monitoring for another hour?' },
            class: 'button'
   end
 
   action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
     link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id),
+           method: :post,
            data: { turbo_method: :post, turbo_confirm: 'Force-activate domain (bypasses DNS verification). Continue?' },
            class: 'button'
   end
 
   action_item :disable_custom_domain, only: :show, if: proc { resource.cname_active? || resource.status.in?(['cname_pending','cname_monitoring','cname_timeout']) } do
     link_to 'Remove Custom Domain', disable_custom_domain_admin_business_path(resource.id),
+           method: :post,
            data: { turbo_method: :post, turbo_confirm: 'Permanently remove custom domain and revert to subdomain hosting?' },
            class: 'button button-danger'
   end
@@ -152,63 +156,63 @@ ActiveAdmin.register Business do
   end
 
   # CNAME Domain Management Actions
-  member_action :start_domain_setup, method: [:get, :post] do
+  member_action :start_domain_setup, method: :post do
     begin
       setup_service = CnameSetupService.new(resource)
       result = setup_service.start_setup!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Domain setup failed: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Domain setup failed: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error starting domain setup: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error starting domain setup: #{e.message}"
     end
   end
 
-  member_action :restart_domain_monitoring, method: [:get, :post] do
+  member_action :restart_domain_monitoring, method: :post do
     begin
       setup_service = CnameSetupService.new(resource)
       result = setup_service.restart_monitoring!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Failed to restart monitoring: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Failed to restart monitoring: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error restarting monitoring: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error restarting monitoring: #{e.message}"
     end
   end
 
-  member_action :force_activate_domain, method: [:get, :post] do
+  member_action :force_activate_domain, method: :post do
     begin
       setup_service = CnameSetupService.new(resource)
       result = setup_service.force_activate!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Failed to activate domain: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Failed to activate domain: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error activating domain: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error activating domain: #{e.message}"
     end
   end
 
-  member_action :disable_custom_domain, method: [:get, :post] do
+  member_action :disable_custom_domain, method: :post do
     begin
       removal_service = DomainRemovalService.new(resource)
       result = removal_service.remove_domain!
       
       if result[:success]
-        redirect_to admin_business_path(resource), notice: result[:message]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
       else
-        redirect_to admin_business_path(resource), alert: "Failed to remove domain: #{result[:error]}"
+        redirect_to admin_business_path(resource.id), alert: "Failed to remove domain: #{result[:error]}"
       end
     rescue => e
-      redirect_to admin_business_path(resource), alert: "Error removing domain: #{e.message}"
+      redirect_to admin_business_path(resource.id), alert: "Error removing domain: #{e.message}"
     end
   end
 
@@ -327,7 +331,7 @@ ActiveAdmin.register Business do
       row "Stripe Status" do |business|
         if business.stripe_account_id.present?
           begin
-            if StripeService.check_onboarding_status(b)
+            if StripeService.check_onboarding_status(business)
               status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             else
               status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
@@ -359,28 +363,28 @@ ActiveAdmin.register Business do
     # Stripe Integration Panel
     panel "Stripe Integration" do
       attributes_table_for business do
-        row "Connection Status" do |b|
-          if b.stripe_account_id.present?
+        row "Connection Status" do |business|
+          if business.stripe_account_id.present?
             begin
-              if StripeService.check_onboarding_status(b)
-                status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(b.stripe_account_id)})".html_safe
+              if StripeService.check_onboarding_status(business)
+                status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
               else
-                status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(b.stripe_account_id)})".html_safe
+                status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
               end
             rescue => e
-              status_tag("Error", class: "error") + " (Account ID: #{ERB::Util.h(b.stripe_account_id)})".html_safe
+              status_tag("Error", class: "error") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             end
           else
             status_tag "Not Connected", class: "error"
           end
         end
-        row "Stripe Connect Account ID" do |b|
-          b.stripe_account_id.present? ? b.stripe_account_id : "Not set"
+        row "Stripe Connect Account ID" do |business|
+          business.stripe_account_id.present? ? business.stripe_account_id : "Not set"
         end
-        row "Stripe Customer ID (for subscriptions)" do |b|
-          b.stripe_customer_id.present? ? b.stripe_customer_id : "Not set"
+        row "Stripe Customer ID (for subscriptions)" do |business|
+          business.stripe_customer_id.present? ? business.stripe_customer_id : "Not set"
         end
-        row "Connected At" do |b|
+        row "Connected At" do |business|
           # This would need to be tracked separately if needed
           "Not tracked"
         end
@@ -391,12 +395,12 @@ ActiveAdmin.register Business do
     if business.eligible_for_domain_coverage?
       panel "Domain Coverage Information" do
         attributes_table_for business do
-          row "Coverage Status" do |b|
-            if b.domain_coverage_applied?
-              if b.domain_coverage_expired?
+          row "Coverage Status" do |business|
+            if business.domain_coverage_applied?
+              if business.domain_coverage_expired?
                 status_tag "Coverage Expired", class: "error"
-              elsif b.domain_coverage_expires_soon?
-                status_tag "Expiring Soon (#{b.domain_coverage_remaining_days} days)", class: "warning"
+              elsif business.domain_coverage_expires_soon?
+                status_tag "Expiring Soon (#{business.domain_coverage_remaining_days} days)", class: "warning"
               else
                 status_tag "Coverage Applied", class: "ok"
               end
@@ -404,28 +408,28 @@ ActiveAdmin.register Business do
               status_tag "Coverage Available", class: "warning"
             end
           end
-          row "Coverage Limit" do |b|
-            "$#{b.domain_coverage_limit}/year"
+          row "Coverage Limit" do |business|
+            "$#{business.domain_coverage_limit}/year"
           end
-          row "Amount Covered" do |b|
-            b.domain_cost_covered.present? ? "$#{b.domain_cost_covered}" : "Not applied"
+          row "Amount Covered" do |business|
+            business.domain_cost_covered.present? ? "$#{business.domain_cost_covered}" : "Not applied"
           end
-          row "Domain Registrar" do |b|
-            b.domain_registrar.present? ? b.domain_registrar.titleize : "Not specified"
+          row "Domain Registrar" do |business|
+            business.domain_registrar.present? ? business.domain_registrar.titleize : "Not specified"
           end
-          row "Registration Date" do |b|
-            b.domain_registration_date&.strftime("%B %d, %Y") || "Not set"
+          row "Registration Date" do |business|
+            business.domain_registration_date&.strftime("%B %d, %Y") || "Not set"
           end
-          row "Domain Renewal Date" do |b|
-            b.domain_renewal_date&.strftime("%B %d, %Y") || "Not set"
+          row "Domain Renewal Date" do |business|
+            business.domain_renewal_date&.strftime("%B %d, %Y") || "Not set"
           end
-          row "Coverage Expires" do |b|
-            if b.domain_coverage_expires_at.present?
-              expires_text = b.domain_coverage_expires_at.strftime("%B %d, %Y")
-              if b.domain_coverage_expired?
+          row "Coverage Expires" do |business|
+            if business.domain_coverage_expires_at.present?
+              expires_text = business.domain_coverage_expires_at.strftime("%B %d, %Y")
+              if business.domain_coverage_expired?
                 "#{expires_text} (EXPIRED)"
-              elsif b.domain_coverage_expires_soon?
-                "#{expires_text} (expires in #{b.domain_coverage_remaining_days} days)"
+              elsif business.domain_coverage_expires_soon?
+                "#{expires_text} (expires in #{business.domain_coverage_remaining_days} days)"
               else
                 expires_text
               end
@@ -433,15 +437,15 @@ ActiveAdmin.register Business do
               "Not set"
             end
           end
-          row "Auto-Renewal Status" do |b|
-            if b.domain_will_auto_renew?
+          row "Auto-Renewal Status" do |business|
+            if business.domain_will_auto_renew?
               status_tag "Auto-Renewal Enabled", class: "ok"
             else
               status_tag "Manual Renewal", class: "warning"
             end
           end
-          row "Coverage Notes" do |b|
-            b.domain_coverage_notes.present? ? simple_format(b.domain_coverage_notes) : "No notes"
+          row "Coverage Notes" do |business|
+            business.domain_coverage_notes.present? ? simple_format(business.domain_coverage_notes) : "No notes"
           end
         end
       end
@@ -451,8 +455,8 @@ ActiveAdmin.register Business do
     if business.premium_tier? && business.host_type_custom_domain?
       panel "Custom Domain Management" do
         attributes_table_for business do
-          row "Domain Status" do |b|
-            case b.status
+          row "Domain Status" do |business|
+            case business.status
             when 'cname_pending'
               status_tag "Setup Pending", class: "warning"
             when 'cname_monitoring'
@@ -462,35 +466,35 @@ ActiveAdmin.register Business do
             when 'cname_timeout'
               status_tag "Setup Timed Out", class: "error"
             else
-              status_tag b.status.humanize, class: "default"
+              status_tag business.status.humanize, class: "default"
             end
           end
-          row "Custom Domain" do |b|
-            if b.hostname.present?
-              if b.cname_active?
-                link_to b.hostname, "https://#{b.hostname}", target: "_blank", class: "external-link"
+          row "Custom Domain" do |business|
+            if business.hostname.present?
+              if business.cname_active?
+                link_to business.hostname, "https://#{business.hostname}", target: "_blank", class: "external-link"
               else
-                b.hostname
+                business.hostname
               end
             else
               "Not configured"
             end
           end
-          row "Monitoring Active" do |b|
-            b.cname_monitoring_active? ? status_tag("Yes", class: "ok") : status_tag("No", class: "default")
+          row "Monitoring Active" do |business|
+            business.cname_monitoring_active? ? status_tag("Yes", class: "ok") : status_tag("No", class: "default")
           end
-          row "DNS Check Attempts" do |b|
-            "#{b.cname_check_attempts}/12"
+          row "DNS Check Attempts" do |business|
+            "#{business.cname_check_attempts}/12"
           end
-          row "Setup Email Sent" do |b|
-            if b.cname_setup_email_sent_at.present?
-              "#{time_ago_in_words(b.cname_setup_email_sent_at)} ago"
+          row "Setup Email Sent" do |business|
+            if business.cname_setup_email_sent_at.present?
+              "#{time_ago_in_words(business.cname_setup_email_sent_at)} ago"
             else
               "Not sent"
             end
           end
-          row "Render Domain Added" do |b|
-            b.render_domain_added? ? status_tag("Yes", class: "ok") : status_tag("No", class: "error")
+          row "Render Domain Added" do |business|
+            business.render_domain_added? ? status_tag("Yes", class: "ok") : status_tag("No", class: "error")
           end
         end
         
