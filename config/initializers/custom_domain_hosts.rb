@@ -20,6 +20,18 @@ add_hosts = lambda do |domains|
   end
 end
 
+# 1) Always allow any hosts provided via env var (comma or space separated)
+begin
+  env_hosts = ENV['CUSTOM_ALLOWED_HOSTS']
+  if env_hosts.present?
+    domains = env_hosts.split(/[\s,]+/).reject(&:blank?)
+    add_hosts.call(domains)
+    Rails.logger.info("[CustomDomainHosts] Loaded env CUSTOM_ALLOWED_HOSTS: #{domains.join(', ')}")
+  end
+rescue => e
+  Rails.logger.warn("[CustomDomainHosts] Failed to load CUSTOM_ALLOWED_HOSTS: #{e.class} – #{e.message}")
+end
+
 # During asset builds or early boot, the DB/model may not be available.
 # Keep the lightweight guard for those phases.
 begin
