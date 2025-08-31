@@ -312,10 +312,22 @@ ActiveAdmin.register Business do
       item "View", admin_business_path(business.id)
       item "Edit", edit_admin_business_path(business.id)
       item "Delete", admin_business_path(business.id), method: :delete, data: { confirm: "Are you sure?" }
-      item "Start Domain Setup", start_domain_setup_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Begin CNAME setup and email instructions?' }
-      item "Restart Monitoring", restart_domain_monitoring_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Restart DNS monitoring for another hour?' }
-      item "Force Activate Domain", force_activate_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
-      item "Remove Custom Domain", disable_custom_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Permanently remove custom domain and revert to subdomain hosting?' }
+
+      if business.can_setup_custom_domain?
+        item "Start Domain Setup", start_domain_setup_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Begin CNAME setup and email instructions?' }
+      end
+
+      if ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(business.status)
+        item "Restart Monitoring", restart_domain_monitoring_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Restart DNS monitoring for another hour?' }
+      end
+
+      if business.premium_tier? && business.host_type_custom_domain?
+        item "Force Activate Domain", force_activate_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
+      end
+
+      if business.cname_active? || business.status.in?(['cname_pending', 'cname_monitoring', 'cname_timeout'])
+        item "Remove Custom Domain", disable_custom_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Permanently remove custom domain and revert to subdomain hosting?' }
+      end
     end
   end
 
