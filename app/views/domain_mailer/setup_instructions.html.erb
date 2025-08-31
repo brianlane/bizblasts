@@ -115,7 +115,16 @@
           <ul>
             <li>Use exactly "<strong><%= @render_target %></strong>" as the target</li>
             <li>Some registrars require a trailing dot: "<strong><%= @render_target %>.</strong>"</li>
-            <li>Remove any existing A or AAAA records for this domain</li>
+            <li>Also add an A/ALIAS at the apex if the registrar requires apex verification:</li>
+          </ul>
+          <div class="code-block">
+            <strong>Name/Host:</strong> @<br>
+            <strong>Type:</strong> A (or ALIAS/ANAME if supported)<br>
+            <strong>Value/Target:</strong> 216.24.57.1 (Render apex IP)<br>
+            <strong>TTL:</strong> Auto or 300 (5 minutes)
+          </div>
+          <ul>
+            <li>If your registrar supports domain forwarding, you may forward apex → www instead.</li>
           </ul>
         </div>
       </div>

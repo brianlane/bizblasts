@@ -580,7 +580,7 @@ ActiveAdmin.register Business do
           
           if business.cname_active? || business.status.in?(['cname_pending', 'cname_monitoring', 'cname_timeout'])
             link_to "Remove Custom Domain", disable_custom_domain_admin_business_path(business.id), 
-                    method: :post, class: "button button-danger", style: "background-color: #dc3545; color: white;",
+                    method: :post, class: "button", style: "background-color: #dc3545; color: white;",
                     data: { confirm: "⚠️ WARNING: This will permanently remove the custom domain and revert to subdomain hosting (#{business.subdomain || business.hostname}.bizblasts.com). The domain will no longer work for this business. This action cannot be undone. Are you sure you want to continue?" }
           end
         end
