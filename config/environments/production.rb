@@ -125,6 +125,9 @@ Rails.application.configure do
   # custom domains are added at runtime via
   # `config/initializers/custom_domain_hosts.rb`.
   
-  # Skip DNS rebinding protection for the default health check endpoint.
-  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Skip DNS rebinding protection for health check endpoints to allow Render
+  # readiness probes to succeed even before custom hosts are fully loaded.
+  config.host_authorization = {
+    exclude: ->(request) { ["/up", "/healthcheck"].include?(request.path) }
+  }
 end
