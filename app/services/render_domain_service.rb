@@ -43,6 +43,12 @@ class RenderDomainService
         raise RenderApiError, "Unexpected Render response format: #{response.body.inspect}"
       end
 
+      # Render sometimes returns an Array of domain objects (apex + www). Handle both.
+      if domain_data.is_a?(Array)
+        domain_data = domain_data.find { |d| d.is_a?(Hash) && d['name'] == domain_name } ||
+                      domain_data.find { |d| d.is_a?(Hash) && d['id'].present? }
+      end
+
       unless domain_data.is_a?(Hash) && domain_data['id']
         raise RenderApiError, "Missing domain id in Render response: #{domain_data.inspect}"
       end
