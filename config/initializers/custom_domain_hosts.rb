@@ -18,12 +18,15 @@
 return unless Rails.env.production?
 
 begin
-  # Fetch custom-domain hostnames (pluck avoids loading entire records).
-  Business.where(host_type: "custom_domain").where.not(hostname: [nil, ""]).pluck(:hostname).each do |domain|
-    Rails.application.config.hosts << domain
-    # Add the www alias if the domain itself is not already prefixed.
-    Rails.application.config.hosts << "www.#{domain}" unless domain.start_with?("www.")
+  # Ensure Business model is loaded and DB schema is present before querying.
+  if defined?(Business) && Business.respond_to?(:where) && Business.table_exists?
+    Business.where(host_type: "custom_domain").where.not(hostname: [nil, ""]).pluck(:hostname).each do |domain|
+      Rails.application.config.hosts << domain
+      Rails.application.config.hosts << "www.#{domain}" unless domain.start_with?("www.")
+    end
+  else
+    Rails.logger.info("[CustomDomainHosts] Business model not available during boot; skipping host preload")
   end
-rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid, PG::UndefinedTable => e
+rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid, PG::UndefinedTable, StandardError => e
   Rails.logger.warn("[CustomDomainHosts] Skipping dynamic host loading: #{e.class} – #{e.message}")
 end
