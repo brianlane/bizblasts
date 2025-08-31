@@ -75,6 +75,10 @@ RSpec.describe CnameDnsChecker, type: :service do
         allow(resolver).to receive(:getresources)
           .with(domain_name, Resolv::DNS::Resource::IN::CNAME)
           .and_return([])
+        # Also stub A-record lookup invoked by apex check
+        allow(resolver).to receive(:getresources)
+          .with(domain_name, Resolv::DNS::Resource::IN::A)
+          .and_return([])
       end
 
       it 'returns verified false with error' do
@@ -83,6 +87,26 @@ RSpec.describe CnameDnsChecker, type: :service do
         expect(result[:verified]).to be false
         expect(result[:target]).to be_nil
         expect(result[:error]).to eq('No CNAME record found')
+      end
+    end
+
+    context 'when no CNAME but apex A record matches Render' do
+      before do
+        allow(resolver).to receive(:getresources)
+          .with(domain_name, Resolv::DNS::Resource::IN::CNAME)
+          .and_return([])
+        a_record = instance_double(Resolv::DNS::Resource::IN::A, address: IPAddr.new('216.24.57.1'))
+        allow(resolver).to receive(:getresources)
+          .with(domain_name, Resolv::DNS::Resource::IN::A)
+          .and_return([a_record])
+      end
+
+      it 'returns verified true using apex A record' do
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be true
+        expect(result[:target]).to eq('216.24.57.1')
+        expect(result[:error]).to be_nil
       end
     end
 
@@ -106,6 +130,10 @@ RSpec.describe CnameDnsChecker, type: :service do
         allow(resolver).to receive(:getresources)
           .with(domain_name, Resolv::DNS::Resource::IN::CNAME)
           .and_return([instance_double(Resolv::DNS::Resource::IN::CNAME, name: Resolv::DNS::Name.create('localhost.'))])
+        # Prevent unexpected A-record lookup stubs in this branch
+        allow(resolver).to receive(:getresources)
+          .with(domain_name, Resolv::DNS::Resource::IN::A)
+          .and_return([])
       end
 
       it 'accepts localhost as valid target' do

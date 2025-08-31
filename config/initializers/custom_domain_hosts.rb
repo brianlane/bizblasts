@@ -6,16 +6,26 @@
 
 return unless Rails.env.production?
 
+# Helper to add hosts idempotently
+add_hosts = lambda do |domains|
+  next if domains.blank?
+  # Build normalized set to avoid duplicates
+  existing = Rails.application.config.hosts.dup
+  Array(domains).map(&:to_s).each do |domain|
+    root = domain.sub(/^www\./, '')
+    [domain, root, "www.#{root}"].uniq.each do |h|
+      Rails.application.config.hosts << h unless existing.include?(h)
+      existing << h
+    end
+  end
+end
+
 # During asset builds or early boot, the DB/model may not be available.
 # Keep the lightweight guard for those phases.
 begin
   if defined?(Business) && Business.respond_to?(:where) && Business.table_exists?
-    Business.where(host_type: "custom_domain").where.not(hostname: [nil, ""]).pluck(:hostname).each do |domain|
-      Rails.application.config.hosts << domain
-      root = domain.sub(/^www\./, '')
-      Rails.application.config.hosts << root
-      Rails.application.config.hosts << "www.#{root}"
-    end
+    domains = Business.where(host_type: "custom_domain").where.not(hostname: [nil, ""]).pluck(:hostname)
+    add_hosts.call(domains)
   else
     Rails.logger.info("[CustomDomainHosts] Business model not available during early boot; scheduling after_initialize load")
   end
@@ -32,20 +42,12 @@ Rails.application.config.after_initialize do
       next
     end
 
-    # Verify the table exists and connection is healthy
     if ActiveRecord::Base.connection.data_source_exists?('businesses')
       domains = model.where(host_type: 'custom_domain')
                      .where.not(hostname: [nil, ''])
                      .pluck(:hostname)
-
-      domains.map!(&:to_s)
-      domains.each do |domain|
-        root = domain.sub(/^www\./, '')
-        [domain, root, "www.#{root}"].uniq.each do |h|
-          Rails.application.config.hosts << h
-        end
-      end
-      Rails.logger.info("[CustomDomainHosts] Loaded #{domains.size} custom domains into config.hosts")
+      add_hosts.call(domains)
+      Rails.logger.info("[CustomDomainHosts] Hosts list size: #{Rails.application.config.hosts.size}")
     end
   rescue => e
     Rails.logger.warn("[CustomDomainHosts] after_initialize load failed: #{e.class} – #{e.message}")
