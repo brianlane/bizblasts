@@ -7,8 +7,9 @@ require 'resolv'
 class CnameDnsChecker
   class DnsResolutionError < StandardError; end
 
-  # Target CNAME that domains should point to for Render
-  RENDER_TARGET = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
+  # Targets that indicate correct routing to Render
+  RENDER_CNAME_TARGET = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
+  RENDER_APEX_IP       = '216.24.57.1' # Render documented anycast IP for apex A records
 
   def initialize(domain_name)
     @domain_name = domain_name.to_s.strip.downcase
@@ -25,12 +26,12 @@ class CnameDnsChecker
         domain: @domain_name,
         verified: false,
         target: nil,
-        expected_target: RENDER_TARGET,
+        expected_target: RENDER_CNAME_TARGET,
         error: nil,
         checked_at: Time.current
       }
 
-      # Try to resolve CNAME record
+      # First, try to resolve CNAME for the exact domain
       cname_target = resolve_cname(@domain_name)
       
       if cname_target.present?
@@ -40,8 +41,16 @@ class CnameDnsChecker
         Rails.logger.info "[CnameDnsChecker] CNAME found: #{@domain_name} -> #{cname_target}"
         Rails.logger.info "[CnameDnsChecker] Verification: #{result[:verified] ? 'PASSED' : 'FAILED'}"
       else
-        result[:error] = 'No CNAME record found'
-        Rails.logger.warn "[CnameDnsChecker] No CNAME record found for: #{@domain_name}"
+        # If no CNAME exists, allow apex verification via A/ALIAS pointing to Render IP
+        if apex_a_matches_render?(@domain_name)
+          result[:target] = RENDER_APEX_IP
+          result[:verified] = true
+          result[:error] = nil
+          Rails.logger.info "[CnameDnsChecker] Apex A-record matches Render IP for #{@domain_name}"
+        else
+          result[:error] = 'No CNAME record found'
+          Rails.logger.warn "[CnameDnsChecker] No CNAME record (and apex A mismatch) for: #{@domain_name}"
+        end
       end
 
       result
@@ -51,7 +60,7 @@ class CnameDnsChecker
         domain: @domain_name,
         verified: false,
         target: nil,
-        expected_target: RENDER_TARGET,
+        expected_target: RENDER_CNAME_TARGET,
         error: e.message,
         checked_at: Time.current
       }
@@ -170,7 +179,7 @@ class CnameDnsChecker
 
     # Normalize targets for comparison
     normalized_target = target.downcase.chomp('.')
-    normalized_expected = RENDER_TARGET.downcase.chomp('.')
+    normalized_expected = RENDER_CNAME_TARGET.downcase.chomp('.')
 
     # Direct match
     return true if normalized_target == normalized_expected
@@ -184,5 +193,18 @@ class CnameDnsChecker
     end
 
     false
+  end
+
+  # Determine whether the domain (or its root form) has an A-record that
+  # points to Render's apex IP. This is used when an apex cannot use CNAME.
+  def apex_a_matches_render?(domain)
+    begin
+      root = domain.start_with?('www.') ? domain.sub('www.', '') : domain
+      a_records = @resolver.getresources(root, Resolv::DNS::Resource::IN::A)
+      a_records.map(&:address).map(&:to_s).include?(RENDER_APEX_IP)
+    rescue => e
+      Rails.logger.warn "[CnameDnsChecker] A-record lookup failed for #{domain}: #{e.message}"
+      false
+    end
   end
 end
