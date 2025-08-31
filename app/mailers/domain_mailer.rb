@@ -11,7 +11,9 @@ class DomainMailer < ApplicationMailer
     @business = business
     @user = user
     @domain = business.hostname
-    subdomain_part = business.subdomain.presence || business.hostname.to_s.split('.').first
+    # Use the BizBlasts tenant subdomain for the CNAME target.
+    # A subdomain is always assigned at registration and never removed, even after adding a custom domain.
+    subdomain_part = business.subdomain.presence || 'bizblasts'
     @render_target = Rails.env.production? ? "#{subdomain_part}.bizblasts.com" : 'localhost'
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
 
