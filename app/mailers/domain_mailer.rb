@@ -11,10 +11,14 @@ class DomainMailer < ApplicationMailer
     @business = business
     @user = user
     @domain = business.hostname
-    # Use the BizBlasts tenant subdomain for the CNAME target.
-    # A subdomain is always assigned at registration and never removed, even after adding a custom domain.
-    subdomain_part = business.subdomain.presence || 'bizblasts'
-    @render_target = Rails.env.production? ? "#{subdomain_part}.bizblasts.com" : 'localhost'
+    # Guard: a BizBlasts sub-domain is mandatory. Abort if missing to avoid
+    # sending incorrect DNS instructions.
+    unless business.subdomain.present?
+      Rails.logger.error("[DomainMailer] Cannot send setup instructions – business ##{business.id} has no subdomain")
+      raise ArgumentError, 'Business subdomain is blank'
+    end
+
+    @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
 
     # Always instruct users to point the 'www' host at BizBlasts
@@ -46,7 +50,12 @@ class DomainMailer < ApplicationMailer
     @business = business
     @user = user
     @domain = business.hostname
-    @render_target = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
+    unless business.subdomain.present?
+      Rails.logger.error("[DomainMailer] Cannot send timeout help – business ##{business.id} has no subdomain")
+      raise ArgumentError, 'Business subdomain is blank'
+    end
+
+    @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
 
     mail(
