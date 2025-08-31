@@ -198,7 +198,9 @@ RSpec.describe RenderDomainService, type: :service do
 
   describe 'retry logic for rate limiting' do
     let(:initial_response) { instance_double(Net::HTTPResponse, code: '429', body: '{"error":"Rate limit exceeded"}') }
-    let(:success_response) { instance_double(Net::HTTPResponse, code: '200', body: '{"success":true}') }
+    let(:success_add_response) { instance_double(Net::HTTPResponse, code: '200', body: { id: 'dom-123', name: domain_name }.to_json) }
+    let(:success_verify_response) { instance_double(Net::HTTPResponse, code: '200', body: { verified: true, domain_id: 'dom-123' }.to_json) }
+    let(:success_list_response) { instance_double(Net::HTTPResponse, code: '200', body: [{ id: 'dom-123', name: domain_name, verified: true }].to_json) }
 
     before do
       # Mock the execute_request method to control responses
@@ -208,12 +210,12 @@ RSpec.describe RenderDomainService, type: :service do
     describe '#add_domain with rate limiting' do
       it 'retries on 429 and succeeds' do
         # First call returns 429, second call succeeds
-        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:execute_request).and_return(initial_response, success_add_response)
         allow(service).to receive(:calculate_retry_delay).and_return(0.1)
 
         # Should not raise error and return parsed success response
         result = service.add_domain(domain_name)
-        expect(result).to eq({ 'success' => true })
+        expect(result).to include('id' => 'dom-123', 'name' => domain_name)
         
         # Should have made 2 requests (initial + 1 retry)
         expect(service).to have_received(:execute_request).twice
@@ -236,7 +238,7 @@ RSpec.describe RenderDomainService, type: :service do
       it 'respects Retry-After header when present' do
         response_with_retry_after = instance_double(Net::HTTPResponse, code: '429', body: '{}')
         allow(response_with_retry_after).to receive(:[]).with('Retry-After').and_return('5')
-        allow(service).to receive(:execute_request).and_return(response_with_retry_after, success_response)
+        allow(service).to receive(:execute_request).and_return(response_with_retry_after, success_add_response)
 
         service.add_domain(domain_name)
         
@@ -288,25 +290,27 @@ RSpec.describe RenderDomainService, type: :service do
 
     describe 'integration with other methods' do
       it 'applies retry logic to verify_domain' do
-        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:execute_request).and_return(initial_response, success_verify_response)
         allow(service).to receive(:calculate_retry_delay).and_return(0.1)
 
         result = service.verify_domain(domain_id)
-        expect(result).to eq({ 'success' => true })
+        expect(result).to include('verified' => true, 'domain_id' => 'dom-123')
         expect(service).to have_received(:execute_request).twice
       end
 
       it 'applies retry logic to list_domains' do
-        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        allow(service).to receive(:execute_request).and_return(initial_response, success_list_response)
         allow(service).to receive(:calculate_retry_delay).and_return(0.1)
 
         result = service.list_domains
-        expect(result).to eq({ 'success' => true })
+        expect(result).to be_an(Array)
+        expect(result.first).to include('id' => 'dom-123', 'name' => domain_name)
         expect(service).to have_received(:execute_request).twice
       end
 
       it 'applies retry logic to remove_domain' do
-        allow(service).to receive(:execute_request).and_return(initial_response, success_response)
+        success_delete = instance_double(Net::HTTPResponse, code: '204')
+        allow(service).to receive(:execute_request).and_return(initial_response, success_delete)
         allow(service).to receive(:calculate_retry_delay).and_return(0.1)
 
         result = service.remove_domain(domain_id)

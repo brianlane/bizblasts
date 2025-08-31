@@ -37,7 +37,16 @@ class RenderDomainService
     response = make_request(url, :post, { name: domain_name })
     
     if response.code.start_with?('2')
-      domain_data = JSON.parse(response.body)
+      begin
+        domain_data = JSON.parse(response.body)
+      rescue JSON::ParserError
+        raise RenderApiError, "Unexpected Render response format: #{response.body.inspect}"
+      end
+
+      unless domain_data.is_a?(Hash) && domain_data['id']
+        raise RenderApiError, "Missing domain id in Render response: #{domain_data.inspect}"
+      end
+
       Rails.logger.info "[RenderDomainService] Domain added successfully: #{domain_data['id']}"
       domain_data
     else
