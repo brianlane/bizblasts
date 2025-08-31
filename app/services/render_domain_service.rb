@@ -37,8 +37,9 @@ class RenderDomainService
     response = make_request(url, :post, { name: domain_name })
     
     if response.code.start_with?('2')
-      domain_data = JSON.parse(response.body)
-      Rails.logger.info "[RenderDomainService] Domain added successfully: #{domain_data['id']}"
+      parsed = JSON.parse(response.body) rescue response.body
+      domain_data = parsed.is_a?(Hash) ? parsed : { 'name' => domain_name, 'raw_body' => parsed }
+      Rails.logger.info "[RenderDomainService] Domain added successfully"
       domain_data
     else
       error_msg = extract_error_message(response)
