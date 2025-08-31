@@ -11,8 +11,12 @@ class DomainMailer < ApplicationMailer
     @business = business
     @user = user
     @domain = business.hostname
-    @render_target = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
+    subdomain_part = business.subdomain.presence || business.hostname.to_s.split('.').first
+    @render_target = Rails.env.production? ? "#{subdomain_part}.bizblasts.com" : 'localhost'
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+
+    # Always instruct users to point the 'www' host at BizBlasts
+    @cname_name = 'www'
 
     mail(
       to: @user.email,

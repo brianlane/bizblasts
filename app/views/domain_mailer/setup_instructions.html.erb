@@ -104,18 +104,9 @@
         <p>Create a new CNAME record with these exact settings:</p>
         
         <div class="code-block">
-          <strong>Name/Host:</strong> @<br>
-          <strong>Type:</strong> A<br>
-          <strong>Value/Target:</strong> 216.24.57.1<br>
-          <strong>TTL:</strong> Auto or 300 (5 minutes)
-        </div>
-
-        <p>Create another new CNAME record with these exact settings:</p>
-        
-        <div class="code-block">
-          <strong>Name/Host:</strong> www<br>
+          <strong>Name/Host:</strong> <%= @cname_name %><br>
           <strong>Type:</strong> CNAME<br>
-          <strong>Value/Target:</strong> <%= @render_target %><br>
+          <strong>Value/Target:</strong> <%= "#{@business.subdomain.presence || 'bizblasts'}.bizblasts.com" %><br>
           <strong>TTL:</strong> Auto or 300 (5 minutes)
         </div>
 
