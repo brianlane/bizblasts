@@ -2,31 +2,52 @@
 
 # Dynamically allow custom domains stored in the businesses table to pass
 # Rails’ Host Authorization middleware in production. This prevents 403
-# “Blocked hosts” errors when a tenant’s custom domain is first connected.
-#
-# • Runs only in production – development & test already configure hosts
-#   explicitly in their respective environment files.
-# • Wrap DB queries in robust error handling so boot won’t fail in cases
-#   where the database is unavailable (e.g. during assets:precompile).
-# • We intentionally do NOT wildcard-allow every host; only domains that
-#   exist in the database (plus their `www.` aliases) are permitted.
-#
-# NOTE: This uses runtime data, not static Rails configuration files,
-#       keeping with the project’s preference for env-based config while
-#       preserving security best practices.
+# “Blocked hosts” errors when a tenant’s custom domain is connected.
 
 return unless Rails.env.production?
 
+# During asset builds or early boot, the DB/model may not be available.
+# Keep the lightweight guard for those phases.
 begin
-  # Ensure Business model is loaded and DB schema is present before querying.
   if defined?(Business) && Business.respond_to?(:where) && Business.table_exists?
     Business.where(host_type: "custom_domain").where.not(hostname: [nil, ""]).pluck(:hostname).each do |domain|
       Rails.application.config.hosts << domain
-      Rails.application.config.hosts << "www.#{domain}" unless domain.start_with?("www.")
+      root = domain.sub(/^www\./, '')
+      Rails.application.config.hosts << root
+      Rails.application.config.hosts << "www.#{root}"
     end
   else
-    Rails.logger.info("[CustomDomainHosts] Business model not available during boot; skipping host preload")
+    Rails.logger.info("[CustomDomainHosts] Business model not available during early boot; scheduling after_initialize load")
   end
 rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid, PG::UndefinedTable, StandardError => e
-  Rails.logger.warn("[CustomDomainHosts] Skipping dynamic host loading: #{e.class} – #{e.message}")
+  Rails.logger.warn("[CustomDomainHosts] Skipping early host preload: #{e.class} – #{e.message}")
+end
+
+# Ensure hosts are added once the app is fully initialized (runtime boots).
+Rails.application.config.after_initialize do
+  begin
+    model = 'Business'.safe_constantize
+    unless model && model.respond_to?(:where)
+      Rails.logger.info('[CustomDomainHosts] Business model unavailable after_initialize; skipping')
+      next
+    end
+
+    # Verify the table exists and connection is healthy
+    if ActiveRecord::Base.connection.data_source_exists?('businesses')
+      domains = model.where(host_type: 'custom_domain')
+                     .where.not(hostname: [nil, ''])
+                     .pluck(:hostname)
+
+      domains.map!(&:to_s)
+      domains.each do |domain|
+        root = domain.sub(/^www\./, '')
+        [domain, root, "www.#{root}"].uniq.each do |h|
+          Rails.application.config.hosts << h
+        end
+      end
+      Rails.logger.info("[CustomDomainHosts] Loaded #{domains.size} custom domains into config.hosts")
+    end
+  rescue => e
+    Rails.logger.warn("[CustomDomainHosts] after_initialize load failed: #{e.class} – #{e.message}")
+  end
 end
