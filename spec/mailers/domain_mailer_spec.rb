@@ -38,7 +38,7 @@ RSpec.describe DomainMailer, type: :mailer do
       t = body_text(mail)
       expect(t).to include('CNAME record')
       expect(t).to include('Type: CNAME')
-      expect(t).to match(/localhost|bizblasts\.onrender\.com/)
+      expect(t).to match(/localhost|[a-z0-9\-]+\.bizblasts\.com/)
     end
 
     it 'includes registrar-specific instructions' do
@@ -64,8 +64,8 @@ RSpec.describe DomainMailer, type: :mailer do
     end
 
     context 'with root domain' do
-      it 'uses @ symbol in CNAME instructions' do
-        expect(body_text(mail)).to include('Name/Host: @')
+      it 'uses www in CNAME instructions' do
+        expect(body_text(mail)).to include('Name/Host: www')
       end
     end
 
@@ -136,7 +136,7 @@ RSpec.describe DomainMailer, type: :mailer do
     end
 
     it 'provides CNAME configuration details' do
-      expect(body_text(mail)).to match(/localhost|bizblasts\.onrender\.com/)
+      expect(body_text(mail)).to match(/localhost|[a-z0-9\-]+\.bizblasts\.com/)
     end
 
     it 'includes registrar-specific guides' do
