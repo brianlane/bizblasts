@@ -121,18 +121,9 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [:id]
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  config.hosts = [
-    "bizblasts.onrender.com",
-    "bizblasts.com",
-    "www.bizblasts.com",
-    "*.bizblasts.com",
-    "*.bizblasts.onrender.com",
-    ".bizblasts.com",
-    ".*\.bizblasts\.com$/",
-    # Allow Render PR preview URLs (format: bizblasts-pr-XX.onrender.com)
-    /bizblasts-pr-\d+\.onrender\.com/
-  ]
+  # Default allowed hosts are set in `config/application.rb`. Additional
+  # custom domains are added at runtime via
+  # `config/initializers/custom_domain_hosts.rb`.
   
   # Skip DNS rebinding protection for the default health check endpoint.
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }

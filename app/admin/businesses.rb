@@ -513,11 +513,11 @@ ActiveAdmin.register Business do
         # Live status refresh for monitoring domains
         if business.cname_monitoring_active?
           div id: "domain-live-status", style: "margin: 15px 0; padding: 10px; background: #f0f8ff; border-radius: 4px;" do
-            p style: "margin: 0; font-weight: bold;" do
+            para style: "margin: 0; font-weight: bold;" do
               "🔄 Live DNS Status: "
               span "Checking...", id: "live-status-text"
             end
-            p style: "margin: 5px 0 0 0; font-size: 12px; color: #666;" do
+            para style: "margin: 5px 0 0 0; font-size: 12px; color: #666;" do
               "Last checked: "
               span "Never", id: "last-checked"
             end
