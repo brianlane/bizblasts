@@ -37,17 +37,14 @@ end
 Rails.application.config.after_initialize do
   begin
     model = 'Business'.safe_constantize
-    unless model && model.respond_to?(:where)
-      Rails.logger.info('[CustomDomainHosts] Business model unavailable after_initialize; skipping')
-      next
-    end
-
-    if ActiveRecord::Base.connection.data_source_exists?('businesses')
+    if model && model.respond_to?(:where) && ActiveRecord::Base.connection.data_source_exists?('businesses')
       domains = model.where(host_type: 'custom_domain')
                      .where.not(hostname: [nil, ''])
                      .pluck(:hostname)
       add_hosts.call(domains)
       Rails.logger.info("[CustomDomainHosts] Hosts list size: #{Rails.application.config.hosts.size}")
+    else
+      Rails.logger.info('[CustomDomainHosts] Business model/table unavailable after_initialize; skipping')
     end
   rescue => e
     Rails.logger.warn("[CustomDomainHosts] after_initialize load failed: #{e.class} – #{e.message}")
