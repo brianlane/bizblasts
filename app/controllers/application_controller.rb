@@ -177,7 +177,7 @@ class ApplicationController < ActionController::Base
     root = host.sub(/^www\./, '')
     candidates = [host, root, "www.#{root}"]
 
-    Business.where(host_type: 'custom_domain')
+    Business.where(host_type: 'custom_domain', status: 'cname_active')
             .where('LOWER(hostname) IN (?)', candidates)
             .first
   end
