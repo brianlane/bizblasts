@@ -10,6 +10,7 @@ module Public
     # or move the tenant setting logic here.
     before_action :set_tenant 
     before_action :ensure_html_format, only: [:show]
+    after_action :no_store_cache_headers, only: [:show]
 
     # Skip user authentication for public pages
     skip_before_action :authenticate_user!
@@ -122,6 +123,12 @@ module Public
 
     def render_not_found
       render file: Rails.root.join('public/404.html'), layout: false, status: :not_found
+    end
+    
+    def no_store_cache_headers
+      response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+      response.headers["Pragma"]        = "no-cache"
+      response.headers["Expires"]       = "0"
     end
     
     # Re-define set_tenant here IF it's private in ApplicationController
