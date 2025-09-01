@@ -76,9 +76,16 @@ class RenderDomainService
     response = make_request(url, :post, {})
     
     if response.code.start_with?('2')
-      verification_data = JSON.parse(response.body)
-      Rails.logger.info "[RenderDomainService] Domain verification result: #{verification_data['verified']}"
-      verification_data
+      body = response.body.to_s
+      if body.strip.empty?
+        # Some Render responses may return 204 No Content on success.
+        Rails.logger.info "[RenderDomainService] Domain verification returned empty body; treating as success"
+        { 'verified' => true }
+      else
+        verification_data = JSON.parse(body)
+        Rails.logger.info "[RenderDomainService] Domain verification result: #{verification_data['verified']}"
+        verification_data
+      end
     else
       error_msg = extract_error_message(response)
       Rails.logger.error "[RenderDomainService] Failed to verify domain: #{error_msg}"
