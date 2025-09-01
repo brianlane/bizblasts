@@ -125,12 +125,27 @@ Rails.application.configure do
   # custom domains are added at runtime via
   # `config/initializers/custom_domain_hosts.rb`.
   
-  # Skip DNS rebinding protection for health check endpoints to allow Render
-  # readiness probes to succeed even before custom hosts are fully loaded.
+  # Skip DNS rebinding protection for:
+  # - Health check endpoints
+  # - Active custom domains stored in the database (both apex and www forms)
   config.host_authorization = {
-    exclude: ->(request) { ["/up", "/healthcheck"].include?(request.path) }
+    exclude: ->(request) do
+      return true if ["/up", "/healthcheck"].include?(request.path)
+
+      begin
+        return false unless defined?(Business)
+        host = request.host.to_s.downcase.sub(/^www\./, '')
+        candidates = [host, "www.#{host}"]
+        Business.where(host_type: 'custom_domain', status: 'cname_active')
+                .where('LOWER(hostname) IN (?)', candidates)
+                .exists?
+      rescue StandardError
+        false
+      end
+    end
   }
 
-  config.hosts.clear  # Allows all hosts - security risk! - Sanity check for newcoworker.com
+  # Do NOT clear hosts in production. Use dynamic host_authorization above and
+  # the custom_domain_hosts initializer to permit specific hosts.
 
 end
