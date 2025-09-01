@@ -172,7 +172,14 @@ class ApplicationController < ActionController::Base
   # Only allow active custom domains to serve traffic
   def find_business_by_custom_domain
     return nil unless businesses_table_exists?
-    Business.find_by(host_type: 'custom_domain', hostname: request.host, status: 'cname_active')
+
+    host = request.host.to_s.downcase
+    root = host.sub(/^www\./, '')
+    candidates = [host, root, "www.#{root}"]
+
+    Business.where(host_type: 'custom_domain')
+            .where('LOWER(hostname) IN (?)', candidates)
+            .first
   end
 
   # Extract hostname/subdomain for tenant lookup
