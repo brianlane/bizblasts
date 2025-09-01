@@ -96,7 +96,14 @@ class RenderDomainService
     response = make_request(url, :get)
     
     if response.code.start_with?('2')
-      domains = JSON.parse(response.body)
+      raw = JSON.parse(response.body)
+      # Newer Render responses return an array of objects with a `customDomain`
+      # payload plus a `cursor`. Normalize to an array of plain domain hashes.
+      domains = if raw.is_a?(Array) && raw.first.is_a?(Hash) && raw.first.key?('customDomain')
+                  raw.map { |item| item['customDomain'] }.compact
+                else
+                  raw
+                end
       Rails.logger.info "[RenderDomainService] Found #{domains.length} domains"
       domains
     else
@@ -131,7 +138,16 @@ class RenderDomainService
   # @return [Hash, nil] Domain object if found, nil otherwise
   def find_domain_by_name(domain_name)
     domains = list_domains
-    domains.find { |domain| domain['name'] == domain_name }
+    # Handle either plain domain hashes or nested structures just in case
+    domains.find do |domain|
+      if domain.is_a?(Hash) && domain.key?('name')
+        domain['name'] == domain_name
+      elsif domain.is_a?(Hash) && domain.key?('customDomain')
+        domain['customDomain'].is_a?(Hash) && domain['customDomain']['name'] == domain_name
+      else
+        false
+      end
+    end
   end
 
   # Check if domain exists and is verified
@@ -143,11 +159,12 @@ class RenderDomainService
     if domain.nil?
       { exists: false, verified: false, domain_id: nil }
     else
-      { 
-        exists: true, 
-        verified: domain['verified'] == true,
-        domain_id: domain['id'],
-        domain_data: domain
+      data = domain.is_a?(Hash) && domain.key?('name') ? domain : domain['customDomain']
+      {
+        exists: true,
+        verified: data['verificationStatus'] ? data['verificationStatus'] == 'verified' : (data['verified'] == true),
+        domain_id: data['id'],
+        domain_data: data
       }
     end
   end
