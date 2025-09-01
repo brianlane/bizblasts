@@ -130,4 +130,7 @@ Rails.application.configure do
   config.host_authorization = {
     exclude: ->(request) { ["/up", "/healthcheck"].include?(request.path) }
   }
+
+  config.hosts.clear  # Allows all hosts - security risk! - Sanity check for newcoworker.com
+
 end
