@@ -90,12 +90,90 @@ SUPPORT_EMAIL=bizblaststeam@gmail.com
 
 ## Domain Architecture: Subdomain vs Custom Domain
 
-BizBlasts supports two tenant hosting modes:
+BizBlasts supports two tenant hosting modes with unified routing:
 
 | Host Type            | Database Columns Used | Example |
 |----------------------|-----------------------|---------|
 | `subdomain` (default)| `subdomain` contains the subdomain **only** (e.g. `acme`) <br/> `hostname` may also be populated but is ignored for routing | `https://acme.bizblasts.com` (production) <br/> `http://acme.lvh.me:3000` (development) |
 | `custom_domain`      | `hostname` stores the full custom domain (e.g. `acme-corp.com`) | `https://acme-corp.com` |
+
+### **Unified Tenant Routing System**
+
+**🎯 Key Achievement:** All tenant routes automatically work on both subdomains AND custom domains without code duplication.
+
+#### **Route Architecture:**
+```ruby
+# config/routes.rb - Single constraint handles both domain types
+constraints TenantPublicConstraint do
+  scope module: 'public' do
+    get '/', to: 'pages#show'           # Works on both testbiz.bizblasts.com AND customdomain.com
+    get '/services', to: 'pages#show'   # Works on both domain types
+    get '/book', to: 'booking#new'      # Works on both domain types
+    # ... all tenant routes work universally
+  end
+  
+  # Cart, orders, payments - all work on both domain types
+  resource :cart, controller: 'public/carts'
+  resources :orders, controller: 'public/orders'
+  resources :payments, controller: 'public/payments'
+end
+```
+
+#### **Constraint Logic:**
+- **`TenantPublicConstraint`**: Matches both `*.bizblasts.com` subdomains AND active custom domains
+- **`CustomDomainConstraint`**: Identifies requests from verified custom domains (`status: 'cname_active'`)
+- **`SubdomainConstraint`**: Handles `*.bizblasts.com` subdomains (used for admin/manage routes)
+
+#### **Tenant Detection Flow:**
+1. **Request arrives** → `ApplicationController#set_tenant`
+2. **Subdomain check** → `find_business_by_subdomain` 
+3. **Custom domain check** → `find_business_by_custom_domain` (matches both apex and www)
+4. **Tenant set** → `ActsAsTenant.current_tenant = business`
+5. **Route constraint** → `TenantPublicConstraint` matches and serves tenant content
+
+#### **Mailer URL Reliability:**
+```ruby
+# ✅ CORRECT: Reliable host determination for critical links
+@business.mailer_host                    # Always reliable (defaults to subdomain)
+@business.mailer_host(prefer_custom_domain: true)  # Uses custom domain only if fully verified
+
+# ❌ WRONG: Could break if custom domain has DNS issues
+@business.hostname                       # Might be unreliable for payments/invoices
+```
+
+### **Adding New Tenant Routes**
+
+**✅ Future-Proof Pattern:**
+```ruby
+# All routes added here automatically work on BOTH subdomains and custom domains
+constraints TenantPublicConstraint do
+  scope module: 'public' do
+    get '/new-feature', to: 'new_feature#index'  # ← Works on testbiz.bizblasts.com AND customdomain.com
+  end
+end
+```
+
+**🚨 Common Mistake:**
+```ruby
+# ❌ WRONG: Only works on main platform domain
+get '/new-feature', to: 'public/new_feature#index'
+```
+
+### **Route Validation Tools**
+
+**Automated validation ensures all routes work correctly:**
+```bash
+# Comprehensive route validation
+bin/rails tenant:validate_routes
+
+# Quick development testing
+bin/test-tenant-routes
+
+# Test specific new route
+bin/test-tenant-routes --route /new-feature
+```
+
+**📖 Complete Documentation:** [docs/TENANT_ROUTING_GUIDE.md](docs/TENANT_ROUTING_GUIDE.md)
 
 When generating links or redirects **always use the `TenantHost` helper (it automatically adds `:port` in dev/test)**:
 
