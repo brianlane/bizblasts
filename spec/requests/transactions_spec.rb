@@ -18,7 +18,7 @@ RSpec.describe 'Transactions', type: :request do
     before { sign_in user }
 
     it 'displays invoice details with payment button for unpaid invoices' do
-      get tenant_transaction_path(invoice, type: 'invoice')
+      get transaction_path(invoice, type: 'invoice')
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(invoice.invoice_number)
@@ -30,7 +30,7 @@ RSpec.describe 'Transactions', type: :request do
     it 'displays paid status for paid invoices' do
       invoice.update!(status: :paid)
       
-      get tenant_transaction_path(invoice, type: 'invoice')
+      get transaction_path(invoice, type: 'invoice')
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('This invoice has been paid in full')
@@ -38,7 +38,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'displays payment success message when redirected from successful payment' do
-      get tenant_transaction_path(invoice, type: 'invoice', payment_success: true)
+      get transaction_path(invoice, type: 'invoice', payment_success: true)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Payment Successful!')
@@ -46,7 +46,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'displays payment cancelled message when redirected from cancelled payment' do
-      get tenant_transaction_path(invoice, type: 'invoice', payment_cancelled: true)
+      get transaction_path(invoice, type: 'invoice', payment_cancelled: true)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Payment Cancelled')
@@ -63,7 +63,7 @@ RSpec.describe 'Transactions', type: :request do
         paid_at: 1.day.ago
       )
       
-      get tenant_transaction_path(invoice, type: 'invoice')
+      get transaction_path(invoice, type: 'invoice')
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Payment History')
@@ -74,7 +74,7 @@ RSpec.describe 'Transactions', type: :request do
 
   describe 'GET /transactions/:id (invoice) - Guest Users' do
     it 'displays invoice details with payment button when valid token provided' do
-      get tenant_transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
+      get transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(invoice.invoice_number)
@@ -86,7 +86,7 @@ RSpec.describe 'Transactions', type: :request do
     it 'displays paid status for paid invoices with valid token' do
       invoice.update!(status: :paid)
       
-      get tenant_transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
+      get transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('This invoice has been paid in full')
@@ -94,7 +94,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'displays payment success message for guest users' do
-      get tenant_transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token, payment_success: true)
+      get transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token, payment_success: true)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Payment Successful!')
@@ -102,7 +102,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'displays payment cancelled message for guest users' do
-      get tenant_transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token, payment_cancelled: true)
+      get transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token, payment_cancelled: true)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Payment Cancelled')
@@ -110,7 +110,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'redirects to login when no token provided' do
-      get tenant_transaction_path(invoice, type: 'invoice')
+      get transaction_path(invoice, type: 'invoice')
 
       # The first response should be a redirect (302/303) – eventually we land
       # on the login page that lives on the main domain after the cross-domain
@@ -124,7 +124,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'returns 404 when invalid token provided' do
-      get tenant_transaction_path(invoice, type: 'invoice', token: 'invalid_token')
+      get transaction_path(invoice, type: 'invoice', token: 'invalid_token')
       expect(response).to have_http_status(:not_found)
     end
 
@@ -138,7 +138,7 @@ RSpec.describe 'Transactions', type: :request do
         paid_at: 1.day.ago
       )
       
-      get tenant_transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
+      get transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
       
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('Payment History')
@@ -154,7 +154,7 @@ RSpec.describe 'Transactions', type: :request do
     let!(:order_invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, order: order) }
 
     it 'displays invoices in the transactions list' do
-      get tenant_transactions_path(filter: 'invoices')
+      get transactions_path(filter: 'invoices')
       
       expect(response).to have_http_status(:ok)
       # Check for any invoice number pattern instead of specific numbers
@@ -163,7 +163,7 @@ RSpec.describe 'Transactions', type: :request do
     end
 
     it 'displays both orders and invoices when filter is both' do
-      get tenant_transactions_path(filter: 'both')
+      get transactions_path(filter: 'both')
       
       expect(response).to have_http_status(:ok)
       # Check for invoice and order patterns
@@ -183,7 +183,7 @@ RSpec.describe 'Transactions', type: :request do
 
       it 'redirects to Stripe checkout when payment button is clicked' do
         # First view the invoice in transactions
-        get tenant_transaction_path(invoice, type: 'invoice')
+        get transaction_path(invoice, type: 'invoice')
         expect(response.body).to include("Pay #{ActionController::Base.helpers.number_to_currency(invoice.balance_due)}")
         
         # Then click the payment link (simulate by making the payment request)
@@ -192,8 +192,8 @@ RSpec.describe 'Transactions', type: :request do
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
           invoice: invoice,
-          success_url: tenant_transaction_url(invoice, type: 'invoice', payment_success: true, host: host_for(business)),
-          cancel_url: tenant_transaction_url(invoice, type: 'invoice', payment_cancelled: true, host: host_for(business))
+          success_url: transaction_url(invoice, type: 'invoice', payment_success: true, host: host_for(business)),
+          cancel_url: transaction_url(invoice, type: 'invoice', payment_cancelled: true, host: host_for(business))
         )
       end
 
@@ -203,7 +203,7 @@ RSpec.describe 'Transactions', type: :request do
 
         get new_payment_path(invoice_id: invoice.id)
         
-        expect(response).to redirect_to(tenant_transaction_path(invoice, type: 'invoice'))
+        expect(response).to redirect_to(transaction_path(invoice, type: 'invoice'))
         follow_redirect!
         expect(response.body).to include('This invoice amount is too small for online payment')
       end
@@ -214,7 +214,7 @@ RSpec.describe 'Transactions', type: :request do
 
         get new_payment_path(invoice_id: invoice.id)
         
-        expect(response).to redirect_to(tenant_transaction_path(invoice, type: 'invoice'))
+        expect(response).to redirect_to(transaction_path(invoice, type: 'invoice'))
         follow_redirect!
         expect(response.body).to include('Could not connect to Stripe')
       end
@@ -229,7 +229,7 @@ RSpec.describe 'Transactions', type: :request do
 
       it 'redirects to Stripe checkout for guest users with valid token' do
         # First view the invoice in transactions as guest
-        get tenant_transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
+        get transaction_path(invoice, type: 'invoice', token: invoice.guest_access_token)
         expect(response.body).to include("Pay #{ActionController::Base.helpers.number_to_currency(invoice.balance_due)}")
         
         # Then click the payment link (simulate by making the payment request)
