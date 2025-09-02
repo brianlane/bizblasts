@@ -417,12 +417,12 @@
         <% if request.subdomain.present? && request.subdomain != 'www' %>
           <% if current_user %>
             <%= link_to "Pay #{number_to_currency(@invoice.balance_due)}", 
-                  new_tenant_payment_path(invoice_id: @invoice.id), 
+                  new_payment_path(invoice_id: @invoice.id), 
                   class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200" %>
           <% else %>
             <!-- Guest user - payment link will redirect to invoice view after payment -->
             <%= link_to "Pay #{number_to_currency(@invoice.balance_due)}", 
-                  new_tenant_payment_path(invoice_id: @invoice.id), 
+                  new_payment_path(invoice_id: @invoice.id), 
                   class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200" %>
           <% end %>
         <% else %>

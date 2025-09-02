@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe CartsController, type: :controller do
+RSpec.describe Public::CartsController, type: :controller do
   let!(:business) { create(:business, subdomain: 'testtenant', hostname: 'testtenant') }
 
   before do
@@ -11,12 +11,12 @@ RSpec.describe CartsController, type: :controller do
 
   describe 'GET #show' do
     it 'returns success' do
-      @request.host = 'lvh.me'
+      @request.host = 'testtenant.lvh.me'
       get :show
       expect(response).to be_successful
     end
     it 'assigns @cart' do
-      @request.host = 'lvh.me'
+      @request.host = 'testtenant.lvh.me'
       get :show
       expect(assigns(:cart)).to be_a(Hash)
     end

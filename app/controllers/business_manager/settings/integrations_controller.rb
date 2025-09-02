@@ -128,7 +128,7 @@ module BusinessManager
           render json: { 
             error: 'Failed to save Google Business connection', 
             details: @business.errors.full_messages 
-          }, status: :unprocessable_entity
+          }, status: :unprocessable_content
         end
       rescue => e
         Rails.logger.error "[IntegrationsController] Google Business connect error: #{e.message}"
@@ -150,7 +150,7 @@ module BusinessManager
           render json: { 
             error: 'Failed to disconnect Google Business', 
             details: @business.errors.full_messages 
-          }, status: :unprocessable_entity
+          }, status: :unprocessable_content
         end
       rescue => e
         Rails.logger.error "[IntegrationsController] Google Business disconnect error: #{e.message}"
@@ -200,7 +200,7 @@ module BusinessManager
           render json: { 
             error: 'Failed to save Google Business information', 
             details: @business.errors.full_messages 
-          }, status: :unprocessable_entity
+          }, status: :unprocessable_content
         end
       rescue => e
         Rails.logger.error "[IntegrationsController] Manual Google Business connect error: #{e.message}"

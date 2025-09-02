@@ -45,7 +45,7 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
       redirect_to business_manager_settings_booking_policy_path, notice: 'Booking policies updated successfully.'
     else
       flash.now[:alert] = 'Error updating booking policies.'
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

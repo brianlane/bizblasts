@@ -72,7 +72,7 @@ RSpec.describe 'Invoice UI navigation after booking and Stripe payment', type: :
     expect(page).to have_content(/Status.*Pending/i)
     
     # Test direct navigation to payments URL to see what happens
-    payment_url = new_tenant_payment_path(invoice_id: invoice.id)
+    payment_url = new_payment_path(invoice_id: invoice.id)
     
     visit payment_url
     
