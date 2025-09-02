@@ -46,9 +46,9 @@ YOUR BUSINESS TIER BENEFITS
 <% end %>
 
 <% if @invoice %>
-To pay online, visit: <%= new_payment_url(invoice_id: @invoice.id, host: @business.custom_domain_allow? ? @business.hostname : "#{@business.subdomain}.bizblasts.com") %>
+To pay online, visit: <%= new_payment_url(invoice_id: @invoice.id, host: @business.mailer_host) %>
 
-To view invoice details, visit: <%= tenant_invoice_url(@invoice.id, token: @invoice.guest_access_token, host: @business.custom_domain_allow? ? @business.hostname : "#{@business.subdomain}.bizblasts.com") %>
+To view invoice details, visit: <%= tenant_invoice_url(@invoice.id, token: @invoice.guest_access_token, host: @business.mailer_host) %>
 
 (No account required - you can pay securely as a guest)
 <% end %>
