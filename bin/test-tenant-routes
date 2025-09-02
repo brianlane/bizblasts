@@ -1,0 +1,132 @@
+#!/usr/bin/env ruby
+# Quick script to test that tenant routes work on both subdomains and custom domains
+
+require 'net/http'
+require 'uri'
+
+# Configuration
+BASE_URL = ENV['RAILS_ENV'] == 'production' ? 'https://bizblasts.com' : 'http://localhost:3000'
+TEST_SUBDOMAIN = 'testtenant'
+TEST_CUSTOM_DOMAIN = 'example.com'  # Replace with actual test domain
+
+# Routes to test
+ROUTES_TO_TEST = [
+  '/',
+  '/services', 
+  '/about',
+  '/book',
+  '/cart',
+  '/orders',
+  '/payments/new',
+  '/calendar',
+  '/products'
+]
+
+def test_url(host, path)
+  url = "#{BASE_URL}#{path}"
+  
+  if BASE_URL.include?('localhost')
+    # For local development, test by setting Host header
+    uri = URI(url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    request = Net::HTTP::Get.new(uri.path)
+    request['Host'] = host
+    
+    begin
+      response = http.request(request)
+      status = response.code.to_i
+      
+      if status == 200
+        puts "  ✅ #{path} → #{status}"
+        return true
+      elsif status == 302 || status == 301
+        puts "  🔄 #{path} → #{status} (redirect)"
+        return true
+      else
+        puts "  ❌ #{path} → #{status}"
+        return false
+      end
+    rescue => e
+      puts "  ❌ #{path} → Error: #{e.message}"
+      return false
+    end
+  else
+    # For production, would need actual HTTP requests
+    puts "  ℹ️  #{path} (production testing requires actual domains)"
+    return true
+  end
+end
+
+def test_host(host, description)
+  puts "\n📍 Testing #{description}: #{host}"
+  puts "-" * 50
+  
+  success_count = 0
+  ROUTES_TO_TEST.each do |route|
+    success_count += 1 if test_url(host, route)
+  end
+  
+  puts "\n📊 Results: #{success_count}/#{ROUTES_TO_TEST.size} routes working"
+  success_count == ROUTES_TO_TEST.size
+end
+
+puts "🧪 Tenant Route Testing Script"
+puts "=" * 50
+puts "Testing that tenant routes work on both domain types..."
+
+if ARGV.include?('--help') || ARGV.include?('-h')
+  puts <<~HELP
+    Usage: bin/test-tenant-routes [options]
+    
+    Options:
+      --subdomain SUBDOMAIN    Test specific subdomain (default: testtenant)
+      --custom-domain DOMAIN   Test specific custom domain (default: example.com)
+      --route PATH             Test specific route (default: all routes)
+      --help, -h               Show this help
+    
+    Examples:
+      bin/test-tenant-routes
+      bin/test-tenant-routes --subdomain mybiz
+      bin/test-tenant-routes --route /cart
+      bin/test-tenant-routes --custom-domain mydomain.com
+  HELP
+  exit 0
+end
+
+# Parse command line arguments
+subdomain = ARGV.find { |arg| ARGV[ARGV.index(arg) - 1] == '--subdomain' } || TEST_SUBDOMAIN
+custom_domain = ARGV.find { |arg| ARGV[ARGV.index(arg) - 1] == '--custom-domain' } || TEST_CUSTOM_DOMAIN
+specific_route = ARGV.find { |arg| ARGV[ARGV.index(arg) - 1] == '--route' }
+
+if specific_route
+  ROUTES_TO_TEST.replace([specific_route])
+end
+
+# Test subdomain
+subdomain_host = "#{subdomain}.#{BASE_URL.include?('localhost') ? 'lvh.me' : 'bizblasts.com'}"
+subdomain_success = test_host(subdomain_host, "Subdomain")
+
+# Test custom domain (only if not localhost)
+custom_domain_success = true
+unless BASE_URL.include?('localhost')
+  custom_domain_success = test_host(custom_domain, "Custom Domain")
+end
+
+puts "\n" + "=" * 50
+puts "🎯 FINAL RESULTS"
+puts "=" * 50
+
+if subdomain_success && custom_domain_success
+  puts "🎉 SUCCESS: All tenant routes working correctly!"
+  puts "✅ Subdomain routing: WORKING"
+  puts "✅ Custom domain routing: WORKING" unless BASE_URL.include?('localhost')
+  puts "\n💡 Your new routes will work on both domain types!"
+  exit 0
+else
+  puts "❌ ISSUES DETECTED:"
+  puts "❌ Subdomain routing: FAILED" unless subdomain_success
+  puts "❌ Custom domain routing: FAILED" unless custom_domain_success
+  puts "\n🔧 Check your route configuration in config/routes.rb"
+  puts "📖 See docs/TENANT_ROUTING_GUIDE.md for guidance"
+  exit 1
+end

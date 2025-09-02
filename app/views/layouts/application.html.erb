@@ -141,7 +141,7 @@
         <div class="flex justify-between items-center">
           <!-- Logo and Brand -->
           <div class="flex items-center min-w-0 flex-shrink-0">
-            <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+            <% if ActsAsTenant.current_tenant %>
               <!-- BizBlasts Logo - links to main domain -->
               <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
                 <% begin %>
@@ -151,7 +151,7 @@
                        alt="BizBlasts - Professional Business Websites and Booking Systems" class="h-10 w-auto" />
                 <% end %>
               <% end %>
-              <!-- Company Name - links to tenant subdomain -->
+              <!-- Company Name - links to tenant home -->
               <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity" do %>
                 <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
               <% end %>
