@@ -78,7 +78,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
       end
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

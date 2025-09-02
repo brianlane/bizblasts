@@ -38,7 +38,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       
       redirect_to business_manager_services_path, notice: 'Service was successfully created.'
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -61,7 +61,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       
       redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -104,7 +104,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       if @service.move_to_position(new_position)
         render json: { status: 'success', message: 'Service position updated successfully' }
       else
-        render json: { status: 'error', message: 'Failed to update service position' }, status: :unprocessable_entity
+        render json: { status: 'error', message: 'Failed to update service position' }, status: :unprocessable_content
       end
     end
 
@@ -139,7 +139,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         end
       else
         respond_to do |format|
-          format.json { render json: { status: 'error', message: 'Failed to move service up' }, status: :unprocessable_entity }
+          format.json { render json: { status: 'error', message: 'Failed to move service up' }, status: :unprocessable_content }
           format.html { redirect_to business_manager_services_path, alert: 'Failed to move service up' }
         end
       end
@@ -176,7 +176,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         end
       else
         respond_to do |format|
-          format.json { render json: { status: 'error', message: 'Failed to move service down' }, status: :unprocessable_entity }
+          format.json { render json: { status: 'error', message: 'Failed to move service down' }, status: :unprocessable_content }
           format.html { redirect_to business_manager_services_path, alert: 'Failed to move service down' }
         end
       end
@@ -342,7 +342,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         @availability_manager.errors.join(', ') : 
         'Failed to update availability settings. Please check your input and try again.'
       
-      render 'availability', status: :unprocessable_entity
+      render 'availability', status: :unprocessable_content
     end
   rescue => e
     logger.error("Exception in availability update: #{e.message}")

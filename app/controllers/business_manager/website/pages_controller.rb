@@ -49,7 +49,7 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
     else
       @available_page_types = Page.page_types.keys
       flash.now[:alert] = 'Please fix the errors below to create the page.'
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
   

@@ -47,7 +47,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       @staff_member = @current_business.staff_members.new(staff_member_params.except(:user_attributes))
       @staff_member.build_user(user_attrs)
       @staff_member.errors.add(:user, @user.errors.full_messages.to_sentence)
-      render :new, status: :unprocessable_entity and return
+      render :new, status: :unprocessable_content and return
     end
 
     # Now build the StaffMember record linking the new user
@@ -59,7 +59,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
     else
       # Preserve nested user data on failure so form can re-render the new-user fields
       @staff_member.build_user(user_attrs)
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -82,7 +82,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
     if @staff_member.update(update_params)
       redirect_to business_manager_staff_member_path(@staff_member), notice: 'Staff member was successfully updated.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -219,7 +219,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
         )
         
         @services = @staff_member.services.active
-        render 'business_manager/staff_members/availability', status: :unprocessable_entity
+        render 'business_manager/staff_members/availability', status: :unprocessable_content
       end
     else
       # GET request

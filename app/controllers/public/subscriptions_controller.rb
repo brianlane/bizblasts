@@ -49,7 +49,7 @@ class Public::SubscriptionsController < Public::BaseController
       @customer_subscription = current_business.customer_subscriptions.build
       initialize_pricing_variables
       populate_form_data
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
       return
     end
     
@@ -86,7 +86,7 @@ class Public::SubscriptionsController < Public::BaseController
         initialize_pricing_variables
         
         populate_form_data
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
       
     rescue => e
@@ -99,7 +99,7 @@ class Public::SubscriptionsController < Public::BaseController
       initialize_pricing_variables
       
       populate_form_data
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 

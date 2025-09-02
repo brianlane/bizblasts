@@ -279,7 +279,7 @@ RSpec.describe BusinessManager::Settings::IntegrationsController, type: :control
       it 'returns unprocessable entity error' do
         post :google_business_connect, params: { place_id: place_id, business_name: business_name }, format: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(json_response['error']).to eq('Failed to save Google Business connection')
         expect(json_response['details']).to eq(['Validation failed'])
       end
@@ -340,7 +340,7 @@ RSpec.describe BusinessManager::Settings::IntegrationsController, type: :control
       it 'returns unprocessable entity error' do
         delete :google_business_disconnect, format: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(json_response['error']).to eq('Failed to disconnect Google Business')
         expect(json_response['details']).to eq(['Validation failed'])
       end
