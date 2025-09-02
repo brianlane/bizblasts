@@ -195,7 +195,7 @@
       </div>
       <div class="mt-3">
         <% if request.subdomain.present? && request.subdomain != 'www' %>
-          <%= link_to 'View Invoice Details', tenant_transaction_path(booking.invoice, type: 'invoice'), 
+          <%= link_to 'View Invoice Details', transaction_path(booking.invoice, type: 'invoice'), 
               class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
         <% else %>
           <%= link_to 'View Invoice Details', transaction_path(booking.invoice, type: 'invoice'), 

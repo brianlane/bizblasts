@@ -600,6 +600,29 @@ class Business < ApplicationRecord
   def custom_domain_allow?
     host_type_custom_domain? && cname_active? && render_domain_added?
   end
+
+  # Returns the most reliable host for critical mailer URLs (payments, invoices)
+  # Always defaults to subdomain for maximum reliability unless explicitly overridden
+  def mailer_host(prefer_custom_domain: false)
+    # For critical links (payments/invoices), default to reliable subdomain
+    # Only use custom domain if explicitly requested AND fully verified
+    if prefer_custom_domain && custom_domain_fully_functional?
+      hostname
+    else
+      # Always fall back to reliable subdomain for critical links
+      "#{subdomain}.bizblasts.com"
+    end
+  end
+
+  # Checks if custom domain is not just allowed, but actually functional
+  def custom_domain_fully_functional?
+    custom_domain_allow? && 
+    status == 'cname_active' && 
+    render_domain_added? &&
+    hostname.present? &&
+    # Additional safety: ensure hostname doesn't contain any suspicious patterns
+    hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
+  end
   
   # Method to get the full URL for this business
   def full_url(path = nil)

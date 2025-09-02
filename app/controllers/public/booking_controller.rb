@@ -60,7 +60,7 @@ module Public
       # Validate service presence
       unless @service
         flash[:alert] = "Invalid service selected."
-        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_entity and return
+        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_content and return
       end
 
       # Determine customer based on user state
@@ -194,7 +194,7 @@ module Public
       # Early validation for account creation errors
       if @booking.errors.any?
         flash.now[:alert] = @booking.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity and return
+        render :new, status: :unprocessable_content and return
       end
 
       # Check if current user is business staff/manager making booking for client
@@ -230,7 +230,7 @@ module Public
           redirect_to tenant_booking_confirmation_path(@booking)
         else
           flash.now[:alert] = @booking.errors.full_messages.to_sentence
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
         end
       else
         # Client and guest users - validate booking but don't save yet for experience services
@@ -342,7 +342,7 @@ module Public
             redirect_to tenant_booking_confirmation_path(@booking)
           else
             flash.now[:alert] = @booking.errors.full_messages.to_sentence
-            render :new, status: :unprocessable_entity
+            render :new, status: :unprocessable_content
           end
         end
       end

@@ -27,7 +27,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       else
         @account_deletion_info = @user.can_delete_account?
         flash.now[:alert] = 'Failed to update password. Please check your current password and ensure new passwords match.'
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     else
       # Profile update only (no password change)
@@ -37,7 +37,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       else
         @account_deletion_info = @user.can_delete_account?
         flash.now[:alert] = 'Failed to update profile settings.'
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
   end
@@ -47,7 +47,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
     unless @user.valid_password?(deletion_params[:current_password])
       flash.now[:alert] = 'Current password is incorrect.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -55,7 +55,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
     unless deletion_params[:confirm_deletion] == 'DELETE'
       flash.now[:alert] = 'You must type DELETE to confirm account deletion.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -78,14 +78,14 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       sign_in(@user)
       flash.now[:alert] = e.message
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     rescue => e
       Rails.logger.error "Account deletion failed for user #{@user.id}: #{e.message}"
       # Re-sign in the user since we signed them out
       sign_in(@user)
       flash.now[:alert] = 'An error occurred while deleting your account. Please contact support.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -102,7 +102,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       # This case should be rare unless there's a validation on the notification_preferences hash itself
       flash.now[:alert] = 'Failed to update notification preferences.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

@@ -228,7 +228,7 @@ ActiveAdmin.register Service do
         redirect_to resource_path(service), notice: "Service was successfully updated."
       else
         flash.now[:error] = service.errors.full_messages.join(', ')
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -241,7 +241,7 @@ ActiveAdmin.register Service do
         redirect_to resource_path(service), notice: "Service was successfully created."
       else
         flash.now[:error] = service.errors.full_messages.join(', ')
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
