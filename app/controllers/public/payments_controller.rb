@@ -32,8 +32,8 @@ module Public
           cancel_url = tenant_invoice_url(@invoice, cancel_params)
         else
           # For authenticated users, redirect to transactions view
-          success_url = tenant_transaction_url(@invoice, url_params)
-          cancel_url = tenant_transaction_url(@invoice, cancel_params)
+          success_url = transaction_url(@invoice, url_params)
+          cancel_url = transaction_url(@invoice, cancel_params)
         end
         
         result = StripeService.create_payment_checkout_session(
@@ -105,7 +105,7 @@ module Public
 
     def redirect_to_invoice_with_token(flash_options = {})
       if current_user
-        redirect_to tenant_transaction_path(@invoice, type: 'invoice'), flash_options
+        redirect_to transaction_path(@invoice, type: 'invoice'), flash_options
       else
         redirect_to tenant_invoice_path(@invoice, token: @invoice.guest_access_token), flash_options
       end
