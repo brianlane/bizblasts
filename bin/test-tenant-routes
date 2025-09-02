@@ -5,7 +5,7 @@ require 'net/http'
 require 'uri'
 
 # Configuration
-BASE_URL = ENV['RAILS_ENV'] == 'production' ? 'https' : 'http://localhost:3000'
+BASE_URL = ENV['RAILS_ENV'] == 'production' ? 'https://bizblasts.com' : 'http://localhost:3000'
 TEST_SUBDOMAIN = 'testtenant'
 TEST_CUSTOM_DOMAIN = 'example.com'  # Replace with actual test domain
 

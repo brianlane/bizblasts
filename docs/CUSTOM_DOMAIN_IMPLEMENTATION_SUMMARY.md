@@ -127,6 +127,18 @@ bin/test-tenant-routes --route /new-feature
 - ✅ Complete documentation and developer guidance
 - ✅ Production-tested with real custom domain (`newcoworker.com`)
 
+## 🐛 Additional Fixes Applied
+
+### **Navigation Logo Fix**
+- **Issue**: BizBlasts logo didn't show on custom domains due to incorrect subdomain detection
+- **Fix**: Changed condition from `request.subdomain.present?` to `ActsAsTenant.current_tenant` 
+- **Result**: BizBlasts logo now correctly links to `bizblasts.com` on both subdomains and custom domains
+
+### **Development Script Fix**
+- **Issue**: `BASE_URL` was set to just `'https'` in production, creating malformed URLs like `https/services`
+- **Fix**: Changed to `'https://bizblasts.com'` for complete production URLs
+- **Result**: Development testing script now generates valid URLs in all environments
+
 ## 🎉 Mission Accomplished
 
 **Custom domains now work flawlessly alongside subdomains with a unified, future-proof routing architecture that requires zero additional configuration for new routes.**
