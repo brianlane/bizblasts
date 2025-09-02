@@ -71,14 +71,14 @@
 
       <div style="text-align: center; margin: 30px 0;">
         <% if @invoice %>
-          <a href="<%= new_payment_url(invoice_id: @invoice.id, host: @business.custom_domain_allow? ? @business.hostname : "#{@business.subdomain}.bizblasts.com") %>" class="button">
+          <a href="<%= new_payment_url(invoice_id: @invoice.id, host: @business.mailer_host) %>" class="button">
             <%= @booking.service.experience? ? 'Pay Now to Confirm' : 'Pay Online Now' %>
           </a>
           <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">
             No account required - pay securely as a guest
           </p>
           <p style="font-size: 11px; color: #adb5bd; margin-top: 5px;">
-            <a href="<%= tenant_invoice_url(@invoice.id, token: @invoice.guest_access_token, host: @business.custom_domain_allow? ? @business.hostname : "#{@business.subdomain}.bizblasts.com") %>" style="color: #6c757d;">View Invoice Details</a>
+            <a href="<%= tenant_invoice_url(@invoice.id, token: @invoice.guest_access_token, host: @business.mailer_host) %>" style="color: #6c757d;">View Invoice Details</a>
           </p>
         <% end %>
       </div>
