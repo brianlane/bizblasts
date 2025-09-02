@@ -13,7 +13,7 @@ Rails.application.routes.draw do
       get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
       get '/services/:id', to: 'services#show', as: :tenant_service
       # Product listings under tenant public scope
-      resources :products, only: [:index, :show], as: :tenant_products
+      resources :products, only: [:index, :show]
       get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
 
       # Estimate page and form submission
@@ -37,7 +37,7 @@ Rails.application.routes.draw do
       resources :invoices, only: [:index, :show], as: :tenant_invoices do
         post :pay, on: :member
       end
-      resources :payments, only: [:index, :new, :create], as: :tenant_payments
+      resources :payments, only: [:index, :new, :create]
       
       # Tips for experience bookings
       resources :bookings, only: [] do
@@ -50,7 +50,7 @@ Rails.application.routes.draw do
       end
       
       # Unified transactions view
-      resources :transactions, only: [:index, :show], as: :tenant_transactions
+      resources :transactions, only: [:index, :show]
 
       # Public checkout/cart/orders/subscriptions/policies are defined below with tenant_* helpers
 
@@ -61,30 +61,30 @@ Rails.application.routes.draw do
       # Direct referral program access for current tenant
       get '/referral', to: 'referral#show', as: :tenant_referral_program
 
+      # Public cart/checkout and subscriptions - MUST come before catch-all
+      resource  :cart, only: [:show]
+      resources :line_items, only: [:create, :update, :destroy]
+      resources :orders,     only: [:new, :create, :index, :show] do
+        collection { post :validate_promo_code }
+      end
+      resources :subscriptions, only: [:new, :create] do
+        member { get :confirmation }
+      end
+      resources :policy_acceptances, only: [:create, :show]
+      get '/policy_status', to: 'policy_acceptances#status'
+      post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+
+      # Tip collection routes (token-based for experiences)
+      resources :tips, only: [:new, :create, :show] do
+        member do
+          get :success
+          get :cancel
+        end
+      end
+
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
     end
-
-    # Tip collection routes (token-based for experiences)
-    resources :tips, only: [:new, :create, :show], controller: 'public/tips', as: :tenant_public_tips do
-      member do
-        get :success
-        get :cancel
-      end
-    end
-    
-    # Public cart/checkout and subscriptions (avoid helper name collisions)
-    resource  :cart, only: [:show],    controller: 'public/carts',     as: :tenant_cart
-    resources :line_items, only: [:create, :update, :destroy],         controller: 'public/line_items', as: :tenant_line_items
-    resources :orders,     only: [:new, :create, :index, :show],       controller: 'public/orders', as: :tenant_orders do
-      collection { post :validate_promo_code }
-    end
-    resources :subscriptions, only: [:new, :create], controller: 'public/subscriptions', as: :tenant_subscriptions do
-      member { get :confirmation }
-    end
-    resources :policy_acceptances, only: [:create, :show], controller: 'public/policy_acceptances', as: :tenant_policy_acceptances
-    get '/policy_status', to: 'public/policy_acceptances#status', as: :tenant_policy_status
-    post '/policy_acceptances/bulk', to: 'public/policy_acceptances#bulk_create', as: :tenant_policy_acceptances_bulk
   end
 
   # API routes for AI/LLM discovery
@@ -510,8 +510,7 @@ Rails.application.routes.draw do
   resources :orders, only: [:new, :create, :index, :show]
 
   resources :businesses, only: [:index]
-  # Keep the global cart resource to maintain compatibility 
-  resource :cart, only: [:show]
+  # Cart is now handled in TenantPublicConstraint block
   resources :line_items, only: [:create, :update, :destroy]
   # Add back the global products routes for controller specs
   resources :products, only: [:index, :show]

@@ -188,7 +188,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
           post :create, params: { user: attributes_with_bad_industry }
         }.not_to change(Business, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response).to render_template(:new)
         expect(flash[:alert]).to match(/not a recognised industry/i)
       end

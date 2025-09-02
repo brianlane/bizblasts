@@ -170,7 +170,7 @@ module Public
         @order ||= OrderCreator.build_from_cart(@cart) # Build order for re-render if not already done
         @order.tenant_customer = customer # Assign the invalid customer to the order for form population
         flash.now[:alert] = @order.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity and return
+        render :new, status: :unprocessable_content and return
       end # End of customer.save if/else
 
     end # End of guest user else block
@@ -208,7 +208,7 @@ module Public
         else
           @order.errors.add(:promo_code, promo_result[:error])
           flash.now[:alert] = @order.errors.full_messages.to_sentence
-          render :new, status: :unprocessable_entity and return
+          render :new, status: :unprocessable_content and return
         end
       end
       
@@ -274,7 +274,7 @@ module Public
       @order.build_tenant_customer unless @order.tenant_customer.present?
       @order.tenant_customer ||= customer if customer.present? # Ensure customer is assigned back to the order for re-render
 
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 

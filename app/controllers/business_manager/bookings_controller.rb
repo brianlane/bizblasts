@@ -397,7 +397,7 @@ module BusinessManager
       # Render form with errors if any policy violations
       if @booking.errors.any?
         flash.now[:alert] = @booking.errors.full_messages.join(', ')
-        return render :new, status: :unprocessable_entity
+        return render :new, status: :unprocessable_content
       end
 
       if @booking.save
@@ -406,7 +406,7 @@ module BusinessManager
       else
         #raise "DEBUG: Booking errors: #{@booking.errors.full_messages.inspect}"
         flash.now[:alert] = @booking.errors.full_messages.join(', ')
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
     

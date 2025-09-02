@@ -23,7 +23,7 @@ RSpec.describe 'Public Payments', type: :request do
       end
 
       it 'redirects to Stripe Checkout for invoice payments' do
-        get new_tenant_payment_path, params: { invoice_id: invoice.id }
+        get new_payment_path, params: { invoice_id: invoice.id }
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
           invoice: invoice,
@@ -39,7 +39,7 @@ RSpec.describe 'Public Payments', type: :request do
         end
 
         it 'redirects to invoice with error message' do
-          get new_tenant_payment_path, params: { invoice_id: invoice.id }
+          get new_payment_path, params: { invoice_id: invoice.id }
           expect(response).to redirect_to(tenant_transaction_path(invoice, type: 'invoice'))
           follow_redirect!
           expect(response).to have_http_status(:ok)
@@ -54,7 +54,7 @@ RSpec.describe 'Public Payments', type: :request do
         end
 
         it 'redirects to invoice with error message' do
-          get new_tenant_payment_path, params: { invoice_id: invoice.id }
+          get new_payment_path, params: { invoice_id: invoice.id }
           expect(response).to redirect_to(tenant_transaction_path(invoice, type: 'invoice'))
           follow_redirect!
           expect(response).to have_http_status(:ok)
@@ -84,7 +84,7 @@ RSpec.describe 'Public Payments', type: :request do
       end
 
       it 'redirects to Stripe Checkout for guest invoice payments' do
-        get new_tenant_payment_path, params: { invoice_id: invoice.id }
+        get new_payment_path, params: { invoice_id: invoice.id }
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_guest_456')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
           invoice: invoice,
@@ -100,7 +100,7 @@ RSpec.describe 'Public Payments', type: :request do
         end
 
         it 'redirects to invoice with error message' do
-          get new_tenant_payment_path, params: { invoice_id: invoice.id }
+          get new_payment_path, params: { invoice_id: invoice.id }
           expect(response).to redirect_to(tenant_invoice_path(invoice, token: invoice.guest_access_token))
           follow_redirect!
           expect(response).to have_http_status(:ok)
@@ -115,7 +115,7 @@ RSpec.describe 'Public Payments', type: :request do
         end
 
         it 'redirects to invoice with error message' do
-          get new_tenant_payment_path, params: { invoice_id: invoice.id }
+          get new_payment_path, params: { invoice_id: invoice.id }
           expect(response).to redirect_to(tenant_invoice_path(invoice, token: invoice.guest_access_token))
           follow_redirect!
           expect(response).to have_http_status(:ok)

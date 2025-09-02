@@ -187,7 +187,7 @@ RSpec.describe 'Transactions', type: :request do
         expect(response.body).to include("Pay #{ActionController::Base.helpers.number_to_currency(invoice.balance_due)}")
         
         # Then click the payment link (simulate by making the payment request)
-        get new_tenant_payment_path(invoice_id: invoice.id)
+        get new_payment_path(invoice_id: invoice.id)
         
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_test_123')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(
@@ -201,7 +201,7 @@ RSpec.describe 'Transactions', type: :request do
         allow(StripeService).to receive(:create_payment_checkout_session)
           .and_raise(ArgumentError, "Payment amount must be at least $0.50 USD")
 
-        get new_tenant_payment_path(invoice_id: invoice.id)
+        get new_payment_path(invoice_id: invoice.id)
         
         expect(response).to redirect_to(tenant_transaction_path(invoice, type: 'invoice'))
         follow_redirect!
@@ -212,7 +212,7 @@ RSpec.describe 'Transactions', type: :request do
         allow(StripeService).to receive(:create_payment_checkout_session)
           .and_raise(Stripe::StripeError.new('Stripe connection error'))
 
-        get new_tenant_payment_path(invoice_id: invoice.id)
+        get new_payment_path(invoice_id: invoice.id)
         
         expect(response).to redirect_to(tenant_transaction_path(invoice, type: 'invoice'))
         follow_redirect!
@@ -233,7 +233,7 @@ RSpec.describe 'Transactions', type: :request do
         expect(response.body).to include("Pay #{ActionController::Base.helpers.number_to_currency(invoice.balance_due)}")
         
         # Then click the payment link (simulate by making the payment request)
-        get new_tenant_payment_path(invoice_id: invoice.id)
+        get new_payment_path(invoice_id: invoice.id)
         
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_guest_123')
         expect(StripeService).to have_received(:create_payment_checkout_session).with(

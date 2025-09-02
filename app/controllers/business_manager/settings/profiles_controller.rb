@@ -73,7 +73,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
     unless @user.valid_password?(deletion_params[:current_password])
       flash.now[:alert] = 'Current password is incorrect.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -81,7 +81,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
     unless deletion_params[:confirm_deletion] == 'DELETE'
       flash.now[:alert] = 'You must type DELETE to confirm account deletion.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -111,14 +111,14 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       sign_in(@user)
       flash.now[:alert] = e.message
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     rescue => e
       Rails.logger.error "Account deletion failed for user #{@user.id}: #{e.message}"
       # Re-sign in the user since we signed them out
       sign_in(@user)
       flash.now[:alert] = 'An error occurred while deleting your account. Please contact support.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -153,7 +153,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       @account_deletion_info = @user.can_delete_account?
       @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
       flash.now[:alert] = 'Failed to update notification preferences.'
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
