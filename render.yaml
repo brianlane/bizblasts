@@ -49,6 +49,8 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "false"
 
   - type: background_worker
     name: bizblasts-jobs
@@ -94,8 +96,6 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
-      - key: SOLID_QUEUE_IN_PUMA
-        value: "false"
 
 databases:
   - name: bizblast-postgresql
