@@ -62,7 +62,7 @@ class StaffMembersController < ApplicationController
     else
       respond_to do |format|
         format.html { render :manage_availability }
-        format.json { render json: { success: false, errors: @staff_member.errors.full_messages }, status: :unprocessable_entity }
+        format.json { render json: { success: false, errors: @staff_member.errors.full_messages }, status: :unprocessable_content }
       end
     end
   end

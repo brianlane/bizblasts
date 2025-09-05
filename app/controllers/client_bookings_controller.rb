@@ -55,7 +55,7 @@ class ClientBookingsController < ApplicationController
       rescue ArgumentError => e
         Rails.logger.warn "[CLIENT BOOKING] Invalid start_time provided: #{params[:booking][:start_time]} — #{e.message}"
         flash.now[:alert] = "Invalid start time format. Please choose a valid time."
-        render :edit, status: :unprocessable_entity and return
+        render :edit, status: :unprocessable_content and return
       end
 
       if new_start_time && @booking.service&.duration.present?
@@ -83,7 +83,7 @@ class ClientBookingsController < ApplicationController
                                         .select(&:visible_to_customers?) # Filter out hidden products
                                         .sort_by(&:name)
       flash.now[:alert] = @booking.errors.full_messages.to_sentence
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
   

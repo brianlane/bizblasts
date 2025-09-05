@@ -19,7 +19,7 @@ module BusinessManager
         if @notification_template.save
           redirect_to business_manager_settings_notifications_path, notice: 'Notification template created successfully.'
         else
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
         end
       end
 
@@ -34,7 +34,7 @@ module BusinessManager
         if @notification_template.update(notification_template_params)
           redirect_to business_manager_settings_notifications_path, notice: 'Notification template updated successfully.'
         else
-          render :edit, status: :unprocessable_entity
+          render :edit, status: :unprocessable_content
         end
       end
 

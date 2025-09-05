@@ -60,7 +60,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
       @tenant_customers = current_business.tenant_customers.active.order(:first_name, :last_name)
       @products = current_business.products.active.order(:name)
       @services = current_business.services.active.order(:name)
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -80,7 +80,7 @@ class BusinessManager::CustomerSubscriptionsController < BusinessManager::BaseCo
       @tenant_customers = current_business.tenant_customers.active.order(:first_name, :last_name)
       @products = current_business.products.active.order(:name)
       @services = current_business.services.active.order(:name)
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

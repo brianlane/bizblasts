@@ -197,7 +197,7 @@ ActiveAdmin.register Product do
       if product.update(permitted_params[:product])
         redirect_to resource_path, notice: "Product was successfully updated."
       else
-        render plain: product.errors.full_messages.join(', '), status: :unprocessable_entity
+        render plain: product.errors.full_messages.join(', '), status: :unprocessable_content
       end
     end
   end

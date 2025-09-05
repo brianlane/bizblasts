@@ -29,7 +29,7 @@ module BusinessManager
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully created.'
       else
         flash.now[:alert] = @product.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -45,7 +45,7 @@ module BusinessManager
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully updated.'
       else
         flash.now[:alert] = @product.errors.full_messages.to_sentence
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -61,7 +61,7 @@ module BusinessManager
       if @product.move_to_position(new_position)
         render json: { status: 'success', message: 'Product position updated successfully' }
       else
-        render json: { status: 'error', message: 'Failed to update product position' }, status: :unprocessable_entity
+        render json: { status: 'error', message: 'Failed to update product position' }, status: :unprocessable_content
       end
     end
 
@@ -96,7 +96,7 @@ module BusinessManager
         end
       else
         respond_to do |format|
-          format.json { render json: { status: 'error', message: 'Failed to move product up' }, status: :unprocessable_entity }
+          format.json { render json: { status: 'error', message: 'Failed to move product up' }, status: :unprocessable_content }
           format.html { redirect_to business_manager_products_path, alert: 'Failed to move product up' }
         end
       end
@@ -133,7 +133,7 @@ module BusinessManager
         end
       else
         respond_to do |format|
-          format.json { render json: { status: 'error', message: 'Failed to move product down' }, status: :unprocessable_entity }
+          format.json { render json: { status: 'error', message: 'Failed to move product down' }, status: :unprocessable_content }
           format.html { redirect_to business_manager_products_path, alert: 'Failed to move product down' }
         end
       end

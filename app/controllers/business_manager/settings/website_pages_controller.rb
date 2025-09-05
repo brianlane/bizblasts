@@ -14,7 +14,7 @@ module BusinessManager
         if @business.update(website_pages_params)
           redirect_to edit_business_manager_settings_website_pages_path, notice: 'Website pages settings updated.'
         else
-          render :edit, status: :unprocessable_entity
+          render :edit, status: :unprocessable_content
         end
       end
 

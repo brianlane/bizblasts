@@ -88,7 +88,7 @@ RSpec.describe "/manage/services", type: :request do
       it "renders a response with 422 status (i.e. to display the 'new' template)" do
         # post url_for([:business_manager, :services]), params: { service: invalid_attributes }, headers: {}, env: { 'HTTP_HOST' => host_params[:host] } # Reverted
         post "/manage/services", params: { service: invalid_attributes }, headers: {}, env: { 'HTTP_HOST' => host_params[:host] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -120,7 +120,7 @@ RSpec.describe "/manage/services", type: :request do
       it "renders a response with 422 status (i.e. to display the 'edit' template)" do
         # patch url_for([:business_manager, service]), params: { service: invalid_attributes }, headers: {}, env: { 'HTTP_HOST' => host_params[:host] } # Reverted
         patch "/manage/services/#{service.id}", params: { service: invalid_attributes }, headers: {}, env: { 'HTTP_HOST' => host_params[:host] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
