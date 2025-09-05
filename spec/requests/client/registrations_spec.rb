@@ -63,7 +63,7 @@ RSpec.describe "Client::Registrations", type: :request do
 
       it "re-renders the 'new' template with errors" do
         post client_registration_path, params: invalid_attributes
-        expect(response).to have_http_status(:unprocessable_entity) 
+        expect(response).to have_http_status(:unprocessable_content) 
         expect(response.body).to include("Email is invalid") # Check for specific error message
       end
     end
@@ -95,7 +95,7 @@ RSpec.describe "Client::Registrations", type: :request do
 
       it "re-renders the new template with the email taken error" do
         post client_registration_path, params: valid_attributes
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Email has already been taken")
       end
     end

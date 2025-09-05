@@ -36,7 +36,7 @@ class BusinessManager::PromotionsController < BusinessManager::BaseController
     else
       @products = current_business.products.active
       @services = current_business.services.active
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
   
@@ -56,7 +56,7 @@ class BusinessManager::PromotionsController < BusinessManager::BaseController
     else
       @products = current_business.products.active
       @services = current_business.services.active
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
   
