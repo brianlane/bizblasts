@@ -24,6 +24,9 @@ class ApplicationController < ActionController::Base
     request.path != '/admin/login' 
   }
 
+  # Redirect management paths (/manage, /admin) back to tenant subdomain if request is on a custom domain.
+  before_action :redirect_custom_domain_management_paths, if: -> { ActsAsTenant.current_tenant.present? }
+
   # Set current tenant based on subdomain/custom domain
   # This filter should be skipped in specific controllers where tenant context is handled differently
   before_action :set_tenant, unless: -> { maintenance_mode? }
@@ -213,8 +216,7 @@ class ApplicationController < ActionController::Base
   def find_business_by_subdomain(hostname)
     return nil unless hostname.present? && businesses_table_exists?
     # Search for tenant businesses matching either hostname or subdomain (case-insensitive)
-    Business.where(host_type: 'subdomain')
-            .where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
+    Business.where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
             .first
   end
 
@@ -439,6 +441,28 @@ class ApplicationController < ActionController::Base
       flash[:alert] = "Session expired. Please try your action again."
       redirect_to admin_root_path and return
     end
+  end
+
+  # Redirect management paths (/manage, /admin) back to tenant subdomain if request is on a custom domain.
+  def redirect_custom_domain_management_paths
+    business = ActsAsTenant.current_tenant
+    return unless business&.host_type_custom_domain?
+
+    # Only redirect management paths
+    path = request.path.to_s
+    management_paths = %w[/manage /admin]
+    return unless management_paths.any? { |prefix| path.start_with?(prefix) }
+
+    # Build subdomain host (production and dev)
+    subdomain_host = if Rails.env.production?
+                       "#{business.subdomain}.bizblasts.com"
+                     else
+                       "#{business.subdomain}.lvh.me"
+                     end
+
+    target_url = "#{request.protocol}#{subdomain_host}#{request.fullpath}"
+    Rails.logger.info "[RedirectCustomDomainManagement] #{request.host} -> #{target_url}"
+    redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
   end
 
   # Ensure all times are in the current tenant's local time zone
