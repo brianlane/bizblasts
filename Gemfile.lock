@@ -686,7 +686,7 @@ DEPENDENCIES
   parallel_tests
   pg (~> 1.6)
   propshaft
-  puma (>= 5.0)
+  puma (~> 6.6)
   pundit
   rack-attack
   rails (~> 8.0.2)
