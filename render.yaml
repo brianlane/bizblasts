@@ -54,7 +54,7 @@ services:
     name: bizblasts-jobs
     env: ruby
     buildCommand: "./bin/render-build.sh"
-    startCommand: "bundle exec rails solid_queue:start"
+    startCommand: "./bin/jobs"
     envVars:
       - key: SECRET_KEY_BASE
         sync: false
@@ -94,6 +94,8 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "false"
 
 databases:
   - name: bizblast-postgresql
