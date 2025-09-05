@@ -7,9 +7,7 @@ require Rails.root.join('lib/constraints/tenant_public_constraint')
 Rails.application.routes.draw do
   # Tenant public routes: available on both subdomains and active custom domains
   constraints TenantPublicConstraint do
-    # Redirect management area on custom domains to the tenant subdomain. Must be first inside constraint.
-    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
-
+    # (public routes continue)
     scope module: 'public' do
       get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
       get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
@@ -88,6 +86,11 @@ Rails.application.routes.draw do
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
     end
+  end
+
+  # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
+  constraints CustomDomainConstraint do
+    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
   end
 
   # API routes for AI/LLM discovery

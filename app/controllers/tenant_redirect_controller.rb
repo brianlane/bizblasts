@@ -13,7 +13,9 @@ class TenantRedirectController < ApplicationController
     if business&.host_type_custom_domain? && business.subdomain.present?
       subdomain_stub = business.dup
       subdomain_stub.host_type = 'subdomain'
-      target_url = TenantHost.url_for(subdomain_stub, request, "/manage/#{params[:path]}")
+
+      # Use the original fullpath (includes leading /manage and query string) to avoid losing params
+      target_url = TenantHost.url_for(subdomain_stub, request, request.fullpath)
       Rails.logger.info "[TenantRedirectController] Redirecting management path #{request.fullpath} from #{request.host} to #{target_url}"
       return redirect_to target_url, status: :moved_permanently, allow_other_host: true
     end
