@@ -414,7 +414,7 @@ GEM
       date
       stringio
     public_suffix (6.0.2)
-    puma (6.6.1)
+    puma (7.0.0)
       nio4r (~> 2.0)
     pundit (2.5.0)
       activesupport (>= 3.0.0)
@@ -671,7 +671,7 @@ DEPENDENCIES
   faker
   geocoder
   google-apis-calendar_v3 (~> 0.31)
-  googleauth (~> 1.8)
+  googleauth (~> 1.15)
   groupdate
   httparty (~> 0.21)
   icalendar (~> 2.10)
@@ -701,7 +701,7 @@ DEPENDENCIES
   simplecov
   solid_cache
   solid_queue
-  stripe (~> 15.4)
+  stripe (~> 15.5)
   tailwindcss-rails
   thruster
   tod
