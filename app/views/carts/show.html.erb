@@ -31,9 +31,9 @@
                   <div class="text-sm text-gray-700"><%= variant.name %></div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <%= form_with(url: line_item_path(variant.id), method: :patch, class: 'flex items-center space-x-2', data: { remote: true }) do |f| %>
+                  <%= form_with(url: line_item_path(variant.id), method: :patch, local: true, class: 'flex items-center space-x-2') do |f| %>
                     <%= f.number_field :quantity, value: quantity, min: 1, class: 'w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-primary focus:border-primary' %>
-                    <%= f.submit 'Update', class: 'px-3 py-1 bg-secondary text-white text-xs rounded-md hover:bg-opacity-90 transition-colors duration-200' %>
+                    <%= f.submit 'Update', class: 'px-3 py-1 bg-secondary text-white text-xs rounded-md hover:bg-opacity-90 transition-colors duration-200 cursor-pointer' %>
                   <% end %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -50,8 +50,8 @@
                   <div class="text-sm font-bold text-primary"><%= number_to_currency(display_price * quantity) %></div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <%= button_to 'Remove', line_item_path(variant.id), method: :delete, remote: true, 
-                      class: 'inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-error hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error transition-colors duration-200',
+                  <%= button_to 'Remove', line_item_path(variant.id), method: :delete, 
+                      class: 'inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-error hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error transition-colors duration-200 cursor-pointer',
                       data: { confirm: 'Are you sure you want to remove this item?' } %>
                 </td>
               </tr>
