@@ -133,7 +133,7 @@
                 <%= link_to "View Product", product_path(product), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700 whitespace-nowrap" %>
                 <% if product.product_variants.any? %>
                   <% default_variant = product.product_variants.first %>
-                  <%= form_with url: line_items_path, method: :post, local: false, class: "inline-block" do |f| %>
+                  <%= form_with url: line_items_path, method: :post, local: true, class: "inline-block" do |f| %>
                     <%= f.hidden_field :product_variant_id, value: default_variant.id %>
                     <%= f.hidden_field :quantity, value: 1 %>
                     <%= f.submit "Add to Cart", class: "bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 whitespace-nowrap cursor-pointer" %>
