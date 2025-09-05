@@ -24,12 +24,12 @@ class ApplicationController < ActionController::Base
     request.path != '/admin/login' 
   }
 
-  # Redirect management paths (/manage, /admin) back to tenant subdomain if request is on a custom domain.
-  before_action :redirect_custom_domain_management_paths, if: -> { ActsAsTenant.current_tenant.present? }
-
   # Set current tenant based on subdomain/custom domain
   # This filter should be skipped in specific controllers where tenant context is handled differently
   before_action :set_tenant, unless: -> { maintenance_mode? }
+  # Redirect management paths (/manage, /admin) back to tenant subdomain if request is on a custom domain.
+  # Runs AFTER tenant is set so ActsAsTenant.current_tenant is available.
+  before_action :redirect_custom_domain_management_paths, if: -> { ActsAsTenant.current_tenant.present? }
   before_action :check_database_connection
 
   # Authentication (now runs after tenant is set)
@@ -216,7 +216,8 @@ class ApplicationController < ActionController::Base
   def find_business_by_subdomain(hostname)
     return nil unless hostname.present? && businesses_table_exists?
     # Search for tenant businesses matching either hostname or subdomain (case-insensitive)
-    Business.where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
+    Business.where(host_type: 'subdomain')
+            .where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
             .first
   end
 
@@ -453,14 +454,16 @@ class ApplicationController < ActionController::Base
     management_paths = %w[/manage /admin]
     return unless management_paths.any? { |prefix| path.start_with?(prefix) }
 
-    # Build subdomain host (production and dev)
-    subdomain_host = if Rails.env.production?
-                       "#{business.subdomain}.bizblasts.com"
-                     else
-                       "#{business.subdomain}.lvh.me"
-                     end
+    # Ensure subdomain exists to build a valid redirect host
+    return if business.subdomain.blank?
 
-    target_url = "#{request.protocol}#{subdomain_host}#{request.fullpath}"
+    # Build sub-domain host using TenantHost logic so ports/environment are handled correctly
+    # We temporarily treat the business as a subdomain tenant for URL generation
+    subdomain_stub = business.dup
+    subdomain_stub.host_type = 'subdomain'
+
+    target_url = TenantHost.url_for(subdomain_stub, request, request.fullpath)
+
     Rails.logger.info "[RedirectCustomDomainManagement] #{request.host} -> #{target_url}"
     redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
   end
