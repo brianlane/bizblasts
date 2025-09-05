@@ -214,7 +214,7 @@ class ApplicationController < ActionController::Base
   def find_business_by_subdomain(hostname)
     return nil unless hostname.present? && businesses_table_exists?
     # Search for tenant businesses matching either hostname or subdomain (case-insensitive)
-    Business.where(host_type: 'subdomain')
+    Business.where("host_type IN (?)", %w[subdomain custom_domain])
             .where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
             .first
   end
