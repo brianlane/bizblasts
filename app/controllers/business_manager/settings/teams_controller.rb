@@ -32,14 +32,14 @@ module BusinessManager
           else
             @staff_member.build_user(user_attrs)
             flash.now[:alert] = @staff_member.errors.full_messages.to_sentence
-            render :new, status: :unprocessable_entity
+            render :new, status: :unprocessable_content
           end
         else
           @staff_member = current_business.staff_members.new(team_member_params.except(:user_attributes))
           @staff_member.build_user(user_attrs)
           @staff_member.errors.add(:user, @user.errors.full_messages.to_sentence)
           flash.now[:alert] = @staff_member.errors.full_messages.to_sentence
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
         end
       end
 

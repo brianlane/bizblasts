@@ -49,7 +49,7 @@ class Client::SubscriptionsController < ApplicationController
     if @customer_subscription.update(client_subscription_params)
       redirect_to client_subscription_path(@customer_subscription), notice: 'Subscription updated successfully'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -63,7 +63,7 @@ class Client::SubscriptionsController < ApplicationController
     if @customer_subscription.update(client_subscription_params)
       redirect_to client_subscription_path(@customer_subscription), notice: 'Preferences updated successfully'
     else
-      render :preferences, status: :unprocessable_entity
+      render :preferences, status: :unprocessable_content
     end
   end
 
