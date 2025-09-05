@@ -176,7 +176,7 @@ RSpec.describe StaffController, type: :controller do
           staff_member: { availability: invalid_availability }
         }, format: :json
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['success']).to be false
         expect(json_response['errors']).to include('Error message')

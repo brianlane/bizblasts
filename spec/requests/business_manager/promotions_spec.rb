@@ -165,7 +165,7 @@ RSpec.describe 'BusinessManager::Promotions', type: :request do
           post '/manage/promotions', params: invalid_params, headers: {}, env: { 'HTTP_HOST' => host_params[:host] }
         }.not_to change(Promotion, :count)
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'displays validation errors' do
@@ -293,7 +293,7 @@ RSpec.describe 'BusinessManager::Promotions', type: :request do
       it 'does not update with invalid data' do
         patch "/manage/promotions/#{promotion.id}", params: invalid_update_params, headers: {}, env: { 'HTTP_HOST' => host_params[:host] }
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         promotion.reload
         expect(promotion.name).to eq('Old Name')
       end

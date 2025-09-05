@@ -107,7 +107,7 @@ class OrdersController < ApplicationController
       session[:cart] = {}
       redirect_to order_path(@order), notice: 'Order was successfully created.'
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 

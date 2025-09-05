@@ -70,7 +70,7 @@ RSpec.describe "BusinessManager::Settings::Notifications", type: :request do
 
       it "renders a unprocessable_entity response" do
         post business_manager_settings_notifications_path, params: { notification_template: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -103,7 +103,7 @@ RSpec.describe "BusinessManager::Settings::Notifications", type: :request do
 
       it "renders a unprocessable_entity response" do
         patch business_manager_settings_notification_path(notification_template), params: { notification_template: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -170,13 +170,13 @@ RSpec.describe "BusinessManager::Settings::Notifications", type: :request do
       expect {
         post business_manager_settings_notifications_path, params: { notification_template: attributes_for(:notification_template, subject: '', business_id: business.id) }
       }.to change(NotificationTemplate, :count).by(0)
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
     it "does not create notification_template if body is blank" do
       expect {
         post business_manager_settings_notifications_path, params: { notification_template: attributes_for(:notification_template, body: '', business_id: business.id) }
       }.to change(NotificationTemplate, :count).by(0)
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 end 

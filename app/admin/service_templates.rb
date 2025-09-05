@@ -225,7 +225,7 @@ ActiveAdmin.register ServiceTemplate do
                collection_path # Fallback
              end
       # Redirect back to the form, potentially preserving input if possible (ActiveAdmin might handle this)
-      redirect_to path, status: :unprocessable_entity
+      redirect_to path, status: :unprocessable_content
     end
 
     # Explicitly define create action for logging
@@ -240,7 +240,7 @@ ActiveAdmin.register ServiceTemplate do
         redirect_to resource_path(@service_template), notice: "Service template was successfully created."
       else
         Rails.logger.error("ServiceTemplate save failed: #{@service_template.errors.full_messages.join(', ')}")
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
       Rails.logger.info("--- ServiceTemplate Create Action End ---")
     end
@@ -257,7 +257,7 @@ ActiveAdmin.register ServiceTemplate do
         redirect_to resource_path(@service_template), notice: "Service template was successfully updated."
       else
         Rails.logger.error("ServiceTemplate update failed: #{@service_template.errors.full_messages.join(', ')}")
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
       Rails.logger.info("--- ServiceTemplate Update Action End ---")
     end
