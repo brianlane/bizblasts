@@ -1,0 +1,415 @@
+<div class="space-y-8">
+  <!-- Welcome Section -->
+  <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-2xl p-6 sm:p-8">
+    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">🌐 Custom Domain Setup FAQ</h2>
+    <p class="text-lg sm:text-xl leading-relaxed opacity-90">
+      Step-by-step instructions for setting up CNAME records with popular domain registrars for BizBlasts Premium businesses.
+    </p>
+  </div>
+
+  <!-- Quick Reference -->
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+    <h3 class="text-xl sm:text-2xl font-bold text-dark mb-6">⚡ Quick Reference</h3>
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h4 class="font-bold text-lg mb-4">Your CNAME Configuration:</h4>
+      <div class="grid sm:grid-cols-2 gap-4 text-sm">
+        <div class="flex items-center">
+          <span class="font-semibold text-gray-700 w-24">Name/Host:</span>
+          <code class="bg-white px-2 py-1 rounded border">@</code>
+          <span class="text-gray-600 ml-2">(root) or</span>
+          <code class="bg-white px-2 py-1 rounded border ml-1">www</code>
+        </div>
+        <div class="flex items-center">
+          <span class="font-semibold text-gray-700 w-16">Type:</span>
+          <code class="bg-white px-2 py-1 rounded border">CNAME</code>
+        </div>
+        <div class="flex items-center">
+          <span class="font-semibold text-gray-700 w-24">Target:</span>
+          <code class="bg-white px-2 py-1 rounded border">bizblasts.onrender.com</code>
+        </div>
+        <div class="flex items-center">
+          <span class="font-semibold text-gray-700 w-16">TTL:</span>
+          <code class="bg-white px-2 py-1 rounded border">300</code>
+          <span class="text-gray-600 ml-2">(5 minutes)</span>
+        </div>
+      </div>
+      <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
+        <p class="text-sm text-yellow-800">
+          <strong>⚠️ Important:</strong> Remove any existing A or AAAA records for your domain before adding the CNAME record.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registrar Instructions -->
+  <div class="space-y-6">
+    <h3 class="text-2xl font-bold text-dark">📋 Registrar-Specific Instructions</h3>
+
+    <!-- GoDaddy -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+      <div class="flex items-center mb-6">
+        <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
+          <span class="text-white font-bold text-lg">G</span>
+        </div>
+        <h4 class="text-xl font-bold text-dark">GoDaddy</h4>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">1</span>
+          <div>
+            <p class="font-semibold">Log into GoDaddy</p>
+            <p class="text-gray-600">Go to <a href="https://godaddy.com" class="text-primary hover:underline">godaddy.com</a> and sign in</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">2</span>
+          <div>
+            <p class="font-semibold">Access DNS Management</p>
+            <p class="text-gray-600">Click "My Products" → "DNS" next to your domain</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">3</span>
+          <div>
+            <p class="font-semibold">Add CNAME Record</p>
+            <div class="text-gray-600">
+              <p>Click "Add" button and configure:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li><strong>Type:</strong> Select "CNAME"</li>
+                <li><strong>Name:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code> or <code class="bg-gray-100 px-1 rounded">www</code></li>
+                <li><strong>Value:</strong> Enter <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+                <li><strong>TTL:</strong> "Custom: 300 seconds"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">4</span>
+          <div>
+            <p class="font-semibold">Remove Conflicting Records</p>
+            <p class="text-gray-600">Delete any existing A or AAAA records for <code class="bg-gray-100 px-1 rounded">@</code> or <code class="bg-gray-100 px-1 rounded">www</code></p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-800">
+          <strong>📝 GoDaddy Notes:</strong> Changes typically take 10-15 minutes to propagate. You may need to wait up to 1 hour for full global propagation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Namecheap -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+      <div class="flex items-center mb-6">
+        <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mr-4">
+          <span class="text-white font-bold text-lg">N</span>
+        </div>
+        <h4 class="text-xl font-bold text-dark">Namecheap</h4>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">1</span>
+          <div>
+            <p class="font-semibold">Log into Namecheap</p>
+            <p class="text-gray-600">Go to <a href="https://namecheap.com" class="text-primary hover:underline">namecheap.com</a> and sign in</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">2</span>
+          <div>
+            <p class="font-semibold">Access Domain List</p>
+            <p class="text-gray-600">Click "Domain List" in the left sidebar</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">3</span>
+          <div>
+            <p class="font-semibold">Manage DNS</p>
+            <p class="text-gray-600">Find your domain, click "Manage", then "Advanced DNS" tab</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">4</span>
+          <div>
+            <p class="font-semibold">Add CNAME Record</p>
+            <div class="text-gray-600">
+              <p>Click "Add New Record" and configure:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li><strong>Type:</strong> Select "CNAME Record"</li>
+                <li><strong>Host:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code> or <code class="bg-gray-100 px-1 rounded">www</code></li>
+                <li><strong>Value:</strong> Enter <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+                <li><strong>TTL:</strong> Select "5 min"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-orange-50 rounded-lg">
+        <p class="text-sm text-orange-800">
+          <strong>📝 Namecheap Notes:</strong> Changes usually propagate within 5-30 minutes. Namecheap automatically adds a trailing dot to CNAME values.
+        </p>
+      </div>
+    </div>
+
+    <!-- Cloudflare -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+      <div class="flex items-center mb-6">
+        <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-4">
+          <span class="text-white font-bold text-lg">C</span>
+        </div>
+        <h4 class="text-xl font-bold text-dark">Cloudflare</h4>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">1</span>
+          <div>
+            <p class="font-semibold">Log into Cloudflare</p>
+            <p class="text-gray-600">Go to <a href="https://cloudflare.com" class="text-primary hover:underline">cloudflare.com</a> and sign in</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">2</span>
+          <div>
+            <p class="font-semibold">Select Your Domain</p>
+            <p class="text-gray-600">Click on your domain from the dashboard</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">3</span>
+          <div>
+            <p class="font-semibold">Add CNAME Record</p>
+            <div class="text-gray-600">
+              <p>Click "DNS" → "Add record" and configure:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li><strong>Type:</strong> Select "CNAME"</li>
+                <li><strong>Name:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code> or <code class="bg-gray-100 px-1 rounded">www</code></li>
+                <li><strong>Target:</strong> Enter <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+                <li><strong>Proxy status:</strong> Toggle OFF (gray cloud) - <strong class="text-red-600">Very Important!</strong></li>
+                <li><strong>TTL:</strong> Select "Auto" or "5 minutes"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-red-50 rounded-lg border-l-4 border-red-400">
+        <p class="text-sm text-red-800">
+          <strong>🚨 Critical:</strong> Ensure proxy is OFF (gray cloud) for CNAME records. Changes propagate very quickly (1-5 minutes) due to Cloudflare's global network.
+        </p>
+      </div>
+    </div>
+
+    <!-- Google Domains -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+      <div class="flex items-center mb-6">
+        <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
+          <span class="text-white font-bold text-lg">G</span>
+        </div>
+        <h4 class="text-xl font-bold text-dark">Google Domains</h4>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">1</span>
+          <div>
+            <p class="font-semibold">Access DNS Settings</p>
+            <p class="text-gray-600">Go to <a href="https://domains.google.com" class="text-primary hover:underline">domains.google.com</a> → select domain → "DNS"</p>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">2</span>
+          <div>
+            <p class="font-semibold">Add CNAME Record</p>
+            <div class="text-gray-600">
+              <p>Click "Manage custom records" and configure:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li><strong>Host name:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code> or <code class="bg-gray-100 px-1 rounded">www</code></li>
+                <li><strong>Type:</strong> Select "CNAME"</li>
+                <li><strong>TTL:</strong> Enter <code class="bg-gray-100 px-1 rounded">300</code></li>
+                <li><strong>Data:</strong> Enter <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-800">
+          <strong>📝 Google Domains Notes:</strong> Changes typically take 10-15 minutes to propagate globally. Google provides detailed propagation status.
+        </p>
+      </div>
+    </div>
+
+    <!-- Other Registrars -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+      <h4 class="text-xl font-bold text-dark mb-6">🔧 Other Registrars</h4>
+      <p class="text-gray-700 mb-4">For registrars not listed above, follow these general steps:</p>
+      
+      <div class="space-y-3">
+        <div class="flex items-start">
+          <span class="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">1</span>
+          <p>Log into your domain registrar's control panel</p>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">2</span>
+          <p>Find "DNS Management," "DNS Settings," or "Name Servers" section</p>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">3</span>
+          <p>Look for options to "Add Record" or "Add DNS Record"</p>
+        </div>
+        <div class="flex items-start">
+          <span class="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-1">4</span>
+          <div>
+            <p>Create a new CNAME record with:</p>
+            <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+              <li><strong>Name/Host:</strong> <code class="bg-gray-100 px-1 rounded">@</code> or <code class="bg-gray-100 px-1 rounded">www</code></li>
+              <li><strong>Type:</strong> <code class="bg-gray-100 px-1 rounded">CNAME</code></li>
+              <li><strong>Value/Target:</strong> <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+              <li><strong>TTL:</strong> <code class="bg-gray-100 px-1 rounded">300</code> seconds (5 minutes)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Troubleshooting -->
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+    <h3 class="text-xl sm:text-2xl font-bold text-dark mb-6">🛠️ Common Issues & Troubleshooting</h3>
+    
+    <div class="space-y-6">
+      <div class="border-l-4 border-red-400 pl-4">
+        <h4 class="font-bold text-red-700 mb-2">❌ "CNAME record not found"</h4>
+        <div class="text-gray-700">
+          <p class="font-semibold">Possible Causes:</p>
+          <ul class="list-disc list-inside mb-3">
+            <li>Record not saved properly</li>
+            <li>DNS changes haven't propagated yet</li>
+            <li>Conflicting A/AAAA records still present</li>
+          </ul>
+          <p class="font-semibold">Solutions:</p>
+          <ul class="list-disc list-inside">
+            <li>Verify the target is exactly <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+            <li>Wait for propagation (5 minutes to 2 hours)</li>
+            <li>Remove all conflicting A/AAAA records</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-l-4 border-yellow-400 pl-4">
+        <h4 class="font-bold text-yellow-700 mb-2">⏰ "Domain setup timeout"</h4>
+        <div class="text-gray-700">
+          <p class="font-semibold">Solutions:</p>
+          <ul class="list-disc list-inside">
+            <li>Use <a href="https://whatsmydns.net" class="text-primary hover:underline">whatsmydns.net</a> to check propagation</li>
+            <li>Contact support with DNS settings screenshots</li>
+            <li>We can manually verify and restart monitoring</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DNS Verification Tools -->
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+    <h3 class="text-xl sm:text-2xl font-bold text-dark mb-6">🔍 DNS Verification Tools</h3>
+    <p class="text-gray-700 mb-4">Use these free tools to check if your CNAME record is configured correctly:</p>
+    
+    <div class="grid sm:grid-cols-3 gap-4 mb-6">
+      <a href="https://whatsmydns.net" class="block p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+        <h4 class="font-semibold text-blue-700">whatsmydns.net</h4>
+        <p class="text-sm text-blue-600">Global DNS propagation checker</p>
+      </a>
+      <a href="https://dnschecker.org" class="block p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+        <h4 class="font-semibold text-green-700">dnschecker.org</h4>
+        <p class="text-sm text-green-600">Multi-location DNS lookup</p>
+      </a>
+      <a href="https://mxtoolbox.com/CNAMELookup.aspx" class="block p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+        <h4 class="font-semibold text-purple-700">mxtoolbox.com</h4>
+        <p class="text-sm text-purple-600">Professional DNS tools</p>
+      </a>
+    </div>
+
+    <div class="bg-gray-50 rounded-lg p-4">
+      <h4 class="font-semibold mb-2">Command Line Check:</h4>
+      <code class="block bg-gray-800 text-green-400 p-3 rounded text-sm">
+        nslookup -type=CNAME yourdomain.com
+      </code>
+      <p class="text-sm text-gray-600 mt-2">
+        <strong>Expected Result:</strong> <code class="bg-white px-1 rounded">yourdomain.com canonical name = bizblasts.onrender.com</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+    <h3 class="text-xl sm:text-2xl font-bold text-dark mb-6">⏱️ Timeline Expectations</h3>
+    
+    <div class="space-y-4">
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">1</div>
+        <div>
+          <p class="font-semibold">0-5 minutes</p>
+          <p class="text-gray-600">CNAME record saved at registrar</p>
+        </div>
+      </div>
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">2</div>
+        <div>
+          <p class="font-semibold">5-15 minutes</p>
+          <p class="text-gray-600">DNS propagation begins</p>
+        </div>
+      </div>
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">3</div>
+        <div>
+          <p class="font-semibold">15-30 minutes</p>
+          <p class="text-gray-600">BizBlasts detects CNAME (monitoring every 5 minutes)</p>
+        </div>
+      </div>
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">✓</div>
+        <div>
+          <p class="font-semibold">30-60 minutes</p>
+          <p class="text-gray-600">Domain activated if all checks pass</p>
+        </div>
+      </div>
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">🔒</div>
+        <div>
+          <p class="font-semibold">1-24 hours</p>
+          <p class="text-gray-600">SSL certificate fully provisioned</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Support Section -->
+  <div class="bg-gradient-to-r from-secondary to-primary text-white rounded-2xl p-6 sm:p-8">
+    <h3 class="text-xl sm:text-2xl font-bold mb-6">🆘 Need Help?</h3>
+    <div class="grid sm:grid-cols-2 gap-6">
+      <div>
+        <h4 class="font-bold text-lg mb-3">Regular Support</h4>
+        <ul class="space-y-2">
+          <li>• Email: <a href="mailto:<%= ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com') %>" class="underline hover:no-underline"><%= ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com') %></a></li>
+          <li>• Include screenshots of your DNS settings</li>
+          <li>• Response time: Within 24 hours</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold text-lg mb-3">Emergency Support</h4>
+        <ul class="space-y-2">
+          <li>• Reply to setup email with "URGENT"</li>
+          <li>• Include business name and domain</li>
+          <li>• We can manually verify and activate</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

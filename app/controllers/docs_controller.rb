@@ -26,6 +26,12 @@ class DocsController < ApplicationController
       description: 'Proven tactics for marketing, customer retention, and scaling your very first business',
       category: 'Business Growth',
       estimated_read_time: '10 min read'
+    },
+    'custom-domain-faq' => {
+      title: 'Custom Domain Setup FAQ',
+      description: 'Step-by-step instructions for setting up CNAME records with popular domain registrars',
+      category: 'Technical Setup',
+      estimated_read_time: '15 min read'
     }
   }.freeze
 
@@ -62,6 +68,8 @@ class DocsController < ApplicationController
       'legal-setup-arizona'
     when 'business-growth-strategies'
       'business-growth-strategies'
+    when 'custom-domain-faq'
+      'custom-domain-faq'
     else
       nil
     end
