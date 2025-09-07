@@ -70,6 +70,13 @@ class DomainMailer < ApplicationMailer
     @business = business
     @user = user
     @domain = business.hostname
+    # Guard: a BizBlasts sub-domain is mandatory. Abort if missing to avoid
+    # sending incorrect DNS instructions.
+    unless business.subdomain.present?
+      Rails.logger.error("[DomainMailer] Cannot send monitoring restart notification – business ##{business.id} has no subdomain")
+      raise ArgumentError, 'Business subdomain is blank'
+    end
+
     @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
 
     mail(

@@ -132,7 +132,7 @@ RSpec.describe DomainMailer, type: :mailer do
     it 'explains timeout situation' do
       expect(body_text(mail)).to include('past hour')
       expect(body_text(mail)).to include("haven't detected")
-      expect(body_text(mail)).to include('CNAME record')
+      expect(body_text(mail)).to include('DNS records')
     end
 
     it 'includes troubleshooting steps' do
@@ -194,7 +194,7 @@ RSpec.describe DomainMailer, type: :mailer do
 
     it 'includes DNS record reminders' do
       text = body_text(mail)
-      expect(text).to include('CNAME record')
+      expect(text).to include('DNS records')
       expect(text).to include('A record')
       expect(text).to include('Name:')
       expect(text).to include('Type: CNAME')
