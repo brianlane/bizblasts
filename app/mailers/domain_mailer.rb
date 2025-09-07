@@ -70,6 +70,7 @@ class DomainMailer < ApplicationMailer
     @business = business
     @user = user
     @domain = business.hostname
+    @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
 
     mail(
       to: @user.email,
