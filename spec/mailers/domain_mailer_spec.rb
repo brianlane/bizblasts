@@ -34,10 +34,13 @@ RSpec.describe DomainMailer, type: :mailer do
       expect(body_text(mail)).to include(user.first_name)
     end
 
-    it 'includes CNAME setup instructions' do
+    it 'includes DNS setup instructions for both A and CNAME records' do
       t = body_text(mail)
+      expect(t).to include('A record')
       expect(t).to include('CNAME record')
+      expect(t).to include('Type: A')
       expect(t).to include('Type: CNAME')
+      expect(t).to include('216.24.57.1')
       expect(t).to match(/localhost|[a-z0-9\-]+\.bizblasts\.com/)
     end
 
@@ -58,14 +61,18 @@ RSpec.describe DomainMailer, type: :mailer do
     context 'with www subdomain' do
       before { business.update!(tier: :premium, host_type: :custom_domain, hostname: 'www.example.com') }
 
-      it 'uses www in CNAME instructions' do
-        expect(body_text(mail)).to include('Name/Host: www')
+      it 'includes both @ and www in DNS instructions' do
+        text = body_text(mail)
+        expect(text).to include('Name/Host: @')
+        expect(text).to include('Name/Host: www')
       end
     end
 
     context 'with root domain' do
-      it 'uses www in CNAME instructions' do
-        expect(body_text(mail)).to include('Name/Host: www')
+      it 'includes both @ and www in DNS instructions' do
+        text = body_text(mail)
+        expect(text).to include('Name/Host: @')
+        expect(text).to include('Name/Host: www')
       end
     end
 
@@ -109,8 +116,7 @@ RSpec.describe DomainMailer, type: :mailer do
       %w[Google Social Business].each { |word| expect(text).to include(word) }
     end
 
-    it 'mentions old URL redirect' do
-      expect(body_text(mail)).to include('bizblasts.com')
+    it 'mentions automatic redirects' do
       expect(body_text(mail)).to include('redirect')
     end
   end
@@ -126,7 +132,7 @@ RSpec.describe DomainMailer, type: :mailer do
     it 'explains timeout situation' do
       expect(body_text(mail)).to include('past hour')
       expect(body_text(mail)).to include("haven't detected")
-      expect(body_text(mail)).to include('CNAME record')
+      expect(body_text(mail)).to include('DNS records')
     end
 
     it 'includes troubleshooting steps' do
@@ -135,8 +141,9 @@ RSpec.describe DomainMailer, type: :mailer do
       expect(body_text(mail)).to include('DNS propagation')
     end
 
-    it 'provides CNAME configuration details' do
-      expect(body_text(mail)).to match(/localhost|[a-z0-9\-]+\.bizblasts\.com/)
+    it 'provides DNS configuration details' do
+      text = body_text(mail)
+      expect(text).to match(/localhost|[a-z0-9\-]+\.bizblasts\.com/)
     end
 
     it 'includes registrar-specific guides' do
@@ -185,11 +192,15 @@ RSpec.describe DomainMailer, type: :mailer do
       expect(mail.body.encoded).to include('troubleshooting help')
     end
 
-    it 'includes CNAME reminder' do
-      expect(body_text(mail)).to include('CNAME record')
-      expect(body_text(mail)).to include('Name:')
-      expect(body_text(mail)).to include('Type: CNAME')
-      expect(body_text(mail)).to include('bizblasts.onrender.com')
+    it 'includes DNS record reminders' do
+      text = body_text(mail)
+      expect(text).to include('DNS records')
+      expect(text).to include('A Record')
+      expect(text).to include('Name:')
+      expect(text).to include('Type: CNAME')
+      expect(text).to include('Type: A')
+      expect(text).to include('216.24.57.1')
+      expect(text).to match(/localhost|[a-z0-9\-]+\.bizblasts\.com/)
     end
   end
 

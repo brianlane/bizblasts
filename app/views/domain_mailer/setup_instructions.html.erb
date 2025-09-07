@@ -14,7 +14,7 @@
         padding: 20px;
       }
       .header {
-        background: linear-gradient(135deg, #1A5F7A, #57C5B6);
+        background: linear-gradient(135deg, #6c757d, #adb5bd);
         color: white;
         padding: 30px 20px;
         border-radius: 8px 8px 0 0;
@@ -88,7 +88,7 @@
     <div class="content">
       <p>Hi <%= @user.first_name || @user.email %>,</p>
 
-      <p>Great news! We've started setting up your custom domain <strong><%= @domain %></strong> for <%= @business.name %>. Now we need you to configure a CNAME record with your domain registrar to complete the setup.</p>
+      <p>Great news! We've started setting up your custom domain <strong><%= @domain %></strong> for <%= @business.name %>. Now we need you to configure DNS records with your domain registrar to complete the setup.</p>
 
       <div class="highlight">
         <strong>⏱️ Time Sensitive:</strong> We'll monitor your DNS changes for the next hour. Please complete these steps as soon as possible.
@@ -100,11 +100,20 @@
       </div>
 
       <div class="step">
-        <h3>Step 2: Add a CNAME record</h3>
-        <p>Create a new CNAME record with these exact settings:</p>
+        <h3>Step 2: Add new host records</h3>
+        <p>Create an A record with these exact settings:</p>
         
         <div class="code-block">
-          <strong>Name/Host:</strong> <%= @cname_name %><br>
+          <strong>Name/Host:</strong> @<br>
+          <strong>Type:</strong> A<br>
+          <strong>Value/Target:</strong> 216.24.57.1<br>
+          <strong>TTL:</strong> Auto or 300 (5 minutes)
+        </div>
+        
+        <p>Create a CNAME record with these exact settings:</p>
+        
+        <div class="code-block">
+          <strong>Name/Host:</strong> www<br>
           <strong>Type:</strong> CNAME<br>
           <strong>Value/Target:</strong> <%= @render_target %><br>
           <strong>TTL:</strong> Auto or 300 (5 minutes)
@@ -113,25 +122,17 @@
         <div class="highlight">
           <strong>💡 Important:</strong> 
           <ul>
-            <li>Use exactly "<strong><%= @render_target %></strong>" as the target</li>
+            <li>The A record (@ → 216.24.57.1) handles your root domain (example.com)</li>
+            <li>The CNAME record (www → <%= @render_target %>) handles www.example.com</li>
             <li>Some registrars require a trailing dot: "<strong><%= @render_target %>.</strong>"</li>
-            <li>Also add an A/ALIAS at the apex if the registrar requires apex verification:</li>
-          </ul>
-          <div class="code-block">
-            <strong>Name/Host:</strong> @<br>
-            <strong>Type:</strong> A (or ALIAS/ANAME if supported)<br>
-            <strong>Value/Target:</strong> 216.24.57.1 (Render apex IP)<br>
-            <strong>TTL:</strong> Auto or 300 (5 minutes)
-          </div>
-          <ul>
-            <li>If your registrar supports domain forwarding, you may forward apex → www instead.</li>
+            <li>Remove any existing A or CNAME records that conflict with these settings</li>
           </ul>
         </div>
       </div>
 
       <div class="step">
         <h3>Step 3: Wait for verification</h3>
-        <p>After adding the CNAME record:</p>
+        <p>After adding both DNS records:</p>
         <ul>
           <li>DNS changes can take 5-15 minutes to propagate</li>
           <li>We'll automatically check every 5 minutes</li>
@@ -141,19 +142,19 @@
 
       <div class="instruction-box">
         <h3>🔍 Need Help?</h3>
-        <p>If you're unsure how to add a CNAME record with your specific registrar:</p>
+        <p>If you're unsure how to add DNS records with your specific registrar:</p>
         <ul>
-          <li><strong>GoDaddy:</strong> Go to DNS Management → Add Record → CNAME</li>
+          <li><strong>GoDaddy:</strong> Go to DNS Management → Add Record → A/CNAME</li>
           <li><strong>Namecheap:</strong> Go to Domain List → Manage → Advanced DNS → Add New Record</li>
-          <li><strong>Cloudflare:</strong> Go to DNS → Add Record → CNAME</li>
-          <li><strong>Detailed Setup Guide:</strong> <a href="https://docs.bizblasts.com/custom-domain-faq">Custom Domain FAQ</a></li>
+          <li><strong>Cloudflare:</strong> Go to DNS → Add Record → A/CNAME</li>
+          <li><strong>Detailed Setup Guide:</strong> <a href="https://www.bizblasts.com/docs/custom-domain-faq">Custom Domain FAQ</a></li>
           <li><strong>Need more help?</strong> Forward this email to <a href="mailto:<%= @support_email %>"><%= @support_email %></a></li>
         </ul>
       </div>
 
       <div class="step">
         <h3>What happens next?</h3>
-        <p>Once your CNAME is configured:</p>
+        <p>Once your DNS records are configured:</p>
         <ul>
           <li>✅ Your domain will automatically activate</li>
           <li>✅ SSL certificate will be issued (may take up to 24 hours)</li>

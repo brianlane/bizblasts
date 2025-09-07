@@ -14,7 +14,7 @@
         padding: 20px;
       }
       .header {
-        background: linear-gradient(135deg, #1A5F7A, #57C5B6);
+        background: linear-gradient(135deg, #6c757d, #adb5bd);
         color: white;
         padding: 30px 20px;
         border-radius: 8px 8px 0 0;
@@ -59,11 +59,11 @@
     <div class="content">
       <p>Hi <%= @user.first_name || @user.email %>,</p>
 
-      <p>Good news! We've restarted monitoring for your custom domain <strong><%= @domain %></strong>. Our system will now check every 5 minutes for the next hour to see if your CNAME record is properly configured.</p>
+      <p>Good news! We've restarted monitoring for your custom domain <strong><%= @domain %></strong>. Our system will now check every 5 minutes for the next hour to see if your DNS records are properly configured.</p>
 
       <div class="info-box">
         <h3>🔍 What we're monitoring</h3>
-        <p>We're checking that <strong><%= @domain %></strong> has a CNAME record pointing to our servers. Once detected, your domain will be automatically activated.</p>
+        <p>We're checking that <strong><%= @domain %></strong> has proper DNS records pointing to our servers. Once detected, your domain will be automatically activated.</p>
       </div>
 
       <div class="status-box">
@@ -89,11 +89,20 @@
 
       <div class="info-box">
         <h3>💡 Quick Reminder</h3>
-        <p>Make sure your CNAME record is configured exactly as instructed:</p>
+        <p>Make sure both DNS records are configured exactly as instructed:</p>
+        
+        <p><strong>A Record:</strong></p>
         <ul>
-          <li><strong>Name:</strong> @ (or www if using www.<%= @domain %>)</li>
+          <li><strong>Name:</strong> @</li>
+          <li><strong>Type:</strong> A</li>
+          <li><strong>Target:</strong> 216.24.57.1</li>
+        </ul>
+        
+        <p><strong>CNAME Record:</strong></p>
+        <ul>
+          <li><strong>Name:</strong> www</li>
           <li><strong>Type:</strong> CNAME</li>
-          <li><strong>Target:</strong> bizblasts.onrender.com</li>
+          <li><strong>Target:</strong> <%= @render_target %></li>
         </ul>
       </div>
     </div>

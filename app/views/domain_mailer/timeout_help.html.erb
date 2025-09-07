@@ -100,7 +100,7 @@
     <div class="content">
       <p>Hi <%= @user.first_name || @user.email %>,</p>
 
-      <p>We've been monitoring your custom domain <strong><%= @domain %></strong> for the past hour, but we haven't detected the required CNAME record yet.</p>
+      <p>We've been monitoring your custom domain <strong><%= @domain %></strong> for the past hour, but we haven't detected the required DNS records yet.</p>
 
       <div class="warning-box">
         <h3>🕒 Setup Timed Out</h3>
@@ -111,10 +111,20 @@
         <h3>🔍 Let's troubleshoot together</h3>
         
         <div class="step">
-          <h4>1. Double-check your CNAME record</h4>
-          <p>Verify these settings in your DNS management panel:</p>
+          <h4>1. Double-check your DNS records</h4>
+          <p>Verify both records are configured in your DNS management panel:</p>
+          
+          <p><strong>A Record (for root domain):</strong></p>
           <div class="code-block">
-            <strong>Name/Host:</strong> <%= @domain.start_with?('www.') ? 'www' : '@' %><br>
+            <strong>Name/Host:</strong> @<br>
+            <strong>Type:</strong> A<br>
+            <strong>Value/Target:</strong> 216.24.57.1<br>
+            <strong>TTL:</strong> Auto or 300 seconds
+          </div>
+          
+          <p><strong>CNAME Record (for www subdomain):</strong></p>
+          <div class="code-block">
+            <strong>Name/Host:</strong> www<br>
             <strong>Type:</strong> CNAME<br>
             <strong>Value/Target:</strong> <%= @render_target %><br>
             <strong>TTL:</strong> Auto or 300 seconds
@@ -133,7 +143,7 @@
 
         <div class="step">
           <h4>3. DNS propagation delay</h4>
-          <p>If your CNAME record looks correct, DNS changes might still be propagating. This can take:</p>
+          <p>If your DNS records look correct, DNS changes might still be propagating. This can take:</p>
           <ul>
             <li>5-15 minutes for most changes</li>
             <li>Up to 2 hours in some cases</li>
@@ -163,7 +173,7 @@
         <h3>📚 Complete Setup Guide</h3>
         <p>For detailed step-by-step instructions for your registrar:</p>
         <ul>
-          <li><strong>📖 <a href="https://docs.bizblasts.com/custom-domain-faq" style="color: #1A5F7A; font-weight: bold;">Custom Domain Setup FAQ</a></strong></li>
+          <li><strong>📖 <a href="https://www.bizblasts.com/docs/custom-domain-faq" style="color: #1A5F7A; font-weight: bold;">Custom Domain Setup FAQ</a></strong></li>
           <li>Covers GoDaddy, Namecheap, Cloudflare, Google Domains, and more</li>
           <li>Screenshots and troubleshooting guides</li>
           <li>DNS verification tools and timeline expectations</li>
