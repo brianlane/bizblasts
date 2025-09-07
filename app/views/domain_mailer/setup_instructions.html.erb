@@ -100,31 +100,32 @@
       </div>
 
       <div class="step">
-        <h3>Step 2: Add a CNAME record</h3>
-        <p>Create a new CNAME record with these exact settings:</p>
+        <h3>Step 2: Add new host records</h3>
+        <p>Create an A record with these exact settings:</p>
         
         <div class="code-block">
-          <strong>Name/Host:</strong> <%= @cname_name %><br>
+          <strong>Name/Host:</strong> @<br>
+          <strong>Type:</strong> A<br>
+          <strong>Value/Target:</strong> 216.24.57.1<br>
+          <strong>TTL:</strong> Auto or 300 (5 minutes)
+        </div>
+        
+        <p>Create a CNAME record with these exact settings:</p>
+        
+        <div class="code-block">
+          <strong>Name/Host:</strong> www<br>
           <strong>Type:</strong> CNAME<br>
-          <strong>Value/Target:</strong> <%= @render_target %><br>
+          <strong>Value/Target:</strong> <%= @business.subdomain %>.bizblasts.com<br>
           <strong>TTL:</strong> Auto or 300 (5 minutes)
         </div>
 
         <div class="highlight">
           <strong>💡 Important:</strong> 
           <ul>
-            <li>Use exactly "<strong><%= @render_target %></strong>" as the target</li>
-            <li>Some registrars require a trailing dot: "<strong><%= @render_target %>.</strong>"</li>
-            <li>Also add an A/ALIAS at the apex if the registrar requires apex verification:</li>
-          </ul>
-          <div class="code-block">
-            <strong>Name/Host:</strong> @<br>
-            <strong>Type:</strong> A (or ALIAS/ANAME if supported)<br>
-            <strong>Value/Target:</strong> 216.24.57.1 (Render apex IP)<br>
-            <strong>TTL:</strong> Auto or 300 (5 minutes)
-          </div>
-          <ul>
-            <li>If your registrar supports domain forwarding, you may forward apex → www instead.</li>
+            <li>The A record (@ → 216.24.57.1) handles your root domain (example.com)</li>
+            <li>The CNAME record (www → <%= @business.subdomain %>.bizblasts.com) handles www.example.com</li>
+            <li>Some registrars require a trailing dot: "<strong><%= @business.subdomain %>.bizblasts.com.</strong>"</li>
+            <li>Remove any existing A or CNAME records that conflict with these settings</li>
           </ul>
         </div>
       </div>

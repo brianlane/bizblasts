@@ -93,7 +93,13 @@
         <ul>
           <li><strong>Name:</strong> @ (or www if using www.<%= @domain %>)</li>
           <li><strong>Type:</strong> CNAME</li>
-          <li><strong>Target:</strong> bizblasts.onrender.com</li>
+          <li><strong>Target:</strong> <%= @business.subdomain %>.bizblasts.com</li>
+        </ul>
+        <p>Make sure your A record is configured exactly as instructed:</p>
+        <ul>
+          <li><strong>Name:</strong> @</li>
+          <li><strong>Type:</strong> A</li>
+          <li><strong>Target:</strong> 216.24.57.1</li>
         </ul>
       </div>
     </div>
