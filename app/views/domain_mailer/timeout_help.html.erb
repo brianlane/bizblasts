@@ -100,7 +100,7 @@
     <div class="content">
       <p>Hi <%= @user.first_name || @user.email %>,</p>
 
-      <p>We've been monitoring your custom domain <strong><%= @domain %></strong> for the past hour, but we haven't detected the required CNAME record yet.</p>
+      <p>We've been monitoring your custom domain <strong><%= @domain %></strong> for the past hour, but we haven't detected the required DNS records yet.</p>
 
       <div class="warning-box">
         <h3>🕒 Setup Timed Out</h3>
@@ -111,7 +111,7 @@
         <h3>🔍 Let's troubleshoot together</h3>
         
         <div class="step">
-          <h4>1. Double-check your CNAME record</h4>
+          <h4>1. Double-check your DNS records</h4>
           <p>Verify these settings in your DNS management panel:</p>
           <div class="code-block">
             <strong>Name/Host:</strong> <%= @domain.start_with?('www.') ? 'www' : '@' %><br>
@@ -133,7 +133,7 @@
 
         <div class="step">
           <h4>3. DNS propagation delay</h4>
-          <p>If your CNAME record looks correct, DNS changes might still be propagating. This can take:</p>
+          <p>If your DNS records look correct, DNS changes might still be propagating. This can take:</p>
           <ul>
             <li>5-15 minutes for most changes</li>
             <li>Up to 2 hours in some cases</li>
