@@ -195,7 +195,7 @@ RSpec.describe DomainMailer, type: :mailer do
     it 'includes DNS record reminders' do
       text = body_text(mail)
       expect(text).to include('DNS records')
-      expect(text).to include('A record')
+      expect(text).to include('A Record')
       expect(text).to include('Name:')
       expect(text).to include('Type: CNAME')
       expect(text).to include('Type: A')
