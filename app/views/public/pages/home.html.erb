@@ -185,7 +185,7 @@
   </div>
 
   <%# Links to other tenant pages (Optional Footer Section) %>
-  <div class="mt-12 pt-6 text-center text-sm text-gray-600">
+  <div class="mt-8 pt-4 text-center text-sm text-gray-600">
     <%= link_to "About Us", tenant_about_page_path, class: "hover:underline mx-2" %>
     <%= link_to "Contact Us", tenant_contact_page_path, class: "hover:underline mx-2" %>
     <% if @business.show_services_section? && @business.has_visible_services? %>
