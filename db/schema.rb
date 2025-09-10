@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_25_045412) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_10_030715) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -258,6 +258,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_25_045412) do
     t.boolean "render_domain_added", default: false, null: false
     t.string "status", default: "active", null: false
     t.boolean "custom_domain_owned"
+    t.boolean "domain_health_verified", default: false, null: false
+    t.datetime "domain_health_checked_at"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
@@ -266,6 +268,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_25_045412) do
     t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
     t.index ["google_business_manual"], name: "index_businesses_on_google_business_manual"
     t.index ["google_place_id"], name: "index_businesses_on_google_place_id", unique: true
+    t.index ["host_type", "status", "domain_health_verified"], name: "index_businesses_on_custom_domain_health"
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
@@ -744,7 +747,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_25_045412) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|

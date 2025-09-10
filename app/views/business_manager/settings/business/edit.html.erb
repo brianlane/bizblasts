@@ -365,6 +365,64 @@
             </div>
           </div>
 
+          <!-- Domain Status Checker -->
+          <% if @business.host_type_custom_domain? && @business.hostname.present? %>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Domain Status</label>
+              <div id="domain-status-container" class="p-4 bg-white border border-gray-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div id="domain-status-indicator" class="flex items-center">
+                      <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                      <span id="domain-status-text" class="text-sm font-medium text-gray-600">Checking status...</span>
+                    </div>
+                    <p id="domain-status-details" class="text-xs text-gray-500 mt-1">Verifying domain configuration and health</p>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button id="check-domain-btn" 
+                            type="button"
+                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onclick="checkDomainStatus()">
+                      <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      Check Now
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Detailed Status Information (Hidden by default) -->
+                <div id="domain-status-details-expanded" class="mt-4 space-y-3 hidden">
+                  <div class="border-t border-gray-200 pt-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <div class="flex items-center">
+                          <div id="dns-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">DNS Configuration</span>
+                        </div>
+                        <p id="dns-check-text" class="text-gray-500 mt-1">Checking CNAME record...</p>
+                      </div>
+                      <div>
+                        <div class="flex items-center">
+                          <div id="render-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">Render Integration</span>
+                        </div>
+                        <p id="render-check-text" class="text-gray-500 mt-1">Verifying domain in Render...</p>
+                      </div>
+                      <div>
+                        <div class="flex items-center">
+                          <div id="health-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">Health Check</span>
+                        </div>
+                        <p id="health-check-text" class="text-gray-500 mt-1">Testing HTTP response...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
           <!-- Domain Change Request -->
           <div>
             <%# --- Host Type Toggle for Premium Users ------------------------------------ %>
@@ -895,8 +953,152 @@
     });
   }
   
+  // Domain Status Checker
+  async function checkDomainStatus() {
+    const button = document.getElementById('check-domain-btn');
+    const statusText = document.getElementById('domain-status-text');
+    const statusDetails = document.getElementById('domain-status-details');
+    const statusIndicator = document.getElementById('domain-status-indicator').querySelector('div');
+    const detailsExpanded = document.getElementById('domain-status-details-expanded');
+    
+    // Update UI to show checking state
+    button.disabled = true;
+    button.innerHTML = `
+      <svg class="animate-spin w-3 h-3 mr-1.5" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Checking...
+    `;
+    statusText.textContent = 'Checking status...';
+    statusDetails.textContent = 'Please wait while we verify your domain configuration';
+    statusIndicator.className = 'w-3 h-3 bg-yellow-400 rounded-full mr-2';
+    
+    try {
+      const response = await fetch('<%= check_domain_status_business_manager_settings_business_path %>', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        updateDomainStatusUI(data);
+        showDetailedStatus(data);
+      } else {
+        showDomainStatusError(data.error || 'Failed to check domain status');
+      }
+    } catch (error) {
+      console.error('Domain status check failed:', error);
+      showDomainStatusError('Network error occurred while checking domain status');
+    } finally {
+      // Reset button
+      button.disabled = false;
+      button.innerHTML = `
+        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Check Now
+      `;
+    }
+  }
+  
+  function updateDomainStatusUI(data) {
+    const statusText = document.getElementById('domain-status-text');
+    const statusDetails = document.getElementById('domain-status-details');
+    const statusIndicator = document.getElementById('domain-status-indicator').querySelector('div');
+    
+    statusText.textContent = data.status_message;
+    
+    if (data.overall_status) {
+      statusIndicator.className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
+      statusDetails.textContent = 'Your domain is fully configured and working correctly';
+    } else if (data.business_status.custom_domain_allow) {
+      statusIndicator.className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
+      statusDetails.textContent = 'Your domain is active and accepting traffic';
+    } else if (data.dns_check.verified || data.render_check.verified || data.health_check.healthy) {
+      statusIndicator.className = 'w-3 h-3 bg-yellow-500 rounded-full mr-2';
+      statusDetails.textContent = 'Domain configuration is in progress';
+    } else {
+      statusIndicator.className = 'w-3 h-3 bg-red-500 rounded-full mr-2';
+      statusDetails.textContent = 'Domain configuration needs attention';
+    }
+  }
+  
+  function showDetailedStatus(data) {
+    const detailsExpanded = document.getElementById('domain-status-details-expanded');
+    
+    // Update DNS status
+    updateCheckStatus('dns', data.dns_check.verified, 
+      data.dns_check.verified ? `CNAME points to ${data.dns_check.target}` : (data.dns_check.error || 'CNAME record not found')
+    );
+    
+    // Update Render status
+    updateCheckStatus('render', data.render_check.verified,
+      data.render_check.verified ? 'Domain verified in Render' : (data.render_check.error || 'Domain not found in Render')
+    );
+    
+    // Update Health status
+    updateCheckStatus('health', data.health_check.healthy,
+      data.health_check.healthy ? `HTTP ${data.health_check.status_code} (${data.health_check.response_time}s)` : (data.health_check.error || 'Health check failed')
+    );
+    
+    // Show detailed status
+    detailsExpanded.classList.remove('hidden');
+  }
+  
+  function updateCheckStatus(checkType, isSuccess, message) {
+    const indicator = document.getElementById(`${checkType}-check-indicator`);
+    const text = document.getElementById(`${checkType}-check-text`);
+    
+    if (isSuccess) {
+      indicator.className = 'w-2 h-2 bg-green-500 rounded-full mr-2';
+      text.textContent = message;
+      text.className = 'text-green-600 mt-1';
+    } else {
+      indicator.className = 'w-2 h-2 bg-red-500 rounded-full mr-2';
+      text.textContent = message;
+      text.className = 'text-red-600 mt-1';
+    }
+  }
+  
+  function showDomainStatusError(message) {
+    const statusText = document.getElementById('domain-status-text');
+    const statusDetails = document.getElementById('domain-status-details');
+    const statusIndicator = document.getElementById('domain-status-indicator').querySelector('div');
+    
+    statusText.textContent = 'Status check failed';
+    statusDetails.textContent = message;
+    statusIndicator.className = 'w-3 h-3 bg-red-500 rounded-full mr-2';
+  }
+  
+  // Auto-check domain status on page load for custom domains
+  function initializeDomainStatusChecker() {
+    const domainStatusContainer = document.getElementById('domain-status-container');
+    if (domainStatusContainer) {
+      // Auto-check on page load if domain is not active
+      const isActive = <%= @business.custom_domain_allow? %>;
+      if (!isActive) {
+        // Delay slightly to ensure page is fully loaded
+        setTimeout(checkDomainStatus, 1000);
+      } else {
+        // If domain is already active, show good status immediately
+        updateDomainStatusUI({
+          overall_status: true,
+          status_message: 'Domain is active and healthy',
+          business_status: { custom_domain_allow: true }
+        });
+      }
+    }
+  }
+  
   document.addEventListener('DOMContentLoaded', initializeSubdomainChecker);
   document.addEventListener('turbo:load', initializeSubdomainChecker);
+  document.addEventListener('DOMContentLoaded', initializeDomainStatusChecker);
+  document.addEventListener('turbo:load', initializeDomainStatusChecker);
 </script>
 
  
