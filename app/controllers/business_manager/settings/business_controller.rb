@@ -122,22 +122,17 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         { found: false, verified: false, error: e.message }
       end
 
-      # Overall status
-      overall_status = dns_result[:verified] && render_result[:verified] && health_result[:healthy]
+      # Use verification strategy to determine status consistently
+      verification_strategy = DomainVerificationStrategy.new(@business)
+      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
       
-      # Determine status message
+      overall_status = verification_result[:verified]
       status_message = if overall_status
-        'Domain is fully configured and healthy'
+        verification_result[:status_reason]
       elsif @business.status == 'cname_active' && @business.domain_health_verified
         'Domain is active and verified'
-      elsif dns_result[:verified] && render_result[:verified] && !health_result[:healthy]
-        'DNS and Render configured, but domain health check failed'
-      elsif dns_result[:verified] && !render_result[:verified]
-        'DNS configured, waiting for Render verification'
-      elsif !dns_result[:verified]
-        'DNS configuration incomplete'
       else
-        'Domain setup in progress'
+        verification_result[:status_reason]
       end
 
       render json: {
@@ -170,10 +165,16 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
 
     rescue => e
       Rails.logger.error "[DomainStatusCheck] Error checking domain #{@business.hostname}: #{e.message}"
-      render json: { 
-        error: 'Unable to check domain status',
-        details: e.message 
-      }, status: :internal_server_error
+      error_response = { 
+        error: 'Unable to check domain status'
+      }
+      
+      # Only include error details in development/test environments
+      if Rails.env.development? || Rails.env.test?
+        error_response[:details] = e.message
+      end
+      
+      render json: error_response, status: :internal_server_error
     end
   end
 

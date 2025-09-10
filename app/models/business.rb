@@ -587,20 +587,44 @@ class Business < ApplicationRecord
     )
   end
 
-  # Set domain health as verified
+  # Set domain health as verified with optimistic locking protection
   def mark_domain_health_verified!
-    update!(
-      domain_health_verified: true,
-      domain_health_checked_at: Time.current
-    )
+    with_lock do
+      update!(
+        domain_health_verified: true,
+        domain_health_checked_at: Time.current
+      )
+    end
+  rescue ActiveRecord::StaleObjectError => e
+    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health verified for business #{id}: #{e.message}"
+    # Reload and retry once
+    reload
+    retry_count ||= 0
+    if (retry_count += 1) <= 1
+      retry
+    else
+      raise e
+    end
   end
 
-  # Set domain health as not verified
+  # Set domain health as not verified with optimistic locking protection  
   def mark_domain_health_unverified!
-    update!(
-      domain_health_verified: false,
-      domain_health_checked_at: Time.current
-    )
+    with_lock do
+      update!(
+        domain_health_verified: false,
+        domain_health_checked_at: Time.current
+      )
+    end
+  rescue ActiveRecord::StaleObjectError => e
+    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health unverified for business #{id}: #{e.message}"
+    # Reload and retry once
+    reload
+    retry_count ||= 0
+    if (retry_count += 1) <= 1
+      retry
+    else
+      raise e
+    end
   end
 
   # Check if domain health verification is stale and needs rechecking
