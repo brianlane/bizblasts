@@ -658,48 +658,6 @@ class Business < ApplicationRecord
     full_url
   end
 
-  private
-
-  # Returns the most reliable host for critical mailer URLs (payments, invoices)
-  # Always defaults to subdomain for maximum reliability unless explicitly overridden
-  def mailer_host(prefer_custom_domain: false)
-    # For critical links (payments/invoices), default to reliable subdomain
-    # Only use custom domain if explicitly requested AND fully verified
-    if prefer_custom_domain && custom_domain_fully_functional?
-      hostname
-    else
-      # Always fall back to reliable subdomain for critical links
-      "#{subdomain}.bizblasts.com"
-    end
-  end
-
-  # Checks if custom domain is not just allowed, but actually functional
-  def custom_domain_fully_functional?
-    custom_domain_allow? && 
-    status == 'cname_active' && 
-    render_domain_added? &&
-    domain_health_verified? &&
-    hostname.present? &&
-    # Additional safety: ensure hostname doesn't contain any suspicious patterns
-    hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
-  end
-  
-  
-  # Active Storage attachment for business logo with variants
-  has_one_attached :logo do |attachable|
-    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
-    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
-    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
-  end
-  
-  # Logo validations
-  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
-  
-  # Background processing for logo
-  after_commit :process_logo, if: -> { logo.attached? }
-  
   def has_visible_products?
     products.active.where(product_type: [:standard, :mixed]).any?(&:visible_to_customers?)
   end
@@ -779,6 +737,48 @@ class Business < ApplicationRecord
     save(validate: false) if time_zone_changed? && persisted?
     time_zone
   end
+
+  private
+
+  # Returns the most reliable host for critical mailer URLs (payments, invoices)
+  # Always defaults to subdomain for maximum reliability unless explicitly overridden
+  def mailer_host(prefer_custom_domain: false)
+    # For critical links (payments/invoices), default to reliable subdomain
+    # Only use custom domain if explicitly requested AND fully verified
+    if prefer_custom_domain && custom_domain_fully_functional?
+      hostname
+    else
+      # Always fall back to reliable subdomain for critical links
+      "#{subdomain}.bizblasts.com"
+    end
+  end
+
+  # Checks if custom domain is not just allowed, but actually functional
+  def custom_domain_fully_functional?
+    custom_domain_allow? && 
+    status == 'cname_active' && 
+    render_domain_added? &&
+    domain_health_verified? &&
+    hostname.present? &&
+    # Additional safety: ensure hostname doesn't contain any suspicious patterns
+    hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
+  end
+  
+  
+  # Active Storage attachment for business logo with variants
+  has_one_attached :logo do |attachable|
+    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
+    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
+    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
+  end
+  
+  # Logo validations
+  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
+                                   message: 'must be PNG, JPEG, GIF, or WebP' },
+                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  # Background processing for logo
+  after_commit :process_logo, if: -> { logo.attached? }
   
   # ---------------------------------------------------------------------------
   # Automatic custom-domain setup triggers
