@@ -10,6 +10,7 @@ class DomainMonitoringService
     @dns_checker = CnameDnsChecker.new(@business.hostname)
     @render_service = RenderDomainService.new
     @health_checker = DomainHealthChecker.new(@business.hostname)
+    @verification_strategy = DomainVerificationStrategy.new(@business)
   end
 
   # Perform a single monitoring check
@@ -30,8 +31,8 @@ class DomainMonitoringService
       # Perform domain health check
       health_result = check_domain_health
 
-      # Determine overall verification status
-      verification_result = determine_verification_status(dns_result, render_result, health_result)
+      # Determine overall verification status using strategy pattern
+      verification_result = @verification_strategy.determine_status(dns_result, render_result, health_result)
 
       # Update business state based on results
       update_business_state!(verification_result)
@@ -158,61 +159,6 @@ class DomainMonitoringService
     end
   end
 
-  def determine_verification_status(dns_result, render_result, health_result)
-    verified = false
-    should_continue = true
-    status_reason = 'Checking DNS, Render verification, and domain health'
-
-    # Check if DNS is properly configured
-    dns_verified = dns_result[:verified] == true
-
-    # Check if Render has verified the domain
-    render_verified = render_result[:verified] == true
-
-    # Check if domain is returning HTTP 200
-    health_verified = health_result[:healthy] == true
-
-    if dns_verified && render_verified && health_verified
-      # All three checks passed - success!
-      verified = true
-      should_continue = false
-      status_reason = 'Domain fully verified and responding with HTTP 200'
-    elsif @business.cname_check_attempts >= 11  # Next increment will be 12
-      # Reached maximum attempts - timeout
-      verified = false
-      should_continue = false
-      status_reason = 'Maximum verification attempts reached'
-    else
-      # Continue monitoring - determine specific status
-      verified = false
-      should_continue = true
-      
-      if !dns_verified && !render_verified && !health_verified
-        status_reason = 'Waiting for CNAME record, Render verification, and health check'
-      elsif dns_verified && !render_verified && !health_verified
-        status_reason = 'DNS configured, waiting for Render verification and health check'
-      elsif dns_verified && render_verified && !health_verified
-        status_reason = 'DNS and Render verified, waiting for domain to return HTTP 200'
-      elsif dns_verified && !render_verified && health_verified
-        status_reason = 'DNS and health verified, waiting for Render verification'
-      elsif !dns_verified && render_verified && health_verified
-        status_reason = 'Render and health verified, waiting for DNS propagation'
-      elsif !dns_verified && render_verified && !health_verified
-        status_reason = 'Render verified, waiting for DNS and health check'
-      elsif !dns_verified && !render_verified && health_verified
-        status_reason = 'Health verified, waiting for DNS and Render verification'
-      end
-    end
-
-    {
-      verified: verified,
-      should_continue: should_continue,
-      dns_verified: dns_verified,
-      render_verified: render_verified,
-      health_verified: health_verified,
-      status_reason: status_reason
-    }
-  end
 
   def update_business_state!(verification_result)
     @business.increment_cname_check!

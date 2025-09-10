@@ -8,19 +8,24 @@ require 'uri'
 class DomainHealthChecker
   class HealthCheckError < StandardError; end
 
-  # Timeout for HTTP requests (in seconds)
-  REQUEST_TIMEOUT = 10
+  # Timeout for HTTP requests (in seconds) - shorter for faster feedback
+  REQUEST_TIMEOUT = 3
   
   # Follow up to 3 redirects
   MAX_REDIRECTS = 3
 
   def initialize(domain_name)
     @domain_name = domain_name.to_s.strip.downcase
+    @memoized_results = {}
   end
 
   # Check if domain responds with HTTP 200
   # @return [Hash] Result with health status and details
   def check_health
+    # Return memoized result if available (within same request)
+    cache_key = "https_#{@domain_name}"
+    return @memoized_results[cache_key] if @memoized_results[cache_key]
+    
     Rails.logger.info "[DomainHealthChecker] Checking health for: #{@domain_name}"
 
     begin
@@ -56,10 +61,12 @@ class DomainHealthChecker
         Rails.logger.warn "[DomainHealthChecker] Health check failed for #{@domain_name}: #{response[:error]}"
       end
 
+      # Cache and return result
+      @memoized_results[cache_key] = result
       result
     rescue => e
       Rails.logger.error "[DomainHealthChecker] Health check exception for #{@domain_name}: #{e.message}"
-      {
+      result = {
         domain: @domain_name,
         healthy: false,
         status_code: nil,
@@ -69,6 +76,9 @@ class DomainHealthChecker
         error: "Health check exception: #{e.message}",
         checked_at: Time.current
       }
+      # Cache error result too to avoid repeated failures
+      @memoized_results[cache_key] = result
+      result
     end
   end
 
@@ -164,10 +174,9 @@ class DomainHealthChecker
     http.open_timeout = REQUEST_TIMEOUT
     http.read_timeout = REQUEST_TIMEOUT
     
-    # Disable SSL verification in development/test to avoid certificate issues
-    if Rails.env.development? || Rails.env.test?
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    end
+    # Always use SSL verification for security
+    # If there are SSL issues, we'll catch them and return appropriate error messages
+    http.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
     # Create request
     request = Net::HTTP::Get.new(uri)
