@@ -604,7 +604,7 @@ class Business < ApplicationRecord
   # validated *and* Render reports the domain attached (SSL issued) *and* 
   # the domain is returning HTTP 200 status.
   def custom_domain_allow?
-    host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
+    premium_tier? && host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
   end
 
   # Set domain health status with optimistic locking protection
