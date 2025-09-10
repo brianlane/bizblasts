@@ -18,7 +18,7 @@ class DomainMailer < ApplicationMailer
       raise ArgumentError, 'Business subdomain is blank'
     end
 
-    @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
+    @render_target = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
 
     # Always instruct users to point the 'www' host at BizBlasts
@@ -55,7 +55,7 @@ class DomainMailer < ApplicationMailer
       raise ArgumentError, 'Business subdomain is blank'
     end
 
-    @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
+    @render_target = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
 
     mail(
@@ -77,7 +77,7 @@ class DomainMailer < ApplicationMailer
       raise ArgumentError, 'Business subdomain is blank'
     end
 
-    @render_target = Rails.env.production? ? "#{business.subdomain}.bizblasts.com" : 'localhost'
+    @render_target = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
 
     mail(
       to: @user.email,

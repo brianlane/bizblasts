@@ -587,6 +587,27 @@ class Business < ApplicationRecord
     )
   end
 
+  # Set domain health as verified
+  def mark_domain_health_verified!
+    update!(
+      domain_health_verified: true,
+      domain_health_checked_at: Time.current
+    )
+  end
+
+  # Set domain health as not verified
+  def mark_domain_health_unverified!
+    update!(
+      domain_health_verified: false,
+      domain_health_checked_at: Time.current
+    )
+  end
+
+  # Check if domain health verification is stale and needs rechecking
+  def domain_health_stale?(threshold = 1.hour)
+    domain_health_checked_at.nil? || domain_health_checked_at < threshold.ago
+  end
+
   def can_setup_custom_domain?
     premium_tier? && host_type_custom_domain? && !cname_active?
   end
@@ -596,9 +617,10 @@ class Business < ApplicationRecord
   # ---------------------------------------------------------------------------
   # Returns true when the business *should* be served from its custom domain –
   # i.e., the tenant *is* a custom-domain host *and* the CNAME/DNS has been
-  # validated *and* Render reports the domain attached (SSL issued).
+  # validated *and* Render reports the domain attached (SSL issued) *and* 
+  # the domain is returning HTTP 200 status.
   def custom_domain_allow?
-    host_type_custom_domain? && cname_active? && render_domain_added?
+    host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
   end
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
@@ -619,6 +641,7 @@ class Business < ApplicationRecord
     custom_domain_allow? && 
     status == 'cname_active' && 
     render_domain_added? &&
+    domain_health_verified? &&
     hostname.present? &&
     # Additional safety: ensure hostname doesn't contain any suspicious patterns
     hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
