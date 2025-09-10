@@ -587,46 +587,6 @@ class Business < ApplicationRecord
     )
   end
 
-  # Set domain health as verified with optimistic locking protection
-  def mark_domain_health_verified!
-    with_lock do
-      update!(
-        domain_health_verified: true,
-        domain_health_checked_at: Time.current
-      )
-    end
-  rescue ActiveRecord::StaleObjectError => e
-    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health verified for business #{id}: #{e.message}"
-    # Reload and retry once
-    reload
-    retry_count ||= 0
-    if (retry_count += 1) <= 1
-      retry
-    else
-      raise e
-    end
-  end
-
-  # Set domain health as not verified with optimistic locking protection  
-  def mark_domain_health_unverified!
-    with_lock do
-      update!(
-        domain_health_verified: false,
-        domain_health_checked_at: Time.current
-      )
-    end
-  rescue ActiveRecord::StaleObjectError => e
-    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health unverified for business #{id}: #{e.message}"
-    # Reload and retry once
-    reload
-    retry_count ||= 0
-    if (retry_count += 1) <= 1
-      retry
-    else
-      raise e
-    end
-  end
-
   # Check if domain health verification is stale and needs rechecking
   def domain_health_stale?(threshold = 1.hour)
     domain_health_checked_at.nil? || domain_health_checked_at < threshold.ago
@@ -646,6 +606,29 @@ class Business < ApplicationRecord
   def custom_domain_allow?
     host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
   end
+
+  # Set domain health status with optimistic locking protection
+  # @param verified_status [Boolean] true for verified, false for unverified
+  def mark_domain_health_status!(verified_status, retry_count = 0)
+    with_lock do
+      update!(
+        domain_health_verified: verified_status,
+        domain_health_checked_at: Time.current
+      )
+    end
+  rescue ActiveRecord::StaleObjectError => e
+    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health #{verified_status ? 'verified' : 'unverified'} for business #{id}: #{e.message}"
+    
+    if retry_count < 1
+      # Reload and retry once
+      reload
+      mark_domain_health_status!(verified_status, retry_count + 1)
+    else
+      raise e
+    end
+  end
+
+  private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
   # Always defaults to subdomain for maximum reliability unless explicitly overridden

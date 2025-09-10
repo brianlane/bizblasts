@@ -711,10 +711,10 @@ RSpec.describe Business, type: :model do
   describe 'domain health verification' do
     let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
     
-    describe '#mark_domain_health_verified!' do
+    describe '#mark_domain_health_status!' do
       it 'sets domain health as verified with timestamp' do
         freeze_time do
-          business.mark_domain_health_verified!
+          business.mark_domain_health_status!(true)
           
           business.reload
           expect(business.domain_health_verified).to be true
@@ -722,30 +722,51 @@ RSpec.describe Business, type: :model do
         end
       end
 
-      it 'handles optimistic locking conflicts gracefully' do
-        # Simulate a stale object error
-        allow(business).to receive(:update!).and_raise(ActiveRecord::StaleObjectError.new(business, 'update'))
-        allow(business).to receive(:reload).and_return(business)
-        allow(business).to receive(:with_lock).and_yield
-        
-        # Should retry once (calls update! twice and reload twice - once in rescue, once in retry)
-        expect(business).to receive(:update!).twice
-        expect(business).to receive(:reload).twice
-        
-        expect { business.mark_domain_health_verified! }.to raise_error(ActiveRecord::StaleObjectError)
-      end
-    end
-
-    describe '#mark_domain_health_unverified!' do
       it 'sets domain health as unverified with timestamp' do
         freeze_time do
           business.update!(domain_health_verified: true)
           
-          business.mark_domain_health_unverified!
+          business.mark_domain_health_status!(false)
           
           business.reload
           expect(business.domain_health_verified).to be false
           expect(business.domain_health_checked_at).to eq(Time.current)
+        end
+      end
+
+      it 'handles optimistic locking conflicts gracefully' do
+        # Simulate a stale object error that persists
+        allow(business).to receive(:update!).and_raise(ActiveRecord::StaleObjectError.new(business, 'update'))
+        allow(business).to receive(:reload).and_return(business)
+        allow(business).to receive(:with_lock).and_yield
+        
+        # Should retry once: first call fails, reload, second call fails and raises
+        expect(business).to receive(:update!).twice
+        expect(business).to receive(:reload).once
+        
+        expect { business.mark_domain_health_status!(true) }.to raise_error(ActiveRecord::StaleObjectError)
+      end
+
+      it 'succeeds on retry after stale object error' do
+        # Simulate stale object error on first attempt, success on second
+        call_count = 0
+        allow(business).to receive(:update!) do
+          call_count += 1
+          if call_count == 1
+            raise ActiveRecord::StaleObjectError.new(business, 'update')
+          else
+            # Success on second attempt
+            true
+          end
+        end
+        allow(business).to receive(:reload).and_return(business)
+        allow(business).to receive(:with_lock).and_yield
+
+        freeze_time do
+          expect { business.mark_domain_health_status!(true) }.not_to raise_error
+          
+          # Should have been called twice (first failure, then success)
+          expect(call_count).to eq(2)
         end
       end
     end

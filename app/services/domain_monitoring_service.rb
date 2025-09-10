@@ -165,9 +165,9 @@ class DomainMonitoringService
 
     # Update health status regardless of overall verification result
     if verification_result[:health_verified]
-      @business.mark_domain_health_verified!
+      @business.mark_domain_health_status!(true)
     else
-      @business.mark_domain_health_unverified!
+      @business.mark_domain_health_status!(false)
     end
 
     if verification_result[:verified]

@@ -29,7 +29,7 @@ RSpec.describe DomainMonitoringService, type: :service do
 
   describe '#perform_check!' do
     let(:dns_result) { { verified: true, target: 'bizblasts.onrender.com' } }
-    let(:render_result) { { verified: true } }
+    let(:render_result) { { found: true, verified: true, domain_id: 'dom_123', verification_data: { 'verified' => true } } }
     let(:health_result) { { healthy: true, status_code: 200 } }
     let(:verification_result) do
       {
@@ -51,10 +51,9 @@ RSpec.describe DomainMonitoringService, type: :service do
       
       # Mock business state updates
       allow(business).to receive(:increment_cname_check!)
-      allow(business).to receive(:mark_domain_health_verified!)
+      allow(business).to receive(:mark_domain_health_status!)
       allow(business).to receive(:cname_success!)
       allow(business).to receive(:cname_timeout!)
-      allow(business).to receive(:mark_domain_health_unverified!)
     end
 
     context 'when all checks pass (happy path)' do
@@ -79,7 +78,7 @@ RSpec.describe DomainMonitoringService, type: :service do
         service.perform_check!
 
         expect(business).to have_received(:increment_cname_check!)
-        expect(business).to have_received(:mark_domain_health_verified!)
+        expect(business).to have_received(:mark_domain_health_status!).with(true)
         expect(business).to have_received(:cname_success!)
       end
 
@@ -120,7 +119,7 @@ RSpec.describe DomainMonitoringService, type: :service do
         service.perform_check!
 
         expect(business).to have_received(:increment_cname_check!)
-        expect(business).to have_received(:mark_domain_health_unverified!)
+        expect(business).to have_received(:mark_domain_health_status!).with(false)
         expect(business).not_to have_received(:cname_success!)
       end
     end
@@ -185,7 +184,7 @@ RSpec.describe DomainMonitoringService, type: :service do
       it 'still marks health as verified' do
         service.perform_check!
 
-        expect(business).to have_received(:mark_domain_health_verified!)
+        expect(business).to have_received(:mark_domain_health_status!).with(true)
         expect(business).not_to have_received(:cname_success!)
       end
     end
@@ -195,8 +194,12 @@ RSpec.describe DomainMonitoringService, type: :service do
         allow(service).to receive(:validate_monitoring_state!).and_raise(described_class::MonitoringError.new('Not eligible'))
       end
 
-      it 'raises monitoring error' do
-        expect { service.perform_check! }.to raise_error(described_class::MonitoringError, 'Not eligible')
+      it 'returns error result' do
+        result = service.perform_check!
+        
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq('Not eligible')
+        expect(result[:should_continue]).to be false
       end
     end
 
@@ -205,28 +208,66 @@ RSpec.describe DomainMonitoringService, type: :service do
         allow(dns_checker).to receive(:verify_cname).and_raise(StandardError.new('DNS lookup failed'))
       end
 
-      it 'propagates the error' do
-        expect { service.perform_check! }.to raise_error(StandardError, 'DNS lookup failed')
+      it 'returns error result' do
+        result = service.perform_check!
+        
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq('DNS lookup failed')
+        expect(result[:should_continue]).to be false
       end
     end
 
     context 'when render check fails' do
+      let(:verification_result) do
+        {
+          verified: false,
+          should_continue: true,
+          dns_verified: true,
+          render_verified: false,
+          health_verified: true,
+          status_reason: 'DNS and health verified, waiting for Render verification'
+        }
+      end
+
       before do
         allow(render_service).to receive(:find_domain_by_name).and_raise(StandardError.new('Render API error'))
       end
 
-      it 'propagates the error' do
-        expect { service.perform_check! }.to raise_error(StandardError, 'Render API error')
+      it 'continues processing with render check failure' do
+        result = service.perform_check!
+        
+        expect(result[:success]).to be true
+        expect(result[:verified]).to be false
+        expect(result[:should_continue]).to be true
+        expect(result[:render_result][:error]).to eq('Render API error')
+        expect(result[:render_result][:verified]).to be false
       end
     end
 
     context 'when health check fails' do
+      let(:verification_result) do
+        {
+          verified: false,
+          should_continue: true,
+          dns_verified: true,
+          render_verified: true,
+          health_verified: false,
+          status_reason: 'DNS and Render verified, waiting for domain to return HTTP 200'
+        }
+      end
+
       before do
         allow(health_checker).to receive(:check_health).and_raise(StandardError.new('Health check failed'))
       end
 
-      it 'propagates the error' do
-        expect { service.perform_check! }.to raise_error(StandardError, 'Health check failed')
+      it 'continues processing with health check failure' do
+        result = service.perform_check!
+        
+        expect(result[:success]).to be true
+        expect(result[:verified]).to be false
+        expect(result[:should_continue]).to be true
+        expect(result[:health_result][:error]).to eq('Health check failed')
+        expect(result[:health_result][:healthy]).to be false
       end
     end
   end
@@ -238,35 +279,27 @@ RSpec.describe DomainMonitoringService, type: :service do
       end
     end
 
-    context 'when business is not premium tier' do
-      before { business.update!(tier: 'free') }
-
-      it 'raises monitoring error' do
-        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError)
-      end
-    end
-
-    context 'when business is not custom domain type' do
-      before { business.update!(host_type: 'subdomain') }
-
-      it 'raises monitoring error' do
-        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError)
-      end
-    end
-
-    context 'when hostname is blank' do
-      before { business.update!(hostname: '') }
-
-      it 'raises monitoring error' do
-        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError)
-      end
-    end
-
     context 'when monitoring is not active' do
       before { business.update!(cname_monitoring_active: false) }
 
       it 'raises monitoring error' do
-        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError)
+        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError, 'Business monitoring is not active')
+      end
+    end
+
+    context 'when business is not in monitoring status' do
+      before { business.update!(status: 'active') }
+
+      it 'raises monitoring error' do
+        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError, 'Business is not in monitoring status')
+      end
+    end
+
+    context 'when maximum attempts exceeded' do
+      before { business.update!(cname_check_attempts: 12) }
+
+      it 'raises monitoring error' do
+        expect { service.send(:validate_monitoring_state!) }.to raise_error(described_class::MonitoringError, 'Maximum monitoring attempts exceeded')
       end
     end
   end
