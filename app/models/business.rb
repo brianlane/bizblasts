@@ -738,6 +738,24 @@ class Business < ApplicationRecord
     time_zone
   end
 
+  # Active Storage attachment for business logo with variants
+  has_one_attached :logo do |attachable|
+    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
+    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
+    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
+  end
+  
+  # Logo validations
+  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
+                                   message: 'must be PNG, JPEG, GIF, or WebP' },
+                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  # Background processing for logo
+  after_commit :process_logo, if: -> { logo.attached? }
+
+  # Ensure hostname is populated for subdomain host_type
+  before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
+
   private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
@@ -763,22 +781,6 @@ class Business < ApplicationRecord
     # Additional safety: ensure hostname doesn't contain any suspicious patterns
     hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
   end
-  
-  
-  # Active Storage attachment for business logo with variants
-  has_one_attached :logo do |attachable|
-    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
-    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
-    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
-  end
-  
-  # Logo validations
-  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
-  
-  # Background processing for logo
-  after_commit :process_logo, if: -> { logo.attached? }
   
   # ---------------------------------------------------------------------------
   # Automatic custom-domain setup triggers
@@ -874,12 +876,6 @@ class Business < ApplicationRecord
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
   end
-  # Ensure hostname is populated for subdomain host_type.
-  # • Only copy when hostname is blank to avoid overwriting a persisted value.
-  # • Normalise the copied value (downcase / strip) for consistency with
-  #   `normalize_hostname`.
-  before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
-
   # Keeps hostname in sync with subdomain for subdomain-based tenants.
   # • Runs when the record is new OR the subdomain itself is being changed.
   # • Normalises the value for consistency.
