@@ -628,6 +628,36 @@ class Business < ApplicationRecord
     end
   end
 
+  # Method to get the full URL for this business
+  def full_url(path = nil)
+    # Determine host based on environment and host_type
+    host = if Rails.env.development?
+      # Development: use lvh.me with subdomain
+      "#{(subdomain.presence || hostname)}.lvh.me"
+    elsif host_type_custom_domain?
+      # Custom domain: use full hostname
+      hostname
+    else
+      # Subdomain in other envs: append main domain
+      "#{(subdomain.presence || hostname)}.bizblasts.com"
+    end
+
+    # Determine protocol
+    protocol = Rails.env.development? ? 'http://' : 'https://'
+
+    # Determine port in development from action_mailer default_url_options
+    port = ''
+    if Rails.env.development?
+      default_opts = Rails.application.config.action_mailer.default_url_options rescue {}
+      port = ":#{default_opts[:port]}" if default_opts[:port].present?
+    end
+
+    # Construct full URL
+    full_url = "#{protocol}#{host}#{port}"
+    full_url += "/#{path.to_s.gsub(/^\//, '')}" if path.present?
+    full_url
+  end
+
   private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
@@ -654,36 +684,6 @@ class Business < ApplicationRecord
     hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
   end
   
-  # Method to get the full URL for this business
-  def full_url(path = nil)
-    # Determine host based on environment and host_type
-    host = if Rails.env.development?
-      # Development: use lvh.me with subdomain
-      "#{(subdomain.presence || hostname)}.lvh.me"
-    elsif host_type_custom_domain?
-      # Custom domain: use full hostname
-      hostname
-    else
-      # Subdomain in other envs: append main domain
-      "#{(subdomain.presence || hostname)}.bizblasts.com"
-    end
-
-    # Determine protocol
-    protocol = Rails.env.development? ? 'http://' : 'https://'
-
-    # Determine port in development from action_mailer default_url_options
-    port = ''
-    if Rails.env.development?
-      default_opts = Rails.application.config.action_mailer.default_url_options rescue {}
-      port = ":#{default_opts[:port]}" if default_opts[:port].present?
-    end
-
-    # Build URL
-    url = "#{protocol}#{host}#{port}"
-    url += path.to_s if path.present?
-    url
-  end
-
   
   # Active Storage attachment for business logo with variants
   has_one_attached :logo do |attachable|
