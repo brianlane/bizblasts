@@ -21,6 +21,9 @@ RSpec.describe CnameSetupService, type: :service do
       before do
         allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)
         allow(render_service).to receive(:add_domain).with('example.com').and_return(domain_data)
+        
+        # Mock verification calls for both apex and www domains
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
       end
 
       it 'completes setup successfully' do
@@ -68,6 +71,9 @@ RSpec.describe CnameSetupService, type: :service do
       context 'when domain already exists in Render' do
         before do
           allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(domain_data)
+          # Mock verification calls
+          allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
+          allow(render_service).to receive(:verify_domain).with('dom_123').and_return({ 'verified' => true })
         end
 
         it 'skips domain addition' do
@@ -124,7 +130,8 @@ RSpec.describe CnameSetupService, type: :service do
 
     context 'when Render API fails' do
       before do
-        allow(render_service).to receive(:find_domain_by_name).and_return(nil)
+        allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
         allow(render_service).to receive(:add_domain).and_raise(RenderDomainService::RenderApiError.new('API Error'))
       end
 
@@ -140,7 +147,9 @@ RSpec.describe CnameSetupService, type: :service do
       end
 
       it 'attempts to remove domain during rollback' do
-        allow(render_service).to receive(:find_domain_by_name).and_return({ 'id' => 'dom_123' })
+        allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return({ 'id' => 'dom_123' })
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
+        allow(render_service).to receive(:verify_domain).with('dom_123').and_return({ 'verified' => true })
         allow(render_service).to receive(:remove_domain).with('dom_123')
 
         service.start_setup!
