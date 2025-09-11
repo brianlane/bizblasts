@@ -423,48 +423,46 @@
             </div>
           <% end %>
 
-          <!-- Canonical URL Preference (Custom Domains Only) -->
-          <% if @business.host_type_custom_domain? && @business.hostname.present? %>
-            <div class="mt-6">
-              <label class="block text-sm font-medium text-gray-700 mb-3">Canonical URL Preference</label>
-              <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <p class="text-sm text-gray-600 mb-4">Choose how your domain should be displayed. Both versions will work, but one will redirect to the other for SEO consistency.</p>
-                
-                <div class="space-y-3">
-                  <div class="flex items-center">
-                    <%= form.radio_button :canonical_preference, 'www', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
-                    <label for="business_canonical_preference_www" class="ml-2 text-sm text-gray-700 cursor-pointer">
-                      <code class="bg-white px-2 py-1 rounded text-primary">www.<%= @business.hostname.sub(/^www\./, '') %></code>
-                      <span class="text-gray-500 ml-1">(Recommended - matches main site behavior)</span>
-                    </label>
-                  </div>
-                  <div class="flex items-center">
-                    <%= form.radio_button :canonical_preference, 'apex', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
-                    <label for="business_canonical_preference_apex" class="ml-2 text-sm text-gray-700 cursor-pointer">
-                      <code class="bg-white px-2 py-1 rounded text-primary"><%= @business.hostname.sub(/^www\./, '') %></code>
-                      <span class="text-gray-500 ml-1">(Advanced option)</span>
-                    </label>
-                  </div>
+          <!-- Canonical URL Preference (Show for Custom Domains) -->
+          <div id="canonical-preference-section" class="mt-6" <%= 'style="display:none;"' unless @business.host_type_custom_domain? %>>
+            <label class="block text-sm font-medium text-gray-700 mb-3">Canonical URL Preference</label>
+            <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <p class="text-sm text-gray-600 mb-4">Choose how your domain should be displayed. Both versions will work, but one will redirect to the other for SEO consistency.</p>
+              
+              <div class="space-y-3">
+                <div class="flex items-center">
+                  <%= form.radio_button :canonical_preference, 'www', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
+                  <label for="business_canonical_preference_www" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                    <code id="www-domain-preview" class="bg-white px-2 py-1 rounded text-primary">www.<%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code>
+                    <span class="text-gray-500 ml-1">(Recommended - matches main site behavior)</span>
+                  </label>
                 </div>
-                
-                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div class="flex items-start">
-                    <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-xs text-blue-700">
-                      <strong>Current setting:</strong> 
-                      <% if @business.www_canonical_preference? %>
-                        Visitors to <code class="text-blue-800"><%= @business.hostname.sub(/^www\./, '') %></code> will be redirected to <code class="text-blue-800">www.<%= @business.hostname.sub(/^www\./, '') %></code>
-                      <% else %>
-                        Visitors to <code class="text-blue-800">www.<%= @business.hostname.sub(/^www\./, '') %></code> will be redirected to <code class="text-blue-800"><%= @business.hostname.sub(/^www\./, '') %></code>
-                      <% end %>
-                    </p>
-                  </div>
+                <div class="flex items-center">
+                  <%= form.radio_button :canonical_preference, 'apex', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
+                  <label for="business_canonical_preference_apex" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                    <code id="apex-domain-preview" class="bg-white px-2 py-1 rounded text-primary"><%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code>
+                    <span class="text-gray-500 ml-1">(Advanced option)</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                  <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <p id="canonical-preview-text" class="text-xs text-blue-700">
+                    <strong>Current setting:</strong> 
+                    <% if @business.www_canonical_preference? %>
+                      <span id="redirect-explanation">Visitors to <code id="from-domain" class="text-blue-800"><%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code> will be redirected to <code id="to-domain" class="text-blue-800">www.<%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code></span>
+                    <% else %>
+                      <span id="redirect-explanation">Visitors to <code id="from-domain" class="text-blue-800">www.<%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code> will be redirected to <code id="to-domain" class="text-blue-800"><%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code></span>
+                    <% end %>
+                  </p>
                 </div>
               </div>
             </div>
-          <% end %>
+          </div>
 
           <!-- Domain Change Request -->
           <div>
@@ -841,6 +839,7 @@
     const radioCustom = document.getElementById('host_type_custom');
     const subGroup = document.getElementById('subdomain-input-group');
     const customGroup = document.getElementById('customdomain-input-group');
+    const canonicalSection = document.getElementById('canonical-preference-section');
 
     if (!radioSub || !radioCustom || !subGroup || !customGroup) return;
 
@@ -848,15 +847,85 @@
       if (radioSub.checked) {
         subGroup.style.display = '';
         customGroup.style.display = 'none';
+        if (canonicalSection) canonicalSection.style.display = 'none';
       } else {
         subGroup.style.display = 'none';
         customGroup.style.display = '';
+        if (canonicalSection) canonicalSection.style.display = '';
+      }
+    }
+
+    // Update domain previews when custom domain input changes
+    function updateDomainPreviews() {
+      const customDomainInput = document.getElementById('display_hostname');
+      if (!customDomainInput || !canonicalSection) return;
+
+      const domainValue = customDomainInput.value.trim();
+      const cleanDomain = domainValue.replace(/^www\./, '') || 'yourdomain.com';
+      
+      // Update preview domains
+      const wwwPreview = document.getElementById('www-domain-preview');
+      const apexPreview = document.getElementById('apex-domain-preview');
+      const fromDomain = document.getElementById('from-domain');
+      const toDomain = document.getElementById('to-domain');
+      
+      if (wwwPreview) wwwPreview.textContent = `www.${cleanDomain}`;
+      if (apexPreview) apexPreview.textContent = cleanDomain;
+      
+      // Update redirect explanation based on current preference
+      const wwwRadio = document.querySelector('input[name="business[canonical_preference]"][value="www"]');
+      if (fromDomain && toDomain && wwwRadio) {
+        if (wwwRadio.checked) {
+          fromDomain.textContent = cleanDomain;
+          toDomain.textContent = `www.${cleanDomain}`;
+        } else {
+          fromDomain.textContent = `www.${cleanDomain}`;
+          toDomain.textContent = cleanDomain;
+        }
+      }
+    }
+
+    // Update redirect explanation when preference changes
+    function updateRedirectExplanation() {
+      const customDomainInput = document.getElementById('display_hostname');
+      if (!customDomainInput) return;
+
+      const domainValue = customDomainInput.value.trim();
+      const cleanDomain = domainValue.replace(/^www\./, '') || 'yourdomain.com';
+      
+      const fromDomain = document.getElementById('from-domain');
+      const toDomain = document.getElementById('to-domain');
+      const wwwRadio = document.querySelector('input[name="business[canonical_preference]"][value="www"]');
+      
+      if (fromDomain && toDomain && wwwRadio) {
+        if (wwwRadio.checked) {
+          fromDomain.textContent = cleanDomain;
+          toDomain.textContent = `www.${cleanDomain}`;
+        } else {
+          fromDomain.textContent = `www.${cleanDomain}`;
+          toDomain.textContent = cleanDomain;
+        }
       }
     }
 
     radioSub.addEventListener('change', updateVisibility);
     radioCustom.addEventListener('change', updateVisibility);
+    
+    // Listen for custom domain input changes
+    const customDomainInput = document.getElementById('display_hostname');
+    if (customDomainInput) {
+      customDomainInput.addEventListener('input', updateDomainPreviews);
+      customDomainInput.addEventListener('blur', updateDomainPreviews);
+    }
+    
+    // Listen for canonical preference changes
+    const canonicalRadios = document.querySelectorAll('input[name="business[canonical_preference]"]');
+    canonicalRadios.forEach(radio => {
+      radio.addEventListener('change', updateRedirectExplanation);
+    });
+    
     updateVisibility();
+    updateDomainPreviews();
   }
 
   document.addEventListener('DOMContentLoaded', initializeDomainModeToggle);

@@ -221,23 +221,50 @@ class CnameSetupService
     raise InvalidBusinessError, 'Business not found' if @business.nil?
   end
 
+  # Determine which domain to add to Render based on canonical preference
+  # Render will automatically handle redirects from the non-canonical version
+  def determine_domains_to_add
+    apex_domain = @business.hostname.sub(/^www\./, '')
+    www_domain = "www.#{apex_domain}"
+    
+    case @business.canonical_preference
+    when 'www'
+      # Add www domain as primary - Render will redirect apex → www
+      Rails.logger.info "[CnameSetupService] WWW canonical: adding www domain as primary"
+      [www_domain]
+    when 'apex'  
+      # Add apex domain as primary - Render will redirect www → apex
+      Rails.logger.info "[CnameSetupService] Apex canonical: adding apex domain as primary"
+      [apex_domain]
+    else
+      # Fallback: add stored hostname as-is
+      Rails.logger.warn "[CnameSetupService] Unknown canonical preference: #{@business.canonical_preference}, using stored hostname"
+      [@business.hostname]
+    end
+  end
+
   def add_domain_to_render!
     Rails.logger.info "[CnameSetupService] Adding domain to Render: #{@business.hostname}"
+    Rails.logger.info "[CnameSetupService] Canonical preference: #{@business.canonical_preference}"
 
-    # Check if domain already exists
-    existing_domain = render_service.find_domain_by_name(@business.hostname)
-    if existing_domain
-      Rails.logger.info "[CnameSetupService] Domain already exists in Render"
-      @business.update!(render_domain_added: true)
-      return
+    # Determine which domains to add based on canonical preference
+    domains_to_add = determine_domains_to_add
+    
+    domains_to_add.each do |domain_name|
+      # Check if domain already exists
+      existing_domain = render_service.find_domain_by_name(domain_name)
+      if existing_domain
+        Rails.logger.info "[CnameSetupService] Domain already exists in Render: #{domain_name}"
+        next
+      end
+
+      # Add new domain
+      Rails.logger.info "[CnameSetupService] Adding domain to Render: #{domain_name}"
+      domain_data = render_service.add_domain(domain_name)
+      Rails.logger.info "[CnameSetupService] Domain added to Render successfully: #{domain_name} (#{domain_data['id']})"
     end
-
-    # Add new domain
-    domain_data = render_service.add_domain(@business.hostname)
     
     @business.update!(render_domain_added: true)
-    
-    Rails.logger.info "[CnameSetupService] Domain added to Render successfully: #{domain_data['id']}"
   end
 
   def verify_render_domains!

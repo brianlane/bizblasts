@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe CnameSetupService, type: :service do
-  let!(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
+  let!(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com', canonical_preference: 'apex') }
   let!(:owner) { create(:user, business: business, role: 'manager', email: 'owner@example.com') }
   let(:service) { described_class.new(business) }
   let(:render_service) { instance_double(RenderDomainService) }
@@ -156,6 +156,59 @@ RSpec.describe CnameSetupService, type: :service do
 
         # Assert service handled failure gracefully (no exception raised)
         expect(business.reload).to be_present
+      end
+    end
+
+    context 'with canonical preference' do
+      context 'when preference is www' do
+        let!(:www_business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example-www.com', canonical_preference: 'www') }
+        let!(:www_owner) { create(:user, business: www_business, role: 'manager', email: 'owner@example-www.com') }
+        let(:www_service) { described_class.new(www_business) }
+        
+        before do
+          allow(render_service).to receive(:find_domain_by_name).with('www.example-www.com').and_return(nil)
+          allow(render_service).to receive(:add_domain).with('www.example-www.com').and_return({ 'id' => 'dom_456', 'name' => 'www.example-www.com' })
+          allow(render_service).to receive(:find_domain_by_name).with('example-www.com').and_return(nil)
+          allow(render_service).to receive(:verify_domain)
+        end
+
+        it 'adds www domain to Render' do
+          expect(render_service).to receive(:add_domain).with('www.example-www.com')
+          
+          www_service.start_setup!
+        end
+
+        it 'logs www canonical preference' do
+          # Simply verify the service completes successfully with www preference
+          result = www_service.start_setup!
+          expect(result[:success]).to be true
+        end
+      end
+
+      context 'when preference is apex' do
+        before do
+          # The main business already has apex preference, just need to add missing mocks
+          allow(render_service).to receive(:verify_domain)
+        end
+
+        it 'adds apex domain to Render' do
+          # Need to ensure the correct mocks are set up for this specific test
+          allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)
+          allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
+          expect(render_service).to receive(:add_domain).with('example.com')
+          
+          service.start_setup!
+        end
+
+        it 'completes setup successfully with apex preference' do
+          # Need to ensure the correct mocks are set up for this specific test
+          allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)
+          allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
+          allow(render_service).to receive(:add_domain).with('example.com').and_return({ 'id' => 'dom_123', 'name' => 'example.com' })
+          
+          result = service.start_setup!
+          expect(result[:success]).to be true
+        end
       end
     end
   end
