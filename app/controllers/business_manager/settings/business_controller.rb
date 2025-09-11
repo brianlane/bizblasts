@@ -109,9 +109,11 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       monitoring_service = DomainMonitoringService.new(@business)
       
       # Get comprehensive status
-      dns_checker = CnameDnsChecker.new(@business.hostname)
-      dual_verifier = DualDomainVerifier.new(@business.hostname)
-      health_checker = DomainHealthChecker.new(@business.hostname)
+      # Use canonical domain for checking instead of raw hostname
+      check_domain = @business.canonical_domain || @business.hostname
+      dns_checker = CnameDnsChecker.new(check_domain)
+      dual_verifier = DualDomainVerifier.new(@business.hostname) # Dual verifier needs raw hostname to check both apex/www
+      health_checker = DomainHealthChecker.new(check_domain)
       render_service = RenderDomainService.new
 
       # Perform all checks

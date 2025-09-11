@@ -758,6 +758,24 @@ class Business < ApplicationRecord
   # Ensure hostname is populated for subdomain host_type
   before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
 
+  # Get the canonical domain based on the business's canonical preference
+  # This is the domain that should be used for links, health checks, etc.
+  def canonical_domain
+    return nil unless hostname.present? && host_type_custom_domain?
+    
+    apex_domain = hostname.sub(/^www\./, '')
+    
+    case canonical_preference
+    when 'www'
+      "www.#{apex_domain}"
+    when 'apex'
+      apex_domain
+    else
+      # Fallback to stored hostname if preference is unknown
+      hostname
+    end
+  end
+
   private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
