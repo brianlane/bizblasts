@@ -5,6 +5,12 @@ require Rails.root.join('lib/constraints/custom_domain_constraint')
 require Rails.root.join('lib/constraints/tenant_public_constraint')
 
 Rails.application.routes.draw do
+  # Health check routes - MUST be first to avoid being caught by catch-all routes
+  get "up" => "rails/health#show", as: :rails_health_check
+  get "healthcheck" => "health#check", as: :health_check
+  get "db-check" => "health#db_check", as: :db_check
+  get "maintenance" => "maintenance#index", as: :maintenance
+
   # Tenant public routes: available on both subdomains and active custom domains
   constraints TenantPublicConstraint do
     # (public routes continue)
@@ -584,10 +590,6 @@ Rails.application.routes.draw do
   # Public subdomain availability endpoint
   get '/subdomains/check', to: 'public/subdomains#check', defaults: { format: :json }
 
-  get "up" => "rails/health#show", as: :rails_health_check
-  get "healthcheck" => "health#check", as: :health_check
-  get "db-check" => "health#db_check", as: :db_check
-  get "maintenance" => "maintenance#index", as: :maintenance
   get "home/debug" => redirect("/admin/debug"), as: :old_tenant_debug
   get "admin/debug" => "admin/debug#index", as: :tenant_debug
 
