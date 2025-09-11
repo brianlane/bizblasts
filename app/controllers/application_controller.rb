@@ -117,6 +117,20 @@ class ApplicationController < ActionController::Base
     # Try to find business by custom domain first
     business = find_business_by_custom_domain
     
+    # If we found a custom domain business, check if we need to redirect to www
+    if business&.host_type == 'custom_domain'
+      host = request.host.to_s.downcase
+      root = host.sub(/^www\./, '')
+      
+      # If current host is apex domain but business hostname matches root, redirect to www
+      if !host.start_with?('www.') && business.hostname.downcase == root
+        canonical_url = "#{request.protocol}www.#{root}#{request.fullpath}"
+        Rails.logger.info "[CustomDomain] Redirecting apex domain to canonical www version: #{canonical_url}"
+        redirect_to canonical_url, status: :moved_permanently, allow_other_host: true
+        return
+      end
+    end
+    
     # If no custom domain match, try subdomain
     if business.nil?
       hostname = extract_hostname_for_tenant
