@@ -117,17 +117,28 @@ class ApplicationController < ActionController::Base
     # Try to find business by custom domain first
     business = find_business_by_custom_domain
     
-    # If we found a custom domain business, check if we need to redirect to www
+    # If we found a custom domain business, check if we need to redirect based on canonical preference
     if business&.host_type == 'custom_domain'
       host = request.host.to_s.downcase
       root = host.sub(/^www\./, '')
       
-      # If current host is apex domain but business hostname matches root, redirect to www
-      if !host.start_with?('www.') && business.hostname.downcase == root
-        canonical_url = "#{request.protocol}www.#{root}#{request.fullpath}"
-        Rails.logger.info "[CustomDomain] Redirecting apex domain to canonical www version: #{canonical_url}"
-        redirect_to canonical_url, status: :moved_permanently, allow_other_host: true
-        return
+      # Determine canonical URL based on business preference
+      if business.www_canonical_preference?
+        # Business prefers www - redirect apex to www
+        if !host.start_with?('www.') && business.hostname.downcase == root
+          canonical_url = "#{request.protocol}www.#{root}#{request.fullpath}"
+          Rails.logger.info "[CustomDomain] Redirecting apex to canonical www: #{canonical_url}"
+          redirect_to canonical_url, status: :moved_permanently, allow_other_host: true
+          return
+        end
+      elsif business.apex_canonical_preference?
+        # Business prefers apex - redirect www to apex
+        if host.start_with?('www.') && business.hostname.downcase == root
+          canonical_url = "#{request.protocol}#{root}#{request.fullpath}"
+          Rails.logger.info "[CustomDomain] Redirecting www to canonical apex: #{canonical_url}"
+          redirect_to canonical_url, status: :moved_permanently, allow_other_host: true
+          return
+        end
       end
     end
     

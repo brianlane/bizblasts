@@ -259,6 +259,29 @@
               <%= business_f.label :hostname, "Custom Domain (Optional)", class: "block text-sm font-medium text-dark mb-1" %>
               <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
               <p class="text-xs text-gray-500 mt-1">Leave blank if you don't want a custom domain</p>
+              
+              <!-- Advanced: Canonical Preference -->
+              <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                  <%= business_f.label :canonical_preference, "Canonical URL (Advanced)", class: "text-sm font-medium text-dark" %>
+                  <span class="text-xs text-gray-500">Optional</span>
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center">
+                    <%= business_f.radio_button :canonical_preference, 'www', checked: true, class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
+                    <label for="user_business_attributes_canonical_preference_www" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                      <code class="bg-white px-1 rounded text-primary">www.yourdomain.com</code> (Recommended)
+                    </label>
+                  </div>
+                  <div class="flex items-center">
+                    <%= business_f.radio_button :canonical_preference, 'apex', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
+                    <label for="user_business_attributes_canonical_preference_apex" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                      <code class="bg-white px-1 rounded text-primary">yourdomain.com</code> (Advanced)
+                    </label>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Choose your preferred canonical URL. Both versions will work, but one will redirect to the other for SEO consistency.</p>
+              </div>
             </div>
           </div>
 
