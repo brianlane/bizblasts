@@ -279,6 +279,7 @@ Rails.application.routes.draw do
           delete :disconnect_stripe
           post :check_subdomain_availability
           get  :check_subdomain_availability
+          get  :check_domain_status
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
