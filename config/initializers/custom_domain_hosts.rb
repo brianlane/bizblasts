@@ -36,7 +36,10 @@ end
 # Keep the lightweight guard for those phases.
 begin
   if defined?(Business) && Business.respond_to?(:where) && Business.table_exists?
-    domains = Business.where(host_type: "custom_domain").where.not(hostname: [nil, ""]).pluck(:hostname)
+    domains = Business.where(host_type: "custom_domain")
+                     .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
+                     .where.not(hostname: [nil, ""])
+                     .pluck(:hostname)
     add_hosts.call(domains)
   else
     Rails.logger.info("[CustomDomainHosts] Business model not available during early boot; scheduling after_initialize load")
@@ -51,6 +54,7 @@ Rails.application.config.after_initialize do
     model = 'Business'.safe_constantize
     if model && model.respond_to?(:where) && ActiveRecord::Base.connection.data_source_exists?('businesses')
       domains = model.where(host_type: 'custom_domain')
+                     .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
                      .where.not(hostname: [nil, ''])
                      .pluck(:hostname)
       add_hosts.call(domains)

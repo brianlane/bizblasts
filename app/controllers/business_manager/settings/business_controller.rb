@@ -110,11 +110,13 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       
       # Get comprehensive status
       dns_checker = CnameDnsChecker.new(@business.hostname)
+      dual_verifier = DualDomainVerifier.new(@business.hostname)
       health_checker = DomainHealthChecker.new(@business.hostname)
       render_service = RenderDomainService.new
 
       # Perform all checks
       dns_result = dns_checker.verify_cname
+      dual_result = dual_verifier.verify_both_domains
       health_result = health_checker.check_health
       
       # Check render status
@@ -151,6 +153,11 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
           target: dns_result[:target],
           expected_target: dns_result[:expected_target],
           error: dns_result[:error]
+        },
+        dual_verification: {
+          overall_verified: dual_result[:overall_verified],
+          apex_domain: dual_result[:apex_domain],
+          www_domain: dual_result[:www_domain]
         },
         render_check: {
           verified: render_result[:verified],

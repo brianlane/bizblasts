@@ -136,7 +136,8 @@ Rails.application.configure do
         return false unless defined?(Business)
         host = request.host.to_s.downcase.sub(/^www\./, '')
         candidates = [host, "www.#{host}"]
-        Business.where(host_type: 'custom_domain', status: 'cname_active')
+        Business.where(host_type: 'custom_domain')
+                .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
                 .where('LOWER(hostname) IN (?)', candidates)
                 .exists?
       rescue StandardError

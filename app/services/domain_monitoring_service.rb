@@ -8,6 +8,7 @@ class DomainMonitoringService
   def initialize(business)
     @business = business
     @dns_checker = CnameDnsChecker.new(@business.hostname)
+    @dual_verifier = DualDomainVerifier.new(@business.hostname)
     @render_service = RenderDomainService.new
     @health_checker = DomainHealthChecker.new(@business.hostname)
     @verification_strategy = DomainVerificationStrategy.new(@business)
@@ -22,8 +23,11 @@ class DomainMonitoringService
       # Validate business is eligible for monitoring
       validate_monitoring_state!
 
-      # Perform DNS verification
+      # Perform DNS verification (legacy single check)
       dns_result = @dns_checker.verify_cname
+
+      # Perform comprehensive dual domain verification
+      dual_result = @dual_verifier.verify_both_domains
 
       # Check Render API verification status
       render_result = check_render_verification
@@ -45,6 +49,7 @@ class DomainMonitoringService
         attempts: @business.cname_check_attempts,
         max_attempts: 12,
         dns_result: dns_result,
+        dual_verification: dual_result,
         render_result: render_result,
         health_result: health_result,
         next_check_in: verification_result[:should_continue] ? '5 minutes' : 'stopped'
