@@ -507,7 +507,11 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
              hostname: 'customdomain.com',
              host_type: 'custom_domain',
              industry: 'landscaping',
-             active: true)
+             active: true,
+             tier: 'premium',
+             status: 'cname_active',
+             render_domain_added: true,
+             domain_health_verified: true)
     end
 
     let!(:subdomain_business) do
