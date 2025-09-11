@@ -250,7 +250,13 @@ class CnameSetupService
       
       domains_to_verify = [apex_domain, www_domain]
       
-      domains_to_verify.each do |domain_name|
+      domains_to_verify.each_with_index do |domain_name, index|
+        # Add delay for www domain to allow SSL certificate provisioning
+        if domain_name.start_with?('www.') && index > 0
+          Rails.logger.info "[CnameSetupService] Waiting 10 seconds for SSL provisioning before verifying: #{domain_name}"
+          sleep(10)
+        end
+
         domain = render_service.find_domain_by_name(domain_name)
         if domain
           Rails.logger.info "[CnameSetupService] Verifying domain: #{domain_name} (ID: #{domain['id']})"
