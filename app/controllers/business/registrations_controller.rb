@@ -42,7 +42,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       build_resource(user_params)
 
       business_attrs = raw_business_params.except(:industry)
-      allowed_business_keys = [:name, :phone, :email, :address, :city, :state, :zip, :description, :tier, :hostname, :platform_referral_code]
+      allowed_business_keys = [:name, :phone, :email, :address, :city, :state, :zip, :description, :tier, :hostname, :canonical_preference, :platform_referral_code]
       business_attrs = if business_attrs.respond_to?(:permit)
                          business_attrs.permit(*allowed_business_keys).to_h
                        else
@@ -119,7 +119,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
         :description, :tier, 
-        :hostname, :subdomain, :host_type, :custom_domain_owned,
+        :hostname, :subdomain, :host_type, :custom_domain_owned, :canonical_preference,
         :platform_referral_code # Permit platform referral code
       ],
       policy_acceptances: {}
