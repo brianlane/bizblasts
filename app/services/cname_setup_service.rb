@@ -43,6 +43,9 @@ class CnameSetupService
       # Step 1: Add domain to Render
       add_domain_to_render!
 
+      # Step 1.5: Trigger verification for both apex and www domains
+      verify_render_domains!
+
       # Step 2: Update business status and start monitoring
       update_business_status!
 
@@ -235,6 +238,42 @@ class CnameSetupService
     @business.update!(render_domain_added: true)
     
     Rails.logger.info "[CnameSetupService] Domain added to Render successfully: #{domain_data['id']}"
+  end
+
+  def verify_render_domains!
+    Rails.logger.info "[CnameSetupService] Triggering verification for both apex and www domains"
+
+    begin
+      # Find all domains related to our hostname (both apex and www)
+      apex_domain = @business.hostname
+      www_domain = "www.#{apex_domain}"
+      
+      domains_to_verify = [apex_domain, www_domain]
+      
+      domains_to_verify.each do |domain_name|
+        domain = render_service.find_domain_by_name(domain_name)
+        if domain
+          Rails.logger.info "[CnameSetupService] Verifying domain: #{domain_name} (ID: #{domain['id']})"
+          
+          begin
+            result = render_service.verify_domain(domain['id'])
+            if result['verified']
+              Rails.logger.info "[CnameSetupService] ✅ Domain verified successfully: #{domain_name}"
+            else
+              Rails.logger.warn "[CnameSetupService] ⚠️ Domain verification pending: #{domain_name}"
+            end
+          rescue => e
+            # Don't fail the entire setup if verification fails - DNS might not be ready yet
+            Rails.logger.warn "[CnameSetupService] Domain verification failed for #{domain_name}: #{e.message}"
+          end
+        else
+          Rails.logger.warn "[CnameSetupService] Domain not found in Render: #{domain_name}"
+        end
+      end
+    rescue => e
+      # Don't fail the entire setup process if verification fails
+      Rails.logger.error "[CnameSetupService] Error during domain verification: #{e.message}"
+    end
   end
 
   def update_business_status!
