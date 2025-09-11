@@ -587,6 +587,11 @@ class Business < ApplicationRecord
     )
   end
 
+  # Check if domain health verification is stale and needs rechecking
+  def domain_health_stale?(threshold = 1.hour)
+    domain_health_checked_at.nil? || domain_health_checked_at < threshold.ago
+  end
+
   def can_setup_custom_domain?
     premium_tier? && host_type_custom_domain? && !cname_active?
   end
@@ -596,34 +601,33 @@ class Business < ApplicationRecord
   # ---------------------------------------------------------------------------
   # Returns true when the business *should* be served from its custom domain –
   # i.e., the tenant *is* a custom-domain host *and* the CNAME/DNS has been
-  # validated *and* Render reports the domain attached (SSL issued).
+  # validated *and* Render reports the domain attached (SSL issued) *and* 
+  # the domain is returning HTTP 200 status.
   def custom_domain_allow?
-    host_type_custom_domain? && cname_active? && render_domain_added?
+    premium_tier? && host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
   end
 
-  # Returns the most reliable host for critical mailer URLs (payments, invoices)
-  # Always defaults to subdomain for maximum reliability unless explicitly overridden
-  def mailer_host(prefer_custom_domain: false)
-    # For critical links (payments/invoices), default to reliable subdomain
-    # Only use custom domain if explicitly requested AND fully verified
-    if prefer_custom_domain && custom_domain_fully_functional?
-      hostname
+  # Set domain health status with optimistic locking protection
+  # @param verified_status [Boolean] true for verified, false for unverified
+  def mark_domain_health_status!(verified_status, retry_count = 0)
+    with_lock do
+      update!(
+        domain_health_verified: verified_status,
+        domain_health_checked_at: Time.current
+      )
+    end
+  rescue ActiveRecord::StaleObjectError => e
+    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health #{verified_status ? 'verified' : 'unverified'} for business #{id}: #{e.message}"
+    
+    if retry_count < 1
+      # Reload and retry once
+      reload
+      mark_domain_health_status!(verified_status, retry_count + 1)
     else
-      # Always fall back to reliable subdomain for critical links
-      "#{subdomain}.bizblasts.com"
+      raise e
     end
   end
 
-  # Checks if custom domain is not just allowed, but actually functional
-  def custom_domain_fully_functional?
-    custom_domain_allow? && 
-    status == 'cname_active' && 
-    render_domain_added? &&
-    hostname.present? &&
-    # Additional safety: ensure hostname doesn't contain any suspicious patterns
-    hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
-  end
-  
   # Method to get the full URL for this business
   def full_url(path = nil)
     # Determine host based on environment and host_type
@@ -648,28 +652,12 @@ class Business < ApplicationRecord
       port = ":#{default_opts[:port]}" if default_opts[:port].present?
     end
 
-    # Build URL
-    url = "#{protocol}#{host}#{port}"
-    url += path.to_s if path.present?
-    url
+    # Construct full URL
+    full_url = "#{protocol}#{host}#{port}"
+    full_url += "/#{path.to_s.gsub(/^\//, '')}" if path.present?
+    full_url
   end
 
-  
-  # Active Storage attachment for business logo with variants
-  has_one_attached :logo do |attachable|
-    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
-    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
-    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
-  end
-  
-  # Logo validations
-  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
-  
-  # Background processing for logo
-  after_commit :process_logo, if: -> { logo.attached? }
-  
   def has_visible_products?
     products.active.where(product_type: [:standard, :mixed]).any?(&:visible_to_customers?)
   end
@@ -748,6 +736,50 @@ class Business < ApplicationRecord
     set_time_zone_from_address if respond_to?(:set_time_zone_from_address)
     save(validate: false) if time_zone_changed? && persisted?
     time_zone
+  end
+
+  # Active Storage attachment for business logo with variants
+  has_one_attached :logo do |attachable|
+    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
+    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
+    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
+  end
+  
+  # Logo validations
+  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
+                                   message: 'must be PNG, JPEG, GIF, or WebP' },
+                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  # Background processing for logo
+  after_commit :process_logo, if: -> { logo.attached? }
+
+  # Ensure hostname is populated for subdomain host_type
+  before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
+
+  private
+
+  # Returns the most reliable host for critical mailer URLs (payments, invoices)
+  # Always defaults to subdomain for maximum reliability unless explicitly overridden
+  def mailer_host(prefer_custom_domain: false)
+    # For critical links (payments/invoices), default to reliable subdomain
+    # Only use custom domain if explicitly requested AND fully verified
+    if prefer_custom_domain && custom_domain_fully_functional?
+      hostname
+    else
+      # Always fall back to reliable subdomain for critical links
+      "#{subdomain}.bizblasts.com"
+    end
+  end
+
+  # Checks if custom domain is not just allowed, but actually functional
+  def custom_domain_fully_functional?
+    custom_domain_allow? && 
+    status == 'cname_active' && 
+    render_domain_added? &&
+    domain_health_verified? &&
+    hostname.present? &&
+    # Additional safety: ensure hostname doesn't contain any suspicious patterns
+    hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
   end
   
   # ---------------------------------------------------------------------------
@@ -844,12 +876,6 @@ class Business < ApplicationRecord
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
   end
-  # Ensure hostname is populated for subdomain host_type.
-  # • Only copy when hostname is blank to avoid overwriting a persisted value.
-  # • Normalise the copied value (downcase / strip) for consistency with
-  #   `normalize_hostname`.
-  before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
-
   # Keeps hostname in sync with subdomain for subdomain-based tenants.
   # • Runs when the record is new OR the subdomain itself is being changed.
   # • Normalises the value for consistency.

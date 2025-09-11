@@ -365,6 +365,64 @@
             </div>
           </div>
 
+          <!-- Domain Status Checker -->
+          <% if @business.host_type_custom_domain? && @business.hostname.present? %>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Domain Status</label>
+              <div id="domain-status-container" class="p-4 bg-white border border-gray-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div id="domain-status-indicator" class="flex items-center">
+                      <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                      <span id="domain-status-text" class="text-sm font-medium text-gray-600">Checking status...</span>
+                    </div>
+                    <p id="domain-status-details" class="text-xs text-gray-500 mt-1">Verifying domain configuration and health</p>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button id="check-domain-btn" 
+                            type="button"
+                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onclick="checkDomainStatus()">
+                      <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      Check Now
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Detailed Status Information (Hidden by default) -->
+                <div id="domain-status-details-expanded" class="mt-4 space-y-3 hidden">
+                  <div class="border-t border-gray-200 pt-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <div class="flex items-center">
+                          <div id="dns-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">DNS Configuration</span>
+                        </div>
+                        <p id="dns-check-text" class="text-gray-500 mt-1">Checking CNAME record...</p>
+                      </div>
+                      <div>
+                        <div class="flex items-center">
+                          <div id="render-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">Render Integration</span>
+                        </div>
+                        <p id="render-check-text" class="text-gray-500 mt-1">Verifying domain in Render...</p>
+                      </div>
+                      <div>
+                        <div class="flex items-center">
+                          <div id="health-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">Health Check</span>
+                        </div>
+                        <p id="health-check-text" class="text-gray-500 mt-1">Testing HTTP response...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
           <!-- Domain Change Request -->
           <div>
             <%# --- Host Type Toggle for Premium Users ------------------------------------ %>
@@ -895,8 +953,21 @@
     });
   }
   
+  // Set the URL for the domain status checker
+  window.domainStatusCheckUrl = '<%= check_domain_status_business_manager_settings_business_path %>';
+  
+  // Initialize domain status checker on page load
+  function initializeDomainStatusChecker() {
+    const isActive = <%= @business.custom_domain_allow? %>;
+    if (typeof window.initializeDomainStatusChecker === 'function') {
+      window.initializeDomainStatusChecker(isActive);
+    }
+  }
+  
   document.addEventListener('DOMContentLoaded', initializeSubdomainChecker);
   document.addEventListener('turbo:load', initializeSubdomainChecker);
+  document.addEventListener('DOMContentLoaded', initializeDomainStatusChecker);
+  document.addEventListener('turbo:load', initializeDomainStatusChecker);
 </script>
 
  

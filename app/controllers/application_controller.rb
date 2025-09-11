@@ -170,7 +170,7 @@ class ApplicationController < ActionController::Base
   end
 
   # Find business by custom domain (exact hostname match)
-  # Only allow active custom domains to serve traffic
+  # Only allow active custom domains that are also health-verified to serve traffic
   def find_business_by_custom_domain
     return nil unless businesses_table_exists?
 
@@ -178,7 +178,7 @@ class ApplicationController < ActionController::Base
     root = host.sub(/^www\./, '')
     candidates = [host, root, "www.#{root}"]
 
-    Business.where(host_type: 'custom_domain', status: 'cname_active')
+    Business.where(host_type: 'custom_domain', status: 'cname_active', domain_health_verified: true)
             .where('LOWER(hostname) IN (?)', candidates)
             .first
   end

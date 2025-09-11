@@ -88,6 +88,96 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     render json: result.to_h
   end
 
+  # GET /manage/settings/business/check_domain_status
+  def check_domain_status
+    unless @business.host_type_custom_domain? && @business.hostname.present?
+      return render json: { 
+        error: 'Domain status checking is only available for custom domains' 
+      }, status: :unprocessable_entity
+    end
+
+    begin
+      # Initialize monitoring service (which includes all checkers)
+      monitoring_service = DomainMonitoringService.new(@business)
+      
+      # Get comprehensive status
+      dns_checker = CnameDnsChecker.new(@business.hostname)
+      health_checker = DomainHealthChecker.new(@business.hostname)
+      render_service = RenderDomainService.new
+
+      # Perform all checks
+      dns_result = dns_checker.verify_cname
+      health_result = health_checker.check_health
+      
+      # Check render status
+      render_result = begin
+        domain = render_service.find_domain_by_name(@business.hostname)
+        if domain
+          verification = render_service.verify_domain(domain['id'])
+          { found: true, verified: verification['verified'] == true }
+        else
+          { found: false, verified: false }
+        end
+      rescue => e
+        { found: false, verified: false, error: e.message }
+      end
+
+      # Use verification strategy to determine status consistently
+      verification_strategy = DomainVerificationStrategy.new(@business)
+      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
+      
+      overall_status = verification_result[:verified]
+      status_message = if overall_status
+        verification_result[:status_reason]
+      elsif @business.status == 'cname_active' && @business.domain_health_verified
+        'Domain is active and verified'
+      else
+        verification_result[:status_reason]
+      end
+
+      render json: {
+        overall_status: overall_status,
+        status_message: status_message,
+        dns_check: {
+          verified: dns_result[:verified],
+          target: dns_result[:target],
+          expected_target: dns_result[:expected_target],
+          error: dns_result[:error]
+        },
+        render_check: {
+          verified: render_result[:verified],
+          found: render_result[:found],
+          error: render_result[:error]
+        },
+        health_check: {
+          healthy: health_result[:healthy],
+          status_code: health_result[:status_code],
+          response_time: health_result[:response_time],
+          error: health_result[:error]
+        },
+        business_status: {
+          status: @business.status,
+          domain_health_verified: @business.domain_health_verified,
+          render_domain_added: @business.render_domain_added,
+          custom_domain_allow: @business.custom_domain_allow?
+        }
+      }
+
+    rescue => e
+      Rails.logger.error "[DomainStatusCheck] Error checking domain #{@business.hostname}: #{e.message}"
+      error_response = { 
+        error: 'Unable to check domain status'
+      }
+      
+      # Only include error details in development/test environments
+      if Rails.env.development? || Rails.env.test?
+        error_response[:details] = e.message
+      end
+      
+      render json: error_response, status: :internal_server_error
+    end
+  end
+
   private
 
   def set_business

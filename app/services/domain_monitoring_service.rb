@@ -9,6 +9,8 @@ class DomainMonitoringService
     @business = business
     @dns_checker = CnameDnsChecker.new(@business.hostname)
     @render_service = RenderDomainService.new
+    @health_checker = DomainHealthChecker.new(@business.hostname)
+    @verification_strategy = DomainVerificationStrategy.new(@business)
   end
 
   # Perform a single monitoring check
@@ -26,8 +28,11 @@ class DomainMonitoringService
       # Check Render API verification status
       render_result = check_render_verification
 
-      # Determine overall verification status
-      verification_result = determine_verification_status(dns_result, render_result)
+      # Perform domain health check
+      health_result = check_domain_health
+
+      # Determine overall verification status using strategy pattern
+      verification_result = @verification_strategy.determine_status(dns_result, render_result, health_result)
 
       # Update business state based on results
       update_business_state!(verification_result)
@@ -41,6 +46,7 @@ class DomainMonitoringService
         max_attempts: 12,
         dns_result: dns_result,
         render_result: render_result,
+        health_result: health_result,
         next_check_in: verification_result[:should_continue] ? '5 minutes' : 'stopped'
       }
 
@@ -132,56 +138,41 @@ class DomainMonitoringService
     end
   end
 
-  def determine_verification_status(dns_result, render_result)
-    verified = false
-    should_continue = true
-    status_reason = 'Checking DNS and Render verification'
+  def check_domain_health
+    Rails.logger.debug "[DomainMonitoringService] Checking domain health status"
 
-    # Check if DNS is properly configured
-    dns_verified = dns_result[:verified] == true
+    begin
+      # Perform health check
+      health_result = @health_checker.check_health
 
-    # Check if Render has verified the domain
-    render_verified = render_result[:verified] == true
-
-    if dns_verified && render_verified
-      # Both DNS and Render are verified - success!
-      verified = true
-      should_continue = false
-      status_reason = 'Domain verified successfully'
-    elsif @business.cname_check_attempts >= 11  # Next increment will be 12
-      # Reached maximum attempts - timeout
-      verified = false
-      should_continue = false
-      status_reason = 'Maximum verification attempts reached'
-    else
-      # Continue monitoring
-      verified = false
-      should_continue = true
+      Rails.logger.info "[DomainMonitoringService] Health check result for #{@business.hostname}: healthy=#{health_result[:healthy]}, status=#{health_result[:status_code]}"
       
-      if !dns_verified && !render_verified
-        status_reason = 'Waiting for CNAME record and Render verification'
-      elsif dns_verified && !render_verified
-        status_reason = 'DNS configured, waiting for Render verification'
-      elsif !dns_verified && render_verified
-        status_reason = 'Render ready, waiting for DNS propagation'
-      end
+      health_result
+    rescue => e
+      Rails.logger.warn "[DomainMonitoringService] Domain health check failed: #{e.message}"
+      
+      {
+        healthy: false,
+        error: e.message,
+        checked_at: Time.current
+      }
     end
-
-    {
-      verified: verified,
-      should_continue: should_continue,
-      dns_verified: dns_verified,
-      render_verified: render_verified,
-      status_reason: status_reason
-    }
   end
+
 
   def update_business_state!(verification_result)
     @business.increment_cname_check!
 
+    # Update health status regardless of overall verification result
+    if verification_result[:health_verified]
+      @business.mark_domain_health_status!(true)
+    else
+      @business.mark_domain_health_status!(false)
+    end
+
     if verification_result[:verified]
-      # Success - activate domain
-      Rails.logger.info "[DomainMonitoringService] Domain verified successfully: #{@business.hostname}"
+      # Success - activate domain (health is already verified above)
+      Rails.logger.info "[DomainMonitoringService] Domain fully verified and healthy: #{@business.hostname}"
       
       @business.cname_success!
       send_activation_success_email!
@@ -195,7 +186,7 @@ class DomainMonitoringService
       
     else
       # Continue monitoring - just update the attempts counter
-      Rails.logger.debug "[DomainMonitoringService] Continuing monitoring: #{@business.hostname} (attempt #{@business.cname_check_attempts}/12)"
+      Rails.logger.debug "[DomainMonitoringService] Continuing monitoring: #{@business.hostname} (attempt #{@business.cname_check_attempts}/12) - Health: #{verification_result[:health_verified]}"
     end
   end
 

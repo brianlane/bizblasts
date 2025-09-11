@@ -707,4 +707,139 @@ RSpec.describe Business, type: :model do
       end
     end
   end
+
+  describe 'domain health verification' do
+    let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
+    
+    describe '#mark_domain_health_status!' do
+      it 'sets domain health as verified with timestamp' do
+        freeze_time do
+          business.mark_domain_health_status!(true)
+          
+          business.reload
+          expect(business.domain_health_verified).to be true
+          expect(business.domain_health_checked_at).to eq(Time.current)
+        end
+      end
+
+      it 'sets domain health as unverified with timestamp' do
+        freeze_time do
+          business.update!(domain_health_verified: true)
+          
+          business.mark_domain_health_status!(false)
+          
+          business.reload
+          expect(business.domain_health_verified).to be false
+          expect(business.domain_health_checked_at).to eq(Time.current)
+        end
+      end
+
+      it 'handles optimistic locking conflicts gracefully' do
+        # Simulate a stale object error that persists
+        allow(business).to receive(:update!).and_raise(ActiveRecord::StaleObjectError.new(business, 'update'))
+        allow(business).to receive(:reload).and_return(business)
+        allow(business).to receive(:with_lock).and_yield
+        
+        # Should retry once: first call fails, reload, second call fails and raises
+        expect(business).to receive(:update!).twice
+        expect(business).to receive(:reload).once
+        
+        expect { business.mark_domain_health_status!(true) }.to raise_error(ActiveRecord::StaleObjectError)
+      end
+
+      it 'succeeds on retry after stale object error' do
+        # Simulate stale object error on first attempt, success on second
+        call_count = 0
+        allow(business).to receive(:update!) do
+          call_count += 1
+          if call_count == 1
+            raise ActiveRecord::StaleObjectError.new(business, 'update')
+          else
+            # Success on second attempt
+            true
+          end
+        end
+        allow(business).to receive(:reload).and_return(business)
+        allow(business).to receive(:with_lock).and_yield
+
+        freeze_time do
+          expect { business.mark_domain_health_status!(true) }.not_to raise_error
+          
+          # Should have been called twice (first failure, then success)
+          expect(call_count).to eq(2)
+        end
+      end
+    end
+
+    describe '#domain_health_stale?' do
+      it 'returns true when never checked' do
+        business.update!(domain_health_checked_at: nil)
+        expect(business.domain_health_stale?).to be true
+      end
+
+      it 'returns true when checked more than threshold ago' do
+        business.update!(domain_health_checked_at: 2.hours.ago)
+        expect(business.domain_health_stale?(1.hour)).to be true
+      end
+
+      it 'returns false when checked within threshold' do
+        business.update!(domain_health_checked_at: 30.minutes.ago)
+        expect(business.domain_health_stale?(1.hour)).to be false
+      end
+
+      it 'uses 1 hour as default threshold' do
+        business.update!(domain_health_checked_at: 2.hours.ago)
+        expect(business.domain_health_stale?).to be true
+        
+        business.update!(domain_health_checked_at: 30.minutes.ago)
+        expect(business.domain_health_stale?).to be false
+      end
+    end
+
+    describe '#custom_domain_allow?' do
+      let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com', status: 'cname_active', render_domain_added: true) }
+      
+      context 'when all conditions are met' do
+        it 'returns true' do
+          business.update!(domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be true
+        end
+      end
+
+      context 'when domain health is not verified' do
+        it 'returns false' do
+          business.update!(domain_health_verified: false)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when not premium tier' do
+        it 'returns false' do
+          business.update!(tier: 'free', domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when not custom domain type' do
+        it 'returns false' do
+          business.update!(host_type: 'subdomain', domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when CNAME not active' do
+        it 'returns false' do
+          business.update!(status: 'cname_pending', domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when render domain not added' do
+        it 'returns false' do
+          business.update!(render_domain_added: false, domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+    end
+  end
 end 
