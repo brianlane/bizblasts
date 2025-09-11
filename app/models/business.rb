@@ -112,6 +112,7 @@ class Business < ApplicationRecord
   enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
   enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
+  enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
   enum :status, { 
     active: 'active', 
     inactive: 'inactive', 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_10_030715) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -260,6 +260,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_10_030715) do
     t.boolean "custom_domain_owned"
     t.boolean "domain_health_verified", default: false, null: false
     t.datetime "domain_health_checked_at"
+    t.string "canonical_preference", default: "www", null: false, comment: "Preferred canonical version: \"www\" or \"apex\" for custom domains"
+    t.index ["canonical_preference"], name: "index_businesses_on_canonical_preference"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
     t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"

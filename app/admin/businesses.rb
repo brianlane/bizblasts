@@ -81,7 +81,7 @@ ActiveAdmin.register Business do
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
                 :active, :tier, :subdomain, :service_template_id, 
-                :hostname, :host_type, # Added new fields
+                :hostname, :host_type, :canonical_preference, # Added new fields
                 :stripe_customer_id, # Stripe integration
                 :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
                 :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date, # Auto-renewal tracking
@@ -339,6 +339,13 @@ ActiveAdmin.register Business do
       row :subdomain
       row :hostname
       row :host_type
+      row :canonical_preference do |business|
+        if business.host_type_custom_domain?
+          status_tag(business.canonical_preference.humanize, class: business.www_canonical_preference? ? "ok" : "warning")
+        else
+          "N/A (Subdomain)"
+        end
+      end
       row :tier
       row "Stripe Status" do |business|
         if business.stripe_account_id.present?
@@ -611,6 +618,7 @@ ActiveAdmin.register Business do
       f.input :subdomain
       f.input :hostname
       f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
+      f.input :canonical_preference, as: :select, collection: Business.canonical_preferences.keys.map { |k| [k.humanize, k] }, include_blank: false, hint: "Choose canonical URL format for custom domains"
       f.input :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :phone
