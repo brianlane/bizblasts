@@ -221,15 +221,26 @@ class CnameSetupService
     raise InvalidBusinessError, 'Business not found' if @business.nil?
   end
 
-  # Determine which domains to add to Render based on canonical preference
+  # Determine which domain to add to Render based on canonical preference
+  # Render will automatically handle redirects from the non-canonical version
   def determine_domains_to_add
     apex_domain = @business.hostname.sub(/^www\./, '')
     www_domain = "www.#{apex_domain}"
     
-    # Always add both domains - Render should serve both directly without redirects
-    # Rails will handle the canonical redirects based on business preference
-    Rails.logger.info "[CnameSetupService] Adding both apex and www domains for Rails-managed redirects"
-    [apex_domain, www_domain]
+    case @business.canonical_preference
+    when 'www'
+      # Add www domain as primary - Render will redirect apex → www
+      Rails.logger.info "[CnameSetupService] WWW canonical: adding www domain as primary"
+      [www_domain]
+    when 'apex'  
+      # Add apex domain as primary - Render will redirect www → apex
+      Rails.logger.info "[CnameSetupService] Apex canonical: adding apex domain as primary"
+      [apex_domain]
+    else
+      # Fallback: add stored hostname as-is
+      Rails.logger.warn "[CnameSetupService] Unknown canonical preference: #{@business.canonical_preference}, using stored hostname"
+      [@business.hostname]
+    end
   end
 
   def add_domain_to_render!

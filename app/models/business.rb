@@ -257,6 +257,7 @@ class Business < ApplicationRecord
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
   after_update :handle_tier_downgrade, if: :saved_change_to_tier?
+  after_update :handle_canonical_preference_change, if: :saved_change_to_canonical_preference?
   after_validation :set_time_zone_from_address, if: :address_components_changed?
   
   # Find the current tenant
@@ -1017,6 +1018,41 @@ class Business < ApplicationRecord
       rescue => e
         Rails.logger.error "[TIER DOWNGRADE] Failed to remove domain: #{e.message}"
       end
+    end
+  end
+
+  def handle_canonical_preference_change
+    # Only act if business has active custom domain
+    return unless host_type_custom_domain? && cname_active? && render_domain_added?
+    
+    old_preference, new_preference = saved_change_to_canonical_preference
+    
+    Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Updating Render domains from #{old_preference} to #{new_preference} for business #{id}"
+    
+    begin
+      # Remove and re-add domain with new canonical preference
+      setup_service = CnameSetupService.new(self)
+      
+      # First remove existing domains
+      render_service = RenderDomainService.new
+      apex_domain = hostname.sub(/^www\./, '')
+      
+      [apex_domain, "www.#{apex_domain}"].each do |domain_name|
+        domain = render_service.find_domain_by_name(domain_name)
+        if domain
+          Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Removing domain: #{domain_name}"
+          render_service.remove_domain(domain['id'])
+        end
+      end
+      
+      # Re-add with new canonical preference
+      setup_service.send(:add_domain_to_render!)
+      
+      Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Successfully updated canonical preference"
+      
+    rescue => e
+      Rails.logger.error "[CANONICAL PREFERENCE CHANGE] Failed to update domains: #{e.message}"
+      # Don't raise - this is a background operation
     end
   end
 end 
