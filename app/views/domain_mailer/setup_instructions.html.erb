@@ -170,6 +170,13 @@
           <li>✅ SSL certificate will be issued (may take up to 24 hours)</li>
           <li>✅ All traffic will redirect to HTTPS</li>
           <li>✅ Your BizBlasts site will be live at <strong><%= @domain %></strong></li>
+          <% if @business.respond_to?(:www_canonical_preference?) %>
+            <% if @business.www_canonical_preference? %>
+              <li>🔗 <strong>Canonical URL:</strong> Visitors to <%= @domain.sub(/^www\./, '') %> will redirect to www.<%= @domain.sub(/^www\./, '') %></li>
+            <% elsif @business.apex_canonical_preference? %>
+              <li>🔗 <strong>Canonical URL:</strong> Visitors to www.<%= @domain.sub(/^www\./, '') %> will redirect to <%= @domain.sub(/^www\./, '') %></li>
+            <% end %>
+          <% end %>
         </ul>
       </div>
     </div>
