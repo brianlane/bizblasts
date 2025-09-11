@@ -245,11 +245,17 @@ class DomainMonitoringService
       
       domains_to_check = [apex_domain, www_domain]
       
-      domains_to_check.each do |domain_name|
+      domains_to_check.each_with_index do |domain_name, index|
         domain = @render_service.find_domain_by_name(domain_name)
         if domain
           # Check if domain needs verification
           unless domain['verificationStatus'] == 'verified'
+            # Add small delay for www domain to allow SSL provisioning
+            if domain_name.start_with?('www.') && index > 0
+              Rails.logger.info "[DomainMonitoringService] Waiting 5 seconds before verifying www domain: #{domain_name}"
+              sleep(5)
+            end
+
             Rails.logger.info "[DomainMonitoringService] Triggering verification for unverified domain: #{domain_name}"
             
             begin

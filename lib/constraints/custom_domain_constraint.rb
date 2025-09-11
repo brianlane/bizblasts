@@ -12,7 +12,7 @@ class CustomDomainConstraint
       return false unless defined?(Business)
       return false unless ActiveRecord::Base.connection.data_source_exists?('businesses')
 
-      Business.where(host_type: 'custom_domain', status: 'cname_active')
+      Business.where(host_type: 'custom_domain', status: 'cname_active', domain_health_verified: true)
               .where('LOWER(hostname) IN (?)', candidates)
               .exists?
     rescue StandardError => e
