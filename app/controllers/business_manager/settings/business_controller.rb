@@ -67,8 +67,16 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     if @business.update(business_params)
       # After update, check if hostname or subdomain changed
       if (@business.saved_change_to_hostname? || @business.saved_change_to_subdomain?)
-        target_url = TenantHost.url_for(@business, request, edit_business_manager_settings_business_path)
-        return redirect_to target_url, allow_other_host: true
+        # Only redirect to custom domain if it's already active and working
+        # For new custom domains, stay on current domain until setup is complete
+        if @business.host_type_custom_domain? && !@business.custom_domain_allow?
+          Rails.logger.info "[BUSINESS_SETTINGS] Custom domain #{@business.hostname} not yet active, staying on current domain"
+          # Don't redirect - let user stay on current working domain
+          flash[:notice] = "Custom domain configuration started! Check your email for setup instructions. You'll be able to use your custom domain once DNS is configured."
+        else
+          target_url = TenantHost.url_for(@business, request, edit_business_manager_settings_business_path)
+          return redirect_to target_url, allow_other_host: true
+        end
       end
       # Check if the sync_location parameter is present with a value of '1'
       if params[:sync_location] == '1'
@@ -102,11 +110,13 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       
       # Get comprehensive status
       dns_checker = CnameDnsChecker.new(@business.hostname)
+      dual_verifier = DualDomainVerifier.new(@business.hostname)
       health_checker = DomainHealthChecker.new(@business.hostname)
       render_service = RenderDomainService.new
 
       # Perform all checks
       dns_result = dns_checker.verify_cname
+      dual_result = dual_verifier.verify_both_domains
       health_result = health_checker.check_health
       
       # Check render status
@@ -143,6 +153,11 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
           target: dns_result[:target],
           expected_target: dns_result[:expected_target],
           error: dns_result[:error]
+        },
+        dual_verification: {
+          overall_verified: dual_result[:overall_verified],
+          apex_domain: dual_result[:apex_domain],
+          www_domain: dual_result[:www_domain]
         },
         render_check: {
           verified: render_result[:verified],

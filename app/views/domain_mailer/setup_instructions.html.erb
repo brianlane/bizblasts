@@ -14,11 +14,21 @@
         padding: 20px;
       }
       .header {
-        background: linear-gradient(135deg, #6c757d, #adb5bd);
+        background: linear-gradient(135deg, #1A5F7A, #2C5F7A);
         color: white;
         padding: 30px 20px;
         border-radius: 8px 8px 0 0;
         text-align: center;
+      }
+      .domain-highlight {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1em;
+        display: inline-block;
+        margin: 0 4px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
       }
       .content {
         background: #f8f9fa;
@@ -82,7 +92,7 @@
   <body>
     <div class="header">
       <h1>🌐 Custom Domain Setup</h1>
-      <p>Connect <strong><%= @domain %></strong> to your BizBlasts site</p>
+      <p>Connect <span class="domain-highlight"><%= @domain %></span> to your BizBlasts site</p>
     </div>
 
     <div class="content">
