@@ -808,12 +808,9 @@ class Business < ApplicationRecord
     return unless premium_tier? && host_type_custom_domain? && hostname.present?
     return if Rails.env.test? # avoid interfering with specs
 
-    begin
-      Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for newly created Business ##{id} (#{hostname})"
-      CnameSetupService.new(self).start_setup!
-    rescue => e
-      Rails.logger.error "[BUSINESS CALLBACK] Failed to start custom-domain setup for Business ##{id}: #{e.message}"
-    end
+    # Run domain setup in background to prevent 502 crashes from external API calls
+    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for newly created Business ##{id} (#{hostname})"
+    CustomDomainSetupJob.perform_later(id)
   end
 
   # Triggered after *update* when a non-premium business upgrades to Premium.
@@ -830,12 +827,9 @@ class Business < ApplicationRecord
     # Skip if setup already in progress or completed.
     return if cname_pending? || cname_monitoring? || cname_active?
 
-    begin
-      Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for Business ##{id} after tier upgrade (#{old_tier} -> premium)"
-      CnameSetupService.new(self).start_setup!
-    rescue => e
-      Rails.logger.error "[BUSINESS CALLBACK] Failed to start custom-domain setup after tier upgrade for Business ##{id}: #{e.message}"
-    end
+    # Run domain setup in background to prevent 502 crashes from external API calls
+    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after tier upgrade (#{old_tier} -> premium)"
+    CustomDomainSetupJob.perform_later(id)
   end
 
   # Triggered after *update* when host_type changes from subdomain -> custom_domain on a premium business.
@@ -845,12 +839,10 @@ class Business < ApplicationRecord
     return unless premium_tier? && hostname.present?
     # Skip if setup already running or completed
     return if cname_pending? || cname_monitoring? || cname_active?
-    begin
-      Rails.logger.info "[BUSINESS CALLBACK] Auto-starting custom-domain setup for Business ##{id} after host_type change (subdomain -> custom_domain)"
-      CnameSetupService.new(self).start_setup!
-    rescue => e
-      Rails.logger.error "[BUSINESS CALLBACK] Failed to start custom-domain setup after host_type change for Business ##{id}: #{e.message}"
-    end
+    
+    # Run domain setup in background to prevent 502 crashes from external API calls
+    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after host_type change (subdomain -> custom_domain)"
+    CustomDomainSetupJob.perform_later(id)
   end
 
   # ---------------------------------------------------------------------------
