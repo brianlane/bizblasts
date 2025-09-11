@@ -221,23 +221,39 @@ class CnameSetupService
     raise InvalidBusinessError, 'Business not found' if @business.nil?
   end
 
+  # Determine which domains to add to Render based on canonical preference
+  def determine_domains_to_add
+    apex_domain = @business.hostname.sub(/^www\./, '')
+    www_domain = "www.#{apex_domain}"
+    
+    # Always add both domains - Render should serve both directly without redirects
+    # Rails will handle the canonical redirects based on business preference
+    Rails.logger.info "[CnameSetupService] Adding both apex and www domains for Rails-managed redirects"
+    [apex_domain, www_domain]
+  end
+
   def add_domain_to_render!
     Rails.logger.info "[CnameSetupService] Adding domain to Render: #{@business.hostname}"
+    Rails.logger.info "[CnameSetupService] Canonical preference: #{@business.canonical_preference}"
 
-    # Check if domain already exists
-    existing_domain = render_service.find_domain_by_name(@business.hostname)
-    if existing_domain
-      Rails.logger.info "[CnameSetupService] Domain already exists in Render"
-      @business.update!(render_domain_added: true)
-      return
+    # Determine which domains to add based on canonical preference
+    domains_to_add = determine_domains_to_add
+    
+    domains_to_add.each do |domain_name|
+      # Check if domain already exists
+      existing_domain = render_service.find_domain_by_name(domain_name)
+      if existing_domain
+        Rails.logger.info "[CnameSetupService] Domain already exists in Render: #{domain_name}"
+        next
+      end
+
+      # Add new domain
+      Rails.logger.info "[CnameSetupService] Adding domain to Render: #{domain_name}"
+      domain_data = render_service.add_domain(domain_name)
+      Rails.logger.info "[CnameSetupService] Domain added to Render successfully: #{domain_name} (#{domain_data['id']})"
     end
-
-    # Add new domain
-    domain_data = render_service.add_domain(@business.hostname)
     
     @business.update!(render_domain_added: true)
-    
-    Rails.logger.info "[CnameSetupService] Domain added to Render successfully: #{domain_data['id']}"
   end
 
   def verify_render_domains!
