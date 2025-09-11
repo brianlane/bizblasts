@@ -6,7 +6,7 @@ class DualDomainVerifier
   def initialize(domain_name)
     @domain_name = domain_name.to_s.strip.downcase
     @apex_domain = @domain_name.start_with?('www.') ? @domain_name.sub('www.', '') : @domain_name
-    @www_domain = @apex_domain.start_with?('www.') ? @apex_domain : "www.#{@apex_domain}"
+    @www_domain = "www.#{@apex_domain}"
     @dns_checker = CnameDnsChecker.new(@domain_name)
   end
 
