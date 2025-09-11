@@ -72,13 +72,23 @@
         display: block;
         margin: 10px 0;
       }
+      .domain-highlight {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1em;
+        display: inline-block;
+        margin: 0 4px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+      }
     </style>
   </head>
   <body>
     <div class="header">
       <div class="checkmark">✅</div>
       <h1>Domain Activated!</h1>
-      <p><strong><%= @domain %></strong> is now live</p>
+      <p><span class="domain-highlight"><%= @domain %></span> is now live</p>
     </div>
 
     <div class="content">

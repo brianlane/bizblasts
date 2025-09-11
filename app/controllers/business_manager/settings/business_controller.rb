@@ -67,8 +67,16 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     if @business.update(business_params)
       # After update, check if hostname or subdomain changed
       if (@business.saved_change_to_hostname? || @business.saved_change_to_subdomain?)
-        target_url = TenantHost.url_for(@business, request, edit_business_manager_settings_business_path)
-        return redirect_to target_url, allow_other_host: true
+        # Only redirect to custom domain if it's already active and working
+        # For new custom domains, stay on current domain until setup is complete
+        if @business.host_type_custom_domain? && !@business.custom_domain_allow?
+          Rails.logger.info "[BUSINESS_SETTINGS] Custom domain #{@business.hostname} not yet active, staying on current domain"
+          # Don't redirect - let user stay on current working domain
+          flash[:notice] = "Custom domain configuration started! Check your email for setup instructions. You'll be able to use your custom domain once DNS is configured."
+        else
+          target_url = TenantHost.url_for(@business, request, edit_business_manager_settings_business_path)
+          return redirect_to target_url, allow_other_host: true
+        end
       end
       # Check if the sync_location parameter is present with a value of '1'
       if params[:sync_location] == '1'
