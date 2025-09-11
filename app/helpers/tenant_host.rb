@@ -37,10 +37,25 @@ module TenantHost
       
       "#{subdomain_part}.#{main_domain}"
     else
-      # For custom-domain tenants, the hostname column already contains the full
-      # domain (e.g. "customdomain.com") so we can return it verbatim.
-      # Return nil if hostname is blank to prevent invalid URLs
-      business.hostname.presence
+      # For custom-domain tenants, only use the custom domain if it's fully working
+      # Otherwise fall back to subdomain to prevent broken redirects
+      if business.custom_domain_allow?
+        # Custom domain is working (DNS + SSL + health verified)
+        business.hostname.presence
+      else
+        # Custom domain not ready, fall back to subdomain
+        Rails.logger.info "[TenantHost] Custom domain #{business.hostname} not ready, using subdomain fallback"
+        main_domain = if Rails.env.production?
+                       'bizblasts.com'
+                     else
+                       Rails.application.config.main_domain.split(':').first
+                     end
+        
+        subdomain_part = business.subdomain.presence || business.hostname.presence
+        return unless subdomain_part
+        
+        "#{subdomain_part}.#{main_domain}"
+      end
     end
   end
 
