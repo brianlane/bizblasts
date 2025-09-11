@@ -32,6 +32,9 @@ class DomainMonitoringService
       # Check Render API verification status
       render_result = check_render_verification
 
+      # Trigger verification for any unverified domains
+      trigger_render_verification_if_needed
+
       # Perform domain health check
       health_result = check_domain_health
 
@@ -229,6 +232,43 @@ class DomainMonitoringService
       hours = minutes_left / 60
       remaining_minutes = minutes_left % 60
       "~#{hours}h #{remaining_minutes}m"
+    end
+  end
+
+  def trigger_render_verification_if_needed
+    Rails.logger.info "[DomainMonitoringService] Checking if Render verification needed"
+
+    begin
+      # Find all domains related to our hostname (both apex and www)
+      apex_domain = @business.hostname
+      www_domain = "www.#{apex_domain}"
+      
+      domains_to_check = [apex_domain, www_domain]
+      
+      domains_to_check.each do |domain_name|
+        domain = @render_service.find_domain_by_name(domain_name)
+        if domain
+          # Check if domain needs verification
+          unless domain['verificationStatus'] == 'verified'
+            Rails.logger.info "[DomainMonitoringService] Triggering verification for unverified domain: #{domain_name}"
+            
+            begin
+              result = @render_service.verify_domain(domain['id'])
+              if result['verified']
+                Rails.logger.info "[DomainMonitoringService] ✅ Domain verified successfully: #{domain_name}"
+              else
+                Rails.logger.info "[DomainMonitoringService] ⚠️ Domain verification still pending: #{domain_name}"
+              end
+            rescue => e
+              Rails.logger.warn "[DomainMonitoringService] Domain verification failed for #{domain_name}: #{e.message}"
+            end
+          else
+            Rails.logger.debug "[DomainMonitoringService] Domain already verified: #{domain_name}"
+          end
+        end
+      end
+    rescue => e
+      Rails.logger.error "[DomainMonitoringService] Error during verification check: #{e.message}"
     end
   end
 end
