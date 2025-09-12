@@ -268,7 +268,28 @@ ActiveAdmin.register Business do
       when 'cname_monitoring'
         status_tag "DNS Monitoring", class: "warning"
       when 'cname_active'
-        status_tag "Domain Active", class: "ok"
+        # For custom domains, check SSL status too
+        if business.host_type_custom_domain? && business.hostname.present?
+          begin
+            check_domain = business.canonical_domain || business.hostname
+            health_checker = DomainHealthChecker.new(check_domain)
+            health_result = health_checker.check_health
+            
+            if health_result[:healthy] && health_result[:ssl_ready]
+              status_tag "Domain Active", class: "ok"
+            elsif health_result[:healthy] && !health_result[:ssl_ready]
+              status_tag "SSL Provisioning", class: "warning"
+            elsif health_result[:error]&.include?("Certificate propagation")
+              status_tag "SSL Provisioning", class: "warning"
+            else
+              status_tag "Domain Active", class: "ok"
+            end
+          rescue
+            status_tag "Domain Active", class: "ok"
+          end
+        else
+          status_tag "Domain Active", class: "ok"
+        end
       when 'cname_timeout'
         status_tag "Setup Timeout", class: "error"
       else
@@ -483,7 +504,26 @@ ActiveAdmin.register Business do
             when 'cname_monitoring'
               status_tag "DNS Monitoring Active", class: "warning"
             when 'cname_active'
-              status_tag "Active & Working", class: "ok"
+              # Use comprehensive verification to get real status
+              begin
+                check_domain = business.canonical_domain || business.hostname
+                health_checker = DomainHealthChecker.new(check_domain)
+                health_result = health_checker.check_health
+                
+                # Check if SSL certificate is still propagating
+                if health_result[:healthy] && !health_result[:ssl_ready]
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_result[:healthy] && health_result[:ssl_ready]
+                  status_tag "Active & Working", class: "ok"
+                elsif health_result[:error]&.include?("Certificate propagation")
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                else
+                  status_tag "Active (Checking SSL)", class: "warning"
+                end
+              rescue => e
+                Rails.logger.warn "[AdminPanel] Domain status check failed for #{business.hostname}: #{e.message}"
+                status_tag "Active (Status Check Failed)", class: "warning"
+              end
             when 'cname_timeout'
               status_tag "Setup Timed Out", class: "error"
             else
