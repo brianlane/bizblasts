@@ -65,6 +65,24 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     Rails.logger.info "[BUSINESS_SETTINGS] sync_location parameter: #{params[:sync_location].inspect}"
     
     if @business.update(business_params)
+      # If the user switched back to subdomain mode, run the same removal
+      # service used by ActiveAdmin to clean up Render and revert safely.
+      if @business.saved_change_to_host_type? && @business.host_type_subdomain?
+        Rails.logger.info "[BUSINESS_SETTINGS] Host type switched to subdomain – invoking DomainRemovalService"
+        begin
+          removal_service = DomainRemovalService.new(@business)
+          result = removal_service.remove_domain!
+          if result[:success]
+            flash[:notice] = 'Custom domain removed and reverted to subdomain.'
+          else
+            flash[:alert] = "Failed to remove custom domain: #{result[:error]}"
+          end
+        rescue => e
+          Rails.logger.error "[BUSINESS_SETTINGS] Domain removal failed: #{e.message}"
+          flash[:alert] = 'Failed to remove custom domain. Please try again or contact support.'
+        end
+      end
+
       # After update, check if hostname or subdomain changed
       if (@business.saved_change_to_hostname? || @business.saved_change_to_subdomain?)
         # Only redirect to custom domain if it's already active and working
@@ -79,11 +97,23 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         end
       end
       # Check if the sync_location parameter is present with a value of '1'
+      # Preserve any flash set earlier (e.g., from DomainRemovalService) by only
+      # providing a default notice when none exists.
+      flash_already_set = flash[:alert].present? || flash[:notice].present?
+
       if params[:sync_location] == '1'
         sync_with_default_location
-        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated.'
+        if flash_already_set
+          redirect_to edit_business_manager_settings_business_path
+        else
+          redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated.'
+        end
       else
-        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+        if flash_already_set
+          redirect_to edit_business_manager_settings_business_path
+        else
+          redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+        end
       end
     else
       render :edit, status: :unprocessable_content
@@ -139,13 +169,9 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
       
       overall_status = verification_result[:verified]
-      status_message = if overall_status
-        verification_result[:status_reason]
-      elsif @business.status == 'cname_active' && @business.domain_health_verified
-        'Domain is active and verified'
-      else
-        verification_result[:status_reason]
-      end
+      # Always derive the banner message from the live verification result.
+      # Do not override with persisted flags to avoid stale green states.
+      status_message = verification_result[:status_reason]
 
       render json: {
         overall_status: overall_status,

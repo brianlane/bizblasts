@@ -149,16 +149,15 @@ class DomainStatusChecker {
           this.statusDetails.textContent = 'Your domain is fully configured and working correctly';
           this.statusDetails.className = 'text-xs text-green-600 mt-1';
         }
-      } else if (data.business_status.custom_domain_allow) {
-        this.statusIndicator.className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
-        if (this.statusDetails) {
-          this.statusDetails.textContent = 'Your domain is active and accepting traffic';
-          this.statusDetails.className = 'text-xs text-green-600 mt-1';
-        }
       } else if (data.dns_check.verified || data.render_check.verified || data.health_check.healthy) {
         this.statusIndicator.className = 'w-3 h-3 bg-yellow-500 rounded-full mr-2';
         if (this.statusDetails) {
-          this.statusDetails.textContent = 'Domain configuration is in progress';
+          // Show more specific message for certificate propagation
+          if (data.status_message && data.status_message.includes('certificate') && data.status_message.includes('provisioning')) {
+            this.statusDetails.textContent = 'SSL certificate is propagating to all servers (usually takes 5-30 minutes)';
+          } else {
+            this.statusDetails.textContent = 'Domain configuration is in progress';
+          }
           this.statusDetails.className = 'text-xs text-yellow-600 mt-1';
         }
       } else {
@@ -231,17 +230,8 @@ class DomainStatusChecker {
     this.autoInitDone = true;
     if (!this.domainStatusContainer) return;
     
-    if (!isActive) {
-      // Delay slightly to ensure page is fully loaded
-      setTimeout(() => this.checkDomainStatus(), 1000);
-    } else {
-      // If domain is already active, show good status immediately
-      this.updateDomainStatusUI({
-        overall_status: true,
-        status_message: 'Domain is active and healthy',
-        business_status: { custom_domain_allow: true }
-      });
-    }
+    // Always run a live check on load to avoid stale banners
+    setTimeout(() => this.checkDomainStatus(), 500);
   }
 
   getCheckDomainStatusUrl() {

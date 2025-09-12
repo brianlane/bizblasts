@@ -44,6 +44,9 @@ class DomainMonitoringService
 
       # Update business state based on results
       update_business_state!(verification_result)
+      
+      # Start certificate propagation retry if needed
+      start_propagation_retry_if_needed(health_result)
 
       # Return result for job scheduling decisions
       {
@@ -252,6 +255,17 @@ class DomainMonitoringService
     rescue => e
       Rails.logger.error "[DomainMonitoringService] Error during verification enqueue: #{e.message}"
     end
+  end
+
+  def start_propagation_retry_if_needed(health_result)
+    # Only start retry job if we detected propagation delay and business is still monitoring
+    return unless health_result[:propagation_retry_needed]
+    return unless @business.cname_monitoring? || @business.cname_pending?
+    
+    Rails.logger.info "[DomainMonitoringService] Starting certificate propagation retry for #{@business.hostname}"
+    
+    # Start the retry job with initial delay of 5 minutes
+    CertificatePropagationRetryJob.set(wait: 5.minutes).perform_later(@business.id, 0)
   end
 
   private
