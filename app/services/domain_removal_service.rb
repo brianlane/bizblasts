@@ -140,23 +140,24 @@ class DomainRemovalService
   def remove_from_render
     return unless @business.render_domain_added?
 
-    Rails.logger.info "[DomainRemovalService] Removing domain from Render service"
+    Rails.logger.info "[DomainRemovalService] Removing domains from Render service (apex + www)"
 
-    begin
-      # Find domain in Render
-      domain = @render_service.find_domain_by_name(@business.hostname)
-      
-      if domain
-        # Remove domain from Render
-        @render_service.remove_domain(domain['id'])
-        Rails.logger.info "[DomainRemovalService] Domain removed from Render successfully"
-      else
-        Rails.logger.warn "[DomainRemovalService] Domain not found in Render, may have been already removed"
+    apex_domain = @business.hostname.sub(/^www\./, '')
+    www_domain  = "www.#{apex_domain}"
+
+    [apex_domain, www_domain].uniq.each do |domain_name|
+      begin
+        domain = @render_service.find_domain_by_name(domain_name)
+
+        if domain
+          @render_service.remove_domain(domain['id'])
+          Rails.logger.info "[DomainRemovalService] Removed domain from Render: #{domain_name}"
+        else
+          Rails.logger.info "[DomainRemovalService] Domain not present in Render (skipped): #{domain_name}"
+        end
+      rescue => e
+        Rails.logger.warn "[DomainRemovalService] Failed to remove #{domain_name}: #{e.message}"
       end
-
-    rescue => e
-      Rails.logger.warn "[DomainRemovalService] Failed to remove domain from Render: #{e.message}"
-      # Continue with removal even if Render removal fails
     end
   end
 
