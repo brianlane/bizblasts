@@ -27,7 +27,12 @@ RSpec.describe DomainRemovalService, type: :service do
     let(:domain_data) { { 'id' => 'dom_123', 'name' => 'example.com' } }
 
     before do
+      # Default to nil for any domain lookup, then override apex as needed
+      allow(render_service).to receive(:find_domain_by_name).and_return(nil)
+
       allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(domain_data)
+      # www.example.com will fall back to nil which is acceptable for the service logic
+
       allow(render_service).to receive(:remove_domain).with('dom_123').and_return(true)
     end
 
@@ -50,6 +55,7 @@ RSpec.describe DomainRemovalService, type: :service do
 
     it 'removes domain from Render' do
       expect(render_service).to receive(:find_domain_by_name).with('example.com')
+      expect(render_service).to receive(:find_domain_by_name).with('www.example.com')
       expect(render_service).to receive(:remove_domain).with('dom_123')
 
       service.remove_domain!
@@ -132,7 +138,9 @@ RSpec.describe DomainRemovalService, type: :service do
     context 'when business has no subdomain or hostname' do
       before do
         business.update_columns(subdomain: nil, hostname: nil)
+        # Stub both domain lookups that production code performs when hostname is nil
         allow(render_service).to receive(:find_domain_by_name).with(nil).and_return(nil)
+        allow(render_service).to receive(:find_domain_by_name).with('www.').and_return(nil)
       end
 
       it 'generates fallback hostname' do
@@ -161,7 +169,9 @@ RSpec.describe DomainRemovalService, type: :service do
   describe '#handle_tier_downgrade!' do
     context 'when downgrading from premium to free' do
       it 'removes domain' do
+        # Stub both apex and www domain lookups (production code checks both)
         allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return({ 'id' => 'dom_123' })
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
         allow(render_service).to receive(:remove_domain).with('dom_123').and_return(true)
         result = service.handle_tier_downgrade!('free')
 

@@ -139,6 +139,11 @@ class DomainRemovalService
 
   def remove_from_render
     return unless @business.render_domain_added?
+    
+    if @business.hostname.blank?
+      Rails.logger.info "[DomainRemovalService] Skipping domain removal - hostname is blank for business #{@business.id}"
+      return
+    end
 
     Rails.logger.info "[DomainRemovalService] Removing domains from Render service (apex + www)"
 
