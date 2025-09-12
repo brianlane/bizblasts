@@ -18,9 +18,13 @@ class DomainVerificationStrategy
     dns_verified = dns_result[:verified] == true
     render_verified = render_result[:verified] == true
     health_verified = health_result[:healthy] == true
+    ssl_ready = health_result[:ssl_ready] == true
+
+    # For full verification, we need DNS + Render + Health with SSL ready
+    fully_verified = dns_verified && render_verified && health_verified && ssl_ready
 
     # Determine overall status using policy rules
-    verification_policy = create_verification_policy(dns_verified, render_verified, health_verified)
+    verification_policy = create_verification_policy(dns_verified, render_verified, health_verified, ssl_ready)
     
     {
       verified: verification_policy.verified?,
@@ -28,16 +32,22 @@ class DomainVerificationStrategy
       dns_verified: dns_verified,
       render_verified: render_verified,
       health_verified: health_verified,
+      ssl_ready: ssl_ready,
       status_reason: verification_policy.status_reason
     }
   end
 
   private
 
-  def create_verification_policy(dns_verified, render_verified, health_verified)
-    # Check for success condition first
-    if dns_verified && render_verified && health_verified
+  def create_verification_policy(dns_verified, render_verified, health_verified, ssl_ready)
+    # Check for full success condition (all verified including SSL)
+    if dns_verified && render_verified && health_verified && ssl_ready
       return SuccessVerificationPolicy.new
+    end
+
+    # Check for SSL-pending condition (everything works but SSL not ready yet)
+    if dns_verified && render_verified && health_verified && !ssl_ready
+      return SslPendingVerificationPolicy.new
     end
 
     # Check for timeout condition
@@ -46,7 +56,7 @@ class DomainVerificationStrategy
     end
 
     # Return appropriate in-progress policy based on current state
-    InProgressVerificationPolicy.new(dns_verified, render_verified, health_verified)
+    InProgressVerificationPolicy.new(dns_verified, render_verified, health_verified, ssl_ready)
   end
 end
 
@@ -76,7 +86,22 @@ class SuccessVerificationPolicy < VerificationPolicy
   end
 
   def status_reason
-    'Domain fully verified and responding with HTTP 200'
+    'Domain fully verified and responding with HTTPS (SSL ready)'
+  end
+end
+
+# Policy for SSL pending (domain works but SSL certificate not ready)
+class SslPendingVerificationPolicy < VerificationPolicy
+  def verified?
+    false  # Don't activate until SSL is ready
+  end
+
+  def should_continue?
+    true   # Keep monitoring for SSL readiness
+  end
+
+  def status_reason
+    'Domain responding via HTTP - waiting for SSL certificate provisioning to complete'
   end
 end
 
@@ -97,10 +122,11 @@ end
 
 # Policy for in-progress verification (continue monitoring)
 class InProgressVerificationPolicy < VerificationPolicy
-  def initialize(dns_verified, render_verified, health_verified)
+  def initialize(dns_verified, render_verified, health_verified, ssl_ready = false)
     @dns_verified = dns_verified
     @render_verified = render_verified
     @health_verified = health_verified
+    @ssl_ready = ssl_ready
   end
 
   def verified?
@@ -128,6 +154,8 @@ class InProgressVerificationPolicy < VerificationPolicy
       'DNS and health verified, waiting for Render verification'
     when :render_health
       'Render and health verified, waiting for DNS propagation'
+    when :dns_render_http
+      'Domain working via HTTP - SSL certificate provisioning in progress'
     else
       'Domain configuration is in progress'
     end
@@ -136,21 +164,23 @@ class InProgressVerificationPolicy < VerificationPolicy
   private
 
   def verification_state
-    case [@dns_verified, @render_verified, @health_verified]
-    when [false, false, false]
+    case [@dns_verified, @render_verified, @health_verified, @ssl_ready]
+    when [false, false, false, false]
       :all_pending
-    when [true, false, false]
+    when [true, false, false, false]
       :dns_only
-    when [false, true, false]
+    when [false, true, false, false]
       :render_only
-    when [false, false, true]
+    when [false, false, true, false]
       :health_only
-    when [true, true, false]
+    when [true, true, false, false]
       :dns_render
-    when [true, false, true]
+    when [true, false, true, false]
       :dns_health
-    when [false, true, true]
+    when [false, true, true, false]
       :render_health
+    when [true, true, true, false]
+      :dns_render_http  # Everything works but SSL pending
     else
       :unknown
     end

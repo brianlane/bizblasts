@@ -250,10 +250,10 @@ class DomainMonitoringService
         if domain
           # Check if domain needs verification
           unless domain['verificationStatus'] == 'verified'
-            # Add small delay for www domain to allow SSL provisioning
+            # Add delay for www domain to allow SSL provisioning
             if domain_name.start_with?('www.') && index > 0
-              Rails.logger.info "[DomainMonitoringService] Waiting 5 seconds before verifying www domain: #{domain_name}"
-              sleep(5)
+              Rails.logger.info "[DomainMonitoringService] Waiting 15 seconds before verifying www domain: #{domain_name}"
+              sleep(15)
             end
 
             Rails.logger.info "[DomainMonitoringService] Triggering verification for unverified domain: #{domain_name}"
