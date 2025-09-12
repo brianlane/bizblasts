@@ -304,17 +304,16 @@ class DomainMonitoringService
     apex_domain = @business.hostname.sub(/^www\./, '')
     www_domain = "www.#{apex_domain}"
     
-    case @business.canonical_preference
-    when 'www'
-      # WWW canonical: only www domain was added to Render
-      [www_domain]
-    when 'apex'  
-      # Apex canonical: only apex domain was added to Render
-      [apex_domain]
-    else
-      # Fallback: use stored hostname as-is
-      Rails.logger.warn "[DomainMonitoringService] Unknown canonical preference: #{@business.canonical_preference}, using stored hostname"
-      [@business.hostname]
-    end
+    # Render automatically creates a sibling redirect domain (e.g. adding
+    # `www.example.com` also creates `example.com` and vice-versa).  If we only
+    # verify the canonical domain, the sibling remains stuck in a *Needs
+    # Verification* state until someone presses the *Verify* button manually in
+    # the Render dashboard.  That manual step is what the user reported.
+
+    # To avoid the manual step we always attempt to verify **both** the apex and
+    # www variants.  If one of them was not actually created Render will return
+    # 404, which we gracefully handle (find_domain_by_name returns nil → we skip).
+
+    [apex_domain, www_domain]
   end
 end
