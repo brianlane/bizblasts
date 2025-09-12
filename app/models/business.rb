@@ -1065,6 +1065,8 @@ class Business < ApplicationRecord
       
       # Re-add with new canonical preference
       setup_service.send(:add_domain_to_render!)
+      # Auto-trigger verification of both variants in Render
+      setup_service.send(:verify_render_domains!)
       
       Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Successfully updated canonical preference"
       

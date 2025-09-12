@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Script to automatically split service/job/policy specs into 2 balanced groups
+# Script to automatically split service/job/policy specs into 3 balanced groups
 require 'find'
 
 def find_service_tests
@@ -18,7 +18,7 @@ def find_service_tests
   tests.sort
 end
 
-def split_tests_evenly(tests, num_groups = 2)
+def split_tests_evenly(tests, num_groups = 3)
   # Sort by file size (larger files likely have more/slower tests)
   tests_with_size = tests.map do |test|
     size = File.exist?(test) ? File.size(test) : 0
@@ -44,7 +44,7 @@ end
 def main
   if ARGV[0] == '--help' || ARGV[0] == '-h'
     puts "Usage: #{$0} [group_number]"
-    puts "  group_number: 1 or 2 (returns tests for that group)"
+    puts "  group_number: 1-3 (returns tests for that group)"
     puts "  no args: shows all groups"
     exit 0
   end
@@ -56,14 +56,14 @@ def main
     exit 0
   end
 
-  groups = split_tests_evenly(tests, 2)
+  groups = split_tests_evenly(tests, 3)
 
   if ARGV[0]
     group_num = ARGV[0].to_i
-    if group_num >= 1 && group_num <= 2
+    if group_num >= 1 && group_num <= 3
       puts groups[group_num - 1].join(' ')
     else
-      puts "Invalid group number. Use 1 or 2"
+      puts "Invalid group number. Use 1-3"
       exit 1
     end
   else
