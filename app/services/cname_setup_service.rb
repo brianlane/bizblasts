@@ -271,8 +271,12 @@ class CnameSetupService
     Rails.logger.info "[CnameSetupService] Triggering verification for domains added to Render"
 
     begin
-      # Only verify domains we actually added to Render based on canonical preference
-      domains_to_verify = determine_domains_to_add
+      # Verify both canonical and sibling domains (apex + www). Render may have
+      # created the sibling automatically and it will remain in "Needs
+      # Verification" until verified once. Verifying both avoids manual steps in
+      # the Render dashboard when switching canonical preference.
+      apex_domain = @business.hostname.sub(/^www\./, '')
+      domains_to_verify = [apex_domain, "www.#{apex_domain}"]
       
       domains_to_verify.each_with_index do |domain_name, index|
         # Add delay for www domain to allow SSL certificate provisioning
