@@ -512,12 +512,14 @@ ActiveAdmin.register Business do
             when 'cname_active'
               # Use pre-computed health check result
               if health_check_result
-                if health_check_result[:healthy] && health_check_result[:ssl_ready]
+                if health_check_result[:healthy] && health_check_result[:ssl_ready] == true
                   status_tag "Active & Working", class: "ok"
-                elsif health_check_result[:healthy] && !health_check_result[:ssl_ready]
+                elsif health_check_result[:healthy] && health_check_result[:ssl_ready] == false
                   status_tag "SSL Certificate Provisioning", class: "warning"
                 elsif health_check_result[:error]&.include?("Certificate propagation")
                   status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_check_result[:healthy] && health_check_result[:ssl_ready].nil?
+                  status_tag "Active (SSL Status Unknown)", class: "warning"
                 elsif health_check_result[:healthy]
                   status_tag "Active (SSL Status Unknown)", class: "warning"
                 else
