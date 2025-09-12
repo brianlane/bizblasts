@@ -78,9 +78,20 @@ class RenderDomainService
     if response.code.start_with?('2')
       body = response.body.to_s
       if body.strip.empty?
-        # Some Render responses may return 204 No Content on success.
-        Rails.logger.info "[RenderDomainService] Domain verification returned empty body; treating as success"
-        { 'verified' => true }
+        # Render responds with 204/empty when the verification job was *queued*.
+        # We must re-fetch the domain object to know the real status; otherwise we
+        # incorrectly assume it is verified and skip further checks.
+
+        domain_raw = find_domain_by_id(domain_id)
+        domain      = normalize_domain_data(domain_raw)
+        verified = domain && (domain['verificationStatus'] == 'verified' || domain['verified'] == true)
+        queued_response = {
+          'verified' => verified,
+          'queued'    => true,
+          'domain'    => domain_raw
+        }
+        Rails.logger.info "[RenderDomainService] Domain verification queued – verified=#{queued_response['verified']}"
+        queued_response
       else
         verification_data = JSON.parse(body)
         Rails.logger.info "[RenderDomainService] Domain verification result: #{verification_data['verified']}"
@@ -154,6 +165,29 @@ class RenderDomainService
       else
         false
       end
+    end
+  end
+
+  # Fetch a domain by its Render ID
+  # @param domain_id [String]
+  # @return [Hash, nil]
+  def find_domain_by_id(domain_id)
+    domains = list_domains
+    domains.find { |d| d.is_a?(Hash) && (d['id'] == domain_id || (d['customDomain'].is_a?(Hash) && d['customDomain']['id'] == domain_id)) }
+  end
+
+  # Normalize Render domain payloads (new API wraps data under `customDomain`)
+  # @param domain [Hash]
+  # @return [Hash,nil] flat hash with id/name/verificationStatus etc. or nil
+  def normalize_domain_data(domain)
+    return nil unless domain.is_a?(Hash)
+
+    if domain.key?('name')
+      domain
+    elsif domain.key?('customDomain') && domain['customDomain'].is_a?(Hash)
+      domain['customDomain']
+    else
+      domain
     end
   end
 
