@@ -12,6 +12,7 @@ RSpec.describe CnameSetupService, type: :service do
     allow(RenderDomainService).to receive(:new).and_return(render_service)
     allow(DomainMailer).to receive_message_chain(:setup_instructions, :deliver_now)
     allow(DomainMonitoringJob).to receive_message_chain(:set, :perform_later)
+    allow_any_instance_of(CnameSetupService).to receive(:sleep)
   end
 
   describe '#start_setup!' do
