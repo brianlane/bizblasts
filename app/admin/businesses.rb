@@ -268,7 +268,21 @@ ActiveAdmin.register Business do
       when 'cname_monitoring'
         status_tag "DNS Monitoring", class: "warning"
       when 'cname_active'
-        status_tag "Domain Active", class: "ok"
+        # Use cached domain health data instead of external API calls
+        if business.host_type_custom_domain? && business.hostname.present?
+          if business.domain_health_verified?
+            status_tag "Domain Active", class: "ok"
+          else
+            # Check if health data is stale (older than 1 hour)
+            if business.domain_health_stale?
+              status_tag "Domain Active (Stale)", class: "warning"
+            else
+              status_tag "SSL Provisioning", class: "warning"
+            end
+          end
+        else
+          status_tag "Domain Active", class: "ok"
+        end
       when 'cname_timeout'
         status_tag "Setup Timeout", class: "error"
       else
@@ -483,7 +497,17 @@ ActiveAdmin.register Business do
             when 'cname_monitoring'
               status_tag "DNS Monitoring Active", class: "warning"
             when 'cname_active'
-              status_tag "Active & Working", class: "ok"
+              # Use cached domain health data instead of external API calls
+              if business.domain_health_verified?
+                status_tag "Active & Working", class: "ok"
+              else
+                # Check if health data is stale
+                if business.domain_health_stale?
+                  status_tag "Active (Health Status Stale)", class: "warning"
+                else
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                end
+              end
             when 'cname_timeout'
               status_tag "Setup Timed Out", class: "error"
             else
@@ -524,6 +548,13 @@ ActiveAdmin.register Business do
           end
           row "Render Domain Added" do |business|
             business.render_domain_added? ? status_tag("Yes", class: "ok") : status_tag("No", class: "error")
+          end
+          row "Domain Health Last Checked" do |business|
+            if business.domain_health_checked_at.present?
+              "#{time_ago_in_words(business.domain_health_checked_at)} ago"
+            else
+              "Never checked"
+            end
           end
         end
         

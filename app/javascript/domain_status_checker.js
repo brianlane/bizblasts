@@ -185,7 +185,7 @@ class DomainStatusChecker {
     
     // Update Health status
     this.updateCheckStatus('health', data.health_check.healthy,
-      data.health_check.healthy && data.health_check.status_code ? 
+      data.health_check.healthy && data.health_check.status_code !== null && data.health_check.status_code !== undefined ? 
         `HTTP ${data.health_check.status_code} (${data.health_check.response_time}s)` : 
         (data.health_check.error || 'Health check failed')
     );
