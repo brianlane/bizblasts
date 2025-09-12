@@ -490,6 +490,19 @@ ActiveAdmin.register Business do
     if business.premium_tier? && business.host_type_custom_domain?
       panel "Custom Domain Management" do
         attributes_table_for business do
+          # Perform single health check for both status rows (performance optimization)
+          health_check_result = nil
+          if business.status == 'cname_active' && business.hostname.present?
+            begin
+              check_domain = business.canonical_domain || business.hostname
+              health_checker = DomainHealthChecker.new(check_domain)
+              health_check_result = health_checker.check_health
+            rescue => e
+              Rails.logger.warn "[AdminPanel] Domain health check failed for #{business.hostname}: #{e.message}"
+              health_check_result = { healthy: false, error: "Health check failed: #{e.message}" }
+            end
+          end
+          
           row "Domain Status" do |business|
             case business.status
             when 'cname_pending'
@@ -497,13 +510,30 @@ ActiveAdmin.register Business do
             when 'cname_monitoring'
               status_tag "DNS Monitoring Active", class: "warning"
             when 'cname_active'
-              # Use cached domain health data instead of external API calls
-              if business.domain_health_verified?
-                status_tag "Active & Working", class: "ok"
+              # Use pre-computed health check result
+              if health_check_result
+                if health_check_result[:healthy] && health_check_result[:ssl_ready] == true
+                  status_tag "Active & Working", class: "ok"
+                elsif health_check_result[:healthy] && health_check_result[:ssl_ready] == false
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_check_result[:error]&.include?("Certificate propagation")
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_check_result[:healthy] && health_check_result[:ssl_ready].nil?
+                  status_tag "Active (SSL Status Unknown)", class: "warning"
+                elsif health_check_result[:healthy]
+                  status_tag "Active (SSL Status Unknown)", class: "warning"
+                else
+                  # Fall back to cached data if health check fails
+                  if business.domain_health_verified?
+                    status_tag "Active & Working", class: "ok"
+                  else
+                    status_tag "SSL Certificate Provisioning", class: "warning"
+                  end
+                end
               else
-                # Check if health data is stale
-                if business.domain_health_stale?
-                  status_tag "Active (Health Status Stale)", class: "warning"
+                # No health check performed, use cached data
+                if business.domain_health_verified?
+                  status_tag "Active & Working", class: "ok"
                 else
                   status_tag "SSL Certificate Provisioning", class: "warning"
                 end
@@ -554,6 +584,31 @@ ActiveAdmin.register Business do
               "#{time_ago_in_words(business.domain_health_checked_at)} ago"
             else
               "Never checked"
+            end
+          end
+          row "SSL Certificate Status" do |business|
+            if business.hostname.present? && health_check_result
+              # Use pre-computed health check result (no duplicate API call)
+              if health_check_result[:ssl_ready]
+                status_tag "SSL Ready", class: "ok"
+              elsif health_check_result[:error]&.include?("Certificate propagation")
+                status_tag "Propagating (5-30 min)", class: "warning"
+              elsif health_check_result[:healthy]
+                status_tag "HTTP Only", class: "warning"
+              elsif health_check_result[:error]
+                status_tag "SSL Check Failed", class: "error"
+              else
+                status_tag "Status Unknown", class: "warning"
+              end
+            elsif business.hostname.present?
+              # No health check was performed, use cached data
+              if business.domain_health_verified?
+                status_tag "Cached: SSL Verified", class: "ok"
+              else
+                status_tag "Cached: SSL Pending", class: "warning"
+              end
+            else
+              "N/A"
             end
           end
         end
