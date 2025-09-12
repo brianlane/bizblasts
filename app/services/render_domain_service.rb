@@ -82,11 +82,13 @@ class RenderDomainService
         # We must re-fetch the domain object to know the real status; otherwise we
         # incorrectly assume it is verified and skip further checks.
 
-        domain = find_domain_by_id(domain_id)
+        domain_raw = find_domain_by_id(domain_id)
+        domain      = normalize_domain_data(domain_raw)
+        verified = domain && (domain['verificationStatus'] == 'verified' || domain['verified'] == true)
         queued_response = {
-          'verified' => domain && (domain['verificationStatus'] == 'verified' || domain['verified'] == true),
+          'verified' => verified,
           'queued'    => true,
-          'domain'    => domain
+          'domain'    => domain_raw
         }
         Rails.logger.info "[RenderDomainService] Domain verification queued – verified=#{queued_response['verified']}"
         queued_response
@@ -172,6 +174,21 @@ class RenderDomainService
   def find_domain_by_id(domain_id)
     domains = list_domains
     domains.find { |d| d.is_a?(Hash) && (d['id'] == domain_id || (d['customDomain'].is_a?(Hash) && d['customDomain']['id'] == domain_id)) }
+  end
+
+  # Normalize Render domain payloads (new API wraps data under `customDomain`)
+  # @param domain [Hash]
+  # @return [Hash,nil] flat hash with id/name/verificationStatus etc. or nil
+  def normalize_domain_data(domain)
+    return nil unless domain.is_a?(Hash)
+
+    if domain.key?('name')
+      domain
+    elsif domain.key?('customDomain') && domain['customDomain'].is_a?(Hash)
+      domain['customDomain']
+    else
+      domain
+    end
   end
 
   # Check if domain exists and is verified
