@@ -62,6 +62,23 @@ class DomainStatusChecker {
       if (response.ok) {
         this.updateDomainStatusUI(data);
         this.showDetailedStatus(data);
+
+        // If backend reports full success, finalize activation via POST (idempotent)
+        if (data.overall_status && !data.business_status?.custom_domain_allow) {
+          try {
+            await fetch(this.getFinalizeActivationUrl(), {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': this.getCsrfToken()
+              }
+            });
+          } catch (e) {
+            // Non-blocking; UI already shows success and the background job will complete
+            console.warn('Finalize activation failed (non-blocking):', e);
+          }
+        }
       } else {
         this.showDomainStatusError(data.error || 'Failed to check domain status');
       }
@@ -227,6 +244,15 @@ class DomainStatusChecker {
   getCheckDomainStatusUrl() {
     // This should be set by the Rails view
     return window.domainStatusCheckUrl || '/manage/settings/business/check_domain_status';
+  }
+
+  getFinalizeActivationUrl() {
+    return window.finalizeDomainActivationUrl || '/manage/settings/business/finalize_domain_activation';
+  }
+
+  getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
   }
 }
 
