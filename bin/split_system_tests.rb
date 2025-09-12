@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Script to automatically split system tests into 6 balanced groups
+# Script to automatically split system tests into 5 balanced groups
 require 'find'
 
 def find_system_tests
@@ -13,7 +13,7 @@ def find_system_tests
   tests.sort
 end
 
-def split_tests_evenly(tests, num_groups = 6)
+def split_tests_evenly(tests, num_groups = 5)
   # Sort by file size (larger files likely have more/slower tests)
   tests_with_size = tests.map do |test|
     size = File.exist?(test) ? File.size(test) : 0
@@ -39,7 +39,7 @@ end
 def main
   if ARGV[0] == '--help' || ARGV[0] == '-h'
     puts "Usage: #{$0} [group_number]"
-    puts "  group_number: 1-6 (returns tests for that group)"
+    puts "  group_number: 1-5 (returns tests for that group)"
     puts "  no args: shows all groups"
     exit 0
   end
@@ -51,14 +51,14 @@ def main
     exit 0
   end
   
-  groups = split_tests_evenly(tests, 6)
+  groups = split_tests_evenly(tests, 5)
   
   if ARGV[0]
     group_num = ARGV[0].to_i
-    if group_num >= 1 && group_num <= 6
+    if group_num >= 1 && group_num <= 5
       puts groups[group_num - 1].join(' ')
     else
-      puts "Invalid group number. Use 1-6"
+      puts "Invalid group number. Use 1-5"
       exit 1
     end
   else
