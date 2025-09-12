@@ -123,7 +123,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       
       # Check render status
       render_result = begin
-        domain = render_service.find_domain_by_name(@business.hostname)
+        domain = render_service.find_domain_by_name(check_domain)
         if domain
           verification = render_service.verify_domain(domain['id'])
           { found: true, verified: verification['verified'] == true }
