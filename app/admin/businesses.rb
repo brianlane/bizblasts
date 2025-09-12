@@ -497,13 +497,33 @@ ActiveAdmin.register Business do
             when 'cname_monitoring'
               status_tag "DNS Monitoring Active", class: "warning"
             when 'cname_active'
-              # Use cached domain health data instead of external API calls
-              if business.domain_health_verified?
-                status_tag "Active & Working", class: "ok"
-              else
-                # Check if health data is stale
-                if business.domain_health_stale?
-                  status_tag "Active (Health Status Stale)", class: "warning"
+              # For detail view, do a quick health check to get current SSL status
+              begin
+                check_domain = business.canonical_domain || business.hostname
+                health_checker = DomainHealthChecker.new(check_domain)
+                health_result = health_checker.check_health
+                
+                if health_result[:healthy] && health_result[:ssl_ready]
+                  status_tag "Active & Working", class: "ok"
+                elsif health_result[:healthy] && !health_result[:ssl_ready]
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_result[:error]&.include?("Certificate propagation")
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_result[:healthy]
+                  status_tag "Active (SSL Status Unknown)", class: "warning"
+                else
+                  # Fall back to cached data if health check fails
+                  if business.domain_health_verified?
+                    status_tag "Active & Working", class: "ok"
+                  else
+                    status_tag "SSL Certificate Provisioning", class: "warning"
+                  end
+                end
+              rescue => e
+                Rails.logger.warn "[AdminPanel] Domain status check failed for #{business.hostname}: #{e.message}"
+                # Fall back to cached data on error
+                if business.domain_health_verified?
+                  status_tag "Active (Status Check Failed)", class: "warning"
                 else
                   status_tag "SSL Certificate Provisioning", class: "warning"
                 end
@@ -554,6 +574,29 @@ ActiveAdmin.register Business do
               "#{time_ago_in_words(business.domain_health_checked_at)} ago"
             else
               "Never checked"
+            end
+          end
+          row "SSL Certificate Status" do |business|
+            if business.hostname.present?
+              begin
+                check_domain = business.canonical_domain || business.hostname
+                health_checker = DomainHealthChecker.new(check_domain)
+                health_result = health_checker.check_health
+                
+                if health_result[:ssl_ready]
+                  status_tag "SSL Ready", class: "ok"
+                elsif health_result[:error]&.include?("Certificate propagation")
+                  status_tag "Propagating (5-30 min)", class: "warning"
+                elsif health_result[:healthy]
+                  status_tag "HTTP Only", class: "warning"
+                else
+                  status_tag "SSL Check Failed", class: "error"
+                end
+              rescue
+                status_tag "Unable to Check", class: "error"
+              end
+            else
+              "N/A"
             end
           end
         end
