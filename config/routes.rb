@@ -286,6 +286,7 @@ Rails.application.routes.draw do
           post :check_subdomain_availability
           get  :check_subdomain_availability
           get  :check_domain_status
+          post :finalize_domain_activation
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
