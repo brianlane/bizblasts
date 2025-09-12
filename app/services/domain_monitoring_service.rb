@@ -245,36 +245,12 @@ class DomainMonitoringService
       # Only check domains that were actually added to Render based on canonical preference
       domains_to_check = determine_domains_added_to_render
       
-      domains_to_check.each_with_index do |domain_name, index|
-        domain = @render_service.find_domain_by_name(domain_name)
-        if domain
-          # Check if domain needs verification
-          unless domain['verificationStatus'] == 'verified'
-            # Add delay for www domain to allow SSL provisioning
-            if domain_name.start_with?('www.') && index > 0
-              Rails.logger.info "[DomainMonitoringService] Waiting 15 seconds before verifying www domain: #{domain_name}"
-              sleep(15)
-            end
-
-            Rails.logger.info "[DomainMonitoringService] Triggering verification for unverified domain: #{domain_name}"
-            
-            begin
-              result = @render_service.verify_domain(domain['id'])
-              if result['verified']
-                Rails.logger.info "[DomainMonitoringService] ✅ Domain verified successfully: #{domain_name}"
-              else
-                Rails.logger.info "[DomainMonitoringService] ⚠️ Domain verification still pending: #{domain_name}"
-              end
-            rescue => e
-              Rails.logger.warn "[DomainMonitoringService] Domain verification failed for #{domain_name}: #{e.message}"
-            end
-          else
-            Rails.logger.debug "[DomainMonitoringService] Domain already verified: #{domain_name}"
-          end
-        end
+      domains_to_check.each do |domain_name|
+        Rails.logger.info "[DomainMonitoringService] Enqueuing async verification for: #{domain_name}"
+        RenderDomainVerificationJob.set(wait: 15.seconds).perform_later(domain_name)
       end
     rescue => e
-      Rails.logger.error "[DomainMonitoringService] Error during verification check: #{e.message}"
+      Rails.logger.error "[DomainMonitoringService] Error during verification enqueue: #{e.message}"
     end
   end
 

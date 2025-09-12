@@ -278,31 +278,9 @@ class CnameSetupService
       apex_domain = @business.hostname.sub(/^www\./, '')
       domains_to_verify = [apex_domain, "www.#{apex_domain}"]
       
-      domains_to_verify.each_with_index do |domain_name, index|
-        # Add delay for www domain to allow SSL certificate provisioning
-        if domain_name.start_with?('www.') && index > 0
-          Rails.logger.info "[CnameSetupService] Waiting 30 seconds for SSL provisioning before verifying: #{domain_name}"
-          sleep(30)
-        end
-
-        domain = render_service.find_domain_by_name(domain_name)
-        if domain
-          Rails.logger.info "[CnameSetupService] Verifying domain: #{domain_name} (ID: #{domain['id']})"
-          
-          begin
-            result = render_service.verify_domain(domain['id'])
-            if result['verified']
-              Rails.logger.info "[CnameSetupService] ✅ Domain verified successfully: #{domain_name}"
-            else
-              Rails.logger.warn "[CnameSetupService] ⚠️ Domain verification pending: #{domain_name}"
-            end
-          rescue => e
-            # Don't fail the entire setup if verification fails - DNS might not be ready yet
-            Rails.logger.warn "[CnameSetupService] Domain verification failed for #{domain_name}: #{e.message}"
-          end
-        else
-          Rails.logger.warn "[CnameSetupService] Domain not found in Render: #{domain_name}"
-        end
+      domains_to_verify.each do |domain_name|
+        Rails.logger.info "[CnameSetupService] Enqueuing async verification for: #{domain_name}"
+        RenderDomainVerificationJob.set(wait: 30.seconds).perform_later(domain_name)
       end
     rescue => e
       # Don't fail the entire setup process if verification fails

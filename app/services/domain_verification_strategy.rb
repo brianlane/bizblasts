@@ -20,9 +20,6 @@ class DomainVerificationStrategy
     health_verified = health_result[:healthy] == true
     ssl_ready = health_result[:ssl_ready] == true
 
-    # For full verification, we need DNS + Render + Health with SSL ready
-    fully_verified = dns_verified && render_verified && health_verified && ssl_ready
-
     # Determine overall status using policy rules
     verification_policy = create_verification_policy(dns_verified, render_verified, health_verified, ssl_ready)
     
