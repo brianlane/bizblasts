@@ -268,14 +268,11 @@ class CnameSetupService
   end
 
   def verify_render_domains!
-    Rails.logger.info "[CnameSetupService] Triggering verification for both apex and www domains"
+    Rails.logger.info "[CnameSetupService] Triggering verification for domains added to Render"
 
     begin
-      # Find all domains related to our hostname (both apex and www)
-      apex_domain = @business.hostname
-      www_domain = "www.#{apex_domain}"
-      
-      domains_to_verify = [apex_domain, www_domain]
+      # Only verify domains we actually added to Render based on canonical preference
+      domains_to_verify = determine_domains_to_add
       
       domains_to_verify.each_with_index do |domain_name, index|
         # Add delay for www domain to allow SSL certificate provisioning

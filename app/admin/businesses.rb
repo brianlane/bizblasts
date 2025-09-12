@@ -221,7 +221,9 @@ ActiveAdmin.register Business do
       
       # Add real-time DNS check if monitoring
       if business.cname_monitoring_active?
-        dns_checker = CnameDnsChecker.new(business.hostname)
+        # Use canonical domain for DNS checking instead of raw hostname
+        check_domain = business.canonical_domain || business.hostname
+        dns_checker = CnameDnsChecker.new(check_domain)
         dns_result = dns_checker.verify_cname
         status[:dns_check] = {
           verified: dns_result[:verified],
@@ -490,10 +492,18 @@ ActiveAdmin.register Business do
           end
           row "Custom Domain" do |business|
             if business.hostname.present?
+              # Use canonical domain for display and links
+              canonical_domain = business.canonical_domain || business.hostname
+              display_text = business.hostname
+              # Show canonical preference indicator if different from hostname
+              if canonical_domain != business.hostname
+                display_text += " → #{canonical_domain}"
+              end
+              
               if business.cname_active?
-                link_to business.hostname, "https://#{business.hostname}", target: "_blank", class: "external-link"
+                link_to display_text, "https://#{canonical_domain}", target: "_blank", class: "external-link"
               else
-                business.hostname
+                display_text
               end
             else
               "Not configured"

@@ -10,7 +10,8 @@ class DomainMonitoringService
     @dns_checker = CnameDnsChecker.new(@business.hostname)
     @dual_verifier = DualDomainVerifier.new(@business.hostname)
     @render_service = RenderDomainService.new
-    @health_checker = DomainHealthChecker.new(@business.hostname)
+    # Use the canonical domain for health checks based on business preference
+    @health_checker = DomainHealthChecker.new(canonical_domain_for_health_check)
     @verification_strategy = DomainVerificationStrategy.new(@business)
   end
 
@@ -114,8 +115,9 @@ class DomainMonitoringService
     Rails.logger.debug "[DomainMonitoringService] Checking Render verification status"
 
     begin
-      # Find domain in Render
-      domain = @render_service.find_domain_by_name(@business.hostname)
+      # Find the canonical domain that was actually added to Render
+      canonical_domain = canonical_domain_for_health_check
+      domain = @render_service.find_domain_by_name(canonical_domain)
       
       if domain.nil?
         return {
@@ -147,17 +149,18 @@ class DomainMonitoringService
   end
 
   def check_domain_health
-    Rails.logger.debug "[DomainMonitoringService] Checking domain health status"
+    canonical_domain = canonical_domain_for_health_check
+    Rails.logger.debug "[DomainMonitoringService] Checking domain health status for canonical domain: #{canonical_domain}"
 
     begin
       # Perform health check
       health_result = @health_checker.check_health
 
-      Rails.logger.info "[DomainMonitoringService] Health check result for #{@business.hostname}: healthy=#{health_result[:healthy]}, status=#{health_result[:status_code]}"
+      Rails.logger.info "[DomainMonitoringService] Health check result for #{canonical_domain}: healthy=#{health_result[:healthy]}, status=#{health_result[:status_code]}"
       
       health_result
     rescue => e
-      Rails.logger.warn "[DomainMonitoringService] Domain health check failed: #{e.message}"
+      Rails.logger.warn "[DomainMonitoringService] Domain health check failed for #{canonical_domain}: #{e.message}"
       
       {
         healthy: false,
@@ -239,11 +242,8 @@ class DomainMonitoringService
     Rails.logger.info "[DomainMonitoringService] Checking if Render verification needed"
 
     begin
-      # Find all domains related to our hostname (both apex and www)
-      apex_domain = @business.hostname
-      www_domain = "www.#{apex_domain}"
-      
-      domains_to_check = [apex_domain, www_domain]
+      # Only check domains that were actually added to Render based on canonical preference
+      domains_to_check = determine_domains_added_to_render
       
       domains_to_check.each_with_index do |domain_name, index|
         domain = @render_service.find_domain_by_name(domain_name)
@@ -275,6 +275,46 @@ class DomainMonitoringService
       end
     rescue => e
       Rails.logger.error "[DomainMonitoringService] Error during verification check: #{e.message}"
+    end
+  end
+
+  private
+
+  # Determine which domain should be used for health checks based on canonical preference
+  def canonical_domain_for_health_check
+    apex_domain = @business.hostname.sub(/^www\./, '')
+    
+    case @business.canonical_preference
+    when 'www'
+      # Health check the www version since that's the canonical domain
+      "www.#{apex_domain}"
+    when 'apex'
+      # Health check the apex version since that's the canonical domain  
+      apex_domain
+    else
+      # Fallback to stored hostname
+      Rails.logger.warn "[DomainMonitoringService] Unknown canonical preference: #{@business.canonical_preference}"
+      @business.hostname
+    end
+  end
+
+  # Determine which domains were actually added to Render based on canonical preference
+  # This should match the same logic as CnameSetupService#determine_domains_to_add
+  def determine_domains_added_to_render
+    apex_domain = @business.hostname.sub(/^www\./, '')
+    www_domain = "www.#{apex_domain}"
+    
+    case @business.canonical_preference
+    when 'www'
+      # WWW canonical: only www domain was added to Render
+      [www_domain]
+    when 'apex'  
+      # Apex canonical: only apex domain was added to Render
+      [apex_domain]
+    else
+      # Fallback: use stored hostname as-is
+      Rails.logger.warn "[DomainMonitoringService] Unknown canonical preference: #{@business.canonical_preference}, using stored hostname"
+      [@business.hostname]
     end
   end
 end

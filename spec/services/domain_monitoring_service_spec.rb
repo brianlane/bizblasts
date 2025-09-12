@@ -307,7 +307,8 @@ RSpec.describe DomainMonitoringService, type: :service do
   describe '#check_render_verification' do
     context 'when domain exists and is verified' do
       before do
-        allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return({ 'id' => 'dom_123' })
+        # Business has default canonical_preference of 'www', so example.com becomes www.example.com
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return({ 'id' => 'dom_123' })
         allow(render_service).to receive(:verify_domain).with('dom_123').and_return({ 'verified' => true })
       end
 
@@ -319,7 +320,8 @@ RSpec.describe DomainMonitoringService, type: :service do
 
     context 'when domain does not exist in Render' do
       before do
-        allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)
+        # Business has default canonical_preference of 'www', so example.com becomes www.example.com
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
       end
 
       it 'returns unverified result' do
