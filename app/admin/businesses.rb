@@ -1,6 +1,41 @@
 # frozen_string_literal: true
 
 ActiveAdmin.register Business do
+  # Use numeric ID in action-item links to avoid hostname-with-dot issues
+  config.clear_action_items!
+
+  action_item :edit, only: :show do
+    link_to 'Edit Business', edit_admin_business_path(resource.id)
+  end
+
+  action_item :delete, only: :show do
+    link_to 'Delete Business', admin_business_path(resource.id), method: :delete, data: { confirm: 'Are you sure?' }
+  end
+
+  action_item :start_domain_setup, only: :show, if: proc { resource.can_setup_custom_domain? } do
+    link_to 'Start Domain Setup', start_domain_setup_admin_business_path(resource.id),
+            class: 'button aa-post-confirm',
+            data: { turbo: false, confirm: 'Begin CNAME setup and email instructions?' }
+  end
+
+  action_item :restart_domain_monitoring, only: :show, if: proc { ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(resource.status) } do
+    link_to 'Restart Monitoring', restart_domain_monitoring_admin_business_path(resource.id),
+            class: 'button aa-post-confirm',
+            data: { turbo: false, confirm: 'Restart DNS monitoring for another hour?' }
+  end
+
+  action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
+    link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id),
+            class: 'button aa-post-confirm',
+            data: { turbo: false, confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
+  end
+
+  action_item :disable_custom_domain, only: :show, if: proc { resource.cname_active? || resource.status.in?(['cname_pending','cname_monitoring','cname_timeout']) } do
+    link_to 'Remove Custom Domain', disable_custom_domain_admin_business_path(resource.id),
+            class: 'button aa-post-confirm',
+            data: { turbo: false, confirm: 'Permanently remove custom domain and revert to subdomain hosting?' }
+  end
+
   # Remove tenant scoping for admin panel
   controller do
     # skip_before_action :set_tenant, if: -> { true } # REMOVED: Global filter was removed
@@ -19,17 +54,38 @@ ActiveAdmin.register Business do
       raise ActiveRecord::RecordNotFound, "Couldn't find Business with 'id'=#{params[:id]} or 'hostname'=#{params[:id]}"
     end
 
-    # Removed custom create action - let ActiveAdmin handle redirect
+    # Ensure redirects after create/update use numeric ID to avoid dots in hostname.
+    def create
+      super do |success, _failure|
+        success.html { return redirect_to admin_business_path(resource.id) }
+      end
+    end
+
+    def update
+      super do |success, _failure|
+        success.html { return redirect_to admin_business_path(resource.id) }
+      end
+    end
+
+    # Ensure form actions use numeric ID instead of business.to_param (hostname)
+    def resource_path(resource)
+      admin_business_path(resource.id)
+    end
+
+    def resource_url(resource)
+      admin_business_url(resource.id)
+    end
   end
 
-  # Permit parameters updated for hostname/host_type and domain coverage
+  # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
-                :active, :tier, :service_template_id, 
-                :hostname, :host_type, # Added new fields
+                :active, :tier, :subdomain, :service_template_id, 
+                :hostname, :host_type, :canonical_preference, # Added new fields
                 :stripe_customer_id, # Stripe integration
                 :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
-                :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date # Auto-renewal tracking
+                :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date, # Auto-renewal tracking
+                :status, :cname_setup_email_sent_at, :cname_monitoring_active, :cname_check_attempts, :render_domain_added # CNAME fields
 
   # Enable batch actions
   batch_action :destroy, confirm: "Are you sure you want to delete these businesses?" do |ids|
@@ -95,15 +151,105 @@ ActiveAdmin.register Business do
     end
   end
 
+  # CNAME Domain Management Actions
+  member_action :start_domain_setup, method: :post do
+    begin
+      setup_service = CnameSetupService.new(resource)
+      result = setup_service.start_setup!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource.id), alert: "Domain setup failed: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource.id), alert: "Error starting domain setup: #{e.message}"
+    end
+  end
+
+  member_action :restart_domain_monitoring, method: :post do
+    begin
+      setup_service = CnameSetupService.new(resource)
+      result = setup_service.restart_monitoring!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource.id), alert: "Failed to restart monitoring: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource.id), alert: "Error restarting monitoring: #{e.message}"
+    end
+  end
+
+  member_action :force_activate_domain, method: :post do
+    begin
+      setup_service = CnameSetupService.new(resource)
+      result = setup_service.force_activate!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource.id), alert: "Failed to activate domain: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource.id), alert: "Error activating domain: #{e.message}"
+    end
+  end
+
+  member_action :disable_custom_domain, method: :post do
+    begin
+      removal_service = DomainRemovalService.new(resource)
+      result = removal_service.remove_domain!
+      
+      if result[:success]
+        redirect_to admin_business_path(resource.id), notice: result[:message]
+      else
+        redirect_to admin_business_path(resource.id), alert: "Failed to remove domain: #{result[:error]}"
+      end
+    rescue => e
+      redirect_to admin_business_path(resource.id), alert: "Error removing domain: #{e.message}"
+    end
+  end
+
+  member_action :domain_status, method: :get do
+    begin
+      business = Business.find(params[:id])
+      
+      setup_service = CnameSetupService.new(business)
+      status = setup_service.status
+      
+      # Add real-time DNS check if monitoring
+      if business.cname_monitoring_active?
+        # Use canonical domain for DNS checking instead of raw hostname
+        check_domain = business.canonical_domain || business.hostname
+        dns_checker = CnameDnsChecker.new(check_domain)
+        dns_result = dns_checker.verify_cname
+        status[:dns_check] = {
+          verified: dns_result[:verified],
+          target: dns_result[:target],
+          checked_at: dns_result[:checked_at],
+          error: dns_result[:error]
+        }
+      end
+      
+      render json: status
+    rescue => e
+      render json: { error: e.message }, status: :internal_server_error
+    end
+  end
+
   # Filter options updated
   filter :name
   filter :hostname
   filter :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }
+  filter :status, as: :select, collection: Business.statuses.keys.map { |k| [k.humanize, k] }
   filter :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }
   filter :industry
   filter :active
   filter :stripe_status, as: :select, collection: [['Connected', 'connected'], ['Not Connected', 'not_connected']], label: "Stripe Status"
   filter :domain_coverage_applied, as: :select, collection: [['Yes', true], ['No', false]]
+  filter :cname_monitoring_active, as: :select, collection: [['Yes', true], ['No', false]]
   filter :domain_renewal_date
   filter :created_at
 
@@ -112,19 +258,48 @@ ActiveAdmin.register Business do
     selectable_column
     column :id
     column :name
+    column :subdomain
     column :hostname
     column :host_type
+    column :status do |business|
+      case business.status
+      when 'cname_pending'
+        status_tag "Setup Pending", class: "warning"
+      when 'cname_monitoring'
+        status_tag "DNS Monitoring", class: "warning"
+      when 'cname_active'
+        # Use cached domain health data instead of external API calls
+        if business.host_type_custom_domain? && business.hostname.present?
+          if business.domain_health_verified?
+            status_tag "Domain Active", class: "ok"
+          else
+            # Check if health data is stale (older than 1 hour)
+            if business.domain_health_stale?
+              status_tag "Domain Active (Stale)", class: "warning"
+            else
+              status_tag "SSL Provisioning", class: "warning"
+            end
+          end
+        else
+          status_tag "Domain Active", class: "ok"
+        end
+      when 'cname_timeout'
+        status_tag "Setup Timeout", class: "error"
+      else
+        status_tag business.status.humanize, class: "default"
+      end
+    end
     column :tier
     column "Stripe Status", :stripe_account_id do |business|
       if business.stripe_account_id.present?
         begin
           if StripeService.check_onboarding_status(business)
-            status_tag "Connected", class: "ok"
+            status_tag("Connected", class: "ok") + " (Account ID: #{business.stripe_account_id})".html_safe
           else
-            status_tag "Setup Incomplete", class: "warning"
+            status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{business.stripe_account_id})".html_safe
           end
         rescue => e
-          status_tag "Error", class: "error"
+          status_tag("Error", class: "error") + " (Account ID: #{business.stripe_account_id})".html_safe
         end
       else
         status_tag "Not Connected", class: "error"
@@ -153,6 +328,22 @@ ActiveAdmin.register Business do
       item "View", admin_business_path(business.id)
       item "Edit", edit_admin_business_path(business.id)
       item "Delete", admin_business_path(business.id), method: :delete, data: { confirm: "Are you sure?" }
+
+      if business.can_setup_custom_domain?
+        item "Start Domain Setup", start_domain_setup_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Begin CNAME setup and email instructions?' }
+      end
+
+      if ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(business.status)
+        item "Restart Monitoring", restart_domain_monitoring_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Restart DNS monitoring for another hour?' }
+      end
+
+      if business.premium_tier? && business.host_type_custom_domain?
+        item "Force Activate Domain", force_activate_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
+      end
+
+      if business.cname_active? || business.status.in?(['cname_pending', 'cname_monitoring', 'cname_timeout'])
+        item "Remove Custom Domain", disable_custom_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Permanently remove custom domain and revert to subdomain hosting?' }
+      end
     end
   end
 
@@ -161,19 +352,27 @@ ActiveAdmin.register Business do
     attributes_table do
       row :id
       row :name
+      row :subdomain
       row :hostname
       row :host_type
+      row :canonical_preference do |business|
+        if business.host_type_custom_domain?
+          status_tag(business.canonical_preference.humanize, class: business.www_canonical_preference? ? "ok" : "warning")
+        else
+          "N/A (Subdomain)"
+        end
+      end
       row :tier
       row "Stripe Status" do |business|
         if business.stripe_account_id.present?
           begin
             if StripeService.check_onboarding_status(business)
-              status_tag("Connected", class: "ok") + " (Account ID: #{business.stripe_account_id})".html_safe
+              status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             else
-              status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{business.stripe_account_id})".html_safe
+              status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             end
           rescue => e
-            status_tag("Error", class: "error") + " (Account ID: #{business.stripe_account_id})".html_safe
+            status_tag("Error", class: "error") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
           end
         else
           status_tag "Not Connected", class: "error"
@@ -199,28 +398,28 @@ ActiveAdmin.register Business do
     # Stripe Integration Panel
     panel "Stripe Integration" do
       attributes_table_for business do
-        row "Connection Status" do |b|
-          if b.stripe_account_id.present?
+        row "Connection Status" do |business|
+          if business.stripe_account_id.present?
             begin
-              if StripeService.check_onboarding_status(b)
-                status_tag "Connected", class: "ok"
+              if StripeService.check_onboarding_status(business)
+                status_tag("Connected", class: "ok") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
               else
-                status_tag "Setup Incomplete", class: "warning"
+                status_tag("Setup Incomplete", class: "warning") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
               end
             rescue => e
-              status_tag "Error", class: "error"
+              status_tag("Error", class: "error") + " (Account ID: #{ERB::Util.h(business.stripe_account_id)})".html_safe
             end
           else
             status_tag "Not Connected", class: "error"
           end
         end
-        row "Stripe Connect Account ID" do |b|
-          b.stripe_account_id.present? ? b.stripe_account_id : "Not set"
+        row "Stripe Connect Account ID" do |business|
+          business.stripe_account_id.present? ? business.stripe_account_id : "Not set"
         end
-        row "Stripe Customer ID (for subscriptions)" do |b|
-          b.stripe_customer_id.present? ? b.stripe_customer_id : "Not set"
+        row "Stripe Customer ID (for subscriptions)" do |business|
+          business.stripe_customer_id.present? ? business.stripe_customer_id : "Not set"
         end
-        row "Connected At" do |b|
+        row "Connected At" do |business|
           # This would need to be tracked separately if needed
           "Not tracked"
         end
@@ -231,12 +430,12 @@ ActiveAdmin.register Business do
     if business.eligible_for_domain_coverage?
       panel "Domain Coverage Information" do
         attributes_table_for business do
-          row "Coverage Status" do |b|
-            if b.domain_coverage_applied?
-              if b.domain_coverage_expired?
+          row "Coverage Status" do |business|
+            if business.domain_coverage_applied?
+              if business.domain_coverage_expired?
                 status_tag "Coverage Expired", class: "error"
-              elsif b.domain_coverage_expires_soon?
-                status_tag "Expiring Soon (#{b.domain_coverage_remaining_days} days)", class: "warning"
+              elsif business.domain_coverage_expires_soon?
+                status_tag "Expiring Soon (#{business.domain_coverage_remaining_days} days)", class: "warning"
               else
                 status_tag "Coverage Applied", class: "ok"
               end
@@ -244,28 +443,28 @@ ActiveAdmin.register Business do
               status_tag "Coverage Available", class: "warning"
             end
           end
-          row "Coverage Limit" do |b|
-            "$#{b.domain_coverage_limit}/year"
+          row "Coverage Limit" do |business|
+            "$#{business.domain_coverage_limit}/year"
           end
-          row "Amount Covered" do |b|
-            b.domain_cost_covered.present? ? "$#{b.domain_cost_covered}" : "Not applied"
+          row "Amount Covered" do |business|
+            business.domain_cost_covered.present? ? "$#{business.domain_cost_covered}" : "Not applied"
           end
-          row "Domain Registrar" do |b|
-            b.domain_registrar.present? ? b.domain_registrar.titleize : "Not specified"
+          row "Domain Registrar" do |business|
+            business.domain_registrar.present? ? business.domain_registrar.titleize : "Not specified"
           end
-          row "Registration Date" do |b|
-            b.domain_registration_date&.strftime("%B %d, %Y") || "Not set"
+          row "Registration Date" do |business|
+            business.domain_registration_date&.strftime("%B %d, %Y") || "Not set"
           end
-          row "Domain Renewal Date" do |b|
-            b.domain_renewal_date&.strftime("%B %d, %Y") || "Not set"
+          row "Domain Renewal Date" do |business|
+            business.domain_renewal_date&.strftime("%B %d, %Y") || "Not set"
           end
-          row "Coverage Expires" do |b|
-            if b.domain_coverage_expires_at.present?
-              expires_text = b.domain_coverage_expires_at.strftime("%B %d, %Y")
-              if b.domain_coverage_expired?
+          row "Coverage Expires" do |business|
+            if business.domain_coverage_expires_at.present?
+              expires_text = business.domain_coverage_expires_at.strftime("%B %d, %Y")
+              if business.domain_coverage_expired?
                 "#{expires_text} (EXPIRED)"
-              elsif b.domain_coverage_expires_soon?
-                "#{expires_text} (expires in #{b.domain_coverage_remaining_days} days)"
+              elsif business.domain_coverage_expires_soon?
+                "#{expires_text} (expires in #{business.domain_coverage_remaining_days} days)"
               else
                 expires_text
               end
@@ -273,15 +472,219 @@ ActiveAdmin.register Business do
               "Not set"
             end
           end
-          row "Auto-Renewal Status" do |b|
-            if b.domain_will_auto_renew?
+          row "Auto-Renewal Status" do |business|
+            if business.domain_will_auto_renew?
               status_tag "Auto-Renewal Enabled", class: "ok"
             else
               status_tag "Manual Renewal", class: "warning"
             end
           end
-          row "Coverage Notes" do |b|
-            b.domain_coverage_notes.present? ? simple_format(b.domain_coverage_notes) : "No notes"
+          row "Coverage Notes" do |business|
+            business.domain_coverage_notes.present? ? simple_format(business.domain_coverage_notes) : "No notes"
+          end
+        end
+      end
+    end
+    
+    # CNAME Custom Domain Panel for Premium businesses with custom domains
+    if business.premium_tier? && business.host_type_custom_domain?
+      panel "Custom Domain Management" do
+        attributes_table_for business do
+          # Perform single health check for both status rows (performance optimization)
+          health_check_result = nil
+          if business.status == 'cname_active' && business.hostname.present?
+            begin
+              check_domain = business.canonical_domain || business.hostname
+              health_checker = DomainHealthChecker.new(check_domain)
+              health_check_result = health_checker.check_health
+            rescue => e
+              Rails.logger.warn "[AdminPanel] Domain health check failed for #{business.hostname}: #{e.message}"
+              health_check_result = { healthy: false, error: "Health check failed: #{e.message}" }
+            end
+          end
+          
+          row "Domain Status" do |business|
+            case business.status
+            when 'cname_pending'
+              status_tag "Setup Pending", class: "warning"
+            when 'cname_monitoring'
+              status_tag "DNS Monitoring Active", class: "warning"
+            when 'cname_active'
+              # Use pre-computed health check result
+              if health_check_result
+                if health_check_result[:healthy] && health_check_result[:ssl_ready] == true
+                  status_tag "Active & Working", class: "ok"
+                elsif health_check_result[:healthy] && health_check_result[:ssl_ready] == false
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_check_result[:error]&.include?("Certificate propagation")
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                elsif health_check_result[:healthy] && health_check_result[:ssl_ready].nil?
+                  status_tag "Active (SSL Status Unknown)", class: "warning"
+                elsif health_check_result[:healthy]
+                  status_tag "Active (SSL Status Unknown)", class: "warning"
+                else
+                  # Fall back to cached data if health check fails
+                  if business.domain_health_verified?
+                    status_tag "Active & Working", class: "ok"
+                  else
+                    status_tag "SSL Certificate Provisioning", class: "warning"
+                  end
+                end
+              else
+                # No health check performed, use cached data
+                if business.domain_health_verified?
+                  status_tag "Active & Working", class: "ok"
+                else
+                  status_tag "SSL Certificate Provisioning", class: "warning"
+                end
+              end
+            when 'cname_timeout'
+              status_tag "Setup Timed Out", class: "error"
+            else
+              status_tag business.status.humanize, class: "default"
+            end
+          end
+          row "Custom Domain" do |business|
+            if business.hostname.present?
+              # Use canonical domain for display and links
+              canonical_domain = business.canonical_domain || business.hostname
+              display_text = business.hostname
+              # Show canonical preference indicator if different from hostname
+              if canonical_domain != business.hostname
+                display_text += " → #{canonical_domain}"
+              end
+              
+              if business.cname_active?
+                link_to display_text, "https://#{canonical_domain}", target: "_blank", class: "external-link"
+              else
+                display_text
+              end
+            else
+              "Not configured"
+            end
+          end
+          row "Monitoring Active" do |business|
+            business.cname_monitoring_active? ? status_tag("Yes", class: "ok") : status_tag("No", class: "default")
+          end
+          row "DNS Check Attempts" do |business|
+            "#{business.cname_check_attempts}/12"
+          end
+          row "Setup Email Sent" do |business|
+            if business.cname_setup_email_sent_at.present?
+              "#{time_ago_in_words(business.cname_setup_email_sent_at)} ago"
+            else
+              "Not sent"
+            end
+          end
+          row "Render Domain Added" do |business|
+            business.render_domain_added? ? status_tag("Yes", class: "ok") : status_tag("No", class: "error")
+          end
+          row "Domain Health Last Checked" do |business|
+            if business.domain_health_checked_at.present?
+              "#{time_ago_in_words(business.domain_health_checked_at)} ago"
+            else
+              "Never checked"
+            end
+          end
+          row "SSL Certificate Status" do |business|
+            if business.hostname.present? && health_check_result
+              # Use pre-computed health check result (no duplicate API call)
+              if health_check_result[:ssl_ready]
+                status_tag "SSL Ready", class: "ok"
+              elsif health_check_result[:error]&.include?("Certificate propagation")
+                status_tag "Propagating (5-30 min)", class: "warning"
+              elsif health_check_result[:healthy]
+                status_tag "HTTP Only", class: "warning"
+              elsif health_check_result[:error]
+                status_tag "SSL Check Failed", class: "error"
+              else
+                status_tag "Status Unknown", class: "warning"
+              end
+            elsif business.hostname.present?
+              # No health check was performed, use cached data
+              if business.domain_health_verified?
+                status_tag "Cached: SSL Verified", class: "ok"
+              else
+                status_tag "Cached: SSL Pending", class: "warning"
+              end
+            else
+              "N/A"
+            end
+          end
+        end
+        
+        # Live status refresh for monitoring domains
+        if business.cname_monitoring_active?
+          div id: "domain-live-status", style: "margin: 15px 0; padding: 10px; background: #f0f8ff; border-radius: 4px;" do
+            para style: "margin: 0; font-weight: bold;" do
+              "🔄 Live DNS Status: "
+              span "Checking...", id: "live-status-text"
+            end
+            para style: "margin: 5px 0 0 0; font-size: 12px; color: #666;" do
+              "Last checked: "
+              span "Never", id: "last-checked"
+            end
+          end
+          
+          script do
+            raw <<-JAVASCRIPT
+              function updateDomainStatus() {
+                fetch('/admin/businesses/#{business.id}/domain_status')
+                  .then(response => response.json())
+                  .then(data => {
+                    const statusText = document.getElementById('live-status-text');
+                    const lastChecked = document.getElementById('last-checked');
+                    
+                    if (data.dns_check) {
+                      if (data.dns_check.verified) {
+                        statusText.innerHTML = '✅ DNS Verified';
+                        statusText.style.color = 'green';
+                      } else {
+                        statusText.innerHTML = '⏳ DNS Pending';
+                        statusText.style.color = 'orange';
+                      }
+                      lastChecked.textContent = new Date(data.dns_check.checked_at).toLocaleTimeString();
+                    } else {
+                      statusText.innerHTML = '📊 Monitoring Active';
+                      statusText.style.color = 'blue';
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error fetching domain status:', error);
+                  });
+              }
+              
+              // Update immediately and then every 30 seconds
+              updateDomainStatus();
+              setInterval(updateDomainStatus, 30000);
+            JAVASCRIPT
+          end
+        end
+        
+        # Domain management actions
+        div class: "domain-actions", style: "margin-top: 15px;" do
+          if business.can_setup_custom_domain?
+            link_to "Start Domain Setup", start_domain_setup_admin_business_path(business.id), 
+                    method: :post, class: "button", 
+                    data: { confirm: "This will start the CNAME setup process and send setup instructions via email. Continue?" }
+          end
+          
+          if ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(business.status)
+            link_to "Restart Monitoring", restart_domain_monitoring_admin_business_path(business.id), 
+                    method: :post, class: "button", 
+                    data: { confirm: "This will restart DNS monitoring for another hour. Continue?" }
+          end
+          
+          if business.premium_tier? && business.host_type_custom_domain?
+            link_to "Force Activate Domain", force_activate_domain_admin_business_path(business.id), 
+                    method: :post, class: "button", 
+                    data: { confirm: "This will bypass DNS verification and immediately activate the domain. Use only if DNS is properly configured. Continue?" }
+          end
+          
+          if business.cname_active? || business.status.in?(['cname_pending', 'cname_monitoring', 'cname_timeout'])
+            button_to "Remove Custom Domain", disable_custom_domain_admin_business_path(business.id), 
+                    method: :post, class: "button", style: "background-color: #dc3545; color: white;",
+                    data: { confirm: "⚠️ WARNING: This will permanently remove the custom domain and revert to subdomain hosting (#{business.subdomain || business.hostname}.bizblasts.com). The domain will no longer work for this business. This action cannot be undone. Are you sure you want to continue?" }
           end
         end
       end
@@ -308,8 +711,10 @@ ActiveAdmin.register Business do
   form do |f|
     f.inputs "Business Details" do
       f.input :name
+      f.input :subdomain
       f.input :hostname
       f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
+      f.input :canonical_preference, as: :select, collection: Business.canonical_preferences.keys.map { |k| [k.humanize, k] }, include_blank: false, hint: "Choose canonical URL format for custom domains"
       f.input :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :phone

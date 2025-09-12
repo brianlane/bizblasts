@@ -25,7 +25,7 @@ class BusinessManager::LoyaltyController < BusinessManager::BaseController
     if @loyalty_program.update(loyalty_program_params)
       redirect_to business_manager_loyalty_index_path, notice: 'Loyalty program updated successfully.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
   
@@ -38,7 +38,7 @@ class BusinessManager::LoyaltyController < BusinessManager::BaseController
     else
       @loyalty_stats = {}
       @recent_transactions = []
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
   end
   

@@ -1,8 +1,104 @@
 # frozen_string_literal: true
 
 require Rails.root.join('lib/constraints/subdomain_constraint')
+require Rails.root.join('lib/constraints/custom_domain_constraint')
+require Rails.root.join('lib/constraints/tenant_public_constraint')
 
 Rails.application.routes.draw do
+  # Health check routes - MUST be first to avoid being caught by catch-all routes
+  get "up" => "rails/health#show", as: :rails_health_check
+  get "healthcheck" => "health#check", as: :health_check
+  get "db-check" => "health#db_check", as: :db_check
+  get "maintenance" => "maintenance#index", as: :maintenance
+
+  # Tenant public routes: available on both subdomains and active custom domains
+  constraints TenantPublicConstraint do
+    # (public routes continue)
+    scope module: 'public' do
+      get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
+      get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
+      get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
+      get '/services/:id', to: 'services#show', as: :tenant_service
+      # Product listings under tenant public scope
+      resources :products, only: [:index, :show]
+      get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
+
+      # Estimate page and form submission
+      get '/estimate', to: 'pages#show', page: 'estimate', as: :tenant_estimate_page
+      post '/estimate', to: 'requests#create', as: :tenant_estimate_request
+
+      get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
+      get '/available-slots', to: 'tenant_calendar#available_slots', as: :tenant_available_slots
+      get '/staff-availability', to: 'tenant_calendar#staff_availability', as: :tenant_staff_availability
+
+      get '/book', to: 'booking#new', as: :new_tenant_booking
+      resources :booking, only: [:create], as: :tenant_bookings
+      get '/booking/:id/confirmation', to: 'booking#confirmation', as: :tenant_booking_confirmation
+
+      get '/my-bookings', to: 'client_bookings#index', as: :tenant_my_bookings
+      get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
+      # Add alias for backward compatibility with tests
+      get '/booking/:id', to: 'client_bookings#show', as: :tenant_booking, constraints: { id: /\d+/ }
+      patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
+
+      resources :invoices, only: [:index, :show], as: :tenant_invoices do
+        post :pay, on: :member
+      end
+      resources :payments, only: [:index, :new, :create]
+      
+      # Tips for experience bookings
+      resources :bookings, only: [] do
+        resources :tips, only: [:new, :create] do
+          member do
+            get :success
+            get :cancel
+          end
+        end
+      end
+      
+      # Unified transactions view
+      resources :transactions, only: [:index, :show]
+
+      # Public checkout/cart/orders/subscriptions/policies are defined below with tenant_* helpers
+
+      # Business-specific loyalty (on subdomain)
+      get '/loyalty', to: 'loyalty#show', as: :tenant_loyalty
+      post '/loyalty/redeem', to: 'loyalty#redeem_points', as: :tenant_loyalty_redeem
+
+      # Direct referral program access for current tenant
+      get '/referral', to: 'referral#show', as: :tenant_referral_program
+
+      # Public cart/checkout and subscriptions - MUST come before catch-all
+      resource  :cart, only: [:show]
+      resources :line_items, only: [:create, :update, :destroy]
+      resources :orders,     only: [:new, :create, :index, :show] do
+        collection { post :validate_promo_code }
+      end
+      resources :subscriptions, only: [:new, :create] do
+        member { get :confirmation }
+      end
+      resources :policy_acceptances, only: [:create, :show]
+      get '/policy_status', to: 'policy_acceptances#status'
+      post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+
+      # Tip collection routes (token-based for experiences)
+      resources :tips, only: [:new, :create, :show] do
+        member do
+          get :success
+          get :cancel
+        end
+      end
+
+      # Catch-all for static pages must come last
+      get '/:page', to: 'pages#show', as: :tenant_page
+    end
+  end
+
+  # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
+  constraints CustomDomainConstraint do
+    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
+  end
+
   # API routes for AI/LLM discovery
   namespace :api do
     namespace :v1 do
@@ -188,6 +284,10 @@ Rails.application.routes.draw do
           get :stripe_onboarding
           post :refresh_stripe
           delete :disconnect_stripe
+          post :check_subdomain_availability
+          get  :check_subdomain_availability
+          get  :check_domain_status
+          post :finalize_domain_activation
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
@@ -206,6 +306,7 @@ Rails.application.routes.draw do
         get 'subscription', to: 'subscriptions#show', as: :subscription
         post 'subscription/checkout', to: 'subscriptions#create_checkout_session', as: :subscription_checkout
         post 'subscription/portal', to: 'subscriptions#customer_portal_session', as: :subscription_portal
+        post 'subscription/downgrade', to: 'subscriptions#downgrade', as: :subscription_downgrade
         # Stripe webhook endpoint - scoped under /manage/settings/stripe_events
         post 'stripe_events', to: 'subscriptions#webhook'
 
@@ -383,27 +484,7 @@ Rails.application.routes.draw do
       resources :orders, only: [:index, :show]
     end
 
-    # Add cart resource within the subdomain constraint
-    resource :cart, only: [:show]
-    resources :line_items, only: [:create, :update, :destroy]
-          # Subdomain checkout uses Public::OrdersController for guest flows
-      resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders' do
-        collection do
-          post :validate_promo_code
-        end
-      end
-      
-      # Public subscription signup (for customers on business subdomains)
-      resources :subscriptions, only: [:new, :create], controller: 'public/subscriptions' do
-        member do
-          get :confirmation
-        end
-      end
-
-    # Policy acceptance routes for subdomain users
-    resources :policy_acceptances, only: [:create, :show]
-    get '/policy_status', to: 'policy_acceptances#status'
-    post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+    # Public cart/checkout and subscriptions now handled by TenantPublicConstraint (see top block)
 
     # Policy pages for subdomain users (redirect to main domain)
     get '/privacypolicy', to: redirect { |params, request| 
@@ -437,79 +518,14 @@ Rails.application.routes.draw do
       "#{protocol}#{request.domain}#{port}/settings"
     }
 
-    scope module: 'public' do
-      get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
-      get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
-      get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
-      get '/services/:id', to: 'services#show', as: :tenant_service
-      # Product listings under subdomain go through Public::ProductsController
-      resources :products, only: [:index, :show]
-      get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
-
-      # Estimate page and form submission
-      get '/estimate', to: 'pages#show', page: 'estimate', as: :tenant_estimate_page
-      post '/estimate', to: 'requests#create', as: :tenant_estimate_request
-
-      get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
-      get '/available-slots', to: 'tenant_calendar#available_slots', as: :tenant_available_slots
-      get '/staff-availability', to: 'tenant_calendar#staff_availability', as: :tenant_staff_availability
-
-      get '/book', to: 'booking#new', as: :new_tenant_booking
-      resources :booking, only: [:create], as: :tenant_bookings
-      get '/booking/:id/confirmation', to: 'booking#confirmation', as: :tenant_booking_confirmation
-
-      get '/my-bookings', to: 'client_bookings#index', as: :tenant_my_bookings
-      get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
-      # Add alias for backward compatibility with tests
-      get '/booking/:id', to: 'client_bookings#show', as: :tenant_booking, constraints: { id: /\d+/ }
-      patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
-
-      resources :invoices, only: [:index, :show], as: :tenant_invoices do
-        member do
-          post :pay
-        end
-      end
-      resources :payments, only: [:index, :new, :create], as: :tenant_payments
-      
-      # Tips for experience bookings
-      resources :bookings, only: [] do
-        resources :tips, only: [:new, :create] do
-          member do
-            get :success
-            get :cancel
-          end
-        end
-      end
-      
-      # Unified transactions view for subdomain
-      resources :transactions, only: [:index, :show], as: :tenant_transactions
-
-      # Business-specific loyalty (on subdomain)
-      get '/loyalty', to: 'loyalty#show', as: :tenant_loyalty
-      post '/loyalty/redeem', to: 'loyalty#redeem_points', as: :tenant_loyalty_redeem
-
-      # Direct referral program access for current tenant
-      get '/referral', to: 'referral#show', as: :tenant_referral_program
-
-      # Catch-all for static pages must come last
-      get '/:page', to: 'pages#show', as: :tenant_page
-    end
-
-    # Tip collection routes (token-based for experiences)
-    resources :tips, only: [:new, :create, :show], controller: 'public/tips' do
-      member do
-        get :success
-        get :cancel
-      end
-    end
+    # Tenant public routes are unified by TenantPublicConstraint (see top block)
   end
 
   # Fallback routes for base OrdersController new/create
   resources :orders, only: [:new, :create, :index, :show]
 
   resources :businesses, only: [:index]
-  # Keep the global cart resource to maintain compatibility 
-  resource :cart, only: [:show]
+  # Cart is now handled in TenantPublicConstraint block
   resources :line_items, only: [:create, :update, :destroy]
   # Add back the global products routes for controller specs
   resources :products, only: [:index, :show]
@@ -573,10 +589,9 @@ Rails.application.routes.draw do
   get '/policy_status', to: 'policy_acceptances#status'
   post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
 
-  get "up" => "rails/health#show", as: :rails_health_check
-  get "healthcheck" => "health#check", as: :health_check
-  get "db-check" => "health#db_check", as: :db_check
-  get "maintenance" => "maintenance#index", as: :maintenance
+  # Public subdomain availability endpoint
+  get '/subdomains/check', to: 'public/subdomains#check', defaults: { format: :json }
+
   get "home/debug" => redirect("/admin/debug"), as: :old_tenant_debug
   get "admin/debug" => "admin/debug#index", as: :tenant_debug
 

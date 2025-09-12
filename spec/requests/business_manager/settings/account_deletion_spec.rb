@@ -106,7 +106,7 @@ RSpec.describe "BusinessManager::Settings Account Deletion", type: :request do
           }
         }.not_to change(User, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(flash[:alert]).to include('sole manager')
       end
     end
@@ -128,7 +128,7 @@ RSpec.describe "BusinessManager::Settings Account Deletion", type: :request do
           }
         }.not_to change(User, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(flash[:alert]).to include('sole user')
       end
 
@@ -166,7 +166,7 @@ RSpec.describe "BusinessManager::Settings Account Deletion", type: :request do
           }
         }.not_to change(User, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(flash[:alert]).to include('Current password is incorrect')
       end
     end

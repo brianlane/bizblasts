@@ -37,10 +37,25 @@ module TenantHost
       
       "#{subdomain_part}.#{main_domain}"
     else
-      # For custom-domain tenants, the hostname column already contains the full
-      # domain (e.g. "customdomain.com") so we can return it verbatim.
-      # Return nil if hostname is blank to prevent invalid URLs
-      business.hostname.presence
+      # For custom-domain tenants, only use the custom domain if it's fully working
+      # Otherwise fall back to subdomain to prevent broken redirects
+      if business.custom_domain_allow?
+        # Custom domain is working (DNS + SSL + health verified)
+        business.hostname.presence
+      else
+        # Custom domain not ready, fall back to subdomain
+        Rails.logger.info "[TenantHost] Custom domain #{business.hostname} not ready, using subdomain fallback"
+        main_domain = if Rails.env.production?
+                       'bizblasts.com'
+                     else
+                       Rails.application.config.main_domain.split(':').first
+                     end
+        
+        subdomain_part = business.subdomain.presence || business.hostname.presence
+        return unless subdomain_part
+        
+        "#{subdomain_part}.#{main_domain}"
+      end
     end
   end
 
@@ -96,6 +111,25 @@ module TenantHost
   # @return [String] The complete URL
   # @see #url_for
   alias_method :full_url, :url_for
+
+  # Returns true if the given host corresponds to the platform’s main domain in
+  # the current environment. This helps controllers avoid duplicating the
+  # environment-specific host lists.
+  #
+  # @param host [String] The hostname to evaluate (e.g. "biztest.bizblasts.com")
+  # @return [Boolean] Whether the host is considered the main application
+  #   domain (no tenant context)
+  def main_domain?(host)
+    host = host.to_s.downcase
+
+    if Rails.env.development? || Rails.env.test?
+      %w[lvh.me www.lvh.me example.com www.example.com test.host].include?(host)
+    else
+      %w[bizblasts.com www.bizblasts.com bizblasts.onrender.com].include?(host)
+    end
+  end
+
+  module_function :main_domain?
 
   # Generates a URL for the main application domain (no subdomain/tenant).
   #

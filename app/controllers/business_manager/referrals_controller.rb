@@ -24,7 +24,7 @@ class BusinessManager::ReferralsController < BusinessManager::BaseController
       
       redirect_to business_manager_referrals_path, notice: 'Referral program updated successfully.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
   
@@ -37,7 +37,7 @@ class BusinessManager::ReferralsController < BusinessManager::BaseController
     else
       @referrals = []
       @referral_stats = {}
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
   end
   

@@ -41,6 +41,27 @@ module Admin
       admin?
     end
 
+    # Custom domain management member actions
+    def start_domain_setup?
+      admin?
+    end
+
+    def restart_domain_monitoring?
+      admin?
+    end
+
+    def force_activate_domain?
+      admin?
+    end
+
+    def disable_custom_domain?
+      admin?
+    end
+
+    def domain_status?
+      admin?
+    end
+
     private
 
     # Helper method to check if the user is an admin.

@@ -55,6 +55,12 @@ module Bizblasts
     config.hosts << /.+\.lvh\.me/
     config.hosts << /.+\.bizblasts\.com/
     config.hosts << /.+\.bizblasts\.onrender\.com/
+    # Main platform domains (add apex + www to cover redirects)
+    [
+      "bizblasts.com",
+      "www.bizblasts.com",
+      "bizblasts.onrender.com"
+    ].each { |h| config.hosts << h }
     # Allow Render PR preview URLs (format: bizblasts-pr-XX.onrender.com)
     config.hosts << /bizblasts-pr-\d+\.onrender\.com/
 

@@ -20,8 +20,8 @@ class QrPaymentsController < ApplicationController
       Rails.logger.error "[QR_PAYMENT] Error generating QR code: #{e.message}"
       
       respond_to do |format|
-        format.json { render json: { error: "Failed to generate QR code" }, status: :unprocessable_entity }
-        format.html { render plain: "Error: Failed to generate QR code", status: :unprocessable_entity }
+        format.json { render json: { error: "Failed to generate QR code" }, status: :unprocessable_content }
+        format.html { render plain: "Error: Failed to generate QR code", status: :unprocessable_content }
       end
     end
   end

@@ -47,8 +47,8 @@ RSpec.describe "Business::Registrations", type: :request do
       }
     end
 
-    let(:free_tier_attrs) { { tier: 'free', hostname: 'test-biz' } }
-    let(:standard_tier_subdomain_attrs) { { tier: 'standard', hostname: 'std-biz' } }
+    let(:free_tier_attrs) { { tier: 'free', subdomain: 'test-biz' } }
+    let(:standard_tier_subdomain_attrs) { { tier: 'standard', subdomain: 'std-biz' } }
     let(:standard_tier_domain_attrs) { { tier: 'standard', hostname: 'std-biz.com' } }
     let(:premium_tier_domain_attrs) { { tier: 'premium', hostname: 'premium-biz.com' } }
     let(:premium_tier_both_attrs) { { tier: 'premium', hostname: 'premium-biz.com' } }
@@ -192,10 +192,6 @@ RSpec.describe "Business::Registrations", type: :request do
       include_examples "successful business sign-up with Stripe integration", :standard_tier_subdomain_attrs, 'standard', 'std-biz', 'subdomain'
     end
 
-    context "with valid parameters (Standard Tier - Domain)" do
-      include_examples "successful business sign-up with Stripe integration", :standard_tier_domain_attrs, 'standard', 'std-biz.com', 'custom_domain'
-    end
-
     context "with valid parameters (Premium Tier - Domain)" do
       include_examples "successful business sign-up with Stripe integration", :premium_tier_domain_attrs, 'premium', 'premium-biz.com', 'custom_domain'
     end
@@ -225,7 +221,7 @@ RSpec.describe "Business::Registrations", type: :request do
         params = build_params(free_tier_attrs)
         params[:user][:business_attributes][:name] = '' # Invalid business name
         post business_registration_path, params: params
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Name can&#39;t be blank/m)
       end
 
@@ -241,35 +237,39 @@ RSpec.describe "Business::Registrations", type: :request do
     end
 
     context "when tier requires subdomain host_type (Free)" do
-      it "fails if hostname is missing in params" do
+      it "fails if subdomain is missing in params" do
         params = build_params(free_tier_attrs)
-        params[:user][:business_attributes][:hostname] = ''
+        params[:user][:business_attributes].delete(:subdomain)
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname can&#39;t be blank/m)
       end
       
-      it "fails if a custom domain hostname is provided" do
+      it "ignores custom domain hostname for free tier and creates with subdomain" do
         params = build_params(free_tier_attrs)
         params[:user][:business_attributes][:hostname] = 'my-domain.com'
         expect {
           post business_registration_path, params: params
-        }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.body).to match(/id="error_explanation".*Host type must be &#39;subdomain&#39; for the Free tier/m)
+        }.to change { [User.count, Business.count] }.by([1, 1])
+        expect(response).to have_http_status(:see_other)
+        
+        # Should ignore the hostname and create with subdomain host_type
+        business = Business.last
+        expect(business.host_type).to eq('subdomain')
+        expect(business.hostname).to eq('test-biz') # From free_tier_attrs[:subdomain]
       end
     end
 
     context "when tier allows either host_type (Standard/Premium)" do
-      it "fails if hostname is missing in params" do
+      it "fails if subdomain is missing in params" do
         params = build_params(standard_tier_subdomain_attrs)
-        params[:user][:business_attributes].delete(:hostname)
+        params[:user][:business_attributes].delete(:subdomain)
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname can&#39;t be blank/m)
       end
     end
@@ -287,7 +287,7 @@ RSpec.describe "Business::Registrations", type: :request do
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Email has already been taken/m)
         expect(response.body).not_to match(/Email has already been taken by another business owner or staff member/m)
       end
@@ -308,27 +308,28 @@ RSpec.describe "Business::Registrations", type: :request do
           post business_registration_path, params: params
         }.to_not change(Business, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Email has already been taken")
       end
 
       it "fails if hostname (subdomain type) is taken" do
         params = build_params(standard_tier_subdomain_attrs)
-        params[:user][:business_attributes][:hostname] = 'taken-sub'
+        params[:user][:business_attributes][:subdomain] = 'taken-sub'
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname has already been taken/m)
       end
 
       it "fails if hostname (custom domain type) is taken" do
-        params = build_params(standard_tier_domain_attrs)
+        # Use premium tier attributes because custom domains are only allowed on premium tier
+        params = build_params(premium_tier_domain_attrs)
         params[:user][:business_attributes][:hostname] = 'taken.com'
         expect {
           post business_registration_path, params: params
         }.not_to change { [User.count, Business.count] }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to match(/id="error_explanation".*Hostname has already been taken/m)
       end
     end

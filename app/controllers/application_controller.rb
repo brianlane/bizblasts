@@ -27,6 +27,7 @@ class ApplicationController < ActionController::Base
   # Set current tenant based on subdomain/custom domain
   # This filter should be skipped in specific controllers where tenant context is handled differently
   before_action :set_tenant, unless: -> { maintenance_mode? }
+  # (Removed obsolete redirect callback – route-level redirect now handles this)
   before_action :check_database_connection
 
   # Authentication (now runs after tenant is set)
@@ -37,6 +38,9 @@ class ApplicationController < ActionController::Base
 
   # Handle Pundit NotAuthorizedError
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+  
+  # Handle unsafe redirect errors (e.g., when already-signed-in users access registration)
+  rescue_from ActionController::Redirecting::UnsafeRedirectError, with: :handle_unsafe_redirect
 
   # Allow manually setting tenant in tests
   def self.allow_tenant_params
@@ -113,6 +117,9 @@ class ApplicationController < ActionController::Base
     # Try to find business by custom domain first
     business = find_business_by_custom_domain
     
+    # Custom domain redirects are handled by Render based on which domain was added as primary
+    # No Rails-level redirects needed - Render automatically redirects to the canonical domain
+    
     # If no custom domain match, try subdomain
     if business.nil?
       hostname = extract_hostname_for_tenant
@@ -166,9 +173,17 @@ class ApplicationController < ActionController::Base
   end
 
   # Find business by custom domain (exact hostname match)
+  # Only allow active custom domains that are also health-verified to serve traffic
   def find_business_by_custom_domain
     return nil unless businesses_table_exists?
-    Business.find_by(host_type: 'custom_domain', hostname: request.host)
+
+    host = request.host.to_s.downcase
+    root = host.sub(/^www\./, '')
+    candidates = [host, root, "www.#{root}"]
+
+    Business.where(host_type: 'custom_domain', status: 'cname_active', domain_health_verified: true)
+            .where('LOWER(hostname) IN (?)', candidates)
+            .first
   end
 
   # Extract hostname/subdomain for tenant lookup
@@ -202,8 +217,7 @@ class ApplicationController < ActionController::Base
   def find_business_by_subdomain(hostname)
     return nil unless hostname.present? && businesses_table_exists?
     # Search for tenant businesses matching either hostname or subdomain (case-insensitive)
-    Business.where(host_type: 'subdomain')
-            .where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
+    Business.where("LOWER(hostname) = ? OR LOWER(subdomain) = ?", hostname.downcase, hostname.downcase)
             .first
   end
 
@@ -250,6 +264,13 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, allow_other_host: true and return
   end
 
+  def handle_unsafe_redirect
+    # Log the unsafe redirect attempt for debugging
+    Rails.logger.warn "[UnsafeRedirect] User #{current_user&.id || 'anonymous'} attempted unsafe redirect from #{request.fullpath}"
+    
+    # Render the standard Rails 404 page instead of showing Rails error
+    render file: Rails.root.join('public', '404.html'), status: :not_found, layout: false
+  end
 
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in

@@ -133,7 +133,7 @@ ActiveAdmin.register_page "Subscription Analytics" do
         top_businesses.each do |business_data, revenue|
           business = Business.find(business_data[0])
           tr do
-            td link_to(business.name, admin_business_path(business))
+            td link_to(business.name, admin_business_path(business.id))
             td business.customer_subscriptions.active.count
             td number_to_currency(revenue)
             td status_tag(business.tier)
@@ -153,7 +153,7 @@ ActiveAdmin.register_page "Subscription Analytics" do
           link_to subscription.id, admin_customer_subscription_path(subscription)
         end
         column :business do |subscription|
-          link_to subscription.business.name, admin_business_path(subscription.business)
+          link_to subscription.business.name, admin_business_path(subscription.business.id)
         end
         column :customer do |subscription|
           subscription.tenant_customer.email
@@ -190,7 +190,7 @@ ActiveAdmin.register_page "Subscription Analytics" do
                     admin_customer_subscription_path(transaction.customer_subscription)
           end
           column :business do |transaction|
-            link_to transaction.business.name, admin_business_path(transaction.business)
+            link_to transaction.business.name, admin_business_path(transaction.business.id)
           end
           column :customer do |transaction|
             transaction.tenant_customer.email

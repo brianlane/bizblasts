@@ -9,7 +9,7 @@ gem "propshaft"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.6"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", ">= 5.0"
+gem "puma", "~> 6.6"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -69,10 +69,10 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 15.4"
+gem "stripe", "~> 15.5"
 
 # QR Code generation for in-person payments
-gem "rqrcode", "~> 2.2"
+gem "rqrcode", "~> 3.1"
 gem "chunky_png", "~> 1.4"
 
 # Use node based css bundling
@@ -127,7 +127,7 @@ gem 'geocoder'
 
 # Calendar integrations
 gem 'google-apis-calendar_v3', '~> 0.31'
-gem 'googleauth', '~> 1.8'
+gem 'googleauth', '~> 1.15'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.10'

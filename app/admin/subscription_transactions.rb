@@ -33,7 +33,7 @@ ActiveAdmin.register SubscriptionTransaction do
     end
     
     column :business do |transaction|
-      link_to transaction.business.name, admin_business_path(transaction.business)
+      link_to transaction.business.name, admin_business_path(transaction.business.id)
     end
     
     column :customer do |transaction|
@@ -82,7 +82,7 @@ ActiveAdmin.register SubscriptionTransaction do
                 admin_customer_subscription_path(transaction.customer_subscription)
       end
       row :business do |transaction|
-        link_to transaction.business.name, admin_business_path(transaction.business)
+        link_to transaction.business.name, admin_business_path(transaction.business.id)
       end
       row :customer do |transaction|
         div do

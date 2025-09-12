@@ -141,7 +141,7 @@
         <div class="flex justify-between items-center">
           <!-- Logo and Brand -->
           <div class="flex items-center min-w-0 flex-shrink-0">
-            <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+            <% if ActsAsTenant.current_tenant %>
               <!-- BizBlasts Logo - links to main domain -->
               <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
                 <% begin %>
@@ -151,7 +151,7 @@
                        alt="BizBlasts - Professional Business Websites and Booking Systems" class="h-10 w-auto" />
                 <% end %>
               <% end %>
-              <!-- Company Name - links to tenant subdomain -->
+              <!-- Company Name - links to tenant home -->
               <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity" do %>
                 <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
               <% end %>
@@ -371,13 +371,38 @@
       <%= yield %>
     </main>
 
-    <div class="container mx-auto px-4 text-center text-sm text-gray-500 mt-8">
-      <a href="#" class="termly-display-preferences">Consent Preferences</a>
-      •
-      <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences", data: { turbo: false } %>
-      •
-      <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences", data: { turbo: false } %>
-    </div>
+    <!-- Combined Footer with Policy Links and Copyright -->
+    <footer class="bg-gray-50 py-2">
+      <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+        <% if ActsAsTenant.current_tenant %>
+          <!-- Tenant pages: Policy links left, copyright right -->
+          <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+            <!-- Policy Links -->
+            <div>
+              <a href="#" class="termly-display-preferences">Consent Preferences</a>
+              •
+              <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+              •
+              <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+            </div>
+            
+            <!-- Business Copyright -->
+            <div class="text-gray-600">
+              &copy; <%= Date.current.year %> <%= ActsAsTenant.current_tenant.name %>. All rights reserved.
+            </div>
+          </div>
+        <% else %>
+          <!-- Main domain: Policy links centered -->
+          <div>
+            <a href="#" class="termly-display-preferences">Consent Preferences</a>
+            •
+            <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+            •
+            <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+          </div>
+        <% end %>
+      </div>
+    </footer>
 
     <%# Policy Acceptance Modal - Only render for users who need policy acceptance %>
     <% if user_signed_in? && current_user.requires_policy_acceptance? %>

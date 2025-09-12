@@ -79,40 +79,7 @@ ActiveAdmin.register Service do
     end
   end
 
-  filter :name
-  filter :description
-  filter :price
-  filter :duration
-  filter :active
-  filter :business
 
-  index do
-    selectable_column
-    id_column
-    column :name
-    column :description
-    column :price do |service|
-      number_to_currency(service.price) if service.price
-    end
-    column :duration do |service|
-      "#{service.duration} minutes" if service.duration
-    end
-    column :active
-    column :business
-    actions
-  end
-
-  form do |f|
-    f.inputs do
-      f.input :name
-      f.input :description
-      f.input :price
-      f.input :duration, label: 'Duration (minutes)'
-      f.input :active
-      f.input :business, collection: Business.order(:name)
-    end
-    f.actions
-  end
 
   # Permit relevant parameters including the association and nested image attributes
   permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :allow_discounts, :availability_settings, :service_type, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
@@ -196,7 +163,7 @@ ActiveAdmin.register Service do
     attributes_table do
       row :name
       row :business do |service|
-        link_to service.business.name, admin_business_path(service.business)
+        link_to service.business.name, admin_business_path(service.business.id)
       end
       row :description
       row :duration
@@ -261,7 +228,7 @@ ActiveAdmin.register Service do
         redirect_to resource_path(service), notice: "Service was successfully updated."
       else
         flash.now[:error] = service.errors.full_messages.join(', ')
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -274,7 +241,7 @@ ActiveAdmin.register Service do
         redirect_to resource_path(service), notice: "Service was successfully created."
       else
         flash.now[:error] = service.errors.full_messages.join(', ')
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 

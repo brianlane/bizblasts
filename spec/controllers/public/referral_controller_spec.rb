@@ -163,11 +163,14 @@ RSpec.describe Public::ReferralController, type: :controller do
 
       it 'generates correct URL for production with custom domain' do
         allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
-        # Create a business with premium tier that allows custom domains
+        # Create a business with all requirements for custom_domain_allow?
         custom_business = create(:business, 
                                 hostname: 'example.com', 
                                 host_type: 'custom_domain',
-                                tier: 'premium')
+                                tier: 'premium',
+                                status: 'cname_active',
+                                render_domain_added: true,
+                                domain_health_verified: true)
         
         url = controller_instance.send(:generate_referral_url, custom_business, 'TEST123')
         expect(url).to eq("https://example.com?ref=TEST123")

@@ -26,6 +26,59 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 **📖 See [Security Documentation](#security) section below for implementation details**
 
+## 🌐 **Custom Domain CNAME Setup (Premium Feature)**
+
+**BizBlasts Premium businesses can connect custom domains using CNAME records:**
+- ✅ **Automated DNS Monitoring** - Real-time verification of CNAME configuration
+- ✅ **Email-Guided Setup** - Step-by-step instructions sent to business owners
+- ✅ **Multi-DNS Server Verification** - Checks across Google DNS, Cloudflare, and OpenDNS
+- ✅ **Render.com Integration** - Automatic domain registration with hosting platform
+- ✅ **ActiveAdmin Management** - Complete admin interface for domain lifecycle
+- ✅ **Automatic SSL** - HTTPS certificates provisioned automatically
+- ✅ **Tier-Based Controls** - Domain removal on tier downgrades
+- ✅ **Timeout Assistance** - Troubleshooting emails when setup fails
+- ✅ **Domain Change Request Interface** - Intuitive form for requesting domain changes
+- ✅ **Tier-Conditional UI** - Interface adapts based on business subscription tier
+- ✅ **Rich Dropdown Components** - Enhanced UX with fancy JavaScript dropdowns
+
+**Custom Domain Workflow:**
+1. Business submits domain change request through settings interface
+2. System sends email notification to BizBlasts team for review
+3. Team reviews request and contacts business within 24-48 hours
+4. For custom domains: Domain ownership verification assistance provided
+5. System adds approved domain to Render.com via API
+6. Email sent with CNAME setup instructions (`domain.com` → `bizblasts.onrender.com`)
+7. DNS monitoring checks every 5 minutes for 1 hour
+8. Domain automatically activated when CNAME verified
+9. SSL certificate provisioned by Render.com
+
+**Environment Variables Required:**
+```bash
+RENDER_API_KEY=your_render_api_key_here
+RENDER_SERVICE_ID=your_render_service_id_here
+SUPPORT_EMAIL=bizblaststeam@gmail.com
+```
+
+### **Domain Change Request Features**
+
+**🎨 Tier-Adaptive Interface:**
+- **Premium Tier**: Full access to custom domain and subdomain options
+- **Free/Standard Tier**: Subdomain-only interface with upgrade prompts
+- **Smart Labels**: Contextual field labels based on subscription tier
+- **Conditional Content**: Premium-specific process steps and domain availability tools
+
+**✨ Enhanced UX Components:**
+- **Rich JavaScript Dropdowns**: Replaced HTML selects with interactive dropdowns
+- **Hover Effects**: Proper color transitions for buttons and links
+- **Consistent Spacing**: Uniform `mb-8` spacing between all form sections
+- **Visual Feedback**: Loading states, validation, and success/error messaging
+
+**🔧 Technical Implementation:**
+- **Route Integration**: `/manage/settings/business/edit` with domain change form
+- **Email Notifications**: Automatic team notifications via `DomainMailer`
+- **Turbo Compatible**: Works seamlessly with Rails 8 Hotwire stack
+- **Form Validation**: Real-time validation with proper error handling
+
 ---
 
 ## Prerequisites
@@ -37,12 +90,90 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 ## Domain Architecture: Subdomain vs Custom Domain
 
-BizBlasts supports two tenant hosting modes:
+BizBlasts supports two tenant hosting modes with unified routing:
 
 | Host Type            | Database Columns Used | Example |
 |----------------------|-----------------------|---------|
 | `subdomain` (default)| `subdomain` contains the subdomain **only** (e.g. `acme`) <br/> `hostname` may also be populated but is ignored for routing | `https://acme.bizblasts.com` (production) <br/> `http://acme.lvh.me:3000` (development) |
 | `custom_domain`      | `hostname` stores the full custom domain (e.g. `acme-corp.com`) | `https://acme-corp.com` |
+
+### **Unified Tenant Routing System**
+
+**🎯 Key Achievement:** All tenant routes automatically work on both subdomains AND custom domains without code duplication.
+
+#### **Route Architecture:**
+```ruby
+# config/routes.rb - Single constraint handles both domain types
+constraints TenantPublicConstraint do
+  scope module: 'public' do
+    get '/', to: 'pages#show'           # Works on both testbiz.bizblasts.com AND customdomain.com
+    get '/services', to: 'pages#show'   # Works on both domain types
+    get '/book', to: 'booking#new'      # Works on both domain types
+    # ... all tenant routes work universally
+  end
+  
+  # Cart, orders, payments - all work on both domain types
+  resource :cart, controller: 'public/carts'
+  resources :orders, controller: 'public/orders'
+  resources :payments, controller: 'public/payments'
+end
+```
+
+#### **Constraint Logic:**
+- **`TenantPublicConstraint`**: Matches both `*.bizblasts.com` subdomains AND active custom domains
+- **`CustomDomainConstraint`**: Identifies requests from verified custom domains (`status: 'cname_active'`)
+- **`SubdomainConstraint`**: Handles `*.bizblasts.com` subdomains (used for admin/manage routes)
+
+#### **Tenant Detection Flow:**
+1. **Request arrives** → `ApplicationController#set_tenant`
+2. **Subdomain check** → `find_business_by_subdomain` 
+3. **Custom domain check** → `find_business_by_custom_domain` (matches both apex and www)
+4. **Tenant set** → `ActsAsTenant.current_tenant = business`
+5. **Route constraint** → `TenantPublicConstraint` matches and serves tenant content
+
+#### **Mailer URL Reliability:**
+```ruby
+# ✅ CORRECT: Reliable host determination for critical links
+@business.mailer_host                    # Always reliable (defaults to subdomain)
+@business.mailer_host(prefer_custom_domain: true)  # Uses custom domain only if fully verified
+
+# ❌ WRONG: Could break if custom domain has DNS issues
+@business.hostname                       # Might be unreliable for payments/invoices
+```
+
+### **Adding New Tenant Routes**
+
+**✅ Future-Proof Pattern:**
+```ruby
+# All routes added here automatically work on BOTH subdomains and custom domains
+constraints TenantPublicConstraint do
+  scope module: 'public' do
+    get '/new-feature', to: 'new_feature#index'  # ← Works on testbiz.bizblasts.com AND customdomain.com
+  end
+end
+```
+
+**🚨 Common Mistake:**
+```ruby
+# ❌ WRONG: Only works on main platform domain
+get '/new-feature', to: 'public/new_feature#index'
+```
+
+### **Route Validation Tools**
+
+**Automated validation ensures all routes work correctly:**
+```bash
+# Comprehensive route validation
+bin/rails tenant:validate_routes
+
+# Quick development testing
+bin/test-tenant-routes
+
+# Test specific new route
+bin/test-tenant-routes --route /new-feature
+```
+
+**📖 Complete Documentation:** [docs/TENANT_ROUTING_GUIDE.md](docs/TENANT_ROUTING_GUIDE.md)
 
 When generating links or redirects **always use the `TenantHost` helper (it automatically adds `:port` in dev/test)**:
 

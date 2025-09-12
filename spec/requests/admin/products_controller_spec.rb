@@ -60,7 +60,7 @@ RSpec.describe Admin::ProductsController, type: :request do
       it "returns an error when setting a non-existent image as primary" do
         put admin_product_path(product), params: { product: { images_attributes: [{ id: 999, primary: true }] } }
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Image must exist")
       end
     end
@@ -70,7 +70,7 @@ RSpec.describe Admin::ProductsController, type: :request do
         image_ids = [image1.id, image2.id]
         put admin_product_path(product), params: { product: { images_attributes: image_ids.map.with_index { |id, index| { id: id, position: index } } } }
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Image IDs are incomplete")
       end
 
@@ -84,7 +84,7 @@ RSpec.describe Admin::ProductsController, type: :request do
         image_ids = [image1.id, other_attachment.id, image2.id]
         put admin_product_path(product), params: { product: { images_attributes: image_ids.map.with_index { |id, index| { id: id, position: index } } } }
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Image must belong to the product")
       end
 
@@ -92,7 +92,7 @@ RSpec.describe Admin::ProductsController, type: :request do
         image_ids = [image1.id, image2.id, image2.id]
         put admin_product_path(product), params: { product: { images_attributes: image_ids.map.with_index { |id, index| { id: id, position: index } } } }
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Image IDs must be unique")
       end
     end
@@ -101,7 +101,7 @@ RSpec.describe Admin::ProductsController, type: :request do
       it "returns an error response" do
         put admin_product_path(product), params: { product: { name: '' } }
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Name can't be blank")
       end
     end

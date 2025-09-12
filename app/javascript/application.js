@@ -208,6 +208,7 @@ import "./modules/category_showcase";
 import "./modules/copy_link";
 import "./modules/website_hover";
 import "./modules/promo_code_handler";
+import "./domain_status_checker";
 import "./cart";
 import "trix"
 import "@rails/actiontext"

@@ -128,7 +128,7 @@ module BusinessManager
       if params[:tenant_customer_id].blank? || params[:tenant_customer_id] == ''
         set_customers
         flash.now[:error] = 'Please select a customer or create a new customer.'
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
         return
       end
       
@@ -136,7 +136,7 @@ module BusinessManager
       if payment_amount < 0.50
         set_customers
         flash.now[:error] = 'Payment amount must be at least $0.50.'
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
         return
       end
       
@@ -154,7 +154,7 @@ module BusinessManager
         rescue ActiveRecord::RecordNotFound
           set_customers
           flash.now[:error] = 'Selected customer not found. Please select a valid customer.'
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
           return
         end
       else
@@ -164,21 +164,21 @@ module BusinessManager
         if customer_params[:first_name].blank?
           set_customers
           flash.now[:error] = 'Please enter the customer\'s first name.'
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
           return
         end
         
         if customer_params[:last_name].blank?
           set_customers
           flash.now[:error] = 'Please enter the customer\'s last name.'
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
           return
         end
         
         if customer_params[:email].blank?
           set_customers
           flash.now[:error] = 'Please enter the customer\'s email address.'
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
           return
         end
         
@@ -214,7 +214,7 @@ module BusinessManager
       else
         set_customers
         flash.now[:error] = 'Unable to create payment order. Please check your information and try again.'
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 

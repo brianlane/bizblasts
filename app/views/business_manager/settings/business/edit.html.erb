@@ -107,35 +107,34 @@
     </div>
   </div>
 
-  <!-- Business Information Form -->
-  <%= form_with(model: [:business_manager, :settings, @business], url: business_manager_settings_business_path, method: :patch, local: true, html: { class: "space-y-8" }) do |form| %>
-    <!-- Error Messages -->
-    <% if @business.errors.any? %>
-      <div class="bg-red-50 border border-red-300 rounded-xl overflow-hidden shadow-sm">
-        <div class="px-6 py-4 bg-red-100 border-b border-red-200">
-          <div class="flex items-center">
-            <svg class="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-            </svg>
-            <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
-          </div>
-        </div>
-        <div class="px-6 py-4">
-          <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
-            <% @business.errors.full_messages.each do |message| %>
-              <li><%= message %></li>
-            <% end %>
-          </ul>
+  <!-- Error Messages -->
+  <% if @business.errors.any? %>
+    <div class="bg-red-50 border border-red-300 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-4 bg-red-100 border-b border-red-200">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
         </div>
       </div>
-    <% end %>
+      <div class="px-6 py-4">
+        <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+          <% @business.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
 
-    <!-- Branding Section -->
+  <!-- Branding Section -->
+  <%= form_with(model: [:business_manager, :settings, @business], url: business_manager_settings_business_path, method: :patch, local: true, data: { turbo: false }, html: { class: "space-y-8", id: "main-business-form" }) do |form| %>
     <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v3M7 4H5a1 1 0 00-1 1v16a1 1 0 001 1h14a1 1 0 001-1V5a1 1 0 00-1-1h-2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
           Branding
         </h2>
@@ -195,7 +194,7 @@
     </div>
 
     <!-- Contact Information Section -->
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,75 +300,306 @@
         </div>
       </div>
     </div>
+  <!-- Form continues below to include Domain & URL Settings -->
 
-    <!-- Hours of Operation Section -->
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+  <!-- Domain Management Section (Independent Form) -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"/>
           </svg>
-          Hours of Operation
+          Domain & URL Settings
         </h2>
-        <p class="text-sm text-gray-600 mt-1">Set your business hours for each day of the week. Only for display purposes.</p>
+        <p class="text-sm text-gray-600 mt-1">View your current domain and request changes</p>
       </div>
       <div class="p-6">
-        <div class="space-y-4">
-          <% days = %w[mon tue wed thu fri sat sun] %>
-          <% day_labels = { 'mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday' } %>
-          <% current_hours = @business.hours.is_a?(Hash) ? @business.hours.with_indifferent_access : {} %>
-          <% days.each do |day_key|
-            day_label = day_labels[day_key]
-            hours_for_day = current_hours[day_key] || {}
-            open_time = hours_for_day[:open] || hours_for_day['open']
-            close_time = hours_for_day[:close] || hours_for_day['close']
-          %>
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div class="sm:col-span-3">
-                <span class="font-medium text-gray-900"><%= day_label %></span>
+        <div class="space-y-6">
+          <!-- Current Domain Display -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-3">Current Domain</label>
+            <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">
+                    <% if @business.host_type == 'custom_domain' && @business.hostname.present? %>
+                      <%= @business.hostname %>
+                      <span class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                        Custom Domain
+                      </span>
+                    <% elsif @business.hostname.present? %>
+                      <%= @business.hostname %>.bizblasts.com
+                      <span class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        Subdomain
+                      </span>
+                    <% else %>
+                      Not configured
+                      <span class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                        Default
+                      </span>
+                    <% end %>
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    <% if @business.host_type == 'custom_domain' %>
+                      This is your custom domain managed by BizBlasts
+                    <% elsif @business.hostname.present? %>
+                      This is your BizBlasts subdomain
+                    <% else %>
+                      Your business is accessible through the default BizBlasts URL
+                    <% end %>
+                  </p>
+                </div>
+                <div class="flex items-center">
+                  <% if @business.hostname.present? %>
+                    <a href="<%= @business.host_type == 'custom_domain' ? "https://#{@business.hostname}" : "https://#{@business.hostname}.bizblasts.com" %>" 
+                       target="_blank" 
+                       class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                      </svg>
+                      Visit Site
+                    </a>
+                  <% end %>
+                </div>
               </div>
-              <div class="sm:col-span-4">
-                <%= form.label "hours_#{day_key}_open", "Open Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
-                <%= form.time_field "hours_#{day_key}_open", 
-                      value: open_time, 
-                      class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
-              </div>
-              <div class="sm:col-span-4">
-                <%= form.label "hours_#{day_key}_close", "Close Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
-                <%= form.time_field "hours_#{day_key}_close", 
-                      value: close_time, 
-                      class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
-              </div>
-              <div class="sm:col-span-1 text-center">
-                <button type="button" class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors" title="Clear hours">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
+            </div>
+          </div>
+
+          <!-- Domain Status Checker -->
+          <% if @business.host_type_custom_domain? && @business.hostname.present? %>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Domain Status</label>
+              <div id="domain-status-container" class="p-4 bg-white border border-gray-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div id="domain-status-indicator" class="flex items-center">
+                      <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                      <span id="domain-status-text" class="text-sm font-medium text-gray-600">Checking status...</span>
+                    </div>
+                    <p id="domain-status-details" class="text-xs text-gray-500 mt-1">Verifying domain configuration and health</p>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button id="check-domain-btn" 
+                            type="button"
+                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            onclick="checkDomainStatus()">
+                      <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      Check Now
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Detailed Status Information (Hidden by default) -->
+                <div id="domain-status-details-expanded" class="mt-4 space-y-3 hidden">
+                  <div class="border-t border-gray-200 pt-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <div class="flex items-center">
+                          <div id="dns-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">DNS Configuration</span>
+                        </div>
+                        <p id="dns-check-text" class="text-gray-500 mt-1">Checking CNAME record...</p>
+                      </div>
+                      <div>
+                        <div class="flex items-center">
+                          <div id="render-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">Render Integration</span>
+                        </div>
+                        <p id="render-check-text" class="text-gray-500 mt-1">Verifying domain in Render...</p>
+                      </div>
+                      <div>
+                        <div class="flex items-center">
+                          <div id="health-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <span class="font-medium">Health Check</span>
+                        </div>
+                        <p id="health-check-text" class="text-gray-500 mt-1">Testing HTTP response...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           <% end %>
-        </div>
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div class="text-sm text-blue-800">
-              <p class="font-medium mb-1">Hours Tips:</p>
-              <ul class="text-blue-700 space-y-1">
-                <li>• Leave both times blank if closed on that day</li>
-                <li>• Use 24-hour format for clarity (e.g., 14:00 for 2:00 PM)</li>
-                <li>• These hours will be displayed to customers</li>
-              </ul>
+
+          <!-- Canonical URL Preference (Show for Custom Domains) -->
+          <div id="canonical-preference-section" class="mt-6" <%= 'style="display:none;"' unless @business.host_type_custom_domain? %>>
+            <label class="block text-sm font-medium text-gray-700 mb-3">Canonical URL Preference</label>
+            <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <p class="text-sm text-gray-600 mb-4">Choose how your domain should be displayed. Both versions will work, but one will redirect to the other for SEO consistency.</p>
+              
+              <div class="space-y-3">
+                <div class="flex items-center">
+                  <%= form.radio_button :canonical_preference, 'www', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
+                  <label for="business_canonical_preference_www" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                    <code id="www-domain-preview" class="bg-white px-2 py-1 rounded text-primary">www.<%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code>
+                    <span class="text-gray-500 ml-1">(Recommended - matches main site behavior)</span>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <%= form.radio_button :canonical_preference, 'apex', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
+                  <label for="business_canonical_preference_apex" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                    <code id="apex-domain-preview" class="bg-white px-2 py-1 rounded text-primary"><%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code>
+                    <span class="text-gray-500 ml-1">(Advanced option)</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                  <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <p id="canonical-preview-text" class="text-xs text-blue-700">
+                    <strong>Current setting:</strong> 
+                    <% if @business.www_canonical_preference? %>
+                      <span id="redirect-explanation">Visitors to <code id="from-domain" class="text-blue-800"><%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code> will be redirected to <code id="to-domain" class="text-blue-800">www.<%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code></span>
+                    <% else %>
+                      <span id="redirect-explanation">Visitors to <code id="from-domain" class="text-blue-800">www.<%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code> will be redirected to <code id="to-domain" class="text-blue-800"><%= @business.hostname.present? ? @business.hostname.sub(/^www\./, '') : 'yourdomain.com' %></code></span>
+                    <% end %>
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- Domain Change Request -->
+          <div>
+            <%# --- Host Type Toggle for Premium Users ------------------------------------ %>
+            <% if @business.premium_tier? %>
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Domain Mode</label>
+                <div class="flex items-center gap-6">
+                  <label class="inline-flex items-center gap-2">
+                    <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain"
+                           <%= 'checked' if @business.host_type_subdomain? %>
+                           class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                    <span class="text-sm">BizBlasts Subdomain</span>
+                  </label>
+                  <label class="inline-flex items-center gap-2">
+                    <input type="radio" name="business[host_type]" value="custom_domain" id="host_type_custom"
+                           <%= 'checked' if @business.host_type_custom_domain? %>
+                           class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                    <span class="text-sm">Custom Domain</span>
+                  </label>
+                </div>
+              </div>
+
+              <%# Dual input fields %>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="domain-input-wrapper">
+                <div id="subdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_subdomain? %>>
+                  <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
+                  <input type="text" 
+                         id="display_subdomain" 
+                         name="business[subdomain]"
+                         value="<%= @business.subdomain || @business.hostname %>"
+                         placeholder="your-biz"
+                         class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                  <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
+                </div>
+
+                <div id="customdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_custom_domain? %>>
+                  <label for="display_hostname" class="block text-sm font-medium text-gray-700 mb-1">Custom Domain</label>
+                  <input type="text" 
+                         id="display_hostname" 
+                         name="business[hostname]"
+                         value="<%= @business.hostname %>"
+                         placeholder="yourdomain.com"
+                         class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                  <p class="text-xs text-gray-500 mt-1">Enter full domain (example.com)</p>
+                </div>
+              </div>
+            <% end %>
+            <% unless @business.premium_tier? %>
+              <!-- Non-premium: subdomain only -->
+              <!-- Hidden radio to satisfy JS checker logic -->
+              <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain" checked="checked" hidden>
+              
+              <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
+              <input type="text" 
+                     id="display_subdomain" 
+                     name="business[subdomain]"
+                     value="<%= @business.subdomain || @business.hostname %>"
+                     placeholder="your-biz"
+                     class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+              <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
+            <% end %>
+
           </div>
         </div>
       </div>
     </div>
 
+  <!-- Continuing with the same form object `form` declared above -->
+  <!-- Hours of Operation Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
+    <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Hours of Operation
+      </h2>
+      <p class="text-sm text-gray-600 mt-1">Set your business hours for each day of the week. Only for display purposes.</p>
+    </div>
+    <div class="p-6">
+      <div class="space-y-4">
+        <% days = %w[mon tue wed thu fri sat sun] %>
+        <% day_labels = { 'mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday' } %>
+        <% current_hours = @business.hours.is_a?(Hash) ? @business.hours.with_indifferent_access : {} %>
+        <% days.each do |day_key|
+          day_label = day_labels[day_key]
+          hours_for_day = current_hours[day_key] || {}
+          open_time = hours_for_day[:open] || hours_for_day['open']
+          close_time = hours_for_day[:close] || hours_for_day['close']
+        %>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="sm:col-span-3">
+              <span class="font-medium text-gray-900"><%= day_label %></span>
+            </div>
+            <div class="sm:col-span-4">
+              <%= form.label "hours_#{day_key}_open", "Open Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
+              <%= form.time_field "hours_#{day_key}_open", 
+                    value: open_time, 
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
+            </div>
+            <div class="sm:col-span-4">
+              <%= form.label "hours_#{day_key}_close", "Close Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
+              <%= form.time_field "hours_#{day_key}_close", 
+                    value: close_time, 
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors" %>
+            </div>
+            <div class="sm:col-span-1 text-center">
+              <button type="button" class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors" title="Clear hours">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div class="text-sm text-blue-800">
+            <p class="font-medium mb-1">Hours Tips:</p>
+            <ul class="text-blue-700 space-y-1">
+              <li>• Leave both times blank if closed on that day</li>
+              <li>• Use 24-hour format for clarity (e.g., 14:00 for 2:00 PM)</li>
+              <li>• These hours will be displayed to customers</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
     <!-- Inventory Management Section -->
-    <div id="inventory-management" class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div id="inventory-management" class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -433,7 +663,7 @@
     </div>
 
     <!-- Location Sync Section -->
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
           <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,6 +712,7 @@
         Cancel
       <% end %>
       <%= form.submit "Save Business Information", 
+            form: "main-business-form",
             class: "inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer" %>
     </div>
   <% end %>
@@ -600,3 +831,257 @@
   document.addEventListener('DOMContentLoaded', initializeBusinessSettingsForm);
   document.addEventListener('turbo:load', initializeBusinessSettingsForm);
 </script> 
+
+<!-- JS for Domain Mode toggle (premium) -->
+<script type="text/javascript">
+  function initializeDomainModeToggle() {
+    const radioSub = document.getElementById('host_type_subdomain');
+    const radioCustom = document.getElementById('host_type_custom');
+    const subGroup = document.getElementById('subdomain-input-group');
+    const customGroup = document.getElementById('customdomain-input-group');
+    const canonicalSection = document.getElementById('canonical-preference-section');
+
+    if (!radioSub || !radioCustom || !subGroup || !customGroup) return;
+
+    function updateVisibility() {
+      if (radioSub.checked) {
+        subGroup.style.display = '';
+        customGroup.style.display = 'none';
+        if (canonicalSection) canonicalSection.style.display = 'none';
+      } else {
+        subGroup.style.display = 'none';
+        customGroup.style.display = '';
+        if (canonicalSection) canonicalSection.style.display = '';
+      }
+    }
+
+    // Update domain previews when custom domain input changes
+    function updateDomainPreviews() {
+      const customDomainInput = document.getElementById('display_hostname');
+      if (!customDomainInput || !canonicalSection) return;
+
+      const domainValue = customDomainInput.value.trim();
+      const cleanDomain = domainValue.replace(/^www\./, '') || 'yourdomain.com';
+      
+      // Update preview domains
+      const wwwPreview = document.getElementById('www-domain-preview');
+      const apexPreview = document.getElementById('apex-domain-preview');
+      const fromDomain = document.getElementById('from-domain');
+      const toDomain = document.getElementById('to-domain');
+      
+      if (wwwPreview) wwwPreview.textContent = `www.${cleanDomain}`;
+      if (apexPreview) apexPreview.textContent = cleanDomain;
+      
+      // Update redirect explanation based on current preference
+      const wwwRadio = document.querySelector('input[name="business[canonical_preference]"][value="www"]');
+      if (fromDomain && toDomain && wwwRadio) {
+        if (wwwRadio.checked) {
+          fromDomain.textContent = cleanDomain;
+          toDomain.textContent = `www.${cleanDomain}`;
+        } else {
+          fromDomain.textContent = `www.${cleanDomain}`;
+          toDomain.textContent = cleanDomain;
+        }
+      }
+    }
+
+    // Update redirect explanation when preference changes
+    function updateRedirectExplanation() {
+      const customDomainInput = document.getElementById('display_hostname');
+      if (!customDomainInput) return;
+
+      const domainValue = customDomainInput.value.trim();
+      const cleanDomain = domainValue.replace(/^www\./, '') || 'yourdomain.com';
+      
+      const fromDomain = document.getElementById('from-domain');
+      const toDomain = document.getElementById('to-domain');
+      const wwwRadio = document.querySelector('input[name="business[canonical_preference]"][value="www"]');
+      
+      if (fromDomain && toDomain && wwwRadio) {
+        if (wwwRadio.checked) {
+          fromDomain.textContent = cleanDomain;
+          toDomain.textContent = `www.${cleanDomain}`;
+        } else {
+          fromDomain.textContent = `www.${cleanDomain}`;
+          toDomain.textContent = cleanDomain;
+        }
+      }
+    }
+
+    radioSub.addEventListener('change', updateVisibility);
+    radioCustom.addEventListener('change', updateVisibility);
+    
+    // Listen for custom domain input changes
+    const customDomainInput = document.getElementById('display_hostname');
+    if (customDomainInput) {
+      customDomainInput.addEventListener('input', updateDomainPreviews);
+      customDomainInput.addEventListener('blur', updateDomainPreviews);
+    }
+    
+    // Listen for canonical preference changes
+    const canonicalRadios = document.querySelectorAll('input[name="business[canonical_preference]"]');
+    canonicalRadios.forEach(radio => {
+      radio.addEventListener('change', updateRedirectExplanation);
+    });
+    
+    updateVisibility();
+    updateDomainPreviews();
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeDomainModeToggle);
+  document.addEventListener('turbo:load', initializeDomainModeToggle);
+</script>
+<!-- Subdomain Availability Checker -->
+<script type="text/javascript">
+  function initializeSubdomainChecker() {
+    const subdomainInput = document.getElementById('display_subdomain');
+    const customDomainInput = document.getElementById('display_hostname');
+    const subdomainRadio = document.getElementById('host_type_subdomain');
+    
+    if (!subdomainInput || !subdomainRadio) return;
+    
+    let checkTimeout;
+    let lastCheckedValue = '';
+    
+    function showValidationMessage(input, message, type = 'error') {
+      // Remove existing validation messages
+      const existingMessage = input.parentNode.querySelector('.subdomain-validation');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      
+      if (!message) return;
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `subdomain-validation text-xs mt-1 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : 'text-red-600'}`;
+      messageDiv.innerHTML = message;
+      
+      input.parentNode.appendChild(messageDiv);
+    }
+    
+    function validateSubdomainFormat(subdomain) {
+      if (!subdomain) return { valid: false, message: '' };
+      
+      // Check length (3-63 characters)
+      if (subdomain.length < 3) {
+        return { valid: false, message: 'Subdomain must be at least 3 characters long' };
+      }
+      if (subdomain.length > 63) {
+        return { valid: false, message: 'Subdomain must be 63 characters or less' };
+      }
+      
+      // Check format: alphanumeric and hyphens, no hyphens at start/end
+      const validFormat = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(subdomain);
+      if (!validFormat) {
+        return { valid: false, message: 'Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen' };
+      }
+      
+      // Check for reserved words
+      const reserved = ['www', 'mail', 'ftp', 'admin', 'root', 'api', 'app', 'support', 'help', 'blog', 'shop', 'store'];
+      if (reserved.includes(subdomain.toLowerCase())) {
+        return { valid: false, message: 'This subdomain is reserved and cannot be used' };
+      }
+      
+      return { valid: true, message: '' };
+    }
+    
+    async function checkSubdomainAvailability(subdomain) {
+      try {
+        const url = '<%= check_subdomain_availability_business_manager_settings_business_path %>?subdomain=' + encodeURIComponent(subdomain);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error checking subdomain availability:', error);
+        return { available: false, message: 'Unable to check availability. Please try again.' };
+      }
+    }
+    
+    function handleSubdomainCheck() {
+      const currentValue = subdomainInput.value.toLowerCase().trim();
+      
+      // Skip if value hasn't changed or is empty
+      if (currentValue === lastCheckedValue || !currentValue) {
+        if (!currentValue) showValidationMessage(subdomainInput, '');
+        return;
+      }
+      
+      lastCheckedValue = currentValue;
+      
+      // Format validation first
+      const formatCheck = validateSubdomainFormat(currentValue);
+      if (!formatCheck.valid) {
+        showValidationMessage(subdomainInput, formatCheck.message, 'error');
+        return;
+      }
+      
+      // Show checking message
+      showValidationMessage(subdomainInput, '⏳ Checking availability...', 'warning');
+      
+      // Check availability
+      checkSubdomainAvailability(currentValue).then(result => {
+        if (result.available) {
+          showValidationMessage(subdomainInput, '✅ Available! Will appear as ' + currentValue + '.bizblasts.com', 'success');
+        } else {
+          showValidationMessage(subdomainInput, '❌ ' + (result.message || 'This subdomain is not available'), 'error');
+        }
+      });
+    }
+    
+    // Add event listeners
+    subdomainInput.addEventListener('input', function() {
+      // Only check if subdomain radio is selected
+      if (!subdomainRadio.checked) return;
+      
+      clearTimeout(checkTimeout);
+      checkTimeout = setTimeout(handleSubdomainCheck, 500); // Debounce 500ms
+    });
+    
+    subdomainInput.addEventListener('blur', function() {
+      // Only check if subdomain radio is selected
+      if (!subdomainRadio.checked) return;
+      
+      clearTimeout(checkTimeout);
+      handleSubdomainCheck();
+    });
+    
+    // Clear validation when switching away from subdomain
+    subdomainRadio.addEventListener('change', function() {
+      if (!this.checked) {
+        showValidationMessage(subdomainInput, '');
+      }
+    });
+    
+    // Trigger check on radio button change if there's already a value
+    subdomainRadio.addEventListener('change', function() {
+      if (this.checked && subdomainInput.value.trim()) {
+        lastCheckedValue = ''; // Reset to force check
+        handleSubdomainCheck();
+      }
+    });
+  }
+  
+  // Set the URL for the domain status checker
+  window.domainStatusCheckUrl = '<%= check_domain_status_business_manager_settings_business_path %>';
+  window.finalizeDomainActivationUrl = '<%= finalize_domain_activation_business_manager_settings_business_path %>';
+  window.domainIsActive = <%= @business.custom_domain_allow? ? 'true' : 'false' %>;
+  
+  // Initialize domain status checker on page load
+  function initializeDomainStatusChecker() {
+    const isActive = <%= @business.custom_domain_allow? %>;
+    if (typeof window.initializeDomainStatusChecker === 'function') {
+      window.initializeDomainStatusChecker(isActive);
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', initializeSubdomainChecker);
+  document.addEventListener('turbo:load', initializeSubdomainChecker);
+  document.addEventListener('DOMContentLoaded', initializeDomainStatusChecker);
+  document.addEventListener('turbo:load', initializeDomainStatusChecker);
+</script>
+
+ 

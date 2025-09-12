@@ -2,6 +2,9 @@
 
 # Base controller for user registrations (both client and business owners)
 class Users::RegistrationsController < Devise::RegistrationsController
+  # Ensure that all sign-up pages are served from the platform’s base domain
+  # to avoid cross-domain authentication issues.
+  before_action :redirect_registration_from_subdomain, only: [:new, :create]
   # before_action :configure_sign_up_params, only: [:create]
   # before_action :configure_account_update_params, only: [:update]
 
@@ -38,5 +41,17 @@ class Users::RegistrationsController < Devise::RegistrationsController
     Rails.logger.debug "[RegistrationsController] Resource role: #{resource.role}"
 
     root_path
+  end
+
+  private
+
+  # Redirect registration attempts made on a tenant (subdomain/custom) host back
+  # to the main application domain, preserving the requested path.
+  def redirect_registration_from_subdomain
+    return if TenantHost.main_domain?(request.host)
+
+    target_url = TenantHost.main_domain_url_for(request, request.fullpath)
+    Rails.logger.info "[Redirect Registration] Sign-up attempted from tenant host; redirecting to #{target_url}"
+    redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
   end
 end 

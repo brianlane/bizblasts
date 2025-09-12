@@ -111,7 +111,7 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
           patch business_manager_settings_booking_policy_path, params: { booking_policy: invalid_attributes }
           @booking_policy.reload
           expect(@booking_policy.cancellation_window_mins).to eq(original_cancellation_window)
-          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response).to have_http_status(:unprocessable_content)
           expect(response).to render_template(:edit)
         end
       end
@@ -134,7 +134,7 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
           patch business_manager_settings_booking_policy_path, params: { 
             booking_policy: duration_attributes.merge(min_duration_mins: 120, max_duration_mins: 60) 
           }
-          expect(response).to have_http_status(:found).or have_http_status(:unprocessable_entity)
+          expect(response).to have_http_status(:found).or have_http_status(:unprocessable_content)
         end
       end
     end

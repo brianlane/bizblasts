@@ -112,6 +112,16 @@ class Business < ApplicationRecord
   enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
   enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
+  enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
+  enum :status, { 
+    active: 'active', 
+    inactive: 'inactive', 
+    suspended: 'suspended',
+    cname_pending: 'cname_pending',
+    cname_monitoring: 'cname_monitoring',
+    cname_active: 'cname_active',
+    cname_timeout: 'cname_timeout'
+  }, default: 'active'
   
   belongs_to :service_template, optional: true
   
@@ -206,30 +216,39 @@ class Business < ApplicationRecord
   validates :hostname, presence: true, uniqueness: { case_sensitive: false }
   validates :host_type, presence: true, inclusion: { in: host_types.keys }
 
-  # Subdomain format
-  validates :hostname, 
-            format: { 
-              with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/, 
-              message: "can only contain lowercase letters, numbers, and single hyphens" 
-            }, 
-            exclusion: { 
-              in: %w(www admin mail api help support status blog), 
-              message: "'%{value}' is reserved." 
-            }, 
-            if: :host_type_subdomain?
+  # Subdomain format validation – only run if the hostname itself is being modified.
+  # This prevents tier/host_type changes from failing validations when the hostname
+  # hasn't been altered (e.g. in tests that toggle host_type only).
+  validates :hostname,
+            format: {
+              with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/,
+              message: "can only contain lowercase letters, numbers, and single hyphens"
+            },
+            exclusion: {
+              in: %w(www admin mail api help support status blog),
+              message: "'%{value}' is reserved."
+            },
+            if: -> { host_type_subdomain? && (new_record? || will_save_change_to_hostname?) }
             
-  # Custom domain format
-  validates :hostname, 
-            format: { 
-              with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/, 
-              message: "is not a valid domain name" 
-            }, 
-            if: :host_type_custom_domain?
+  # Custom domain format validation – likewise only when hostname is changing.
+  validates :hostname,
+            format: {
+              with: /\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/,
+              message: "is not a valid domain name"
+            },
+            if: -> { host_type_custom_domain? && (new_record? || will_save_change_to_hostname?) }
             
-  # Free tier must use subdomain
-  validate :free_tier_requires_subdomain_host_type, if: :free_tier?
+  # Apply subdomain-only rule **only when creating** a Free or Standard business;
+  # allows later downgrades from Premium to proceed so DomainRemovalService can run.
+  validate :non_premium_requires_subdomain_host_type, if: -> { (free_tier? || standard_tier?) && new_record? }
+  
+  # Ensure that only Premium tier businesses can have custom domains.
+  validate :custom_domain_requires_premium_tier
   
   scope :active, -> { where(active: true) }
+  scope :cname_pending, -> { where(status: 'cname_pending') }
+  scope :cname_monitoring, -> { where(status: 'cname_monitoring') }
+  scope :monitoring_needed, -> { where(cname_monitoring_active: true, status: 'cname_monitoring') }
   
   before_validation :normalize_hostname
   before_validation :ensure_hours_is_hash
@@ -237,6 +256,8 @@ class Business < ApplicationRecord
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
+  after_update :handle_tier_downgrade, if: :saved_change_to_tier?
+  after_update :handle_canonical_preference_change, if: :saved_change_to_canonical_preference?
   after_validation :set_time_zone_from_address, if: :address_components_changed?
   
   # Find the current tenant
@@ -250,7 +271,7 @@ class Business < ApplicationRecord
   end
   
   def to_param
-    hostname
+    id.to_s
   end
   
   def active_services
@@ -448,7 +469,7 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at stripe_customer_id stripe_status payment_reminders_enabled domain_coverage_applied domain_cost_covered domain_renewal_date stock_management_enabled]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled]
   end
   
   # Define which associations are allowed to be searched with Ransack
@@ -520,7 +541,95 @@ class Business < ApplicationRecord
     return 0 if domain_coverage_expired?
     (domain_coverage_expires_at - Date.current).to_i
   end
-  
+
+  # CNAME Domain Setup Methods
+  def start_cname_monitoring!
+    return false unless premium_tier? && host_type_custom_domain?
+    
+    update!(
+      status: 'cname_monitoring',
+      cname_monitoring_active: true,
+      cname_check_attempts: 0
+    )
+  end
+
+  def stop_cname_monitoring!
+    update!(
+      cname_monitoring_active: false,
+      status: cname_active? ? 'cname_active' : 'active'
+    )
+  end
+
+  def cname_due_for_check?
+    return false unless cname_monitoring_active?
+    return true if cname_check_attempts == 0
+    
+    # Check every 5 minutes, max 12 attempts (1 hour)
+    return false if cname_check_attempts >= 12
+    
+    last_check = updated_at || Time.current
+    Time.current >= last_check + 5.minutes
+  end
+
+  def increment_cname_check!
+    increment!(:cname_check_attempts)
+  end
+
+  def cname_timeout!
+    update!(
+      status: 'cname_timeout',
+      cname_monitoring_active: false
+    )
+  end
+
+  def cname_success!
+    update!(
+      status: 'cname_active',
+      cname_monitoring_active: false
+    )
+  end
+
+  # Check if domain health verification is stale and needs rechecking
+  def domain_health_stale?(threshold = 1.hour)
+    domain_health_checked_at.nil? || domain_health_checked_at < threshold.ago
+  end
+
+  def can_setup_custom_domain?
+    premium_tier? && host_type_custom_domain? && !cname_active?
+  end
+
+  # ---------------------------------------------------------------------------
+  # Convenience flag
+  # ---------------------------------------------------------------------------
+  # Returns true when the business *should* be served from its custom domain –
+  # i.e., the tenant *is* a custom-domain host *and* the CNAME/DNS has been
+  # validated *and* Render reports the domain attached (SSL issued) *and* 
+  # the domain is returning HTTP 200 status.
+  def custom_domain_allow?
+    premium_tier? && host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
+  end
+
+  # Set domain health status with optimistic locking protection
+  # @param verified_status [Boolean] true for verified, false for unverified
+  def mark_domain_health_status!(verified_status, retry_count = 0)
+    with_lock do
+      update!(
+        domain_health_verified: verified_status,
+        domain_health_checked_at: Time.current
+      )
+    end
+  rescue ActiveRecord::StaleObjectError => e
+    Rails.logger.warn "[Business] Optimistic lock conflict when marking domain health #{verified_status ? 'verified' : 'unverified'} for business #{id}: #{e.message}"
+    
+    if retry_count < 1
+      # Reload and retry once
+      reload
+      mark_domain_health_status!(verified_status, retry_count + 1)
+    else
+      raise e
+    end
+  end
+
   # Method to get the full URL for this business
   def full_url(path = nil)
     # Determine host based on environment and host_type
@@ -545,28 +654,12 @@ class Business < ApplicationRecord
       port = ":#{default_opts[:port]}" if default_opts[:port].present?
     end
 
-    # Build URL
-    url = "#{protocol}#{host}#{port}"
-    url += path.to_s if path.present?
-    url
+    # Construct full URL
+    full_url = "#{protocol}#{host}#{port}"
+    full_url += "/#{path.to_s.gsub(/^\//, '')}" if path.present?
+    full_url
   end
 
-  
-  # Active Storage attachment for business logo with variants
-  has_one_attached :logo do |attachable|
-    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
-    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
-    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
-  end
-  
-  # Logo validations
-  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
-  
-  # Background processing for logo
-  after_commit :process_logo, if: -> { logo.attached? }
-  
   def has_visible_products?
     products.active.where(product_type: [:standard, :mixed]).any?(&:visible_to_customers?)
   end
@@ -646,9 +739,135 @@ class Business < ApplicationRecord
     save(validate: false) if time_zone_changed? && persisted?
     time_zone
   end
+
+  # Active Storage attachment for business logo with variants
+  has_one_attached :logo do |attachable|
+    attachable.variant :thumb, resize_to_limit: [120, 120], quality: 80
+    attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
+    attachable.variant :large, resize_to_limit: [600, 600], quality: 90
+  end
   
+  # Logo validations
+  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
+                                   message: 'must be PNG, JPEG, GIF, or WebP' },
+                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  
+  # Background processing for logo
+  after_commit :process_logo, if: -> { logo.attached? }
+
+  # Ensure hostname is populated for subdomain host_type
+  before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
+
+  # Get the canonical domain based on the business's canonical preference
+  # This is the domain that should be used for links, health checks, etc.
+  def canonical_domain
+    return nil unless hostname.present? && host_type_custom_domain?
+    
+    apex_domain = hostname.sub(/^www\./, '')
+    
+    case canonical_preference
+    when 'www'
+      "www.#{apex_domain}"
+    when 'apex'
+      apex_domain
+    else
+      # Fallback to stored hostname if preference is unknown
+      hostname
+    end
+  end
+
   private
+
+  # Returns the most reliable host for critical mailer URLs (payments, invoices)
+  # Always defaults to subdomain for maximum reliability unless explicitly overridden
+  def mailer_host(prefer_custom_domain: false)
+    # For critical links (payments/invoices), default to reliable subdomain
+    # Only use custom domain if explicitly requested AND fully verified
+    if prefer_custom_domain && custom_domain_fully_functional?
+      hostname
+    else
+      # Always fall back to reliable subdomain for critical links
+      "#{subdomain}.bizblasts.com"
+    end
+  end
+
+  # Checks if custom domain is not just allowed, but actually functional
+  def custom_domain_fully_functional?
+    custom_domain_allow? && 
+    status == 'cname_active' && 
+    render_domain_added? &&
+    domain_health_verified? &&
+    hostname.present? &&
+    # Additional safety: ensure hostname doesn't contain any suspicious patterns
+    hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
+  end
   
+  # ---------------------------------------------------------------------------
+  # Automatic custom-domain setup triggers
+  # ---------------------------------------------------------------------------
+
+  # 1. Newly-registered businesses that signed up for the Premium tier **and**
+  #    provided a custom domain should have the CNAME setup sequence started
+  #    automatically right after creation.
+  after_commit :trigger_custom_domain_setup_after_create, on: :create
+
+  # 2. Existing businesses that upgrade to the Premium tier (tier change
+  #    detected) and already have a custom-domain host type should also kick
+  #    off the setup sequence automatically – but only if the setup hasn’t
+  #    already been started/completed.
+  after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
+  after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
+
+  # ---------------------------------------------------------------------------
+  # Callback helpers (private)
+  # ---------------------------------------------------------------------------
+  private
+
+  # Triggered after *create* for eligible businesses.
+  def trigger_custom_domain_setup_after_create
+    return unless premium_tier? && host_type_custom_domain? && hostname.present?
+    return if Rails.env.test? # avoid interfering with specs
+
+    # Run domain setup in background to prevent 502 crashes from external API calls
+    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for newly created Business ##{id} (#{hostname})"
+    CustomDomainSetupJob.perform_later(id)
+  end
+
+  # Triggered after *update* when a non-premium business upgrades to Premium.
+  def trigger_custom_domain_setup_after_premium_upgrade
+    return if Rails.env.test?
+    return unless saved_change_to_tier? && tier == 'premium'
+
+    # Only act when moving *to* premium, not any other tier change.
+    old_tier, new_tier = saved_change_to_tier
+    return unless old_tier != 'premium' && new_tier == 'premium'
+
+    return unless host_type_custom_domain? && hostname.present?
+
+    # Skip if setup already in progress or completed.
+    return if cname_pending? || cname_monitoring? || cname_active?
+
+    # Run domain setup in background to prevent 502 crashes from external API calls
+    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after tier upgrade (#{old_tier} -> premium)"
+    CustomDomainSetupJob.perform_later(id)
+  end
+
+  # Triggered after *update* when host_type changes from subdomain -> custom_domain on a premium business.
+  def trigger_custom_domain_setup_after_host_type_change
+    return if Rails.env.test?
+    return unless saved_change_to_host_type? && host_type_custom_domain?
+    return unless premium_tier? && hostname.present?
+    # Skip if setup already running or completed
+    return if cname_pending? || cname_monitoring? || cname_active?
+    
+    # Run domain setup in background to prevent 502 crashes from external API calls
+    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after host_type change (subdomain -> custom_domain)"
+    CustomDomainSetupJob.perform_later(id)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Existing private methods continue below
+  # ---------------------------------------------------------------------------
   def process_logo
     return unless logo.attached?
     
@@ -665,9 +884,19 @@ class Business < ApplicationRecord
   
   def normalize_hostname
     return if hostname.blank?
-    self.hostname = hostname.downcase.strip
+    self.hostname = hostname.to_s.downcase.strip
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
+  end
+  # Keeps hostname in sync with subdomain for subdomain-based tenants.
+  # • Runs when the record is new OR the subdomain itself is being changed.
+  # • Normalises the value for consistency.
+  def sync_hostname_with_subdomain
+    return if subdomain.blank?
+
+    if new_record? || will_save_change_to_subdomain? || hostname.blank?
+      self.hostname = subdomain.to_s.downcase.strip
+    end
   end
 
   def normalize_stripe_customer_id
@@ -676,10 +905,46 @@ class Business < ApplicationRecord
     self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
   
-  def free_tier_requires_subdomain_host_type
-    unless host_type_subdomain?
-      errors.add(:host_type, "must be 'subdomain' for the Free tier")
+  # Validation helper: Free **and Standard** tiers can only use BizBlasts sub-domains.
+  # Runs only when creating or updating a non-premium business.
+  def non_premium_requires_subdomain_host_type
+    return if host_type_subdomain?
+    errors.add(:host_type, "must be 'subdomain' for Free and Standard tiers")
+  end
+
+  # Keep old method name as alias for backwards compatibility (e.g., specs).
+  alias_method :free_tier_requires_subdomain_host_type, :non_premium_requires_subdomain_host_type
+  
+  # Validation helper: prevent non-premium businesses from using custom domains.
+  def custom_domain_requires_premium_tier
+    return unless host_type_custom_domain?
+ 
+    # --- Allow downgrades ----------------------------------------------------
+    # If the business is *downgrading* from premium, let the record save so that
+    # the `handle_tier_downgrade` callback can subsequently remove the custom
+    # domain.  A downgrade is detected when the tier is changing **from**
+    # 'premium' **to** a different value.
+    if will_save_change_to_tier? && tier_was == 'premium' && tier != 'premium'
+      return # skip validation – downgrade will be handled after save
     end
+
+    # For all other cases (creates, upgrades, edits) enforce the rule.
+    final_tier = if will_save_change_to_tier? && tier.present?
+                   tier                           # new value about to be saved
+                 else
+                   tier_was || tier              # previous persisted value (or current)
+                 end
+
+    unless final_tier == 'premium'
+      errors.add(:tier, 'must be premium to use a custom domain')
+    end
+  end
+  
+  # Returns true if the tier *before the current change* was premium.  Works
+  # in validations (before save) because `tier_was` contains the previously
+  # persisted value.
+  def premium_tier_was?
+    tier_was == 'premium'
   end
   
   # Sync business hours with the default location
@@ -750,6 +1015,64 @@ class Business < ApplicationRecord
       services_with_loyalty_fallback.update_all(
         subscription_rebooking_preference: 'same_day_next_month'
       )
+    end
+  end
+
+  def handle_tier_downgrade
+    # Only act if tier changed and business has custom domain
+    return unless saved_change_to_tier? && host_type_custom_domain?
+    
+    old_tier, new_tier = saved_change_to_tier
+    
+    # Remove custom domain if downgrading from premium
+    if old_tier == 'premium' && new_tier != 'premium'
+      Rails.logger.info "[TIER DOWNGRADE] Removing custom domain due to tier change from #{old_tier} to #{new_tier} for business #{id}"
+      
+      begin
+        removal_service = DomainRemovalService.new(self)
+        result = removal_service.handle_tier_downgrade!(new_tier)
+        
+        Rails.logger.info "[TIER DOWNGRADE] Domain removal result: #{result[:success] ? 'success' : 'failed'}"
+      rescue => e
+        Rails.logger.error "[TIER DOWNGRADE] Failed to remove domain: #{e.message}"
+      end
+    end
+  end
+
+  def handle_canonical_preference_change
+    # Only act if business has active custom domain
+    return unless host_type_custom_domain? && cname_active? && render_domain_added?
+    
+    old_preference, new_preference = saved_change_to_canonical_preference
+    
+    Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Updating Render domains from #{old_preference} to #{new_preference} for business #{id}"
+    
+    begin
+      # Remove and re-add domain with new canonical preference
+      setup_service = CnameSetupService.new(self)
+      
+      # First remove existing domains
+      render_service = RenderDomainService.new
+      apex_domain = hostname.sub(/^www\./, '')
+      
+      [apex_domain, "www.#{apex_domain}"].each do |domain_name|
+        domain = render_service.find_domain_by_name(domain_name)
+        if domain
+          Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Removing domain: #{domain_name}"
+          render_service.remove_domain(domain['id'])
+        end
+      end
+      
+      # Re-add with new canonical preference
+      setup_service.send(:add_domain_to_render!)
+      # Auto-trigger verification of both variants in Render
+      setup_service.send(:verify_render_domains!)
+      
+      Rails.logger.info "[CANONICAL PREFERENCE CHANGE] Successfully updated canonical preference"
+      
+    rescue => e
+      Rails.logger.error "[CANONICAL PREFERENCE CHANGE] Failed to update domains: #{e.message}"
+      # Don't raise - this is a background operation
     end
   end
 end 

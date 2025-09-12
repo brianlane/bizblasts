@@ -346,7 +346,7 @@ ActiveAdmin.register_page "Subscription Reports" do
               link_to transaction.id, admin_subscription_transaction_path(transaction)
             end
             column :business do |transaction|
-              link_to transaction.business.name, admin_business_path(transaction.business)
+              link_to transaction.business.name, admin_business_path(transaction.business.id)
             end
             column :customer do |transaction|
               transaction.tenant_customer.email

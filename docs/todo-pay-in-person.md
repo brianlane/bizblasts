@@ -1572,7 +1572,7 @@ end
 
 ### Contact Support
 - Stripe Terminal Support: https://support.stripe.com/terminal
-- BizBlasts Support: support@bizblasts.com
+- BizBlasts Support: bizblaststeam@gmail.com
 
 ## Future Enhancements
 

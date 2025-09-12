@@ -79,9 +79,9 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_content("Free Plan")
       expect(page).to have_content("$0/month")
       expect(page).to have_content("Standard Plan")
-      expect(page).to have_content("$49/month")
+      expect(page).to have_content("$9.99/month")
       expect(page).to have_content("Premium Plan")
-      expect(page).to have_content("$99/month")
+      expect(page).to have_content("$29.99/month")
     end
 
     it "shows plan features" do
@@ -145,9 +145,12 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Select Premium"
       end
       
-      # Should show domain coverage info in help text
-      expect(page).to have_content("Domain Coverage: BizBlasts covers up to $20/year for new domains")
-      expect(page).to have_content("For domains over $20/year, we'll contact you with alternatives")
+      # Should show domain coverage info in help text using new bullet format
+      expect(page).to have_content("💰 Domain Coverage Included:")
+      expect(page).to have_content("BizBlasts covers up to $20/year for new domain registration")
+      expect(page).to have_content("Auto-renewal setup: We pay domain costs every year up to $20")
+      expect(page).to have_content("If you already own your domain, you handle domain costs")
+      expect(page).to have_content("Our team manages all technical setup and verification")
     end
 
     it "has selection buttons for each plan" do
@@ -170,8 +173,8 @@ RSpec.describe "Business Registration", type: :system do
       # Wait for JavaScript to update the hidden field
       expect(page).to have_field("selected_tier", with: "standard", type: :hidden)
       
-      # Check that the hostname field becomes visible
-      expect(page).to have_field("user_business_attributes_hostname", visible: true)
+      # Check that the subdomain field is visible for Standard tier
+      expect(page).to have_field("registration_subdomain_field", visible: true)
     end
   end
 
@@ -197,12 +200,12 @@ RSpec.describe "Business Registration", type: :system do
       fill_in "Zip", with: "12345"
       fill_in "Description", with: "A test business"
       
-      # Free plan should be selected by default, which makes hostname field visible
+      # Free plan should be selected by default, which makes subdomain field visible
       expect(page).to have_field("selected_tier", with: "free", type: :hidden)
       
-      # Wait for hostname field to be visible and fill it
-      expect(page).to have_field("user_business_attributes_hostname", visible: true)
-      fill_in "user_business_attributes_hostname", with: "testbiz"
+      # For free tier, subdomain field should be visible (hostname field is not used)
+      expect(page).to have_field("registration_subdomain_field", visible: true)
+      fill_in "registration_subdomain_field", with: "testbiz"
       
       # Accept all required policies for business users
       check "policy_acceptances_terms_of_service"
@@ -210,14 +213,19 @@ RSpec.describe "Business Registration", type: :system do
       check "policy_acceptances_acceptable_use_policy"
       check "policy_acceptances_return_policy"
       
-      # In system test environment, paid tiers create immediately (not Stripe redirect)
-      expect {
-        click_button "Create Business Account"
-      }.to change(Business, :count).by(1).and change(User, :count).by(1)
+      # In system test environment, free tier creates immediately (not Stripe redirect)
+      # Add a small wait to ensure any JavaScript has processed
+      sleep 0.5
       
-      # Should redirect to root path in test environment
+      click_button "Create Business Account"
+      
+      # Wait for the redirect and database transaction to complete
       expect(page).to have_current_path(root_path)
       expect(page).to have_content("A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.")
+      
+      # Verify the records were created
+      expect(Business.count).to eq(1)
+      expect(User.count).to eq(1)
       
       # Verify business was created with correct attributes
       business = Business.last
@@ -254,10 +262,10 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Select Standard"
       end
       
-      # Wait for JavaScript to update and hostname field to be visible
+      # Wait for JavaScript to update and subdomain field to be visible
       expect(page).to have_field("selected_tier", with: "standard", type: :hidden)
-      expect(page).to have_field("user_business_attributes_hostname", visible: true)
-      fill_in "user_business_attributes_hostname", with: "standardbiz"
+      expect(page).to have_field("registration_subdomain_field", visible: true)
+      fill_in "registration_subdomain_field", with: "standardbiz"
       
       # Accept all required policies for business users
       check "policy_acceptances_terms_of_service"
@@ -271,7 +279,7 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Create Business Account"
       }.to change(Business, :count).by(0).and change(User, :count).by(0)
       
-      # Should redirect to Stripe checkout for paid tiers
+      # Should redirect to Stripe checkout for paid tiers in system test environment
       expect(current_url).to eq("https://checkout.stripe.com/pay/cs_subscription_123")
       
       # Verify Stripe checkout session was created with registration data in metadata
@@ -325,10 +333,10 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Select Premium"
       end
       
-      # Wait for JavaScript and fill hostname
+      # Wait for JavaScript and fill subdomain (Premium can use subdomain or custom domain)
       expect(page).to have_field("selected_tier", with: "premium", type: :hidden)
-      expect(page).to have_field("user_business_attributes_hostname", visible: true)
-      fill_in "user_business_attributes_hostname", with: "testbiz"
+      expect(page).to have_field("registration_subdomain_field", visible: true)
+      fill_in "registration_subdomain_field", with: "testbiz"
       
       # Accept all required policies
       check "policy_acceptances_terms_of_service"
@@ -383,10 +391,10 @@ RSpec.describe "Business Registration", type: :system do
         click_button "Select Premium"
       end
       
-      # Wait for JavaScript and fill hostname
+      # Wait for JavaScript and fill subdomain (Premium can use subdomain or custom domain)
       expect(page).to have_field("selected_tier", with: "premium", type: :hidden)
-      expect(page).to have_field("user_business_attributes_hostname", visible: true)
-      fill_in "user_business_attributes_hostname", with: "testbiz2"
+      expect(page).to have_field("registration_subdomain_field", visible: true)
+      fill_in "registration_subdomain_field", with: "testbiz2"
       
       # Accept all required policies
       check "policy_acceptances_terms_of_service"

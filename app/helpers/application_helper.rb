@@ -118,6 +118,8 @@ module ApplicationHelper
       render partial: 'docs/content/legal-setup-arizona'
     when 'business-growth-strategies'
       render partial: 'docs/content/business-growth-strategies'
+    when 'custom-domain-faq'
+      render partial: 'docs/content/custom-domain-faq'
     else
       content_tag :div, class: 'text-center py-12' do
         content_tag :p, 'Documentation not available.', class: 'text-gray-500'
