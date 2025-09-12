@@ -147,6 +147,22 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         verification_result[:status_reason]
       end
 
+      # If all checks passed, immediately finalize activation so traffic flips now
+      if overall_status && (!@business.cname_active? || !@business.domain_health_verified?)
+        begin
+          if @business.cname_monitoring? && @business.cname_monitoring_active?
+            # Let the monitoring service persist the state (also sends success email)
+            monitoring_service.perform_check!
+          else
+            # Fallback: persist the minimum state needed to serve traffic now
+            @business.mark_domain_health_status!(true)
+            @business.cname_success!
+          end
+        rescue => e
+          Rails.logger.warn "[DomainStatusCheck] Immediate activation attempt failed: #{e.message}"
+        end
+      end
+
       render json: {
         overall_status: overall_status,
         status_message: status_message,
