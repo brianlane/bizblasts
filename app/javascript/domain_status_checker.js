@@ -6,6 +6,7 @@ class DomainStatusChecker {
     this.lastCheckTime = 0;
     this.minCheckInterval = 10000; // 10 seconds minimum between checks
     this.checkInProgress = false;
+    this.autoInitDone = false;
     
     this.initializeElements();
     this.bindEvents();
@@ -226,6 +227,8 @@ class DomainStatusChecker {
 
   // Auto-check domain status on page load for custom domains
   initializeDomainStatusChecker(isActive) {
+    if (this.autoInitDone) return;
+    this.autoInitDone = true;
     if (!this.domainStatusContainer) return;
     
     if (!isActive) {
@@ -279,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!domainStatusChecker) {
       domainStatusChecker = new DomainStatusChecker();
     }
+    domainStatusChecker.initializeDomainStatusChecker(!!window.domainIsActive);
   }
 });
 
@@ -288,6 +292,7 @@ document.addEventListener('turbo:load', () => {
     if (!domainStatusChecker) {
       domainStatusChecker = new DomainStatusChecker();
     }
+    domainStatusChecker.initializeDomainStatusChecker(!!window.domainIsActive);
   }
 });
 
