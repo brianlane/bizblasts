@@ -65,6 +65,24 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     Rails.logger.info "[BUSINESS_SETTINGS] sync_location parameter: #{params[:sync_location].inspect}"
     
     if @business.update(business_params)
+      # If the user switched back to subdomain mode, run the same removal
+      # service used by ActiveAdmin to clean up Render and revert safely.
+      if @business.saved_change_to_host_type? && @business.host_type_subdomain?
+        Rails.logger.info "[BUSINESS_SETTINGS] Host type switched to subdomain – invoking DomainRemovalService"
+        begin
+          removal_service = DomainRemovalService.new(@business)
+          result = removal_service.remove_domain!
+          if result[:success]
+            flash[:notice] = 'Custom domain removed and reverted to subdomain.'
+          else
+            flash[:alert] = "Failed to remove custom domain: #{result[:error]}"
+          end
+        rescue => e
+          Rails.logger.error "[BUSINESS_SETTINGS] Domain removal failed: #{e.message}"
+          flash[:alert] = 'Failed to remove custom domain. Please try again or contact support.'
+        end
+      end
+
       # After update, check if hostname or subdomain changed
       if (@business.saved_change_to_hostname? || @business.saved_change_to_subdomain?)
         # Only redirect to custom domain if it's already active and working
