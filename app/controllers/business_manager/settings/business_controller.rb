@@ -195,6 +195,68 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     end
   end
 
+  # POST /manage/settings/business/finalize_domain_activation
+  # Idempotent endpoint to persist activation immediately once checks pass.
+  # Does not send emails and keeps GET semantics clean.
+  def finalize_domain_activation
+    unless @business.host_type_custom_domain? && @business.hostname.present?
+      return render json: { error: 'Activation only applies to custom domains' }, status: :unprocessable_entity
+    end
+
+    begin
+      check_domain = @business.canonical_domain || @business.hostname
+      dns_checker = CnameDnsChecker.new(check_domain)
+      dual_verifier = DualDomainVerifier.new(@business.hostname)
+      health_checker = DomainHealthChecker.new(check_domain)
+      render_service = RenderDomainService.new
+
+      dns_result = dns_checker.verify_cname
+      dual_result = dual_verifier.verify_both_domains
+      health_result = health_checker.check_health
+
+      render_result = begin
+        domain = render_service.find_domain_by_name(check_domain)
+        if domain
+          verification = render_service.verify_domain(domain['id'])
+          { found: true, verified: verification['verified'] == true }
+        else
+          { found: false, verified: false }
+        end
+      rescue => e
+        { found: false, verified: false, error: e.message }
+      end
+
+      verification_strategy = DomainVerificationStrategy.new(@business)
+      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
+
+      unless verification_result[:verified]
+        return render json: {
+          activated: false,
+          status_message: verification_result[:status_reason]
+        }, status: :unprocessable_entity
+      end
+
+      # Persist activation idempotently (no emails here)
+      ActiveRecord::Base.transaction do
+        @business.mark_domain_health_status!(true)
+        @business.cname_success! unless @business.cname_active?
+      end
+
+      render json: {
+        activated: true,
+        business_status: {
+          status: @business.status,
+          domain_health_verified: @business.domain_health_verified,
+          render_domain_added: @business.render_domain_added,
+          custom_domain_allow: @business.custom_domain_allow?
+        }
+      }
+    rescue => e
+      Rails.logger.error "[DomainActivation] Failed to finalize activation for #{@business.hostname}: #{e.message}"
+      render json: { error: 'Unable to finalize activation' }, status: :internal_server_error
+    end
+  end
+
   private
 
   def set_business
