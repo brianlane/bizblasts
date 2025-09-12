@@ -25,8 +25,10 @@ RSpec.describe CertificatePropagationRetryJob, type: :job do
     allow(RenderDomainService).to receive(:new).and_return(render_service)
     allow(DomainHealthChecker).to receive(:new).and_return(health_checker)
     allow(Business).to receive(:find).with(business.id).and_return(business)
-    # Mock sleep to avoid timeouts in tests
-    allow_any_instance_of(CertificatePropagationRetryJob).to receive(:sleep)
+    # Mock job scheduling
+    allow(RenderDomainVerificationJob).to receive(:perform_later)
+    allow(RenderDomainVerificationJob).to receive_message_chain(:set, :perform_later)
+    allow(DomainRebuildContinueJob).to receive_message_chain(:set, :perform_later)
   end
 
   describe '#perform' do
@@ -39,9 +41,10 @@ RSpec.describe CertificatePropagationRetryJob, type: :job do
       end
 
       context 'for retries 0-2' do
-        it 'triggers standard verification without rebuilding domains' do
-          expect(render_service).to receive(:verify_domain).with('apex-domain-id')
-          expect(render_service).to receive(:verify_domain).with('www-domain-id')
+        it 'schedules verification jobs without rebuilding domains' do
+          expect(RenderDomainVerificationJob).to receive(:perform_later).with('example.com')
+          expect(RenderDomainVerificationJob).to receive_message_chain(:set, :perform_later)
+            .with(wait: 30.seconds).with('www.example.com')
           expect(render_service).not_to receive(:remove_domain)
           expect(render_service).not_to receive(:add_domain)
 
@@ -62,28 +65,14 @@ RSpec.describe CertificatePropagationRetryJob, type: :job do
           allow(render_service).to receive(:add_domain)
         end
 
-        it 'rebuilds domains by removing and re-adding them' do
+        it 'starts domain rebuild by removing domains and scheduling continue job' do
           # Expect removal of both domains
           expect(render_service).to receive(:remove_domain).with('apex-domain-id')
           expect(render_service).to receive(:remove_domain).with('www-domain-id')
 
-          # Expect re-addition based on canonical preference (apex only for apex preference)
-          expect(render_service).to receive(:add_domain).with('example.com')
-
-          # Expect verification of both domains after rebuild
-          expect(render_service).to receive(:verify_domain).with('apex-domain-id')
-          expect(render_service).to receive(:verify_domain).with('www-domain-id')
-
-          described_class.perform_now(business.id, 3)
-        end
-
-        it 'handles www canonical preference correctly' do
-          business.canonical_preference = 'www'
-
-          expect(render_service).to receive(:remove_domain).with('apex-domain-id')
-          expect(render_service).to receive(:remove_domain).with('www-domain-id')
-          expect(render_service).to receive(:add_domain).with('www.example.com')
-          expect(render_service).to receive(:verify_domain).twice
+          # Expect scheduling of continue job after 10 seconds
+          expect(DomainRebuildContinueJob).to receive_message_chain(:set, :perform_later)
+            .with(wait: 10.seconds).with(business.id)
 
           described_class.perform_now(business.id, 3)
         end
@@ -167,15 +156,15 @@ RSpec.describe CertificatePropagationRetryJob, type: :job do
       end
     end
 
-    context 'when render service errors occur' do
+    context 'when job scheduling errors occur' do
       before do
         allow(health_checker).to receive(:check_health).and_return({ healthy: false, ssl_ready: false })
-        allow(render_service).to receive(:find_domain_by_name).and_raise(RenderDomainService::RenderApiError, 'API Error')
+        allow(RenderDomainVerificationJob).to receive(:perform_later).and_raise(StandardError, 'Job Error')
       end
 
       it 'logs error but continues processing' do
         expect(Rails.logger).to receive(:error)
-          .with('[CertificatePropagationRetryJob] Failed to trigger verification: API Error')
+          .with('[CertificatePropagationRetryJob] Failed to schedule verification: Job Error')
 
         expect { described_class.perform_now(business.id, 1) }.not_to raise_error
       end
@@ -297,33 +286,19 @@ RSpec.describe CertificatePropagationRetryJob, type: :job do
       allow(render_service).to receive(:verify_domain)
     end
 
-    it 'enforces 30-second delay between domain verifications' do
-      expect(job).to receive(:sleep).with(10).once  # cleanup wait
-      expect(job).to receive(:sleep).with(30).once  # verification delay
+    it 'schedules domain rebuild continuation job after cleanup delay' do
+      expect(DomainRebuildContinueJob).to receive_message_chain(:set, :perform_later)
+        .with(wait: 10.seconds).with(business.id)
 
       job.send(:rebuild_domains_in_render, business)
     end
 
-    it 'waits for Render cleanup after domain removal' do
-      expect(job).to receive(:sleep).with(10).once # cleanup wait
-      expect(job).to receive(:sleep).with(30).once # verification delay
-
-      job.send(:rebuild_domains_in_render, business)
-    end
-
-    it 'logs all steps of the rebuild process' do
+    it 'logs domain rebuild start and scheduling' do
       expect(Rails.logger).to receive(:info).with(/Starting domain rebuild/).ordered
       expect(Rails.logger).to receive(:info).with(/Removing existing domains/).ordered
       expect(Rails.logger).to receive(:info).with(/Removing domain: example.com/).ordered
       expect(Rails.logger).to receive(:info).with(/Removing domain: www.example.com/).ordered  
-      expect(Rails.logger).to receive(:info).with(/Waiting 10 seconds for Render cleanup/).ordered
-      expect(Rails.logger).to receive(:info).with(/Apex canonical: adding apex domain as primary/).ordered
-      expect(Rails.logger).to receive(:info).with(/Re-adding domain: example.com/).ordered
-      expect(Rails.logger).to receive(:info).with(/Triggering verification after rebuild/).ordered
-      expect(Rails.logger).to receive(:info).with(/Verifying rebuilt domain: example.com/).ordered
-      expect(Rails.logger).to receive(:info).with(/Waiting 30 seconds before verifying www.example.com/).ordered
-      expect(Rails.logger).to receive(:info).with(/Verifying rebuilt domain: www.example.com/).ordered
-      expect(Rails.logger).to receive(:info).with(/Domain rebuild completed/).ordered
+      expect(Rails.logger).to receive(:info).with(/Scheduling domain re-addition after 10 seconds/).ordered
 
       job.send(:rebuild_domains_in_render, business)
     end

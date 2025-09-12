@@ -128,14 +128,25 @@ RSpec.describe DomainHealthChecker, type: :service do
 
     context 'when SSL error occurs' do
       before do
-        allow(mock_http).to receive(:request).and_raise(OpenSSL::SSL::SSLError.new('certificate verify failed'))
+        # First call (HTTPS) should fail with SSL error
+        # Second call (HTTP fallback) should fail with different error (not SSL or redirect)
+        call_count = 0
+        allow(mock_http).to receive(:request) do
+          call_count += 1
+          if call_count == 1
+            raise OpenSSL::SSL::SSLError.new('certificate verify failed')
+          else
+            raise SocketError.new('Connection refused') # Non-SSL, non-redirect error
+          end
+        end
       end
 
-      it 'returns SSL error result' do
+      it 'returns SSL error result when not a propagation delay' do
         result = checker.check_health
 
         expect(result[:healthy]).to be false
-        expect(result[:error]).to include('SSL error')
+        expect(result[:error]).to include('HTTPS failed (SSL)')
+        expect(result[:error]).to include('HTTP failed')
       end
     end
 

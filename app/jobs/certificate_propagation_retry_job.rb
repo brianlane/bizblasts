@@ -87,22 +87,18 @@ class CertificatePropagationRetryJob < ApplicationJob
       domains_to_verify = [apex_domain, "www.#{apex_domain}"]
       
       domains_to_verify.each_with_index do |domain_name, index|
-        # Add 30-second delay between apex and www verification
-        if index > 0
-          Rails.logger.info "[CertificatePropagationRetryJob] Waiting 30 seconds before verifying #{domain_name}"
-          sleep(30)
-        end
+        wait_time = index * 30.seconds # 0s for apex, 30s for www
         
-        domain = render_service.find_domain_by_name(domain_name)
-        if domain
-          Rails.logger.info "[CertificatePropagationRetryJob] Re-triggering verification for: #{domain_name}"
-          render_service.verify_domain(domain['id'])
+        if wait_time > 0
+          Rails.logger.info "[CertificatePropagationRetryJob] Scheduling verification for #{domain_name} in #{wait_time} seconds"
+          RenderDomainVerificationJob.set(wait: wait_time).perform_later(domain_name)
         else
-          Rails.logger.warn "[CertificatePropagationRetryJob] Domain not found in Render: #{domain_name}"
+          Rails.logger.info "[CertificatePropagationRetryJob] Scheduling immediate verification for #{domain_name}"
+          RenderDomainVerificationJob.perform_later(domain_name)
         end
       end
     rescue => e
-      Rails.logger.error "[CertificatePropagationRetryJob] Failed to trigger verification: #{e.message}"
+      Rails.logger.error "[CertificatePropagationRetryJob] Failed to schedule verification: #{e.message}"
     end
   end
 
@@ -124,36 +120,9 @@ class CertificatePropagationRetryJob < ApplicationJob
         end
       end
       
-      # Step 2: Wait briefly for Render to process removals
-      Rails.logger.info "[CertificatePropagationRetryJob] Waiting 10 seconds for Render cleanup"
-      sleep(10)
-      
-      # Step 3: Re-add domains honoring canonical preference
-      domains_to_add = determine_domains_to_add(business)
-      domains_to_add.each do |domain_name|
-        Rails.logger.info "[CertificatePropagationRetryJob] Re-adding domain: #{domain_name}"
-        render_service.add_domain(domain_name)
-      end
-      
-      # Step 4: Trigger verification with 30-second delay
-      Rails.logger.info "[CertificatePropagationRetryJob] Triggering verification after rebuild"
-      domains_to_rebuild.each_with_index do |domain_name, index|
-        # Always wait 30 seconds between apex and www to prevent Render certificate race
-        if index > 0
-          Rails.logger.info "[CertificatePropagationRetryJob] Waiting 30 seconds before verifying #{domain_name}"
-          sleep(30)
-        end
-        
-        domain = render_service.find_domain_by_name(domain_name)
-        if domain
-          Rails.logger.info "[CertificatePropagationRetryJob] Verifying rebuilt domain: #{domain_name}"
-          render_service.verify_domain(domain['id'])
-        else
-          Rails.logger.warn "[CertificatePropagationRetryJob] Rebuilt domain not found: #{domain_name}"
-        end
-      end
-      
-      Rails.logger.info "[CertificatePropagationRetryJob] Domain rebuild completed for #{business.hostname}"
+      # Step 2: Schedule domain re-addition after cleanup delay
+      Rails.logger.info "[CertificatePropagationRetryJob] Scheduling domain re-addition after 10 seconds for Render cleanup"
+      DomainRebuildContinueJob.set(wait: 10.seconds).perform_later(business.id)
       
     rescue => e
       Rails.logger.error "[CertificatePropagationRetryJob] Failed to rebuild domains: #{e.message}"
