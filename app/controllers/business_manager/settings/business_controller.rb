@@ -97,11 +97,23 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         end
       end
       # Check if the sync_location parameter is present with a value of '1'
+      # Preserve any flash set earlier (e.g., from DomainRemovalService) by only
+      # providing a default notice when none exists.
+      flash_already_set = flash[:alert].present? || flash[:notice].present?
+
       if params[:sync_location] == '1'
         sync_with_default_location
-        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated.'
+        if flash_already_set
+          redirect_to edit_business_manager_settings_business_path
+        else
+          redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated.'
+        end
       else
-        redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+        if flash_already_set
+          redirect_to edit_business_manager_settings_business_path
+        else
+          redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+        end
       end
     else
       render :edit, status: :unprocessable_content
