@@ -140,6 +140,7 @@ class InProgressVerificationPolicy < VerificationPolicy
   def status_reason
     # Generate specific status message based on which checks have passed
     case verification_state
+    # SSL not ready cases
     when :all_pending
       'Waiting for CNAME record, Render verification, and health check'
     when :dns_only
@@ -156,6 +157,22 @@ class InProgressVerificationPolicy < VerificationPolicy
       'Render and health verified, waiting for DNS propagation'
     when :dns_render_http
       'Domain working via HTTP - SSL certificate provisioning in progress'
+    
+    # SSL ready cases
+    when :ssl_only
+      'HTTPS working, waiting for DNS and Render verification'
+    when :dns_ssl
+      'DNS and HTTPS configured, waiting for Render verification'
+    when :render_ssl
+      'Render and HTTPS verified, waiting for DNS propagation'
+    when :health_ssl
+      'HTTPS working, waiting for DNS and Render verification'
+    when :dns_render_ssl
+      'DNS and Render verified, HTTPS working - finalizing activation'
+    when :dns_health_ssl
+      'DNS and HTTPS working, waiting for Render verification'
+    when :render_health_ssl
+      'Render and HTTPS verified, waiting for DNS propagation'
     else
       'Domain configuration is in progress'
     end
@@ -165,6 +182,7 @@ class InProgressVerificationPolicy < VerificationPolicy
 
   def verification_state
     case [@dns_verified, @render_verified, @health_verified, @ssl_ready]
+    # SSL not ready cases
     when [false, false, false, false]
       :all_pending
     when [true, false, false, false]
@@ -181,6 +199,24 @@ class InProgressVerificationPolicy < VerificationPolicy
       :render_health
     when [true, true, true, false]
       :dns_render_http  # Everything works but SSL pending
+    
+    # SSL ready cases (health check passed with HTTPS)
+    when [false, false, false, true]
+      :ssl_only
+    when [true, false, false, true]
+      :dns_ssl
+    when [false, true, false, true]
+      :render_ssl
+    when [false, false, true, true]
+      :health_ssl
+    when [true, true, false, true]
+      :dns_render_ssl
+    when [true, false, true, true]
+      :dns_health_ssl
+    when [false, true, true, true]
+      :render_health_ssl
+    # Note: [true, true, true, true] is handled by SuccessVerificationPolicy
+    
     else
       :unknown
     end

@@ -14,7 +14,7 @@ RSpec.describe DomainVerificationStrategy, type: :service do
     context 'when all checks pass (success case)' do
       let(:dns_result) { { verified: true } }
       let(:render_result) { { verified: true } }
-      let(:health_result) { { healthy: true } }
+      let(:health_result) { { healthy: true, ssl_ready: true } }
 
       it 'returns success status' do
         result = strategy.determine_status(dns_result, render_result, health_result)
@@ -24,7 +24,7 @@ RSpec.describe DomainVerificationStrategy, type: :service do
         expect(result[:dns_verified]).to be true
         expect(result[:render_verified]).to be true
         expect(result[:health_verified]).to be true
-        expect(result[:status_reason]).to eq('Domain fully verified and responding with HTTP 200')
+        expect(result[:status_reason]).to eq('Domain fully verified and responding with HTTPS (SSL ready)')
       end
     end
 
@@ -146,7 +146,7 @@ RSpec.describe SuccessVerificationPolicy, type: :service do
 
   describe '#status_reason' do
     it 'returns success message' do
-      expect(policy.status_reason).to eq('Domain fully verified and responding with HTTP 200')
+      expect(policy.status_reason).to eq('Domain fully verified and responding with HTTPS (SSL ready)')
     end
   end
 end
