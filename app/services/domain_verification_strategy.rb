@@ -98,7 +98,7 @@ class SslPendingVerificationPolicy < VerificationPolicy
   end
 
   def status_reason
-    'Domain responding via HTTP - waiting for SSL certificate provisioning to complete'
+    'Domain responding via HTTP - SSL certificate provisioning in progress'
   end
 end
 

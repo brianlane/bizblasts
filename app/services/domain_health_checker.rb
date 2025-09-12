@@ -68,10 +68,22 @@ class DomainHealthChecker
           result[:response_time] = (Time.current - start_time).round(3)
           Rails.logger.info "[DomainHealthChecker] Domain healthy via HTTP (SSL pending): #{@domain_name} (#{result[:status_code]} in #{result[:response_time]}s)"
         else
-          # Both HTTPS and HTTP failed
-          result[:error] = "HTTPS failed (SSL): #{https_response[:error]}; HTTP failed: #{http_response[:error]}"
-          result[:response_time] = (Time.current - start_time).round(3)
-          Rails.logger.warn "[DomainHealthChecker] Both HTTPS and HTTP failed for #{@domain_name}: #{result[:error]}"
+          # Both HTTPS and HTTP failed - this is likely certificate propagation delay
+          # If we get SSL handshake failures, the domain routing is correct but cert isn't propagated yet
+          if is_ssl_propagation_delay?(https_response[:error], http_response[:error])
+            result[:healthy] = true
+            result[:protocol_used] = 'https'
+            result[:ssl_ready] = false
+            result[:error] = "Certificate propagation in progress (SSL handshake failure)"
+            result[:response_time] = (Time.current - start_time).round(3)
+            result[:propagation_retry_needed] = true  # Signal that retry job should be started
+            Rails.logger.info "[DomainHealthChecker] Domain healthy (cert propagating): #{@domain_name} - #{result[:error]}"
+          else
+            # Both HTTPS and HTTP failed for other reasons
+            result[:error] = "HTTPS failed (SSL): #{https_response[:error]}; HTTP failed: #{http_response[:error]}"
+            result[:response_time] = (Time.current - start_time).round(3)
+            Rails.logger.warn "[DomainHealthChecker] Both HTTPS and HTTP failed for #{@domain_name}: #{result[:error]}"
+          end
         end
       else
         # HTTPS failed for non-SSL reasons
@@ -163,6 +175,36 @@ class DomainHealthChecker
   end
 
   private
+
+  # Detect if errors indicate SSL certificate propagation delay rather than configuration issues
+  # @param https_error [String] HTTPS error message
+  # @param http_error [String] HTTP error message  
+  # @return [Boolean] True if this looks like cert propagation delay
+  def is_ssl_propagation_delay?(https_error, http_error)
+    # SSL handshake failures typically indicate cert propagation issues
+    ssl_handshake_patterns = [
+      'handshake failure',
+      'SSL_connect returned=1',
+      'sslv3 alert handshake failure',
+      'SSL_ERROR_SSL',
+      'certificate verify failed'
+    ]
+    
+    # HTTP redirect to HTTPS (common when cert is propagating)
+    http_redirect_patterns = [
+      'Moved Permanently',
+      'Found', 
+      '301',
+      '302',
+      '308'
+    ]
+    
+    has_ssl_handshake_error = ssl_handshake_patterns.any? { |pattern| https_error&.include?(pattern) }
+    has_http_redirect = http_redirect_patterns.any? { |pattern| http_error&.include?(pattern) }
+    
+    # If HTTPS has handshake failure and HTTP redirects (or also fails), it's likely propagation
+    has_ssl_handshake_error && (has_http_redirect || http_error&.include?('SSL'))
+  end
 
   # Check health for a specific protocol
   def check_health_for_protocol(protocol)

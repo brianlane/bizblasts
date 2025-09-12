@@ -169,13 +169,9 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
       
       overall_status = verification_result[:verified]
-      status_message = if overall_status
-        verification_result[:status_reason]
-      elsif @business.status == 'cname_active' && @business.domain_health_verified
-        'Domain is active and verified'
-      else
-        verification_result[:status_reason]
-      end
+      # Always derive the banner message from the live verification result.
+      # Do not override with persisted flags to avoid stale green states.
+      status_message = verification_result[:status_reason]
 
       render json: {
         overall_status: overall_status,

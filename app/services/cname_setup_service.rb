@@ -278,9 +278,11 @@ class CnameSetupService
       apex_domain = @business.hostname.sub(/^www\./, '')
       domains_to_verify = [apex_domain, "www.#{apex_domain}"]
       
-      domains_to_verify.each do |domain_name|
-        Rails.logger.info "[CnameSetupService] Enqueuing async verification for: #{domain_name}"
-        RenderDomainVerificationJob.set(wait: 30.seconds).perform_later(domain_name)
+      domains_to_verify.each_with_index do |domain_name, index|
+        # Add 30-second delay between apex and www verification to prevent Render certificate race
+        wait_time = index == 0 ? 30.seconds : 60.seconds # apex at 30s, www at 60s
+        Rails.logger.info "[CnameSetupService] Enqueuing async verification for #{domain_name} in #{wait_time} seconds"
+        RenderDomainVerificationJob.set(wait: wait_time).perform_later(domain_name)
       end
     rescue => e
       # Don't fail the entire setup process if verification fails
