@@ -277,8 +277,8 @@ class CnameSetupService
       domains_to_verify.each_with_index do |domain_name, index|
         # Add delay for www domain to allow SSL certificate provisioning
         if domain_name.start_with?('www.') && index > 0
-          Rails.logger.info "[CnameSetupService] Waiting 10 seconds for SSL provisioning before verifying: #{domain_name}"
-          sleep(10)
+          Rails.logger.info "[CnameSetupService] Waiting 30 seconds for SSL provisioning before verifying: #{domain_name}"
+          sleep(30)
         end
 
         domain = render_service.find_domain_by_name(domain_name)

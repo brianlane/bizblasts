@@ -19,11 +19,11 @@ class DomainHealthChecker
     @memoized_results = {}
   end
 
-  # Check if domain responds with HTTP 200
+  # Check if domain responds with HTTP 200, with SSL-aware fallback
   # @return [Hash] Result with health status and details
   def check_health
     # Return memoized result if available (within same request)
-    cache_key = "https_#{@domain_name}"
+    cache_key = "health_#{@domain_name}"
     return @memoized_results[cache_key] if @memoized_results[cache_key]
     
     Rails.logger.info "[DomainHealthChecker] Checking health for: #{@domain_name}"
@@ -36,29 +36,49 @@ class DomainHealthChecker
         response_time: nil,
         final_url: nil,
         redirect_count: 0,
+        protocol_used: nil,
+        ssl_ready: false,
         error: nil,
         checked_at: Time.current
       }
 
+      # Try HTTPS first, but fallback to HTTP if SSL isn't ready
       start_time = Time.current
-      response = perform_request(build_url(@domain_name))
-      result[:response_time] = (Time.current - start_time).round(3)
-
-      # Handle the response
-      if response[:success]
-        result[:healthy] = response[:status_code] == 200
-        result[:status_code] = response[:status_code]
-        result[:final_url] = response[:final_url]
-        result[:redirect_count] = response[:redirect_count]
-
-        if result[:healthy]
-          Rails.logger.info "[DomainHealthChecker] Domain is healthy: #{@domain_name} (#{response[:status_code]} in #{result[:response_time]}s)"
+      https_response = perform_request(build_url(@domain_name, 'https'))
+      
+      if https_response[:success] && https_response[:status_code] == 200
+        # HTTPS works - SSL is ready!
+        result.merge!(https_response.except(:success))
+        result[:healthy] = true
+        result[:protocol_used] = 'https'
+        result[:ssl_ready] = true
+        result[:response_time] = (Time.current - start_time).round(3)
+        Rails.logger.info "[DomainHealthChecker] Domain healthy via HTTPS: #{@domain_name} (#{result[:status_code]} in #{result[:response_time]}s)"
+      elsif https_response[:error]&.include?('SSL') || https_response[:error]&.include?('handshake')
+        # SSL error - certificate likely not ready yet, try HTTP
+        Rails.logger.info "[DomainHealthChecker] SSL not ready for #{@domain_name}, trying HTTP fallback: #{https_response[:error]}"
+        
+        http_response = perform_request(build_url(@domain_name, 'http'))
+        if http_response[:success] && http_response[:status_code] == 200
+          # HTTP works - domain is functional but SSL not ready
+          result.merge!(http_response.except(:success))
+          result[:healthy] = true
+          result[:protocol_used] = 'http'
+          result[:ssl_ready] = false
+          result[:response_time] = (Time.current - start_time).round(3)
+          Rails.logger.info "[DomainHealthChecker] Domain healthy via HTTP (SSL pending): #{@domain_name} (#{result[:status_code]} in #{result[:response_time]}s)"
         else
-          Rails.logger.warn "[DomainHealthChecker] Domain returned non-200 status: #{@domain_name} (#{response[:status_code]})"
+          # Both HTTPS and HTTP failed
+          result[:error] = "HTTPS failed (SSL): #{https_response[:error]}; HTTP failed: #{http_response[:error]}"
+          result[:response_time] = (Time.current - start_time).round(3)
+          Rails.logger.warn "[DomainHealthChecker] Both HTTPS and HTTP failed for #{@domain_name}: #{result[:error]}"
         end
       else
-        result[:error] = response[:error]
-        Rails.logger.warn "[DomainHealthChecker] Health check failed for #{@domain_name}: #{response[:error]}"
+        # HTTPS failed for non-SSL reasons
+        result.merge!(https_response.except(:success))
+        result[:protocol_used] = 'https'
+        result[:response_time] = (Time.current - start_time).round(3)
+        Rails.logger.warn "[DomainHealthChecker] HTTPS failed for #{@domain_name}: #{https_response[:error]}"
       end
 
       # Cache and return result
@@ -73,6 +93,8 @@ class DomainHealthChecker
         response_time: nil,
         final_url: nil,
         redirect_count: 0,
+        protocol_used: nil,
+        ssl_ready: false,
         error: "Health check exception: #{e.message}",
         checked_at: Time.current
       }
