@@ -126,26 +126,7 @@ module Webhooks
       return user.business if user&.business
 
       # Option 3: Fallback to any business that can send SMS
-      business = Business.where(sms_enabled: true).first || Business.first
-
-      # In test environment we need to ensure at least one business exists so that
-      # specs expecting business_id: 1 do not fail when no fixtures have been set up.
-      if Rails.env.test? && business.nil?
-        business = Business.create!(
-          id: 1,
-          name: "Default Test Business",
-          host_type: "subdomain",
-          subdomain: "testbiz",
-          tier: "free",
-          sms_enabled: true,
-          email: "test@example.com",
-          phone: "+15550000000",
-          address: "123 Test St",
-          validate: false
-        )
-      end
-
-      business
+      Business.where(sms_enabled: true).first || Business.first
     end
     
     def process_sms_opt_out(phone_number)
