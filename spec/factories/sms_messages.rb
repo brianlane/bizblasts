@@ -7,18 +7,18 @@ FactoryBot.define do
     content { "Your booking reminder." }
     status { :sent } 
     sent_at { 1.minute.ago }
-    external_id { "plivo-uuid-#{SecureRandom.hex(8)}" }  # Plivo-style UUID
+    external_id { "twilio-sid-#{SecureRandom.hex(8)}" }  # Twilio-style SID
 
     trait :delivered do
       status { :delivered }
       delivered_at { Time.current }
-      external_id { "plivo-uuid-delivered-#{SecureRandom.hex(8)}" }
+      external_id { "twilio-sid-delivered-#{SecureRandom.hex(8)}" }
     end
 
     trait :failed do
       status { :failed }
-      error_message { "Plivo API error: Invalid destination number" }
-      external_id { "plivo-uuid-failed-#{SecureRandom.hex(8)}" }
+      error_message { "Twilio API error: Invalid destination number" }
+      external_id { "twilio-sid-failed-#{SecureRandom.hex(8)}" }
     end
     
     trait :pending do 
@@ -30,7 +30,7 @@ FactoryBot.define do
     # Trait for testing with specific external_id
     trait :with_external_id do
       transient do
-        uuid { "plivo-uuid-test-#{SecureRandom.hex(8)}" }
+        uuid { "twilio-sid-test-#{SecureRandom.hex(8)}" }
       end
       external_id { uuid }
     end

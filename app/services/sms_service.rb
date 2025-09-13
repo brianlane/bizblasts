@@ -1,5 +1,5 @@
 class SmsService
-  # This service handles sending SMS messages using Plivo
+  # This service handles sending SMS messages using Twilio
   
   def self.send_message(phone_number, message, options = {})
     # Check if the phone number is valid
@@ -10,22 +10,21 @@ class SmsService
     # Create an SMS message record
     sms_message = create_sms_record(phone_number, message, options)
     
-    # Send SMS via Plivo API
+    # Send SMS via Twilio API
     begin
-      client = Plivo::RestClient.new(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
-      response = client.messages.create(
-        src: PLIVO_SOURCE_NUMBER,
-        dst: phone_number,
-        text: message
+      client = Twilio::REST::Client.new(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+      message_resource = client.messages.create(
+        messaging_service_sid: TWILIO_MESSAGING_SERVICE_SID,
+        to: phone_number,
+        body: message
       )
       
-      # Plivo returns message_uuid array. Validate it's present and not empty.
-      message_uuids = response.message_uuid
-      if message_uuids.nil? || message_uuids.empty?
-        raise StandardError, "Plivo did not return a message UUID"
+      # Twilio returns a message resource with sid. Validate it's present.
+      if message_resource.sid.nil? || message_resource.sid.empty?
+        raise StandardError, "Twilio did not return a message SID"
       end
 
-      external_id = message_uuids.first
+      external_id = message_resource.sid
       
       sms_message.update!(
         status: :sent,
@@ -33,11 +32,11 @@ class SmsService
         external_id: external_id
       )
       
-      Rails.logger.info "SMS sent successfully to #{phone_number} with Plivo UUID: #{external_id}"
+      Rails.logger.info "SMS sent successfully to #{phone_number} with Twilio SID: #{external_id}"
       { success: true, sms_message: sms_message, external_id: external_id }
       
-    rescue Plivo::Exceptions::PlivoRESTError => e
-      error_message = "Plivo API error: #{e.message}"
+    rescue Twilio::REST::RestError => e
+      error_message = "Twilio API error: #{e.message}"
       sms_message.mark_as_failed!(error_message)
       
       Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
@@ -82,19 +81,19 @@ class SmsService
   end
   
   def self.process_webhook(params)
-    # Handle Plivo webhook callbacks for delivery receipts
-    # Plivo sends MessageUUID in the webhook payload
+    # Handle Twilio webhook callbacks for delivery receipts
+    # Twilio sends MessageSid in the webhook payload
     
-    message_uuid = params[:MessageUUID] || params['MessageUUID']
-    status = params[:Status] || params['Status']
+    message_sid = params[:MessageSid] || params['MessageSid']
+    status = params[:MessageStatus] || params['MessageStatus']
     
-    return { success: false, error: "Missing MessageUUID in webhook" } unless message_uuid
-    return { success: false, error: "Missing Status in webhook" } unless status
+    return { success: false, error: "Missing MessageSid in webhook" } unless message_sid
+    return { success: false, error: "Missing MessageStatus in webhook" } unless status
     
-    sms_message = SmsMessage.find_by(external_id: message_uuid)
-    return { success: false, error: "Message not found for UUID: #{message_uuid}" } unless sms_message
+    sms_message = SmsMessage.find_by(external_id: message_sid)
+    return { success: false, error: "Message not found for SID: #{message_sid}" } unless sms_message
     
-    Rails.logger.info "Processing Plivo webhook for message #{message_uuid} with status: #{status}"
+    Rails.logger.info "Processing Twilio webhook for message #{message_sid} with status: #{status}"
     
     case status.downcase
     when "delivered"
@@ -107,11 +106,11 @@ class SmsService
       
       sms_message.mark_as_failed!(error_message)
       { success: false, error: error_message, sms_message: sms_message }
-    when "sent", "queued"
+    when "sent", "queued", "accepted"
       # These are intermediate states, don't update our status
       { success: true, status: "acknowledged", sms_message: sms_message }
     else
-      Rails.logger.warn "Unknown Plivo status received: #{status}"
+      Rails.logger.warn "Unknown Twilio status received: #{status}"
       { success: true, status: "unknown", sms_message: sms_message }
     end
   end

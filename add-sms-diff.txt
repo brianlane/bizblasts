@@ -1,0 +1,39 @@
+diff --git a/app/models/payment.rb b/app/models/payment.rb
+index 36235c9..ae53a82 100644
+--- a/app/models/payment.rb
++++ b/app/models/payment.rb
+@@ -84,7 +84,33 @@ class Payment < ApplicationRecord
+   end
+   
+   def self.ransackable_attributes(auth_object = nil)
+-    ["amount", "business_amount", "business_id", "created_at", "failure_reason", "id", "id_value", "invoice_id", "order_id", "paid_at", "payment_method", "platform_fee_amount", "refund_reason", "refunded_amount", "status", "stripe_charge_id", "stripe_customer_id", "stripe_fee_amount", "stripe_payment_intent_id", "stripe_transfer_id", "tenant_customer_id", "tip_amount", "updated_at"]
++    [
++      "amount",
++      "business_amount",
++      "business_id",
++      "created_at",
++      "failure_reason",
++      "id",
++      "id_value",
++      "invoice_id",
++      "order_id",
++      "paid_at",
++      "payment_method",
++      "platform_fee_amount",
++      "refund_reason",
++      "refunded_amount",
++      "status",
++      "stripe_charge_id",
++      "stripe_customer_id",
++      "stripe_fee_amount",
++      "stripe_payment_intent_id",
++      "stripe_transfer_id",
++      "tenant_customer_id",
++      "tip_amount",
++      "tip_received_on_initial_payment",
++      "tip_amount_received_initially",
++      "updated_at"
++    ]
+   end
+ 
+   def self.ransackable_associations(auth_object = nil)
