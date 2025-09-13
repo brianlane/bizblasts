@@ -1,5 +1,5 @@
 class SmsService
-  # This service handles sending SMS messages using a third-party provider (e.g., Twilio)
+  # This service handles sending SMS messages using Twilio
   
   def self.send_message(phone_number, message, options = {})
     # Check if the phone number is valid
@@ -10,35 +10,43 @@ class SmsService
     # Create an SMS message record
     sms_message = create_sms_record(phone_number, message, options)
     
-    # In a real implementation, this would use the Twilio API or similar
-    # client = Twilio::REST::Client.new(ENV['TWILIO_ACCOUNT_SID'], ENV['TWILIO_AUTH_TOKEN'])
-    # begin
-    #   response = client.messages.create(
-    #     from: ENV['TWILIO_PHONE_NUMBER'],
-    #     to: phone_number,
-    #     body: message
-    #   )
-    #   sms_message.update(
-    #     status: :sent,
-    #     sent_at: Time.current,
-    #     external_id: response.sid
-    #   )
-    #   { success: true, sms_message: sms_message, external_id: response.sid }
-    # rescue Twilio::REST::RestError => e
-    #   sms_message.update(status: :failed, error_message: e.message)
-    #   { success: false, error: e.message, sms_message: sms_message }
-    # end
-    
-    # Placeholder implementation
-    success = rand > 0.1 # 90% success rate for testing
-    
-    if success
-      external_id = "SM#{SecureRandom.hex(10)}"
-      sms_message.mark_as_sent!
+    # Send SMS via Twilio API
+    begin
+      client = Twilio::REST::Client.new(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+      message_resource = client.messages.create(
+        messaging_service_sid: TWILIO_MESSAGING_SERVICE_SID,
+        to: phone_number,
+        body: message
+      )
+      
+      # Twilio returns a message resource with sid. Validate it's present.
+      if message_resource.sid.nil? || message_resource.sid.empty?
+        raise StandardError, "Twilio did not return a message SID"
+      end
+
+      external_id = message_resource.sid
+      
+      sms_message.update!(
+        status: :sent,
+        sent_at: Time.current,
+        external_id: external_id
+      )
+      
+      Rails.logger.info "SMS sent successfully to #{phone_number} with Twilio SID: #{external_id}"
       { success: true, sms_message: sms_message, external_id: external_id }
-    else
-      error_message = "Failed to send SMS (simulated failure)"
+      
+    rescue Twilio::REST::RestError => e
+      error_message = "Twilio API error: #{e.message}"
       sms_message.mark_as_failed!(error_message)
+      
+      Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
+      { success: false, error: error_message, sms_message: sms_message }
+      
+    rescue => e
+      error_message = "Unexpected error: #{e.message}"
+      sms_message.mark_as_failed!(error_message)
+      
+      Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
       { success: false, error: error_message, sms_message: sms_message }
     end
   end
@@ -73,24 +81,36 @@ class SmsService
   end
   
   def self.process_webhook(params)
-    # This would handle webhook callbacks from the SMS provider
-    # For example, delivery receipts
+    # Handle Twilio webhook callbacks for delivery receipts
+    # Twilio sends MessageSid in the webhook payload
     
-    # Placeholder implementation
-    message_id = params[:message_id]
-    status = params[:status]
+    message_sid = params[:MessageSid] || params['MessageSid']
+    status = params[:MessageStatus] || params['MessageStatus']
     
-    sms_message = SmsMessage.find_by(external_id: message_id)
-    return { success: false, error: "Message not found" } unless sms_message
+    return { success: false, error: "Missing MessageSid in webhook" } unless message_sid
+    return { success: false, error: "Missing MessageStatus in webhook" } unless status
     
-    if status == "delivered"
+    sms_message = SmsMessage.find_by(external_id: message_sid)
+    return { success: false, error: "Message not found for SID: #{message_sid}" } unless sms_message
+    
+    Rails.logger.info "Processing Twilio webhook for message #{message_sid} with status: #{status}"
+    
+    case status.downcase
+    when "delivered"
       sms_message.mark_as_delivered!
-      { success: true, sms_message: sms_message }
-    elsif status == "failed"
-      error = params[:error_message] || "Delivery failed"
-      sms_message.mark_as_failed!(error)
-      { success: false, error: error, sms_message: sms_message }
+      { success: true, sms_message: sms_message, status: "delivered" }
+    when "failed", "undelivered"
+      error_code = params[:ErrorCode] || params['ErrorCode']
+      error_message = "Delivery failed"
+      error_message += " (Code: #{error_code})" if error_code
+      
+      sms_message.mark_as_failed!(error_message)
+      { success: false, error: error_message, sms_message: sms_message }
+    when "sent", "queued", "accepted"
+      # These are intermediate states, don't update our status
+      { success: true, status: "acknowledged", sms_message: sms_message }
     else
+      Rails.logger.warn "Unknown Twilio status received: #{status}"
       { success: true, status: "unknown", sms_message: sms_message }
     end
   end
