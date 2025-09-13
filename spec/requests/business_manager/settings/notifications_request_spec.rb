@@ -130,7 +130,10 @@ RSpec.describe "BusinessManager::Settings::Notifications", type: :request do
     it "displays integration credentials" do
       get edit_credentials_business_manager_settings_integration_credentials_path
       expect(response.body).to include(integration_credential.provider.humanize)
-      expect(response.body).to include(integration_credential.config.to_json)
+      # Check for individual config keys instead of exact JSON format to avoid ordering issues
+      integration_credential.config.each do |key, value|
+        expect(response.body).to include("\"#{key}\":\"#{value}\"")
+      end
     end
   end
 

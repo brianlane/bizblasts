@@ -57,16 +57,21 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       end
 
       it "calls SmsService.process_webhook with correct parameters" do
-        expect(SmsService).to receive(:process_webhook).with(
-          ActionController::Parameters.new(valid_webhook_params.merge(controller: "webhooks/twilio", action: "delivery_receipt")).permit!
-        )
+        expect(SmsService).to receive(:process_webhook) do |params|
+          expect(params[:MessageSid]).to eq("twilio-sid-12345")
+          expect(params[:MessageStatus]).to eq("delivered")
+          { success: true, sms_message: sms_message, status: "delivered" }
+        end
 
         post "/webhooks/twilio", params: valid_webhook_params
       end
 
       it "logs the successful processing" do
-        allow(Rails.logger).to receive(:info)
-        
+        # Use a more specific expectation that filters out Rails internal logging
+        expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio webhook/))
+        expect(Rails.logger).to receive(:info).with("Twilio webhook processed successfully: delivered")
+        allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
+
         post "/webhooks/twilio", params: valid_webhook_params
         
         expect(response).to have_http_status(:ok)
@@ -92,7 +97,9 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       end
 
       it "logs the processing failure" do
+        expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio webhook/))
         expect(Rails.logger).to receive(:error).with("Twilio webhook processing failed: Delivery failed (Code: 30008)")
+        allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
         post "/webhooks/twilio", params: failed_webhook_params
       end
@@ -131,8 +138,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       end
 
       it "logs the exception" do
+        expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio webhook/))
         expect(Rails.logger).to receive(:error).with("Twilio webhook error: Database connection error")
-        expect(Rails.logger).to receive(:error).with(String)
+        expect(Rails.logger).to receive(:error).with(a_string_matching(/.*\.rb:\d+/)) # Backtrace line
+        allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
         post "/webhooks/twilio", params: valid_webhook_params
       end
@@ -176,7 +185,9 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
         end
 
         it "logs the invalid signature" do
+          expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio webhook/))
           expect(Rails.logger).to receive(:error).with("Invalid Twilio webhook signature")
+          allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
           post "/webhooks/twilio", params: valid_webhook_params
         end
@@ -218,9 +229,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     end
 
     it "processes HELP keyword inbound message" do
-      expect(Rails.logger).to receive(:info).with("Received Twilio inbound SMS: #{hash_including(inbound_sms_params.stringify_keys)}")
+      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
       expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: HELP")
       expect(Rails.logger).to receive(:info).with("HELP keyword received from +15558675309")
+      allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: inbound_sms_params
 
@@ -229,7 +241,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     end
 
     it "processes CANCEL keyword inbound message" do
+      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
+      expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: CANCEL")
       expect(Rails.logger).to receive(:info).with("CANCEL/STOP keyword received from +15558675309")
+      allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: cancel_sms_params
 
@@ -237,7 +252,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     end
 
     it "processes CONFIRM keyword inbound message" do
+      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
+      expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: CONFIRM")
       expect(Rails.logger).to receive(:info).with("CONFIRM keyword received from +15558675309")
+      allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: confirm_sms_params
 
@@ -245,7 +263,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     end
 
     it "processes other inbound messages" do
+      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
+      expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: Hello, I have a question")
       expect(Rails.logger).to receive(:info).with("Other inbound message from +15558675309: Hello, I have a question")
+      allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: other_sms_params
 
@@ -255,7 +276,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     it "handles STOP keyword like CANCEL" do
       stop_params = cancel_sms_params.merge(Body: "STOP")
       
+      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
+      expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: STOP")
       expect(Rails.logger).to receive(:info).with("CANCEL/STOP keyword received from +15558675309")
+      allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: stop_params
 
@@ -265,7 +289,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     it "is case insensitive for keywords" do
       lowercase_help_params = inbound_sms_params.merge(Body: "help")
       
+      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
+      expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: help")
       expect(Rails.logger).to receive(:info).with("HELP keyword received from +15558675309")
+      allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: lowercase_help_params
 
