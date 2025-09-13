@@ -10,6 +10,7 @@ class TenantCustomer < ApplicationRecord
   has_many :invoices, dependent: :destroy
   has_many :orders, dependent: :destroy
   has_many :payments, dependent: :destroy
+  has_many :sms_messages, dependent: :destroy
   
   # Loyalty and referral system associations
   has_many :loyalty_transactions, dependent: :destroy
