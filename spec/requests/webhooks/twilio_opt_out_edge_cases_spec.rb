@@ -176,6 +176,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         mock_user = double("User", id: 123)
         allow(mock_user).to receive(:respond_to?).with(:opt_out_of_sms!).and_return(true)
         allow(mock_user).to receive(:opt_out_of_sms!)
+        allow(mock_user).to receive(:business).and_return(nil)
         allow(User).to receive(:where).with(phone: "+15558675309").and_return([mock_user])
         @mock_user = mock_user
       end
