@@ -136,7 +136,7 @@ class BookingManager
       if booking_params[:send_confirmation]
         # Placeholder for sending confirmation
         Rails.logger.info "[BookingManager] Send confirmation flag set for Booking ##{booking.id}"
-        BookingMailer.confirmation(booking).deliver_later
+        NotificationService.booking_confirmation(booking)
       end
       
       # Handle payment requirements
@@ -261,7 +261,7 @@ class BookingManager
       if booking.saved_change_to_status?
         # Notify customer of status change
         Rails.logger.info "[BookingManager] Status changed from #{original_status} to #{booking.status} for Booking ##{booking.id}"
-        BookingMailer.status_update(booking).deliver_later
+        NotificationService.booking_status_update(booking)
       end
       
       # Reschedule reminders if time changed
@@ -334,7 +334,7 @@ class BookingManager
         Rails.logger.info "[BookingManager] Booking ##{booking.id} cancelled with reason: #{reason || 'Not provided'}"
         # Send cancellation email
         begin
-          BookingMailer.cancellation(booking).deliver_later
+          NotificationService.booking_cancellation(booking)
           Rails.logger.info "[BookingManager] Cancellation email scheduled for Booking ##{booking.id}"
         rescue => e
           Rails.logger.error "[BookingManager] Failed to schedule cancellation email for Booking ##{booking.id}: #{e.message}"

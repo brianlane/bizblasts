@@ -21,6 +21,24 @@ module Users
     # This is needed for API-based authentication flows
     skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
 
+    # Override Devise's new method to handle already-signed-in users with cross-domain redirects
+    # This prevents UnsafeRedirectError when users are already logged in and Devise tries to
+    # redirect them without allow_other_host: true
+    def new
+      if user_signed_in?
+        redirect_path = after_sign_in_path_for(current_user)
+        Rails.logger.debug "[Sessions::new] User already signed in, redirecting to: #{redirect_path}"
+        
+        # Use allow_other_host: true to handle cross-domain redirects safely
+        if redirect_path.include?("://") && redirect_path != request.url
+          return redirect_to redirect_path, allow_other_host: true, status: :see_other
+        else
+          return redirect_to redirect_path, status: :see_other
+        end
+      end
+      super
+    end
+
     # Override Devise's create method to handle multi-tenant redirects
     # We need custom logic because Devise doesn't handle cross-domain redirects properly
     def create

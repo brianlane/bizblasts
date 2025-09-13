@@ -1,4 +1,5 @@
 class SmsMessage < ApplicationRecord
+  belongs_to :business
   belongs_to :marketing_campaign, optional: true
   belongs_to :tenant_customer
   belongs_to :booking, optional: true

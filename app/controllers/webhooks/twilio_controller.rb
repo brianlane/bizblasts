@@ -50,17 +50,33 @@ module Webhooks
       # Process common keywords
       case body&.strip&.upcase
       when "HELP"
-        # Handle HELP request
         Rails.logger.info "HELP keyword received from #{from}"
-      when "CANCEL", "STOP"
-        # Handle cancellation request
-        Rails.logger.info "CANCEL/STOP keyword received from #{from}"
+        # Send help response
+        help_message = Sms::MessageTemplates.render('system.help_response', {
+          business_name: 'BizBlasts',
+          phone: ENV.fetch('SUPPORT_PHONE', '555-123-4567')
+        })
+        send_auto_reply(from, help_message) if help_message
+        
+      when "CANCEL", "STOP", "UNSUBSCRIBE"
+        Rails.logger.info "STOP keyword received from #{from} - processing opt-out"
+        process_sms_opt_out(from)
+        
+      when "START", "SUBSCRIBE", "YES"
+        Rails.logger.info "START keyword received from #{from} - processing opt-in"
+        process_sms_opt_in(from)
+        
       when "CONFIRM"
-        # Handle confirmation
         Rails.logger.info "CONFIRM keyword received from #{from}"
+        # Could trigger booking confirmation logic here
+        
       else
-        # Log other messages for future processing
         Rails.logger.info "Other inbound message from #{from}: #{body}"
+        # Send unknown command response for unrecognized messages
+        if body.present? && body.length < 100 # Avoid responding to long messages
+          unknown_message = Sms::MessageTemplates.render('system.unknown_command')
+          send_auto_reply(from, unknown_message) if unknown_message
+        end
       end
       
       # Always respond with success to acknowledge receipt
@@ -68,6 +84,68 @@ module Webhooks
     end
     
     private
+    
+    def send_auto_reply(to_phone, message)
+      # Send automatic reply via SMS service
+      SmsService.send_message(to_phone, message, {
+        business_id: 1, # Use system/default business ID for auto-replies
+        auto_reply: true
+      })
+    rescue => e
+      Rails.logger.error "Failed to send auto-reply to #{to_phone}: #{e.message}"
+    end
+    
+    def process_sms_opt_out(phone_number)
+      # Find customers by phone number and opt them out
+      customers = TenantCustomer.where(phone: normalize_phone(phone_number))
+      
+      customers.each do |customer|
+        customer.opt_out_of_sms!
+        Rails.logger.info "Opted out customer #{customer.id} from SMS"
+      end
+      
+      # Find users by phone number and opt them out  
+      users = User.where(phone: normalize_phone(phone_number))
+      users.each do |user|
+        if user.respond_to?(:opt_out_of_sms!)
+          user.opt_out_of_sms!
+          Rails.logger.info "Opted out user #{user.id} from SMS"
+        end
+      end
+      
+      # Send confirmation
+      opt_out_message = Sms::MessageTemplates.render('system.opt_out_confirmation', {
+        business_name: 'BizBlasts'
+      })
+      send_auto_reply(phone_number, opt_out_message) if opt_out_message
+      
+      Rails.logger.info "Processed SMS opt-out for #{phone_number}"
+    end
+    
+    def process_sms_opt_in(phone_number)
+      # Find customers by phone number and opt them in
+      customers = TenantCustomer.where(phone: normalize_phone(phone_number))
+      
+      customers.each do |customer|
+        customer.opt_into_sms!
+        Rails.logger.info "Opted in customer #{customer.id} for SMS"
+      end
+      
+      # Send confirmation
+      opt_in_message = Sms::MessageTemplates.render('system.opt_in_confirmation', {
+        business_name: 'BizBlasts'
+      })
+      send_auto_reply(phone_number, opt_in_message) if opt_in_message
+      
+      Rails.logger.info "Processed SMS opt-in for #{phone_number}"
+    end
+    
+    def normalize_phone(phone)
+      # Basic phone normalization - remove all non-digits and add +1 if needed
+      cleaned = phone.gsub(/\D/, '')
+      cleaned = "1#{cleaned}" if cleaned.length == 10
+      "+#{cleaned}"
+    end
     
     def verify_webhook_signature?
       # Only verify signatures in production for security
