@@ -2,7 +2,42 @@ require 'yaml'
 
 module Sms
   class MessageTemplates
-    TEMPLATES = YAML.load_file(Rails.root.join('lib/sms/message_templates.yml')).freeze
+    TEMPLATES = begin
+      template_file = Rails.root.join('lib/sms/message_templates.yml')
+      
+      if File.exist?(template_file)
+        YAML.load_file(template_file)
+      else
+        Rails.logger.error "[SMS_TEMPLATES] Template file not found: #{template_file}"
+        # Provide minimal fallback templates
+        {
+          'system' => {
+            'help_response' => 'Help: Text STOP to opt out. Contact support for assistance.',
+            'opt_out_confirmation' => 'You have been unsubscribed from SMS messages.',
+            'opt_in_confirmation' => 'You have been opted in to SMS messages.',
+            'unknown_command' => "We didn't understand your message. Text HELP for assistance."
+          },
+          'booking' => {
+            'confirmation' => 'Booking confirmed for %SERVICE_NAME% on %DATE% at %TIME%. Reply STOP to opt out.'
+          }
+        }
+      end
+    rescue => e
+      Rails.logger.error "[SMS_TEMPLATES] Failed to load templates: #{e.message}"
+      # Provide minimal fallback templates  
+      {
+        'system' => {
+          'help_response' => 'Help: Text STOP to opt out. Contact support for assistance.',
+          'opt_out_confirmation' => 'You have been unsubscribed from SMS messages.',
+          'opt_in_confirmation' => 'You have been opted in to SMS messages.',
+          'unknown_command' => "We didn't understand your message. Text HELP for assistance."
+        },
+        'booking' => {
+          'confirmation' => 'Booking confirmed for %SERVICE_NAME% on %DATE% at %TIME%. Reply STOP to opt out.'
+        }
+      }
+    end.freeze
+    
     MAX_SMS_LENGTH = 160
 
     # Main method to render any template with variables

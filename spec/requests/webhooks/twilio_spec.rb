@@ -243,7 +243,7 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     it "processes CANCEL keyword inbound message" do
       expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
       expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: CANCEL")
-      expect(Rails.logger).to receive(:info).with("CANCEL/STOP keyword received from +15558675309")
+      expect(Rails.logger).to receive(:info).with("STOP keyword received from +15558675309 - processing opt-out")
       allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: cancel_sms_params
@@ -278,7 +278,7 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       
       expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
       expect(Rails.logger).to receive(:info).with("Inbound SMS from +15558675309: STOP")
-      expect(Rails.logger).to receive(:info).with("CANCEL/STOP keyword received from +15558675309")
+      expect(Rails.logger).to receive(:info).with("STOP keyword received from +15558675309 - processing opt-out")
       allow(Rails.logger).to receive(:info) # Allow other Rails internal logging
 
       post "/webhooks/twilio/inbound", params: stop_params

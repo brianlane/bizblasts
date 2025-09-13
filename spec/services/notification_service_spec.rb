@@ -109,7 +109,7 @@ RSpec.describe NotificationService, type: :service do
     let(:campaign) { create(:marketing_campaign, business: business) }
 
     before do
-      allow(MarketingMailer).to receive_message_chain(:campaign_email, :deliver_later)
+      allow(MarketingMailer).to receive_message_chain(:campaign, :deliver_later)
       allow(SmsService).to receive(:send_marketing_campaign)
     end
 
@@ -120,7 +120,7 @@ RSpec.describe NotificationService, type: :service do
       end
 
       it 'sends both email and SMS marketing' do
-        expect(MarketingMailer).to receive(:campaign_email).with(customer, campaign)
+        expect(MarketingMailer).to receive(:campaign).with(customer, campaign)
         expect(SmsService).to receive(:send_marketing_campaign).with(campaign, customer)
         
         NotificationService.marketing_campaign(campaign, customer)
@@ -134,7 +134,7 @@ RSpec.describe NotificationService, type: :service do
       end
 
       it 'sends only email marketing' do
-        expect(MarketingMailer).to receive(:campaign_email).with(customer, campaign)
+        expect(MarketingMailer).to receive(:campaign).with(customer, campaign)
         expect(SmsService).not_to receive(:send_marketing_campaign)
         
         NotificationService.marketing_campaign(campaign, customer)
@@ -154,6 +154,7 @@ RSpec.describe NotificationService, type: :service do
     context 'when business user can receive notifications' do
       before do
         allow(business_user).to receive(:can_receive_email?).with(:booking).and_return(true)
+        allow(business_user).to receive(:can_receive_email?).with(:customer).and_return(true)
         allow(business_user).to receive(:can_receive_sms?).with(:booking).and_return(true)
       end
 

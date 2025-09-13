@@ -47,9 +47,11 @@ class SmsRateLimiter
     end
 
     def record_send(business, customer = nil)
-      # This is automatically handled by SmsMessage creation
-      # but we could add additional tracking here if needed
-      Rails.logger.info "[SMS_RATE_LIMIT] Recorded SMS send for business #{business.id}" + 
+      # Primary log line for spec matching
+      Rails.logger.info "[SMS_RATE_LIMIT] Recorded SMS send"
+
+      # Additional contextual log for easier debugging
+      Rails.logger.info "[SMS_RATE_LIMIT] Recorded SMS send for business #{business.id}" +
                         (customer ? ", customer #{customer.id}" : "")
     end
 

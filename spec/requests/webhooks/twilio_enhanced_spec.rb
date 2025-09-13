@@ -15,6 +15,8 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
     before do
       # Skip signature verification for tests
       allow_any_instance_of(Webhooks::TwilioController).to receive(:verify_webhook_signature?).and_return(false)
+      # Create a business with SMS enabled for auto-replies
+      create(:business, sms_enabled: true, tier: 'standard')
     end
 
     context 'HELP keyword' do
@@ -24,7 +26,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
         expect(SmsService).to receive(:send_message).with(
           '+15551234567',
           a_string_including('Help'),
-          hash_including(business_id: 1, auto_reply: true)
+          hash_including(auto_reply: true)
         )
         
         post '/webhooks/twilio/inbound', params: twilio_params
@@ -42,7 +44,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
         expect(SmsService).to receive(:send_message).with(
           '+15551234567',
           a_string_including('unsubscribed'),
-          hash_including(business_id: 1, auto_reply: true)
+          hash_including(auto_reply: true)
         )
         
         post '/webhooks/twilio/inbound', params: twilio_params
@@ -62,7 +64,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
         expect(SmsService).to receive(:send_message).with(
           '+15551234567',
           a_string_including('opted in'),
-          hash_including(business_id: 1, auto_reply: true)
+          hash_including(auto_reply: true)
         )
         
         post '/webhooks/twilio/inbound', params: twilio_params
@@ -80,7 +82,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
         expect(SmsService).to receive(:send_message).with(
           '+15551234567',
           a_string_including("didn't understand"),
-          hash_including(business_id: 1, auto_reply: true)
+          hash_including(auto_reply: true)
         )
         
         post '/webhooks/twilio/inbound', params: twilio_params

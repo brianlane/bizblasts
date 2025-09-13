@@ -189,7 +189,7 @@ class NotificationService
     # Marketing notifications
     def marketing_campaign(campaign, recipient)
       send_email_and_sms(
-        email: -> { MarketingMailer.campaign_email(recipient, campaign).deliver_later },
+        email: -> { MarketingMailer.campaign(recipient, campaign).deliver_later },
         sms: -> { SmsService.send_marketing_campaign(campaign, recipient) },
         recipient: recipient,
         email_type: :marketing,

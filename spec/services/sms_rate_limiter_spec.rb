@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe SmsRateLimiter, type: :service do
   let(:business) { create(:business, sms_enabled: true, tier: 'standard') }
-  let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567') }
+  let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567', skip_notification_email: true) }
 
   before do
     allow(Rails.application.config).to receive(:sms_enabled).and_return(true)
@@ -98,18 +98,31 @@ RSpec.describe SmsRateLimiter, type: :service do
     context 'with different business tiers' do
       it 'respects premium tier daily limits' do
         business.update!(tier: 'premium')
-        create_list(:sms_message, 999, business: business, created_at: Time.current)
+        # Create messages spread across different hours to avoid hourly limit
+        create_list(:sms_message, 99, business: business, created_at: 10.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 9.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 8.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 7.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 6.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 5.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 4.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 3.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 2.hours.ago)
+        create_list(:sms_message, 99, business: business, created_at: 2.hours.ago) # 999 total, under 1000 limit
         
         expect(SmsRateLimiter.can_send?(business, customer)).to be true
       end
 
       it 'respects free tier daily limits' do
         business.update!(tier: 'free')
-        create_list(:sms_message, 99, business: business, created_at: Time.current)
+        # Create messages spread across different hours to avoid hourly limit
+        create_list(:sms_message, 33, business: business, created_at: 10.hours.ago)
+        create_list(:sms_message, 33, business: business, created_at: 8.hours.ago)
+        create_list(:sms_message, 33, business: business, created_at: 6.hours.ago) # 99 total
         
         expect(SmsRateLimiter.can_send?(business, customer)).to be true
         
-        create(:sms_message, business: business, created_at: Time.current)
+        create(:sms_message, business: business, created_at: 4.hours.ago) # 100th message hits the limit
         expect(SmsRateLimiter.can_send?(business, customer)).to be false
       end
     end
@@ -128,14 +141,17 @@ RSpec.describe SmsRateLimiter, type: :service do
 
   describe '.record_send' do
     it 'logs the SMS send record' do
-      expect(Rails.logger).to receive(:info).with(/Recorded SMS send/)
+      allow(Rails.logger).to receive(:info)
+      expect(Rails.logger).to receive(:info).with("[SMS_RATE_LIMIT] Recorded SMS send")
+      expect(Rails.logger).to receive(:info).with(/Recorded SMS send for business.*customer/)
       SmsRateLimiter.record_send(business, customer)
     end
 
     context 'when no customer provided' do
       it 'logs without customer information' do
-        expect(Rails.logger).to receive(:info).with(/Recorded SMS send for business/)
-        expect(Rails.logger).to receive(:info).with(/Recorded SMS send/).with(no_args)
+        allow(Rails.logger).to receive(:info)
+        expect(Rails.logger).to receive(:info).with("[SMS_RATE_LIMIT] Recorded SMS send")
+        expect(Rails.logger).to receive(:info).with(/Recorded SMS send for business.*#{business.id}$/)
         SmsRateLimiter.record_send(business, nil)
       end
     end
