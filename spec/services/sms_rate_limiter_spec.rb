@@ -27,8 +27,13 @@ RSpec.describe SmsRateLimiter, type: :service do
 
     context 'when business daily limit is exceeded' do
       before do
-        # Create SMS messages to reach the daily limit for standard tier (500)
-        create_list(:sms_message, 500, business: business, created_at: Time.current)
+        # Mock aggregated counts to return daily limit exceeded (500 for standard tier)
+        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
+          business_daily: 500,
+          business_hourly: 50,
+          customer_daily: 5,
+          customer_hourly: 2
+        })
       end
 
       it 'returns false' do
@@ -43,8 +48,13 @@ RSpec.describe SmsRateLimiter, type: :service do
 
     context 'when business hourly limit is exceeded' do
       before do
-        # Create SMS messages to reach the hourly limit (100)
-        create_list(:sms_message, 100, business: business, created_at: 30.minutes.ago)
+        # Mock aggregated counts to return hourly limit exceeded (100)
+        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
+          business_daily: 200,
+          business_hourly: 100,
+          customer_daily: 5,
+          customer_hourly: 2
+        })
       end
 
       it 'returns false' do
@@ -59,11 +69,13 @@ RSpec.describe SmsRateLimiter, type: :service do
 
     context 'when customer daily limit is exceeded' do
       before do
-        # Create SMS messages to reach customer daily limit (10)
-        create_list(:sms_message, 10, 
-                   business: business, 
-                   tenant_customer: customer,
-                   created_at: Time.current)
+        # Mock aggregated counts to return customer daily limit exceeded (10)
+        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
+          business_daily: 200,
+          business_hourly: 50,
+          customer_daily: 10,
+          customer_hourly: 2
+        })
       end
 
       it 'returns false' do
@@ -78,11 +90,13 @@ RSpec.describe SmsRateLimiter, type: :service do
 
     context 'when customer hourly limit is exceeded' do
       before do
-        # Create SMS messages to reach customer hourly limit (5)
-        create_list(:sms_message, 5, 
-                   business: business, 
-                   tenant_customer: customer,
-                   created_at: 30.minutes.ago)
+        # Mock aggregated counts to return customer hourly limit exceeded (5)
+        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
+          business_daily: 200,
+          business_hourly: 50,
+          customer_daily: 8,
+          customer_hourly: 5
+        })
       end
 
       it 'returns false' do
@@ -98,17 +112,13 @@ RSpec.describe SmsRateLimiter, type: :service do
     context 'with different business tiers' do
       it 'respects premium tier daily limits' do
         business.update!(tier: 'premium')
-        # Create messages spread across different hours to avoid hourly limit
-        create_list(:sms_message, 99, business: business, created_at: 10.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 9.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 8.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 7.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 6.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 5.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 4.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 3.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 2.hours.ago)
-        create_list(:sms_message, 99, business: business, created_at: 2.hours.ago) # 999 total, under 1000 limit
+        # Mock counts to be under premium limits (999 daily, under hourly limit)
+        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
+          business_daily: 999,
+          business_hourly: 50,
+          customer_daily: 5,
+          customer_hourly: 2
+        })
         
         expect(SmsRateLimiter.can_send?(business, customer)).to be true
       end
@@ -127,7 +137,12 @@ RSpec.describe SmsRateLimiter, type: :service do
       end
 
       it 'still respects business daily limits' do
-        create_list(:sms_message, 500, business: business, created_at: Time.current)
+        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, nil).and_return({
+          business_daily: 500,
+          business_hourly: 50,
+          customer_daily: 0,
+          customer_hourly: 0
+        })
         expect(SmsRateLimiter.can_send?(business, nil)).to be false
       end
     end

@@ -8,6 +8,16 @@ class SmsService
       return { success: false, error: "SMS feature disabled" }
     end
     
+    # Check business tier restrictions
+    business_id = options[:business_id]
+    if business_id
+      business = Business.find_by(id: business_id)
+      if business && !business.can_send_sms?
+        Rails.logger.warn "[SMS_SERVICE] Business #{business_id} (tier: #{business.tier}) cannot send SMS - tier restriction"
+        return { success: false, error: "Business tier does not support SMS" }
+      end
+    end
+    
     # Check if the phone number is valid
     unless valid_phone_number?(phone_number)
       return { success: false, error: "Invalid phone number format" }
@@ -77,12 +87,12 @@ class SmsService
       
     message = "Reminder: Your #{service&.name || 'booking'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply HELP for assistance or CONFIRM to confirm."
       
-      send_message(customer.phone, message, { 
-        tenant_customer_id: customer.id,
-        booking_id: booking.id,
-        business_id: booking.business_id
-      })
-    end
+    send_message_with_rate_limit(customer.phone, message, { 
+      tenant_customer_id: customer.id,
+      booking_id: booking.id,
+      business_id: booking.business_id
+    })
+  end
 
   def self.send_booking_status_update(booking)
     variables = build_booking_variables(booking)

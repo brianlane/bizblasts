@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
-  let!(:business) { create(:business) }
+  let!(:business) { create(:business, :standard_tier, sms_enabled: true) }
   let!(:customer) { create(:tenant_customer, business: business, phone: "+15558675309", phone_opt_in: true) }
   let!(:user) { create(:user, business: business, phone: "+15558675309") }
 

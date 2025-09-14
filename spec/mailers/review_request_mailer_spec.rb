@@ -143,7 +143,8 @@ RSpec.describe ReviewRequestMailer, type: :mailer do
 
     context 'when customer cannot receive emails' do
       before do
-        allow(tenant_customer).to receive(:can_receive_email?).and_return(false)
+        allow(tenant_customer).to receive(:can_receive_email?).with(:customer).and_return(false)
+        allow(tenant_customer).to receive(:can_receive_email?).with(:payment).and_return(true)
       end
 
       it 'returns NullMail and does not send email' do

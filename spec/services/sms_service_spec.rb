@@ -209,7 +209,7 @@ RSpec.describe SmsService, type: :service do
           business_id: tenant.id
         }
         
-        expect(described_class).to receive(:send_message)
+        expect(described_class).to receive(:send_message_with_rate_limit)
           .with(customer.phone, expected_message, expected_options)
           .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
           
@@ -227,7 +227,7 @@ RSpec.describe SmsService, type: :service do
            business_id: tenant.id
          }
          
-         expect(described_class).to receive(:send_message)
+         expect(described_class).to receive(:send_message_with_rate_limit)
            .with(customer.phone, expected_message, expected_options)
            .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
            
