@@ -29,8 +29,11 @@ class ApplicationController < ActionController::Base
   before_action :set_tenant, unless: -> { maintenance_mode? }
   # (Removed obsolete redirect callback – route-level redirect now handles this)
   before_action :check_database_connection
+  
+  # Handle cross-domain authentication bridging (runs after tenant is set but before authentication)
+  before_action :handle_cross_domain_authentication, unless: :skip_cross_domain_auth?
 
-  # Authentication (now runs after tenant is set)
+  # Authentication (now runs after tenant is set and cross-domain auth handling)
   before_action :authenticate_user!, unless: :skip_user_authentication?
 
   # Error handling for tenant not found
@@ -318,6 +321,112 @@ class ApplicationController < ActionController::Base
 
   def skip_user_authentication?
     devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
+  end
+  
+  def skip_cross_domain_auth?
+    # Skip cross-domain auth for these scenarios:
+    devise_controller? ||                                    # Devise controllers handle their own auth
+    request.path.start_with?('/admin') ||                   # Admin paths
+    request.path.start_with?('/auth/bridge') ||             # Authentication bridge endpoints
+    request.path.start_with?('/healthcheck') ||             # Health checks
+    maintenance_mode? ||                                     # Maintenance mode
+    main_domain_request? ||                                  # Already on main domain
+    user_signed_in?                                          # Already authenticated
+  end
+  
+  # Handle cross-domain authentication bridging for custom domains
+  def handle_cross_domain_authentication
+    # Only process for custom domains
+    return unless on_custom_domain?
+    
+    # Check if we have an auth token to consume
+    auth_token = params[:auth_token]
+    if auth_token.present?
+      consume_auth_token(auth_token)
+      return
+    end
+    
+    # Check if this looks like a request that should have authentication
+    # (e.g., accessing protected resources)
+    return unless should_attempt_cross_domain_auth?
+    
+    # Redirect to main domain for authentication bridge
+    redirect_to_auth_bridge
+  end
+  
+  private
+  
+  def on_custom_domain?
+    return false if main_domain_request?
+    
+    # We're on a custom domain if we found a business by custom domain lookup
+    current_business = ActsAsTenant.current_tenant
+    current_business&.host_type == 'custom_domain'
+  end
+  
+  def consume_auth_token(token)
+    begin
+      # Use the authentication bridge model to consume the token
+      bridge = AuthenticationBridge.consume_token!(token, request.remote_ip)
+      
+      if bridge
+        # Successfully consumed token, sign in the user
+        sign_in(bridge.user)
+        Rails.logger.info "[CrossDomainAuth] Successfully authenticated user #{bridge.user.id} via bridge token"
+        
+        # Redirect to clean URL (remove auth_token parameter)
+        clean_url = request.url.gsub(/[?&]auth_token=[^&]*/, '').gsub(/\?$/, '')
+        redirect_to clean_url and return
+      else
+        Rails.logger.warn "[CrossDomainAuth] Invalid or expired auth token from #{request.remote_ip}"
+      end
+    rescue => e
+      Rails.logger.error "[CrossDomainAuth] Failed to consume auth token: #{e.message}"
+    end
+  end
+  
+  def should_attempt_cross_domain_auth?
+    # For now, attempt cross-domain auth for all GET requests to custom domains
+    # that aren't public pages or assets
+    return false unless request.get?
+    
+    # Skip for common public paths that don't require authentication
+    public_paths = [
+      '/',                    # Homepage
+      '/about',              # About page
+      '/contact',            # Contact page
+      '/services',           # Public services page
+      '/assets',             # Asset files
+      '/favicon.ico',        # Favicon
+      '/robots.txt',         # Robots.txt
+      '/sitemap.xml'         # Sitemap
+    ]
+    
+    path = request.path.downcase
+    return false if public_paths.any? { |public_path| path.start_with?(public_path) }
+    
+    # For protected paths, attempt cross-domain auth
+    protected_paths = [
+      '/manage',             # Business management
+      '/dashboard',          # User dashboard
+      '/profile',            # User profile
+      '/settings',           # Settings
+      '/bookings',           # Bookings
+      '/clients'             # Client management
+    ]
+    
+    protected_paths.any? { |protected_path| path.start_with?(protected_path) }
+  end
+  
+  def redirect_to_auth_bridge
+    # Construct the bridge URL on the main domain
+    main_domain = Rails.env.production? ? 'https://bizblasts.com' : "#{request.protocol}#{request.host_with_port}"
+    target_url = request.url
+    
+    bridge_url = "#{main_domain}/auth/bridge?target_url=#{CGI.escape(target_url)}"
+    
+    Rails.logger.info "[CrossDomainAuth] Redirecting to auth bridge: #{bridge_url}"
+    redirect_to bridge_url, allow_other_host: true
   end
 
   def maintenance_mode?
