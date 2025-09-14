@@ -113,16 +113,10 @@ RSpec.describe SmsRateLimiter, type: :service do
         expect(SmsRateLimiter.can_send?(business, customer)).to be true
       end
 
-      it 'respects free tier daily limits' do
+      it 'blocks free tier from sending SMS entirely' do
         business.update!(tier: 'free')
-        # Create messages spread across different hours to avoid hourly limit
-        create_list(:sms_message, 33, business: business, created_at: 10.hours.ago)
-        create_list(:sms_message, 33, business: business, created_at: 8.hours.ago)
-        create_list(:sms_message, 33, business: business, created_at: 6.hours.ago) # 99 total
         
-        expect(SmsRateLimiter.can_send?(business, customer)).to be true
-        
-        create(:sms_message, business: business, created_at: 4.hours.ago) # 100th message hits the limit
+        # Free tier should not be able to send any SMS
         expect(SmsRateLimiter.can_send?(business, customer)).to be false
       end
     end

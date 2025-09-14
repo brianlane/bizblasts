@@ -663,7 +663,7 @@ TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # Messagi
 ```
 
 #### **Rate Limiting by Business Tier:**
-- **Free Tier**: 100 SMS per day, 100 SMS per hour
+- **Free Tier**: 0 SMS per day, 100 SMS per hour
 - **Standard Tier**: 500 SMS per day, 100 SMS per hour
 - **Premium Tier**: 1000 SMS per day, 100 SMS per hour
 - **Per Customer**: 10 SMS per day, 5 SMS per hour (across all businesses)

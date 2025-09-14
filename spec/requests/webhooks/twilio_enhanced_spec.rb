@@ -15,7 +15,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
     before do
       # Skip signature verification for tests
       allow_any_instance_of(Webhooks::TwilioController).to receive(:verify_webhook_signature?).and_return(false)
-      # Create a business with SMS enabled for auto-replies
+      # Create a standard tier business with SMS enabled for auto-replies (free tier cannot send SMS)
       create(:business, sms_enabled: true, tier: 'standard')
     end
 

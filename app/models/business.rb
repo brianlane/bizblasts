@@ -791,7 +791,11 @@ class Business < ApplicationRecord
   end
 
   def can_send_sms?
-    sms_enabled? && Rails.application.config.sms_enabled
+    sms_enabled? && Rails.application.config.sms_enabled && !free_tier?
+  end
+  
+  def free_tier?
+    tier == 'free'
   end
 
   def sms_daily_limit
@@ -801,8 +805,10 @@ class Business < ApplicationRecord
       1000
     when 'standard'
       500
+    when 'free'
+      0  # Free tier cannot send SMS
     else
-      100
+      0  # Default to no SMS for unknown tiers
     end
   end
 

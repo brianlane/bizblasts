@@ -4,7 +4,7 @@ class SmsRateLimiter
   MAX_SMS_PER_BUSINESS_PER_DAY = {
     'premium' => 1000,
     'standard' => 500,
-    'free' => 100
+    'free' => 0  # Free tier cannot send SMS
   }.freeze
   
   MAX_SMS_PER_CUSTOMER_PER_DAY = 10

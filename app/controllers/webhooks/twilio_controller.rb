@@ -125,8 +125,9 @@ module Webhooks
       user = User.where(phone: normalized_phone).first
       return user.business if user&.business
 
-      # Option 3: Fallback to any business that can send SMS
-      Business.where(sms_enabled: true).first || Business.first
+      # Option 3: Fallback to any business that can send SMS (standard/premium tier only)
+      Business.where(sms_enabled: true).where.not(tier: 'free').first || 
+      Business.where.not(tier: 'free').first
     end
     
     def process_sms_opt_out(phone_number)
