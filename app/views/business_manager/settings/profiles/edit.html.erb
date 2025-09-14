@@ -166,7 +166,7 @@
                   <small>
                     <% if @business.free_tier? %>
                       SMS notifications are only available for Standard and Premium tier businesses. 
-                      <%= link_to "Upgrade your plan", business_manager_settings_subscriptions_path, style: "color: #0066cc;" %> to enable SMS.
+                      <%= link_to "Upgrade your plan", business_manager_settings_subscription_path, style: "color: #0066cc;" %> to enable SMS.
                     <% else %>
                       Allow sending SMS notifications to your customers for bookings, orders, and reminders.
                     <% end %>
