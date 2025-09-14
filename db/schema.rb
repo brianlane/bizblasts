@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_13_165025) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_14_154505) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -88,6 +88,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_13_165025) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
+  end
+
+  create_table "authentication_bridges", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token", limit: 64, null: false
+    t.datetime "expires_at", null: false
+    t.text "target_url", null: false
+    t.datetime "used_at"
+    t.string "source_ip", limit: 45
+    t.string "user_agent", limit: 500
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_authentication_bridges_on_expires_at"
+    t.index ["token"], name: "index_authentication_bridges_on_token", unique: true
+    t.index ["user_id", "created_at"], name: "index_authentication_bridges_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_authentication_bridges_on_user_id"
   end
 
   create_table "blog_posts", force: :cascade do |t|
@@ -1607,6 +1623,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_13_165025) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "authentication_bridges", "users"
   add_foreign_key "booking_policies", "businesses", on_delete: :cascade
   add_foreign_key "booking_product_add_ons", "bookings", on_delete: :cascade
   add_foreign_key "booking_product_add_ons", "product_variants"

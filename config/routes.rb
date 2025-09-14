@@ -10,6 +10,12 @@ Rails.application.routes.draw do
   get "healthcheck" => "health#check", as: :health_check
   get "db-check" => "health#db_check", as: :db_check
   get "maintenance" => "maintenance#index", as: :maintenance
+  
+  # Authentication bridge routes for cross-domain authentication
+  # These must be accessible globally (not constrained to tenants)
+  get "auth/bridge" => "authentication_bridge#create", as: :auth_bridge
+  post "auth/bridge/consume" => "authentication_bridge#consume", as: :auth_bridge_consume
+  get "auth/bridge/health" => "authentication_bridge#health", as: :auth_bridge_health
 
   # Tenant public routes: available on both subdomains and active custom domains
   constraints TenantPublicConstraint do
