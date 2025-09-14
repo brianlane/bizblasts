@@ -165,9 +165,49 @@ class AuthenticationBridgeController < ApplicationController
   end
   
   def main_domain_request?
-    return true if Rails.env.development? || Rails.env.test?
-    
-    host = request.host.to_s.downcase
-    host.ends_with?('bizblasts.com') || host == 'bizblasts.com'
+    if Rails.env.development? || Rails.env.test?
+      # Development/Test: Handle both lvh.me and example.com domains
+      host = request.host.downcase
+      main_domain_patterns = [
+        'lvh.me',           # Development main domain
+        'www.lvh.me',       # Development main domain with www
+        'example.com',      # Test main domain
+        'www.example.com'   # Test main domain with www (default in RSpec)
+      ]
+      return true if main_domain_patterns.include?(host)
+      
+      # Also check for no subdomain or www subdomain on these domains
+      host_parts = request.host.split('.')
+      if host_parts.length >= 2
+        base_domain = host_parts.last(2).join('.')
+        if ['lvh.me', 'example.com'].include?(base_domain)
+          # Only main domain if no subdomain or www subdomain
+          return host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
+        end
+      end
+      
+      false
+    else
+      # Production: Check for actual main domain patterns
+      host = request.host.downcase
+      
+      # Direct main domain patterns
+      main_domain_patterns = [
+        'bizblasts.com',
+        'www.bizblasts.com',
+        'bizblasts.onrender.com'  # Render's internal routing
+      ]
+      
+      return true if main_domain_patterns.include?(host)
+      
+      # For bizblasts.com, only treat www or no subdomain as main domain
+      host_parts = request.host.split('.')
+      if host_parts.length >= 2 && host_parts.last(2).join('.') == 'bizblasts.com'
+        # Only main domain if no subdomain or www subdomain
+        return host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
+      end
+      
+      false
+    end
   end
 end
