@@ -267,6 +267,54 @@ class User < ApplicationRecord
     keys.any? { |k| notification_preferences[k] != false && notification_preferences[k] != '0' }
   end
 
+  # SMS opt-in methods for User model (business users)
+  def can_receive_sms?(type)
+    return false unless phone.present? # Must have phone number
+    return false unless business&.sms_enabled? # Business must have SMS enabled
+    return false unless phone_opt_in? # Must be opted in
+
+    # Users with business roles can receive business notifications
+    case type.to_sym
+    when :marketing
+      phone_opt_in? && business&.sms_marketing_enabled? && !phone_marketing_opt_out?
+    when :booking, :order, :payment, :reminder, :system, :subscription, :customer
+      phone_opt_in?
+    else
+      phone_opt_in?
+    end
+  end
+
+  def phone_opt_in?
+    # For User model, check if phone_opt_in attribute exists and is true
+    respond_to?(:phone_opt_in) ? phone_opt_in : false
+  end
+
+  def phone_marketing_opt_out?
+    # For User model, check if phone_marketing_opt_out attribute exists
+    respond_to?(:phone_marketing_opt_out) ? phone_marketing_opt_out : false
+  end
+
+  # Opt user into SMS notifications
+  def opt_into_sms!
+    update!(
+      phone_opt_in: true,
+      phone_opt_in_at: Time.current
+    )
+  end
+
+  # Opt user out of SMS notifications  
+  def opt_out_of_sms!
+    update!(
+      phone_opt_in: false,
+      phone_opt_in_at: nil
+    )
+  end
+
+  # Opt user out of marketing SMS only
+  def opt_out_of_sms_marketing!
+    update!(phone_marketing_opt_out: true)
+  end
+
   def unsubscribed_from_emails?
     # Check if globally unsubscribed via button (unsubscribed_at set)
     return true if unsubscribed_at.present?

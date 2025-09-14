@@ -776,6 +776,42 @@ class Business < ApplicationRecord
     end
   end
 
+  # SMS-related methods
+  def sms_enabled_for?(type)
+    return false unless sms_enabled?
+    
+    case type.to_sym
+    when :marketing
+      sms_enabled? && sms_marketing_enabled?
+    when :transactional, :booking, :order, :payment, :reminder, :system, :subscription
+      sms_enabled?
+    else
+      sms_enabled?
+    end
+  end
+
+  def can_send_sms?
+    sms_enabled? && Rails.application.config.sms_enabled && !free_tier?
+  end
+  
+  def free_tier?
+    tier == 'free'
+  end
+
+  def sms_daily_limit
+    # SMS limits based on tier
+    case tier
+    when 'premium'
+      1000
+    when 'standard'
+      500
+    when 'free'
+      0  # Free tier cannot send SMS
+    else
+      0  # Default to no SMS for unknown tiers
+    end
+  end
+
   private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
@@ -1075,4 +1111,5 @@ class Business < ApplicationRecord
       # Don't raise - this is a background operation
     end
   end
+
 end 

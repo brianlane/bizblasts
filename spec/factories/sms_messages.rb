@@ -1,5 +1,7 @@
 FactoryBot.define do
   factory :sms_message do
+    # Ensure consistent business association
+    association :business
     association :tenant_customer
     association :marketing_campaign
     
@@ -47,6 +49,11 @@ FactoryBot.define do
       association :marketing_campaign
       booking { nil }
       content { "Check out our latest offers!" }
+    end
+
+    # Callback to link business with tenant_customer if not explicitly set
+    after(:build) do |sms|
+      sms.business ||= sms.tenant_customer&.business || sms.marketing_campaign&.business
     end
   end
 end 

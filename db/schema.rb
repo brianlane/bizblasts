@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_13_165025) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -261,6 +261,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
     t.boolean "domain_health_verified", default: false, null: false
     t.datetime "domain_health_checked_at"
     t.string "canonical_preference", default: "www", null: false, comment: "Preferred canonical version: \"www\" or \"apex\" for custom domains"
+    t.boolean "sms_enabled", default: false, null: false
+    t.boolean "sms_marketing_enabled", default: false, null: false
     t.index ["canonical_preference"], name: "index_businesses_on_canonical_preference"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
@@ -1167,6 +1169,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
     t.index ["name", "business_id"], name: "index_shipping_methods_on_name_and_business_id", unique: true
   end
 
+  create_table "sms_links", force: :cascade do |t|
+    t.text "original_url", null: false
+    t.string "short_code", null: false
+    t.integer "click_count", default: 0, null: false
+    t.jsonb "tracking_params", default: {}
+    t.datetime "last_clicked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["short_code"], name: "index_sms_links_on_short_code", unique: true
+  end
+
   create_table "sms_messages", force: :cascade do |t|
     t.bigint "marketing_campaign_id"
     t.bigint "tenant_customer_id", null: false
@@ -1180,10 +1193,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "external_id"
+    t.bigint "business_id", null: false
     t.index ["booking_id"], name: "index_sms_messages_on_booking_id"
+    t.index ["business_id", "created_at"], name: "index_sms_messages_on_business_id_and_created_at"
+    t.index ["business_id"], name: "index_sms_messages_on_business_id"
     t.index ["external_id"], name: "index_sms_messages_on_external_id"
     t.index ["marketing_campaign_id"], name: "index_sms_messages_on_marketing_campaign_id"
     t.index ["status"], name: "index_sms_messages_on_status"
+    t.index ["tenant_customer_id", "created_at"], name: "index_sms_messages_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
   end
 
@@ -1447,6 +1464,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
     t.string "last_name", null: false
     t.string "unsubscribe_token"
     t.datetime "unsubscribed_at"
+    t.boolean "phone_opt_in", default: false, null: false
+    t.datetime "phone_opt_in_at"
+    t.boolean "phone_marketing_opt_out", default: false, null: false
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
@@ -1540,6 +1560,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
     t.boolean "email_marketing_opt_out"
     t.string "unsubscribe_token"
     t.datetime "unsubscribed_at"
+    t.boolean "phone_opt_in", default: false, null: false
+    t.datetime "phone_opt_in_at"
+    t.boolean "phone_marketing_opt_out", default: false, null: false
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
     t.index ["email", "role"], name: "index_users_on_email_and_role"
@@ -1691,6 +1714,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_11_163114) do
   add_foreign_key "setup_reminder_dismissals", "users"
   add_foreign_key "shipping_methods", "businesses", on_delete: :cascade
   add_foreign_key "sms_messages", "bookings", on_delete: :cascade
+  add_foreign_key "sms_messages", "businesses"
   add_foreign_key "sms_messages", "marketing_campaigns"
   add_foreign_key "sms_messages", "tenant_customers"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

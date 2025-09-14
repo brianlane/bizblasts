@@ -123,6 +123,9 @@ Rails.application.routes.draw do
   post '/webhooks/twilio', to: 'webhooks/twilio#delivery_receipt'
   post '/webhooks/twilio/inbound', to: 'webhooks/twilio#inbound_message'
   
+  # SMS link redirects
+  get '/s/:short_code', to: 'sms_links#redirect', as: :sms_link_redirect
+  
   # Calendar OAuth callback (outside subdomain constraint for security)
   get '/oauth/calendar/:provider/callback', to: 'calendar_oauth#callback', as: :calendar_oauth_callback
   

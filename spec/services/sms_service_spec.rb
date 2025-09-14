@@ -3,8 +3,16 @@
 require 'rails_helper'
 
 RSpec.describe SmsService, type: :service do
-  let!(:tenant) { create(:business) }
-  let!(:customer) { create(:tenant_customer, business: tenant, phone: "+15558675309") }
+  let!(:tenant) { create(:business, sms_enabled: true, tier: 'premium') }
+  let!(:customer) { create(:tenant_customer, business: tenant, phone: "+15558675309", phone_opt_in: true, phone_opt_in_at: Time.current) }
+  let!(:client_user) { 
+    create(:user, :client, email: customer.email, phone_opt_in: true, phone_opt_in_at: Time.current,
+           notification_preferences: {
+             'sms_booking_reminder' => true,
+             'sms_order_updates' => true,
+             'sms_promotions' => true
+           }) 
+  }
   let(:valid_phone) { customer.phone }
   let(:invalid_phone) { "123" }
   let(:message) { "Test message" }
@@ -174,17 +182,22 @@ RSpec.describe SmsService, type: :service do
     let!(:service) { create(:service, name: "Consultation", business: tenant) }
     let!(:booking) { create(:booking, tenant_customer: customer, service: service, start_time: Time.current + 3.days, business: tenant) }
     
-    it 'calls send_message with the correct arguments and formatted message' do
-      expected_message = "Booking confirmed: Consultation on #{booking.local_start_time.strftime('%b %d at %I:%M %p')}. " \
-                         "Reply HELP for assistance or CANCEL to cancel your booking."
+    
+    it 'calls send_message_with_rate_limit with template-rendered message' do
+      # Mock the template system
+      expected_template_message = "Booking confirmed: Consultation on #{booking.local_start_time.strftime('%m/%d/%Y')} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply STOP to opt out."
+      allow(Sms::MessageTemplates).to receive(:render)
+        .with('booking.confirmation', anything)
+        .and_return(expected_template_message)
+      
       expected_options = { 
         tenant_customer_id: customer.id,
         booking_id: booking.id,
         business_id: tenant.id
       }
       
-      expect(described_class).to receive(:send_message)
-        .with(customer.phone, expected_message, expected_options)
+      expect(described_class).to receive(:send_message_with_rate_limit)
+        .with(customer.phone, expected_template_message, expected_options)
         .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
         
       described_class.send_booking_confirmation(booking)
@@ -194,6 +207,7 @@ RSpec.describe SmsService, type: :service do
   describe '.send_booking_reminder' do
     let!(:service) { create(:service, name: "Follow-up", business: tenant) }
     let!(:booking) { create(:booking, tenant_customer: customer, service: service, start_time: Time.current + 1.day, business: tenant) }
+    
     
     context 'for 24h timeframe' do
       it 'calls send_message with the correct arguments and formatted message' do
@@ -205,7 +219,7 @@ RSpec.describe SmsService, type: :service do
           business_id: tenant.id
         }
         
-        expect(described_class).to receive(:send_message)
+        expect(described_class).to receive(:send_message_with_rate_limit)
           .with(customer.phone, expected_message, expected_options)
           .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
           
@@ -223,7 +237,7 @@ RSpec.describe SmsService, type: :service do
            business_id: tenant.id
          }
          
-         expect(described_class).to receive(:send_message)
+         expect(described_class).to receive(:send_message_with_rate_limit)
            .with(customer.phone, expected_message, expected_options)
            .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
            

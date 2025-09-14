@@ -47,6 +47,9 @@ module Bizblasts
     
     # Add app/lib directory to autoload paths for security utilities
     config.eager_load_paths << Rails.root.join("app", "lib")
+    
+    # SMS Configuration
+    config.sms_enabled = ActiveModel::Type::Boolean.new.cast(ENV.fetch('ENABLE_SMS', 'true'))
 
     # Add app/assets/stylesheets to the asset load path
     config.assets.paths << Rails.root.join("app/assets/stylesheets")

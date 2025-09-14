@@ -246,10 +246,10 @@ class Invoice < ApplicationRecord
     end
     
     begin
-      InvoiceMailer.invoice_created(self).deliver_later
-      Rails.logger.info "[EMAIL] Sent invoice created email for Invoice ##{invoice_number}"
+      NotificationService.invoice_created(self)
+      Rails.logger.info "[NOTIFICATION] Sent invoice created notifications for Invoice ##{invoice_number}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send invoice created email for Invoice ##{invoice_number}: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send invoice created notifications for Invoice ##{invoice_number}: #{e.message}"
     end
   end
 end 

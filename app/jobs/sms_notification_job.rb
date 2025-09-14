@@ -2,6 +2,12 @@ class SmsNotificationJob < ApplicationJob
   queue_as :notifications
 
   def perform(phone_number, message, options = {})
+    # Early return if SMS is globally disabled
+    unless Rails.application.config.sms_enabled
+      Rails.logger.info "[SMS_NOTIFICATION_JOB] SMS disabled globally, skipping job for #{phone_number}"
+      return
+    end
+    
     # Format the phone number
     formatted_phone = format_phone_number(phone_number)
     return if formatted_phone.blank?
