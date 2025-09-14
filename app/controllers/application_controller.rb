@@ -375,7 +375,25 @@ class ApplicationController < ActionController::Base
         Rails.logger.info "[CrossDomainAuth] Successfully authenticated user #{bridge.user.id} via bridge token"
         
         # Redirect to clean URL (remove auth_token parameter)
-        clean_url = request.url.gsub(/[?&]auth_token=[^&]*/, '').gsub(/\?$/, '')
+        # Fix: Properly handle auth_token removal regardless of position
+        uri = URI.parse(request.url)
+        if uri.query
+          # Parse query parameters and remove auth_token
+          query_params = CGI.parse(uri.query)
+          query_params.delete('auth_token')
+          
+          # Rebuild query string
+          if query_params.empty?
+            uri.query = nil
+          else
+            # Convert back to query string format (CGI.parse creates arrays, so flatten single values)
+            clean_params = query_params.map do |key, values|
+              values.map { |value| "#{CGI.escape(key)}=#{CGI.escape(value)}" }
+            end.flatten
+            uri.query = clean_params.join('&')
+          end
+        end
+        clean_url = uri.to_s
         redirect_to clean_url and return
       else
         Rails.logger.warn "[CrossDomainAuth] Invalid or expired auth token from #{request.remote_ip}"
@@ -386,9 +404,9 @@ class ApplicationController < ActionController::Base
   end
   
   def should_attempt_cross_domain_auth?
-    # For now, attempt cross-domain auth for all GET requests to custom domains
+    # For now, attempt cross-domain auth for all GET and HEAD requests to custom domains
     # that aren't public pages or assets
-    return false unless request.get?
+    return false unless (request.get? || request.head?)
     
     # Skip for common public paths that don't require authentication
     public_paths = [
@@ -420,9 +438,19 @@ class ApplicationController < ActionController::Base
   
   def redirect_to_auth_bridge
     # Construct the bridge URL on the main domain
-    main_domain = Rails.env.production? ? 'https://bizblasts.com' : "#{request.protocol}#{request.host_with_port}"
-    target_url = request.url
+    # Fix: Always use the actual main domain, not the current request domain
+    if Rails.env.production?
+      main_domain = 'https://bizblasts.com'
+    elsif Rails.env.development?
+      # In development, use lvh.me as main domain
+      main_domain = "#{request.protocol}lvh.me:#{request.port}"
+    else
+      # Test environment - use example.com as main domain
+      main_domain = "#{request.protocol}example.com"
+      main_domain += ":#{request.port}" if request.port && ![80, 443].include?(request.port)
+    end
     
+    target_url = request.url
     bridge_url = "#{main_domain}/auth/bridge?target_url=#{CGI.escape(target_url)}"
     
     Rails.logger.info "[CrossDomainAuth] Redirecting to auth bridge: #{bridge_url}"

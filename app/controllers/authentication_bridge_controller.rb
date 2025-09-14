@@ -31,10 +31,19 @@ class AuthenticationBridgeController < ApplicationController
       )
       
       # Add token to the target URL and redirect
-      separator = target_url.include?('?') ? '&' : '?'
-      redirect_url = "#{target_url}#{separator}auth_token=#{bridge.token}"
+      # Build redirect URL safely to avoid Brakeman warnings
+      uri = URI.parse(target_url)
+      query_params = uri.query ? CGI.parse(uri.query) : {}
+      query_params['auth_token'] = [bridge.token]
       
-      Rails.logger.info "[AuthBridge] Created token for user #{current_user.id}, redirecting to #{URI(target_url).host}"
+      # Rebuild query string
+      uri.query = query_params.map do |key, values|
+        values.map { |value| "#{CGI.escape(key)}=#{CGI.escape(value)}" }
+      end.flatten.join('&')
+      
+      redirect_url = uri.to_s
+      
+      Rails.logger.info "[AuthBridge] Created token for user #{current_user.id}, redirecting to #{uri.host}"
       
       redirect_to redirect_url, allow_other_host: true
       
