@@ -633,6 +633,144 @@ Tests automatically run on GitHub Actions:
 
 ---
 
+## 📱 **SMS Notifications (Twilio Integration)**
+
+**BizBlasts features comprehensive SMS notification support with Twilio integration:**
+
+### **SMS Features**
+- ✅ **Booking Notifications** - Confirmations, reminders, status updates
+- ✅ **Invoice & Payment Alerts** - Payment confirmations, overdue reminders  
+- ✅ **Order Management** - Order confirmations, shipping updates, refunds
+- ✅ **Business Notifications** - New bookings, payments received, customer signups
+- ✅ **Marketing Campaigns** - Promotional SMS with opt-in/opt-out support
+- ✅ **System Messages** - Help responses, opt-out confirmations
+- ✅ **TCPA Compliance** - Automatic opt-out keyword processing (STOP, CANCEL, UNSUBSCRIBE)
+- ✅ **Rate Limiting** - Tier-based SMS quotas (Free: 100, Standard: 500, Premium: 1000 daily)
+- ✅ **Template System** - 60+ SMS templates with 160-character optimization
+- ✅ **Delivery Receipts** - Webhook processing for message status updates
+
+### **SMS Configuration**
+
+#### **Environment Variables Required:**
+```bash
+# SMS Feature Toggle
+ENABLE_SMS=true                                      # Global SMS feature enabled/disabled
+
+# Twilio Credentials  
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Your Twilio Account SID
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   # Your Twilio Auth Token  
+TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # Messaging Service SID
+```
+
+#### **Rate Limiting by Business Tier:**
+- **Free Tier**: 0 SMS per day, 100 SMS per hour
+- **Standard Tier**: 500 SMS per day, 100 SMS per hour
+- **Premium Tier**: 1000 SMS per day, 100 SMS per hour
+- **Per Customer**: 10 SMS per day, 5 SMS per hour (across all businesses)
+
+### **SMS Opt-In/Opt-Out Support**
+
+**Automatic Keyword Processing:**
+- **Opt-Out Keywords**: `STOP`, `CANCEL`, `UNSUBSCRIBE` (case-insensitive, whitespace tolerant)
+- **Opt-In Keywords**: `START`, `SUBSCRIBE`, `YES` (case-insensitive, whitespace tolerant)  
+- **Help Keyword**: `HELP` - Sends support information
+- **Unknown Messages**: Automatic "didn't understand" responses for short messages
+
+**Edge Cases Handled:**
+- Mixed case variations: `Stop`, `STOP`, `StOp`
+- Whitespace variations: ` STOP `, `\tSTOP\n`, `STOP\r`
+- Multiple customers with same phone number
+- Template rendering failures
+- Auto-reply failures
+
+### **SMS Template System**
+
+**60+ Pre-Built Templates organized by category:**
+- **Booking**: `booking.confirmation`, `booking.reminder_24h`, `booking.cancellation`
+- **Invoice**: `invoice.created`, `invoice.payment_confirmation`, `invoice.payment_reminder`
+- **Order**: `order.confirmation`, `order.status_update`, `order.refund_confirmation`
+- **Business**: `business.new_booking_notification`, `business.payment_received_notification`
+- **Marketing**: `marketing.campaign_promotional`, `marketing.special_offer`
+- **System**: `system.help_response`, `system.opt_out_confirmation`, `system.unknown_command`
+
+**Template Features:**
+- **Variable Substitution**: `{{business_name}}`, `{{customer_name}}`, `{{amount}}`, etc.
+- **160-Character Optimization**: All templates respect SMS length limits
+- **URL Shortening**: Automatic link shortening with click tracking
+- **YAML-Based Configuration**: Easy template management and updates
+
+### **Webhook Configuration**
+
+**Twilio Webhook Endpoints:**
+```
+Production:  https://yourdomain.com/webhooks/twilio       (delivery receipts)
+Production:  https://yourdomain.com/webhooks/twilio/inbound (incoming SMS)
+
+Development: http://localhost:3000/webhooks/twilio
+Development: http://localhost:3000/webhooks/twilio/inbound
+```
+
+**Webhook Security:**
+- **Signature Verification**: Enabled in production, configurable in development
+- **Environment Detection**: Automatic test/production mode switching
+- **Error Handling**: Graceful failure with proper HTTP status codes
+
+### **Performance Optimizations**
+
+#### **Database Indexes**
+```ruby
+# Composite indexes for rate limiting queries
+add_index :sms_messages, [:business_id, :created_at]
+add_index :sms_messages, [:tenant_customer_id, :created_at]
+```
+
+#### **Query Optimization**
+- **Single Aggregated Query**: Replaces 4 separate COUNT queries for rate limiting
+- **Time Window Accuracy**: Proper daily/hourly count separation (fixes previous bug)
+- **SQL Safety**: Uses `sanitize_sql_array` for parameter binding
+
+### **Testing**
+
+**Comprehensive Test Suite:**
+```bash
+# Run SMS-specific tests
+bundle exec rspec spec/requests/webhooks/twilio_spec.rb                    # Basic webhook tests
+bundle exec rspec spec/requests/webhooks/twilio_enhanced_spec.rb           # Enhanced functionality  
+bundle exec rspec spec/requests/webhooks/twilio_opt_out_edge_cases_spec.rb # 90 edge case tests
+
+# Run SMS service tests
+bundle exec rspec spec/services/sms_service_spec.rb          # Core SMS service
+bundle exec rspec spec/services/sms_rate_limiter_spec.rb     # Rate limiting logic
+bundle exec rspec spec/jobs/sms_notification_job_spec.rb     # Background job processing
+```
+
+**Edge Cases Covered:**
+- 90+ opt-out keyword variations and edge cases
+- Phone number normalization across different formats  
+- Template rendering failures
+- Auto-reply failures
+- Cross-tenant phone number handling
+- Rate limiting boundary conditions
+
+### **Deployment Notes**
+
+#### **Production Checklist**
+- [ ] Set `ENABLE_SMS=true` in environment variables
+- [ ] Configure Twilio credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`)
+- [ ] Set up Twilio webhook URLs in Twilio Console
+- [ ] Run database migration: `rails db:migrate` (for business_id column and indexes)
+- [ ] Test SMS delivery with a real phone number
+- [ ] Verify opt-out/opt-in keyword processing
+- [ ] Monitor rate limiting logs for proper quota enforcement
+
+#### **Monitoring & Troubleshooting**
+- **SMS Logs**: Check `Rails.logger` for `[SMS_SERVICE]` and `[SMS_RATE_LIMIT]` entries
+- **Rate Limiting**: Monitor business daily/hourly quotas in logs
+- **Webhook Processing**: Check `/webhooks/twilio` endpoint for delivery receipt processing
+- **Opt-Out Processing**: Verify STOP/CANCEL keywords update customer `phone_opt_in` status
+
+---
+
 ## 🔒 Security
 
 BizBlasts implements comprehensive security measures to protect multi-tenant data and prevent unauthorized access.
@@ -742,6 +880,12 @@ rspec spec/security/
 ADMIN_EMAIL=admin@yourcompany.com  # Security alert recipient
 API_KEY=your_secure_api_key_here   # API authentication key
 SECRET_KEY_BASE=your_rails_secret  # Rails session encryption
+
+# SMS Configuration (Twilio)
+ENABLE_SMS=true                                      # Global SMS feature toggle (true/false)
+TWILIO_ACCOUNT_SID=your_twilio_account_sid           # Twilio Account SID (starts with 'AC')
+TWILIO_AUTH_TOKEN=your_twilio_auth_token             # Twilio Auth Token
+TWILIO_MESSAGING_SERVICE_SID=your_messaging_service_sid # Twilio Messaging Service SID (starts with 'MG')
 ```
 
 #### Production Security Checklist

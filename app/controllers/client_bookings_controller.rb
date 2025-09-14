@@ -72,7 +72,7 @@ class ClientBookingsController < ApplicationController
     if @booking.update(permitted_attrs)
       # After booking and add-ons are updated, regenerate/update the invoice
       generate_or_update_invoice_for_booking(@booking)
-      BookingMailer.status_update(@booking).deliver_later
+      NotificationService.booking_status_update(@booking)
       redirect_to client_booking_path(@booking), notice: 'Booking was successfully updated.'
     else
       # If update fails, re-render edit form. Need @available_products and @service again.

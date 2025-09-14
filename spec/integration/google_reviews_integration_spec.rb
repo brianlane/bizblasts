@@ -92,6 +92,7 @@ RSpec.describe 'Google Reviews Integration', type: :integration do
     context 'when customer cannot receive emails' do
       before do
         allow(tenant_customer).to receive(:can_receive_email?).with(:customer).and_return(false)
+        allow(tenant_customer).to receive(:can_receive_email?).with(:payment).and_return(true)
       end
 
       it 'does not send review request email' do

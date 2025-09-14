@@ -1,37 +1,67 @@
 require 'rails_helper'
 
 RSpec.describe Sms::MessageTemplates do
-  describe '.reminder_template' do
-    it 'returns the reminder message template string' do
-      expect(described_class.reminder_template).to be_a(String)
-      expect(described_class.reminder_template).to include("%DATE%")
-      expect(described_class.reminder_template).to include("%TIME%")
-      expect(described_class.reminder_template).to include("%BUSINESS_NAME%")
+  describe '.render' do
+    let(:variables) do
+      {
+        business_name: 'Test Business',
+        service_name: 'Hair Cut',
+        date: '12/25/2023',
+        time: '2:00 PM',
+        customer_name: 'John Doe',
+        amount: '$50.00',
+        link: 'https://short.ly/abc123'
+      }
+    end
+
+    context 'with valid template key' do
+      it 'renders booking confirmation template' do
+        result = Sms::MessageTemplates.render('booking.confirmation', variables)
+        
+        expect(result).to include('Test Business')
+        expect(result).to include('Hair Cut')
+        expect(result).to include('12/25/2023')
+        expect(result).to include('2:00 PM')
+        expect(result).to include('https://short.ly/abc123')
+      end
+
+      it 'renders invoice created template' do
+        variables[:invoice_number] = 'INV-001'
+        result = Sms::MessageTemplates.render('invoice.created', variables)
+        
+        expect(result).to include('INV-001')
+        expect(result).to include('$50.00')
+        expect(result).to include('https://short.ly/abc123')
+      end
+    end
+
+    context 'with invalid template key' do
+      it 'returns nil for non-existent template' do
+        result = Sms::MessageTemplates.render('invalid.template', variables)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'message length limits' do
+      it 'truncates messages longer than 160 characters' do
+        long_variables = variables.merge(
+          service_name: 'Very Long Service Name That Goes On And On',
+          business_name: 'Very Long Business Name'
+        )
+        
+        result = Sms::MessageTemplates.render('booking.confirmation', long_variables)
+        expect(result.length).to be <= 160
+      end
     end
   end
 
-  describe '.confirmation_template' do
-    it 'returns the confirmation message template string' do
-      expect(described_class.confirmation_template).to be_a(String)
-      expect(described_class.confirmation_template).to include("%SERVICE_NAME%")
-      expect(described_class.confirmation_template).to include("%DATE%")
-      expect(described_class.confirmation_template).to include("%TIME%")
-    end
-  end
+  describe 'convenience methods' do
+    let(:variables) { { business_name: 'Test Business', service_name: 'Hair Cut' } }
 
-  describe '.cancellation_template' do
-    it 'returns the cancellation message template string' do
-      expect(described_class.cancellation_template).to be_a(String)
-      expect(described_class.cancellation_template).to include("%DATE%")
-      expect(described_class.cancellation_template).to include("%TIME%")
+    it 'provides booking_confirmation shortcut' do
+      result = Sms::MessageTemplates.booking_confirmation(variables)
+      expect(result).to include('Test Business')
+      expect(result).to include('Hair Cut')
     end
   end
-
-  describe '.update_template' do
-    it 'returns the update message template string' do
-      expect(described_class.update_template).to be_a(String)
-      expect(described_class.update_template).to include("%DATE%")
-      expect(described_class.update_template).to include("%TIME%")
-    end
-  end
-end 
+end

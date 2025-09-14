@@ -1,0 +1,65 @@
+# SMS Message Templates - 160 character limit per message
+# Variables use %VARIABLE% format for interpolation
+
+booking:
+  confirmation: "✅ Booking confirmed! %SERVICE_NAME% on %DATE% at %TIME% with %BUSINESS_NAME%. Details: %LINK%"
+  cancellation: "❌ Booking cancelled: %DATE% at %TIME%. Reason: %REASON%. Reschedule: %LINK%"
+  reminder: "⏰ Reminder: %SERVICE_NAME% tomorrow at %TIME% with %BUSINESS_NAME%. Location: %ADDRESS%"
+  status_update: "📝 Booking updated: %SERVICE_NAME% now %DATE% at %TIME%. Changes: %LINK%"
+  payment_reminder: "💳 Payment due: $%AMOUNT% for %SERVICE_NAME% on %DATE%. Pay now: %LINK%"
+  subscription_booking_created: "📅 Subscription booking scheduled: %SERVICE_NAME% on %DATE% at %TIME%. Details: %LINK%"
+
+invoice:
+  created: "📄 Invoice #%INVOICE_NUMBER% for $%AMOUNT% is ready. Due %DATE%. Pay: %LINK%"
+  payment_confirmation: "✅ Payment received! $%AMOUNT% for Invoice #%INVOICE_NUMBER%. Receipt: %LINK%"
+  payment_reminder: "%DAYS_OVERDUE% days overdue: Invoice #%INVOICE_NUMBER% ($%AMOUNT%). Pay: %LINK%"
+  payment_failed: "❌ Payment failed for Invoice #%INVOICE_NUMBER%. Update payment: %LINK%"
+
+order:
+  confirmation: "🛒 Order #%ORDER_NUMBER% confirmed! Total: $%AMOUNT%. Track: %LINK%"
+  status_update: "📦 Order #%ORDER_NUMBER% is now %STATUS%. Track: %LINK%"
+  shipped: "🚚 Order #%ORDER_NUMBER% shipped! Tracking: %TRACKING_NUMBER%. Details: %LINK%"
+  refund_confirmation: "💰 Refund processed: $%AMOUNT% for Order #%ORDER_NUMBER%. 3-5 business days."
+  subscription_order_created: "📦 Subscription order created: Order #%ORDER_NUMBER%. Total: $%AMOUNT%. Details: %LINK%"
+
+business:
+  new_booking_notification: "📅 New booking: %CUSTOMER_NAME% for %SERVICE_NAME% on %DATE% at %TIME%."
+  new_order_notification: "🛒 New order: %CUSTOMER_NAME% placed Order #%ORDER_NUMBER% for $%AMOUNT%."
+  new_customer_notification: "👤 New customer registered: %CUSTOMER_NAME% (%CUSTOMER_EMAIL%)."
+  payment_received_notification: "💰 Payment received: $%AMOUNT% from %CUSTOMER_NAME% for %ITEM_TYPE%."
+  new_subscription_notification: "🔄 New subscription: %CUSTOMER_NAME% subscribed to %ITEM_NAME%."
+  subscription_order_received: "📦 Subscription order: %CUSTOMER_NAME% - Order #%ORDER_NUMBER% for $%AMOUNT%."
+  subscription_booking_received: "📅 Subscription booking: %CUSTOMER_NAME% - %SERVICE_NAME% on %DATE%."
+  payment_failed: "❌ Subscription payment failed: %CUSTOMER_NAME% - %ITEM_NAME%. Check payment method."
+  subscription_cancelled: "❌ Subscription cancelled: %CUSTOMER_NAME% - %ITEM_NAME%."
+
+marketing:
+  campaign_promotional: "🎉 %BUSINESS_NAME%: %OFFER_TEXT% Limited time offer! Details: %LINK%"
+  newsletter: "📰 %BUSINESS_NAME% Newsletter: %HEADLINE% Read more: %LINK%"
+  event_announcement: "📢 %BUSINESS_NAME%: %EVENT_NAME% on %EVENT_DATE%. Don't miss out! RSVP: %LINK%"
+
+reminder:
+  booking_reminder: "⏰ Reminder: %SERVICE_NAME% appointment with %BUSINESS_NAME% on %DATE% at %TIME%."
+  follow_up: "👋 Hi %CUSTOMER_NAME%! How was your %SERVICE_NAME% experience with %BUSINESS_NAME%? Review: %LINK%"
+  document_expiration: "📄 Document expiring soon: %DOCUMENT_NAME% expires %DATE%. Renew: %LINK%"
+
+review_request:
+  google_review_request: "⭐ Enjoyed your %SERVICE_NAME%? Please share your experience on Google: %LINK%"
+  follow_up_request: "💭 How was your recent visit to %BUSINESS_NAME%? We'd love your feedback: %LINK%"
+
+security:
+  password_reset: "🔐 Password reset requested for %BUSINESS_NAME% account. Reset: %LINK% (expires in 1 hour)"
+  account_locked: "🚨 Account locked due to failed login attempts. Unlock: %LINK%"
+
+subscription:
+  payment_confirmation: "✅ Subscription payment processed: $%AMOUNT% for %ITEM_NAME%. Next billing: %NEXT_DATE%"
+  payment_failed: "❌ Subscription payment failed: %ITEM_NAME%. Update payment method: %LINK%"
+  cancelled: "❌ Subscription cancelled: %ITEM_NAME%. Access until %END_DATE%. Reactivate: %LINK%"
+
+# System templates for automated responses
+system:
+  welcome: "👋 Welcome to %BUSINESS_NAME%! Reply STOP to opt out of SMS notifications."
+  opt_in_confirmation: "✅ You're now opted in for SMS from %BUSINESS_NAME%. Reply STOP anytime to opt out."
+  opt_out_confirmation: "❌ You've been unsubscribed from SMS notifications from %BUSINESS_NAME%."
+  help_response: "ℹ️ %BUSINESS_NAME% SMS Help: Reply STOP to unsubscribe, START to resubscribe. Support: %PHONE%"
+  unknown_command: "❓ We didn't understand that. Reply HELP for options or STOP to unsubscribe."
