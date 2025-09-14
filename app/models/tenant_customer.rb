@@ -10,6 +10,7 @@ class TenantCustomer < ApplicationRecord
   has_many :invoices, dependent: :destroy
   has_many :orders, dependent: :destroy
   has_many :payments, dependent: :destroy
+  has_many :sms_messages, dependent: :destroy
   
   # Loyalty and referral system associations
   has_many :loyalty_transactions, dependent: :destroy
@@ -206,6 +207,75 @@ class TenantCustomer < ApplicationRecord
       true
     end
   end
+
+  # Returns true if the customer can receive a given type of SMS (e.g., :marketing, :booking, :transactional, etc.)
+  def can_receive_sms?(type)
+    return false unless phone.present? # Must have phone number
+    return false unless business&.sms_enabled? # Business must have SMS enabled
+    return true if type == :transactional && phone_opt_in? # Allow transactional if opted in
+
+    # Check specific SMS opt-in status and notification preferences
+    case type.to_sym
+    when :marketing
+      # Marketing SMS requires explicit opt-in AND business marketing enabled AND not opted out
+      phone_opt_in? && business.sms_marketing_enabled? && !phone_marketing_opt_out? && sms_preference_enabled?('sms_promotions')
+    when :booking
+      # Booking SMS requires phone opt-in and booking confirmation preference
+      phone_opt_in? && sms_preference_enabled?('sms_booking_reminder')
+    when :reminder
+      # Reminder SMS requires phone opt-in and booking reminder preference  
+      phone_opt_in? && sms_preference_enabled?('sms_booking_reminder')
+    when :order
+      # Order SMS requires phone opt-in and order update preference
+      phone_opt_in? && sms_preference_enabled?('sms_order_updates')
+    when :payment, :system, :subscription
+      # Other SMS types require general phone opt-in (no specific preference controls in UI yet)
+      phone_opt_in?
+    else
+      # Default to require opt-in for unknown types
+      phone_opt_in?
+    end
+  end
+
+  # Opt customer into SMS notifications
+  def opt_into_sms!
+    update!(
+      phone_opt_in: true,
+      phone_opt_in_at: Time.current
+    )
+  end
+
+  # Opt customer out of SMS notifications  
+  def opt_out_of_sms!
+    update!(
+      phone_opt_in: false,
+      phone_opt_in_at: nil
+    )
+  end
+
+  # Opt customer out of marketing SMS only
+  def opt_out_of_sms_marketing!
+    update!(phone_marketing_opt_out: true)
+  end
+
+  # Check if phone number appears valid for SMS
+  def phone_verified?
+    phone.present? && phone.match?(/\A\+?[1-9]\d{1,14}\z/)
+  end
+
+  # Check if a specific SMS notification preference is enabled
+  # TenantCustomer checks the associated User's notification preferences (for client users)
+  def sms_preference_enabled?(preference_key)
+    # Find the associated client User by email
+    associated_user = User.find_by(email: email, role: 'client')
+    
+    # If no associated user or no notification preferences are set, default to true (allow all)
+    return true unless associated_user
+    return true if associated_user.notification_preferences.nil? || associated_user.notification_preferences.empty?
+    
+    # Check if the preference is explicitly disabled (false or '0') in the User's preferences
+    associated_user.notification_preferences[preference_key] != false && associated_user.notification_preferences[preference_key] != '0'
+  end
   
   private
 
@@ -229,10 +299,20 @@ class TenantCustomer < ApplicationRecord
     return if skip_notification_email
     
     begin
-      BusinessMailer.new_customer_notification(self).deliver_later
-      Rails.logger.info "[EMAIL] Scheduled business customer notification for Customer #{full_name} (#{email})"
+      # Create a new customer notification - this will go to business owner
+      business_user = business.users.where(role: :manager).first
+      if business_user
+        # Send email
+        BusinessMailer.new_customer_notification(self).deliver_later if business_user.can_receive_email?(:customer)
+        
+        # Send SMS if opted in
+        if business_user.respond_to?(:can_receive_sms?) && business_user.can_receive_sms?(:booking)
+          SmsService.send_business_new_customer(self, business_user)
+        end
+      end
+      Rails.logger.info "[NOTIFICATION] Scheduled business customer notification for Customer #{full_name} (#{email})"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
     end
   end
 end 
