@@ -70,6 +70,12 @@ class SmsService
   
   # ===== BOOKING SMS METHODS =====
   def self.send_booking_confirmation(booking)
+    # Check TCPA compliance - customer must be opted in
+    unless booking.tenant_customer.can_receive_sms?(:booking)
+      Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for booking SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
     
@@ -83,6 +89,13 @@ class SmsService
 
   def self.send_booking_reminder(booking, timeframe)
     customer = booking.tenant_customer
+    
+    # Check TCPA compliance - customer must be opted in
+    unless customer.can_receive_sms?(:reminder)
+      Rails.logger.info "[SMS_SERVICE] Customer #{customer.id} not opted in for reminder SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     service = booking.service
       
     message = "Reminder: Your #{service&.name || 'booking'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply HELP for assistance or CONFIRM to confirm."
@@ -95,6 +108,12 @@ class SmsService
   end
 
   def self.send_booking_status_update(booking)
+    # Check TCPA compliance - customer must be opted in
+    unless booking.tenant_customer.can_receive_sms?(:booking)
+      Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for booking status SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
     
@@ -107,6 +126,12 @@ class SmsService
   end
 
   def self.send_booking_cancellation(booking)
+    # Check TCPA compliance - customer must be opted in
+    unless booking.tenant_customer.can_receive_sms?(:booking)
+      Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for cancellation SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_booking_variables(booking)
     variables[:reason] = booking.cancellation_reason || 'No reason provided'
     variables[:link] = generate_sms_link(booking.business, "/services", booking_id: booking.id)
@@ -120,6 +145,12 @@ class SmsService
   end
 
   def self.send_booking_payment_reminder(booking)
+    # Check TCPA compliance - customer must be opted in
+    unless booking.tenant_customer.can_receive_sms?(:payment)
+      Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for payment reminder SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_booking_variables(booking)
     variables[:amount] = format_currency(booking.invoice&.amount || booking.total_amount)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/pay", booking_id: booking.id)
@@ -133,6 +164,12 @@ class SmsService
   end
 
   def self.send_subscription_booking_created(booking)
+    # Check TCPA compliance - customer must be opted in
+    unless booking.tenant_customer.can_receive_sms?(:subscription)
+      Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for subscription SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
     
@@ -146,6 +183,12 @@ class SmsService
 
   # ===== INVOICE SMS METHODS =====
   def self.send_invoice_created(invoice)
+    # Check TCPA compliance - customer must be opted in
+    unless invoice.tenant_customer.can_receive_sms?(:order)
+      Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for invoice SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
     
@@ -158,6 +201,12 @@ class SmsService
   end
 
   def self.send_invoice_payment_confirmation(invoice, payment)
+    # Check TCPA compliance - customer must be opted in
+    unless invoice.tenant_customer.can_receive_sms?(:payment)
+      Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for payment confirmation SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}", invoice_id: invoice.id)
     
@@ -170,6 +219,12 @@ class SmsService
   end
 
   def self.send_invoice_payment_reminder(invoice)
+    # Check TCPA compliance - customer must be opted in
+    unless invoice.tenant_customer.can_receive_sms?(:payment)
+      Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for payment reminder SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_invoice_variables(invoice)
     variables[:days_overdue] = (Date.current - invoice.due_date).to_i
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
@@ -183,6 +238,12 @@ class SmsService
   end
 
   def self.send_invoice_payment_failed(invoice, payment)
+    # Check TCPA compliance - customer must be opted in
+    unless invoice.tenant_customer.can_receive_sms?(:payment)
+      Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for payment failed SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
     
@@ -196,6 +257,12 @@ class SmsService
 
   # ===== ORDER SMS METHODS =====
   def self.send_order_confirmation(order)
+    # Check TCPA compliance - customer must be opted in
+    unless order.tenant_customer.can_receive_sms?(:order)
+      Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for order confirmation SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_order_variables(order)
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
@@ -208,6 +275,12 @@ class SmsService
   end
 
   def self.send_order_status_update(order, previous_status)
+    # Check TCPA compliance - customer must be opted in
+    unless order.tenant_customer.can_receive_sms?(:order)
+      Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for order status SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_order_variables(order)
     variables[:status] = order.status.humanize
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
@@ -221,6 +294,12 @@ class SmsService
   end
 
   def self.send_order_refund_confirmation(order, payment)
+    # Check TCPA compliance - customer must be opted in
+    unless order.tenant_customer.can_receive_sms?(:order)
+      Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for refund confirmation SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_order_variables(order)
     variables[:amount] = format_currency(payment.refunded_amount || payment.amount)
     
@@ -233,6 +312,12 @@ class SmsService
   end
 
   def self.send_subscription_order_created(order)
+    # Check TCPA compliance - customer must be opted in
+    unless order.tenant_customer.can_receive_sms?(:subscription)
+      Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for subscription order SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+    
     variables = build_order_variables(order)
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
@@ -287,6 +372,12 @@ class SmsService
 
   # ===== MARKETING SMS METHODS =====
   def self.send_marketing_campaign(campaign, recipient)
+    # Check TCPA compliance - customer must be opted in for marketing SMS
+    unless recipient.can_receive_sms?(:marketing)
+      Rails.logger.info "[SMS_SERVICE] Customer #{recipient.id} not opted in for marketing SMS"
+      return { success: false, error: "Customer not opted in for marketing SMS" }
+    end
+    
     variables = {
       business_name: campaign.business.name,
       offer_text: campaign.content || 'Special offer available',

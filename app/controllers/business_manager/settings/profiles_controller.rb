@@ -7,6 +7,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
     authorize @user, policy_class: Settings::ProfilePolicy
     @account_deletion_info = @user.can_delete_account?
     @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
+    @business = @user.business # Make business available to the view
   end
 
   def update
@@ -47,13 +48,21 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       update_params[:notification_preferences] = @user.notification_preferences || {}
     end
 
-    if @user.update(update_params)
+    # Handle business SMS settings if present
+    business_updated = true
+    if params[:business].present? && @user.business.present?
+      business_params = params.require(:business).permit(:sms_enabled, :sms_marketing_enabled)
+      business_updated = @user.business.update(business_params)
+    end
+
+    if @user.update(update_params) && business_updated
       # Sign in the user again to reset their session if password was changed.
       # This is a common Devise practice after password updates.
       bypass_sign_in(@user) if params[:user][:password].present?
 
       redirect_to edit_business_manager_settings_profile_path, notice: 'Profile updated successfully.'
     else
+      @business = @user.business # Make business available to the view for error display
       @account_deletion_info = @user.can_delete_account?
       @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
       flash.now[:alert] = 'Failed to update profile.'

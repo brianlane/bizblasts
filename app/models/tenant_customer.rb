@@ -214,13 +214,22 @@ class TenantCustomer < ApplicationRecord
     return false unless business&.sms_enabled? # Business must have SMS enabled
     return true if type == :transactional && phone_opt_in? # Allow transactional if opted in
 
-    # Check specific SMS opt-in status
+    # Check specific SMS opt-in status and notification preferences
     case type.to_sym
     when :marketing
       # Marketing SMS requires explicit opt-in AND business marketing enabled AND not opted out
-      phone_opt_in? && business.sms_marketing_enabled? && !phone_marketing_opt_out?
-    when :booking, :order, :payment, :reminder, :system, :subscription
-      # Other SMS types require general phone opt-in
+      phone_opt_in? && business.sms_marketing_enabled? && !phone_marketing_opt_out? && sms_preference_enabled?('sms_promotions')
+    when :booking
+      # Booking SMS requires phone opt-in and booking confirmation preference
+      phone_opt_in? && sms_preference_enabled?('sms_booking_reminder')
+    when :reminder
+      # Reminder SMS requires phone opt-in and booking reminder preference  
+      phone_opt_in? && sms_preference_enabled?('sms_booking_reminder')
+    when :order
+      # Order SMS requires phone opt-in and order update preference
+      phone_opt_in? && sms_preference_enabled?('sms_order_updates')
+    when :payment, :system, :subscription
+      # Other SMS types require general phone opt-in (no specific preference controls in UI yet)
       phone_opt_in?
     else
       # Default to require opt-in for unknown types
@@ -252,6 +261,20 @@ class TenantCustomer < ApplicationRecord
   # Check if phone number appears valid for SMS
   def phone_verified?
     phone.present? && phone.match?(/\A\+?[1-9]\d{1,14}\z/)
+  end
+
+  # Check if a specific SMS notification preference is enabled
+  # TenantCustomer checks the associated User's notification preferences (for client users)
+  def sms_preference_enabled?(preference_key)
+    # Find the associated client User by email
+    associated_user = User.find_by(email: email, role: 'client')
+    
+    # If no associated user or no notification preferences are set, default to true (allow all)
+    return true unless associated_user
+    return true if associated_user.notification_preferences.nil? || associated_user.notification_preferences.empty?
+    
+    # Check if the preference is explicitly disabled (false or '0') in the User's preferences
+    associated_user.notification_preferences[preference_key] != false && associated_user.notification_preferences[preference_key] != '0'
   end
   
   private

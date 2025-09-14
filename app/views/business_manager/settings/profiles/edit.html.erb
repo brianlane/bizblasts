@@ -149,6 +149,42 @@
             <% end %>
           </fieldset>
         </div>
+        
+        <% if @business.present? %>
+          <div class="field">
+            <%= f.label :sms_settings, "SMS Settings" %>
+            <p class="field-description">Control SMS notifications for your clients and customers.</p>
+            
+            <fieldset>
+              <div class="preference-group">
+                <h4>Client SMS Notifications</h4>
+                <div class="checkbox-field">
+                  <%= check_box_tag 'business[sms_enabled]', '1', 
+                      (@business.sms_enabled? && (@business.standard_tier? || @business.premium_tier?)),
+                      { disabled: @business.free_tier? } %>
+                  <%= label_tag 'business[sms_enabled]', "Enable SMS for Clients" %>
+                  <small>
+                    <% if @business.free_tier? %>
+                      SMS notifications are only available for Standard and Premium tier businesses. 
+                      <%= link_to "Upgrade your plan", business_manager_settings_subscriptions_path, style: "color: #0066cc;" %> to enable SMS.
+                    <% else %>
+                      Allow sending SMS notifications to your customers for bookings, orders, and reminders.
+                    <% end %>
+                  </small>
+                </div>
+                
+                <% if @business.standard_tier? || @business.premium_tier? %>
+                  <div class="checkbox-field">
+                    <%= check_box_tag 'business[sms_marketing_enabled]', '1', @business.sms_marketing_enabled? %>
+                    <%= label_tag 'business[sms_marketing_enabled]', "Enable SMS Marketing" %>
+                    <small>Allow sending promotional SMS to customers who have opted in for marketing messages.</small>
+                  </div>
+                <% end %>
+              </div>
+            </fieldset>
+          </div>
+        <% end %>
+
         <div class="actions">
           <%= f.submit "Update Profile" %>
         </div>
