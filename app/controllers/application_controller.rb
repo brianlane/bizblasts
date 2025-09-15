@@ -342,18 +342,25 @@ class ApplicationController < ActionController::Base
     # If user is already signed in, no need for cross-domain auth
     return if user_signed_in?
     
-    # Check if we have an auth token to consume
+    # Check if we have an auth token to consume (session restoration)
     auth_token = params[:auth_token]
     if auth_token.present?
       consume_auth_token(auth_token)
       return
     end
     
-    # Check if this looks like a request that should have authentication
-    return unless should_attempt_cross_domain_auth?
+    # For non-blocking session restoration, only attempt if user likely came from main domain
+    # This is session restoration, not authentication requirement
+    if should_attempt_session_restoration?
+      # Use JavaScript-based approach for non-blocking session restoration
+      initiate_background_session_restoration
+      return
+    end
     
-    # Redirect to main domain for authentication bridge
-    redirect_to_auth_bridge
+    # For pages that actually REQUIRE authentication, use blocking redirect
+    if requires_authentication?
+      redirect_to_auth_bridge
+    end
   end
   
   private
@@ -405,12 +412,44 @@ class ApplicationController < ActionController::Base
     end
   end
   
-  def should_attempt_cross_domain_auth?
-    # Attempt cross-domain auth for all GET and HEAD requests to custom domains
-    # unless they are asset requests or API endpoints
+  def should_attempt_session_restoration?
+    # Only attempt for GET and HEAD requests
     return false unless (request.get? || request.head?)
     
-    # Skip for asset files and system endpoints that never need authentication
+    # Skip for asset files and system endpoints
+    return false if skip_system_paths?
+    
+    # Attempt session restoration if user likely came from main domain
+    # This is non-blocking - we try to restore their session but don't interrupt navigation
+    likely_cross_domain_user?
+  end
+  
+  def requires_authentication?
+    # Only attempt for GET and HEAD requests
+    return false unless (request.get? || request.head?)
+    
+    # Skip for asset files and system endpoints
+    return false if skip_system_paths?
+    
+    # Only require authentication (blocking redirect) for protected areas
+    protected_patterns = [
+      '/manage',             # Business management
+      '/dashboard',          # User dashboard  
+      '/profile',            # User profile
+      '/settings',           # Settings
+      '/my-bookings',        # User's bookings
+      '/clients',            # Client management
+      '/orders',             # User orders
+      '/subscriptions',      # User subscriptions
+      '/account',            # Account management
+      '/preferences'         # User preferences
+    ]
+    
+    path = request.path.downcase
+    protected_patterns.any? { |pattern| path.start_with?(pattern) }
+  end
+  
+  def skip_system_paths?
     skip_paths = [
       '/assets',             # Asset files
       '/favicon.ico',        # Favicon
@@ -419,17 +458,51 @@ class ApplicationController < ActionController::Base
       '/healthcheck',        # Health checks
       '/up',                 # Rails up check
       '/maintenance',        # Maintenance page
-      '/api/'                # API endpoints (handle auth separately)
+      '/api'                 # API endpoints (exact match and with slash)
     ]
     
     path = request.path.downcase
-    return false if skip_paths.any? { |skip_path| path.start_with?(skip_path) }
-    
-    # Attempt cross-domain auth for all other pages
-    # This ensures users stay signed in on homepage, about, services, etc.
-    true
+    # Check for exact match or path starting with skip_path + '/'
+    skip_paths.any? { |skip_path| 
+      path == skip_path || path.start_with?(skip_path + '/') 
+    }
   end
   
+  def likely_cross_domain_user?
+    # Check if this user likely came from the main domain and might be signed in
+    
+    # 1. Check HTTP referrer - if they came from main domain, likely signed in
+    if request.referer.present?
+      begin
+        referrer_uri = URI.parse(request.referer)
+        main_domains = if Rails.env.production?
+          ['bizblasts.com', 'www.bizblasts.com']
+        elsif Rails.env.development?
+          ['lvh.me', 'www.lvh.me']
+        else
+          ['example.com', 'www.example.com']
+        end
+        
+        return true if main_domains.include?(referrer_uri.host&.downcase)
+      rescue URI::InvalidURIError
+        # Invalid referrer, continue with other checks
+      end
+    end
+    
+    # 2. For public pages with no referrer info, don't attempt session restoration
+    # This prevents unnecessary requests for anonymous users who directly visit business pages
+    false
+  end
+  
+  def initiate_background_session_restoration
+    # Store session restoration intent in instance variable to be handled by view layer
+    # This allows the page to load normally while attempting session restoration in background
+    @should_attempt_session_restoration = true
+    
+    # Log the attempt for debugging
+    Rails.logger.info "[CrossDomainAuth] Initiating background session restoration for #{request.url}"
+  end
+
   def redirect_to_auth_bridge
     # Construct the bridge URL on the main domain
     # Fix: Always use the actual main domain, not the current request domain
