@@ -425,5 +425,51 @@
         document.addEventListener('turbo:load', initializePolicyAcceptance);
       </script>
     <% end %>
+
+    <% if defined?(@should_attempt_session_restoration) && @should_attempt_session_restoration %>
+      <script>
+        // Background session restoration - non-blocking approach
+        (function() {
+          const attemptSessionRestoration = () => {
+            // Construct the bridge URL on the main domain
+            <% if Rails.env.production? %>
+              const mainDomain = 'https://bizblasts.com';
+            <% elsif Rails.env.development? %>
+              const mainDomain = '<%= request.protocol %>lvh.me:<%= request.port %>';
+            <% else %>
+              const mainDomain = '<%= request.protocol %>example.com<%= request.port && ![80, 443].include?(request.port) ? ":#{request.port}" : "" %>';
+            <% end %>
+            
+            const currentUrl = window.location.href;
+            const bridgeUrl = `${mainDomain}/auth/bridge?target_url=${encodeURIComponent(currentUrl)}`;
+            
+            console.log('[CrossDomainAuth] Attempting background session restoration');
+            
+            // Create hidden iframe for non-blocking cross-domain session check
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.style.width = '1px';
+            iframe.style.height = '1px';
+            iframe.src = bridgeUrl;
+            
+            // Clean up iframe after a reasonable timeout
+            setTimeout(() => {
+              if (iframe.parentNode) {
+                iframe.parentNode.removeChild(iframe);
+              }
+            }, 5000);
+            
+            document.body.appendChild(iframe);
+          };
+
+          // Attempt session restoration after page loads
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attemptSessionRestoration);
+          } else {
+            attemptSessionRestoration();
+          }
+        })();
+      </script>
+    <% end %>
   </body>
 </html>
