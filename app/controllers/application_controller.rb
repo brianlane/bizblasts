@@ -330,14 +330,17 @@ class ApplicationController < ActionController::Base
     request.path.start_with?('/auth/bridge') ||             # Authentication bridge endpoints
     request.path.start_with?('/healthcheck') ||             # Health checks
     maintenance_mode? ||                                     # Maintenance mode
-    main_domain_request? ||                                  # Already on main domain
-    user_signed_in?                                          # Already authenticated
+    main_domain_request?                                     # Already on main domain
+    # Note: Removed user_signed_in? check - we WANT to attempt cross-domain auth when user is NOT signed in
   end
   
   # Handle cross-domain authentication bridging for custom domains
   def handle_cross_domain_authentication
     # Only process for custom domains
     return unless on_custom_domain?
+    
+    # If user is already signed in, no need for cross-domain auth
+    return if user_signed_in?
     
     # Check if we have an auth token to consume
     auth_token = params[:auth_token]
@@ -347,7 +350,6 @@ class ApplicationController < ActionController::Base
     end
     
     # Check if this looks like a request that should have authentication
-    # (e.g., accessing protected resources)
     return unless should_attempt_cross_domain_auth?
     
     # Redirect to main domain for authentication bridge
@@ -404,36 +406,28 @@ class ApplicationController < ActionController::Base
   end
   
   def should_attempt_cross_domain_auth?
-    # For now, attempt cross-domain auth for all GET and HEAD requests to custom domains
-    # that aren't public pages or assets
+    # Attempt cross-domain auth for all GET and HEAD requests to custom domains
+    # unless they are asset requests or API endpoints
     return false unless (request.get? || request.head?)
     
-    # Skip for common public paths that don't require authentication
-    public_paths = [
-      '/',                    # Homepage
-      '/about',              # About page
-      '/contact',            # Contact page
-      '/services',           # Public services page
+    # Skip for asset files and system endpoints that never need authentication
+    skip_paths = [
       '/assets',             # Asset files
       '/favicon.ico',        # Favicon
       '/robots.txt',         # Robots.txt
-      '/sitemap.xml'         # Sitemap
+      '/sitemap.xml',        # Sitemap
+      '/healthcheck',        # Health checks
+      '/up',                 # Rails up check
+      '/maintenance',        # Maintenance page
+      '/api/'                # API endpoints (handle auth separately)
     ]
     
     path = request.path.downcase
-    return false if public_paths.any? { |public_path| path.start_with?(public_path) }
+    return false if skip_paths.any? { |skip_path| path.start_with?(skip_path) }
     
-    # For protected paths, attempt cross-domain auth
-    protected_paths = [
-      '/manage',             # Business management
-      '/dashboard',          # User dashboard
-      '/profile',            # User profile
-      '/settings',           # Settings
-      '/bookings',           # Bookings
-      '/clients'             # Client management
-    ]
-    
-    protected_paths.any? { |protected_path| path.start_with?(protected_path) }
+    # Attempt cross-domain auth for all other pages
+    # This ensures users stay signed in on homepage, about, services, etc.
+    true
   end
   
   def redirect_to_auth_bridge
