@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'cgi'
+
 # Utility methods for generating the correct host (and full URLs)
 # for a Business object based on its host_type.
 #
@@ -162,5 +164,32 @@ module TenantHost
     path = path.start_with?('/') ? path : "/#{path}"
 
     "#{request.protocol}#{main_domain}#{port_str}#{path}"
+  end
+  
+  # Generates a URL for a business that handles cross-domain authentication.
+  # If the user is signed in on the main domain and the business uses a custom domain,
+  # this will route through the authentication bridge to transfer the session.
+  #
+  # @param business [Business] The business object
+  # @param request [ActionDispatch::Request] The current request object
+  # @param path [String] The path to append (defaults to root '/')
+  # @param user_signed_in [Boolean] Whether the current user is signed in
+  # @return [String] The complete URL, potentially via auth bridge
+  def url_for_with_auth(business, request, path = '/', user_signed_in: false)
+    return url_for(business, request, path) unless business
+    
+    # If user is signed in on main domain and business uses custom domain,
+    # route through auth bridge to transfer session
+    if user_signed_in && 
+       business.host_type_custom_domain? && 
+       business.custom_domain_allow? &&
+       main_domain?(request.host)
+      
+      target_url = url_for(business, request, path)
+      main_domain_url_for(request, "/auth/bridge?target_url=#{CGI.escape(target_url)}")
+    else
+      # Direct link for subdomains or when user not signed in
+      url_for(business, request, path)
+    end
   end
 end
