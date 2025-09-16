@@ -342,23 +342,30 @@ class ApplicationController < ActionController::Base
     # If user is already signed in, no need for cross-domain auth
     return if user_signed_in?
     
+    # Debug logging
+    Rails.logger.info "[CrossDomainAuth] Processing custom domain: #{request.host}, path: #{request.path}, referrer: #{request.referer}"
+    
     # Check if we have an auth token to consume (session restoration)
     auth_token = params[:auth_token]
     if auth_token.present?
+      Rails.logger.info "[CrossDomainAuth] Found auth token, attempting to consume"
       consume_auth_token(auth_token)
       return
     end
     
-    # For non-blocking session restoration, only attempt if user likely came from main domain
-    # This is session restoration, not authentication requirement
+    # For session restoration, attempt if user likely came from main domain
+    # This uses a blocking redirect approach with tokens, not iframe
     if should_attempt_session_restoration?
-      # Use JavaScript-based approach for non-blocking session restoration
-      initiate_background_session_restoration
+      Rails.logger.info "[CrossDomainAuth] Should attempt session restoration, redirecting to bridge"
+      redirect_to_auth_bridge
       return
+    else
+      Rails.logger.info "[CrossDomainAuth] Not attempting session restoration - likely_cross_domain_user?: #{likely_cross_domain_user?}"
     end
     
     # For pages that actually REQUIRE authentication, use blocking redirect
     if requires_authentication?
+      Rails.logger.info "[CrossDomainAuth] Page requires authentication, redirecting to bridge"
       redirect_to_auth_bridge
     end
   end
@@ -490,18 +497,11 @@ class ApplicationController < ActionController::Base
     end
     
     # 2. For public pages with no referrer info, don't attempt session restoration
-    # This prevents unnecessary requests for anonymous users who directly visit business pages
+    # This prevents unnecessary redirects for anonymous users who directly visit business pages
+    # The main solution is to fix the business links to go through the auth bridge
     false
   end
   
-  def initiate_background_session_restoration
-    # Store session restoration intent in instance variable to be handled by view layer
-    # This allows the page to load normally while attempting session restoration in background
-    @should_attempt_session_restoration = true
-    
-    # Log the attempt for debugging
-    Rails.logger.info "[CrossDomainAuth] Initiating background session restoration for #{request.url}"
-  end
 
   def redirect_to_auth_bridge
     # Construct the bridge URL on the main domain
