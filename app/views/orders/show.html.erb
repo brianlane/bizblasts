@@ -55,7 +55,7 @@
           <% end %>
           <% if @order.business.hostname.present? %>
             <p class="mb-2">
-              <%= link_to "Visit Business Website", TenantHost.url_for(@order.business, request), 
+              <%= link_to "Visit Business Website", TenantHost.url_for_with_auth(@order.business, request, '/', user_signed_in: user_signed_in?), 
                   class: "text-blue-600 hover:underline", target: "_blank" %>
             </p>
           <% end %>

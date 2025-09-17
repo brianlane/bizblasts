@@ -186,7 +186,12 @@ module TenantHost
        main_domain?(request.host)
       
       target_url = url_for(business, request, path)
-      main_domain_url_for(request, "/auth/bridge?target_url=#{CGI.escape(target_url)}")
+      # Include business ID for target URL validation security
+      bridge_params = {
+        target_url: target_url,
+        business_id: business.id
+      }
+      main_domain_url_for(request, "/auth/bridge?#{bridge_params.to_query}")
     else
       # Direct link for subdomains or when user not signed in
       url_for(business, request, path)

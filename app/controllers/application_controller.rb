@@ -382,13 +382,13 @@ class ApplicationController < ActionController::Base
   
   def consume_auth_token(token)
     begin
-      # Use the authentication bridge model to consume the token
-      bridge = AuthenticationBridge.consume_token!(token, request.remote_ip)
+      # Use the new Redis-backed AuthToken model to consume the token
+      auth_token = AuthToken.consume!(token, request.remote_ip, request.user_agent)
       
-      if bridge
+      if auth_token
         # Successfully consumed token, sign in the user
-        sign_in(bridge.user)
-        Rails.logger.info "[CrossDomainAuth] Successfully authenticated user #{bridge.user.id} via bridge token"
+        sign_in(auth_token.user)
+        Rails.logger.info "[CrossDomainAuth] Successfully authenticated user #{auth_token.user.id} via Redis bridge token"
         
         # Redirect to clean URL (remove auth_token parameter)
         # Fix: Properly handle auth_token removal regardless of position
@@ -412,10 +412,10 @@ class ApplicationController < ActionController::Base
         clean_url = uri.to_s
         redirect_to clean_url and return
       else
-        Rails.logger.warn "[CrossDomainAuth] Invalid or expired auth token from #{request.remote_ip}"
+        Rails.logger.warn "[CrossDomainAuth] Invalid or expired Redis auth token from #{request.remote_ip}"
       end
     rescue => e
-      Rails.logger.error "[CrossDomainAuth] Failed to consume auth token: #{e.message}"
+      Rails.logger.error "[CrossDomainAuth] Failed to consume Redis auth token: #{e.message}"
     end
   end
   
@@ -518,7 +518,14 @@ class ApplicationController < ActionController::Base
     end
     
     target_url = request.url
-    bridge_url = "#{main_domain}/auth/bridge?target_url=#{CGI.escape(target_url)}"
+    
+    # Include business context for enhanced security validation
+    bridge_params = { target_url: target_url }
+    if current_tenant&.id
+      bridge_params[:business_id] = current_tenant.id
+    end
+    
+    bridge_url = "#{main_domain}/auth/bridge?#{bridge_params.to_query}"
     
     Rails.logger.info "[CrossDomainAuth] Redirecting to auth bridge: #{bridge_url}"
     redirect_to bridge_url, allow_other_host: true
