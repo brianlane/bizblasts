@@ -113,8 +113,8 @@ class AuthenticationBridgeController < ApplicationController
       additional_query = additional_params.present? ? additional_params.to_query : nil
       
       # Build the final redirect URL from the token's target_url and preserved parameters
-      # Use the token's target_url as the primary destination
-      redirect_path = build_final_redirect_path(auth_token.target_url, params[:original_query], additional_query)
+      # Extract path and query from target_url to avoid duplicates
+      redirect_path = build_redirect_from_target_url(auth_token.target_url, params[:original_query], additional_query)
       
       # Redirect to the final destination with a success message
       Rails.logger.info "[AuthBridge] Token target_url: #{auth_token.target_url}, final redirect_path: #{redirect_path}"
@@ -179,6 +179,54 @@ class AuthenticationBridgeController < ApplicationController
     end
   end
   
+  def build_redirect_from_target_url(target_url, original_query, additional_query = nil)
+    return '/' unless target_url.present?
+    
+    begin
+      # Parse the target URL to extract path and existing query parameters
+      uri = URI.parse(target_url)
+      
+      # Start with the path from the target URL
+      path = uri.path.present? ? uri.path : '/'
+      
+      # Collect all query parameters in order of precedence:
+      # 1. Existing query from target_url (highest priority)
+      # 2. Original query from bridge creation
+      # 3. Additional query from current request
+      query_parts = []
+      
+      # Add existing query from target_url first
+      if uri.query.present?
+        sanitized_target_query = sanitize_query_string(uri.query)
+        query_parts << sanitized_target_query if sanitized_target_query.present?
+      end
+      
+      # Add original query parameters if they exist and don't conflict
+      if original_query.present?
+        sanitized_query = sanitize_query_string(original_query)
+        query_parts << sanitized_query if sanitized_query.present?
+      end
+      
+      # Add additional query parameters if they exist
+      if additional_query.present?
+        sanitized_additional = sanitize_query_string(additional_query)
+        query_parts << sanitized_additional if sanitized_additional.present?
+      end
+      
+      # Combine all query parts
+      if query_parts.any?
+        path = "#{path}?#{query_parts.join('&')}"
+      end
+      
+      Rails.logger.debug "[AuthBridge] Built redirect path: #{path} from target_url: #{target_url}"
+      return path
+      
+    rescue URI::InvalidURIError => e
+      Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
+      return '/'
+    end
+  end
+
   def build_final_redirect_path(redirect_to, original_query, additional_query = nil)
     # Sanitize redirect path to prevent open redirects
     path = sanitize_redirect_path(redirect_to)
