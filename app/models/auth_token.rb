@@ -44,7 +44,9 @@ class AuthToken
       )
       
       token.validate!
-      token.save!
+      unless token.save!
+        raise Redis::BaseError, "Failed to save token to Redis"
+      end
       token
     end
     
