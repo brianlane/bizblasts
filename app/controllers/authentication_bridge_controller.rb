@@ -93,7 +93,10 @@ class AuthenticationBridgeController < ApplicationController
       
       # Build the final redirect URL from the preserved parameters
       # Also include any additional query parameters that came directly in this request
-      additional_params = params.except(:auth_token, :redirect_to, :original_query, :controller, :action).permit!
+      # Only permit safe tracking/analytics parameters to prevent security issues
+      additional_params = params.except(:auth_token, :redirect_to, :original_query, :controller, :action)
+                                .permit(:utm_source, :utm_medium, :utm_campaign, :utm_term, :utm_content, 
+                                       :ref, :source, :medium, :campaign, :gclid, :fbclid)
       additional_query = additional_params.present? ? additional_params.to_query : nil
       
       redirect_path = build_final_redirect_path(params[:redirect_to], params[:original_query], additional_query)
