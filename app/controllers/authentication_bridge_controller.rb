@@ -186,45 +186,50 @@ class AuthenticationBridgeController < ApplicationController
       # Parse the target URL to extract path and existing query parameters
       uri = URI.parse(target_url)
       
-      # Start with the path from the target URL
-      path = uri.path.present? ? uri.path : '/'
+      # SECURITY: Use sanitize_redirect_path to validate the full target URL first
+      sanitized_path = sanitize_redirect_path(target_url)
+      return sanitized_path if sanitized_path == '/' # Security rejection or invalid URL
       
-      # Collect all query parameters in order of precedence:
-      # 1. Existing query from target_url (highest priority)
-      # 2. Original query from bridge creation
-      # 3. Additional query from current request
-      query_parts = []
+      # Extract path from the original target URL (after security validation)
+      base_path = uri.path.present? ? uri.path : '/'
       
-      # Add existing query from target_url first
-      if uri.query.present?
-        sanitized_target_query = sanitize_query_string(uri.query)
-        query_parts << sanitized_target_query if sanitized_target_query.present?
-      end
+      # Merge all query parameters with deduplication
+      merged_query = merge_query_parameters(uri.query, original_query, additional_query)
       
-      # Add original query parameters if they exist and don't conflict
-      if original_query.present?
-        sanitized_query = sanitize_query_string(original_query)
-        query_parts << sanitized_query if sanitized_query.present?
-      end
+      # Build final path
+      final_path = merged_query.present? ? "#{base_path}?#{merged_query}" : base_path
       
-      # Add additional query parameters if they exist
-      if additional_query.present?
-        sanitized_additional = sanitize_query_string(additional_query)
-        query_parts << sanitized_additional if sanitized_additional.present?
-      end
-      
-      # Combine all query parts
-      if query_parts.any?
-        path = "#{path}?#{query_parts.join('&')}"
-      end
-      
-      Rails.logger.debug "[AuthBridge] Built redirect path: #{path} from target_url: #{target_url}"
-      return path
+      Rails.logger.debug "[AuthBridge] Built redirect path: #{final_path} from target_url: #{target_url}"
+      return final_path
       
     rescue URI::InvalidURIError => e
       Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
       return '/'
     end
+  end
+  
+  def merge_query_parameters(*query_strings)
+    # Merge multiple query strings, with later ones taking precedence for duplicate keys
+    merged_params = {}
+    
+    query_strings.compact.each do |query_string|
+      next unless query_string.present?
+      
+      sanitized_query = sanitize_query_string(query_string)
+      next unless sanitized_query.present?
+      
+      # Parse query string into key-value pairs
+      begin
+        URI.decode_www_form(sanitized_query).each do |key, value|
+          merged_params[key] = value
+        end
+      rescue ArgumentError => e
+        Rails.logger.warn "[AuthBridge] Invalid query string: #{query_string} - #{e.message}"
+      end
+    end
+    
+    # Convert back to query string
+    merged_params.any? ? URI.encode_www_form(merged_params) : nil
   end
 
   def build_final_redirect_path(redirect_to, original_query, additional_query = nil)
