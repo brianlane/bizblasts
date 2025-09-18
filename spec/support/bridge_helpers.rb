@@ -31,8 +31,14 @@ module BridgeHelpers
     return nil unless response.location.present?
     
     uri = URI.parse(response.location)
-    return nil unless uri.query.present?
     
+    # Handle new redirect format where token is in /auth/consume path
+    if uri.path.include?('/auth/consume') && uri.query.present?
+      return URI.decode_www_form(uri.query).to_h['auth_token']
+    end
+    
+    # Legacy format with token in query string
+    return nil unless uri.query.present?
     URI.decode_www_form(uri.query).to_h['auth_token']
   rescue URI::InvalidURIError
     nil
