@@ -88,6 +88,7 @@ RSpec.configure do |config|
   config.include ActiveAdminHelpers, type: :request
   config.include TenantHelpers
   config.include LoginHelpers
+  config.include BridgeHelpers, type: :request
   config.include ActiveSupport::Testing::TimeHelpers
   config.include ActiveJob::TestHelper
   

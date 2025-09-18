@@ -16,6 +16,10 @@ Rails.application.routes.draw do
   get "auth/bridge" => "authentication_bridge#create", as: :auth_bridge
   post "auth/bridge/consume" => "authentication_bridge#consume", as: :auth_bridge_consume
   get "auth/bridge/health" => "authentication_bridge#health", as: :auth_bridge_health
+  
+  # Token consumption endpoint for custom domains
+  # This endpoint receives the redirect from the main domain auth bridge
+  get "auth/consume" => "authentication_bridge#consume_token", as: :auth_consume
 
   # Tenant public routes: available on both subdomains and active custom domains
   constraints TenantPublicConstraint do

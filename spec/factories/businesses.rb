@@ -134,6 +134,15 @@ FactoryBot.define do
       sequence(:stripe_account_id) { |n| "acct_test#{n}" }
     end
 
+    trait :with_custom_domain do
+      host_type { 'custom_domain' }
+      tier { 'premium' }
+      status { 'cname_active' }
+      domain_health_verified { true }
+      render_domain_added { true }
+      sequence(:hostname) { |n| "custom-domain-#{n}.com" }
+    end
+
     factory :complete_business do
       transient do
         services_count { 3 }

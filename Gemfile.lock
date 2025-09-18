@@ -346,6 +346,8 @@ GEM
       logger
     mini_mime (1.1.5)
     minitest (5.25.5)
+    mock_redis (0.52.0)
+      redis (~> 5)
     msgpack (1.8.0)
     multi_json (1.17.0)
     multi_xml (0.7.2)
@@ -473,6 +475,10 @@ GEM
       erb
       psych (>= 4.0.0)
     redcarpet (3.6.1)
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.25.3)
+      connection_pool
     regexp_parser (2.11.2)
     reline (0.6.2)
       io-console (~> 0.5)
@@ -683,6 +689,7 @@ DEPENDENCIES
   jbuilder
   kaminari (~> 1.2)
   microsoft_graph (~> 0.22)
+  mock_redis (~> 0.42)
   oauth2 (~> 2.0)
   ostruct
   parallel_tests
@@ -694,6 +701,7 @@ DEPENDENCIES
   rails (~> 8.0.2)
   rails-controller-testing
   redcarpet
+  redis (~> 5.2)
   resend
   rouge
   rqrcode (~> 3.1)

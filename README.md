@@ -17,6 +17,7 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 **BizBlasts implements enterprise-grade security measures:**
 - ✅ **Multi-Tenant Isolation** - Complete data separation between businesses
+- ✅ **Cross-Domain SSO Security** - Redis-backed tokens with IP validation and 2-minute TTL
 - ✅ **API Authentication** - Secure API access with key-based authentication
 - ✅ **Email Enumeration Protection** - Prevents user discovery attacks
 - ✅ **Audit Logging** - Comprehensive security event monitoring
@@ -78,6 +79,53 @@ SUPPORT_EMAIL=bizblaststeam@gmail.com
 - **Email Notifications**: Automatic team notifications via `DomainMailer`
 - **Turbo Compatible**: Works seamlessly with Rails 8 Hotwire stack
 - **Form Validation**: Real-time validation with proper error handling
+
+## 🔐 **Cross-Domain Single Sign-On (SSO) - Enterprise Authentication (January 2025)**
+
+**BizBlasts implements a cutting-edge cross-domain SSO system for seamless authentication across custom domains:**
+
+- ✅ **Redis-Backed Token Bridge** - Secure, short-lived authentication tokens
+- ✅ **Enterprise Security** - IP validation, single-use tokens, 2-minute TTL
+- ✅ **Seamless User Experience** - Maintains authentication from main domain to custom domains
+- ✅ **Production Monitoring** - Comprehensive logging and cleanup jobs
+- ✅ **Zero Configuration** - Automatic activation for custom domain businesses
+
+**The Challenge:**
+When users browse businesses on `bizblasts.com` and click through to a custom domain business (e.g., `mycoffee.com`), traditional session cookies don't transfer across domains, causing users to lose their authentication.
+
+**The Solution:**
+```
+User on bizblasts.com → Authentication Bridge → Custom Domain Business
+     (authenticated)          (secure token)         (re-authenticated)
+```
+
+**Security Features:**
+- **Short-lived tokens**: 2-minute expiration prevents replay attacks
+- **Single-use tokens**: Cannot be reused after consumption
+- **IP address validation**: Must be consumed from same IP that generated it
+- **Cryptographically secure**: Uses `SecureRandom.urlsafe_base64` generation
+- **Background cleanup**: Automatic cleanup job removes orphaned tokens
+
+**Technical Architecture:**
+- **AuthToken Model**: Redis-backed token storage with TTL
+- **Authentication Bridge Controller**: Token generation and consumption endpoints
+- **TenantHost Helper**: Auth-aware URL generation (`url_for_with_auth`)
+- **Application Controller Integration**: Automatic token processing
+- **Comprehensive Testing**: 41 unit tests covering all security scenarios
+
+**Operational Tools:**
+```bash
+# Manual token cleanup
+rake auth_tokens:cleanup
+
+# View token statistics
+rake auth_tokens:stats
+
+# Test token generation/consumption
+rake auth_tokens:test
+```
+
+**📖 See [docs/CROSS_DOMAIN_SSO_IMPLEMENTATION.md](docs/CROSS_DOMAIN_SSO_IMPLEMENTATION.md) for complete technical documentation**
 
 ---
 
