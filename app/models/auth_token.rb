@@ -26,20 +26,19 @@ class AuthToken < ApplicationRecord
   before_validation :set_expires_at, on: :create
   
   class << self
-    # Generate and store a new auth token
-    # @param user [User] The authenticated user
-    # @param target_url [String] The destination URL
-    # @param ip_address [String] Client IP address
-    # @param user_agent [String] Client user agent
-    # @return [AuthToken] The created token
-    def create_for_user!(user, target_url, ip_address, user_agent)
-      create!(
-        user: user,
-        target_url: target_url,
-        ip_address: ip_address,
-        user_agent: user_agent
-      )
-    end
+      # Generate and store a new auth token
+      # @param user [User] The authenticated user
+      # @param target_url [String] The destination URL
+      # @param request [ActionDispatch::Request] The HTTP request (for IP and user agent)
+      # @return [AuthToken] The created token
+      def create_for_user!(user, target_url, request)
+        create!(
+          user: user,
+          target_url: target_url,
+          ip_address: SecurityConfig.client_ip(request),
+          user_agent: request.user_agent
+        )
+      end
     
     # Find and validate a token
     # @param token_string [String] The token to find
@@ -53,12 +52,11 @@ class AuthToken < ApplicationRecord
       nil
     end
     
-    # Consume a token (validate and mark as used)
-    # @param token_string [String] The token to consume
-    # @param current_ip [String] Current request IP
-    # @param current_user_agent [String] Current request user agent
-    # @return [AuthToken, nil] The consumed token if valid
-    def consume!(token_string, current_ip, current_user_agent = nil)
+      # Consume a token (validate and mark as used)
+      # @param token_string [String] The token to consume
+      # @param request [ActionDispatch::Request] The HTTP request (for IP and user agent validation)
+      # @return [AuthToken, nil] The consumed token if valid
+      def consume!(token_string, request)
       return nil unless token_string.present?
       
       # Use database transaction to prevent race conditions
@@ -66,10 +64,21 @@ class AuthToken < ApplicationRecord
         token = valid.lock.find_by(token: token_string)
         return nil unless token
         
+        current_ip = SecurityConfig.client_ip(request)
+        current_user_agent = request.user_agent
+        
         # Validate IP address matches (security check)
-        unless token.ip_address == current_ip
-          Rails.logger.warn "[AuthToken] IP address mismatch for token #{token_string[0..8]}... (expected: #{token.ip_address}, got: #{current_ip})"
-          return nil
+        # Now using real client IP from Cloudflare-aware request.remote_ip
+        if SecurityConfig.strict_ip_match?
+          unless token.ip_address == current_ip
+            Rails.logger.warn "[AuthToken] Client IP mismatch for token #{token_string[0..8]}... (expected: #{token.ip_address}, got: #{current_ip})"
+            return nil
+          end
+        else
+          # Log IP differences for monitoring but don't reject
+          if token.ip_address != current_ip
+            Rails.logger.debug "[AuthToken] Client IP changed for token #{token_string[0..8]}... (was: #{token.ip_address}, now: #{current_ip}) - allowed by security config"
+          end
         end
         
         # Validate user agent matches (additional security)

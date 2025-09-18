@@ -43,13 +43,12 @@ class AuthenticationBridgeController < ApplicationController
         return
       end
       
-      # Create database-backed auth token (short-lived, secure)
-      auth_token = AuthToken.create_for_user!(
-        current_user,
-        target_url,
-        request.remote_ip,
-        request.user_agent
-      )
+        # Create database-backed auth token (short-lived, secure)
+        auth_token = AuthToken.create_for_user!(
+          current_user,
+          target_url,
+          request
+        )
       
       # Build redirect URL to custom domain's token consumption endpoint
       # This avoids embedding tokens in query params for better security
@@ -92,10 +91,10 @@ class AuthenticationBridgeController < ApplicationController
     
     begin
       # Consume the database-backed token
-      auth_token = AuthToken.consume!(token, request.remote_ip, request.user_agent)
+      auth_token = AuthToken.consume!(token, request)
       
       unless auth_token
-        Rails.logger.warn "[AuthBridge] Invalid or expired token attempted from #{request.remote_ip}"
+        Rails.logger.warn "[AuthBridge] Invalid or expired token attempted from #{SecurityConfig.client_ip(request)}"
         redirect_to '/', alert: 'Invalid or expired authentication token'
         return
       end
