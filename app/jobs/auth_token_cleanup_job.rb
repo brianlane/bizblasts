@@ -2,7 +2,7 @@
 
 # Background job to clean up expired and used authentication tokens
 # 
-# While Redis TTL automatically expires tokens, this job provides additional cleanup
+# While DB TTL automatically expires tokens, this job provides additional cleanup
 # for edge cases where TTL wasn't set properly, and monitors token usage patterns.
 class AuthTokenCleanupJob < ApplicationJob
   queue_as :default
@@ -20,10 +20,10 @@ class AuthTokenCleanupJob < ApplicationJob
     Rails.logger.info "[AuthTokenCleanup] Starting cleanup job"
     
     begin
-      # Cleanup tokens without TTL (failsafe for edge cases)
+      # Cleanup expired tokens (DB-backed)
       cleanup_count = AuthToken.cleanup_expired!
       
-      # Clean up any orphaned tokens that Redis TTL missed
+      # Hook for orphan detection (returns 0 by default in DB-backed mode)
       orphaned_count = cleanup_orphaned_tokens
       
       # Log metrics for monitoring
@@ -44,39 +44,9 @@ class AuthTokenCleanupJob < ApplicationJob
   
   private
   
+  # No-op without Redis; kept for interface compatibility
   def cleanup_orphaned_tokens
-    orphaned_count = 0
-    processed_count = 0
-    
-    # Scan Redis for auth token keys and check if they should be cleaned up
-    begin
-      AuthToken.redis.scan_each(match: "#{AuthToken::REDIS_KEY_PREFIX}:*", count: BATCH_SIZE) do |key|
-        processed_count += 1
-        
-        # Check if token is expired or malformed
-        ttl = AuthToken.redis.ttl(key)
-        
-        # TTL of -1 means key exists but has no expiration (should not happen)
-        # TTL of -2 means key doesn't exist
-        if ttl == -1
-          # Key exists but has no TTL - this shouldn't happen, clean it up
-          AuthToken.redis.del(key)
-          orphaned_count += 1
-          Rails.logger.warn "[AuthTokenCleanup] Cleaned up token without TTL: #{key}"
-        elsif ttl == -2
-          # Key doesn't exist (this is expected for expired tokens)
-          next
-        end
-        
-        # Break if we've processed too many tokens in one job
-        break if processed_count >= BATCH_SIZE
-      end
-    rescue => e
-      Rails.logger.error "[AuthTokenCleanup] Error scanning Redis keys: #{e.message}"
-    end
-    
-    Rails.logger.info "[AuthTokenCleanup] Processed #{processed_count} token keys, cleaned #{orphaned_count} orphaned tokens"
-    orphaned_count
+    0
   end
   
   def log_cleanup_metrics(cleanup_count, orphaned_count)

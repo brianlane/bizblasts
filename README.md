@@ -17,7 +17,7 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 **BizBlasts implements enterprise-grade security measures:**
 - ✅ **Multi-Tenant Isolation** - Complete data separation between businesses
-- ✅ **Cross-Domain SSO Security** - Redis-backed tokens with IP validation and 2-minute TTL
+- ✅ **Cross-Domain SSO Security** - DB-backed tokens with IP validation and 2-minute TTL
 - ✅ **API Authentication** - Secure API access with key-based authentication
 - ✅ **Email Enumeration Protection** - Prevents user discovery attacks
 - ✅ **Audit Logging** - Comprehensive security event monitoring
@@ -84,7 +84,7 @@ SUPPORT_EMAIL=bizblaststeam@gmail.com
 
 **BizBlasts implements a cutting-edge cross-domain SSO system for seamless authentication across custom domains:**
 
-- ✅ **Redis-Backed Token Bridge** - Secure, short-lived authentication tokens
+- ✅ **DB-Backed Token Bridge** - Secure, short-lived authentication tokens
 - ✅ **Enterprise Security** - IP validation, single-use tokens, 2-minute TTL
 - ✅ **Seamless User Experience** - Maintains authentication from main domain to custom domains
 - ✅ **Production Monitoring** - Comprehensive logging and cleanup jobs
@@ -107,7 +107,7 @@ User on bizblasts.com → Authentication Bridge → Custom Domain Business
 - **Background cleanup**: Automatic cleanup job removes orphaned tokens
 
 **Technical Architecture:**
-- **AuthToken Model**: Redis-backed token storage with TTL
+- **AuthToken Model**: DB-backed token storage with TTL
 - **Authentication Bridge Controller**: Token generation and consumption endpoints
 - **TenantHost Helper**: Auth-aware URL generation (`url_for_with_auth`)
 - **Application Controller Integration**: Automatic token processing

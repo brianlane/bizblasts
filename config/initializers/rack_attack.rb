@@ -3,13 +3,8 @@
 # SECURITY FIX: Rate limiting configuration with rack-attack
 
 class Rack::Attack
-  # Configure Redis for production if available, otherwise use in-memory cache
-  if Rails.env.production? && ENV['REDIS_URL']
-    Rack::Attack.cache.store = ActiveSupport::Cache::RedisCacheStore.new(url: ENV['REDIS_URL'])
-  else
-    # Use Rails cache for development/test
-    Rack::Attack.cache.store = Rails.cache
-  end
+  # Use Rails.cache for all environments (no Redis dependency)
+  Rack::Attack.cache.store = Rails.cache
 
   # Always allow requests from localhost in development
   safelist('allow from localhost') do |req|

@@ -28,7 +28,22 @@ class AuthenticationBridgeController < ApplicationController
     end
     
     begin
-      # Create Redis-backed auth token (short-lived, secure)
+      # Validate target URL before processing
+      if target_url.length > 2000
+        render json: { error: 'Target URL too long' }, status: :bad_request
+        return
+      end
+      
+      # Parse and validate target URL
+      begin
+        uri = URI.parse(target_url)
+      rescue URI::InvalidURIError => e
+        Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
+        render json: { error: 'Invalid target URL' }, status: :bad_request
+        return
+      end
+      
+      # Create database-backed auth token (short-lived, secure)
       auth_token = AuthToken.create_for_user!(
         current_user,
         target_url,
@@ -38,7 +53,6 @@ class AuthenticationBridgeController < ApplicationController
       
       # Build redirect URL to custom domain's token consumption endpoint
       # This avoids embedding tokens in query params for better security
-      uri = URI.parse(target_url)
       
       # Route to the token consumption endpoint on the target domain
       consumption_url = "#{uri.scheme}://#{uri.host}"
@@ -55,13 +69,10 @@ class AuthenticationBridgeController < ApplicationController
         consumption_url += "&original_query=#{CGI.escape(uri.query)}"
       end
       
-      Rails.logger.info "[AuthBridge] Created Redis token for user #{current_user.id}, redirecting to #{uri.host}"
+      Rails.logger.info "[AuthBridge] Created auth token for user #{current_user.id}, redirecting to #{uri.host}"
       
       redirect_to consumption_url, allow_other_host: true
       
-    rescue Redis::BaseError => e
-      Rails.logger.error "[AuthBridge] Redis connection failed: #{e.message}"
-      render json: { error: 'Authentication service temporarily unavailable' }, status: :service_unavailable
     rescue => e
       Rails.logger.error "[AuthBridge] Failed to create bridge: #{e.message}"
       render json: { error: 'Failed to create authentication bridge' }, status: :internal_server_error
@@ -80,7 +91,7 @@ class AuthenticationBridgeController < ApplicationController
     end
     
     begin
-      # Consume the Redis-backed token
+      # Consume the database-backed token
       auth_token = AuthToken.consume!(token, request.remote_ip, request.user_agent)
       
       unless auth_token
@@ -94,7 +105,7 @@ class AuthenticationBridgeController < ApplicationController
       
       Rails.logger.info "[AuthBridge] Successfully authenticated user #{auth_token.user.id} on custom domain #{request.host}"
       
-      # Build the final redirect URL from the preserved parameters
+      # Build the final redirect URL from the consumed token's target_url and preserved parameters
       # Also include any additional query parameters that came directly in this request
       # Only permit safe tracking/analytics parameters to prevent security issues
       additional_params = params.except(:auth_token, :redirect_to, :original_query, :controller, :action)
@@ -102,10 +113,13 @@ class AuthenticationBridgeController < ApplicationController
                                        :ref, :source, :medium, :campaign, :gclid, :fbclid)
       additional_query = additional_params.present? ? additional_params.to_query : nil
       
+      # Build the final redirect URL from the preserved parameters (safer approach)
+      # Use redirect_to parameter if provided, otherwise fall back to root path
       redirect_path = build_final_redirect_path(params[:redirect_to], params[:original_query], additional_query)
       
       # Redirect to the final destination with a success message
-      redirect_to redirect_path, notice: 'Successfully signed in', allow_other_host: false
+      Rails.logger.debug "[AuthBridge] Redirecting to: #{redirect_path}"
+      redirect_to redirect_path, notice: 'Successfully signed in', allow_other_host: true
       
     rescue => e
       Rails.logger.error "[AuthBridge] Failed to consume token: #{e.message}"
@@ -202,10 +216,21 @@ class AuthenticationBridgeController < ApplicationController
       # Parse as URI to validate structure
       uri = URI.parse(redirect_to)
       
-      # Only allow relative paths (no scheme or host)
+      # For absolute URLs, only allow same host to prevent open redirects
       if uri.scheme.present? || uri.host.present?
-        Rails.logger.warn "[AuthBridge] Rejected absolute URL in redirect_to: #{redirect_to}"
-        return '/'
+        # Allow URLs to the same domain (ignoring subdomains) as the current request
+        current_domain = request.host.sub(/^www\./, '')
+        target_domain = uri.host.sub(/^www\./, '')
+        
+        if target_domain != current_domain
+          Rails.logger.warn "[AuthBridge] Rejected cross-domain redirect: #{redirect_to} (current domain: #{current_domain}, target domain: #{target_domain})"
+          return '/'
+        end
+        
+        # For same-host absolute URLs, return the path with query
+        result = uri.path
+        result += "?#{uri.query}" if uri.query.present?
+        return result
       end
       
       # Ensure path starts with /
@@ -350,7 +375,7 @@ class AuthenticationBridgeController < ApplicationController
   
   def rate_limit_user
     # Simple rate limiting: max 10 bridge attempts per user per hour
-    # Note: Redis-based tokens expire automatically, so we use a simple counter approach
+    # Note: Tokens are database-backed; rate limiting uses Rack::Attack with Rails.cache
     cache_key = "auth_bridge_rate_limit:#{current_user.id}"
     attempts = Rails.cache.read(cache_key) || 0
     

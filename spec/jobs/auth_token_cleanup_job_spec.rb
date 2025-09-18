@@ -3,21 +3,9 @@
 require 'rails_helper'
 
 RSpec.describe AuthTokenCleanupJob, type: :job do
-  let(:mock_redis) { double('Redis') }
   let(:user) { create(:user) }
   
   before do
-    # Mock Redis for testing
-    allow(AuthToken).to receive(:redis).and_return(mock_redis)
-    
-    # Default Redis behavior
-    allow(mock_redis).to receive(:setex).and_return('OK')
-    allow(mock_redis).to receive(:get).and_return(nil)
-    allow(mock_redis).to receive(:del).and_return(1)
-    allow(mock_redis).to receive(:ttl).and_return(120)
-    allow(mock_redis).to receive(:exists).and_return(false)
-    allow(mock_redis).to receive(:scan_each).and_return([])
-    
     # Clear any existing jobs
     clear_enqueued_jobs
   end
@@ -38,18 +26,14 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
       }.to have_enqueued_job(described_class).on_queue('default')
     end
 
-    it 'handles Redis connection errors gracefully' do
-      # Mock Redis to raise an error
-      redis_error = Class.new(StandardError)
-      stub_const('Redis::ConnectionError', redis_error)
-      
-      allow(AuthToken).to receive(:cleanup_expired!).and_raise(redis_error.new('Connection failed'))
+    it 'continues scheduling on errors' do
+      allow(AuthToken).to receive(:cleanup_expired!).and_raise(StandardError.new('DB issue'))
       
       job = described_class.new
       
       expect {
         job.perform
-      }.to raise_error(redis_error)
+      }.to raise_error(StandardError)
       
       # Should still schedule next job even after error
       expect(AuthTokenCleanupJob).to have_been_enqueued
@@ -57,7 +41,6 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
 
     it 'logs cleanup metrics' do
       allow(AuthToken).to receive(:cleanup_expired!).and_return(3)
-      allow(mock_redis).to receive(:scan_each).and_return([])
       
       expect(Rails.logger).to receive(:info).at_least(:once)
       expect(Rails.logger).to receive(:debug).at_least(:once)
@@ -69,57 +52,18 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
   describe '#cleanup_orphaned_tokens' do
     let(:job) { described_class.new }
 
-    it 'identifies and cleans up tokens without TTL' do
-      # Mock Redis scan to return some test keys
-      test_keys = [
-        'auth_token:token1',
-        'auth_token:token2',
-        'auth_token:token3'
-      ]
-      
-      allow(mock_redis).to receive(:scan_each).and_yield('auth_token:token1').and_yield('auth_token:token2')
-      
-      # First token has no TTL (-1), second token is expired (-2)
-      allow(mock_redis).to receive(:ttl).with('auth_token:token1').and_return(-1)
-      allow(mock_redis).to receive(:ttl).with('auth_token:token2').and_return(-2)
-      
-      # Expect deletion of the first token only
-      expect(mock_redis).to receive(:del).with('auth_token:token1').and_return(1)
-      expect(mock_redis).not_to receive(:del).with('auth_token:token2')
-      
+    it 'does not attempt Redis orphan cleanup' do
       allow(AuthToken).to receive(:cleanup_expired!).and_return(0)
       
-      job.perform
+      expect(Rails.logger).to receive(:info).at_least(:once)
+      described_class.new.perform
     end
 
-    it 'limits processing to BATCH_SIZE tokens' do
-      # Mock a large number of keys
-      large_key_set = (1..2000).map { |i| "auth_token:token#{i}" }
-      
-      allow(mock_redis).to receive(:scan_each) do |&block|
-        large_key_set.first(AuthTokenCleanupJob::BATCH_SIZE).each(&block)
-      end
-      
-      # All keys have valid TTL
-      allow(mock_redis).to receive(:ttl).and_return(120)
+    it 'handles metric logging without Redis' do
       allow(AuthToken).to receive(:cleanup_expired!).and_return(0)
       
-      # Just expect that logging happens without specific message checking
-      allow(Rails.logger).to receive(:info)
-      allow(Rails.logger).to receive(:debug)
-      
-      job.perform
-    end
-
-    it 'handles Redis scan errors gracefully' do
-      redis_error = Class.new(StandardError)
-      allow(mock_redis).to receive(:scan_each).and_raise(redis_error.new('Scan failed'))
-      allow(AuthToken).to receive(:cleanup_expired!).and_return(0)
-      
-      expect(Rails.logger).to receive(:error).with(/Error scanning Redis keys/)
-      
-      # Should not crash the job
-      expect { described_class.new.perform }.not_to raise_error
+      expect(Rails.logger).to receive(:debug).at_least(:once)
+      described_class.new.perform
     end
   end
 
@@ -128,7 +72,6 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
 
     it 'logs warning for high number of orphaned tokens' do
       allow(AuthToken).to receive(:cleanup_expired!).and_return(0)
-      allow(mock_redis).to receive(:scan_each).and_return([])
       
       # Simulate finding many orphaned tokens
       allow(job).to receive(:cleanup_orphaned_tokens).and_return(15)
@@ -142,7 +85,6 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
 
     it 'logs debug message when no cleanup needed' do
       allow(AuthToken).to receive(:cleanup_expired!).and_return(0)
-      allow(mock_redis).to receive(:scan_each).and_return([])
       
       allow(Rails.logger).to receive(:info)
       expect(Rails.logger).to receive(:debug).at_least(:once)
@@ -192,13 +134,7 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
       expect(AuthTokenCleanupJob).to have_been_enqueued
     end
 
-    it 'handles missing Redis gracefully' do
-      allow(AuthToken).to receive(:redis).and_raise(StandardError.new('Redis not configured'))
-      
-      expect {
-        described_class.new.perform
-      }.to raise_error(StandardError)
-    end
+    # Redis is no longer used; ensure job raises when DB errors occur
   end
 
   describe 'job scheduling' do
@@ -222,14 +158,8 @@ RSpec.describe AuthTokenCleanupJob, type: :job do
       described_class.new.perform
     end
 
-    it 'uses the correct Redis key prefix for scanning' do
-      allow(AuthToken).to receive(:cleanup_expired!).and_return(0)
-      
-      expect(mock_redis).to receive(:scan_each).with(
-        match: "#{AuthToken::REDIS_KEY_PREFIX}:*",
-        count: AuthTokenCleanupJob::BATCH_SIZE
-      )
-      
+    it 'invokes AuthToken.cleanup_expired! via perform' do
+      expect(AuthToken).to receive(:cleanup_expired!).and_return(0)
       described_class.new.perform
     end
   end

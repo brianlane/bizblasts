@@ -382,13 +382,13 @@ class ApplicationController < ActionController::Base
   
   def consume_auth_token(token)
     begin
-      # Use the new Redis-backed AuthToken model to consume the token
+      # Consume database-backed AuthToken
       auth_token = AuthToken.consume!(token, request.remote_ip, request.user_agent)
       
       if auth_token
         # Successfully consumed token, sign in the user
         sign_in(auth_token.user)
-        Rails.logger.info "[CrossDomainAuth] Successfully authenticated user #{auth_token.user.id} via Redis bridge token"
+        Rails.logger.info "[CrossDomainAuth] Successfully authenticated user #{auth_token.user.id} via auth bridge token"
         
         # Redirect to clean URL (remove auth_token parameter)
         # Fix: Properly handle auth_token removal regardless of position
@@ -412,10 +412,10 @@ class ApplicationController < ActionController::Base
         clean_url = uri.to_s
         redirect_to clean_url and return
       else
-        Rails.logger.warn "[CrossDomainAuth] Invalid or expired Redis auth token from #{request.remote_ip}"
+        Rails.logger.warn "[CrossDomainAuth] Invalid or expired auth token from #{request.remote_ip}"
       end
     rescue => e
-      Rails.logger.error "[CrossDomainAuth] Failed to consume Redis auth token: #{e.message}"
+      Rails.logger.error "[CrossDomainAuth] Failed to consume auth token: #{e.message}"
     end
   end
   

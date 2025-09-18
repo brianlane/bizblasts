@@ -1,29 +1,29 @@
 # frozen_string_literal: true
 
-# Redis-backed authentication token for cross-domain SSO
+# Database-backed authentication token for cross-domain SSO
 # Provides secure, short-lived, single-use tokens for session transfer
-class AuthToken
-  include ActiveModel::Model
-  include ActiveModel::Attributes
-  
+class AuthToken < ApplicationRecord
   # Token configuration
   TOKEN_TTL = 2.minutes.freeze
   TOKEN_LENGTH = 32
-  REDIS_KEY_PREFIX = 'auth_token'
   
-  # Attributes
-  attribute :token, :string
-  attribute :user_id, :integer
-  attribute :target_url, :string
-  attribute :ip_address, :string
-  attribute :user_agent, :string
-  attribute :created_at, :datetime
-  attribute :used, :boolean, default: false
+  # Associations
+  belongs_to :user
   
-  validates :user_id, presence: true
+  # Validations
+  validates :token, presence: true, uniqueness: true
   validates :target_url, presence: true
   validates :ip_address, presence: true
   validates :user_agent, presence: true
+  validates :expires_at, presence: true
+  
+  # Scopes
+  scope :valid, -> { where(used: false).where('expires_at > ?', Time.current) }
+  scope :expired, -> { where('expires_at <= ?', Time.current) }
+  
+  # Callbacks
+  before_validation :set_token, on: :create
+  before_validation :set_expires_at, on: :create
   
   class << self
     # Generate and store a new auth token
@@ -33,21 +33,12 @@ class AuthToken
     # @param user_agent [String] Client user agent
     # @return [AuthToken] The created token
     def create_for_user!(user, target_url, ip_address, user_agent)
-      token = new(
-        token: generate_secure_token,
-        user_id: user.id,
+      create!(
+        user: user,
         target_url: target_url,
         ip_address: ip_address,
-        user_agent: user_agent,
-        created_at: Time.current,
-        used: false
+        user_agent: user_agent
       )
-      
-      token.validate!
-      unless token.save!
-        raise Redis::BaseError, "Failed to save token to Redis"
-      end
-      token
     end
     
     # Find and validate a token
@@ -56,12 +47,8 @@ class AuthToken
     def find_valid(token_string)
       return nil unless token_string.present?
       
-      data = redis.get(redis_key(token_string))
-      return nil unless data
-      
-      token_data = JSON.parse(data)
-      new(token_data.merge('token' => token_string))
-    rescue JSON::ParserError, Redis::BaseError => e
+      valid.find_by(token: token_string)
+    rescue => e
       Rails.logger.error "[AuthToken] Error finding token: #{e.message}"
       nil
     end
@@ -70,43 +57,17 @@ class AuthToken
     # @param token_string [String] The token to consume
     # @param current_ip [String] Current request IP
     # @param current_user_agent [String] Current request user agent
-    # @return [AuthToken, nil] The token if successfully consumed
+    # @return [AuthToken, nil] The consumed token if valid
     def consume!(token_string, current_ip, current_user_agent = nil)
       return nil unless token_string.present?
       
-      redis_key = redis_key(token_string)
-      
-      # In test environment, use simpler approach since MockRedis doesn't support WATCH
-      if Rails.env.test?
-        return consume_without_watch!(token_string, current_ip, current_user_agent)
-      end
-      
-      # Production: Atomic consumption using Redis WATCH/MULTI/EXEC to prevent race conditions
-      loop do
-        redis.watch(redis_key)
-        
-        # Get token data while watched
-        data = redis.get(redis_key)
-        return nil unless data
-        
-        begin
-          token_data = JSON.parse(data)
-          token = new(token_data.merge('token' => token_string))
-        rescue JSON::ParserError => e
-          Rails.logger.error "[AuthToken] Error parsing token data: #{e.message}"
-          redis.unwatch
-          return nil
-        end
-        
-        # Validate token hasn't been used
-        if token.used?
-          redis.unwatch
-          return nil
-        end
+      # Use database transaction to prevent race conditions
+      transaction do
+        token = valid.lock.find_by(token: token_string)
+        return nil unless token
         
         # Validate IP address matches (security check)
         unless token.ip_address == current_ip
-          redis.unwatch
           Rails.logger.warn "[AuthToken] IP address mismatch for token #{token_string[0..8]}... (expected: #{token.ip_address}, got: #{current_ip})"
           return nil
         end
@@ -117,166 +78,50 @@ class AuthToken
           # Don't fail on user agent mismatch (mobile vs desktop, etc) but log it
         end
         
-        # Atomic delete operation - prevents double consumption
-        result = redis.multi do |multi|
-          multi.del(redis_key)
-        end
+        # Mark as used (atomic update)
+        token.update!(used: true)
         
-        # If WATCH detected a change, result will be nil and we retry
-        if result
-          Rails.logger.info "[AuthToken] Successfully consumed and deleted token for user #{token.user_id}"
-          return token
-        end
-        
-        # Token was modified during our operation, retry
-        Rails.logger.debug "[AuthToken] Token modified during consumption, retrying..."
+        Rails.logger.info "[AuthToken] Successfully consumed token for user #{token.user_id}"
+        return token
       end
-    rescue Redis::BaseError => e
-      Rails.logger.error "[AuthToken] Redis error during token consumption: #{e.message}"
+    rescue => e
+      Rails.logger.error "[AuthToken] Error during token consumption: #{e.message}"
       nil
     end
     
-    # Test-friendly version that doesn't use WATCH (for MockRedis compatibility)
-    def consume_without_watch!(token_string, current_ip, current_user_agent = nil)
-      redis_key = redis_key(token_string)
-      
-      # Get token data
-      data = redis.get(redis_key)
-      return nil unless data
-      
-      begin
-        token_data = JSON.parse(data)
-        token = new(token_data.merge('token' => token_string))
-      rescue JSON::ParserError => e
-        Rails.logger.error "[AuthToken] Error parsing token data: #{e.message}"
-        return nil
-      end
-      
-      # Validate token hasn't been used
-      return nil if token.used?
-      
-      # Validate IP address matches (security check)
-      unless token.ip_address == current_ip
-        Rails.logger.warn "[AuthToken] IP address mismatch for token #{token_string[0..8]}... (expected: #{token.ip_address}, got: #{current_ip})"
-        return nil
-      end
-      
-      # Validate user agent matches (additional security)
-      if current_user_agent.present? && token.user_agent != current_user_agent
-        Rails.logger.warn "[AuthToken] User agent mismatch for token #{token_string[0..8]}... (expected: #{token.user_agent}, got: #{current_user_agent})"
-        # Don't fail on user agent mismatch (mobile vs desktop, etc) but log it
-      end
-      
-      # Delete the token (single-use)
-      redis.del(redis_key)
-      
-      Rails.logger.info "[AuthToken] Successfully consumed and deleted token for user #{token.user_id}"
-      token
-    rescue Redis::BaseError => e
-      Rails.logger.error "[AuthToken] Redis error during token consumption: #{e.message}"
-      nil
+    # Clean up expired tokens (called by background job)
+    def cleanup_expired!
+      expired_count = expired.delete_all
+      Rails.logger.info "[AuthToken] Cleaned up #{expired_count} expired tokens" if expired_count > 0
+      expired_count
     end
+    
+    private
     
     # Generate a cryptographically secure token
-    # @return [String] The generated token
-    def generate_secure_token
+    def generate_auth_token
       SecureRandom.urlsafe_base64(TOKEN_LENGTH)
     end
-    
-    # Get Redis key for a token
-    # @param token [String] The token
-    # @return [String] The Redis key
-    def redis_key(token)
-      "#{REDIS_KEY_PREFIX}:#{token}"
-    end
-    
-    # Get Redis connection
-    # @return [Redis] Redis connection
-    def redis
-      @redis ||= if Rails.env.test?
-                   # In test environment, use the mocked Redis instance
-                   Redis.current
-                 elsif Rails.application.config.respond_to?(:redis)
-                   Rails.application.config.redis
-                 else
-                   Redis.new(url: ENV.fetch('REDIS_URL', 'redis://localhost:6379/0'))
-                 end
-    end
-    
-    # Clean up expired tokens (background job helper)
-    # @return [Integer] Number of tokens cleaned up
-    def cleanup_expired!
-      # Redis TTL handles expiration automatically, but this can be used
-      # for additional cleanup if needed
-      count = 0
-      
-      begin
-        # Scan for auth_token keys and check if they're expired
-        redis.scan_each(match: "#{REDIS_KEY_PREFIX}:*") do |key|
-          ttl = redis.ttl(key)
-          if ttl == -1 # Key exists but has no TTL set
-            redis.del(key)
-            count += 1
-          end
-        end
-      rescue Redis::BaseError => e
-        Rails.logger.error "[AuthToken] Error during cleanup: #{e.message}"
-      end
-      
-      Rails.logger.info "[AuthToken] Cleaned up #{count} expired tokens" if count > 0
-      count
-    end
-  end
-  
-  # Save the token to Redis
-  # @return [Boolean] True if saved successfully
-  def save!
-    data = {
-      user_id: user_id,
-      target_url: target_url,
-      ip_address: ip_address,
-      user_agent: user_agent,
-      created_at: created_at.iso8601,
-      used: used
-    }
-    
-    key = self.class.redis_key(token)
-    self.class.redis.setex(key, TOKEN_TTL.to_i, data.to_json)
-    true
-  rescue Redis::BaseError => e
-    Rails.logger.error "[AuthToken] Failed to save token: #{e.message}"
-    false
-  end
-  
-  # Check if token has been used
-  # @return [Boolean] True if token has been used
-  def used?
-    used == true
   end
   
   # Check if token is expired
-  # @return [Boolean] True if token is expired
   def expired?
-    return false unless created_at
-    
-    Time.current > (created_at + TOKEN_TTL)
+    expires_at <= Time.current
   end
   
-  # Get the associated user
-  # @return [User, nil] The user associated with this token
-  def user
-    @user ||= User.find_by(id: user_id) if user_id
+  # Check if token is still valid for consumption (not used and not expired)
+  def consumable?
+    !used? && !expired?
   end
   
-  # Validate the token model
-  # @raise [ActiveModel::ValidationError] If validation fails
-  def validate!
-    raise ActiveModel::ValidationError.new(self) unless valid?
+  private
+  
+  def set_token
+    return if token.present?
+    self.token = SecureRandom.urlsafe_base64(TOKEN_LENGTH)
   end
   
-  # String representation for debugging
-  # @return [String] Safe string representation
-  def to_s
-    "#<AuthToken token=#{token&.first(8)}... user_id=#{user_id} used=#{used}>"
+  def set_expires_at
+    self.expires_at ||= TOKEN_TTL.from_now
   end
 end

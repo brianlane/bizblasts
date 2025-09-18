@@ -35,36 +35,16 @@ namespace :auth_tokens do
     puts "=" * 40
     
     begin
-      # Count total keys matching auth token pattern
-      total_tokens = 0
-      tokens_with_ttl = 0
-      tokens_without_ttl = 0
-      
-      AuthToken.redis.scan_each(match: "#{AuthToken::REDIS_KEY_PREFIX}:*", count: 100) do |key|
-        total_tokens += 1
-        ttl = AuthToken.redis.ttl(key)
-        
-        if ttl > 0
-          tokens_with_ttl += 1
-        elsif ttl == -1
-          tokens_without_ttl += 1
-        end
-        
-        # Limit output for performance
-        break if total_tokens >= 1000
-      end
+      total_tokens = AuthToken.count
+      valid_tokens = AuthToken.valid.count
+      expired_tokens = AuthToken.expired.count
+      used_tokens = AuthToken.where(used: true).count
       
       puts "Total auth tokens: #{total_tokens}"
-      puts "Tokens with TTL: #{tokens_with_ttl}"
-      puts "Tokens without TTL (should be 0): #{tokens_without_ttl}"
+      puts "Valid (unexpired, unused): #{valid_tokens}"
+      puts "Expired: #{expired_tokens}"
+      puts "Used: #{used_tokens}"
       puts "Token TTL: #{AuthToken::TOKEN_TTL.inspect}"
-      puts "Redis key prefix: #{AuthToken::REDIS_KEY_PREFIX}"
-      
-      if tokens_without_ttl > 0
-        puts "\n⚠️  Warning: Found #{tokens_without_ttl} tokens without TTL!"
-        puts "   Run 'rake auth_tokens:cleanup' to fix this."
-      end
-      
     rescue => e
       puts "❌ Error getting stats: #{e.message}"
       puts e.backtrace.join("\n") if ENV['VERBOSE']
@@ -109,13 +89,10 @@ namespace :auth_tokens do
       cleanup_count = AuthToken.cleanup_expired!
       puts "Cleanup completed. Tokens cleaned: #{cleanup_count}"
       
-      # Clean up test tokens
+      # Clean up test tokens (DB-backed)
       puts "\nCleaning up test tokens..."
-      tokens.each do |token|
-        key = AuthToken.redis_key(token.token)
-        AuthToken.redis.del(key)
-      end
-      
+      tokens.each(&:destroy!)
+
       puts "✅ Auth token test completed successfully"
       
     rescue => e
