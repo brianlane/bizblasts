@@ -112,12 +112,12 @@ class AuthenticationBridgeController < ApplicationController
                                        :ref, :source, :medium, :campaign, :gclid, :fbclid)
       additional_query = additional_params.present? ? additional_params.to_query : nil
       
-      # Build the final redirect URL from the preserved parameters (safer approach)
-      # Use redirect_to parameter if provided, otherwise fall back to root path
-      redirect_path = build_final_redirect_path(params[:redirect_to], params[:original_query], additional_query)
+      # Build the final redirect URL from the token's target_url and preserved parameters
+      # Extract path and query from target_url to avoid duplicates
+      redirect_path = build_redirect_from_target_url(auth_token.target_url, params[:original_query], additional_query)
       
       # Redirect to the final destination with a success message
-      Rails.logger.debug "[AuthBridge] Redirecting to: #{redirect_path}"
+      Rails.logger.info "[AuthBridge] Token target_url: #{auth_token.target_url}, final redirect_path: #{redirect_path}"
       redirect_to redirect_path, notice: 'Successfully signed in', allow_other_host: true
       
     rescue => e
@@ -179,6 +179,59 @@ class AuthenticationBridgeController < ApplicationController
     end
   end
   
+  def build_redirect_from_target_url(target_url, original_query, additional_query = nil)
+    return '/' unless target_url.present?
+    
+    begin
+      # Parse the target URL to extract path and existing query parameters
+      uri = URI.parse(target_url)
+      
+      # SECURITY: Use sanitize_redirect_path to validate the full target URL first
+      sanitized_path = sanitize_redirect_path(target_url)
+      return sanitized_path if sanitized_path == '/' # Security rejection or invalid URL
+      
+      # Extract path from the original target URL (after security validation)
+      base_path = uri.path.present? ? uri.path : '/'
+      
+      # Merge all query parameters with deduplication
+      merged_query = merge_query_parameters(uri.query, original_query, additional_query)
+      
+      # Build final path
+      final_path = merged_query.present? ? "#{base_path}?#{merged_query}" : base_path
+      
+      Rails.logger.debug "[AuthBridge] Built redirect path: #{final_path} from target_url: #{target_url}"
+      return final_path
+      
+    rescue URI::InvalidURIError => e
+      Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
+      return '/'
+    end
+  end
+  
+  def merge_query_parameters(*query_strings)
+    # Merge multiple query strings, with later ones taking precedence for duplicate keys
+    merged_params = {}
+    
+    query_strings.compact.each do |query_string|
+      next unless query_string.present?
+      
+      sanitized_query = sanitize_query_string(query_string)
+      next unless sanitized_query.present?
+      
+      # Parse query string into key-value pairs
+      begin
+        URI.decode_www_form(sanitized_query).each do |key, value|
+          merged_params[key] = value
+        end
+      rescue ArgumentError => e
+        Rails.logger.warn "[AuthBridge] Invalid query string: #{query_string} - #{e.message}"
+      end
+    end
+    
+    # Convert back to query string
+    merged_params.any? ? URI.encode_www_form(merged_params) : nil
+  end
+
   def build_final_redirect_path(redirect_to, original_query, additional_query = nil)
     # Sanitize redirect path to prevent open redirects
     path = sanitize_redirect_path(redirect_to)
@@ -220,6 +273,8 @@ class AuthenticationBridgeController < ApplicationController
         # Allow URLs to the same domain (ignoring subdomains) as the current request
         current_domain = request.host.sub(/^www\./, '')
         target_domain = uri.host.sub(/^www\./, '')
+        
+        Rails.logger.debug "[AuthBridge] Domain comparison - current: #{current_domain}, target: #{target_domain}, request.host: #{request.host}, uri.host: #{uri.host}"
         
         if target_domain != current_domain
           Rails.logger.warn "[AuthBridge] Rejected cross-domain redirect: #{redirect_to} (current domain: #{current_domain}, target domain: #{target_domain})"
