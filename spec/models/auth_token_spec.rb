@@ -7,20 +7,6 @@ RSpec.describe AuthToken, type: :model do
   let(:target_url) { 'https://example.com/dashboard' }
   let(:ip_address) { '192.168.1.1' }
   let(:user_agent) { 'Mozilla/5.0 Test Browser' }
-  let(:mock_redis) { double('Redis') }
-
-  before do
-    # Mock Redis for testing
-    allow(AuthToken).to receive(:redis).and_return(mock_redis)
-    
-    # Default Redis behavior
-    allow(mock_redis).to receive(:setex).and_return('OK')
-    allow(mock_redis).to receive(:get).and_return(nil)
-    allow(mock_redis).to receive(:del).and_return(1)
-    allow(mock_redis).to receive(:ttl).and_return(120)
-    allow(mock_redis).to receive(:exists).and_return(false)
-    allow(mock_redis).to receive(:scan_each).and_return([])
-  end
 
   describe '.create_for_user!' do
     it 'creates a valid token for a user' do
@@ -46,12 +32,10 @@ RSpec.describe AuthToken, type: :model do
       token = AuthToken.create_for_user!(user, target_url, ip_address, user_agent)
       redis_key = "#{AuthToken::REDIS_KEY_PREFIX}:#{token.token}"
       
-      # Verify Redis setex was called with correct parameters
-      expect(mock_redis).to have_received(:setex).with(
-        redis_key,
-        AuthToken::TOKEN_TTL.to_i,
-        a_string_matching(/user_id.*target_url.*ip_address.*user_agent/)
-      )
+      # Verify token is stored in Redis
+      stored_data = JSON.parse(token.class.redis.get(redis_key))
+      expect(stored_data['user_id']).to eq(user.id)
+      expect(stored_data['target_url']).to eq(target_url)
     end
 
     it 'validates required fields' do
@@ -76,107 +60,86 @@ RSpec.describe AuthToken, type: :model do
   end
 
   describe '.consume!' do
-    let(:token_data) do
-      {
-        'user_id' => user.id,
-        'target_url' => target_url,
-        'ip_address' => ip_address,
-        'user_agent' => user_agent,
-        'created_at' => Time.current.iso8601,
-        'used' => false
-      }.to_json
-    end
-    
-    let(:token_string) { 'test_token_123' }
-
-    before do
-      # Mock Redis to return the token data
-      allow(mock_redis).to receive(:get).with("#{AuthToken::REDIS_KEY_PREFIX}:#{token_string}").and_return(token_data)
-    end
+    let!(:created_token) { AuthToken.create_for_user!(user, target_url, ip_address, user_agent) }
 
     it 'successfully consumes a valid token' do
-      consumed_token = AuthToken.consume!(token_string, ip_address, user_agent)
+      consumed_token = AuthToken.consume!(created_token.token, ip_address, user_agent)
       
       expect(consumed_token).to be_present
       expect(consumed_token.user_id).to eq(user.id)
       expect(consumed_token.target_url).to eq(target_url)
-      expect(consumed_token.used?).to be_truthy
+      
+      # Verify token is deleted after consumption
+      expect(AuthToken.find_valid(created_token.token)).to be_nil
     end
 
     it 'returns nil for non-existent token' do
-      allow(mock_redis).to receive(:get).with("#{AuthToken::REDIS_KEY_PREFIX}:nonexistent").and_return(nil)
       consumed_token = AuthToken.consume!('nonexistent', ip_address, user_agent)
       expect(consumed_token).to be_nil
     end
 
-    it 'returns nil for already used token' do
-      used_data = JSON.parse(token_data)
-      used_data['used'] = true
-      used_token_data = used_data.to_json
-      allow(mock_redis).to receive(:get).with("#{AuthToken::REDIS_KEY_PREFIX}:#{token_string}").and_return(used_token_data)
+    it 'returns nil for already consumed token' do
+      # Consume token once
+      AuthToken.consume!(created_token.token, ip_address, user_agent)
       
-      consumed_token = AuthToken.consume!(token_string, ip_address, user_agent)
+      # Try to consume again
+      consumed_token = AuthToken.consume!(created_token.token, ip_address, user_agent)
       expect(consumed_token).to be_nil
     end
 
     it 'returns nil for token with mismatched IP address' do
-      consumed_token = AuthToken.consume!(token_string, '192.168.1.2', user_agent)
+      consumed_token = AuthToken.consume!(created_token.token, '192.168.1.2', user_agent)
       expect(consumed_token).to be_nil
     end
 
     it 'returns nil for token with mismatched user agent when provided' do
-      consumed_token = AuthToken.consume!(token_string, ip_address, 'Different Browser')
+      consumed_token = AuthToken.consume!(created_token.token, ip_address, 'Different Browser')
       expect(consumed_token).to be_present # Should not fail on user agent mismatch, just log warning
     end
 
     it 'ignores user agent mismatch when current user agent is nil' do
-      consumed_token = AuthToken.consume!(token_string, ip_address, nil)
+      consumed_token = AuthToken.consume!(created_token.token, ip_address, nil)
       expect(consumed_token).to be_present
     end
 
-    it 'marks token as used after consumption' do
-      AuthToken.consume!(token_string, ip_address, user_agent)
+    it 'deletes token after consumption' do
+      AuthToken.consume!(created_token.token, ip_address, user_agent)
       
-      # Verify Redis setex was called to update the token
-      expect(mock_redis).to have_received(:setex).at_least(:once)
+      # Verify token is deleted from Redis 
+      expect(AuthToken.find_valid(created_token.token)).to be_nil
     end
   end
 
   describe '.find_valid' do
-    let(:token_data) do
-      {
-        'user_id' => user.id,
-        'target_url' => target_url,
-        'ip_address' => ip_address,
-        'user_agent' => user_agent,
-        'created_at' => Time.current.iso8601,
-        'used' => false
-      }.to_json
-    end
-    
-    let(:token_string) { 'test_token_123' }
-
     it 'finds an existing valid token' do
-      allow(mock_redis).to receive(:get).with("#{AuthToken::REDIS_KEY_PREFIX}:#{token_string}").and_return(token_data)
+      # Create a real token using the class method, which will store it in MockRedis
+      created_token = AuthToken.create_for_user!(user, target_url, ip_address, user_agent)
       
-      found_token = AuthToken.find_valid(token_string)
+      found_token = AuthToken.find_valid(created_token.token)
       
       expect(found_token).to be_present
       expect(found_token.user_id).to eq(user.id)
-      expect(found_token.token).to eq(token_string)
+      expect(found_token.token).to eq(created_token.token)
     end
 
     it 'returns nil for non-existent token' do
-      allow(mock_redis).to receive(:get).with("#{AuthToken::REDIS_KEY_PREFIX}:nonexistent").and_return(nil)
       found_token = AuthToken.find_valid('nonexistent')
       expect(found_token).to be_nil
     end
 
     it 'returns nil for expired token' do
-      # Mock Redis returning nil (expired/deleted key)
-      allow(mock_redis).to receive(:get).with("#{AuthToken::REDIS_KEY_PREFIX}:#{token_string}").and_return(nil)
+      # Create a real token first
+      created_token = AuthToken.create_for_user!(user, target_url, ip_address, user_agent)
       
-      found_token = AuthToken.find_valid(token_string)
+      # Verify it exists first
+      expect(AuthToken.find_valid(created_token.token)).to be_present
+      
+      # Then delete it from Redis to simulate expiration
+      redis_key = "#{AuthToken::REDIS_KEY_PREFIX}:#{created_token.token}"
+      AuthToken.redis.del(redis_key)
+      
+      # Now it should return nil
+      found_token = AuthToken.find_valid(created_token.token)
       expect(found_token).to be_nil
     end
   end
@@ -228,13 +191,14 @@ RSpec.describe AuthToken, type: :model do
 
   describe 'edge cases' do
     it 'handles Redis connection failures gracefully during save' do
-      # Define a mock Redis error class without needing actual Redis constant
+      # Define Redis error classes
       redis_base_error = Class.new(StandardError)
       redis_connection_error = Class.new(redis_base_error)
       stub_const('Redis::BaseError', redis_base_error)
       stub_const('Redis::ConnectionError', redis_connection_error)
       
-      allow(mock_redis).to receive(:setex).and_raise(redis_connection_error)
+      # Mock the setex method on the actual Redis instance to raise error
+      allow(AuthToken.redis).to receive(:setex).and_raise(redis_connection_error)
       
       token = AuthToken.new(
         token: 'test',

@@ -42,6 +42,9 @@ gem "pundit"
 # SECURITY FIX: Add rate limiting
 gem "rack-attack"
 
+# Redis for cross-domain auth tokens and caching
+gem "redis", "~> 5.2"
+
 # Admin interface
 gem "activeadmin"
 # gem "sassc-rails" # REMOVED - Conflicts with Propshaft
@@ -106,6 +109,9 @@ group :development, :test do
 
   # For checking rendered templates in controller/request specs
   gem "rails-controller-testing"
+  
+  # Mock Redis for testing
+  gem "mock_redis", "~> 0.42"
 end
 
 group :development do
