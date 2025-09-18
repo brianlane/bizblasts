@@ -59,6 +59,9 @@ class AuthenticationBridgeController < ApplicationController
       
       redirect_to consumption_url, allow_other_host: true
       
+    rescue Redis::BaseError => e
+      Rails.logger.error "[AuthBridge] Redis connection failed: #{e.message}"
+      render json: { error: 'Authentication service temporarily unavailable' }, status: :service_unavailable
     rescue => e
       Rails.logger.error "[AuthBridge] Failed to create bridge: #{e.message}"
       render json: { error: 'Failed to create authentication bridge' }, status: :internal_server_error
