@@ -112,12 +112,12 @@ class AuthenticationBridgeController < ApplicationController
                                        :ref, :source, :medium, :campaign, :gclid, :fbclid)
       additional_query = additional_params.present? ? additional_params.to_query : nil
       
-      # Build the final redirect URL from the preserved parameters (safer approach)
-      # Use redirect_to parameter if provided, otherwise fall back to root path
-      redirect_path = build_final_redirect_path(params[:redirect_to], params[:original_query], additional_query)
+      # Build the final redirect URL from the token's target_url and preserved parameters
+      # Use the token's target_url as the primary destination
+      redirect_path = build_final_redirect_path(auth_token.target_url, params[:original_query], additional_query)
       
       # Redirect to the final destination with a success message
-      Rails.logger.debug "[AuthBridge] Redirecting to: #{redirect_path}"
+      Rails.logger.info "[AuthBridge] Token target_url: #{auth_token.target_url}, final redirect_path: #{redirect_path}"
       redirect_to redirect_path, notice: 'Successfully signed in', allow_other_host: true
       
     rescue => e
@@ -220,6 +220,8 @@ class AuthenticationBridgeController < ApplicationController
         # Allow URLs to the same domain (ignoring subdomains) as the current request
         current_domain = request.host.sub(/^www\./, '')
         target_domain = uri.host.sub(/^www\./, '')
+        
+        Rails.logger.debug "[AuthBridge] Domain comparison - current: #{current_domain}, target: #{target_domain}, request.host: #{request.host}, uri.host: #{uri.host}"
         
         if target_domain != current_domain
           Rails.logger.warn "[AuthBridge] Rejected cross-domain redirect: #{redirect_to} (current domain: #{current_domain}, target domain: #{target_domain})"
