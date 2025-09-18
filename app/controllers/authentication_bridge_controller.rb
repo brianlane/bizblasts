@@ -91,7 +91,7 @@ class AuthenticationBridgeController < ApplicationController
     end
     
     begin
-      # Consume the Redis-backed token
+      # Consume the database-backed token
       auth_token = AuthToken.consume!(token, request.remote_ip, request.user_agent)
       
       unless auth_token
@@ -107,12 +107,15 @@ class AuthenticationBridgeController < ApplicationController
       
       # Build the final redirect URL from the consumed token's target_url and preserved parameters
       # Also include any additional query parameters that came directly in this request
-      additional_params = params.except(:auth_token, :redirect_to, :original_query, :controller, :action).permit!
+      # Only permit safe tracking/analytics parameters to prevent security issues
+      additional_params = params.except(:auth_token, :redirect_to, :original_query, :controller, :action)
+                                .permit(:utm_source, :utm_medium, :utm_campaign, :utm_term, :utm_content, 
+                                       :ref, :source, :medium, :campaign, :gclid, :fbclid)
       additional_query = additional_params.present? ? additional_params.to_query : nil
       
-      # Use the target_url from the consumed token as the primary redirect destination
-      target_url = auth_token.target_url
-      redirect_path = build_final_redirect_path(target_url, params[:original_query], additional_query)
+      # Build the final redirect URL from the preserved parameters (safer approach)
+      # Use redirect_to parameter if provided, otherwise fall back to root path
+      redirect_path = build_final_redirect_path(params[:redirect_to], params[:original_query], additional_query)
       
       # Redirect to the final destination with a success message
       Rails.logger.debug "[AuthBridge] Redirecting to: #{redirect_path}"
@@ -372,7 +375,7 @@ class AuthenticationBridgeController < ApplicationController
   
   def rate_limit_user
     # Simple rate limiting: max 10 bridge attempts per user per hour
-    # Note: Redis-based tokens expire automatically, so we use a simple counter approach
+    # Note: Tokens are database-backed; rate limiting uses Rack::Attack with Rails.cache
     cache_key = "auth_bridge_rate_limit:#{current_user.id}"
     attempts = Rails.cache.read(cache_key) || 0
     
