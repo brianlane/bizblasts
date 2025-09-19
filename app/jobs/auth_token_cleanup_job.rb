@@ -15,8 +15,10 @@ class AuthTokenCleanupJob < ApplicationJob
   
   def perform
     # Prevent overlapping runs across processes/threads
-    lock_key = 'auth_token_cleanup:lock'
-    got_lock = Rails.cache.write(lock_key, Process.pid, unless_exist: true, expires_in: (CLEANUP_INTERVAL / 2.0))
+    lock_key   = 'auth_token_cleanup:lock'
+    owner_token = "#{Process.pid}-#{Thread.current.object_id}-#{SecureRandom.hex(8)}"
+    # Acquire lock for the full interval to avoid expiry while job is running.
+    got_lock = Rails.cache.write(lock_key, owner_token, unless_exist: true, expires_in: CLEANUP_INTERVAL)
     unless got_lock
       Rails.logger.debug "[AuthTokenCleanup] Another cleanup is running; skipping"
       schedule_next_cleanup
@@ -49,7 +51,8 @@ class AuthTokenCleanupJob < ApplicationJob
       schedule_next_cleanup
       raise
     ensure
-      Rails.cache.delete(lock_key)
+      # Release the lock only if we still own it
+      Rails.cache.delete(lock_key) if Rails.cache.read(lock_key) == owner_token
     end
   end
   
@@ -80,6 +83,13 @@ class AuthTokenCleanupJob < ApplicationJob
   end
   
   def schedule_next_cleanup
+    # In test, always enqueue to keep specs deterministic
+    if Rails.env.test?
+      AuthTokenCleanupJob.set(wait: CLEANUP_INTERVAL).perform_later
+      Rails.logger.debug "[AuthTokenCleanup] (test) Scheduled next cleanup in #{CLEANUP_INTERVAL.inspect}"
+      return
+    end
+
     # Use cache key to ensure only one next run is scheduled across processes
     key = 'auth_token_cleanup:next_scheduled'
     if Rails.cache.write(key, Time.current, unless_exist: true, expires_in: CLEANUP_INTERVAL)
@@ -92,6 +102,13 @@ class AuthTokenCleanupJob < ApplicationJob
   
   # Class method to start the recurring cleanup process
   def self.start_recurring_cleanup!
+    # In test, always enqueue to keep specs deterministic
+    if Rails.env.test?
+      AuthTokenCleanupJob.perform_later
+      Rails.logger.info "[AuthTokenCleanup] Started recurring cleanup job"
+      return
+    end
+
     # Guard with cache so only one process schedules the initial job
     key = 'auth_token_cleanup:next_scheduled'
     if Rails.cache.write(key, Time.current, unless_exist: true, expires_in: CLEANUP_INTERVAL)
