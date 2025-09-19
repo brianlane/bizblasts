@@ -275,7 +275,7 @@ class AuthenticationBridgeController < ApplicationController
         end
         
         # For same-host absolute URLs, return the path with query
-        result = uri.path
+        result = uri.path.presence || '/'
         result += "?#{uri.query}" if uri.query.present?
         return result
       end

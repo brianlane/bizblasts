@@ -87,9 +87,13 @@ class AuthTokenCleanupJob < ApplicationJob
   
   # Check if cleanup job is already scheduled
   def self.job_already_scheduled?
-    # This is a simple check - in production you might want more sophisticated detection
-    # using job queue inspection or Redis flags
-    false # For now, allow multiple schedules (ActiveJob will handle duplicates)
+    # Naive guard: set a process-global flag so we schedule only once per boot
+    if defined?($auth_token_cleanup_started) && $auth_token_cleanup_started
+      true
+    else
+      $auth_token_cleanup_started = true
+      false
+    end
   end
   
   # Manual cleanup method for maintenance or testing
