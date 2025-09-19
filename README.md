@@ -1,3 +1,15 @@
+## Security Headers
+
+For production, enable HSTS at the edge (Render) for both the platform and all custom domains:
+
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+Notes:
+- Set this header via your CDN/edge (Render) so it applies before Rails. 
+- Only enable `preload` if your apex and all subdomains serve HTTPS permanently.
+
 # BizBlasts
 
 BizBlasts is a modern multi-tenant Rails 8 application for business websites with enhanced Hotwire integration and comprehensive testing.

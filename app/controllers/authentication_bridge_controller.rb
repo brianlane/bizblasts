@@ -38,8 +38,38 @@ class AuthenticationBridgeController < ApplicationController
       begin
         uri = URI.parse(target_url)
       rescue URI::InvalidURIError => e
-        Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
+        Rails.logger.warn "[AuthBridge] Invalid target URL: [FILTERED] - #{e.message}"
         render json: { error: 'Invalid target URL' }, status: :bad_request
+        return
+      end
+
+      # Require business_id and validate host matches business canonical domain
+      unless business_id.present?
+        Rails.logger.warn "[AuthBridge] Missing business_id for bridge request"
+        render json: { error: 'business_id is required' }, status: :bad_request
+        return
+      end
+
+      business = Business.find_by(id: business_id)
+      unless business
+        Rails.logger.warn "[AuthBridge] Unknown business_id #{business_id}"
+        render json: { error: 'Unknown business' }, status: :not_found
+        return
+      end
+
+      canonical_host = business.canonical_domain.presence || business.hostname
+      unless canonical_host.present?
+        Rails.logger.warn "[AuthBridge] Business #{business_id} has no canonical host configured"
+        render json: { error: 'Business not configured for bridge' }, status: :unprocessable_entity
+        return
+      end
+
+      request_host = uri.host.to_s.downcase
+      target_apex = request_host.sub(/^www\./, '')
+      canonical_apex = canonical_host.downcase.sub(/^www\./, '')
+      unless target_apex == canonical_apex
+        Rails.logger.warn "[AuthBridge] Rejected target host #{request_host} for business #{business_id} (expected #{canonical_host})"
+        render json: { error: 'Target host does not match business domain' }, status: :forbidden
         return
       end
       
@@ -53,8 +83,10 @@ class AuthenticationBridgeController < ApplicationController
       # Build redirect URL to custom domain's token consumption endpoint
       # This avoids embedding tokens in query params for better security
       
-      # Route to the token consumption endpoint on the target domain
-      consumption_url = "#{uri.scheme}://#{uri.host}"
+      # Route to the token consumption endpoint on the canonical target domain
+      # Use the business canonical host to avoid apex↔www 301 hops
+      canonical_host_for_redirect = canonical_host
+      consumption_url = "#{uri.scheme}://#{canonical_host_for_redirect}"
       consumption_url += ":#{uri.port}" if uri.port && ![80, 443].include?(uri.port)
       consumption_url += "/auth/consume?auth_token=#{CGI.escape(auth_token.token)}"
       
@@ -90,6 +122,10 @@ class AuthenticationBridgeController < ApplicationController
     end
     
     begin
+      # Prevent caching of token-bearing responses
+      response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+      response.headers['Pragma'] = 'no-cache'
+      response.headers['Expires'] = '0'
       # Consume the database-backed token
       auth_token = AuthToken.consume!(token, request)
       
