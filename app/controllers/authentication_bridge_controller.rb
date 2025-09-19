@@ -188,7 +188,13 @@ class AuthenticationBridgeController < ApplicationController
       
       # SECURITY: Use sanitize_redirect_path to validate the full target URL first
       sanitized_path = sanitize_redirect_path(target_url)
-      return sanitized_path if sanitized_path == '/' # Security rejection or invalid URL
+      # If sanitize_redirect_path rejected for cross-domain it already logged and returned '/'.
+      # Only abort when the target domain is actually different; root path '/' is a valid redirect.
+      if sanitized_path == '/' && URI.parse(target_url).host.present?
+        current_domain = request.host.sub(/^www\./, '')
+        target_domain  = URI.parse(target_url).host.sub(/^www\./, '')
+        return '/' unless target_domain == current_domain
+      end
       
       # Extract path from the original target URL (after security validation)
       base_path = uri.path.present? ? uri.path : '/'
