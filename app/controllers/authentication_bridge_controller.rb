@@ -181,37 +181,24 @@ class AuthenticationBridgeController < ApplicationController
   
   def build_redirect_from_target_url(target_url, original_query, additional_query = nil)
     return '/' unless target_url.present?
-    
-    begin
-      # Parse the target URL to extract path and existing query parameters
-      uri = URI.parse(target_url)
-      
-      # SECURITY: Use sanitize_redirect_path to validate the full target URL first
-      sanitized_path = sanitize_redirect_path(target_url)
-      # If sanitize_redirect_path rejected for cross-domain it already logged and returned '/'.
-      # Only abort when the target domain is actually different; root path '/' is a valid redirect.
-      if sanitized_path == '/' && URI.parse(target_url).host.present?
-        current_domain = request.host.sub(/^www\./, '')
-        target_domain  = URI.parse(target_url).host.sub(/^www\./, '')
-        return '/' unless target_domain == current_domain
-      end
-      
-      # Extract path from the original target URL (after security validation)
-      base_path = uri.path.present? ? uri.path : '/'
-      
-      # Merge all query parameters with deduplication
-      merged_query = merge_query_parameters(uri.query, original_query, additional_query)
-      
-      # Build final path
-      final_path = merged_query.present? ? "#{base_path}?#{merged_query}" : base_path
-      
-      Rails.logger.debug "[AuthBridge] Built redirect path: #{final_path} from target_url: #{target_url}"
-      return final_path
-      
-    rescue URI::InvalidURIError => e
-      Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
-      return '/'
-    end
+
+    # SECURITY: Always sanitize the full target URL first. This method enforces
+    # same-host policy, strips dangerous characters, validates traversal, etc.
+    sanitized = sanitize_redirect_path(target_url)
+
+    # If sanitize_redirect_path rejected or normalized to root, keep it
+    return sanitized if sanitized == '/'
+
+    # Split sanitized result into path and existing query
+    base_path, existing_query = sanitized.split('?', 2)
+
+    # Merge queries with deduplication. Order of precedence (last wins):
+    # 1) existing query from sanitized target_url
+    # 2) original_query preserved from bridge creation
+    # 3) additional_query from current request
+    merged_query = merge_query_parameters(existing_query, original_query, additional_query)
+
+    merged_query.present? ? "#{base_path}?#{merged_query}" : base_path
   end
   
   def merge_query_parameters(*query_strings)
