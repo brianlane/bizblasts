@@ -14,6 +14,15 @@ class AuthTokenCleanupJob < ApplicationJob
   BATCH_SIZE = 1000
   
   def perform
+    # Prevent overlapping runs across processes/threads
+    lock_key = 'auth_token_cleanup:lock'
+    got_lock = Rails.cache.write(lock_key, Process.pid, unless_exist: true, expires_in: (CLEANUP_INTERVAL / 2.0))
+    unless got_lock
+      Rails.logger.debug "[AuthTokenCleanup] Another cleanup is running; skipping"
+      schedule_next_cleanup
+      return
+    end
+
     cleanup_count = 0
     orphaned_count = 0
     
@@ -39,6 +48,8 @@ class AuthTokenCleanupJob < ApplicationJob
       # Still schedule next cleanup even if this one failed
       schedule_next_cleanup
       raise
+    ensure
+      Rails.cache.delete(lock_key)
     end
   end
   
@@ -69,31 +80,32 @@ class AuthTokenCleanupJob < ApplicationJob
   end
   
   def schedule_next_cleanup
-    # Schedule the next cleanup job
-    AuthTokenCleanupJob.set(wait: CLEANUP_INTERVAL).perform_later
-    Rails.logger.debug "[AuthTokenCleanup] Scheduled next cleanup in #{CLEANUP_INTERVAL.inspect}"
+    # Use cache key to ensure only one next run is scheduled across processes
+    key = 'auth_token_cleanup:next_scheduled'
+    if Rails.cache.write(key, Time.current, unless_exist: true, expires_in: CLEANUP_INTERVAL)
+      AuthTokenCleanupJob.set(wait: CLEANUP_INTERVAL).perform_later
+      Rails.logger.debug "[AuthTokenCleanup] Scheduled next cleanup in #{CLEANUP_INTERVAL.inspect}"
+    else
+      Rails.logger.debug "[AuthTokenCleanup] Next cleanup already scheduled"
+    end
   end
   
   # Class method to start the recurring cleanup process
   def self.start_recurring_cleanup!
-    # Only start if not already running
-    unless job_already_scheduled?
+    # Guard with cache so only one process schedules the initial job
+    key = 'auth_token_cleanup:next_scheduled'
+    if Rails.cache.write(key, Time.current, unless_exist: true, expires_in: CLEANUP_INTERVAL)
       AuthTokenCleanupJob.perform_later
       Rails.logger.info "[AuthTokenCleanup] Started recurring cleanup job"
     else
-      Rails.logger.debug "[AuthTokenCleanup] Cleanup job already scheduled"
+      Rails.logger.debug "[AuthTokenCleanup] Cleanup job already scheduled (cache guard)"
     end
   end
   
   # Check if cleanup job is already scheduled
   def self.job_already_scheduled?
-    # Naive guard: set a process-global flag so we schedule only once per boot
-    if defined?($auth_token_cleanup_started) && $auth_token_cleanup_started
-      true
-    else
-      $auth_token_cleanup_started = true
-      false
-    end
+    # Deprecated by cache-based guard; retained for interface compatibility
+    false
   end
   
   # Manual cleanup method for maintenance or testing
