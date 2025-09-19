@@ -34,7 +34,7 @@ gem "devise-passwordless"
 gem "resend"
 
 # SMS delivery
-gem "twilio-ruby", "~> 7.3"
+gem "twilio-ruby", "~> 7.8"
 
 # Authorization
 gem "pundit"
