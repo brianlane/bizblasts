@@ -383,7 +383,7 @@ class ApplicationController < ActionController::Base
   def consume_auth_token(token)
     begin
       # Consume database-backed AuthToken
-      auth_token = AuthToken.consume!(token, request.remote_ip, request.user_agent)
+      auth_token = AuthToken.consume!(token, request)
       
       if auth_token
         # Successfully consumed token, sign in the user
