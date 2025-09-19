@@ -104,6 +104,21 @@ class AuthenticationBridgeController < ApplicationController
       
       Rails.logger.info "[AuthBridge] Successfully authenticated user #{auth_token.user.id} on custom domain #{request.host}"
       
+      # Remove any legacy session cookies that might shadow the new host-only cookie
+      # Browsers can send multiple cookies with the same name (e.g., Domain=.newcoworker.com and host-only
+      # for www.newcoworker.com). Rack may pick the wrong one, making the request look anonymous.
+      begin
+        session_key = Rails.application.config.session_options[:key] || '_session_id'
+        base_root   = request.host.sub(/^www\./, '')
+        # Expire broader-domain cookies
+        cookies.delete(session_key, domain: ".#{base_root}", path: '/')
+        cookies.delete(session_key, domain: base_root, path: '/')
+        # Also expire a mis-set cookie on the exact host with an explicit Domain attribute
+        cookies.delete(session_key, domain: request.host, path: '/')
+      rescue => e
+        Rails.logger.debug "[AuthBridge] Cookie cleanup skipped: #{e.message}"
+      end
+
       # Build the final redirect URL from the consumed token's target_url and preserved parameters
       # Also include any additional query parameters that came directly in this request
       # Only permit safe tracking/analytics parameters to prevent security issues
