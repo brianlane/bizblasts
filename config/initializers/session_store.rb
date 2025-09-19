@@ -22,11 +22,13 @@ if Rails.env.production?
                                            host = request.host
                                            platform_domain = 'bizblasts.com'
 
-                                           if host.ends_with?(platform_domain)
-                                             ".#{platform_domain}"
-                                           else
-                                             host # Custom domain – isolate cookie
-                                           end
+      if host.ends_with?(platform_domain)
+        ".#{platform_domain}"
+      else
+        # Host-only cookie for custom domains (omit Domain attribute entirely)
+        # Returning nil tells Rails not to set a Domain attribute
+        nil
+      end
                                          end,
                                          secure: true,
                                          httponly: true,
