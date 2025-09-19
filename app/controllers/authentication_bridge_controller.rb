@@ -283,23 +283,30 @@ class AuthenticationBridgeController < ApplicationController
       # Ensure path starts with /
       path = uri.path
       path = "/#{path}" unless path.start_with?('/')
-      
-      # Remove any dangerous characters or patterns
+
+      # Remove any dangerous characters or patterns from path
       path = path.gsub(/[<>'"&]/, '')
-      
+
       # Validate path doesn't contain directory traversal
       if path.include?('../') || path.include?('..\\')
         Rails.logger.warn "[AuthBridge] Rejected path traversal attempt: #{redirect_to}"
         return '/'
       end
-      
-      # Limit path length
-      if path.length > 2000
-        Rails.logger.warn "[AuthBridge] Rejected overly long path: #{path.length} chars"
+
+      # Preserve and sanitize query string for relative URLs
+      full_path = path
+      if uri.query.present?
+        sanitized_query = sanitize_query_string(uri.query)
+        full_path = sanitized_query.present? ? "#{path}?#{sanitized_query}" : path
+      end
+
+      # Limit path length (including query)
+      if full_path.length > 2000
+        Rails.logger.warn "[AuthBridge] Rejected overly long path: #{full_path.length} chars"
         return '/'
       end
-      
-      path
+
+      full_path
       
     rescue URI::InvalidURIError => e
       Rails.logger.warn "[AuthBridge] Invalid redirect_to URI: #{redirect_to} - #{e.message}"
