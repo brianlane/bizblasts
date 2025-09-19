@@ -181,31 +181,24 @@ class AuthenticationBridgeController < ApplicationController
   
   def build_redirect_from_target_url(target_url, original_query, additional_query = nil)
     return '/' unless target_url.present?
-    
-    begin
-      # Parse the target URL to extract path and existing query parameters
-      uri = URI.parse(target_url)
-      
-      # SECURITY: Use sanitize_redirect_path to validate the full target URL first
-      sanitized_path = sanitize_redirect_path(target_url)
-      return sanitized_path if sanitized_path == '/' # Security rejection or invalid URL
-      
-      # Extract path from the original target URL (after security validation)
-      base_path = uri.path.present? ? uri.path : '/'
-      
-      # Merge all query parameters with deduplication
-      merged_query = merge_query_parameters(uri.query, original_query, additional_query)
-      
-      # Build final path
-      final_path = merged_query.present? ? "#{base_path}?#{merged_query}" : base_path
-      
-      Rails.logger.debug "[AuthBridge] Built redirect path: #{final_path} from target_url: #{target_url}"
-      return final_path
-      
-    rescue URI::InvalidURIError => e
-      Rails.logger.warn "[AuthBridge] Invalid target URL: #{target_url} - #{e.message}"
-      return '/'
-    end
+
+    # SECURITY: Always sanitize the full target URL first. This method enforces
+    # same-host policy, strips dangerous characters, validates traversal, etc.
+    sanitized = sanitize_redirect_path(target_url)
+
+    # If sanitize_redirect_path rejected or normalized to root, keep it
+    return sanitized if sanitized == '/'
+
+    # Split sanitized result into path and existing query
+    base_path, existing_query = sanitized.split('?', 2)
+
+    # Merge queries with deduplication. Order of precedence (last wins):
+    # 1) existing query from sanitized target_url
+    # 2) original_query preserved from bridge creation
+    # 3) additional_query from current request
+    merged_query = merge_query_parameters(existing_query, original_query, additional_query)
+
+    merged_query.present? ? "#{base_path}?#{merged_query}" : base_path
   end
   
   def merge_query_parameters(*query_strings)
@@ -290,23 +283,30 @@ class AuthenticationBridgeController < ApplicationController
       # Ensure path starts with /
       path = uri.path
       path = "/#{path}" unless path.start_with?('/')
-      
-      # Remove any dangerous characters or patterns
+
+      # Remove any dangerous characters or patterns from path
       path = path.gsub(/[<>'"&]/, '')
-      
+
       # Validate path doesn't contain directory traversal
       if path.include?('../') || path.include?('..\\')
         Rails.logger.warn "[AuthBridge] Rejected path traversal attempt: #{redirect_to}"
         return '/'
       end
-      
-      # Limit path length
-      if path.length > 2000
-        Rails.logger.warn "[AuthBridge] Rejected overly long path: #{path.length} chars"
+
+      # Preserve and sanitize query string for relative URLs
+      full_path = path
+      if uri.query.present?
+        sanitized_query = sanitize_query_string(uri.query)
+        full_path = sanitized_query.present? ? "#{path}?#{sanitized_query}" : path
+      end
+
+      # Limit path length (including query)
+      if full_path.length > 2000
+        Rails.logger.warn "[AuthBridge] Rejected overly long path: #{full_path.length} chars"
         return '/'
       end
-      
-      path
+
+      full_path
       
     rescue URI::InvalidURIError => e
       Rails.logger.warn "[AuthBridge] Invalid redirect_to URI: #{redirect_to} - #{e.message}"

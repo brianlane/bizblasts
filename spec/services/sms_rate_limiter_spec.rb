@@ -172,7 +172,8 @@ RSpec.describe SmsRateLimiter, type: :service do
         # Create messages from different times
         create(:sms_message, business: business, created_at: 2.days.ago)
         create_list(:sms_message, 3, business: business, created_at: Time.current)
-        create(:sms_message, business: business, created_at: 2.hours.ago)
+        # Ensure this message is definitely today by using beginning of day + some hours
+        create(:sms_message, business: business, created_at: Date.current.beginning_of_day + 6.hours)
         
         count = SmsRateLimiter.send(:business_daily_count, business)
         expect(count).to eq(4) # Only today's messages
