@@ -25,44 +25,65 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
       primary_customer_id = customer_ids.first
       duplicate_ids = customer_ids[1..-1]
       
-      # Get details about the customers we're merging
-      customers = TenantCustomer.where(id: customer_ids).order(:created_at)
-      primary = customers.first
-      duplicates = customers[1..-1]
+      # Get details about the customers we're merging (using raw SQL to avoid model dependencies)
+      customers_sql = <<~SQL
+        SELECT id, first_name, last_name, phone, user_id, created_at
+        FROM tenant_customers 
+        WHERE id IN (#{customer_ids.join(',')})
+        ORDER BY created_at ASC
+      SQL
+      customers_data = execute(customers_sql).to_a
+      primary_data = customers_data.first
+      duplicates_data = customers_data[1..-1]
       
-      say "    Keeping customer #{primary_customer_id} (created: #{primary.created_at})"
+      say "    Keeping customer #{primary_customer_id} (created: #{primary_data['created_at']})"
       
       # Merge data from duplicates into primary customer
-      duplicates.each do |duplicate|
-        say "    Merging customer #{duplicate.id} (created: #{duplicate.created_at})"
+      duplicates_data.each do |duplicate_data|
+        duplicate_id = duplicate_data['id']
+        say "    Merging customer #{duplicate_id} (created: #{duplicate_data['created_at']})"
         
-        # Update primary with any missing data from duplicate
-        updates = {}
+        # Build update SQL for missing data
+        updates = []
         
         # Sync missing personal data
-        updates[:first_name] = duplicate.first_name if primary.first_name.blank? && duplicate.first_name.present?
-        updates[:last_name] = duplicate.last_name if primary.last_name.blank? && duplicate.last_name.present?
-        updates[:phone] = duplicate.phone if primary.phone.blank? && duplicate.phone.present?
+        if (primary_data['first_name'].nil? || primary_data['first_name'].strip.empty?) && 
+           duplicate_data['first_name'] && !duplicate_data['first_name'].strip.empty?
+          updates << "first_name = #{connection.quote(duplicate_data['first_name'])}"
+          primary_data['first_name'] = duplicate_data['first_name'] # Update our local copy
+        end
+        
+        if (primary_data['last_name'].nil? || primary_data['last_name'].strip.empty?) && 
+           duplicate_data['last_name'] && !duplicate_data['last_name'].strip.empty?
+          updates << "last_name = #{connection.quote(duplicate_data['last_name'])}"
+          primary_data['last_name'] = duplicate_data['last_name'] # Update our local copy
+        end
+        
+        if (primary_data['phone'].nil? || primary_data['phone'].strip.empty?) && 
+           duplicate_data['phone'] && !duplicate_data['phone'].strip.empty?
+          updates << "phone = #{connection.quote(duplicate_data['phone'])}"
+          primary_data['phone'] = duplicate_data['phone'] # Update our local copy
+        end
         
         # Sync user association if primary doesn't have one
-        if primary.user_id.nil? && duplicate.user_id.present?
-          updates[:user_id] = duplicate.user_id
-          say "      Transferred user_id #{duplicate.user_id}"
+        if primary_data['user_id'].nil? && duplicate_data['user_id']
+          updates << "user_id = #{duplicate_data['user_id']}"
+          primary_data['user_id'] = duplicate_data['user_id'] # Update our local copy
+          say "      Transferred user_id #{duplicate_data['user_id']}"
         end
         
         # Update primary if we have changes
         if updates.any?
           execute(<<~SQL)
             UPDATE tenant_customers 
-            SET #{updates.map { |k, v| "#{k} = #{connection.quote(v)}" }.join(', ')},
-                updated_at = NOW()
+            SET #{updates.join(', ')}, updated_at = NOW()
             WHERE id = #{primary_customer_id}
           SQL
-          say "      Updated primary customer with: #{updates.keys.join(', ')}"
+          say "      Updated primary customer with: #{updates.join(', ')}"
         end
         
         # Transfer related records to primary customer
-        transfer_related_records(duplicate.id, primary_customer_id)
+        transfer_related_records(duplicate_id, primary_customer_id)
       end
       
       # Delete the duplicate records
