@@ -36,6 +36,8 @@ class User < ApplicationRecord
   # Callbacks
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
+  after_update :sync_email_to_tenant_customers, if: -> { client? && saved_change_to_email? && confirmed? }
+  after_update :sync_phone_to_tenant_customers, if: -> { client? && saved_change_to_phone? && phone.present? }
   after_create :generate_unsubscribe_token
   after_create :set_default_notification_preferences
 
@@ -226,6 +228,18 @@ class User < ApplicationRecord
     @tenant_customer_ids = nil
   end
   
+  # Get linked tenant customer for a specific business
+  def tenant_customer_for(business)
+    return nil unless client?
+    TenantCustomer.find_by(user_id: id, business: business)
+  end
+  
+  # Get all linked tenant customers
+  def linked_tenant_customers
+    return TenantCustomer.none unless client?
+    TenantCustomer.where(user_id: id)
+  end
+  
   # Clear all policy-related caches
   def clear_policy_caches
     @missing_required_policies = nil
@@ -264,7 +278,7 @@ class User < ApplicationRecord
     
     # Check if ANY of the relevant keys are enabled (not explicitly set to false)
     # This allows users to receive emails from a category if they have at least one preference enabled
-    keys.any? { |k| notification_preferences[k] != false && notification_preferences[k] != '0' }
+    keys.any? { |k| notification_preferences[k] == true }
   end
 
   # SMS opt-in methods for User model (business users)
@@ -665,6 +679,52 @@ class User < ApplicationRecord
       next true unless current_version # Skip if no current version
       
       PolicyAcceptance.has_accepted_policy?(self, policy_type, current_version.version)
+    end
+  end
+  
+  # Sync email changes to linked tenant customers (after email confirmation)
+  def sync_email_to_tenant_customers
+    return unless client?
+    
+    old_email = email_before_last_save
+    new_email = email.downcase.strip
+    
+    Rails.logger.info "[USER] Syncing email change from #{old_email} to #{new_email} for user #{id}"
+    
+    # Update all linked tenant customers
+    updated_count = linked_tenant_customers.update_all(email: new_email)
+    
+    Rails.logger.info "[USER] Updated #{updated_count} tenant customer records with new email"
+    
+    # Clear cache since email changed
+    clear_tenant_customer_cache
+  end
+  
+  # Sync phone changes to linked tenant customers
+  def sync_phone_to_tenant_customers
+    return unless client?
+    
+    Rails.logger.info "[USER] Syncing phone number to tenant customers for user #{id}"
+    
+    # Update phone for all linked customers where phone is blank or different
+    linked_tenant_customers.each do |customer|
+      updates = {}
+      
+      # Update phone if customer doesn't have one or if different
+      if customer.phone.blank? || customer.phone != phone
+        updates[:phone] = phone
+        
+        # Set opt-in if user has opted in and customer hasn't
+        if respond_to?(:phone_opt_in?) && phone_opt_in? && !customer.phone_opt_in?
+          updates[:phone_opt_in] = true
+          updates[:phone_opt_in_at] = respond_to?(:phone_opt_in_at) ? phone_opt_in_at : Time.current
+        end
+      end
+      
+      if updates.any?
+        customer.update!(updates)
+        Rails.logger.info "[USER] Updated tenant customer #{customer.id} with phone data"
+      end
     end
   end
 

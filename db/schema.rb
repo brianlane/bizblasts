@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_18_184209) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_22_234353) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -783,7 +783,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_18_184209) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1499,6 +1499,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_18_184209) do
     t.boolean "phone_opt_in", default: false, null: false
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
+    t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true

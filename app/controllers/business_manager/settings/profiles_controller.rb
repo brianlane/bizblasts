@@ -26,11 +26,9 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       update_params[:password_confirmation] = params[:user][:password_confirmation]
     end
 
-    # Handle notification preferences conversion
+    # Handle notification preferences - Rails handles checkbox conversion automatically
     if params[:user][:notification_preferences].present?
-      # Handle both Rails form helper and checkbox_tag formats:
-      # - Rails form helpers send '1' for checked, '0' for unchecked (simple strings)
-      # - checkbox_tag with Rails checkboxes send ['0', '1'] for checked, ['0'] for unchecked
+      # Rails checkbox helpers automatically convert to proper boolean values
       notification_prefs = {}
       params[:user][:notification_preferences].each do |key, value|
         if value.is_a?(Array)
@@ -135,35 +133,14 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
   def unsubscribe_all
     authorize @user, policy_class: Settings::ProfilePolicy # Ensure user is authorized
 
-    # Set all notification preferences to false
-    updated_preferences = @user.notification_preferences || {}
-    email_preferences = %w[
-      email_booking_notifications
-      email_order_notifications
-      email_customer_notifications
-      email_payment_notifications
-      email_failed_payment_notifications
-      email_subscription_notifications
-      email_marketing_notifications
-      email_blog_notifications
-      email_system_notifications
-      email_marketing_updates
-      email_blog_updates
-    ]
-    
-    email_preferences.each do |pref|
-      updated_preferences[pref] = false
-    end
-
-    if @user.update(notification_preferences: updated_preferences)
-      redirect_to edit_business_manager_settings_profile_path, notice: 'Unsubscribed from All Emails Successfully.'
-    else
-      # This case should be rare unless there's a validation on the notification_preferences hash itself
-      @account_deletion_info = @user.can_delete_account?
-      @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
-      flash.now[:alert] = 'Failed to update notification preferences.'
-      render :edit, status: :unprocessable_content
-    end
+    @user.unsubscribe_from_emails!
+    redirect_to edit_business_manager_settings_profile_path, notice: 'Unsubscribed from All Emails Successfully.'
+  rescue => e
+    Rails.logger.error "Failed to unsubscribe user #{@user.id}: #{e.message}"
+    @account_deletion_info = @user.can_delete_account?
+    @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
+    flash.now[:alert] = 'Failed to update notification preferences.'
+    render :edit, status: :unprocessable_content
   end
 
   private
