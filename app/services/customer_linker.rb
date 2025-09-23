@@ -32,11 +32,11 @@ class CustomerLinker
     # Check for existing linked customer with same email (different user)
     existing_customer = @business.tenant_customers.find_by(email: email)
     if existing_customer&.user_id && existing_customer.user_id != user.id
-      Rails.logger.warn "[CUSTOMER_LINKER] Email #{email} already linked to different user #{existing_customer.user_id} in business #{@business.id}"
-      # This shouldn't happen with proper email validation, but handle gracefully
-      # Create new customer with modified email to avoid constraint violation
-      email = "#{Time.current.to_i}.#{email}"
-      Rails.logger.warn "[CUSTOMER_LINKER] Creating customer with modified email: #{email}"
+      Rails.logger.error "[CUSTOMER_LINKER] Email conflict: #{email} already linked to different user #{existing_customer.user_id} in business #{@business.id}, cannot link to user #{user.id}"
+      
+      # This indicates a data integrity issue that should be investigated
+      # Rather than creating invalid email addresses, raise an error
+      raise StandardError, "Email #{email} is already associated with a different customer account in this business. Please contact support for assistance."
     end
     
     # Create new customer linked to user
@@ -58,7 +58,16 @@ class CustomerLinker
     email = email.downcase.strip
     
     customer = @business.tenant_customers.find_by(email: email, user_id: nil)
-    return customer if customer
+    if customer
+      # Update existing guest customer with any new attributes provided
+      updates = {}
+      %i[first_name last_name phone].each do |attr|
+        value = customer_attributes[attr]
+        updates[attr] = value if value.present? && customer.send(attr) != value
+      end
+      customer.update!(updates) if updates.any?
+      return customer
+    end
     
     # Check if email belongs to an existing linked customer
     linked_customer = @business.tenant_customers.find_by(email: email)

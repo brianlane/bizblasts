@@ -277,8 +277,11 @@ class TenantCustomer < ApplicationRecord
     return true unless associated_user
     return true if associated_user.notification_preferences.nil? || associated_user.notification_preferences.empty?
     
-    # Check if the preference is explicitly enabled (true) in the User's preferences
-    associated_user.notification_preferences[preference_key] == true
+    # Check if the preference is enabled in the User's preferences
+    # Treat nil as enabled (default) to maintain backward compatibility
+    # Only false explicitly disables notifications
+    preference_value = associated_user.notification_preferences[preference_key]
+    preference_value != false
   end
   
   private
@@ -298,7 +301,7 @@ class TenantCustomer < ApplicationRecord
     existing = existing.where.not(id: id) unless new_record?
     
     if existing.exists?
-      errors.add(:email, "has already been taken by another customer in this business")
+      errors.add(:email, "must be unique within this business")
     end
   end
 

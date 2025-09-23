@@ -278,7 +278,8 @@ class User < ApplicationRecord
     
     # Check if ANY of the relevant keys are enabled (not explicitly set to false)
     # This allows users to receive emails from a category if they have at least one preference enabled
-    keys.any? { |k| notification_preferences[k] == true }
+    # Treat nil as enabled (default) to maintain backward compatibility
+    keys.any? { |k| notification_preferences[k] != false }
   end
 
   # SMS opt-in methods for User model (business users)
