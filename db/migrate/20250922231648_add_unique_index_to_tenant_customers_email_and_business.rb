@@ -4,12 +4,14 @@ class AddUniqueIndexToTenantCustomersEmailAndBusiness < ActiveRecord::Migration[
     remove_index :tenant_customers, :email, if_exists: true
     
     # Double-check for any remaining duplicates before creating unique index
-    duplicates = execute(<<~SQL)
+    duplicates_sql = <<~SQL
       SELECT business_id, LOWER(email) as normalized_email, COUNT(*) as count
       FROM tenant_customers 
       GROUP BY business_id, LOWER(email)
       HAVING COUNT(*) > 1
     SQL
+    
+    duplicates = execute(duplicates_sql).to_a
     
     if duplicates.any?
       say "ERROR: Still found #{duplicates.length} duplicate group(s) after cleanup:"

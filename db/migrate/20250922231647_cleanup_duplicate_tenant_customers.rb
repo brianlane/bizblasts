@@ -3,13 +3,15 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
     say "Cleaning up duplicate tenant customers before applying unique constraint..."
     
     # Find all duplicate groups (same business_id and email, case-insensitive)
-    duplicate_groups = execute(<<~SQL)
+    duplicate_groups_sql = <<~SQL
       SELECT business_id, LOWER(email) as normalized_email, COUNT(*) as count, 
              ARRAY_AGG(id ORDER BY created_at ASC) as customer_ids
       FROM tenant_customers 
       GROUP BY business_id, LOWER(email)
       HAVING COUNT(*) > 1
     SQL
+    
+    duplicate_groups = execute(duplicate_groups_sql).to_a
     
     duplicate_groups.each do |group|
       business_id = group['business_id']
@@ -68,10 +70,10 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
       say "    Deleted #{duplicate_ids.length} duplicate record(s)"
     end
     
-    if duplicate_groups.ntuples == 0
+    if duplicate_groups.empty?
       say "  No duplicate tenant customers found - data is clean!"
     else
-      say "Cleanup complete. Processed #{duplicate_groups.ntuples} duplicate group(s)."
+      say "Cleanup complete. Processed #{duplicate_groups.length} duplicate group(s)."
     end
   end
   
