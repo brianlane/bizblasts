@@ -23,6 +23,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       # Password update attempt
       if @user.update_with_password(password_update_params)
         bypass_sign_in(@user)
+        # Sync changes to tenant customers will happen via User model callback
         redirect_to client_settings_path, notice: 'Settings (including password) updated successfully.'
       else
         @account_deletion_info = @user.can_delete_account?
@@ -33,6 +34,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       # Profile update only (no password change)
       # Remove password parameters to avoid unpermitted params warning
       if @user.update(profile_update_params)
+        # Sync changes to tenant customers will happen via User model callback
         redirect_to client_settings_path, notice: 'Profile settings updated successfully.'
       else
         @account_deletion_info = @user.can_delete_account?
@@ -91,19 +93,13 @@ class Client::SettingsController < ApplicationController # Changed from Client::
 
   # Action to unsubscribe from all notifications
   def unsubscribe_all
-    # Update all notification preferences to false
-    @user.notification_preferences.each do |key, value|
-      @user.notification_preferences[key] = false
-    end
-
-    if @user.save
-      redirect_to client_settings_path, notice: 'You have successfully unsubscribed from all emails.'
-    else
-      # This case should be rare unless there's a validation on the notification_preferences hash itself
-      flash.now[:alert] = 'Failed to update notification preferences.'
-      @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_content
-    end
+    @user.unsubscribe_from_emails!
+    redirect_to client_settings_path, notice: 'You have successfully unsubscribed from all emails.'
+  rescue => e
+    Rails.logger.error "Failed to unsubscribe user #{@user.id}: #{e.message}"
+    flash.now[:alert] = 'Failed to update notification preferences.'
+    @account_deletion_info = @user.can_delete_account?
+    render :edit, status: :unprocessable_content
   end
 
   private

@@ -12,7 +12,9 @@ class ServiceVariant < ApplicationRecord
   scope :active, -> { where(active: true) }
 
   # Validations
-  validates :name, presence: true
+  validates :name, presence: true,
+                   uniqueness: { scope: [:service_id, :duration], case_sensitive: false,
+                                message: "must be unique for each duration within a service" }
   validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }

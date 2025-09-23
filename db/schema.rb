@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_18_184209) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_23_202141) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1131,7 +1131,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_18_184209) do
     t.integer "position", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["service_id", "name"], name: "index_service_variants_on_service_id_and_name", unique: true
+    t.index ["service_id", "name", "duration"], name: "index_service_variants_on_service_id_name_duration", unique: true
     t.index ["service_id"], name: "index_service_variants_on_service_id"
   end
 
@@ -1499,6 +1499,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_18_184209) do
     t.boolean "phone_opt_in", default: false, null: false
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
+    t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true

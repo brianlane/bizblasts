@@ -6,6 +6,7 @@ class TenantCustomer < ApplicationRecord
   
   acts_as_tenant(:business)
   belongs_to :business
+  belongs_to :user, optional: true
   has_many :bookings, dependent: :destroy
   has_many :invoices, dependent: :destroy
   has_many :orders, dependent: :destroy
@@ -26,7 +27,8 @@ class TenantCustomer < ApplicationRecord
   # Base validations - updated to match User model
   validates :first_name, presence: true
   validates :last_name, presence: true
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { scope: :business_id, message: "must be unique within this business" }
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  # Note: uniqueness is now enforced by database index on business_id + LOWER(email)
   # Make phone optional for now to fix booking flow
   validates :phone, presence: true, allow_blank: true
   
@@ -34,6 +36,8 @@ class TenantCustomer < ApplicationRecord
   after_create :send_business_customer_notification
   after_create :generate_unsubscribe_token
   after_create :set_default_email_preferences
+  before_validation :normalize_email
+  validate :unique_email_per_business
   
   # Add accessor to skip email notifications when handled by staggered delivery
   attr_accessor :skip_notification_email
@@ -273,11 +277,33 @@ class TenantCustomer < ApplicationRecord
     return true unless associated_user
     return true if associated_user.notification_preferences.nil? || associated_user.notification_preferences.empty?
     
-    # Check if the preference is explicitly disabled (false or '0') in the User's preferences
-    associated_user.notification_preferences[preference_key] != false && associated_user.notification_preferences[preference_key] != '0'
+    # Check if the preference is enabled in the User's preferences
+    # Treat nil as enabled (default) to maintain backward compatibility
+    # Only false explicitly disables notifications
+    preference_value = associated_user.notification_preferences[preference_key]
+    preference_value != false
   end
   
   private
+
+  def normalize_email
+    self.email = email.downcase.strip if email.present?
+  end
+
+  def unique_email_per_business
+    return unless email.present? && business_id.present?
+    
+    # Check for existing customer with same email in same business
+    existing = TenantCustomer.where(
+      business_id: business_id,
+      email: email.downcase.strip
+    )
+    existing = existing.where.not(id: id) unless new_record?
+    
+    if existing.exists?
+      errors.add(:email, "must be unique within this business")
+    end
+  end
 
   def set_default_email_preferences
     # TenantCustomers are simpler - ensure email_marketing_opt_out defaults to false (allowing emails)

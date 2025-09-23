@@ -203,7 +203,7 @@ ActiveAdmin.register User do
     end
     column "Notifications Enabled" do |user|
       if user.notification_preferences.present?
-        enabled_count = user.notification_preferences.count { |_k, v| v == true || v == '1' || v == 1 }
+        enabled_count = user.notification_preferences.count { |_k, v| v == true }
         "#{enabled_count}/#{user.notification_preferences.size} enabled"
       else
         "None"
@@ -280,7 +280,7 @@ ActiveAdmin.register User do
           ul do
             user.notification_preferences.keys.sort.each do |key|
               value = user.notification_preferences[key]
-              enabled = (value == true || value == '1' || value == 1)
+              enabled = (value == true)
               li "#{key.to_s.humanize}: #{enabled ? 'Enabled' : 'Disabled'}"
             end
           end

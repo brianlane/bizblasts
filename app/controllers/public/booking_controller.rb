@@ -32,8 +32,15 @@ module Public
       
       # If client user, set their own TenantCustomer; otherwise build nested for new customer
       if current_user && current_user.role == 'client' # Check current_user exists
-        client_cust = current_tenant.tenant_customers.find_by(email: current_user.email)
-        @booking.tenant_customer = client_cust if client_cust
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          client_cust = linker.link_user_to_customer(current_user)
+          @booking.tenant_customer = client_cust if client_cust
+        rescue StandardError => e
+          Rails.logger.error "[BookingController#new] CustomerLinker error for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to tenant_root_path and return
+        end
       end
       # If still no tenant_customer (e.g. user not logged in, or not a client, or no record found)
       # The form might need fields for new customer details, handled by tenant_customer_attributes
@@ -65,11 +72,14 @@ module Public
 
       # Determine customer based on user state
       if current_user&.client?
-        # Logged-in client: find or create their TenantCustomer by email
-        customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-          c.first_name = current_user.first_name
-          c.last_name  = current_user.last_name
-          c.phone      = current_user.phone
+        # Logged-in client: link user to their TenantCustomer
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          customer = linker.link_user_to_customer(current_user)
+        rescue StandardError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]) and return
         end
       elsif current_user.present? && (current_user.staff? || current_user.manager?)
         # Staff or manager: select or create tenant customer based on form inputs
@@ -83,24 +93,21 @@ module Public
             redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           end
           
-          # Try to find existing customer by email
-          customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-          
-          if customer
-            # Update existing customer with new info if provided
-            update_attrs = {}
-            update_attrs[:first_name] = nested[:first_name] if nested[:first_name].present?
-            update_attrs[:last_name] = nested[:last_name] if nested[:last_name].present?
-            update_attrs[:phone] = nested[:phone] if nested[:phone].present?
-            customer.update!(update_attrs) if update_attrs.any?
-          else
-            # Create new customer
-            customer = current_tenant.tenant_customers.create!(
-              first_name: nested[:first_name],
-              last_name:  nested[:last_name],
-              phone:      nested[:phone],
-              email:      nested[:email].presence
+          # Use CustomerLinker for guest checkout flow
+          begin
+            linker = CustomerLinker.new(current_tenant)
+            customer = linker.find_or_create_guest_customer(
+              nested[:email],
+              {
+                first_name: nested[:first_name],
+                last_name: nested[:last_name],
+                phone: nested[:phone]
+              }
             )
+          rescue StandardError => e
+            Rails.logger.error "[BookingController#create] CustomerLinker error for staff/manager: #{e.message}"
+            flash[:alert] = "Error creating customer: #{e.message}"
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           end
         end
       else
@@ -113,27 +120,24 @@ module Public
           redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         end
         
-        # Try to find existing customer by email
-        customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-        
-        if customer
-          # Update existing customer with new info if provided
-          update_attrs = {}
-          update_attrs[:first_name] = nested[:first_name] if nested[:first_name].present?
-          update_attrs[:last_name] = nested[:last_name] if nested[:last_name].present?
-          update_attrs[:phone] = nested[:phone] if nested[:phone].present?
-          customer.update!(update_attrs) if update_attrs.any?
-        else
-          # Create new customer
-          customer = current_tenant.tenant_customers.create!(
-            first_name: nested[:first_name],
-            last_name:  nested[:last_name],
-            phone:      nested[:phone],
-            email:      nested[:email].presence
+        # Use CustomerLinker for guest checkout
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          customer = linker.find_or_create_guest_customer(
+            nested[:email],
+            {
+              first_name: nested[:first_name],
+              last_name: nested[:last_name],
+              phone: nested[:phone]
+            }
           )
+        rescue StandardError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker error for guest: #{e.message}"
+          flash[:alert] = "Error creating customer: #{e.message}"
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         end
 
-        # Optionally create an account if requested
+        # Optionally create an account if requested and link to customer
         if booking_params[:create_account] == '1' && booking_params[:password].present?
           user = User.new(
             email:                 nested[:email],
@@ -146,6 +150,8 @@ module Public
           )
           if user.save
             ClientBusiness.create!(user: user, business: current_tenant)
+            # Link the existing customer to the new user account
+            customer.update!(user_id: user.id)
             sign_in(user)
           else
             # Propagate user errors to booking

@@ -25,4 +25,26 @@ RSpec.describe ServiceVariant, type: :model do
     variant = described_class.create!(service: service, name: '30 min', duration: 30, price: 49.99)
     expect(variant.business).to eq(business)
   end
+
+  describe 'uniqueness validation' do
+    it 'allows variants with same name but different durations' do
+      create(:service_variant, service: service, name: 'Reiki', duration: 60, price: 130)
+      variant = build(:service_variant, service: service, name: 'Reiki', duration: 75, price: 150)
+      expect(variant).to be_valid
+    end
+
+    it 'prevents variants with same name and duration' do
+      create(:service_variant, service: service, name: 'Reiki', duration: 60, price: 130)
+      variant = build(:service_variant, service: service, name: 'Reiki', duration: 60, price: 150)
+      expect(variant).not_to be_valid
+      expect(variant.errors[:name]).to include('must be unique for each duration within a service')
+    end
+
+    it 'allows same name and duration across different services' do
+      other_service = create(:service, business: business)
+      create(:service_variant, service: service, name: 'Reiki', duration: 60, price: 130)
+      variant = build(:service_variant, service: other_service, name: 'Reiki', duration: 60, price: 130)
+      expect(variant).to be_valid
+    end
+  end
 end 
