@@ -2,10 +2,10 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
   def up
     say "Cleaning up duplicate tenant customers before applying unique constraint..."
     
-    # Find all duplicate groups (same business_id and email, case-insensitive)
+    # Find all duplicate groups using database-agnostic approach
+    # Step 1: Find all business_id + email combinations that have duplicates
     duplicate_groups_sql = <<~SQL
-      SELECT business_id, LOWER(email) as normalized_email, COUNT(*) as count, 
-             ARRAY_AGG(id ORDER BY created_at ASC) as customer_ids
+      SELECT business_id, LOWER(email) as normalized_email, COUNT(*) as count
       FROM tenant_customers 
       GROUP BY business_id, LOWER(email)
       HAVING COUNT(*) > 1
@@ -16,7 +16,18 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
     duplicate_groups.each do |group|
       business_id = group['business_id']
       normalized_email = group['normalized_email']
-      customer_ids = group['customer_ids'].gsub(/[{}]/, '').split(',').map(&:to_i)
+      
+      # Step 2: Get individual customer records for this duplicate group (database-agnostic)
+      customers_in_group_sql = <<~SQL
+        SELECT id, first_name, last_name, phone, user_id, created_at, email
+        FROM tenant_customers 
+        WHERE business_id = #{business_id} 
+        AND LOWER(email) = #{connection.quote(normalized_email.downcase)}
+        ORDER BY created_at ASC, id ASC
+      SQL
+      
+      customers_in_group = execute(customers_in_group_sql).to_a
+      customer_ids = customers_in_group.map { |c| c['id'].to_i }
       
       say "  Found #{group['count']} duplicates for email '#{normalized_email}' in business #{business_id}"
       say "    Customer IDs: #{customer_ids.join(', ')}"
@@ -25,18 +36,28 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
       primary_customer_id = customer_ids.first
       duplicate_ids = customer_ids[1..-1]
       
-      # Get details about the customers we're merging (using raw SQL to avoid model dependencies)
-      customers_sql = <<~SQL
-        SELECT id, first_name, last_name, phone, user_id, created_at
-        FROM tenant_customers 
-        WHERE id IN (#{customer_ids.join(',')})
-        ORDER BY created_at ASC
-      SQL
-      customers_data = execute(customers_sql).to_a
-      primary_data = customers_data.first
-      duplicates_data = customers_data[1..-1]
+      # Use the customer data we already fetched (no need for another query)
+      primary_data = customers_in_group.first
+      duplicates_data = customers_in_group[1..-1]
       
-      say "    Keeping customer #{primary_customer_id} (created: #{primary_data['created_at']})"
+      # Safety validation: Ensure we have the expected number of records
+      if customers_in_group.length != group['count'].to_i
+        raise StandardError, "Data consistency error: Expected #{group['count']} customers but found #{customers_in_group.length} for email #{normalized_email} in business #{business_id}"
+      end
+      
+      # Safety validation: Ensure primary_customer_id matches the first record
+      if primary_customer_id != primary_data['id'].to_i
+        raise StandardError, "Data consistency error: Primary customer ID mismatch for email #{normalized_email} in business #{business_id}"
+      end
+      
+      # Safety validation: Ensure all records have the same normalized email
+      customers_in_group.each do |customer|
+        if customer['email'].downcase.strip != normalized_email.downcase.strip
+          raise StandardError, "Data consistency error: Email mismatch for customer #{customer['id']} - expected #{normalized_email}, got #{customer['email']}"
+        end
+      end
+      
+      say "    Keeping customer #{primary_customer_id} (created: #{primary_data['created_at']}) - #{primary_data['email']}"
       
       # Merge data from duplicates into primary customer
       duplicates_data.each do |duplicate_data|
@@ -86,9 +107,22 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
         transfer_related_records(duplicate_id, primary_customer_id)
       end
       
-      # Delete the duplicate records
+      # Final safety check before deletion: Verify duplicate IDs match what we expect
+      if duplicate_ids.length != duplicates_data.length
+        raise StandardError, "Data consistency error: Duplicate IDs count (#{duplicate_ids.length}) doesn't match duplicates data count (#{duplicates_data.length})"
+      end
+      
+      # Double-check each duplicate ID exists and belongs to the correct business/email
+      duplicate_ids.each_with_index do |dup_id, index|
+        expected_data = duplicates_data[index]
+        if dup_id != expected_data['id'].to_i
+          raise StandardError, "Data consistency error: Duplicate ID mismatch at index #{index} - expected #{expected_data['id']}, got #{dup_id}"
+        end
+      end
+      
+      # Safe to delete now - we've verified everything matches
       execute("DELETE FROM tenant_customers WHERE id IN (#{duplicate_ids.join(', ')})")
-      say "    Deleted #{duplicate_ids.length} duplicate record(s)"
+      say "    Safely deleted #{duplicate_ids.length} duplicate record(s): #{duplicate_ids.join(', ')}"
     end
     
     if duplicate_groups.empty?
