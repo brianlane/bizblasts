@@ -143,41 +143,42 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
   
   def transfer_related_records(from_customer_id, to_customer_id)
     # Transfer all related records to the primary customer
+    # Using safe queries to prevent SQL injection and database-agnostic counting
     
-    # Bookings
-    booking_count = execute("UPDATE bookings SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{booking_count} booking(s)" if booking_count > 0
+    # Validate input parameters to prevent injection
+    from_id = from_customer_id.to_i
+    to_id = to_customer_id.to_i
     
-    # Invoices  
-    invoice_count = execute("UPDATE invoices SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{invoice_count} invoice(s)" if invoice_count > 0
+    if from_id <= 0 || to_id <= 0
+      raise StandardError, "Invalid customer IDs for transfer: from=#{from_customer_id}, to=#{to_customer_id}"
+    end
     
-    # Orders
-    order_count = execute("UPDATE orders SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{order_count} order(s)" if order_count > 0
+    # Define tables to transfer
+    tables_to_transfer = [
+      'bookings',
+      'invoices', 
+      'orders',
+      'payments',
+      'sms_messages',
+      'loyalty_transactions',
+      'loyalty_redemptions',
+      'customer_subscriptions',
+      'subscription_transactions'
+    ]
     
-    # Payments
-    payment_count = execute("UPDATE payments SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{payment_count} payment(s)" if payment_count > 0
-    
-    # SMS Messages
-    sms_count = execute("UPDATE sms_messages SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{sms_count} SMS message(s)" if sms_count > 0
-    
-    # Loyalty transactions
-    loyalty_count = execute("UPDATE loyalty_transactions SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{loyalty_count} loyalty transaction(s)" if loyalty_count > 0
-    
-    # Loyalty redemptions
-    redemption_count = execute("UPDATE loyalty_redemptions SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{redemption_count} loyalty redemption(s)" if redemption_count > 0
-    
-    # Customer subscriptions
-    subscription_count = execute("UPDATE customer_subscriptions SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{subscription_count} subscription(s)" if subscription_count > 0
-    
-    # Subscription transactions
-    sub_transaction_count = execute("UPDATE subscription_transactions SET tenant_customer_id = #{to_customer_id} WHERE tenant_customer_id = #{from_customer_id}").cmd_tuples
-    say "        Transferred #{sub_transaction_count} subscription transaction(s)" if sub_transaction_count > 0
+    # Transfer records for each table
+    tables_to_transfer.each do |table_name|
+      # First count existing records (database-agnostic)
+      count_sql = "SELECT COUNT(*) as count FROM #{table_name} WHERE tenant_customer_id = #{from_id}"
+      count_result = execute(count_sql).first
+      record_count = count_result ? count_result['count'].to_i : 0
+      
+      if record_count > 0
+        # Transfer records using safe integer interpolation (already validated)
+        update_sql = "UPDATE #{table_name} SET tenant_customer_id = #{to_id} WHERE tenant_customer_id = #{from_id}"
+        execute(update_sql)
+        say "        Transferred #{record_count} #{table_name.gsub('_', ' ')}"
+      end
+    end
   end
 end
