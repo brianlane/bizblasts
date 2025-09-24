@@ -846,6 +846,9 @@ class Business < ApplicationRecord
   #    provided a custom domain should have the CNAME setup sequence started
   #    automatically right after creation.
   after_commit :trigger_custom_domain_setup_after_create, on: :create
+  
+  # 2. Send admin notification when a new business registers
+  after_commit :send_admin_new_business_notification, on: :create
 
   # 2. Existing businesses that upgrade to the Premium tier (tier change
   #    detected) and already have a custom-domain host type should also kick
@@ -867,6 +870,23 @@ class Business < ApplicationRecord
     # Run domain setup in background to prevent 502 crashes from external API calls
     Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for newly created Business ##{id} (#{hostname})"
     CustomDomainSetupJob.perform_later(id)
+  end
+
+  # Triggered after *create* to send admin notification about new business registration
+  def send_admin_new_business_notification
+    return if Rails.env.test? # avoid interfering with specs
+    return unless ENV['ADMIN_EMAIL'].present?
+
+    # Find the business owner (manager role user)
+    owner = users.find_by(role: 'manager')
+    return unless owner.present?
+
+    begin
+      Rails.logger.info "[BUSINESS CALLBACK] Sending admin notification for new business registration: #{name} (ID: #{id})"
+      AdminMailer.new_business_registration(self, owner).deliver_later
+    rescue => e
+      Rails.logger.error "[BUSINESS CALLBACK] Failed to send admin notification for business #{id}: #{e.message}"
+    end
   end
 
   # Triggered after *update* when a non-premium business upgrades to Premium.
