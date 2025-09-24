@@ -80,40 +80,43 @@ module Users
       # 0) Explicit return_to param from login redirect (highest priority)
       # ---------------------------------------------------------------------------
       if params[:return_to].present?
-        raw_target = params[:return_to]
-        begin
-          uri = URI.parse(raw_target)
-        rescue URI::InvalidURIError
-          uri = nil
-        end
+        raw_target = params[:return_to].to_s.strip
 
-        # Relative path (e.g., "/cart") – safe to use directly
-        if uri.nil? || (uri.scheme.nil? && uri.host.nil?)
-          return raw_target
-        end
+        # -------------------------------------------------------------------
+        # a) Accept *only* sanitized relative paths
+        # -------------------------------------------------------------------
+        sanitized_path = sanitize_return_to(raw_target)
+        return sanitized_path if sanitized_path
 
-        # Absolute URL – only allow if it belongs to the user’s business domain(s)
-        if resource.is_a?(User) && resource.has_any_role?(:manager, :staff) && resource.business.present?
-          business = resource.business
-          allowed_hosts = [
-            business.hostname.downcase,
-            business.hostname.sub(/^www\./,'').downcase,
-            "www.#{business.hostname.sub(/^www\./,'').downcase}"
-          ]
+        # -------------------------------------------------------------------
+        # b) Accept absolute URLs only when host matches tenant domain
+        # -------------------------------------------------------------------
+        uri = begin
+                URI.parse(raw_target)
+              rescue URI::InvalidURIError
+                nil
+              end
+        if uri && uri.host.present?
+          if resource.is_a?(User) && resource.business.present?
+            business = resource.business
+            canonical = business.canonical_domain.presence || business.hostname
+            apex      = canonical.sub(/^www\./,'').downcase
+            allowed_hosts = [apex, "www.#{apex}"]
 
-          if allowed_hosts.include?(uri.host.to_s.downcase)
-            path_and_query = uri.path.presence || '/'
-            path_and_query += "?#{uri.query}" if uri.query.present?
-            return TenantHost.url_for_with_auth(
-              business,
-              request,
-              path_and_query,
-              user_signed_in: true
-            )
+            if allowed_hosts.include?(uri.host.downcase)
+              path_and_query = uri.path.presence || '/'
+              path_and_query += "?#{uri.query}" if uri.query.present?
+              return TenantHost.url_for_with_auth(
+                business,
+                request,
+                path_and_query,
+                user_signed_in: true
+              )
+            end
           end
         end
-
-        # Fallback: ignore unsafe absolute URL and continue to next rules
+         
+        # Fallback: ignore unsafe return_to and continue to role-based rules
       end
 
       # ---------------------------------------------------------------------------
@@ -198,6 +201,33 @@ module Users
     end
 
     private
+
+    # -----------------------------------------------------------------------
+    # Sanitizes a return_to string when it is meant to be a *relative* path.
+    # Returns sanitized path or nil (when the string should be rejected).
+    # Rules:
+    #   • Must start with a single '/'
+    #   • Must not start with '//'
+    #   • Must not contain ':' before a '?'
+    #   • Max length 2000
+    # -----------------------------------------------------------------------
+    def sanitize_return_to(raw)
+      return nil unless raw.present?
+      return nil if raw.length > 2000
+
+      # Reject protocol-relative URLs (//example.com)
+      return nil if raw.start_with?('//')
+
+      # Allow only absolute paths beginning with '/'
+      return nil unless raw.start_with?('/')
+
+      # Reject anything that looks like a scheme (e.g., 'javascript:') before the query string
+      path_part = raw.split('?',2).first
+      return nil if path_part.include?(':')
+
+      # Allow alphanumerics, common URL chars, and UTF-8; strip dangerous < > "
+      raw.gsub(/[<>\"]/, '')
+    end
 
     # Redirect sign-in requests that occur on a tenant host (subdomain or custom
     # domain) back to the platform’s base domain. This avoids cross-domain

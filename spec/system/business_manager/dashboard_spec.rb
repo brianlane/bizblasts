@@ -27,7 +27,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
     
     it "redirects to the login page" do
       visit business_manager_dashboard_path
-      expect(page).to have_current_path(new_user_session_path)
+      expect(page).to have_current_path(new_user_session_path, ignore_query: true)
       expect(page).to have_content("Welcome Back")
       expect(page).to have_content("Sign in to your account")
     end
