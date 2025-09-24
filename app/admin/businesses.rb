@@ -419,6 +419,34 @@ ActiveAdmin.register Business do
         row "Stripe Customer ID (for subscriptions)" do |business|
           business.stripe_customer_id.present? ? business.stripe_customer_id : "Not set"
         end
+        # Live diagnostics from Stripe for onboarding status
+        row "Stripe Account Diagnostics" do |business|
+          unless business.stripe_account_id.present?
+            next "Not available (no Stripe account)"
+          end
+
+          begin
+            StripeService.configure_stripe_api_key
+            account = Stripe::Account.retrieve(business.stripe_account_id)
+
+            details = []
+            details << "details_submitted: #{account.details_submitted}"
+            details << "charges_enabled: #{account.charges_enabled}"
+            details << "payouts_enabled: #{account.payouts_enabled}"
+
+            disabled_reason = account.respond_to?(:requirements) ? (account.requirements&.disabled_reason || "-") : "-"
+            currently_due   = account.respond_to?(:requirements) ? Array(account.requirements&.currently_due) : []
+            past_due        = account.respond_to?(:requirements) ? Array(account.requirements&.past_due) : []
+
+            details << "disabled_reason: #{disabled_reason}"
+            details << "currently_due: #{currently_due.join(', ').presence || '-'}"
+            details << "past_due: #{past_due.join(', ').presence || '-'}"
+
+            helpers.content_tag(:pre, details.join("\n"))
+          rescue => e
+            "Error fetching diagnostics: #{e.message}"
+          end
+        end
         row "Connected At" do |business|
           # This would need to be tracked separately if needed
           "Not tracked"
