@@ -14,15 +14,20 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
     duplicate_groups = execute(duplicate_groups_sql).to_a
     
     duplicate_groups.each do |group|
-      business_id = group['business_id']
-      normalized_email = group['normalized_email']
+      # Normalize and validate group values to avoid SQL injection and nil errors
+      business_id = group['business_id'].to_i
+      normalized_email = group['normalized_email'].to_s.downcase.strip
+
+      if business_id <= 0 || normalized_email.empty?
+        raise StandardError, "Invalid duplicate group values: business_id=#{group['business_id'].inspect}, normalized_email=#{group['normalized_email'].inspect}"
+      end
       
       # Step 2: Get individual customer records for this duplicate group (database-agnostic)
       customers_in_group_sql = <<~SQL
         SELECT id, first_name, last_name, phone, user_id, created_at, email
         FROM tenant_customers 
         WHERE business_id = #{business_id} 
-        AND LOWER(email) = #{connection.quote(normalized_email.downcase)}
+        AND LOWER(email) = #{connection.quote(normalized_email)}
         ORDER BY created_at ASC, id ASC
       SQL
       
@@ -52,7 +57,7 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
       
       # Safety validation: Ensure all records have the same normalized email
       customers_in_group.each do |customer|
-        if customer['email'].downcase.strip != normalized_email.downcase.strip
+        if customer['email'].to_s.downcase.strip != normalized_email
           raise StandardError, "Data consistency error: Email mismatch for customer #{customer['id']} - expected #{normalized_email}, got #{customer['email']}"
         end
       end
