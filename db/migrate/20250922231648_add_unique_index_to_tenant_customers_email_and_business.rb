@@ -35,6 +35,6 @@ class AddUniqueIndexToTenantCustomersEmailAndBusiness < ActiveRecord::Migration[
                  name: "index_tenant_customers_on_business_id_and_lower_email"
     
     # Restore the original non-unique email index
-    add_index :tenant_customers, :email, if_exists: false
+    add_index :tenant_customers, :email
   end
 end
