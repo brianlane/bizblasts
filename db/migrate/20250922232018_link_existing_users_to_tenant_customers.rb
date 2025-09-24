@@ -1,5 +1,11 @@
 class LinkExistingUsersToTenantCustomers < ActiveRecord::Migration[8.0]
   def up
+    # If the user_id column doesn't exist in this environment, safely skip
+    unless column_exists?(:tenant_customers, :user_id)
+      say "tenant_customers.user_id column not found; skipping user linking step."
+      return
+    end
+
     # Link existing client users to their tenant customers by email
     # and sync phone numbers from users to customers where missing
     
@@ -88,6 +94,12 @@ class LinkExistingUsersToTenantCustomers < ActiveRecord::Migration[8.0]
   end
   
   def down
+    # If the user_id column doesn't exist, nothing to unlink
+    unless column_exists?(:tenant_customers, :user_id)
+      say "tenant_customers.user_id column not found; nothing to unlink."
+      return
+    end
+
     say "Unlinking all users from tenant customers..."
     
     # Remove all user_id links
