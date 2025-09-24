@@ -2,6 +2,10 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
   def up
     say "Cleaning up duplicate tenant customers before applying unique constraint..."
     
+    # Detect available columns on tenant_customers to keep this migration portable across envs
+    tenant_customer_columns = connection.columns(:tenant_customers).map(&:name)
+    has_user_id_column = tenant_customer_columns.include?('user_id')
+    
     # Find all duplicate groups using database-agnostic approach
     # Step 1: Find all business_id + email combinations that have duplicates
     duplicate_groups_sql = <<~SQL
@@ -23,8 +27,11 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
       end
       
       # Step 2: Get individual customer records for this duplicate group (database-agnostic)
+      select_fields = ['id', 'first_name', 'last_name', 'phone']
+      select_fields << 'user_id' if has_user_id_column
+      select_fields += ['created_at', 'email']
       customers_in_group_sql = <<~SQL
-        SELECT id, first_name, last_name, phone, user_id, created_at, email
+        SELECT #{select_fields.join(', ')}
         FROM tenant_customers 
         WHERE business_id = #{business_id} 
         AND LOWER(email) = #{connection.quote(normalized_email)}
@@ -73,26 +80,26 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
         updates = []
         
         # Sync missing personal data
-        if (primary_data['first_name'].nil? || primary_data['first_name'].strip.empty?) && 
-           duplicate_data['first_name'] && !duplicate_data['first_name'].strip.empty?
+        if (primary_data['first_name'].nil? || primary_data['first_name'].to_s.strip.empty?) && 
+           duplicate_data['first_name'] && !duplicate_data['first_name'].to_s.strip.empty?
           updates << "first_name = #{connection.quote(duplicate_data['first_name'])}"
           primary_data['first_name'] = duplicate_data['first_name'] # Update our local copy
         end
         
-        if (primary_data['last_name'].nil? || primary_data['last_name'].strip.empty?) && 
-           duplicate_data['last_name'] && !duplicate_data['last_name'].strip.empty?
+        if (primary_data['last_name'].nil? || primary_data['last_name'].to_s.strip.empty?) && 
+           duplicate_data['last_name'] && !duplicate_data['last_name'].to_s.strip.empty?
           updates << "last_name = #{connection.quote(duplicate_data['last_name'])}"
           primary_data['last_name'] = duplicate_data['last_name'] # Update our local copy
         end
         
-        if (primary_data['phone'].nil? || primary_data['phone'].strip.empty?) && 
-           duplicate_data['phone'] && !duplicate_data['phone'].strip.empty?
+        if (primary_data['phone'].nil? || primary_data['phone'].to_s.strip.empty?) && 
+           duplicate_data['phone'] && !duplicate_data['phone'].to_s.strip.empty?
           updates << "phone = #{connection.quote(duplicate_data['phone'])}"
           primary_data['phone'] = duplicate_data['phone'] # Update our local copy
         end
         
-        # Sync user association if primary doesn't have one
-        if primary_data['user_id'].nil? && duplicate_data['user_id']
+        # Sync user association if primary doesn't have one (only if the column exists)
+        if has_user_id_column && primary_data['user_id'].nil? && duplicate_data['user_id']
           updates << "user_id = #{duplicate_data['user_id']}"
           primary_data['user_id'] = duplicate_data['user_id'] # Update our local copy
           say "      Transferred user_id #{duplicate_data['user_id']}"
