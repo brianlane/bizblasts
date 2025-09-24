@@ -447,9 +447,15 @@ class AuthenticationBridgeController < ApplicationController
           return false
         end
         
-        # Target URL host must match business hostname
-        unless uri.host == business.hostname
-          Rails.logger.warn "[AuthBridge] Target URL host #{uri.host} doesn't match business hostname #{business.hostname}"
+        # Target URL host must match the business’ canonical preference (apex vs www)
+        allowed_hosts = begin
+          canonical = business.canonical_domain.presence || business.hostname
+          apex      = canonical.sub(/^www\./, '')
+          [apex, "www.#{apex}"].map(&:downcase)
+        end
+
+        unless allowed_hosts.include?(uri.host.to_s.downcase)
+          Rails.logger.warn "[AuthBridge] Target URL host #{uri.host} doesn't match business allowed hosts #{allowed_hosts.join(', ')}"
           return false
         end
         

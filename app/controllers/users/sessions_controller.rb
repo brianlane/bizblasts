@@ -76,8 +76,50 @@ module Users
     # 2. Users with stored locations → Previously visited page
     # 3. Everyone else → Root path
     def after_sign_in_path_for(resource)
+      # ---------------------------------------------------------------------------
+      # 0) Explicit return_to param from login redirect (highest priority)
+      # ---------------------------------------------------------------------------
+      if params[:return_to].present?
+        raw_target = params[:return_to]
+        begin
+          uri = URI.parse(raw_target)
+        rescue URI::InvalidURIError
+          uri = nil
+        end
+
+        # Relative path (e.g., "/cart") – safe to use directly
+        if uri.nil? || (uri.scheme.nil? && uri.host.nil?)
+          return raw_target
+        end
+
+        # Absolute URL – only allow if it belongs to the user’s business domain(s)
+        if resource.is_a?(User) && resource.has_any_role?(:manager, :staff) && resource.business.present?
+          business = resource.business
+          allowed_hosts = [
+            business.hostname.downcase,
+            business.hostname.sub(/^www\./,'').downcase,
+            "www.#{business.hostname.sub(/^www\./,'').downcase}"
+          ]
+
+          if allowed_hosts.include?(uri.host.to_s.downcase)
+            path_and_query = uri.path.presence || '/'
+            path_and_query += "?#{uri.query}" if uri.query.present?
+            return TenantHost.url_for_with_auth(
+              business,
+              request,
+              path_and_query,
+              user_signed_in: true
+            )
+          end
+        end
+
+        # Fallback: ignore unsafe absolute URL and continue to next rules
+      end
+
+      # ---------------------------------------------------------------------------
+      # 1) Business users (manager/staff) – redirect to dashboard
+      # ---------------------------------------------------------------------------
       # Check if the user is a business user (manager or staff) and has an associated business
-      # Business users should be redirected to their tenant's management interface
       if resource.is_a?(User) && resource.has_any_role?(:manager, :staff) && resource.business.present?
         Rails.logger.debug "[Sessions::after_sign_in] Business User: #{resource.email}. Redirecting to tenant dashboard."
         
@@ -163,7 +205,12 @@ module Users
     def redirect_auth_from_subdomain
       return if TenantHost.main_domain?(request.host)
 
-      target_url = TenantHost.main_domain_url_for(request, request.fullpath)
+      # Preserve original full URL so we can send users back after authentication
+      original_url = request.original_url
+      target_url = TenantHost.main_domain_url_for(
+        request,
+        "/users/sign_in?return_to=#{CGI.escape(original_url)}"
+      )
       Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}"
       redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
     end
