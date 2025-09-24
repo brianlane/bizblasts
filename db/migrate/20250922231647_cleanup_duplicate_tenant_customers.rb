@@ -97,7 +97,7 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
         if updates.any?
           execute(<<~SQL)
             UPDATE tenant_customers 
-            SET #{updates.join(', ')}, updated_at = NOW()
+            SET #{updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
             WHERE id = #{primary_customer_id}
           SQL
           say "      Updated primary customer with: #{updates.join(', ')}"
