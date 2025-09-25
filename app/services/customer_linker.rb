@@ -90,35 +90,6 @@ class CustomerLinker
     @business.tenant_customers.create!(customer_data)
   end
   
-  # Merge duplicate customers for the same user in this business
-  def merge_duplicate_customers_for_user(user)
-    customers = @business.tenant_customers.where(user_id: user.id)
-    return if customers.count <= 1
-    
-    Rails.logger.info "[CUSTOMER_LINKER] Merging #{customers.count} duplicate customers for user #{user.id} in business #{@business.id}"
-    
-    # Keep the oldest customer as primary
-    primary_customer = customers.order(:created_at).first
-    duplicate_customers = customers.where.not(id: primary_customer.id)
-    
-    ActiveRecord::Base.transaction do
-      duplicate_customers.each do |duplicate|
-        merge_customer_data(primary_customer, duplicate)
-        
-        # Move all associations to primary customer
-        move_customer_associations(duplicate, primary_customer)
-        
-        # Delete the duplicate
-        duplicate.destroy!
-      end
-      
-      # Ensure primary customer has latest user data
-      sync_user_data_to_customer(user, primary_customer)
-    end
-    
-    Rails.logger.info "[CUSTOMER_LINKER] Successfully merged duplicates into customer #{primary_customer.id}"
-    primary_customer
-  end
   
   # Sync user data to their linked customer
   def sync_user_data_to_customer(user, customer = nil)
@@ -149,66 +120,4 @@ class CustomerLinker
     customer.update!(updates) if updates.any?
   end
   
-  private
-  
-  def merge_customer_data(primary, duplicate)
-    # Merge non-blank data from duplicate into primary
-    updates = {}
-    
-    # Take non-blank values from duplicate if primary is blank
-    %w[first_name last_name phone address].each do |attr|
-      if primary.send(attr).blank? && duplicate.send(attr).present?
-        updates[attr] = duplicate.send(attr)
-      end
-    end
-    
-    # Merge opt-in status (take the more permissive option)
-    if !primary.phone_opt_in? && duplicate.phone_opt_in?
-      updates[:phone_opt_in] = true
-      updates[:phone_opt_in_at] = duplicate.phone_opt_in_at || Time.current
-    end
-    
-    # Take earlier opt-in date if both are opted in
-    if primary.phone_opt_in? && duplicate.phone_opt_in? && duplicate.phone_opt_in_at && 
-       (primary.phone_opt_in_at.nil? || duplicate.phone_opt_in_at < primary.phone_opt_in_at)
-      updates[:phone_opt_in_at] = duplicate.phone_opt_in_at
-    end
-    
-    # Keep the earlier created_at date
-    if duplicate.created_at < primary.created_at
-      updates[:created_at] = duplicate.created_at
-    end
-    
-    # Rails protects created_at from mass-assignment; update directly on column
-    timestamp = updates.delete(:created_at)
-    primary.update!(updates) if updates.any?
-    primary.update_columns(created_at: timestamp) if timestamp
-  end
-  
-  def move_customer_associations(from_customer, to_customer)
-    # Move all bookings
-    from_customer.bookings.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move all orders
-    from_customer.orders.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move all invoices
-    from_customer.invoices.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move all payments
-    from_customer.payments.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move SMS messages
-    from_customer.sms_messages.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move loyalty transactions
-    from_customer.loyalty_transactions.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move loyalty redemptions
-    from_customer.loyalty_redemptions.update_all(tenant_customer_id: to_customer.id)
-    
-    # Move subscription records
-    from_customer.customer_subscriptions.update_all(tenant_customer_id: to_customer.id)
-    from_customer.subscription_transactions.update_all(tenant_customer_id: to_customer.id)
-  end
 end

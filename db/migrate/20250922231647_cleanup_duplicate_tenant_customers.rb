@@ -198,11 +198,26 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
 
   # Discover tables that have a FK back to tenant_customers via tenant_customer_id
   def fetch_fk_tables
-    fks = connection.foreign_keys(:tenant_customers)
-    # foreign_keys returns objects with from_table and column
-    fks.select { |fk| fk.column == 'tenant_customer_id' }.map(&:from_table).uniq.presence || []
-  rescue NotImplementedError
-    # Some adapters (e.g., SQLite in test) don't implement foreign_keys – fall back to hard-coded list
-    %w[bookings invoices orders payments sms_messages loyalty_transactions loyalty_redemptions customer_subscriptions subscription_transactions]
+    referencing_tables = []
+
+    begin
+      connection.tables.each do |table|
+        next if table == 'tenant_customers' # Skip self
+
+        connection.foreign_keys(table).each do |fk|
+          # foreign_keys returns objects with to_table, column, and from_table (the current table)
+          if fk.to_table == 'tenant_customers' && fk.column == 'tenant_customer_id'
+            referencing_tables << table
+            break # Only need to capture each table once
+          end
+        end
+      end
+
+      # Return unique list or empty array if none found
+      referencing_tables.uniq.presence || []
+    rescue NotImplementedError
+      # Some adapters (e.g., SQLite in test) don't implement foreign_keys – fall back to hard-coded list
+      %w[bookings invoices orders payments sms_messages loyalty_transactions loyalty_redemptions customer_subscriptions subscription_transactions]
+    end
   end
 end

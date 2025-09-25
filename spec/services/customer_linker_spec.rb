@@ -103,38 +103,13 @@ RSpec.describe CustomerLinker do
     end
   end
   
-  describe '#merge_duplicate_customers_for_user' do
-    let!(:primary_customer) { create(:tenant_customer, business: business, user: user, email: user.email, created_at: 1.day.ago) }
-    let!(:duplicate_customer) { create(:tenant_customer, business: business, user: user, email: user.email, created_at: 1.hour.ago, phone: '555-1234') }
-    
-    it 'merges duplicate customers keeping the oldest as primary' do
-      result = linker.merge_duplicate_customers_for_user(user)
-      
-      expect(result).to eq(primary_customer)
-      expect(primary_customer.reload.phone).to eq('555-1234') # Merged from duplicate
-      expect { duplicate_customer.reload }.to raise_error(ActiveRecord::RecordNotFound)
-    end
-    
-    context 'with associated records' do
-      let!(:booking) { create(:booking, tenant_customer: duplicate_customer) }
-      
-      it 'transfers associated records to primary customer' do
-        linker.merge_duplicate_customers_for_user(user)
-        
-        expect(booking.reload.tenant_customer).to eq(primary_customer)
-      end
-    end
-  end
   
-  describe 'concurrency safety' do
-    it 'handles concurrent customer creation attempts' do
-      # This test would require threading support and is more complex
-      # For now, we rely on the unique database constraint to prevent duplicates
+  describe 'database constraints' do
+    it 'prevents duplicate customers with same email per business' do
+      create(:tenant_customer, business: business, email: 'test@example.com')
       expect {
-        # Simulate concurrent creation by attempting to create the same customer twice
         create(:tenant_customer, business: business, email: 'test@example.com')
-        create(:tenant_customer, business: business, email: 'test@example.com')
-      }.to raise_error(ActiveRecord::RecordInvalid)
+      }.to raise_error(ActiveRecord::RecordInvalid, /Email must be unique within this business/)
     end
   end
 end

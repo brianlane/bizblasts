@@ -283,7 +283,18 @@ class TenantCustomer < ApplicationRecord
     preference_value = associated_user.notification_preferences[preference_key]
     preference_value != false
   end
-  
+
+  # Simple accessor used by specs to check notification enablement
+  # Falls back to true when no preference is explicitly disabled.
+  def notification_enabled?(pref_key)
+    if user&.notification_preferences.present?
+      # treat nil as enabled
+      user.notification_preferences[pref_key] != false
+    else
+      true
+    end
+  end
+
   private
 
   def normalize_email
