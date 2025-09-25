@@ -12,17 +12,25 @@ class ProductVariant < ApplicationRecord
   validates :name, presence: true # E.g., "Large, Red"
   validates :stock_quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: -> { business&.stock_management_disabled? }
   validates :price_modifier, numericality: true, allow_nil: true # Can be positive or negative
+  validate :price_modifier_not_nan
+  validate :final_price_not_negative
+  validate :price_modifier_format_valid
   
   # Custom setter to parse numbers from strings with non-numeric characters
   def price_modifier=(value)
-    if value.is_a?(String)
-      # Extract numbers, decimal point, and minus sign (e.g., "-$5.50" -> "-5.50", "+$10" -> "10")
-      parsed_value = value.gsub(/[^\d\.\-]/, '')
-      # Convert to float then round to 2 decimal places for currency
-      if parsed_value.present?
-        parsed_float = parsed_value.to_f.round(2)
+    if value.is_a?(String) && value.present?
+      # Extract valid decimal number with optional minus sign
+      # Handles: "-5.50", "5.50", "-$5.50", "$10", "5", "-5"
+      is_negative = value.strip.start_with?('-')
+      number_match = value.match(/(\d+(?:\.\d{1,2})?)/)
+      
+      if number_match
+        parsed_float = number_match[1].to_f.round(2)
+        parsed_float = -parsed_float if is_negative
         super(parsed_float)
       else
+        # Store the invalid input for validation
+        @invalid_price_modifier_input = value
         super(nil)
       end
     else
@@ -138,5 +146,31 @@ class ProductVariant < ApplicationRecord
     
     # Delete reservation
     reservation.destroy!
+  end
+
+  private
+
+  def price_modifier_not_nan
+    return unless price_modifier.present?
+    
+    if price_modifier.is_a?(Float) && price_modifier.nan?
+      errors.add(:price_modifier, "cannot be NaN")
+    end
+  end
+
+  def final_price_not_negative
+    return unless product&.price.present? && price_modifier.present?
+    
+    calculated_final_price = final_price
+    if calculated_final_price < 0
+      base_price = product.price
+      errors.add(:price_modifier, "cannot make the final price negative (base price: $#{base_price}, modifier: $#{price_modifier}, final: $#{calculated_final_price.round(2)})")
+    end
+  end
+
+  def price_modifier_format_valid
+    return unless @invalid_price_modifier_input
+    
+    errors.add(:price_modifier, "must be a valid number (e.g., '5.50', '-5.50', or '$5.50')")
   end
 end

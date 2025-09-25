@@ -191,16 +191,21 @@ class Service < ApplicationRecord
   end
   
   def price=(value)
-    if value.is_a?(String)
-      # Extract numbers and decimal point (e.g., "$60.50" -> "60.50")
-      parsed_value = value.gsub(/[^\d\.]/, '')
-      # Convert to float then round to 2 decimal places for currency
-      if parsed_value.present?
-        parsed_float = parsed_value.to_f.round(2)
-        super(parsed_float >= 0 ? parsed_float : nil)
+    if value.is_a?(String) && value.present?
+      # Extract valid decimal number (positive only for prices)
+      # Matches patterns like: "60.50", "$60.50", "$60", "60"
+      match = value.match(/(\d+(?:\.\d+)?)/)
+      if match
+        parsed_float = match[1].to_f.round(2)
+        super(parsed_float >= 0 ? parsed_float : 0.0)
       else
-        super(nil)
+        # Add helpful validation error for invalid input format
+        errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
+        return
       end
+    elsif value.nil? || (value.is_a?(String) && value.blank?)
+      # Don't set nil for blank/empty strings
+      return
     else
       super(value)
     end
