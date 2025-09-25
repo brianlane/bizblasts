@@ -199,12 +199,15 @@ class Service < ApplicationRecord
         parsed_float = match[1].to_f.round(2)
         super(parsed_float >= 0 ? parsed_float : 0.0)
       else
-        # Add helpful validation error for invalid input format
-        errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
-        return
+        # Store invalid input for validation
+        @invalid_price_input = value
+        super(nil)
       end
-    elsif value.nil? || (value.is_a?(String) && value.blank?)
-      # Don't set nil for blank/empty strings
+    elsif value.nil?
+      # Allow nil to be set for presence validation
+      super(nil)
+    elsif value.is_a?(String) && value.blank?
+      # Don't set anything for blank/empty strings, leave current value
       return
     else
       super(value)
@@ -228,6 +231,7 @@ class Service < ApplicationRecord
   validate :image_size_validation
   validate :image_format_validation
   validate :loyalty_program_required_for_loyalty_fallback
+  validate :price_format_valid
   
   # Validations for min/max bookings and spots based on type
   validates :min_bookings, numericality: { only_integer: true, greater_than_or_equal_to: 1 }, if: :experience?
@@ -497,6 +501,12 @@ class Service < ApplicationRecord
       errors.add(:subscription_rebooking_preference, 
         'cannot use loyalty points fallback when loyalty program is not enabled. Please enable your loyalty program first or choose a different rebooking option.')
     end
+  end
+
+  def price_format_valid
+    return unless @invalid_price_input
+    
+    errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
   end
   
   # Safe method to get rebooking preference - falls back if loyalty program is disabled

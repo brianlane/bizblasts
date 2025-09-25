@@ -49,12 +49,15 @@ class Product < ApplicationRecord
         parsed_float = match[1].to_f.round(2)
         super(parsed_float >= 0 ? parsed_float : 0.0)
       else
-        # Add validation error for invalid input format
-        errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
-        return
+        # Store invalid input for validation
+        @invalid_price_input = value
+        super(nil)
       end
-    elsif value.nil? || (value.is_a?(String) && value.blank?)
-      # Don't set nil for blank/empty strings
+    elsif value.nil?
+      # Allow nil to be set for presence validation
+      super(nil)
+    elsif value.is_a?(String) && value.blank?
+      # Don't set anything for blank/empty strings, leave current value
       return
     else
       super(value)
@@ -76,6 +79,7 @@ class Product < ApplicationRecord
   validate :image_size_validation
   validate :validate_pending_image_attributes
   validate :image_format_validation
+  validate :price_format_valid
 
   # TODO: Add method or validation for primary image designation if needed
   # TODO: Add method for image ordering if needed
@@ -443,5 +447,11 @@ class Product < ApplicationRecord
   
   def resequence_positions
     business.products.where('position > ?', position).update_all('position = position - 1')
+  end
+
+  def price_format_valid
+    return unless @invalid_price_input
+    
+    errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
   end
 end 

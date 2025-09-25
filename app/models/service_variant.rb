@@ -38,18 +38,22 @@ class ServiceVariant < ApplicationRecord
         parsed_float = match[1].to_f.round(2)
         super(parsed_float >= 0 ? parsed_float : 0.0)
       else
-        # Add helpful validation error for invalid input format
-        errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
-        return
+        # Store invalid input for validation
+        @invalid_price_input = value
+        super(nil)
       end
-    elsif value.nil? || (value.is_a?(String) && value.blank?)
-      # Don't set nil for blank/empty strings
+    elsif value.nil?
+      # Allow nil to be set for presence validation
+      super(nil)
+    elsif value.is_a?(String) && value.blank?
+      # Don't set anything for blank/empty strings, leave current value
       return
     else
       super(value)
     end
   end
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validate :price_format_valid
 
   # Callbacks
   before_create :set_position_to_end, unless: :position?
@@ -69,6 +73,12 @@ class ServiceVariant < ApplicationRecord
   def set_position_to_end
     max_position = service&.service_variants&.maximum(:position) || -1
     self.position = max_position + 1
+  end
+
+  def price_format_valid
+    return unless @invalid_price_input
+    
+    errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
   end
 
   # --- ActiveAdmin / Ransack ---
