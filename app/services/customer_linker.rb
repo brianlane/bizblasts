@@ -141,8 +141,8 @@ class CustomerLinker
       end
     end
     
-    # Sync email if different (case-insensitive comparison)
-    if customer.email.casecmp?(user.email) == false
+    # Sync email if different (case-insensitive). to_s ensures no nil errors.
+    if customer.email.to_s.casecmp?(user.email.to_s) == false
       updates[:email] = user.email.downcase.strip
     end
     

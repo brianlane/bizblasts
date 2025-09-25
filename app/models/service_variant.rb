@@ -46,12 +46,6 @@ class ServiceVariant < ApplicationRecord
     self.position = max_position + 1
   end
 
-  # Use shared validation from PriceDurationParser
-  def price_format_valid
-    # This method is defined by PriceDurationParser, so we just need to ensure it's called.
-    # The actual validation logic is handled by PriceDurationParser.
-  end
-
   # --- ActiveAdmin / Ransack ---
   def self.ransackable_attributes(auth_object = nil)
     %w[id service_id name duration price active position created_at updated_at]

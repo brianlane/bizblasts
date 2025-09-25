@@ -645,8 +645,8 @@ class User < ApplicationRecord
   def email_uniqueness_by_role_type
     return unless email.present? && email_changed? # Only validate if email is present and changed
 
-    # Enforce uniqueness within same role category only
-    if User.where.not(id: id).where(role: role).exists?(email: email)
+    # Enforce global email uniqueness across all users
+    if User.where.not(id: id).exists?(email: email)
       errors.add(:email, :taken)
     end
 
