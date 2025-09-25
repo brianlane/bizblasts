@@ -425,26 +425,28 @@ ActiveAdmin.register Business do
             next "Not available (no Stripe account)"
           end
 
-          begin
-            StripeService.configure_stripe_api_key
-            account = Stripe::Account.retrieve(business.stripe_account_id)
+          # Placeholder that will be replaced asynchronously via JS to avoid blocking page render
+          div id: "stripe-diagnostics", style: "white-space: pre-wrap;" do
+            "Loading diagnostics "
+          end
 
-            details = []
-            details << "details_submitted: #{account.details_submitted}"
-            details << "charges_enabled: #{account.charges_enabled}"
-            details << "payouts_enabled: #{account.payouts_enabled}"
-
-            disabled_reason = account.respond_to?(:requirements) ? (account.requirements&.disabled_reason || "-") : "-"
-            currently_due   = account.respond_to?(:requirements) ? Array(account.requirements&.currently_due) : []
-            past_due        = account.respond_to?(:requirements) ? Array(account.requirements&.past_due) : []
-
-            details << "disabled_reason: #{disabled_reason}"
-            details << "currently_due: #{currently_due.join(', ').presence || '-'}"
-            details << "past_due: #{past_due.join(', ').presence || '-'}"
-
-            helpers.content_tag(:pre, details.join("\n"))
-          rescue => e
-            "Error fetching diagnostics: #{e.message}"
+          script do
+            raw <<-JS
+              fetch('/admin/businesses/#{business.id}/stripe_diagnostics')
+                .then(r => r.json())
+                .then(data => {
+                  const el = document.getElementById('stripe-diagnostics');
+                  if (data.diagnostics) {
+                    el.textContent = data.diagnostics;
+                  } else {
+                    el.textContent = data.error || 'Unable to fetch diagnostics';
+                  }
+                })
+                .catch(() => {
+                  const el = document.getElementById('stripe-diagnostics');
+                  el.textContent = 'Error fetching diagnostics';
+                });
+            JS
           end
         end
         row "Connected At" do |business|
@@ -778,5 +780,37 @@ ActiveAdmin.register Business do
     end
     
     f.actions
+  end
+
+  # ---------------------------------------------------------------------------
+  # Async endpoint: Stripe Account Diagnostics
+  # ---------------------------------------------------------------------------
+  member_action :stripe_diagnostics, method: :get do
+    begin
+      unless resource.stripe_account_id.present?
+        return render json: { error: 'No Stripe account connected' }, status: :unprocessable_entity
+      end
+
+      StripeService.configure_stripe_api_key
+      account = Stripe::Account.retrieve(resource.stripe_account_id)
+
+      details = []
+      details << "details_submitted: #{account.details_submitted}"
+      details << "charges_enabled: #{account.charges_enabled}"
+      details << "payouts_enabled: #{account.payouts_enabled}"
+
+      disabled_reason = account.respond_to?(:requirements) ? (account.requirements&.disabled_reason || '-') : '-'
+      currently_due   = account.respond_to?(:requirements) ? Array(account.requirements&.currently_due) : []
+      past_due        = account.respond_to?(:requirements) ? Array(account.requirements&.past_due) : []
+
+      details << "disabled_reason: #{disabled_reason}"
+      details << "currently_due: #{currently_due.join(', ').presence || '-'}"
+      details << "past_due: #{past_due.join(', ').presence || '-'}"
+
+      render json: { diagnostics: details.join("\n") }
+    rescue => e
+      Rails.logger.error "[AdminPanel] Stripe diagnostics fetch failed for business #{resource.id}: #{e.message}"
+      render json: { error: e.message }, status: :internal_server_error
+    end
   end
 end

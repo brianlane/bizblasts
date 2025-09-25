@@ -85,10 +85,10 @@ class ServiceVariant < ApplicationRecord
 
   def price_format_valid
     return unless @invalid_price_input
-    
-    if @invalid_price_input.blank?
-      errors.add(:price, "cannot be blank")
-    else
+
+    # Only add custom format error for non-blank invalid input
+    # Rails presence validation already handles blank values with "can't be blank"
+    unless @invalid_price_input.blank?
       errors.add(:price, "must be a valid number - '#{@invalid_price_input}' is not a valid price format (e.g., '10.50' or '$10.50')")
     end
   end
