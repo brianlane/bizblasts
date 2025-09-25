@@ -178,6 +178,33 @@ class Service < ApplicationRecord
   validates :name, uniqueness: { scope: :business_id }
   validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  
+  # Custom setters to parse numbers from strings with non-numeric characters
+  def duration=(value)
+    if value.is_a?(String)
+      # Extract only digits from the string (e.g., "60 min" -> "60")
+      parsed_value = value.gsub(/[^\d]/, '').to_i
+      super(parsed_value > 0 ? parsed_value : nil)
+    else
+      super(value)
+    end
+  end
+  
+  def price=(value)
+    if value.is_a?(String)
+      # Extract numbers and decimal point (e.g., "$60.50" -> "60.50")
+      parsed_value = value.gsub(/[^\d\.]/, '')
+      # Convert to float then round to 2 decimal places for currency
+      if parsed_value.present?
+        parsed_float = parsed_value.to_f.round(2)
+        super(parsed_float >= 0 ? parsed_float : nil)
+      else
+        super(nil)
+      end
+    else
+      super(value)
+    end
+  end
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
   validates :tips_enabled, inclusion: { in: [true, false] }

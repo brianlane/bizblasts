@@ -12,6 +12,23 @@ class ProductVariant < ApplicationRecord
   validates :name, presence: true # E.g., "Large, Red"
   validates :stock_quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: -> { business&.stock_management_disabled? }
   validates :price_modifier, numericality: true, allow_nil: true # Can be positive or negative
+  
+  # Custom setter to parse numbers from strings with non-numeric characters
+  def price_modifier=(value)
+    if value.is_a?(String)
+      # Extract numbers, decimal point, and minus sign (e.g., "-$5.50" -> "-5.50", "+$10" -> "10")
+      parsed_value = value.gsub(/[^\d\.\-]/, '')
+      # Convert to float then round to 2 decimal places for currency
+      if parsed_value.present?
+        parsed_float = parsed_value.to_f.round(2)
+        super(parsed_float)
+      else
+        super(nil)
+      end
+    else
+      super(value)
+    end
+  end
 
   # Add reserved_quantity field
   attribute :reserved_quantity, :integer, default: 0

@@ -38,6 +38,23 @@ class Product < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :business_id }
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  
+  # Custom setter to parse numbers from strings with non-numeric characters
+  def price=(value)
+    if value.is_a?(String)
+      # Extract numbers and decimal point (e.g., "$60.50" -> "60.50")
+      parsed_value = value.gsub(/[^\d\.]/, '')
+      # Convert to float then round to 2 decimal places for currency
+      if parsed_value.present?
+        parsed_float = parsed_value.to_f.round(2)
+        super(parsed_float >= 0 ? parsed_float : nil)
+      else
+        super(nil)
+      end
+    else
+      super(value)
+    end
+  end
   validates :tips_enabled, inclusion: { in: [true, false] }
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true

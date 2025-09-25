@@ -36,7 +36,7 @@
 
     <div class="mb-4">
       <%= form.label :price, class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%= form.number_field :price, step: 0.01, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+      <%= form.number_field :price, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
     </div>
   </div>
 
@@ -53,11 +53,11 @@
         </div>
         <div class="col-span-3">
           <%= variant_form.label :duration, "Duration (min)", class: "block text-gray-700 text-sm font-bold mb-1" %>
-          <%= variant_form.number_field :duration, min: 1, class: "w-full border rounded px-3 py-2" %>
+          <%= variant_form.number_field :duration, class: "w-full border rounded px-3 py-2" %>
         </div>
         <div class="col-span-3">
           <%= variant_form.label :price, class: "block text-gray-700 text-sm font-bold mb-1" %>
-          <%= variant_form.number_field :price, step: 0.01, class: "w-full border rounded px-3 py-2" %>
+          <%= variant_form.number_field :price, class: "w-full border rounded px-3 py-2" %>
         </div>
         <div class="col-span-2 flex items-center">
           <%= variant_form.check_box :active, class: "mr-2" %> <%= variant_form.label :active, class: "text-sm" %>
@@ -363,7 +363,7 @@
         
         <div>
           <%= form.label :subscription_discount_percentage, "Subscription Discount (%)", class: "block text-gray-700 text-sm font-bold mb-2" %>
-          <%= form.number_field :subscription_discount_percentage, step: 0.01, min: 0, max: 100, 
+          <%= form.number_field :subscription_discount_percentage, min: 0, max: 100, 
                 class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
           <p class="mt-1 text-sm text-gray-500">Discount percentage for customers who subscribe (e.g., 15% off recurring bookings)</p>
         </div>
