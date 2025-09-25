@@ -198,17 +198,16 @@ class Service < ApplicationRecord
   
   def price=(value)
     if value.is_a?(String) && value.present?
-      # Extract valid decimal number (positive only for prices)
-      # Matches patterns like: "60.50", "$60.50", "$60", "60"
-      match = value.match(/(\d+(?:\.\d{1,2})?)/)
-      if match
-        parsed_float = match[1].to_f.round(2)
-        @invalid_price_input = nil # Clear any previous invalid input
-        super(parsed_float >= 0 ? parsed_float : 0.0)
+      # Accept patterns like: "$60", "60", "$60.25", " 60.25 ", etc.
+      # Disallow negative prices entirely.
+      cleaned = value.strip
+      if cleaned.match?(/\A\$?\s*\d+(?:\.\d{1,2})?\s*\z/)
+        parsed_float = cleaned.delete_prefix('$').strip.to_f.round(2)
+        @invalid_price_input = nil
+        super(parsed_float)
       else
-        # Store invalid input for validation, but keep original value
+        # Store invalid input for validation, but keep original value unchanged
         @invalid_price_input = value
-        # Don't change the current price value - this prevents showing bad data as accepted
         return
       end
     elsif value.nil?

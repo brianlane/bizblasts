@@ -42,16 +42,13 @@ class Product < ApplicationRecord
   # Custom setter to parse numbers from strings with non-numeric characters
   def price=(value)
     if value.is_a?(String) && value.present?
-      # Capture number with optional two decimal places
-      match = value.match(/(\d+(?:\.\d{1,2})?)/)
-      if match
-        parsed_float = match[1].to_f.round(2)
-        @invalid_price_input = nil # Clear any previous invalid input
-        super(parsed_float >= 0 ? parsed_float : 0.0)
+      cleaned = value.strip
+      if cleaned.match?(/\A\$?\s*\d+(?:\.\d{1,2})?\s*\z/)
+        parsed_float = cleaned.delete_prefix('$').strip.to_f.round(2)
+        @invalid_price_input = nil
+        super(parsed_float)
       else
-        # Store invalid input for validation, but keep original value
         @invalid_price_input = value
-        # Don't change the current price value - this prevents showing bad data as accepted
         return
       end
     elsif value.nil?
