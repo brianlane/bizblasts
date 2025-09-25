@@ -250,9 +250,9 @@
                           placeholder: "Enter promo code", 
                           class: "flex-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
                           id: "order_promo_code_field" %>
-          <button type="button" 
-                  id="apply_order_promo_code" 
-                  class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+          <button type="button"
+                  id="apply_order_promo_code"
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer">
             Apply Code
           </button>
         </div>
@@ -306,7 +306,7 @@
 
       <!-- Action Buttons -->
       <div class="flex space-x-4 mt-6">
-        <%= f.submit "Complete Order", class: "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" %>
+        <%= f.submit "Complete Order", class: "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 cursor-pointer" %>
         <%= link_to "Back to Cart", cart_path, class: "flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-lg text-center transition duration-200" %>
       </div>
     <% end %>

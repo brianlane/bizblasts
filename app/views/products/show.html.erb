@@ -157,8 +157,8 @@
                      class="w-20 border-purple-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
             </div>
             
-            <%= submit_tag 'Start Subscription', 
-                  class: 'w-full sm:w-auto px-6 py-3 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2' %>
+            <%= submit_tag 'Start Subscription',
+                  class: 'w-full sm:w-auto px-6 py-3 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 cursor-pointer' %>
           <% end %>
         </div>
       <% end %>
@@ -201,7 +201,7 @@
               <input type="number" name="quantity" id="quantity" value="1" min="1" 
                      class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
             </div>
-            <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
+            <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer' %>
           <% else %>
             <!-- One-time purchase option when subscription is available -->
             <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -243,7 +243,7 @@
                          class="w-16 border-gray-300 rounded-md shadow-sm">
                 </div>
                 <div class="pt-6">
-                  <%= submit_tag 'Add to Cart', class: 'px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors' %>
+                  <%= submit_tag 'Add to Cart', class: 'px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors cursor-pointer' %>
                 </div>
               </div>
             </div>
@@ -258,7 +258,7 @@
             <input type="number" name="quantity" id="quantity" value="1" min="1" 
                    class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
           </div>
-          <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
+          <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer' %>
         <% end %>
       <% end %>
       

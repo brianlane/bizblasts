@@ -645,7 +645,7 @@ class User < ApplicationRecord
   def email_uniqueness_by_role_type
     return unless email.present? && email_changed? # Only validate if email is present and changed
 
-    # Enforce global email uniqueness across all roles
+    # Enforce global email uniqueness across all users
     if User.where.not(id: id).exists?(email: email)
       errors.add(:email, :taken)
     end
@@ -690,43 +690,74 @@ class User < ApplicationRecord
     old_email = email_before_last_save
     new_email = email.downcase.strip
     
-    Rails.logger.info "[USER] Syncing email change from #{old_email} to #{new_email} for user #{id}"
+    Rails.logger.info "[USER] Syncing email change from #{old_email} to #{new_email} for user #{id}"                                                           
     
-    # Update all linked tenant customers
-    updated_count = linked_tenant_customers.update_all(email: new_email)
-    
-    Rails.logger.info "[USER] Updated #{updated_count} tenant customer records with new email"
-    
-    # Clear cache since email changed
-    clear_tenant_customer_cache
+    # Use transaction to ensure atomicity and handle uniqueness conflicts
+    ActiveRecord::Base.transaction do
+      linked = linked_tenant_customers.lock
+
+      # Check for any conflicting customer in the same businesses
+      business_ids = linked.pluck(:business_id)
+      conflicts = TenantCustomer.where(business_id: business_ids, email: new_email)
+                                 .where.not(user_id: id)
+
+      if conflicts.exists?
+        conflict = conflicts.first
+        Rails.logger.error "[USER] Email sync conflict for user #{id} -> business #{conflict.business_id} existing user #{conflict.user_id}"
+        raise EmailConflictError.new(
+          "This email is already associated with another customer in one of your businesses.",
+          email: new_email,
+          business_id: conflict.business_id,
+          existing_user_id: conflict.user_id,
+          attempted_user_id: id
+        )
+      end
+
+      # Update all linked tenant customers safely
+      updated_count = linked.update_all(email: new_email)
+      Rails.logger.info "[USER] Updated #{updated_count} tenant customer records with new email"
+
+      clear_tenant_customer_cache
+    end
+  rescue => e
+    Rails.logger.error "[USER] Failed to sync email to tenant customers: #{e.message}"
+    # Re-raise to ensure the error is handled by the caller
+    raise e
   end
   
   # Sync phone changes to linked tenant customers
   def sync_phone_to_tenant_customers
     return unless client?
     
-    Rails.logger.info "[USER] Syncing phone number to tenant customers for user #{id}"
+    Rails.logger.info "[USER] Syncing phone number to tenant customers for user #{id}"                                                                         
     
-    # Update phone for all linked customers where phone is blank or different
-    linked_tenant_customers.each do |customer|
-      updates = {}
-      
-      # Update phone if customer doesn't have one or if different
-      if customer.phone.blank? || customer.phone != phone
-        updates[:phone] = phone
+    # Use transaction to ensure atomicity
+    ActiveRecord::Base.transaction do
+      # Update phone for all linked customers where phone is blank or different
+      linked_tenant_customers.each do |customer|
+        updates = {}
         
-        # Set opt-in if user has opted in and customer hasn't
-        if respond_to?(:phone_opt_in?) && phone_opt_in? && !customer.phone_opt_in?
-          updates[:phone_opt_in] = true
-          updates[:phone_opt_in_at] = respond_to?(:phone_opt_in_at) ? phone_opt_in_at : Time.current
+        # Update phone if customer doesn't have one or if different
+        if customer.phone.blank? || customer.phone != phone
+          updates[:phone] = phone
+          
+          # Set opt-in if user has opted in and customer hasn't
+          if respond_to?(:phone_opt_in?) && phone_opt_in? && !customer.phone_opt_in?                                                                             
+            updates[:phone_opt_in] = true
+            updates[:phone_opt_in_at] = respond_to?(:phone_opt_in_at) ? phone_opt_in_at : Time.current                                                           
+          end
+        end
+        
+        if updates.any?
+          customer.update!(updates)
+          Rails.logger.info "[USER] Updated tenant customer #{customer.id} with phone data"                                                                      
         end
       end
-      
-      if updates.any?
-        customer.update!(updates)
-        Rails.logger.info "[USER] Updated tenant customer #{customer.id} with phone data"
-      end
     end
+  rescue => e
+    Rails.logger.error "[USER] Failed to sync phone to tenant customers: #{e.message}"
+    # Re-raise to ensure the error is handled by the caller
+    raise e
   end
 
 end

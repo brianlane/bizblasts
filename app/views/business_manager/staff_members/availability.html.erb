@@ -140,8 +140,8 @@
                                      placeholder="17:00" />
                             </div>
                             
-                            <button type="button" 
-                                    class="remove-slot-btn flex-shrink-0 flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                            <button type="button"
+                                    class="remove-slot-btn flex-shrink-0 flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
                                     title="Remove time slot">
                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -183,8 +183,8 @@
               
               <!-- Submit Button -->
               <div class="pt-4">
-                <%= f.submit "Save Availability", 
-                      class: "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+                <%= f.submit "Save Availability",
+                      class: "w-full bg-primary text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer" %>
               </div>
             <% end %>
           </div>
@@ -401,10 +401,7 @@ function initializeStaffAvailabilityFeatures() {
       slotsContainer.style.display = 'block';
       addButton.style.display = 'block';
       
-      // Add default slot if none exist
-      if (slotsContainer.children.length === 0) {
-        addTimeSlot(checkbox.dataset.day, slotsContainer);
-      }
+      // Keep container empty; user must click "Add Time Slot" explicitly
     }
   }
   
@@ -434,8 +431,8 @@ function initializeStaffAvailabilityFeatures() {
                    placeholder="17:00" />
           </div>
           
-          <button type="button" 
-                  class="remove-slot-btn flex-shrink-0 flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+          <button type="button"
+                  class="remove-slot-btn flex-shrink-0 flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
                   title="Remove time slot">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>

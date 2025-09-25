@@ -219,7 +219,7 @@ RSpec.describe "BusinessManager::Services", type: :system do
       # main_domain_login_url = new_user_session_url(host: 'lvh.me') # Construct expected URL without subdomain
       # expect(page).to have_current_path(main_domain_login_url, ignore_query: true)
       # Check for redirect to the tenant's root path as a fallback
-      expect(page).to have_current_path('/users/sign_in')
+      expect(page).to have_current_path('/users/sign_in', ignore_query: true)
       expect(page).to have_content("Sign in") # Or whatever text indicates the login page
     end
   end

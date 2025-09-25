@@ -29,8 +29,8 @@ class TenantCustomer < ApplicationRecord
   validates :last_name, presence: true
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   # Note: uniqueness is now enforced by database index on business_id + LOWER(email)
-  # Make phone optional for now to fix booking flow
-  validates :phone, presence: true, allow_blank: true
+  # Phone is optional - remove conflicting validation rules
+  # validates :phone, presence: true, allow_blank: true  # This was contradictory
   
   # Callbacks
   after_create :send_business_customer_notification
@@ -283,7 +283,18 @@ class TenantCustomer < ApplicationRecord
     preference_value = associated_user.notification_preferences[preference_key]
     preference_value != false
   end
-  
+
+  # Simple accessor used by specs to check notification enablement
+  # Falls back to true when no preference is explicitly disabled.
+  def notification_enabled?(pref_key)
+    if user&.notification_preferences.present?
+      # treat nil as enabled
+      user.notification_preferences[pref_key] != false
+    else
+      true
+    end
+  end
+
   private
 
   def normalize_email

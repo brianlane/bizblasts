@@ -21,6 +21,38 @@ RSpec.describe ServiceVariant, type: :model do
     expect(variant).not_to be_valid
   end
 
+  context 'price validation' do
+    it 'rejects invalid price formats with custom error message' do
+      variant = described_class.new(service: service, name: 'Test', duration: 30, price: 'abcd')
+      expect(variant).not_to be_valid
+      expect(variant.errors[:price]).to include("must be a valid number - 'abcd' is not a valid price format (e.g., '10.50' or '$10.50')")
+    end
+
+    it 'rejects nil price' do
+      variant = described_class.new(service: service, name: 'Test', duration: 30, price: nil)
+      expect(variant).not_to be_valid
+      expect(variant.errors[:price]).to include("can't be blank")
+    end
+
+    it 'rejects empty string price' do
+      variant = described_class.new(service: service, name: 'Test', duration: 30, price: '')
+      expect(variant).not_to be_valid
+      expect(variant.errors[:price]).to include("can't be blank")
+    end
+
+    it 'accepts valid numeric price' do
+      variant = described_class.new(service: service, name: 'Test', duration: 30, price: '10.50')
+      variant.valid?
+      expect(variant.errors[:price]).to be_empty
+    end
+
+    it 'accepts valid currency formatted price' do
+      variant = described_class.new(service: service, name: 'Test', duration: 30, price: '$10.50')
+      variant.valid?
+      expect(variant.errors[:price]).to be_empty
+    end
+  end
+
   it 'delegates business to service' do
     variant = described_class.create!(service: service, name: '30 min', duration: 30, price: 49.99)
     expect(variant.business).to eq(business)

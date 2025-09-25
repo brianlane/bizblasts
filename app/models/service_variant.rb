@@ -11,13 +11,20 @@ class ServiceVariant < ApplicationRecord
   scope :by_position, -> { order(:position, :created_at) }
   scope :active, -> { where(active: true) }
 
+  include PriceDurationParser
+
   # Validations
   validates :name, presence: true,
-                   uniqueness: { scope: [:service_id, :duration], case_sensitive: false,
-                                message: "must be unique for each duration within a service" }
-  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+                   uniqueness: { scope: [:service_id, :duration], case_sensitive: false,                                                                       
+                                message: "must be unique for each duration within a service" }                                                                 
+  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }                                                                   
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
+  
+  # Use shared parsing logic
+  price_parser :price
+  duration_parser :duration
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validate :price_format_valid
 
   # Callbacks
   before_create :set_position_to_end, unless: :position?

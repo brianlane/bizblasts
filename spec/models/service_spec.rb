@@ -32,6 +32,38 @@ RSpec.describe Service, type: :model do
       service2 = build(:service, name: 'Test Service', business: business2)
       expect(service2).to be_valid
     end
+
+    context 'price validation' do
+      it 'rejects invalid price formats with custom error message' do
+        service = build(:service, business: business, price: 'abcd')
+        expect(service).not_to be_valid
+        expect(service.errors[:price]).to include("must be a valid number - 'abcd' is not a valid price format (e.g., '10.50' or '$10.50')")
+      end
+
+      it 'rejects nil price' do
+        service = build(:service, business: business, price: nil)
+        expect(service).not_to be_valid
+        expect(service.errors[:price]).to include("can't be blank")
+      end
+
+      it 'rejects empty string price' do
+        service = build(:service, business: business, price: '')
+        expect(service).not_to be_valid
+        expect(service.errors[:price]).to include("can't be blank")
+      end
+
+      it 'accepts valid numeric price' do
+        service = build(:service, business: business, price: '10.50')
+        service.valid?
+        expect(service.errors[:price]).to be_empty
+      end
+
+      it 'accepts valid currency formatted price' do
+        service = build(:service, business: business, price: '$10.50')
+        service.valid?
+        expect(service.errors[:price]).to be_empty
+      end
+    end
   end
 
   describe 'scopes' do

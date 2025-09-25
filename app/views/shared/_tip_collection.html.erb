@@ -73,8 +73,8 @@
     <!-- Percentage buttons -->
     <div class="grid grid-cols-4 gap-2 sm:gap-3">
       <% default_percentages.each do |percentage| %>
-        <button type="button" 
-                class="tip-percentage-btn bg-gray-100 hover:bg-blue-100 border border-gray-300 hover:border-blue-400 rounded-lg py-3 px-2 text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <button type="button"
+                class="tip-percentage-btn bg-gray-100 hover:bg-blue-100 border border-gray-300 hover:border-blue-400 rounded-lg py-3 px-2 text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 data-percentage="<%= percentage %>">
           <div class="text-sm font-semibold text-gray-700"><%= percentage %>%</div>
           <div class="text-xs text-gray-500 mt-1">$<%= sprintf('%.2f', base_amount * percentage / 100.0) %></div>
@@ -111,8 +111,8 @@
 
     <!-- No tip option -->
     <div class="border-t pt-4">
-      <button type="button" 
-              class="no-tip-btn w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-lg py-3 px-4 text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200">
+      <button type="button"
+              class="no-tip-btn w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-lg py-3 px-4 text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200 cursor-pointer">
         No tip
       </button>
     </div>

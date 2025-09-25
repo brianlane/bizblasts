@@ -4,7 +4,7 @@
   <%= form_with url: products_path, method: :get, local: true do |f| %>
     <%= f.label :q, 'Search Products:' %>
     <%= f.text_field :q, value: params[:q], class: 'border rounded px-2 py-1' %>
-    <%= f.submit 'Search', class: 'ml-2 px-4 py-1 bg-blue-600 text-white rounded' %>
+    <%= f.submit 'Search', class: 'ml-2 px-4 py-1 bg-blue-600 text-white rounded cursor-pointer' %>
   <% end %>
 
   <br>

@@ -147,7 +147,8 @@ class Business::RegistrationsController < Users::RegistrationsController
       processed_params[:host_type] = 'custom_domain'
     elsif subdomain_input.present?
       # Use subdomain (for all tiers)
-      processed_params[:hostname] = subdomain_input 
+      processed_params[:hostname]  = subdomain_input   # same as now
+      processed_params[:subdomain] = subdomain_input   # new – keep routing source-of-truth populated
       processed_params[:host_type] = 'subdomain'
     else
       # Neither provided - set defaults based on tier

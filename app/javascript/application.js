@@ -84,9 +84,24 @@ function setupTenantSpecificTurboHandlers() {
   });
 }
 
+// Disable wheel scrolling on number inputs to prevent accidental value changes
+function disableWheelOnNumberInputs() {
+  document.querySelectorAll('input[type="number"][data-disable-wheel]').forEach(function(input) {
+    input.addEventListener('wheel', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+  });
+}
+
 // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-document.addEventListener("DOMContentLoaded", initializeTurboConfiguration);
-document.addEventListener("turbo:load", initializeTurboConfiguration);
+document.addEventListener("DOMContentLoaded", function() {
+  initializeTurboConfiguration();
+  disableWheelOnNumberInputs();
+});
+document.addEventListener("turbo:load", function() {
+  initializeTurboConfiguration();
+  disableWheelOnNumberInputs();
+});
 
 // Initialize tenant-specific handlers once
 document.addEventListener("DOMContentLoaded", setupTenantSpecificTurboHandlers);

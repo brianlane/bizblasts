@@ -54,8 +54,8 @@
       
       <div>
         <%= form.label :price, "Base Price ($)", class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= form.number_field :price, step: 0.01, required: true, 
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+        <%= form.number_field :price, step: "0.01", inputmode: "decimal", 
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", data: { disable_wheel: true } %>
       </div>
 
       <% if current_business.requires_stock_tracking? %>

@@ -175,9 +175,15 @@ class Service < ApplicationRecord
   after_commit :process_images, on: [:create, :update]
   
   validates :name, presence: true
+  include PriceDurationParser
+
   validates :name, uniqueness: { scope: :business_id }
-  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }                                                                   
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
+  
+  # Use shared parsing logic
+  price_parser :price
+  duration_parser :duration
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
   validates :tips_enabled, inclusion: { in: [true, false] }
@@ -196,6 +202,7 @@ class Service < ApplicationRecord
   validate :image_size_validation
   validate :image_format_validation
   validate :loyalty_program_required_for_loyalty_fallback
+  validate :price_format_valid
   
   # Validations for min/max bookings and spots based on type
   validates :min_bookings, numericality: { only_integer: true, greater_than_or_equal_to: 1 }, if: :experience?
@@ -292,8 +299,12 @@ class Service < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
-    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+    return 0 unless subscription_enabled?
+
+    discount_pct = subscription_discount_percentage.presence || business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -466,7 +477,7 @@ class Service < ApplicationRecord
         'cannot use loyalty points fallback when loyalty program is not enabled. Please enable your loyalty program first or choose a different rebooking option.')
     end
   end
-  
+
   # Safe method to get rebooking preference - falls back if loyalty program is disabled
   def effective_subscription_rebooking_preference
     return subscription_rebooking_preference unless subscription_rebooking_preference == 'same_day_loyalty_fallback'

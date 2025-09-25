@@ -36,8 +36,13 @@ class Product < ApplicationRecord
 
   enum :product_type, { standard: 0, service: 1, mixed: 2 }
 
+  include PriceDurationParser
+
   validates :name, presence: true, uniqueness: { scope: :business_id }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
+  
+  # Use shared parsing logic
+  price_parser :price
   validates :tips_enabled, inclusion: { in: [true, false] }
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
@@ -54,6 +59,7 @@ class Product < ApplicationRecord
   validate :image_size_validation
   validate :validate_pending_image_attributes
   validate :image_format_validation
+  validate :price_format_valid
 
   # TODO: Add method or validation for primary image designation if needed
   # TODO: Add method for image ordering if needed
@@ -178,8 +184,13 @@ class Product < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
-    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+    # Apply discount only when subscriptions are enabled and a discount percentage is configured.
+    return 0 unless subscription_enabled?
+
+    discount_pct = subscription_discount_percentage.presence || business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -422,4 +433,6 @@ class Product < ApplicationRecord
   def resequence_positions
     business.products.where('position > ?', position).update_all('position = position - 1')
   end
+
+  # Use shared validation from PriceDurationParser
 end 

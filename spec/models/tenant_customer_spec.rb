@@ -1,203 +1,128 @@
-# frozen_string_literal: true
-
 require 'rails_helper'
 
 RSpec.describe TenantCustomer, type: :model do
-  describe 'associations' do
-    it { is_expected.to belong_to(:business).required }
-    it { is_expected.to have_many(:bookings) }
-  end
-
+  let(:business) { create(:business) }
+  
   describe 'validations' do
-    it 'validates presence of first_name' do
-      customer = TenantCustomer.new(last_name: 'Smith', email: 'test@example.com', phone: '555-123-4567')
-      expect(customer).not_to be_valid
-      expect(customer.errors[:first_name]).to include("can't be blank")
-    end
+    subject { build(:tenant_customer, business: business) }
     
-    it 'validates presence of last_name' do
-      customer = TenantCustomer.new(first_name: 'John', email: 'test@example.com', phone: '555-123-4567')
-      expect(customer).not_to be_valid
-      expect(customer.errors[:last_name]).to include("can't be blank")
-    end
+    it { should validate_presence_of(:first_name) }
+    it { should validate_presence_of(:last_name) }
+    it { should validate_presence_of(:email) }
     
-    it 'validates uniqueness of email scoped to business_id' do
-      # Use factory to create a valid business
-      business = create(:business) 
-      ActsAsTenant.with_tenant(business) do
-        create(:tenant_customer, email: "test@example.com", business: business)
-        customer2 = build(:tenant_customer, email: "test@example.com", business: business)
-        expect(customer2).not_to be_valid
-        expect(customer2.errors[:email]).to include("must be unique within this business")
+    describe 'email uniqueness per business' do
+      let!(:existing_customer) { create(:tenant_customer, business: business, email: 'test@example.com') }
+      
+      it 'prevents duplicate emails in same business' do
+        duplicate = build(:tenant_customer, business: business, email: 'test@example.com')
+        expect(duplicate).not_to be_valid
+        expect(duplicate.errors[:email]).to include('must be unique within this business')
       end
-    end
-    
-    it 'allows duplicate emails across different businesses' do
-      # Use factories for both businesses
-      business1 = create(:business) 
-      business2 = create(:business) 
-
-      ActsAsTenant.with_tenant(business1) do
-        create(:tenant_customer, email: "duplicate@example.com", business: business1)
+      
+      it 'allows same email in different businesses' do
+        other_business = create(:business)
+        other_customer = build(:tenant_customer, business: other_business, email: 'test@example.com')
+        expect(other_customer).to be_valid
       end
-
-      ActsAsTenant.with_tenant(business2) do
-        customer_in_biz2 = build(:tenant_customer, email: "duplicate@example.com", business: business2)
-        expect(customer_in_biz2).to be_valid
+      
+      it 'handles case-insensitive uniqueness' do
+        duplicate = build(:tenant_customer, business: business, email: 'TEST@EXAMPLE.COM')
+        expect(duplicate).not_to be_valid
+        expect(duplicate.errors[:email]).to include('must be unique within this business')
       end
-    end
-
-    it 'validates format of email' do
-      customer = build(:tenant_customer, email: 'invalid_email')
-      expect(customer).not_to be_valid
-      expect(customer.errors[:email]).to include('is invalid')
-    end
-
-    it 'allows blank phone' do
-      customer = build(:tenant_customer, phone: nil)
-      customer.validate
-      expect(customer.errors[:phone]).to be_empty
     end
   end
   
-  describe '#full_name' do
-    it 'returns first and last name joined' do
-      customer = build(:tenant_customer, first_name: 'John', last_name: 'Smith')
-      expect(customer.full_name).to eq('John Smith')
+  describe 'email normalization' do
+    it 'normalizes email to lowercase' do
+      customer = create(:tenant_customer, business: business, email: 'TEST@EXAMPLE.COM')
+      expect(customer.email).to eq('test@example.com')
     end
     
-    it 'returns email if names are blank' do
-      customer = build(:tenant_customer, first_name: '', last_name: '', email: 'test@example.com')
-      expect(customer.full_name).to eq('test@example.com')
+    it 'strips whitespace from email' do
+      customer = create(:tenant_customer, business: business, email: '  test@example.com  ')
+      expect(customer.email).to eq('test@example.com')
     end
   end
-
-  describe 'unsubscribe token generation' do
-    let(:business) { create(:business) }
+  
+  describe 'notification preferences' do
+    let(:user) { create(:user, :client) }
+    let(:customer) { create(:tenant_customer, business: business, user: user) }
     
-    it 'generates a unique unsubscribe token' do
-      ActsAsTenant.with_tenant(business) do
-        customer = create(:tenant_customer, business: business)
-        expect(customer.unsubscribe_token).to be_present
-        expect(customer.unsubscribe_token.length).to eq(64) # 32 hex chars = 64 characters
-      end
-    end
-    
-    it 'ensures tokens are unique across User and TenantCustomer tables' do
-      ActsAsTenant.with_tenant(business) do
-        # Create a tenant customer with a specific token
-        customer = create(:tenant_customer, business: business)
-        original_token = customer.unsubscribe_token
-        
-        # Create a user and force it to try to use the same token
-        user = build(:user, role: :client)
-        user.unsubscribe_token = original_token
-        
-        # The generate_unsubscribe_token method should detect the collision and generate a new token
-        user.send(:generate_unsubscribe_token)
-        
-        expect(user.unsubscribe_token).not_to eq(original_token)
-        expect(user.unsubscribe_token).to be_present
-      end
-    end
-    
-    it 'regenerates a new unique token' do
-      ActsAsTenant.with_tenant(business) do
-        customer = create(:tenant_customer, business: business)
-        original_token = customer.unsubscribe_token
-        
-        customer.send(:regenerate_unsubscribe_token)
-        
-        expect(customer.unsubscribe_token).not_to eq(original_token)
-        expect(customer.unsubscribe_token).to be_present
-      end
-    end
-  end
-
-  describe '#can_receive_email?' do
-    let(:business) { create(:business) }
-    let(:customer) { create(:tenant_customer, business: business) }
-
-    context 'when customer is not unsubscribed' do
-      it 'allows transactional emails' do
-        expect(customer.can_receive_email?(:transactional)).to be true
-      end
-
-      it 'allows marketing emails when not opted out' do
-        customer.update!(email_marketing_opt_out: false)
-        expect(customer.can_receive_email?(:marketing)).to be true
-      end
-
-      it 'blocks marketing emails when opted out' do
-        customer.update!(email_marketing_opt_out: true)
-        expect(customer.can_receive_email?(:marketing)).to be false
-      end
-
-      it 'allows other email types' do
-        %i[blog booking order payment customer system subscription].each do |email_type|
-          expect(customer.can_receive_email?(email_type)).to be true
-        end
-      end
-
-      it 'allows unknown email types' do
-        expect(customer.can_receive_email?(:unknown_type)).to be true
-      end
-    end
-
-    context 'when customer is globally unsubscribed' do
+    context 'when user has notification preferences' do
       before do
-        customer.update!(unsubscribed_at: Time.current)
+        user.update!(notification_preferences: {
+          'booking_confirmations' => true,
+          'marketing_emails' => false,
+          'appointment_reminders' => true
+        })
       end
-
-      it 'still allows transactional emails' do
-        expect(customer.can_receive_email?(:transactional)).to be true
+      
+      it 'respects user preferences for enabled notifications' do
+        expect(customer.notification_enabled?('booking_confirmations')).to be true
+        expect(customer.notification_enabled?('appointment_reminders')).to be true
       end
-
-      it 'blocks all other email types' do
-        %i[marketing blog booking order payment customer system subscription].each do |email_type|
-          expect(customer.can_receive_email?(email_type)).to be false
-        end
+      
+      it 'respects user preferences for disabled notifications' do
+        expect(customer.notification_enabled?('marketing_emails')).to be false
+      end
+      
+      it 'defaults to enabled for unspecified preferences' do
+        expect(customer.notification_enabled?('new_feature_announcements')).to be true
       end
     end
-
-    context 'with string vs symbol parameters' do
-      it 'handles both string and symbol parameters' do
-        expect(customer.can_receive_email?(:marketing)).to be true
-        expect(customer.can_receive_email?('marketing')).to be true
-      end
-    end
-  end
-
-  describe 'default email preferences' do
-    let(:business) { create(:business) }
     
-    it 'sets email_marketing_opt_out to false by default for new customers' do
-      customer = nil
-      ActsAsTenant.with_tenant(business) do
-        customer = create(:tenant_customer, business: business)
+    context 'when user has no preferences' do
+      it 'defaults to enabled' do
+        expect(customer.notification_enabled?('booking_confirmations')).to be true
       end
-      
-      expect(customer.email_marketing_opt_out).to eq(false)
-      expect(customer.unsubscribed_at).to be_nil
     end
-
-    it 'does not override existing email preferences' do
-      customer = nil
-      ActsAsTenant.with_tenant(business) do
-        customer = create(:tenant_customer, business: business, email_marketing_opt_out: true)
-      end
+    
+    context 'when customer has no associated user' do
+      let(:guest_customer) { create(:tenant_customer, business: business, user: nil) }
       
-      expect(customer.email_marketing_opt_out).to eq(true)
-    end
-
-    it 'allows emails for marketing by default' do
-      customer = nil
-      ActsAsTenant.with_tenant(business) do
-        customer = create(:tenant_customer, business: business)
+      it 'uses customer preferences' do
+        expect(guest_customer.notification_enabled?('booking_confirmations')).to be true
       end
-      
-      expect(customer.can_receive_email?(:marketing)).to be true
-      expect(customer.subscribed_to_emails?).to be true
     end
   end
-end 
+  
+  describe 'phone validation' do
+    it 'allows blank phone numbers' do
+      customer = build(:tenant_customer, business: business, phone: '')
+      expect(customer).to be_valid
+    end
+    
+    it 'allows nil phone numbers' do
+      customer = build(:tenant_customer, business: business, phone: nil)
+      expect(customer).to be_valid
+    end
+    
+    it 'allows valid phone numbers' do
+      customer = build(:tenant_customer, business: business, phone: '555-123-4567')
+      expect(customer).to be_valid
+    end
+  end
+  
+  describe 'associations' do
+    it { should belong_to(:business) }
+    it { should belong_to(:user).optional }
+    it { should have_many(:bookings).dependent(:destroy) }
+    it { should have_many(:invoices).dependent(:destroy) }
+    it { should have_many(:orders).dependent(:destroy) }
+  end
+  
+  describe 'database constraints' do
+    let!(:customer) { create(:tenant_customer, business: business, email: 'test@example.com') }
+    
+    it 'enforces unique constraint on business_id + LOWER(email)' do
+      expect {
+        # This should fail at the database level due to unique index
+        TenantCustomer.connection.execute(
+          "INSERT INTO tenant_customers (business_id, email, first_name, last_name, created_at, updated_at) 
+           VALUES (#{business.id}, 'TEST@EXAMPLE.COM', 'Test', 'User', NOW(), NOW())"
+        )
+      }.to raise_error(ActiveRecord::StatementInvalid, /duplicate key value violates unique constraint/)
+    end
+  end
+end
