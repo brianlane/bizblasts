@@ -47,19 +47,27 @@ class Product < ApplicationRecord
       match = value.match(/(\d+(?:\.\d+)?)/)
       if match
         parsed_float = match[1].to_f.round(2)
+        @invalid_price_input = nil # Clear any previous invalid input
+        errors.delete(:price) # Clear any cached price errors
         super(parsed_float >= 0 ? parsed_float : 0.0)
       else
-        # Store invalid input for validation
+        # Store invalid input for validation, but keep original value
         @invalid_price_input = value
-        super(nil)
+        # Don't change the current price value - this prevents showing bad data as accepted
+        return
       end
     elsif value.nil?
       # Allow nil to be set for presence validation
+      @invalid_price_input = nil # Clear any previous invalid input
+      errors.delete(:price) # Clear any cached price errors
       super(nil)
     elsif value.is_a?(String) && value.blank?
-      # Don't set anything for blank/empty strings, leave current value
+      # For blank strings, treat similar to invalid input
+      @invalid_price_input = value
       return
     else
+      @invalid_price_input = nil # Clear any previous invalid input
+      errors.delete(:price) # Clear any cached price errors
       super(value)
     end
   end
@@ -452,6 +460,10 @@ class Product < ApplicationRecord
   def price_format_valid
     return unless @invalid_price_input
     
-    errors.add(:price, "must be a valid number (e.g., '10.50' or '$10.50')")
+    if @invalid_price_input.blank?
+      errors.add(:price, "cannot be blank")
+    else
+      errors.add(:price, "must be a valid number - '#{@invalid_price_input}' is not a valid price format (e.g., '10.50' or '$10.50')")
+    end
   end
 end 

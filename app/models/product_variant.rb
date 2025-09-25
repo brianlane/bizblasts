@@ -20,20 +20,32 @@ class ProductVariant < ApplicationRecord
   def price_modifier=(value)
     if value.is_a?(String) && value.present?
       # Extract valid decimal number with optional minus sign
-      # Handles: "-5.50", "5.50", "-$5.50", "$10", "5", "-5"
-      is_negative = value.strip.start_with?('-')
+      # Handles: "-5.50", "5.50", "-$5.50", "$-5.50", "$10", "5", "-5"
+
+      # Check for negative sign anywhere in the string (before or after currency symbols)
+      is_negative = value.include?('-')
+      # Extract the numeric part (digits with optional decimal)
       number_match = value.match(/(\d+(?:\.\d{1,2})?)/)
-      
+
       if number_match
         parsed_float = number_match[1].to_f.round(2)
         parsed_float = -parsed_float if is_negative
+        @invalid_price_modifier_input = nil # Clear any previous invalid input
+        errors.delete(:price_modifier) # Clear any cached price_modifier errors
         super(parsed_float)
       else
         # Store the invalid input for validation
         @invalid_price_modifier_input = value
         super(nil)
       end
+    elsif value.nil?
+      # Allow nil to be set for presence validation
+      @invalid_price_modifier_input = nil # Clear any previous invalid input
+      errors.delete(:price_modifier) # Clear any cached price_modifier errors
+      super(nil)
     else
+      @invalid_price_modifier_input = nil # Clear any previous invalid input
+      errors.delete(:price_modifier) # Clear any cached price_modifier errors
       super(value)
     end
   end

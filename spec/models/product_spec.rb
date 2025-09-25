@@ -19,7 +19,38 @@ RSpec.describe Product, type: :model do
     it { should validate_presence_of(:name) }
     it { should validate_uniqueness_of(:name).scoped_to(:business_id) }
     it { should validate_presence_of(:price) }
-    it { should validate_numericality_of(:price).is_greater_than_or_equal_to(0) }
+
+    context 'price validation' do
+      it 'rejects invalid price formats with custom error message' do
+        product = build(:product, business: business, price: 'abcd')
+        expect(product).not_to be_valid
+        expect(product.errors[:price]).to include("must be a valid number - 'abcd' is not a valid price format (e.g., '10.50' or '$10.50')")
+      end
+
+      it 'rejects nil price' do
+        product = build(:product, business: business, price: nil)
+        expect(product).not_to be_valid
+        expect(product.errors[:price]).to include("can't be blank")
+      end
+
+      it 'rejects empty string price' do
+        product = build(:product, business: business, price: '')
+        expect(product).not_to be_valid
+        expect(product.errors[:price]).to include("can't be blank")
+      end
+
+      it 'accepts valid numeric price' do
+        product = build(:product, business: business, price: '10.50')
+        product.valid?
+        expect(product.errors[:price]).to be_empty
+      end
+
+      it 'accepts valid currency formatted price' do
+        product = build(:product, business: business, price: '$10.50')
+        product.valid?
+        expect(product.errors[:price]).to be_empty
+      end
+    end
     it { should validate_length_of(:variant_label_text).is_at_most(100) }
 
     # Active Storage validations (ensure test helper is configured)
