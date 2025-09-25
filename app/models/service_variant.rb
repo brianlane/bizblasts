@@ -11,58 +11,18 @@ class ServiceVariant < ApplicationRecord
   scope :by_position, -> { order(:position, :created_at) }
   scope :active, -> { where(active: true) }
 
+  include PriceDurationParser
+
   # Validations
   validates :name, presence: true,
-                   uniqueness: { scope: [:service_id, :duration], case_sensitive: false,
-                                message: "must be unique for each duration within a service" }
-  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+                   uniqueness: { scope: [:service_id, :duration], case_sensitive: false,                                                                       
+                                message: "must be unique for each duration within a service" }                                                                 
+  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }                                                                   
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
   
-  # Custom setters to parse numbers from strings with non-numeric characters
-  def duration=(value)
-    if value.is_a?(String)
-      # Extract the first numeric substring, allowing optional decimals (e.g., "60.5 min" -> "60.5")
-      match = value.match(/(\d+(?:\.\d+)?)/)
-      parsed_value = if match
-        # Round any decimal value to the nearest whole minute
-        match[1].to_f.round
-      else
-        0
-      end
-      super(parsed_value > 0 ? parsed_value : nil)
-    else
-      super(value)
-    end
-  end
-  
-  def price=(value)
-    if value.is_a?(String) && value.present?
-      # Extract valid decimal number (positive only for prices)
-      # Matches patterns like: "60.50", "$60.50", "$60", "60"
-      match = value.match(/(\d+(?:\.\d{1,2})?)/)
-      if match
-        parsed_float = match[1].to_f.round(2)
-        @invalid_price_input = nil # Clear any previous invalid input
-        super(parsed_float >= 0 ? parsed_float : 0.0)
-      else
-        # Store invalid input for validation, but keep original value
-        @invalid_price_input = value
-        # Don't change the current price value - this prevents showing bad data as accepted
-        return
-      end
-    elsif value.nil?
-      # Allow nil to be set for presence validation
-      @invalid_price_input = nil # Clear any previous invalid input
-      super(nil)
-    elsif value.is_a?(String) && value.blank?
-      # For blank strings, treat similar to invalid input
-      @invalid_price_input = value
-      return
-    else
-      @invalid_price_input = nil # Clear any previous invalid input
-      super(value)
-    end
-  end
+  # Use shared parsing logic
+  price_parser :price
+  duration_parser :duration
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validate :price_format_valid
 
@@ -86,14 +46,10 @@ class ServiceVariant < ApplicationRecord
     self.position = max_position + 1
   end
 
+  # Use shared validation from PriceDurationParser
   def price_format_valid
-    return unless @invalid_price_input
-
-    # Only add custom format error for non-blank invalid input
-    # Rails presence validation already handles blank values with "can't be blank"
-    unless @invalid_price_input.blank?
-      errors.add(:price, "must be a valid number - '#{@invalid_price_input}' is not a valid price format (e.g., '10.50' or '$10.50')")
-    end
+    # This method is defined by PriceDurationParser, so we just need to ensure it's called.
+    # The actual validation logic is handled by PriceDurationParser.
   end
 
   # --- ActiveAdmin / Ransack ---

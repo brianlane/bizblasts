@@ -22,9 +22,30 @@ class ServiceAvailabilityManager
   end
 
   # Update service availability from form parameters
-  def update_availability(availability_params, full_day_params = {})
+  # If only_current_week is true, the provided availability is stored as
+  # date-specific exceptions instead of modifying the weekly template – the
+  # same behaviour offered on the staff-member availability screen.
+  def update_availability(availability_params, full_day_params = {}, only_current_week: false)
     begin
       availability_data = build_availability_data(availability_params, full_day_params)
+
+      # When the user opts to apply changes to the current week only we merge
+      # the generated weekday data into the `exceptions` hash keyed by actual
+      # calendar dates, leaving the permanent weekday template untouched.
+      if only_current_week
+        old_avail     = @service.availability || {}
+        exceptions    = old_avail['exceptions'] || {}
+
+        # Map the weekday keys we just built (monday … sunday) to concrete
+        # ISO-8601 dates for the week currently in view.
+        @date_range.each do |cur_date|
+          day_key   = cur_date.strftime('%A').downcase
+          date_key  = cur_date.iso8601
+          exceptions[date_key] = availability_data[day_key]
+        end
+
+        availability_data = old_avail.merge('exceptions' => exceptions)
+      end
       
       if validate_availability_data(availability_data)
         update_result = @service.update(availability: availability_data)

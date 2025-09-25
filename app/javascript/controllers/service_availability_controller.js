@@ -111,10 +111,7 @@ export default class extends Controller {
       slotsContainer.style.display = 'block'
       addButton.style.display = 'block'
       
-      // Add default slot if none exist
-      if (slotsContainer.children.length === 0) {
-        this.addTimeSlotToContainer(day, slotsContainer)
-      }
+      // Do not auto-add a default slot; leave container empty until user clicks add.
     }
     
     this.validateAllTimeSlots()

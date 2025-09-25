@@ -1,5 +1,11 @@
 class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
+  # Long-running data migration – run outside wrap to keep DDL free and avoid statement timeout
+  disable_ddl_transaction!
+
   def up
+    # Take an exclusive lock on tenant_customers to avoid concurrent inserts creating new duplicates
+    lock_table
+
     say "Cleaning up duplicate tenant customers before applying unique constraint..."
     
     # Detect available columns on tenant_customers to keep this migration portable across envs
@@ -166,31 +172,37 @@ class CleanupDuplicateTenantCustomers < ActiveRecord::Migration[8.0]
     end
     
     # Define tables to transfer
-    tables_to_transfer = [
-      'bookings',
-      'invoices', 
-      'orders',
-      'payments',
-      'sms_messages',
-      'loyalty_transactions',
-      'loyalty_redemptions',
-      'customer_subscriptions',
-      'subscription_transactions'
-    ]
+    tables_to_transfer = fetch_fk_tables
     
     # Transfer records for each table
     tables_to_transfer.each do |table_name|
-      # First count existing records (database-agnostic)
+      next unless table_exists?(table_name)
+
       count_sql = "SELECT COUNT(*) as count FROM #{table_name} WHERE tenant_customer_id = #{from_id}"
       count_result = execute(count_sql).first
       record_count = count_result ? count_result['count'].to_i : 0
-      
+
       if record_count > 0
-        # Transfer records using safe integer interpolation (already validated)
         update_sql = "UPDATE #{table_name} SET tenant_customer_id = #{to_id} WHERE tenant_customer_id = #{from_id}"
         execute(update_sql)
         say "        Transferred #{record_count} #{table_name.gsub('_', ' ')}"
       end
     end
+  end
+
+  # Obtain SHARE ROW EXCLUSIVE lock for Postgres; for SQLite/MySQL fallback is no-op
+  def lock_table
+    return unless connection.adapter_name.downcase.start_with?("postgres")
+    execute("LOCK tenant_customers IN SHARE ROW EXCLUSIVE MODE")
+  end
+
+  # Discover tables that have a FK back to tenant_customers via tenant_customer_id
+  def fetch_fk_tables
+    fks = connection.foreign_keys(:tenant_customers)
+    # foreign_keys returns objects with from_table and column
+    fks.select { |fk| fk.column == 'tenant_customer_id' }.map(&:from_table).uniq.presence || []
+  rescue NotImplementedError
+    # Some adapters (e.g., SQLite in test) don't implement foreign_keys – fall back to hard-coded list
+    %w[bookings invoices orders payments sms_messages loyalty_transactions loyalty_redemptions customer_subscriptions subscription_transactions]
   end
 end

@@ -40,6 +40,14 @@ RSpec.describe ProductVariant, type: :model do
       variant.price_modifier = "-$5.25"
       expect(variant).to be_valid
       expect(variant.price_modifier).to eq(-5.25)
+
+      variant.price_modifier = "$-12.34"
+      expect(variant).to be_valid
+      expect(variant.price_modifier).to eq(-12.34)
+      
+      variant.price_modifier = "-  $  7.00"
+      expect(variant).to be_valid
+      expect(variant.price_modifier).to eq(-7.0)
       
       # Invalid strings (with no numbers) trigger validation errors with helpful messages
       variant.price_modifier = "xyz"

@@ -16,37 +16,41 @@ class ProductVariant < ApplicationRecord
   validate :final_price_not_negative
   validate :price_modifier_format_valid
   
-  # Custom setter to parse numbers from strings with non-numeric characters
+  # Custom setter to parse price modifier from strings with non-numeric characters
   def price_modifier=(value)
     if value.is_a?(String) && value.present?
-      # Extract valid decimal number with optional minus sign
-      # Handles: "-5.50", "5.50", "-$5.50", "$-5.50", "$10", "5", "-5"
+      processed = value.strip
+      is_negative = false
 
-      # Determine negativity only if the minus sign is actually indicating a negative value.
-      # Consider strings that may include hyphens not related to negativity (e.g., "555-1234").
-      # Treat the value as negative when the first non-whitespace character is '-' OR
-      # when a currency symbol ('$') is immediately followed by '-'.
-      stripped = value.strip
-      is_negative = stripped.start_with?('-') || stripped.start_with?('$-')
-      # Extract the numeric part (digits with optional decimal)
-      number_match = value.match(/(\d+(?:\.\d{1,2})?)/)
+      # Remove leading sign and currency symbol in any order (e.g., "-$5", "$-5", "-  $  5")
+      loop do
+        if processed.start_with?('-')
+          is_negative = true
+          processed = processed[1..].to_s.strip
+          next
+        elsif processed.start_with?('$')
+          processed = processed[1..].to_s.strip
+          next
+        end
+        break
+      end
 
-      if number_match
-        parsed_float = number_match[1].to_f.round(2)
+      # Now processed should be a plain number like "5" or "5.25"
+      if processed.match?(/\A\d+(?:\.\d{1,2})?\z/)
+        parsed_float = processed.to_f.round(2)
         parsed_float = -parsed_float if is_negative
-        @invalid_price_modifier_input = nil # Clear any previous invalid input
+        @invalid_price_modifier_input = nil
         super(parsed_float)
       else
-        # Store the invalid input for validation
+        # Store invalid input and set attribute to nil so validation triggers
         @invalid_price_modifier_input = value
         super(nil)
       end
     elsif value.nil?
-      # Allow nil to be set for presence validation
-      @invalid_price_modifier_input = nil # Clear any previous invalid input
+      @invalid_price_modifier_input = nil
       super(nil)
     else
-      @invalid_price_modifier_input = nil # Clear any previous invalid input
+      @invalid_price_modifier_input = nil
       super(value)
     end
   end
@@ -99,8 +103,12 @@ class ProductVariant < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless product&.subscription_enabled? || product&.business&.subscription_discount_percentage.blank?
-    (final_price * (product.business.subscription_discount_percentage / 100.0)).round(2)
+    return 0 unless product&.subscription_enabled?
+
+    discount_pct = product&.subscription_discount_percentage.presence || product&.business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (final_price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -130,34 +138,36 @@ class ProductVariant < ApplicationRecord
 
   def reserve_stock!(quantity, order)
     return true if business&.stock_management_disabled?
-    
-    # Check available stock
-    if stock_quantity - reserved_quantity >= quantity
-      # Create reservation
+
+    with_lock do
+      # Re-check inside lock for race-safety
+      return false if stock_quantity - reserved_quantity < quantity
+
       stock_reservations.create!(
-        order: order, 
+        order: order,
         quantity: quantity,
         expires_at: 15.minutes.from_now
       )
-      
-      # Update stock and reservation quantities
-      decrement!(:stock_quantity, quantity) 
-      increment!(:reserved_quantity, quantity)
-      
-      true
-    else
-      false
+
+      self.stock_quantity -= quantity
+      self.reserved_quantity += quantity
+      save!
     end
+
+    true
   end
-  
+ 
   def release_reservation!(reservation)
-    if business&.stock_management_enabled?
-      # Update stock and reservation quantities
-      increment!(:stock_quantity, reservation.quantity)
-      decrement!(:reserved_quantity, reservation.quantity) 
+    return unless reservation.persisted?
+
+    return true if business&.stock_management_disabled?
+
+    with_lock do
+      self.stock_quantity += reservation.quantity
+      self.reserved_quantity -= reservation.quantity
+      save!
     end
-    
-    # Delete reservation
+
     reservation.destroy!
   end
 

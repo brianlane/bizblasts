@@ -175,54 +175,15 @@ class Service < ApplicationRecord
   after_commit :process_images, on: [:create, :update]
   
   validates :name, presence: true
+  include PriceDurationParser
+
   validates :name, uniqueness: { scope: :business_id }
-  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }                                                                   
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
   
-  # Custom setters to parse numbers from strings with non-numeric characters
-  def duration=(value)
-    if value.is_a?(String)
-      # Extract the first numeric substring, allowing optional decimals (e.g., "60.5 min" -> "60.5")
-      match = value.match(/(\d+(?:\.\d+)?)/)
-      parsed_value = if match
-        # Round any decimal value to the nearest whole minute
-        match[1].to_f.round
-      else
-        0
-      end
-      super(parsed_value > 0 ? parsed_value : nil)
-    else
-      super(value)
-    end
-  end
-  
-  def price=(value)
-    if value.is_a?(String) && value.present?
-      # Accept patterns like: "$60", "60", "$60.25", " 60.25 ", etc.
-      # Disallow negative prices entirely.
-      cleaned = value.strip
-      if cleaned.match?(/\A\$?\s*\d+(?:\.\d{1,2})?\s*\z/)
-        parsed_float = cleaned.delete_prefix('$').strip.to_f.round(2)
-        @invalid_price_input = nil
-        super(parsed_float)
-      else
-        # Store invalid input for validation, but keep original value unchanged
-        @invalid_price_input = value
-        return
-      end
-    elsif value.nil?
-      # Allow nil to be set for presence validation
-      @invalid_price_input = nil # Clear any previous invalid input
-      super(nil)
-    elsif value.is_a?(String) && value.blank?
-      # For blank strings, treat similar to invalid input
-      @invalid_price_input = value
-      return
-    else
-      @invalid_price_input = nil # Clear any previous invalid input
-      super(value)
-    end
-  end
+  # Use shared parsing logic
+  price_parser :price
+  duration_parser :duration
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
   validates :tips_enabled, inclusion: { in: [true, false] }
@@ -338,8 +299,12 @@ class Service < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
-    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+    return 0 unless subscription_enabled?
+
+    discount_pct = subscription_discount_percentage.presence || business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -513,16 +478,6 @@ class Service < ApplicationRecord
     end
   end
 
-  def price_format_valid
-    return unless @invalid_price_input
-
-    # Only add custom format error for non-blank invalid input
-    # Rails presence validation already handles blank values with "can't be blank"
-    unless @invalid_price_input.blank?
-      errors.add(:price, "must be a valid number - '#{@invalid_price_input}' is not a valid price format (e.g., '10.50' or '$10.50')")
-    end
-  end
-  
   # Safe method to get rebooking preference - falls back if loyalty program is disabled
   def effective_subscription_rebooking_preference
     return subscription_rebooking_preference unless subscription_rebooking_preference == 'same_day_loyalty_fallback'

@@ -77,7 +77,43 @@ module Users
     # 3. Everyone else → Root path
     def after_sign_in_path_for(resource)
       # ---------------------------------------------------------------------------
-      # 0) Explicit return_to param from login redirect (highest priority)
+      # 0) Session-stored return_to (set during cross-domain redirect)
+      # ---------------------------------------------------------------------------
+      if session[:return_to].present?
+        raw_target = session.delete(:return_to).to_s.strip
+
+        sanitized_path = sanitize_return_to(raw_target)
+        return sanitized_path if sanitized_path
+
+        uri = begin
+                URI.parse(raw_target)
+              rescue URI::InvalidURIError
+                nil
+              end
+        if uri && uri.host.present?
+          if resource.is_a?(User) && resource.business.present?
+            business = resource.business
+            canonical = business.canonical_domain.presence || business.hostname
+            apex      = canonical.sub(/^www\./,'').downcase
+            allowed_hosts = [apex, "www.#{apex}"]
+
+            if allowed_hosts.include?(uri.host.downcase)
+              path_and_query = uri.path.presence || '/'
+              path_and_query += "?#{uri.query}" if uri.query.present?
+              return TenantHost.url_for_with_auth(
+                business,
+                request,
+                path_and_query,
+                user_signed_in: true
+              )
+            end
+          end
+        end
+        # Fallback to role-based rules if unsafe
+      end
+
+      # ---------------------------------------------------------------------------
+      # 0b) Explicit return_to param from login redirect (legacy support)
       # ---------------------------------------------------------------------------
       if params[:return_to].present?
         raw_target = params[:return_to].to_s.strip
@@ -209,6 +245,7 @@ module Users
     #   • Must start with a single '/'
     #   • Must not start with '//'
     #   • Must not contain ':' before a '?'
+    #   • Must not contain CR/LF characters (prevents injection)
     #   • Max length 2000
     # -----------------------------------------------------------------------
     def sanitize_return_to(raw)
@@ -221,12 +258,40 @@ module Users
       # Allow only absolute paths beginning with '/'
       return nil unless raw.start_with?('/')
 
-      # Reject anything that looks like a scheme (e.g., 'javascript:') before the query string
+      # Reject CR/LF injection attempts
+      return nil if raw.match?(/[\r\n]/)
+
+      # Reject anything that looks like a scheme (e.g., 'javascript:') before the query string                                                                 
       path_part = raw.split('?',2).first
       return nil if path_part.include?(':')
 
-      # Allow alphanumerics, common URL chars, and UTF-8; strip dangerous < > "
-      raw.gsub(/[<>\"]/, '')
+      # Reject potentially dangerous characters and encode properly
+      # Remove dangerous characters that could be used for injection
+      sanitized = raw.gsub(/[<>"']/, '')
+      # Remove control characters
+      sanitized = sanitized.gsub(/[\u0000-\u001f\u007f-\u009f]/, '')
+      
+      # Additional validation: ensure it's a valid URI path
+      begin
+        # Use Addressable::URI for better unicode support, fallback to URI
+        if defined?(Addressable::URI)
+          uri = Addressable::URI.parse(sanitized)
+          return sanitized if uri.scheme.nil? && sanitized.start_with?('/')
+        else
+          # Fallback: encode non-ASCII characters before parsing
+          encoded = sanitized.encode('UTF-8').force_encoding('ASCII-8BIT').gsub(/[^\x00-\x7F]/n) { |char| 
+            '%' + char.unpack('H2' * char.bytesize).join('%').upcase 
+          }.force_encoding('UTF-8')
+          uri = URI.parse(encoded)
+          return sanitized if uri.scheme.nil? && sanitized.start_with?('/')
+        end
+      rescue => e
+        # If parsing fails, but it's a simple path starting with '/', allow it
+        return sanitized if sanitized.match?(/\A\/[^:]*\z/) && !sanitized.include?('//')
+        return nil
+      end
+
+      sanitized
     end
 
     # Redirect sign-in requests that occur on a tenant host (subdomain or custom
@@ -237,9 +302,10 @@ module Users
 
       # Preserve original full URL so we can send users back after authentication
       original_url = request.original_url
+      session[:return_to] = original_url
       target_url = TenantHost.main_domain_url_for(
         request,
-        "/users/sign_in?return_to=#{CGI.escape(original_url)}"
+        "/users/sign_in"
       )
       Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}"
       redirect_to target_url, status: :moved_permanently, allow_other_host: true and return

@@ -329,7 +329,8 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       @availability_manager.update_enforcement(nested_enforcement_param)
     end
 
-    success = @availability_manager.update_availability(availability_params, full_day_params)
+    only_current_week = params.dig(:service, :only_current_week) == '1'
+    success = @availability_manager.update_availability(availability_params, full_day_params, only_current_week: only_current_week)
 
     if success
       redirect_to business_manager_services_path, 

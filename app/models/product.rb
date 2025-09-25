@@ -36,34 +36,13 @@ class Product < ApplicationRecord
 
   enum :product_type, { standard: 0, service: 1, mixed: 2 }
 
+  include PriceDurationParser
+
   validates :name, presence: true, uniqueness: { scope: :business_id }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
   
-  # Custom setter to parse numbers from strings with non-numeric characters
-  def price=(value)
-    if value.is_a?(String) && value.present?
-      cleaned = value.strip
-      if cleaned.match?(/\A\$?\s*\d+(?:\.\d{1,2})?\s*\z/)
-        parsed_float = cleaned.delete_prefix('$').strip.to_f.round(2)
-        @invalid_price_input = nil
-        super(parsed_float)
-      else
-        @invalid_price_input = value
-        return
-      end
-    elsif value.nil?
-      # Allow nil to be set for presence validation
-      @invalid_price_input = nil # Clear any previous invalid input
-      super(nil)
-    elsif value.is_a?(String) && value.blank?
-      # For blank strings, treat similar to invalid input
-      @invalid_price_input = value
-      return
-    else
-      @invalid_price_input = nil # Clear any previous invalid input
-      super(value)
-    end
-  end
+  # Use shared parsing logic
+  price_parser :price
   validates :tips_enabled, inclusion: { in: [true, false] }
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
@@ -205,8 +184,13 @@ class Product < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
-    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+    # Apply discount only when subscriptions are enabled and a discount percentage is configured.
+    return 0 unless subscription_enabled?
+
+    discount_pct = subscription_discount_percentage.presence || business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -450,13 +434,5 @@ class Product < ApplicationRecord
     business.products.where('position > ?', position).update_all('position = position - 1')
   end
 
-  def price_format_valid
-    return unless @invalid_price_input
-
-    # Only add custom format error for non-blank invalid input
-    # Rails presence validation already handles blank values with "can't be blank"
-    unless @invalid_price_input.blank?
-      errors.add(:price, "must be a valid number - '#{@invalid_price_input}' is not a valid price format (e.g., '10.50' or '$10.50')")
-    end
-  end
+  # Use shared validation from PriceDurationParser
 end 

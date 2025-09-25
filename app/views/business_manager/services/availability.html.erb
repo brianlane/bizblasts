@@ -191,6 +191,26 @@
                 </div>
               <% end %>
               
+              <!-- Options -->
+              <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <div class="flex items-start">
+                  <div class="flex items-center h-5">
+                    <input type="hidden" name="service[only_current_week]" value="0" />
+                    <input type="checkbox"
+                           id="only_current_week"
+                           name="service[only_current_week]"
+                           value="1"
+                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+                  </div>
+                  <div class="ml-3">
+                    <label for="only_current_week" class="text-sm font-medium text-gray-900">
+                      Apply changes to this week only
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1">Check this to override the regular schedule for just this week</p>
+                  </div>
+                </div>
+              </div>
+              
               <!-- Submit Button -->
               <div class="pt-4">
                 <%= f.submit "Save Availability", 

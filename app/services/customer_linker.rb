@@ -32,11 +32,17 @@ class CustomerLinker
     # Check for existing linked customer with same email (different user)
     existing_customer = @business.tenant_customers.find_by(email: email)
     if existing_customer&.user_id && existing_customer.user_id != user.id
-      Rails.logger.error "[CUSTOMER_LINKER] Email conflict: #{email} already linked to different user #{existing_customer.user_id} in business #{@business.id}, cannot link to user #{user.id}"
+      Rails.logger.error "[CUSTOMER_LINKER] Email conflict: #{email} already linked to different user #{existing_customer.user_id} in business #{@business.id}, cannot link to user #{user.id}"                                                
       
       # This indicates a data integrity issue that should be investigated
-      # Rather than creating invalid email addresses, raise an error
-      raise StandardError, "Email #{email} is already associated with a different customer account in this business. Please contact support for assistance."
+      # Rather than creating invalid email addresses, raise a typed error
+      raise EmailConflictError.new(
+        "Email #{email} is already associated with a different customer account in this business. Please contact support for assistance.",
+        email: email,
+        business_id: @business.id,
+        existing_user_id: existing_customer.user_id,
+        attempted_user_id: user.id
+      )
     end
     
     # Create new customer linked to user
@@ -135,8 +141,8 @@ class CustomerLinker
       end
     end
     
-    # Sync email if different (but be careful about case)
-    if customer.email.downcase != user.email.downcase
+    # Sync email if different (case-insensitive comparison)
+    if customer.email.casecmp?(user.email) == false
       updates[:email] = user.email.downcase.strip
     end
     
@@ -173,7 +179,10 @@ class CustomerLinker
       updates[:created_at] = duplicate.created_at
     end
     
+    # Rails protects created_at from mass-assignment; update directly on column
+    timestamp = updates.delete(:created_at)
     primary.update!(updates) if updates.any?
+    primary.update_columns(created_at: timestamp) if timestamp
   end
   
   def move_customer_associations(from_customer, to_customer)

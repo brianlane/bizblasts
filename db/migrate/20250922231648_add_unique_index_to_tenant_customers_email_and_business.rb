@@ -1,7 +1,8 @@
 class AddUniqueIndexToTenantCustomersEmailAndBusiness < ActiveRecord::Migration[8.0]
   def up
-    # Remove existing non-unique index if it exists
+    # Remove existing indexes that would conflict with new expression index
     remove_index :tenant_customers, :email, if_exists: true
+    remove_index :tenant_customers, column: [:email, :business_id], name: "index_tenant_customers_on_email_and_business_id", if_exists: true
     
     # Double-check for any remaining duplicates before creating unique index
     duplicates_sql = <<~SQL

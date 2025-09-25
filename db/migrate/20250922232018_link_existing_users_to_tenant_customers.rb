@@ -14,14 +14,14 @@ class LinkExistingUsersToTenantCustomers < ActiveRecord::Migration[8.0]
     # Find all client users
     client_users = User.where(role: 'client')
     
-    client_users.find_each do |user|
+    client_users.find_each(batch_size: 1000) do |user|
       say "Processing user #{user.id} (#{user.email})"
       
-      # Find tenant customers with matching email
-      matching_customers = TenantCustomer.where(
-        email: user.email.downcase.strip,
-        user_id: nil
-      )
+      # Find tenant customers WITHIN user's businesses that match email
+      business_ids = user.businesses.pluck(:id) # client may belong to multiple businesses
+      matching_customers = TenantCustomer.where(business_id: business_ids,
+                                                user_id: nil)
+                                             .where('LOWER(email) = ?', user.email.downcase.strip)
       
       matching_customers.each do |customer|
         say "  Linking customer #{customer.id} in business #{customer.business_id}"
