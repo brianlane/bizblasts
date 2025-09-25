@@ -182,8 +182,14 @@ class Service < ApplicationRecord
   # Custom setters to parse numbers from strings with non-numeric characters
   def duration=(value)
     if value.is_a?(String)
-      # Extract only digits from the string (e.g., "60 min" -> "60")
-      parsed_value = value.gsub(/[^\d]/, '').to_i
+      # Extract the first numeric substring, allowing optional decimals (e.g., "60.5 min" -> "60.5")
+      match = value.match(/(\d+(?:\.\d+)?)/)
+      parsed_value = if match
+        # Round any decimal value to the nearest whole minute
+        match[1].to_f.round
+      else
+        0
+      end
       super(parsed_value > 0 ? parsed_value : nil)
     else
       super(value)
