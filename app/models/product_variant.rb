@@ -22,8 +22,12 @@ class ProductVariant < ApplicationRecord
       # Extract valid decimal number with optional minus sign
       # Handles: "-5.50", "5.50", "-$5.50", "$-5.50", "$10", "5", "-5"
 
-      # Check for negative sign anywhere in the string (before or after currency symbols)
-      is_negative = value.include?('-')
+      # Determine negativity only if the minus sign is actually indicating a negative value.
+      # Consider strings that may include hyphens not related to negativity (e.g., "555-1234").
+      # Treat the value as negative when the first non-whitespace character is '-' OR
+      # when a currency symbol ('$') is immediately followed by '-'.
+      stripped = value.strip
+      is_negative = stripped.start_with?('-') || stripped.start_with?('$-')
       # Extract the numeric part (digits with optional decimal)
       number_match = value.match(/(\d+(?:\.\d{1,2})?)/)
 
@@ -31,7 +35,6 @@ class ProductVariant < ApplicationRecord
         parsed_float = number_match[1].to_f.round(2)
         parsed_float = -parsed_float if is_negative
         @invalid_price_modifier_input = nil # Clear any previous invalid input
-        errors.delete(:price_modifier) # Clear any cached price_modifier errors
         super(parsed_float)
       else
         # Store the invalid input for validation
@@ -41,11 +44,9 @@ class ProductVariant < ApplicationRecord
     elsif value.nil?
       # Allow nil to be set for presence validation
       @invalid_price_modifier_input = nil # Clear any previous invalid input
-      errors.delete(:price_modifier) # Clear any cached price_modifier errors
       super(nil)
     else
       @invalid_price_modifier_input = nil # Clear any previous invalid input
-      errors.delete(:price_modifier) # Clear any cached price_modifier errors
       super(value)
     end
   end

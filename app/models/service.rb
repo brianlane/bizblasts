@@ -194,11 +194,10 @@ class Service < ApplicationRecord
     if value.is_a?(String) && value.present?
       # Extract valid decimal number (positive only for prices)
       # Matches patterns like: "60.50", "$60.50", "$60", "60"
-      match = value.match(/(\d+(?:\.\d+)?)/)
+      match = value.match(/(\d+(?:\.\d{1,2})?)/)
       if match
         parsed_float = match[1].to_f.round(2)
         @invalid_price_input = nil # Clear any previous invalid input
-        errors.delete(:price) # Clear any cached price errors
         super(parsed_float >= 0 ? parsed_float : 0.0)
       else
         # Store invalid input for validation, but keep original value
@@ -209,7 +208,6 @@ class Service < ApplicationRecord
     elsif value.nil?
       # Allow nil to be set for presence validation
       @invalid_price_input = nil # Clear any previous invalid input
-      errors.delete(:price) # Clear any cached price errors
       super(nil)
     elsif value.is_a?(String) && value.blank?
       # For blank strings, treat similar to invalid input
@@ -217,7 +215,6 @@ class Service < ApplicationRecord
       return
     else
       @invalid_price_input = nil # Clear any previous invalid input
-      errors.delete(:price) # Clear any cached price errors
       super(value)
     end
   end
