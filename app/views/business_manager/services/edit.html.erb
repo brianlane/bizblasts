@@ -10,5 +10,10 @@
     <span class="text-gray-400">|</span>
     <%= link_to 'Back', business_manager_services_path, 
           class: "inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors font-medium" %>
+    <span class="text-gray-400">|</span>
+    <%= button_to 'Delete Service', business_manager_service_path(@service), 
+          method: :delete,
+          data: { confirm: "Are you sure you want to delete the service '#{@service.name}'? This action cannot be undone." },
+          class: "cursor-pointer inline-flex items-center px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors font-medium" %>
   </div>
 </div>

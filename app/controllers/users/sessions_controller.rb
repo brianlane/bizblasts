@@ -329,6 +329,16 @@ module Users
       sanitized
     end
 
+    def delete_session_cookies_for(domains)
+      session_key = Rails.application.config.session_options[:key] || :_session_id
+      domains.uniq.each do |domain_opt|
+        opts = { path: '/' }
+        opts[:domain] = domain_opt if domain_opt
+        cookies.delete(session_key, opts)
+        cookies.delete(:business_id, opts)
+      end
+    end
+
     # Redirect sign-in requests that occur on a tenant host (subdomain or custom
     # domain) back to the platform’s base domain. This avoids cross-domain
     # cookie issues and keeps authentication UX consistent.

@@ -130,6 +130,35 @@ RSpec.describe "BusinessManager::Services", type: :system do
         expect(page).to have_button('Delete')
       end
     end
+
+    it "allows deleting services from the edit page" do
+      # Create a service to delete
+      service_to_delete = FactoryBot.create(:service, 
+                                          business: business, 
+                                          name: "Edit Page Delete Service")
+      
+      # Visit the edit page
+      visit edit_business_manager_service_path(service_to_delete)
+      expect(page).to have_content("Editing Service: Edit Page Delete Service")
+      
+      # Verify the delete button exists
+      expect(page).to have_button("Delete Service")
+      
+      # Click the delete button and accept the confirmation
+      accept_confirm do
+        click_button "Delete Service"
+      end
+      
+      # Should redirect to services index with success message
+      expect(page).to have_current_path(business_manager_services_path)
+      expect(page).to have_content("Service was successfully deleted")
+      
+      # Verify the service is gone from the database
+      expect(Service.exists?(service_to_delete.id)).to be_falsey
+      
+      # Verify it's not in the UI
+      expect(page).not_to have_content("Edit Page Delete Service")
+    end
     
     # Add this special test for delete functionality
     it "allows deleting services through direct database access" do
