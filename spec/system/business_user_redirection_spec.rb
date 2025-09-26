@@ -80,7 +80,7 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
 
     # After sign out, expect to be back on the main domain
     # The custom controller redirects to the main domain after sign out
-    expect(URI.parse(page.current_url).host).to eq("#{business.hostname}.lvh.me")
+    expect(URI.parse(page.current_url).host).to eq('lvh.me')
     
     # The homepage should have some welcome content 
     expect(page).to have_content(/Welcome|Home|Sign in/i)
