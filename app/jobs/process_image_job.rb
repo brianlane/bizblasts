@@ -10,7 +10,12 @@ class ProcessImageJob < ApplicationJob
       convert_heic_to_jpeg(attachment)
       # Reload attachment after conversion and verify it succeeded
       attachment.reload
-      blob = attachment.blob rescue nil
+      begin
+        blob = attachment.blob
+      rescue ActiveRecord::RecordNotFound => e
+        Rails.logger.error "[IMAGE_PROCESSING] Attachment or blob not found after HEIC conversion: #{e.message}"
+        return
+      end
       return unless blob
     end
 

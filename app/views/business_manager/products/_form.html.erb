@@ -315,7 +315,7 @@
               data: { 
                 max_file_size: 15728640,  # 15MB in bytes
                 max_files: 10,
-                allowed_types: "image/png,image/jpeg,image/jpg,image/gif,image/webp,image/heic,image/heif"
+                allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif"
               },
               class: "hidden",
               id: "product_images_input" %>
@@ -562,7 +562,7 @@
           // Validate file types - get from data attribute
           const allowedTypes = event.target.dataset.allowedTypes ? 
             event.target.dataset.allowedTypes.split(',') :
-            ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+            ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
           const invalidFiles = [];
           const validFiles = [];
           

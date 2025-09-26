@@ -115,8 +115,8 @@
                         day_slots = @staff_member.availability&.dig(day) || []
                         # Filter out full-day slots (00:00-23:59) for display, they're handled by checkbox
                         display_slots = day_slots.reject { |slot| slot['start'] == '00:00' && slot['end'] == '23:59' }
-                        slots_to_display = display_slots.any? ? display_slots : [{}]
-                        slots_to_display.each_with_index do |slot, index| 
+                        # Only show actual slots, don't create empty defaults
+                        display_slots.each_with_index do |slot, index| 
                       %>
                         <div class="time-slot-row">
                           <input type="hidden" 
