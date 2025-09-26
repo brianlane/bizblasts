@@ -203,7 +203,15 @@ module Users
       # Check if we're on a subdomain or custom domain
       # This information is used to determine where to redirect after sign-out
       current_business = ActsAsTenant.current_tenant || find_current_business_from_request
-      @was_on_custom_domain = current_business.present?
+
+      # Track where the request originated
+      request_host = request.host.downcase
+
+      # Was the request served from the business *custom* domain?
+      @was_on_custom_domain = current_business&.host_type_custom_domain? && request_host == current_business.hostname.downcase
+
+      # Was it served from the management *sub-domain* instead?
+      @was_on_management_subdomain = current_business&.host_type_custom_domain? && request_host.ends_with?('.bizblasts.com')
       
       # Clear our custom cookies with environment-aware domain scoping
       # Cookies must be cleared with the same domain they were set with
@@ -213,12 +221,11 @@ module Users
       else
         # Production: Use the appropriate domain based on business type
         if current_business&.host_type_custom_domain?
-          # For custom domains, clear cookie for the main domain
-          # e.g., if on app.mycompany.com, clear for .mycompany.com
+          # Always clear both the bizblasts cookie *and* the custom-domain cookie
           main_domain = extract_main_domain_from_custom_domain(current_business.hostname)
           cookies.delete(:business_id, domain: ".#{main_domain}")
+          cookies.delete(:business_id, domain: '.bizblasts.com')
         else
-          # For subdomains, clear cookie for .bizblasts.com
           cookies.delete(:business_id, domain: '.bizblasts.com')
         end
       end
@@ -231,9 +238,13 @@ module Users
       super do
         # Determine where to redirect after sign-out
         if @was_on_custom_domain
-          # Calculate the appropriate redirect URL based on current domain
           redirect_url = determine_logout_redirect_url(current_business)
-          Rails.logger.debug "[Sessions::destroy] Redirecting to: #{redirect_url}"
+          Rails.logger.debug "[Sessions::destroy] Redirecting from custom domain to: #{redirect_url}"
+          redirect_to redirect_url, allow_other_host: true and return
+        elsif @was_on_management_subdomain
+          # For management subdomains (bizblasts.com) of custom-domain tenants, bounce to platform main domain root.
+          redirect_url = TenantHost.main_domain_url_for(request, '/')
+          Rails.logger.debug "[Sessions::destroy] Redirecting management subdomain logout to main domain: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
         else
           # User was on the main site, just go to root
