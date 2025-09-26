@@ -31,7 +31,7 @@
   <div data-service-variants-target="baseFields" class="base-fields-block">
     <div class="mb-4">
       <%= form.label :duration, "Duration (minutes)", class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%= form.number_field :duration, inputmode: "decimal", class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+      <%= form.number_field :duration, inputmode: "numeric", class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
     </div>
 
     <div class="mb-4">
@@ -53,7 +53,7 @@
         </div>
         <div class="col-span-3">
           <%= variant_form.label :duration, "Duration (min)", class: "block text-gray-700 text-sm font-bold mb-1" %>
-          <%= variant_form.number_field :duration, inputmode: "decimal", class: "w-full border rounded px-3 py-2" %>
+          <%= variant_form.number_field :duration, inputmode: "numeric", class: "w-full border rounded px-3 py-2" %>
         </div>
         <div class="col-span-3">
           <%= variant_form.label :price, class: "block text-gray-700 text-sm font-bold mb-1" %>
@@ -160,11 +160,11 @@
         data-service-form-target="experienceFields">
      <div class="mb-4">
        <%= form.label :min_bookings, class: "block text-gray-700 text-sm font-bold mb-2" %>
-       <%= form.number_field :min_bookings, min: 1, inputmode: "decimal", class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+       <%= form.number_field :min_bookings, min: 1, inputmode: "numeric", class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
      </div>
      <div class="mb-4">
        <%= form.label :max_bookings, class: "block text-gray-700 text-sm font-bold mb-2" %>
-       <%= form.number_field :max_bookings, min: (service.min_bookings || 1), inputmode: "decimal", class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
+       <%= form.number_field :max_bookings, min: (service.min_bookings || 1), inputmode: "numeric", class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %>
      </div>
      <%# Spots is calculated, not user-editable here %>
      <% if service.persisted? && service.experience? %>

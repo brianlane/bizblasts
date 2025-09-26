@@ -115,6 +115,12 @@ module Users
       # ---------------------------------------------------------------------------
       # 0b) Explicit return_to param from login redirect (legacy support)
       # ---------------------------------------------------------------------------
+      return_to_session = session.delete(:return_to)
+      if return_to_session.present?
+        sanitized = sanitize_return_to(return_to_session)
+        return sanitized if sanitized
+      end
+
       if params[:return_to].present?
         raw_target = params[:return_to].to_s.strip
 
