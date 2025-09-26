@@ -52,19 +52,13 @@
   <%= render 'shared/policy_acceptance_modal' %>
 
   <div class="flex h-screen bg-gray-100 relative" data-controller="navbar">
-    <!-- Sidebar Toggle Button (Mobile) -->
-    <button data-navbar-target="toggle" data-action="click->navbar#toggle" class="cursor-pointer fixed top-4 left-4 z-50 lg:hidden bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700 transition-colors shadow-lg">
+    <!-- Sidebar Toggle Button (All screen sizes when sidebar is closed) -->
+    <button data-navbar-target="toggle" data-action="click->navbar#toggle" class="cursor-pointer fixed top-4 left-4 z-50 bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700 transition-colors shadow-lg">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
       </svg>
     </button>
 
-    <!-- Sidebar Toggle Button (Desktop) -->
-    <button data-navbar-target="desktopToggle" data-action="click->navbar#toggle" class="cursor-pointer fixed top-4 z-50 hidden lg:block bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700 transition-colors shadow-lg desktop-toggle-btn">
-      <svg data-navbar-target="desktopToggleIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-      </svg>
-    </button>
 
     <!-- Overlay for mobile sidebar -->
     <div data-navbar-target="overlay" data-action="click->navbar#overlayClick" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
@@ -74,9 +68,9 @@
       <div class="p-4 flex-shrink-0">
         <div class="flex items-center justify-between">
           <h2 class="text-xl lg:text-2xl font-semibold"><%= @current_business&.name %></h2>
-          <!-- Close button for mobile -->
-          <button data-action="click->navbar#close" class="cursor-pointer lg:hidden text-white hover:text-gray-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- Close/Toggle button for all screen sizes -->
+          <button data-navbar-target="desktopToggle" data-action="click->navbar#toggle" class="cursor-pointer text-white hover:text-gray-300 bg-gray-700 p-2 rounded-md hover:bg-gray-600 transition-colors">
+            <svg data-navbar-target="desktopToggleIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>

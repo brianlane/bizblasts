@@ -172,8 +172,6 @@ class Business < ApplicationRecord
   has_one :booking_policy, dependent: :destroy
   
   # New associations for Modules 5 and 6
-  has_many :notification_templates, dependent: :destroy
-  has_many :integration_credentials, dependent: :destroy
   has_many :locations, dependent: :destroy
   has_one :subscription, dependent: :destroy # Added for Module 7
   has_many :integrations, dependent: :destroy # Added for Module 9

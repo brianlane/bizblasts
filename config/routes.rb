@@ -305,15 +305,6 @@ Rails.application.routes.draw do
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
-        resources :notifications
-        resources :notification_templates, controller: 'notifications'
-        resource :integration_credentials, only: [], controller: 'notifications' do
-          collection do
-            get :edit_credentials
-            patch :update_credentials
-            put :update_credentials
-          end
-        end
         resources :locations
 
         # Subscription & Billing (Module 7)

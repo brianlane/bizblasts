@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_25_175806) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_27_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -771,10 +771,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_25_175806) do
     t.boolean "review_request_suppressed", default: false, null: false
     t.boolean "tip_received_on_initial_payment", default: false, null: false
     t.decimal "tip_amount_received_initially", precision: 10, scale: 2, default: "0.0"
+    t.bigint "customer_subscription_id"
     t.index ["applied_promo_code"], name: "index_orders_on_applied_promo_code"
     t.index ["booking_id"], name: "index_orders_on_booking_id"
     t.index ["business_id", "created_at"], name: "index_orders_on_business_id_and_created_at"
     t.index ["business_id"], name: "index_orders_on_business_id"
+    t.index ["customer_subscription_id"], name: "index_orders_on_customer_subscription_id"
     t.index ["order_number"], name: "index_orders_on_order_number", unique: true
     t.index ["promo_code_type"], name: "index_orders_on_promo_code_type"
     t.index ["shipping_method_id"], name: "index_orders_on_shipping_method_id"
@@ -1709,6 +1711,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_25_175806) do
   add_foreign_key "notification_templates", "businesses", on_delete: :cascade
   add_foreign_key "orders", "bookings", on_delete: :nullify
   add_foreign_key "orders", "businesses", on_delete: :cascade
+  add_foreign_key "orders", "customer_subscriptions"
   add_foreign_key "orders", "shipping_methods"
   add_foreign_key "orders", "tax_rates"
   add_foreign_key "orders", "tenant_customers", on_delete: :nullify
