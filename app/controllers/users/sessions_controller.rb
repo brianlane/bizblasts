@@ -254,10 +254,15 @@ module Users
           redirect_url = determine_logout_redirect_url(current_business)
           Rails.logger.debug "[Sessions::destroy] Redirecting from custom domain to: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
-        elsif @was_on_management_subdomain
-          # For management subdomains (bizblasts.com) of custom-domain tenants, bounce to platform main domain root.
+        elsif @was_on_management_subdomain && params[:x_logout].blank?
+          # First stage: we are on bizblasts management subdomain but need to clear host-only cookie on custom domain.
+          logout_url = "https://#{current_business.canonical_domain || current_business.hostname}/users/sign_out?x_logout=1"
+          Rails.logger.debug "[Sessions::destroy] Redirecting to custom domain for cookie cleanup: #{logout_url}"
+          redirect_to logout_url, allow_other_host: true and return
+        elsif params[:x_logout].present? && @was_on_custom_domain
+          # Second stage: we are now on custom domain, after clearing its cookie bounce to platform
           redirect_url = TenantHost.main_domain_url_for(request, '/')
-          Rails.logger.debug "[Sessions::destroy] Redirecting management subdomain logout to main domain: #{redirect_url}"
+          Rails.logger.debug "[Sessions::destroy] Completed cross-domain logout, redirecting to main domain: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
         elsif current_business&.host_type_subdomain?
           # Regular subdomain tenant – after logout go to platform main domain root
