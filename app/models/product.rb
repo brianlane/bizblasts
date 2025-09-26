@@ -51,10 +51,8 @@ class Product < ApplicationRecord
   validates :show_stock_to_customers, inclusion: { in: [true, false] }
   validates :hide_when_out_of_stock, inclusion: { in: [true, false] }
   validates :variant_label_text, length: { maximum: 100 }
-  # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
-  validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
-                                     message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
-                     size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max with HEIC support
+  validates :images, **FileUploadSecurity.image_validation_options
   
   validate :image_size_validation
   validate :validate_pending_image_attributes
@@ -401,8 +399,8 @@ class Product < ApplicationRecord
   
   def image_format_validation
     images.each do |image|
-      unless image.blob.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
-        errors.add(:images, "must be a valid image format (JPEG, PNG, GIF, WebP)")
+      unless FileUploadSecurity.valid_image_type?(image.blob.content_type)
+        errors.add(:images, FileUploadSecurity.image_validation_options[:content_type][:message])                                                                 
       end
     end
   end

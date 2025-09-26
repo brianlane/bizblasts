@@ -21,14 +21,16 @@ ACTIVE_STORAGE_ASSET_HOST=https://d1234567890.cloudfront.net  # Your CloudFront 
 
 ### 1. Large File Support (15MB)
 - **File Size Limit**: Increased from 5MB to 15MB
-- **Supported Formats**: PNG, JPEG, JPG, GIF, WebP
+- **Supported Formats**: PNG, JPEG, JPG, GIF, WebP, HEIC, HEIF, HEIC-sequence, HEIF-sequence
+- **HEIC Conversion**: Automatic conversion to JPEG for web compatibility
 - **Server Configuration**: Puma timeouts and content length limits updated
 - **Client Validation**: JavaScript validation for file size and format
 
 ### 2. Image Processing & Optimization
 - **Automatic Variants**: thumb (300x300), medium (800x800), large (1200x1200)
 - **Background Processing**: `ProcessImageJob` using Solid Queue
-- **Smart Processing**: Only processes images larger than 2MB
+- **HEIC Processing**: Automatic conversion to JPEG using ImageMagick
+- **Smart Processing**: Only processes images larger than 2MB and HEIC files
 - **Quality Optimization**: Progressive quality reduction for smaller variants
 
 ### 3. CloudFront CDN Integration
@@ -95,27 +97,59 @@ aws s3 mb s3://bizblasts-production-images
 ## Code Changes Summary
 
 ### Models Updated
-- `app/models/product.rb`: 15MB validation, variants, background processing
-- `app/models/service.rb`: 15MB validation, variants, background processing
+- `app/models/product.rb`: 15MB validation, HEIC support, variants, background processing
+- `app/models/service.rb`: 15MB validation, HEIC support, variants, background processing
+- `app/models/staff_member.rb`: 15MB validation, HEIC support
+- `app/models/blog_post.rb`: 15MB validation, HEIC support
+- `app/models/business.rb`: 15MB validation, HEIC support
 
 ### Jobs Added
-- `app/jobs/process_image_job.rb`: Background image variant generation
+- `app/jobs/process_image_job.rb`: Background image variant generation and HEIC conversion
 
 ### Configuration Updated
 - `config/puma.rb`: Timeout and content length settings
 - `config/application.rb`: Image processing configuration
 - `config/storage.yml`: S3 and CloudFront configuration
 - `config/routes.rb`: CloudFront URL routing
+- `config/initializers/file_upload_security.rb`: HEIC/HEIF MIME type support
 
 ### Views Updated
-- Client-side validation in product and service forms
+- Client-side validation in product, service, staff member, and business forms
+- HEIC/HEIF support in file input accept attributes
+- Enhanced JavaScript validation for HEIC formats
 - Optimized image display using variants
 - Enhanced file upload UI with size/format feedback
 
 ### Tests Updated
 - Increased file size limits in model specs
-- Added ProcessImageJob tests
-- Updated supported formats in validations
+- Added ProcessImageJob tests with HEIC conversion scenarios
+- Updated supported formats in validations to include HEIC/HEIF
+- Added HEIC test fixture file for comprehensive testing
+
+## HEIC/HEIF Support Requirements
+
+### ImageMagick with HEIC Support
+HEIC conversion requires ImageMagick compiled with HEIC support. Most cloud platforms should support this by default.
+
+**To verify HEIC support:**
+```bash
+# Check if HEIC is supported
+identify -list format | grep -i heic
+# Should show: HEIC* HEIC      rw-   High Efficiency Image Format
+```
+
+**Production Dependencies:**
+- ImageMagick with libheif support
+- Supported on Render.com, Heroku, and most cloud platforms
+- No additional configuration needed for most deployments
+
+### Conversion Behavior
+- HEIC/HEIF files (including sequence formats) are automatically converted to JPEG for web compatibility
+- Original HEIC blob is replaced with converted JPEG
+- Filename extension is updated (`.heic/.heif` → `.jpg`)
+- Content-Type is updated to `image/jpeg`
+- Process is transparent to users
+- Supports Live Photos (HEIC-sequence) and animated HEIF formats
 
 ## Deployment Checklist
 
@@ -123,9 +157,10 @@ aws s3 mb s3://bizblasts-production-images
 2. ✅ Create and configure S3 bucket
 3. ✅ Set up CloudFront distribution (optional)
 4. ✅ Test file uploads with large images
-5. ✅ Verify background job processing
-6. ✅ Check image variant generation
-7. ✅ Confirm CDN delivery (if using CloudFront)
+5. ✅ Test HEIC file uploads and conversion
+6. ✅ Verify background job processing
+7. ✅ Check image variant generation
+8. ✅ Confirm CDN delivery (if using CloudFront)
 
 ## Monitoring & Troubleshooting
 
@@ -140,6 +175,16 @@ Solid::Queue::Job.where(job_class: 'ProcessImageJob').order(created_at: :desc).l
 # Rails console
 product = Product.first
 product.images.first.variant(:medium).processed?
+```
+
+### Check HEIC Conversion
+```ruby
+# Rails console - Check if HEIC files were converted
+service = Service.joins(images_attachments: :blob)
+  .where(active_storage_blobs: { content_type: 'image/jpeg' })
+  .where("active_storage_blobs.filename LIKE '%.jpg'")
+  .first
+puts "HEIC converted: #{service.images.first.filename}"
 ```
 
 ### S3 Storage Usage
@@ -159,4 +204,5 @@ aws s3 ls s3://bizblasts-production-images --recursive --human-readable --summar
 - S3 bucket has public read access for CDN functionality
 - IAM user should have minimal required permissions
 - CloudFront provides additional security layer
-- File type validation prevents malicious uploads 
+- File type validation prevents malicious uploads
+- HEIC conversion ensures web browser compatibility 

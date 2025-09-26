@@ -194,10 +194,8 @@ class Service < ApplicationRecord
   validates :allow_discounts, inclusion: { in: [true, false] }
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
-  # Validations for images - Updated for 15MB max
-  validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
-                                     message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
-                     size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Validations for images - Updated for 15MB max with HEIC support
+  validates :images, **FileUploadSecurity.image_validation_options
   
   validate :image_size_validation
   validate :image_format_validation
@@ -451,8 +449,8 @@ class Service < ApplicationRecord
   
   def image_format_validation
     images.each do |image|
-      unless image.blob.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
-        errors.add(:images, "must be a valid image format (JPEG, PNG, GIF, WebP)")
+      unless FileUploadSecurity.valid_image_type?(image.blob.content_type)
+        errors.add(:images, FileUploadSecurity.image_validation_options[:content_type][:message])                                                                 
       end
     end
   end

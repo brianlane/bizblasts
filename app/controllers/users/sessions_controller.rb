@@ -221,11 +221,24 @@ module Users
       else
         # Production: Use the appropriate domain based on business type
         if current_business&.host_type_custom_domain?
-          # Always clear both the bizblasts cookie *and* the custom-domain cookie
-          main_domain = extract_main_domain_from_custom_domain(current_business.hostname)
-          cookies.delete(:business_id, domain: ".#{main_domain}")
-          cookies.delete(:business_id, domain: '.bizblasts.com')
+          # Always clear both the bizblasts cookie *and* the custom-domain cookies
+          apex_domain = current_business.hostname.sub(/^www\./, '')
+          session_key = Rails.application.config.session_options[:key] || :_session_id
+
+          variants = [
+            {},                                        # host-only cookie (no domain attribute)
+            { domain: current_business.hostname },     # explicit host domain
+            { domain: ".#{apex_domain}" },             # apex wildcard
+            { domain: ".bizblasts.com" }               # management domain
+          ]
+
+          variants.each do |opts|
+            cookies.delete(session_key, opts.merge(path: '/'))
+            cookies.delete(:business_id, opts.merge(path: '/'))
+          end
         else
+          session_key = Rails.application.config.session_options[:key] || :_session_id
+          cookies.delete(session_key, domain: '.bizblasts.com', path: '/')
           cookies.delete(:business_id, domain: '.bizblasts.com')
         end
       end
@@ -314,6 +327,16 @@ module Users
       end
 
       sanitized
+    end
+
+    def delete_session_cookies_for(domains)
+      session_key = Rails.application.config.session_options[:key] || :_session_id
+      domains.uniq.each do |domain_opt|
+        opts = { path: '/' }
+        opts[:domain] = domain_opt if domain_opt
+        cookies.delete(session_key, opts)
+        cookies.delete(:business_id, opts)
+      end
     end
 
     # Redirect sign-in requests that occur on a tenant host (subdomain or custom

@@ -36,10 +36,8 @@ class StaffMember < ApplicationRecord
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, presence: true, format: { with: /\A(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\z/, message: "must be a valid phone number" }, allow_blank: true
   
-  # Photo validations
-  validates :photo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Photo validations - Updated for HEIC support
+  validates :photo, **FileUploadSecurity.image_validation_options
   
   validate :validate_availability_structure
   before_validation :process_availability

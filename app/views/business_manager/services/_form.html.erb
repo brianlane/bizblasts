@@ -500,11 +500,12 @@
       <!-- File upload area -->
       <div class="text-center">
         <!-- Hidden file input -->
-        <%= form.file_field :images, multiple: true, 
-              accept: "image/*",
+        <%= form.file_field :images, multiple: true,
+              accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",                                                                       
               data: { 
                 max_file_size: 15728640,  # 15MB in bytes
-                max_files: 10 
+                max_files: 10,
+                allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif"
               },
               class: "hidden",
               id: "service_images_input" %>
@@ -528,9 +529,10 @@
       <div class="mt-4 p-3 bg-blue-50 rounded-md">
         <p class="text-sm text-blue-700">
           <strong>📸 Image Guidelines:</strong><br>
-          • Formats: PNG, JPEG, GIF, WebP<br>
+          • Formats: PNG, JPEG, GIF, WebP, HEIC, HEIF<br>
           • Max size: 15MB per file<br>
           • Max files: 10 images<br>
+          • HEIC files automatically converted to JPEG<br>
           • Recommended: Square images work best
         </p>
       </div>
@@ -658,11 +660,13 @@
         }
         
         if (files && files.length > 0) {
-          // Validate file types
-          const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+          // Validate file types - get from data attribute
+          const allowedTypes = event.target.dataset.allowedTypes ? 
+            event.target.dataset.allowedTypes.split(',') :
+            ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
           const invalidFiles = [];
           const validFiles = [];
-          
+
           for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (allowedTypes.includes(file.type)) {
@@ -687,7 +691,7 @@
             const feedback = document.createElement('div');
             feedback.id = 'file-selection-feedback';
             feedback.className = 'mt-2 text-sm text-red-600 font-medium';
-            feedback.innerHTML = `❌ Only PNG and JPEG files are allowed.`;
+            feedback.innerHTML = `❌ Only PNG, JPEG, GIF, WebP, HEIC, and HEIF files are allowed.`;
             event.target.parentElement.appendChild(feedback);
             
             // Clear the input
