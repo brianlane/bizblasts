@@ -36,6 +36,7 @@ class Business < ApplicationRecord
     event_planning: "Event Planning",
     tax_preparation: "Tax Preparation",
     it_support: "IT Support",
+    wellness_services: "Wellness Services",
 
     # Experiences
     yoga_classes: "Yoga Classes",

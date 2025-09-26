@@ -82,11 +82,11 @@
       <% if @blog_post.featured_image_for_display %>
         <% img = @blog_post.featured_image_for_display %>
         <%= image_tag(
-              url_for(img.variant(:large)),
+              rails_public_blob_url(img.variant(:large)),
               srcset: [
-                "#{url_for(img.variant(:thumb))} 600w",
-                "#{url_for(img.variant(:medium))} 800w",
-                "#{url_for(img.variant(:large))} 1200w"
+                "#{rails_public_blob_url(img.variant(:thumb))} 600w",
+                "#{rails_public_blob_url(img.variant(:medium))} 800w",
+                "#{rails_public_blob_url(img.variant(:large))} 1200w"
               ].join(', '),
               sizes: '(max-width: 768px) 100vw, 1200px',
               alt: @blog_post.title,
