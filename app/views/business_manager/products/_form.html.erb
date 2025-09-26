@@ -62,7 +62,7 @@
         <% unless @product.has_variants? %>
           <div>
             <%= form.label :stock_quantity, "Stock Quantity", class: "block text-gray-700 text-sm font-bold mb-2" %>
-            <%= form.number_field :stock_quantity, min: 0, 
+            <%= form.number_field :stock_quantity, min: 0, inputmode: "decimal",
                   class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
             <p class="mt-1 text-sm text-gray-500">Only applies if the product has no variants defined below.</p>
           </div>
@@ -418,14 +418,14 @@
       
       <div>
         <label class="block text-gray-700 text-sm font-bold mb-2">Price Modifier ($)</label>
-        <input type="number" name="product[product_variants_attributes][NEW_RECORD][price_modifier]" step="0.01" placeholder="0.00" 
+        <input type="number" name="product[product_variants_attributes][NEW_RECORD][price_modifier]" step="0.01" inputmode="decimal" placeholder="0.00"
                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
         <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
       </div>
       
       <div>
         <label class="block text-gray-700 text-sm font-bold mb-2">Stock Quantity</label>
-        <input type="number" name="product[product_variants_attributes][NEW_RECORD][stock_quantity]" required min="0" placeholder="0" 
+        <input type="number" name="product[product_variants_attributes][NEW_RECORD][stock_quantity]" required min="0" inputmode="decimal" placeholder="0"
                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
       </div>
     </div>
