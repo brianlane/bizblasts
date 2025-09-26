@@ -6,6 +6,7 @@ class Order < ApplicationRecord
   belongs_to :tax_rate, optional: true
   belongs_to :booking, optional: true
   belongs_to :business, optional: true  # Allow nil for orphaned orders
+  belongs_to :customer_subscription, optional: true
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
   has_one :invoice

@@ -10,6 +10,8 @@ class CustomerSubscription < ApplicationRecord
   belongs_to :service, optional: true
   belongs_to :preferred_staff_member, class_name: 'StaffMember', optional: true
   has_many :subscription_transactions, dependent: :destroy
+  has_many :orders, dependent: :destroy
+  has_many :line_items, through: :orders
   
   # Enums (must be defined before validations that reference them)
   enum :status, {
