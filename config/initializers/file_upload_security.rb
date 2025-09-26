@@ -9,6 +9,10 @@ module FileUploadSecurity
     image/png
     image/gif
     image/webp
+    image/heic
+    image/heif
+    image/heic-sequence
+    image/heif-sequence
   ].freeze
 
   # Maximum file size for images (15MB)
@@ -33,13 +37,35 @@ module FileUploadSecurity
     true
   end
 
+  # Centralized validation method for models
+  def self.image_validation_options
+    {
+      content_type: {
+        in: ALLOWED_IMAGE_TYPES,
+        message: 'must be a valid image format (PNG, JPEG, GIF, WebP, HEIC, HEIF)'
+      },
+      size: {
+        less_than: MAX_IMAGE_SIZE,
+        message: 'must be less than 15MB'
+      }
+    }
+  end
+
+  # Check if image format is HEIC/HEIF
+  def self.heic_format?(content_type)
+    %w[image/heic image/heif image/heic-sequence image/heif-sequence].include?(content_type)
+  end
+
   # Image metadata stripping for privacy
   def self.strip_metadata(image_blob)
     return unless image_blob.image?
-    
-    # TODO: Implement EXIF data stripping
-    # This would remove potentially sensitive metadata from images
-    # Can be implemented with ImageProcessing gem or mini_magick
+
+    # Strip EXIF data including GPS coordinates for privacy (especially for HEIC)                                                                              
+    if %w[image/heic image/heif image/heic-sequence image/heif-sequence image/jpeg].include?(image_blob.content_type)
+      # TODO: Implement EXIF stripping with mini_magick
+      # MiniMagick::Image.open(image_blob.download).strip
+    end
+
     Rails.logger.info "[FILE_SECURITY] Image uploaded: #{image_blob.filename} (#{image_blob.byte_size} bytes)"
   end
 end

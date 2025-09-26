@@ -106,13 +106,14 @@ RSpec.describe Service, type: :model do
 
   describe 'image attachments' do
     it { is_expected.to have_many_attached(:images) }
-    it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg', 'image/gif', 'image/webp') }
+    it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence') }
     it { should validate_size_of(:images).less_than(15.megabytes) }
 
     let(:business) { create(:business) }
     let(:service) { create(:service, business: business) }
     let(:image1) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/jpeg') }
     let(:image2) { fixture_file_upload('spec/fixtures/files/new-item.jpg', 'image/jpeg') }
+    let(:heic_image) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/heic') }
 
     before do
       service.images.attach(image1, image2)
@@ -135,6 +136,35 @@ RSpec.describe Service, type: :model do
           img.update(position: index)
         end
         expect(service.images.ordered.map(&:id)).to eq(service.images.map(&:id))
+      end
+    end
+
+    describe 'HEIC image support' do
+      it 'accepts HEIC images' do
+        service.images.attach(heic_image)
+        expect(service).to be_valid
+        expect(service.images).to be_attached
+      end
+
+      it 'accepts HEIF images' do
+        heif_image = fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/heif')                                                                  
+        service.images.attach(heif_image)
+        expect(service).to be_valid
+        expect(service.images).to be_attached
+      end
+
+      it 'accepts HEIC sequence images' do
+        heic_seq_image = fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/heic-sequence')
+        service.images.attach(heic_seq_image)
+        expect(service).to be_valid
+        expect(service.images).to be_attached
+      end
+
+      it 'accepts HEIF sequence images' do
+        heif_seq_image = fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/heif-sequence')
+        service.images.attach(heif_seq_image)
+        expect(service).to be_valid
+        expect(service.images).to be_attached
       end
     end
   end

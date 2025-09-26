@@ -747,10 +747,8 @@ class Business < ApplicationRecord
     attachable.variant :large, resize_to_limit: [600, 600], quality: 90
   end
   
-  # Logo validations
-  validates :logo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Logo validations - Updated for HEIC support
+  validates :logo, **FileUploadSecurity.image_validation_options
   
   # Background processing for logo
   after_commit :process_logo, if: -> { logo.attached? }

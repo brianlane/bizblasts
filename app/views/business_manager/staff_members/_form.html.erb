@@ -245,9 +245,10 @@
         <div class="text-center">
           <!-- Hidden file input -->
           <%= f.file_field :photo, 
-                accept: "image/png,image/jpeg,image/gif,image/webp",
+                accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",                                                                     
                 class: "hidden",
                 id: "staff_member_photo_input",
+                data: { allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" },
                 onchange: "validateStaffPhoto(this)" %>
           
           <!-- Custom styled button -->
@@ -291,8 +292,9 @@
         <div class="mt-4 p-3 bg-blue-50 rounded-md">
           <p class="text-sm text-blue-700">
             <strong>📸 Photo Guidelines:</strong><br>
-            • Formats: PNG, JPEG, GIF, WebP<br>
+            • Formats: PNG, JPEG, GIF, WebP, HEIC, HEIF<br>
             • Max size: 15MB<br>
+            • HEIC files automatically converted to JPEG<br>
             • Recommended: Professional headshot, square aspect ratio
           </p>
         </div>
@@ -414,10 +416,12 @@
             hasErrors = true;
           }
           
-          // Check file type
-          const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+          // Check file type - get from data attribute or fallback
+          const allowedTypes = input.dataset.allowedTypes ? 
+            input.dataset.allowedTypes.split(',') :
+            ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];                                             
           if (!allowedTypes.includes(file.type)) {
-            alert('Photo must be PNG, JPEG, GIF, or WebP format.');
+            alert('Photo must be PNG, JPEG, GIF, WebP, HEIC, or HEIF format.');
             hasErrors = true;
           }
           

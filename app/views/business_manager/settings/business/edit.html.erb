@@ -158,12 +158,13 @@
             <% end %>
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
               <%= form.file_field :logo, 
-                    class: "block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer",
-                    accept: "image/png,image/jpeg,image/gif,image/webp",
+                    class: "block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer",            
+                    accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",
+                    data: { allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" },
                     onchange: "validateBusinessLogo(this)" %>
               <p class="mt-2 text-xs text-gray-500 text-center">
                 <span class="font-medium">Click to upload</span> or drag and drop<br>
-                PNG, JPEG, GIF, WebP up to 15MB • Square format recommended
+                PNG, JPEG, GIF, WebP, HEIC, HEIF up to 15MB • Square format recommended • HEIC files automatically converted to JPEG
               </p>
               
               <script>
@@ -178,10 +179,12 @@
                     return;
                   }
                   
-                  // Check file type
-                  const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+                  // Check file type - get from data attribute or fallback
+                  const allowedTypes = input.dataset.allowedTypes ? 
+                    input.dataset.allowedTypes.split(',') :
+                    ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];                                     
                   if (!allowedTypes.includes(file.type)) {
-                    alert('Logo must be PNG, JPEG, GIF, or WebP format.');
+                    alert('Logo must be PNG, JPEG, GIF, WebP, HEIC, or HEIF format.');                                                                         
                     input.value = '';
                     return;
                   }
