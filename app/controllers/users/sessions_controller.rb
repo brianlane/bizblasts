@@ -250,19 +250,28 @@ module Users
       # Call Devise's destroy method with custom redirect logic
       super do
         # Determine where to redirect after sign-out
-        if @was_on_custom_domain
-          redirect_url = determine_logout_redirect_url(current_business)
-          Rails.logger.debug "[Sessions::destroy] Redirecting from custom domain to: #{redirect_url}"
-          redirect_to redirect_url, allow_other_host: true and return
-        elsif @was_on_management_subdomain && params[:x_logout].blank?
-          # First stage: we are on bizblasts management subdomain but need to clear host-only cookie on custom domain.
-          logout_url = "https://#{current_business.canonical_domain || current_business.hostname}/users/sign_out?x_logout=1"
-          Rails.logger.debug "[Sessions::destroy] Redirecting to custom domain for cookie cleanup: #{logout_url}"
-          redirect_to logout_url, allow_other_host: true and return
-        elsif params[:x_logout].present? && @was_on_custom_domain
-          # Second stage: we are now on custom domain, after clearing its cookie bounce to platform
+        if params[:x_logout].present? && @was_on_custom_domain
+          # Second stage: we are now on custom domain; cookies here are cleared, return to platform
           redirect_url = TenantHost.main_domain_url_for(request, '/')
           Rails.logger.debug "[Sessions::destroy] Completed cross-domain logout, redirecting to main domain: #{redirect_url}"
+          redirect_to redirect_url, allow_other_host: true and return
+        elsif @was_on_management_subdomain && params[:x_logout].blank?
+          # First stage: called from bizblasts management subdomain – hop to custom domain to clear host-only cookie
+          target_host = current_business.canonical_domain.presence || current_business.hostname
+          if target_host.present?
+            logout_url = "https://#{target_host}/users/sign_out?x_logout=1"
+            Rails.logger.debug "[Sessions::destroy] Redirecting to custom domain for cookie cleanup: #{logout_url}"
+            redirect_to logout_url, allow_other_host: true and return
+          else
+            # Fallback: no valid target host, go straight to main domain
+            redirect_url = TenantHost.main_domain_url_for(request, '/')
+            Rails.logger.debug "[Sessions::destroy] No valid custom domain, redirecting to main domain: #{redirect_url}"
+            redirect_to redirect_url, allow_other_host: true and return
+          end
+        elsif @was_on_custom_domain
+          # Simple logout directly from custom domain (no management subdomain involved)
+          redirect_url = determine_logout_redirect_url(current_business)
+          Rails.logger.debug "[Sessions::destroy] Redirecting from custom domain to: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
         elsif current_business&.host_type_subdomain?
           # Regular subdomain tenant – after logout go to platform main domain root
