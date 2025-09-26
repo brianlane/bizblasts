@@ -242,9 +242,9 @@ module Users
           Rails.logger.debug "[Sessions::destroy] Redirecting from custom domain to: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
         elsif @was_on_management_subdomain
-          # Sign-out occurred on a bizblasts sub-domain that manages a custom-domain business
-          redirect_url = "https://#{request.host}/" # stay on the same sub-domain
-          Rails.logger.debug "[Sessions::destroy] Redirecting from management subdomain to: #{redirect_url}"
+          # For management subdomains (bizblasts.com) of custom-domain tenants, bounce to platform main domain root.
+          redirect_url = TenantHost.main_domain_url_for(request, '/')
+          Rails.logger.debug "[Sessions::destroy] Redirecting management subdomain logout to main domain: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
         else
           # User was on the main site, just go to root
