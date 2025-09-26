@@ -80,9 +80,18 @@
   <% if @blog_post.featured_image_for_display || @blog_post.featured_image_fallback_url %>
     <div class="mb-8">
       <% if @blog_post.featured_image_for_display %>
-        <%= image_tag @blog_post.featured_image_for_display.variant(:large), 
-            alt: @blog_post.title, 
-            class: "w-full h-64 lg:h-96 object-cover rounded-lg shadow-lg" %>
+        <% img = @blog_post.featured_image_for_display %>
+        <%= image_tag(
+              url_for(img.variant(:large)),
+              srcset: [
+                "#{url_for(img.variant(:thumb))} 600w",
+                "#{url_for(img.variant(:medium))} 800w",
+                "#{url_for(img.variant(:large))} 1200w"
+              ].join(', '),
+              sizes: '(max-width: 768px) 100vw, 1200px',
+              alt: @blog_post.title,
+              class: "w-full h-64 lg:h-96 object-cover rounded-lg shadow-lg"
+            ) %>
       <% else %>
         <img src="<%= @blog_post.featured_image_fallback_url %>" 
              alt="<%= @blog_post.title %>" 

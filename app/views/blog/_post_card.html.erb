@@ -2,9 +2,18 @@
   <% if post.featured_image_for_display || post.featured_image_fallback_url %>
     <div class="aspect-w-16 aspect-h-9">
       <% if post.featured_image_for_display %>
-        <%= image_tag post.featured_image_for_display.variant(:card), 
-            alt: post.title, 
-            class: "w-full h-48 object-cover" %>
+        <% img = post.featured_image_for_display %>
+        <%= image_tag(
+              url_for(img.variant(:card)),
+              srcset: [
+                "#{url_for(img.variant(:thumb))} 600w",
+                "#{url_for(img.variant(:card))} 800w",
+                "#{url_for(img.variant(:large))} 1200w"
+              ].join(', '),
+              sizes: '(max-width: 768px) 100vw, 600px',
+              alt: post.title,
+              class: "w-full h-48 object-cover"
+            ) %>
       <% else %>
         <img src="<%= post.featured_image_fallback_url %>" 
              alt="<%= post.title %>" 

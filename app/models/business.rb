@@ -8,7 +8,7 @@ class Business < ApplicationRecord
     # Services
     hair_salons: "Hair Salons",
     massage_therapy: "Massage Therapy",
-    pet_grooming: "Pet Grooming",
+    pet_services: "Pet Services",
     auto_repair: "Auto Repair",
     hvac_services: "HVAC Services",
     plumbing: "Plumbing",

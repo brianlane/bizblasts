@@ -19,8 +19,8 @@ class ProcessImageJob < ApplicationJob
       return unless blob
     end
 
-    # Only process if it's an image and larger than 2MB
-    if blob.image? && blob.byte_size > 2.megabytes
+    # Always generate variants for images (HEIC can be small in bytes yet high-res)
+    if blob.image?
       generate_variants(attachment)
     end
   rescue ActiveRecord::RecordNotFound => e
@@ -47,6 +47,10 @@ class ProcessImageJob < ApplicationJob
     old_blob.open do |tempfile|
       converted = ImageProcessing::MiniMagick
         .source(tempfile)
+        .auto_orient
+        .strip
+        .colorspace('sRGB')
+        .saver(quality: 92)
         .convert("jpeg")
         .call
 
