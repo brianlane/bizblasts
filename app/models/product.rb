@@ -9,9 +9,10 @@ class Product < ApplicationRecord
   has_many :line_items, through: :product_variants # Use this if products MUST have variants
 
   has_many_attached :images do |attachable|
-    attachable.variant :thumb, resize_to_fill: [400, 300], saver: { quality: 85 }
-    attachable.variant :medium, resize_to_fill: [1200, 900], saver: { quality: 88 } 
-    attachable.variant :large, resize_to_limit: [2000, 2000], saver: { quality: 90 }
+    # Quality handled by ProcessImageJob
+    attachable.variant :thumb, resize_to_fill: [400, 300]
+    attachable.variant :medium, resize_to_fill: [1200, 900] 
+    attachable.variant :large, resize_to_limit: [2000, 2000]
   end
 
   # Ensure `images.ordered` is available on the ActiveStorage proxy
