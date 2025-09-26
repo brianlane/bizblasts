@@ -221,10 +221,20 @@ module Users
       else
         # Production: Use the appropriate domain based on business type
         if current_business&.host_type_custom_domain?
-          # Always clear both the bizblasts cookie *and* the custom-domain cookie
+          # Always clear both the bizblasts cookie *and* the custom-domain cookies
           main_domain = extract_main_domain_from_custom_domain(current_business.hostname)
-          cookies.delete(:business_id, domain: ".#{main_domain}")
-          cookies.delete(:business_id, domain: '.bizblasts.com')
+          # Clear possible variants of session cookie
+          session_key = Rails.application.config.session_options[:key] || '_session_id'
+
+          [
+            { domain: ".#{main_domain}" },            # apex cookie
+            { domain: current_business.hostname },     # exact host (www. or apex)
+            { domain: ".#{current_business.hostname}" }, # wildcard exact
+            { domain: '.bizblasts.com' }               # management domain cookie
+          ].each do |opts|
+            cookies.delete(session_key, opts.merge(path: '/'))
+            cookies.delete(:business_id, opts.merge(path: '/'))
+          end
         else
           cookies.delete(:business_id, domain: '.bizblasts.com')
         end

@@ -38,6 +38,7 @@ class ProcessImageJob < ApplicationJob
     end
 
     # Convert HEIC to JPEG
+    new_blob = nil
     old_blob.open do |tempfile|
       converted = ImageProcessing::MiniMagick
         .source(tempfile)
@@ -62,9 +63,9 @@ class ProcessImageJob < ApplicationJob
           Rails.logger.info "[HEIC_CONVERSION] Old blob already purged: #{old_blob.key}"
         end
       end
-
-      Rails.logger.info "[HEIC_CONVERSION] Successfully converted HEIC to JPEG: #{new_blob.filename}"
     end
+
+    Rails.logger.info "[HEIC_CONVERSION] Successfully converted HEIC to JPEG: #{new_blob.filename}" if new_blob
   rescue ImageProcessing::Error => e
     Rails.logger.error "[HEIC_CONVERSION] HEIC conversion failed: #{e.message}"
     # Keep original HEIC - browser may not display but file is preserved
