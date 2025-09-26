@@ -246,6 +246,11 @@ module Users
           redirect_url = TenantHost.main_domain_url_for(request, '/')
           Rails.logger.debug "[Sessions::destroy] Redirecting management subdomain logout to main domain: #{redirect_url}"
           redirect_to redirect_url, allow_other_host: true and return
+        elsif current_business&.host_type_subdomain?
+          # Regular subdomain tenant – after logout go to platform main domain root
+          redirect_url = TenantHost.main_domain_url_for(request, '/')
+          Rails.logger.debug "[Sessions::destroy] Redirecting subdomain logout to main domain: #{redirect_url}"
+          redirect_to redirect_url, allow_other_host: true and return
         else
           # User was on the main site, just go to root
           redirect_to root_path and return
