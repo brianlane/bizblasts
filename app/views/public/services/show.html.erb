@@ -10,13 +10,31 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <% if @service.primary_image.present? %>
           <div class="md:col-span-2">
-            <%= image_tag rails_public_blob_url(@service.primary_image.representation(resize_to_limit: [600, 400])), class: "w-full rounded-lg shadow-md object-cover" %>
+            <% main_img = @service.primary_image %>
+            <%= image_tag(
+                  rails_public_blob_url(main_img.variant(:large)),
+                  srcset: [
+                    "#{rails_public_blob_url(main_img.variant(:thumb))} 400w",
+                    "#{rails_public_blob_url(main_img.variant(:medium))} 1200w",
+                    "#{rails_public_blob_url(main_img.variant(:large))} 2000w"
+                  ].join(', '),
+                  sizes: '(max-width: 768px) 100vw, 1200px',
+                  class: "w-full rounded-lg shadow-md object-cover"
+                ) %>
           </div>
         <% end %>
         <% @service.images.ordered.each do |img|
              next if @service.primary_image.present? && img.id == @service.primary_image.id %>
            <div>
-             <%= image_tag rails_public_blob_url(img.representation(resize_to_limit: [300, 200])), class: "w-full rounded-lg shadow-md object-cover" %>
+             <%= image_tag(
+                   rails_public_blob_url(img.variant(:medium)),
+                   srcset: [
+                     "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                     "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                   ].join(', '),
+                   sizes: '(max-width: 768px) 100vw, 600px',
+                   class: "w-full rounded-lg shadow-md object-cover"
+                 ) %>
            </div>
         <% end %>
       </div>

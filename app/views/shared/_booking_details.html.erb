@@ -48,7 +48,16 @@
   <%# Display Service Image if available %>
   <% if booking.service.present? && booking.service.primary_image&.attached? %>
     <div class="mb-4">
-              <%= image_tag rails_public_blob_url(booking.service.primary_image.representation(resize_to_limit: [150, 150])), class: "rounded shadow-md" %>
+      <% img = booking.service.primary_image %>
+      <%= image_tag(
+            rails_public_blob_url(img.variant(:thumb)),
+            srcset: [
+              "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+              "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+            ].join(', '),
+            sizes: '(max-width: 768px) 100vw, 300px',
+            class: "rounded shadow-md object-cover"
+          ) %>
     </div>
   <% end %>
 

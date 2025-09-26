@@ -5,7 +5,16 @@
     <div class="product-images flex-1">
       <% if @product.images.attached? %>
         <% @product.images.each do |img| %>
-          <%= image_tag rails_public_blob_url(img.variant(resize_to_limit: [400, 400])), style: 'margin: 0 10px 10px 0;' %>
+          <%= image_tag(
+                rails_public_blob_url(img.variant(:medium)),
+                srcset: [
+                  "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                  "#{rails_public_blob_url(img.variant(:medium))} 1200w",
+                  "#{rails_public_blob_url(img.variant(:large))} 2000w"
+                ].join(', '),
+                sizes: '(max-width: 768px) 100vw, 600px',
+                style: 'margin: 0 10px 10px 0;'
+              ) %>
         <% end %>
       <% end %>
     </div>

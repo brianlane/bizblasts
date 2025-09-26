@@ -22,13 +22,29 @@
         <div class="flex items-start space-x-4">
           <% if @product&.images&.attached? %>
             <div class="flex-shrink-0">
-              <%= image_tag rails_public_blob_url(@product.images.first.variant(resize_to_limit: [100, 100])), 
-                    class: "w-20 h-20 rounded-lg object-cover" %>
+              <% img = @product.images.first %>
+              <%= image_tag(
+                    rails_public_blob_url(img.variant(:thumb)),
+                    srcset: [
+                      "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                      "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                    ].join(', '),
+                    sizes: '(max-width: 768px) 100vw, 160px',
+                    class: "w-20 h-20 rounded-lg object-cover"
+                  ) %>
             </div>
           <% elsif @service&.images&.attached? %>
             <div class="flex-shrink-0">
-              <%= image_tag rails_public_blob_url(@service.images.first.representation(resize_to_limit: [100, 100])), 
-                    class: "w-20 h-20 rounded-lg object-cover" %>
+              <% img = @service.images.first %>
+              <%= image_tag(
+                    rails_public_blob_url(img.variant(:thumb)),
+                    srcset: [
+                      "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                      "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                    ].join(', '),
+                    sizes: '(max-width: 768px) 100vw, 160px',
+                    class: "w-20 h-20 rounded-lg object-cover"
+                  ) %>
             </div>
           <% else %>
             <div class="flex-shrink-0 w-20 h-20 bg-purple-100 rounded-lg flex items-center justify-center">

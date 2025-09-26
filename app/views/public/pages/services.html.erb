@@ -19,8 +19,16 @@
             <div class="mb-4 relative">
               <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
               <%= link_to tenant_service_path(service, link_params) do %>
-                <%= image_tag rails_public_blob_url(service.primary_image.representation(resize_to_limit: [400, 300])), 
-                            class: "w-full h-48 object-cover rounded-md shadow-sm" %>
+                <% img = service.primary_image %>
+                <%= image_tag(
+                      rails_public_blob_url(img.variant(:medium)),
+                      srcset: [
+                        "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                        "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                      ].join(', '),
+                      sizes: '(max-width: 768px) 100vw, 400px',
+                      class: "w-full h-48 object-cover rounded-md shadow-sm"
+                    ) %>
               <% end %>
               <% if service.on_promotion? %>
                 <div class="absolute top-2 right-2">
