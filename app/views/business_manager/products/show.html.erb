@@ -246,16 +246,26 @@
           </div>
 
           <!-- Subscription Statistics -->
-          <% 
+          <%
             # Calculate subscription metrics for this product
-            product_subscriptions = @product.business.customer_subscriptions.joins(:line_items)
-                                           .where(line_items: { product_id: @product.id })
+            # Follow the relationship: CustomerSubscription -> SubscriptionTransaction -> Order -> LineItems -> ProductVariant -> Product
+            product_subscriptions = @product.business.customer_subscriptions
+                                           .joins(subscription_transactions: { order: { line_items: :product_variant } })
+                                           .where(product_variants: { product_id: @product.id })
+                                           .distinct
             active_subscriptions = product_subscriptions.active
             total_subscriptions = product_subscriptions.count
-            monthly_revenue = active_subscriptions.sum { |sub| sub.line_items.where(product_id: @product.id).sum { |li| li.quantity * li.price } }
-            avg_quantity = active_subscriptions.joins(:line_items)
-                                             .where(line_items: { product_id: @product.id })
-                                             .average('line_items.quantity') || 0
+
+            # Calculate monthly revenue by finding all line items for this product from subscription orders
+            monthly_revenue = active_subscriptions.joins(subscription_transactions: { order: { line_items: :product_variant } })
+                                                 .where(product_variants: { product_id: @product.id })
+                                                 .sum('line_items.total_amount') || 0
+
+            # Calculate average quantity from line items for this product
+            avg_quantity = LineItem.joins(:product_variant, lineable: { subscription_transactions: :customer_subscription })
+                                  .where(product_variants: { product_id: @product.id })
+                                  .where(customer_subscriptions: { status: :active, business_id: @product.business_id })
+                                  .average(:quantity) || 0
           %>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

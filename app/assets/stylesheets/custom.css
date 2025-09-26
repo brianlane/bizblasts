@@ -371,22 +371,6 @@
   max-height: 100%; /* Ensure it doesn't exceed tile height */
 }
 
-/* Desktop Toggle Button Positioning */
-.desktop-toggle-btn {
-  left: 16px;
-  transition: left 0.3s ease-in-out, background-color 0.2s ease-in-out;
-  position: fixed;
-  top: 1rem;
-  z-index: 50;
-}
-
-.desktop-toggle-btn:hover {
-  background-color: #374151; /* gray-700 */
-}
-
-.desktop-toggle-btn.sidebar-open {
-  left: 270px;
-}
 
 /* Mobile-Specific Business Manager Styles */
 @media (max-width: 1023px) {

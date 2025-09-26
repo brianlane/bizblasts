@@ -1,77 +1,226 @@
-<%= form_with model: [:business_manager, :settings, location] do |form| %>
-  <% if location.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(location.errors.count, "error") %> prohibited this location from being saved:</h2>
-
-      <ul>
-        <% location.errors.each do |error| %>
-          <li><%= error.full_message %></li>
+<!-- Error Messages -->
+<% if location.errors.any? %>
+  <div class="bg-red-50 border border-red-300 rounded-xl overflow-hidden shadow-sm mb-8">
+    <div class="px-6 py-4 bg-red-100 border-b border-red-200">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+      </div>
+    </div>
+    <div class="px-6 py-4">
+      <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+        <% location.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
         <% end %>
       </ul>
     </div>
-  <% end %>
+  </div>
+<% end %>
 
-  <div class="field">
-    <%= form.label :name %>
-    <%= form.text_field :name %>
+<%= form_with(model: [:business_manager, :settings, location], local: true, data: { turbo: false }, html: { class: "space-y-8" }) do |form| %>
+  <!-- Location Information Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        Location Information
+      </h2>
+      <p class="text-sm text-gray-600 mt-1">Update your location details and address</p>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Basic Info -->
+        <div class="space-y-4">
+          <div>
+            <%= form.label :name, "Location Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= form.text_field :name,
+                  class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
+                  placeholder: "Main Office, Downtown Store, etc." %>
+          </div>
+          <div>
+            <%= form.label :address, "Street Address", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= form.text_field :address,
+                  class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
+                  placeholder: "123 Main Street" %>
+          </div>
+        </div>
+
+        <!-- Address Details -->
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <%= form.label :city, class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= form.text_field :city,
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
+                    placeholder: "City" %>
+            </div>
+            <div>
+              <%= form.label :state, class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= form.text_field :state, list: "state-list",
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
+                    placeholder: "State" %>
+              <datalist id="state-list">
+                <% %w[Alabama Alaska Arizona Arkansas California Colorado Connecticut Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota Mississippi Missouri Montana Nebraska Nevada New\ Hampshire New\ Jersey New\ Mexico New\ York North\ Carolina North\ Dakota Ohio Oklahoma Oregon Pennsylvania Puerto\ Rico Rhode\ Island South\ Carolina South\ Dakota Tennessee Texas Utah Vermont Virginia Washington West\ Virginia Wisconsin Wyoming].each do |state_name| %>
+                  <option value="<%= state_name %>"><%= state_name %></option>
+                <% end %>
+              </datalist>
+            </div>
+            <div>
+              <%= form.label :zip, "ZIP Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= form.text_field :zip,
+                    pattern: "[0-9]{5}(-[0-9]{4})?",
+                    title: "Please enter a valid ZIP code (5 digits or 5+4 format, e.g., 12345 or 12345-6789)",
+                    maxlength: "10",
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors",
+                    placeholder: "12345 or 12345-6789" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= form.label :address %>
-    <%= form.text_field :address %>
+  <!-- Hours of Operation Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Hours of Operation
+      </h2>
+      <p class="text-sm text-gray-600 mt-1">Set your location hours for each day of the week</p>
+    </div>
+    <div class="p-6">
+      <div class="space-y-4">
+        <% days = %w[monday tuesday wednesday thursday friday saturday sunday] %>
+        <% day_keys = %w[mon tue wed thu fri sat sun] %>
+        <% current_hours = location.hours.is_a?(Hash) ? location.hours.with_indifferent_access : (location.hours.is_a?(String) ? JSON.parse(location.hours || '{}').with_indifferent_access : {}) %>
+        <% days.each_with_index do |day_label, index|
+          day_key = day_keys[index]
+          hours_for_day = current_hours[day_key] || current_hours[day_label.downcase] || {}
+          open_time = hours_for_day[:open] || hours_for_day['open']
+          close_time = hours_for_day[:close] || hours_for_day['close']
+          is_closed = hours_for_day[:closed] || hours_for_day['closed'] || (open_time.blank? && close_time.blank?)
+        %>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="sm:col-span-3">
+              <span class="font-medium text-gray-900"><%= day_label %></span>
+            </div>
+            <div class="sm:col-span-4">
+              <%= label_tag "hours_#{day_key}_open", "Open Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
+              <%= time_field_tag "hours_#{day_key}_open",
+                    open_time,
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors #{'bg-gray-100' if is_closed}",
+                    disabled: is_closed %>
+            </div>
+            <div class="sm:col-span-4">
+              <%= label_tag "hours_#{day_key}_close", "Close Time", class: "block text-xs font-medium text-gray-600 mb-1" %>
+              <%= time_field_tag "hours_#{day_key}_close",
+                    close_time,
+                    class: "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors #{'bg-gray-100' if is_closed}",
+                    disabled: is_closed %>
+            </div>
+            <div class="sm:col-span-1 text-center">
+              <%= check_box_tag "hours_#{day_key}_closed", "1", is_closed,
+                    class: "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500",
+                    onchange: "toggleDayHours('#{day_key}')" %>
+              <label for="hours_<%= day_key %>_closed" class="block text-xs text-gray-600 mt-1">Closed</label>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div class="text-sm text-blue-800">
+            <p class="font-medium mb-1">Hours Tips:</p>
+            <ul class="text-blue-700 space-y-1">
+              <li>• Check "Closed" if the location is closed on that day</li>
+              <li>• Use 12-hour format for times (e.g., 2:00 PM for 14:00)</li>
+              <li>• These hours will be displayed to customers</li>
+              <li>• <strong>Display only:</strong> Location hours don't control booking availability - that's managed by staff and service availability settings</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= form.label :city %>
-    <%= form.text_field :city %>
-  </div>
-
-  <div class="field">
-    <%= form.label :state %>
-    <%= form.text_field :state %>
-  </div>
-
-  <div class="field">
-    <%= form.label :zip %>
-    <%= form.text_field :zip,
-          pattern: "[0-9]{5}(-[0-9]{4})?",
-          title: "Please enter a valid ZIP code (5 digits or 5+4 format, e.g., 12345 or 12345-6789)",
-          maxlength: "10" %>
-  </div>
-
-  <%# Assuming hours is a JSON structure %>
-  <div class="field">
-    <%= form.label :hours %>
-    <% 
-      # Parse the hours value properly to avoid accumulating escape characters
-      hours_value = if location.hours.is_a?(String)
-                      # If it's already a string, use it directly
-                      location.hours
-                    elsif location.hours.is_a?(Hash) 
-                      # If it's a hash, convert to JSON
-                      location.hours.to_json
-                    else
-                      # Default empty object
-                      '{}'
-                    end
-    %>
-    <%= form.text_area :hours, value: hours_value, rows: 10, cols: 80 %>
-  </div>
-  
+  <!-- Business Sync Section -->
   <% if location == @current_business.default_location %>
-    <div class="field mt-4">
-      <%= check_box_tag :sync_to_business, '1', true %>
-      <%= label_tag :sync_to_business, "Update business information with these changes" %>
-      <p class="text-gray-500 text-xs">When checked, your business address and hours will be updated with this location's information.</p>
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+      <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Business Information Sync
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">Sync this location's information with your main business profile</p>
+      </div>
+      <div class="p-6">
+        <div class="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+          <div class="flex items-center h-5 mt-1">
+            <%= check_box_tag :sync_to_business, '1', true,
+                  id: 'sync_to_business',
+                  class: "h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500" %>
+          </div>
+          <div class="flex-1">
+            <%= label_tag 'sync_to_business', "Update business information with these changes",
+                  class: "block font-medium text-green-900 cursor-pointer" %>
+            <p class="text-sm text-green-800 mt-1">
+              When checked, your business address and hours will be updated with this location's information.
+              This ensures consistency between your main business profile and default location.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   <% end %>
 
-  <div class="actions">
-    <%= form.submit %>
+  <!-- Save Button -->
+  <div class="flex justify-end items-center gap-4 pt-6">
+    <%= link_to business_manager_settings_locations_path,
+          class: "inline-flex items-center px-6 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200" do %>
+      Cancel
+    <% end %>
+    <%= form.submit "Update Location",
+          class: "inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer" %>
   </div>
 <% end %>
 
 <script type="text/javascript">
+  // Toggle hours fields when "Closed" checkbox is clicked
+  function toggleDayHours(dayKey) {
+    const closedCheckbox = document.getElementById(`hours_${dayKey}_closed`);
+    const openField = document.getElementById(`hours_${dayKey}_open`);
+    const closeField = document.getElementById(`hours_${dayKey}_close`);
+
+    if (closedCheckbox && openField && closeField) {
+      const isClosed = closedCheckbox.checked;
+
+      openField.disabled = isClosed;
+      closeField.disabled = isClosed;
+
+      if (isClosed) {
+        openField.value = '';
+        closeField.value = '';
+        openField.classList.add('bg-gray-100');
+        closeField.classList.add('bg-gray-100');
+      } else {
+        openField.classList.remove('bg-gray-100');
+        closeField.classList.remove('bg-gray-100');
+      }
+    }
+  }
+
   // Enhanced form validation functions
   function validateField(input, isValid, errorMessage) {
     const existingError = input.parentElement.querySelector('.field-error');
@@ -80,17 +229,16 @@
     }
 
     if (!isValid) {
-      input.style.borderColor = '#ef4444';
-      
+      input.classList.add('border-red-500', 'ring-red-500');
+      input.classList.remove('border-gray-300', 'focus:border-blue-500', 'focus:ring-blue-500');
+
       const errorDiv = document.createElement('div');
-      errorDiv.className = 'field-error';
-      errorDiv.style.color = '#ef4444';
-      errorDiv.style.fontSize = '12px';
-      errorDiv.style.marginTop = '4px';
+      errorDiv.className = 'field-error text-red-500 text-xs mt-1';
       errorDiv.textContent = errorMessage;
       input.parentElement.appendChild(errorDiv);
     } else {
-      input.style.borderColor = '';
+      input.classList.remove('border-red-500', 'ring-red-500');
+      input.classList.add('border-gray-300', 'focus:border-blue-500', 'focus:ring-blue-500');
     }
   }
 
@@ -117,20 +265,20 @@
       field.addEventListener('input', function() {
         // Remove all non-digits and hyphens, then remove any hyphens that aren't in the right place
         let value = this.value.replace(/[^0-9-]/g, '').replace(/-+/g, '-');
-        
+
         // Remove hyphens that aren't after exactly 5 digits
         value = value.replace(/^(\d{1,4})-/, '$1').replace(/(\d{5})-+(\d)/, '$1-$2');
-        
+
         // If we have more than 5 digits without a hyphen, add one
         if (value.length > 5 && !value.includes('-')) {
           value = value.replace(/(\d{5})(\d+)/, '$1-$2');
         }
-        
+
         // Limit to 10 characters max (12345-6789)
         if (value.length > 10) {
           value = value.substring(0, 10);
         }
-        
+
         this.value = value;
       });
     });

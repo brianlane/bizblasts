@@ -213,26 +213,39 @@ module Users
       # Was it served from the management *sub-domain* instead?
       @was_on_management_subdomain = current_business&.host_type_custom_domain? && request_host.ends_with?('.bizblasts.com')
       
-      # Clear our custom cookies with environment-aware domain scoping
-      # Cookies must be cleared with the same domain they were set with
+      # Clear ALL session cookies across all domains to ensure complete logout
+      # This ensures users are logged out from base domain, all subdomains, and custom domains
       if Rails.env.development? || Rails.env.test?
-        # Development: Always use .lvh.me for simplicity
-        delete_session_cookies_for(['.lvh.me'])
+        # Development: Clear all possible lvh.me variants
+        domains_to_clear = [
+          nil,           # host-only cookie for current domain
+          '.lvh.me',     # wildcard for all lvh.me subdomains
+          'lvh.me'       # explicit lvh.me domain
+        ]
+        delete_session_cookies_for(domains_to_clear)
       else
-        # Production: Use the appropriate domain based on business type
+        # Production: Clear ALL possible domain variants for complete logout
+        domains_to_clear = [
+          nil,                    # host-only cookie for current domain
+          '.bizblasts.com',       # wildcard for all bizblasts.com subdomains
+          'bizblasts.com',        # explicit bizblasts.com domain
+          'www.bizblasts.com'     # explicit www.bizblasts.com domain
+        ]
+        
+        # If we're on a custom domain, also clear its variants
         if current_business&.host_type_custom_domain?
-          # Always clear both the bizblasts cookie *and* the custom-domain cookies
           apex_domain = current_business.hostname.sub(/^www\./, '')
-          domains_to_clear = [
-            nil,                                       # host-only cookie (no domain attribute)
-            current_business.hostname,                 # explicit host domain
-            ".#{apex_domain}",                         # apex wildcard
-            ".bizblasts.com"                           # management domain
+          domains_to_clear += [
+            current_business.hostname,     # explicit custom domain
+            ".#{apex_domain}",            # apex wildcard for custom domain
+            apex_domain                   # explicit apex domain
           ]
-          delete_session_cookies_for(domains_to_clear)
-        else
-          delete_session_cookies_for(['.bizblasts.com'])
+          # Add www variant if not already included
+          www_domain = "www.#{apex_domain}"
+          domains_to_clear << www_domain unless domains_to_clear.include?(www_domain)
         end
+        
+        delete_session_cookies_for(domains_to_clear)
       end
       
       # Clear tenant context using ActsAsTenant
