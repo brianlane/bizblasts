@@ -249,15 +249,39 @@
           <%
             # Calculate subscription metrics for this product
             # Follow the relationship: CustomerSubscription -> SubscriptionTransaction -> Order -> LineItems -> ProductVariant -> Product
+            variant_ids = @product.product_variants.ids
+
+            # Base relation with required joins
             product_subscriptions = @product.business.customer_subscriptions
                                            .joins(:line_items)
-                                           .where(line_items: { product_variant_id: @product.product_variants.select(:id) })
+
+            product_subscriptions = if variant_ids.any?
+              product_subscriptions.where(line_items: { product_variant_id: variant_ids })
+            else
+              # Fallback for legacy products that have no variants
+              product_subscriptions.joins(line_items: { product_variant: :product })
+                                   .where(products: { id: @product.id })
+            end
             active_subscriptions = product_subscriptions.active
             total_subscriptions = product_subscriptions.count
-            monthly_revenue = active_subscriptions.sum { |sub| sub.line_items.where(product_variant_id: @product.product_variants.select(:id)).sum { |li| li.quantity * li.price } }
-            avg_quantity = active_subscriptions.joins(:line_items)
-                                             .where(line_items: { product_variant_id: @product.product_variants.select(:id) })
-                                             .average('line_items.quantity') || 0
+            # Monthly revenue calculation respecting variant-less products
+            monthly_revenue = if variant_ids.any?
+              active_subscriptions.sum { |sub| sub.line_items.where(product_variant_id: variant_ids).sum { |li| li.quantity * li.price } }
+            else
+              active_subscriptions.joins(line_items: { product_variant: :product })
+                                 .where(products: { id: @product.id })
+                                 .sum('line_items.quantity * line_items.price')
+            end
+
+            avg_quantity = if variant_ids.any?
+              active_subscriptions.joins(:line_items)
+                                 .where(line_items: { product_variant_id: variant_ids })
+                                 .average('line_items.quantity') || 0
+            else
+              active_subscriptions.joins(line_items: { product_variant: :product })
+                                 .where(products: { id: @product.id })
+                                 .average('line_items.quantity') || 0
+            end
           %>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
