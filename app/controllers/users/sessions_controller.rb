@@ -217,29 +217,21 @@ module Users
       # Cookies must be cleared with the same domain they were set with
       if Rails.env.development? || Rails.env.test?
         # Development: Always use .lvh.me for simplicity
-        cookies.delete(:business_id, domain: '.lvh.me')
+        delete_session_cookies_for(['.lvh.me'])
       else
         # Production: Use the appropriate domain based on business type
         if current_business&.host_type_custom_domain?
           # Always clear both the bizblasts cookie *and* the custom-domain cookies
           apex_domain = current_business.hostname.sub(/^www\./, '')
-          session_key = Rails.application.config.session_options[:key] || :_session_id
-
-          variants = [
-            {},                                        # host-only cookie (no domain attribute)
-            { domain: current_business.hostname },     # explicit host domain
-            { domain: ".#{apex_domain}" },             # apex wildcard
-            { domain: ".bizblasts.com" }               # management domain
+          domains_to_clear = [
+            nil,                                       # host-only cookie (no domain attribute)
+            current_business.hostname,                 # explicit host domain
+            ".#{apex_domain}",                         # apex wildcard
+            ".bizblasts.com"                           # management domain
           ]
-
-          variants.each do |opts|
-            cookies.delete(session_key, opts.merge(path: '/'))
-            cookies.delete(:business_id, opts.merge(path: '/'))
-          end
+          delete_session_cookies_for(domains_to_clear)
         else
-          session_key = Rails.application.config.session_options[:key] || :_session_id
-          cookies.delete(session_key, domain: '.bizblasts.com', path: '/')
-          cookies.delete(:business_id, domain: '.bizblasts.com')
+          delete_session_cookies_for(['.bizblasts.com'])
         end
       end
       
