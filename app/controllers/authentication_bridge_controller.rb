@@ -137,7 +137,10 @@ class AuthenticationBridgeController < ApplicationController
       
       # Sign in the user on this domain
       sign_in(auth_token.user)
-      
+      # Rotate session token for extra security and set in session
+      auth_token.user.rotate_session_token!
+      session[:session_token] = auth_token.user.session_token
+
       Rails.logger.info "[AuthBridge] Successfully authenticated user #{auth_token.user.id} on custom domain #{request.host}"
       
       # Remove any legacy session cookies that might shadow the new host-only cookie
@@ -198,7 +201,10 @@ class AuthenticationBridgeController < ApplicationController
       
       # Sign in the user on this domain
       sign_in(bridge.user)
-      
+      # Rotate session token for extra security and set in session
+      bridge.user.rotate_session_token!
+      session[:session_token] = bridge.user.session_token
+
       Rails.logger.info "[AuthBridge] Successfully bridged authentication for user #{bridge.user.id} from #{request.remote_ip}"
       
       render json: { 

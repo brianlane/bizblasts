@@ -101,6 +101,16 @@ class ApplicationController < ActionController::Base
     ActsAsTenant.current_tenant
   end
 
+  # Override Devise's current_user to validate session tokens
+  def current_user
+    return nil unless session[:user_id] && session[:session_token]
+
+    @current_user ||= begin
+      user = User.find_by(id: session[:user_id])
+      user if user&.valid_session?(session[:session_token])
+    end
+  end
+
   # Make tenant setting logic protected so subclasses can call it
   protected 
 
