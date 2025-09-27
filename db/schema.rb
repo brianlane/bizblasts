@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_27_000000) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_27_153512) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1599,6 +1599,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_27_000000) do
     t.boolean "phone_opt_in", default: false, null: false
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
+    t.string "session_token"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
     t.index ["email", "role"], name: "index_users_on_email_and_role"
@@ -1606,6 +1607,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_27_000000) do
     t.index ["last_sign_in_at"], name: "index_users_on_last_sign_in_at"
     t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["session_token"], name: "index_users_on_session_token"
     t.index ["unsubscribe_token"], name: "index_users_on_unsubscribe_token", unique: true
   end
 

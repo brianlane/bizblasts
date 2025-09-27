@@ -40,6 +40,7 @@ class User < ApplicationRecord
   after_update :sync_phone_to_tenant_customers, if: -> { client? && saved_change_to_phone? && phone.present? }
   after_create :generate_unsubscribe_token
   after_create :set_default_notification_preferences
+  before_create :generate_session_token
 
   # Validations
   validates :email, presence: true,
@@ -387,7 +388,7 @@ class User < ApplicationRecord
 
   def update_notification_preferences_for_unsubscribe
     return unless notification_preferences.present?
-    
+
     # Disable all email-related notification preferences
     updated_preferences = notification_preferences.dup
     email_preferences = %w[
@@ -406,12 +407,31 @@ class User < ApplicationRecord
       email_system_notifications
       email_marketing_updates
     ]
-    
+
     email_preferences.each do |pref|
       updated_preferences[pref] = false
     end
-    
+
     update_column(:notification_preferences, updated_preferences)
+  end
+
+  # Session token methods for global logout
+  def invalidate_all_sessions!
+    update!(session_token: SecureRandom.hex(32))
+  end
+
+  def valid_session?(token)
+    return false if session_token.blank? # Handle legacy users without session tokens
+    return false if token.blank? # Handle sessions without tokens
+    session_token == token
+  end
+
+  def generate_session_token
+    self.session_token = SecureRandom.hex(32)
+  end
+
+  def rotate_session_token!
+    update!(session_token: SecureRandom.hex(32))
   end
 
   private # Ensure private keyword exists or add it if needed

@@ -18,7 +18,10 @@ class Users::MagicLinksController < Devise::Passwordless::SessionsController
     if resource && token_valid
       # Sign in the user
       sign_in(resource_name, resource)
-      
+      # Rotate session token for extra security and set in session
+      resource.rotate_session_token!
+      session[:session_token] = resource.session_token
+
       # Set the success flash message like standard Devise does
       set_flash_message!(:notice, :signed_in)
       

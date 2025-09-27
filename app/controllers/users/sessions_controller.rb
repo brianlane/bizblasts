@@ -47,7 +47,11 @@ module Users
       self.resource = warden.authenticate!(auth_options)
       set_flash_message!(:notice, :signed_in)
       sign_in(resource_name, resource)
-      
+
+      # Rotate session token for extra security and set in session
+      resource.rotate_session_token!
+      session[:session_token] = resource.session_token
+
       # Store business ID in session if applicable (still useful for other potential logic)
       # This helps with performance and debugging by caching the business association
       if resource.respond_to?(:business) && resource.business.present?
@@ -200,6 +204,9 @@ module Users
     # 3. Clear cookies with the correct domain scope
     # 4. Redirect to the appropriate domain after sign-out
     def destroy
+      # Invalidate all sessions globally for this user
+      current_user&.invalidate_all_sessions!
+
       # Check if we're on a subdomain or custom domain
       # This information is used to determine where to redirect after sign-out
       current_business = ActsAsTenant.current_tenant || find_current_business_from_request
