@@ -111,12 +111,6 @@ class ApplicationController < ActionController::Base
     # If not present (e.g., in tests or legacy sessions), allow the user through
     # This provides security when session tokens exist while maintaining compatibility
     if session[:session_token].present?
-      # Reload user to ensure we have fresh session_token from database
-      # This prevents issues with stale user objects after logout
-      user.reload
-      
-      Rails.logger.debug "[current_user] Validating session token. User: #{user.id}, Session token: #{session[:session_token][0..8]}..., User token: #{user.session_token[0..8]}..."
-      
       unless user.valid_session?(session[:session_token])
         Rails.logger.info "[current_user] Session token invalid - user logged out elsewhere"
         return nil

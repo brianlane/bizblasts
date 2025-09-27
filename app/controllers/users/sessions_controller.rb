@@ -410,19 +410,25 @@ module Users
         end
       end
 
-      # Set return URL to the home page of the custom domain, not the sign-in page
-      # This way when users are already signed in, they go back to the custom domain home
-      custom_domain_home = "#{request.protocol}#{request.host_with_port}/"
+      # Preserve the original URL the user was trying to access
+      # If they were trying to access /users/sign_in, redirect to home page instead
+      original_url = request.original_url
+      return_url = if original_url.include?('/users/sign_in')
+        # If they were trying to sign in, send them to the home page
+        "#{request.protocol}#{request.host_with_port}/"
+      else
+        # Otherwise, send them back to the original page they were trying to access
+        original_url
+      end
       
-      Rails.logger.info "[Redirect Auth] Setting session[:return_to] = #{custom_domain_home}"
-      session[:return_to] = custom_domain_home
-      Rails.logger.info "[Redirect Auth] Session after setting return_to: #{session.to_h.inspect}"
+      Rails.logger.info "[Redirect Auth] Setting return URL to: #{return_url}"
+      session[:return_to] = return_url
       
       target_url = TenantHost.main_domain_url_for(
         request,
         "/users/sign_in"
       )
-      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}, will return to #{custom_domain_home}"
+      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}, will return to #{return_url}"
       redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
     end
 
