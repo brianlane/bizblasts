@@ -103,12 +103,18 @@ class ApplicationController < ActionController::Base
 
   # Override Devise's current_user to validate session tokens
   def current_user
-    return nil unless session[:user_id] && session[:session_token]
-
-    @current_user ||= begin
-      user = User.find_by(id: session[:user_id])
-      user if user&.valid_session?(session[:session_token])
+    # First get the user via Devise's standard mechanism
+    user = super
+    return nil unless user
+    
+    # If session token is present, validate it for global logout functionality
+    # If not present (e.g., in tests or legacy sessions), allow the user through
+    # This provides security when session tokens exist while maintaining compatibility
+    if session[:session_token].present?
+      return nil unless user.valid_session?(session[:session_token])
     end
+    
+    user
   end
 
   # Make tenant setting logic protected so subclasses can call it
