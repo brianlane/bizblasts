@@ -111,7 +111,16 @@ class ApplicationController < ActionController::Base
     # If not present (e.g., in tests or legacy sessions), allow the user through
     # This provides security when session tokens exist while maintaining compatibility
     if session[:session_token].present?
-      return nil unless user.valid_session?(session[:session_token])
+      # Reload user to ensure we have fresh session_token from database
+      # This prevents issues with stale user objects after logout
+      user.reload
+      
+      Rails.logger.debug "[current_user] Validating session token. User: #{user.id}, Session token: #{session[:session_token][0..8]}..., User token: #{user.session_token[0..8]}..."
+      
+      unless user.valid_session?(session[:session_token])
+        Rails.logger.info "[current_user] Session token invalid - user logged out elsewhere"
+        return nil
+      end
     end
     
     user
@@ -293,25 +302,32 @@ class ApplicationController < ActionController::Base
 
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in
-  # This method handles complex multi-tenant redirect scenarios
+  # This method now properly handles both subdomain and custom domain scenarios
   def after_sign_in_path_for(resource)
     # Check the type of resource signed in (User, AdminUser, etc.)
     if resource.is_a?(AdminUser)
-      return admin_root_path
+      admin_root_path
     elsif resource.is_a?(User)
-      # Business users (manager/staff) – redirect to their tenant dashboard
-      if resource.has_any_role?(:manager, :staff) && resource.business.present?
-        Rails.logger.debug "[after_sign_in] Business User: #{resource.email}. Redirecting to tenant dashboard."
-        return TenantHost.url_for(resource.business, request, '/manage/dashboard')
+      case resource.role
+      when 'manager', 'staff'
+        # Redirect manager/staff to their business-specific dashboard
+        # This logic handles both subdomain and custom domain cases
+        if resource.business.present?
+          redirect_url = generate_business_dashboard_url(resource.business)
+          Rails.logger.debug "[after_sign_in] Manager/Staff redirecting to business dashboard"
+          redirect_url
+        else
+          # Fallback if user has no business (should not happen for manager/staff)
+          Rails.logger.warn "[after_sign_in] Manager/Staff user ##{resource.id} has no associated business."
+          root_path
+        end
+      when 'client'
+        # Redirect clients to the main client dashboard (on the main domain)
+        dashboard_path
+      else
+        # Fallback for unknown roles
+        root_path 
       end
-      
-      # Redirect clients to their dashboard
-      if resource.client?
-        return dashboard_path
-      end
-      
-      # Fallback for other user types
-      return root_path
     else
       # Default fallback for other resource types
       super

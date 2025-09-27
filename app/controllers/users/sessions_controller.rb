@@ -25,15 +25,31 @@ module Users
     # This prevents UnsafeRedirectError when users are already logged in and Devise tries to
     # redirect them without allow_other_host: true
     def new
-      if user_signed_in?
-        redirect_path = after_sign_in_path_for(current_user)
-        Rails.logger.debug "[Sessions::new] User already signed in, redirecting to: #{redirect_path}"
+      # Force session token validation to handle post-logout inconsistency
+      # user_signed_in? might return true due to Devise memoization, but current_user validates session token
+      authenticated_user = current_user
+      
+      if authenticated_user.present?
+        # Check if there's a return_to URL from the redirect (when coming from custom domain)
+        return_url = session[:return_to]
         
-        # Use allow_other_host: true to handle cross-domain redirects safely
-        if redirect_path.include?("://") && redirect_path != request.url
-          return redirect_to redirect_path, allow_other_host: true, status: :see_other
+        Rails.logger.info "[Sessions::new] User #{authenticated_user.id} already signed in. Session return_to: #{return_url.inspect}"
+        
+        if return_url.present?
+          Rails.logger.info "[Sessions::new] Redirecting already signed-in user back to: #{return_url}"
+          session.delete(:return_to) # Clean up
+          return redirect_to return_url, allow_other_host: true, status: :see_other
         else
-          return redirect_to redirect_path, status: :see_other
+          # Default behavior - redirect to appropriate dashboard
+          redirect_path = after_sign_in_path_for(current_user)
+          Rails.logger.debug "[Sessions::new] User already signed in, redirecting to: #{redirect_path}"
+          
+          # Use allow_other_host: true to handle cross-domain redirects safely
+          if redirect_path.include?("://") && redirect_path != request.url
+            return redirect_to redirect_path, allow_other_host: true, status: :see_other
+          else
+            return redirect_to redirect_path, status: :see_other
+          end
         end
       end
       super
@@ -371,14 +387,42 @@ module Users
     def redirect_auth_from_subdomain
       return if TenantHost.main_domain?(request.host)
 
-      # Preserve original full URL so we can send users back after authentication
-      original_url = request.original_url
-      session[:return_to] = original_url
+      # Force session token validation before redirect to handle post-logout inconsistency
+      # This addresses the case where custom domain shows "logged out" but main domain
+      # still thinks user is logged in due to stale session token
+      Rails.logger.info "[Redirect Auth] Checking authentication state. user_signed_in?: #{user_signed_in?}"
+      
+      if user_signed_in?
+        Rails.logger.info "[Redirect Auth] User appears signed in via Devise, validating session token..."
+        
+        # Force current_user evaluation which will validate session token
+        # This bypasses Devise's memoization and forces our session token validation
+        current_user_check = current_user
+        
+        Rails.logger.info "[Redirect Auth] After current_user validation: #{current_user_check.present? ? "valid user #{current_user_check.id}" : "nil (invalid session)"}"
+        
+        if current_user_check.nil?
+          Rails.logger.info "[Redirect Auth] Session token invalid after logout - clearing session and signing out"
+          reset_session
+          sign_out_all_scopes # Ensure Devise also clears its state
+        else
+          Rails.logger.info "[Redirect Auth] Session token valid, user is genuinely signed in"
+        end
+      end
+
+      # Set return URL to the home page of the custom domain, not the sign-in page
+      # This way when users are already signed in, they go back to the custom domain home
+      custom_domain_home = "#{request.protocol}#{request.host_with_port}/"
+      
+      Rails.logger.info "[Redirect Auth] Setting session[:return_to] = #{custom_domain_home}"
+      session[:return_to] = custom_domain_home
+      Rails.logger.info "[Redirect Auth] Session after setting return_to: #{session.to_h.inspect}"
+      
       target_url = TenantHost.main_domain_url_for(
         request,
         "/users/sign_in"
       )
-      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}"
+      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}, will return to #{custom_domain_home}"
       redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
     end
 
