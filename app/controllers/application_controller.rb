@@ -293,32 +293,25 @@ class ApplicationController < ActionController::Base
 
   # === DEVISE OVERRIDES ===
   # Customize the redirect path after sign-in
-  # This method now properly handles both subdomain and custom domain scenarios
+  # This method handles complex multi-tenant redirect scenarios
   def after_sign_in_path_for(resource)
     # Check the type of resource signed in (User, AdminUser, etc.)
     if resource.is_a?(AdminUser)
-      admin_root_path
+      return admin_root_path
     elsif resource.is_a?(User)
-      case resource.role
-      when 'manager', 'staff'
-        # Redirect manager/staff to their business-specific dashboard
-        # This logic handles both subdomain and custom domain cases
-        if resource.business.present?
-          redirect_url = generate_business_dashboard_url(resource.business)
-          Rails.logger.debug "[after_sign_in] Manager/Staff redirecting to business dashboard"
-          redirect_url
-        else
-          # Fallback if user has no business (should not happen for manager/staff)
-          Rails.logger.warn "[after_sign_in] Manager/Staff user ##{resource.id} has no associated business."
-          root_path
-        end
-      when 'client'
-        # Redirect clients to the main client dashboard (on the main domain)
-        dashboard_path
-      else
-        # Fallback for unknown roles
-        root_path 
+      # Business users (manager/staff) – redirect to their tenant dashboard
+      if resource.has_any_role?(:manager, :staff) && resource.business.present?
+        Rails.logger.debug "[after_sign_in] Business User: #{resource.email}. Redirecting to tenant dashboard."
+        return TenantHost.url_for(resource.business, request, '/manage/dashboard')
       end
+      
+      # Redirect clients to their dashboard
+      if resource.client?
+        return dashboard_path
+      end
+      
+      # Fallback for other user types
+      return root_path
     else
       # Default fallback for other resource types
       super
