@@ -15,14 +15,26 @@ class AuthenticationBridgeController < ApplicationController
   # GET /auth/bridge?target_url=https://custom-domain.com/path&business_id=123
   def create
     unless user_signed_in?
+      AuthenticationTracker.track_bridge_failed('unauthenticated', request)
+      Rails.logger.warn "[AuthBridge] Unauthenticated access attempt from #{request.remote_ip}"
       render json: { error: 'Authentication required' }, status: :unauthorized
       return
     end
-    
+
+    # Enhanced security: Check for suspicious request patterns
+    unless valid_bridge_request?
+      AuthenticationTracker.track_suspicious_request(request, 'invalid_bridge_request', user: current_user)
+      Rails.logger.warn "[AuthBridge] Suspicious request pattern from user #{current_user.id}, IP: #{request.remote_ip}"
+      render json: { error: 'Invalid request' }, status: :bad_request
+      return
+    end
+
     target_url = params[:target_url]
     business_id = params[:business_id]
-    
+
     unless valid_target_url?(target_url, business_id)
+      AuthenticationTracker.track_bridge_failed('invalid_target_url', request, user: current_user, target_url: target_url, business_id: business_id)
+      Rails.logger.warn "[AuthBridge] Invalid target URL from user #{current_user.id}: #{target_url&.truncate(100)}"
       render json: { error: 'Invalid target URL' }, status: :bad_request
       return
     end
@@ -79,27 +91,30 @@ class AuthenticationBridgeController < ApplicationController
           target_url,
           request
         )
-      
+
+        # Track successful token creation
+        AuthenticationTracker.track_bridge_created(current_user, target_url, business_id, request)
+
       # Build redirect URL to custom domain's token consumption endpoint
       # This avoids embedding tokens in query params for better security
-      
+
       # Route to the token consumption endpoint on the canonical target domain
       # Use the business canonical host to avoid apex↔www 301 hops
       canonical_host_for_redirect = canonical_host
       consumption_url = "#{uri.scheme}://#{canonical_host_for_redirect}"
       consumption_url += ":#{uri.port}" if uri.port && ![80, 443].include?(uri.port)
       consumption_url += "/auth/consume?auth_token=#{CGI.escape(auth_token.token)}"
-      
+
       # Preserve the original target path for after authentication
       if uri.path.present? && uri.path != '/'
         consumption_url += "&redirect_to=#{CGI.escape(uri.path)}"
       end
-      
+
       # Preserve query parameters from original URL
       if uri.query.present?
         consumption_url += "&original_query=#{CGI.escape(uri.query)}"
       end
-      
+
       Rails.logger.info "[AuthBridge] Created auth token for user #{current_user.id}, redirecting to #{uri.host}"
       
       redirect_to consumption_url, allow_other_host: true
@@ -130,11 +145,15 @@ class AuthenticationBridgeController < ApplicationController
       auth_token = AuthToken.consume!(token, request)
       
       unless auth_token
+        AuthenticationTracker.track_bridge_failed('invalid_token', request, token: token&.first(8))
         Rails.logger.warn "[AuthBridge] Invalid or expired token attempted from #{SecurityConfig.client_ip(request)}"
         redirect_to '/', alert: 'Invalid or expired authentication token'
         return
       end
-      
+
+      # Track successful token consumption
+      AuthenticationTracker.track_bridge_consumed(auth_token.user, auth_token, request)
+
       # Sign in the user on this domain
       sign_in(auth_token.user)
       # Rotate session token for extra security and set in session
@@ -491,22 +510,108 @@ class AuthenticationBridgeController < ApplicationController
   end
   
   def rate_limit_user
+    # Only apply rate limiting if user is authenticated and Warden is available
+    begin
+      return unless respond_to?(:user_signed_in?) && user_signed_in?
+    rescue Devise::MissingWarden
+      return
+    end
+
     # Simple rate limiting: max 10 bridge attempts per user per hour
     # Note: Tokens are database-backed; rate limiting uses Rack::Attack with Rails.cache
     cache_key = "auth_bridge_rate_limit:#{current_user.id}"
     attempts = Rails.cache.read(cache_key) || 0
-    
+
     limit = Rails.env.test? ? 5 : 10
     if attempts >= limit
+      AuthenticationTracker.track_event(:bridge_rate_limited, user: current_user, request: request, attempts: attempts, limit: limit)
       Rails.logger.warn "[AuthBridge] Rate limit exceeded for user #{current_user.id}"
       render json: { error: 'Rate limit exceeded' }, status: :too_many_requests
       return
     end
-    
+
     # Increment counter with 1 hour expiry
     Rails.cache.write(cache_key, attempts + 1, expires_in: 1.hour)
   end
   
+  # Enhanced security validation for auth bridge requests
+  def valid_bridge_request?
+    # Check for basic request validity
+    return false unless request.get? || request.head?
+
+    # Check for suspicious user agents (basic bot detection)
+    if request.user_agent.present?
+      user_agent = request.user_agent.downcase
+      suspicious_patterns = [
+        'bot', 'crawler', 'scraper', 'spider', 'scan',
+        'curl', 'wget', 'postman', 'python-requests'
+      ]
+
+      if suspicious_patterns.any? { |pattern| user_agent.include?(pattern) }
+        Rails.logger.debug "[AuthBridge] Suspicious user agent: #{request.user_agent}"
+        return false
+      end
+    end
+
+    # Check for rapid requests (additional to rate limiting)
+    if detect_rapid_requests?
+      Rails.logger.warn "[AuthBridge] Rapid requests detected from user #{current_user.id}"
+      return false
+    end
+
+    # Check referrer validity (should come from our domains)
+    unless valid_referrer?
+      Rails.logger.debug "[AuthBridge] Invalid or missing referrer from user #{current_user.id}"
+      # Don't reject based on referrer alone, but log for monitoring
+    end
+
+    true
+  end
+
+  # Detect rapid successive requests (beyond rate limiting)
+  def detect_rapid_requests?
+    # Only check for rapid requests if user is authenticated and Warden is available
+    begin
+      return false unless respond_to?(:user_signed_in?) && user_signed_in?
+    rescue Devise::MissingWarden
+      return false
+    end
+
+    cache_key = "auth_bridge_rapid_check:#{current_user.id}"
+    last_request_time = Rails.cache.read(cache_key)
+    current_time = Time.current
+
+    if last_request_time && (current_time - last_request_time) < 2.seconds
+      AuthenticationTracker.track_event(:rapid_requests, user: current_user, request: request,
+                                       time_between_requests: (current_time - last_request_time).round(2))
+      Rails.cache.write(cache_key, current_time, expires_in: 10.seconds)
+      return true
+    end
+
+    Rails.cache.write(cache_key, current_time, expires_in: 10.seconds)
+    false
+  end
+
+  # Validate referrer comes from expected domains
+  def valid_referrer?
+    return true unless request.referer.present? # Allow missing referrer
+
+    begin
+      referrer_uri = URI.parse(request.referer)
+      expected_domains = if Rails.env.production?
+        ['bizblasts.com', 'www.bizblasts.com']
+      elsif Rails.env.development?
+        ['lvh.me', 'www.lvh.me', 'localhost']
+      else
+        ['example.com', 'www.example.com', 'test.host']
+      end
+
+      expected_domains.include?(referrer_uri.host&.downcase)
+    rescue URI::InvalidURIError
+      false
+    end
+  end
+
   def main_domain_request?
     if Rails.env.development? || Rails.env.test?
       # Development/Test: Handle both lvh.me and example.com domains
@@ -520,7 +625,7 @@ class AuthenticationBridgeController < ApplicationController
         'localhost'         # Local development
       ]
       return true if main_domain_patterns.include?(host)
-      
+
       # Also check for no subdomain or www subdomain on these domains
       host_parts = request.host.split('.')
       if host_parts.length >= 2
@@ -530,29 +635,29 @@ class AuthenticationBridgeController < ApplicationController
           return host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
         end
       end
-      
+
       # For localhost or other single-part hosts in test, allow
       true
     else
       # Production: Check for actual main domain patterns
       host = request.host.downcase
-      
+
       # Direct main domain patterns
       main_domain_patterns = [
         'bizblasts.com',
         'www.bizblasts.com',
         'bizblasts.onrender.com'  # Render's internal routing
       ]
-      
+
       return true if main_domain_patterns.include?(host)
-      
+
       # For bizblasts.com, only treat www or no subdomain as main domain
       host_parts = request.host.split('.')
       if host_parts.length >= 2 && host_parts.last(2).join('.') == 'bizblasts.com'
         # Only main domain if no subdomain or www subdomain
         return host_parts.length == 2 || (host_parts.length == 3 && host_parts.first == 'www')
       end
-      
+
       false
     end
   end

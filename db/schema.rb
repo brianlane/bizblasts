@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_27_153512) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -100,6 +100,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_27_153512) do
     t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "device_fingerprint"
+    t.index ["device_fingerprint"], name: "index_auth_tokens_on_device_fingerprint"
     t.index ["expires_at"], name: "index_auth_tokens_on_expires_at"
     t.index ["token"], name: "index_auth_tokens_on_token", unique: true
     t.index ["used", "expires_at"], name: "index_auth_tokens_on_used_and_expires_at"
@@ -569,6 +571,20 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_27_153512) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["business_id"], name: "index_integrations_on_business_id"
+  end
+
+  create_table "invalidated_sessions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "session_token", null: false
+    t.datetime "invalidated_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_invalidated_sessions_on_expires_at"
+    t.index ["session_token", "expires_at"], name: "index_invalidated_sessions_on_token_and_expires_at"
+    t.index ["session_token"], name: "index_invalidated_sessions_on_session_token", unique: true
+    t.index ["user_id", "session_token"], name: "index_invalidated_sessions_on_user_id_and_session_token"
+    t.index ["user_id"], name: "index_invalidated_sessions_on_user_id"
   end
 
   create_table "invoices", force: :cascade do |t|
@@ -1684,6 +1700,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_27_153512) do
   add_foreign_key "external_calendar_events", "calendar_connections"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
+  add_foreign_key "invalidated_sessions", "users"
   add_foreign_key "invoices", "bookings", on_delete: :nullify
   add_foreign_key "invoices", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "orders"
