@@ -33,6 +33,9 @@ class ApplicationController < ActionController::Base
   # Handle cross-domain authentication bridging (runs after tenant is set but before authentication)
   before_action :handle_cross_domain_authentication, unless: :skip_cross_domain_auth?
 
+  # Check for blacklisted sessions before authentication
+  before_action :check_session_blacklist, unless: :skip_user_authentication?
+
   # Authentication (now runs after tenant is set and cross-domain auth handling)
   before_action :authenticate_user!, unless: :skip_user_authentication?
 
@@ -106,14 +109,29 @@ class ApplicationController < ActionController::Base
     # First get the user via Devise's standard mechanism
     user = super
     return nil unless user
-    
+
+    # Check server-side session blacklist first (immediate invalidation across all domains)
+    if session[:session_token].present? && InvalidatedSession.session_blacklisted?(session[:session_token])
+      AuthenticationTracker.track_event(:session_blacklisted, user: user, request: request,
+                                       session_token: session[:session_token]&.first(8))
+      Rails.logger.info "[current_user] Session blacklisted - user logged out elsewhere"
+      sign_out(user)  # Properly clear Warden session and Rails session
+      return nil
+    end
+
     # If session token is present, validate it for global logout functionality
     # If not present (e.g., in tests or legacy sessions), allow the user through
     # This provides security when session tokens exist while maintaining compatibility
     if session[:session_token].present?
-      return nil unless user.valid_session?(session[:session_token])
+      unless user.valid_session?(session[:session_token])
+        AuthenticationTracker.track_event(:session_invalidated, user: user, request: request,
+                                         session_token: session[:session_token]&.first(8))
+        Rails.logger.info "[current_user] Session token invalid - user logged out elsewhere"
+        sign_out(user)  # Properly clear Warden session and Rails session
+        return nil
+      end
     end
-    
+
     user
   end
 
@@ -332,6 +350,33 @@ class ApplicationController < ActionController::Base
     TenantHost.url_for(business, request, path)
   end
 
+  # Check for blacklisted sessions and redirect if necessary
+  def check_session_blacklist
+    # Get current user if available
+    user = warden.user(:user) if respond_to?(:warden) && warden.present?
+    return unless user
+
+    # Check session token from session OR user's current session token
+    session_token_to_check = session[:session_token].presence || user.session_token
+
+    return unless session_token_to_check.present?
+
+    # Check if session is blacklisted
+    if InvalidatedSession.session_blacklisted?(session_token_to_check)
+      # Track the event
+      AuthenticationTracker.track_event(:session_blacklisted, user: user, request: request,
+                                       session_token: session_token_to_check&.first(8))
+
+      Rails.logger.info "[check_session_blacklist] Session blacklisted - redirecting to login"
+
+      # Clear all session data including Warden
+      sign_out(user)
+
+      # Redirect to login
+      redirect_to new_user_session_path and return
+    end
+  end
+
   # Keep other methods private
   private
 
@@ -438,13 +483,48 @@ class ApplicationController < ActionController::Base
   def should_attempt_session_restoration?
     # Only attempt for GET and HEAD requests
     return false unless (request.get? || request.head?)
-    
+
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
-    
-    # Attempt session restoration if user likely came from main domain
-    # This is non-blocking - we try to restore their session but don't interrupt navigation
-    likely_cross_domain_user?
+
+    # Multi-signal approach for session restoration detection
+    # Use multiple indicators to determine if user likely has an active session
+    restoration_signals = []
+
+    # Signal 1: HTTP referrer from main domain
+    if likely_cross_domain_user?
+      restoration_signals << :referrer_from_main_domain
+      Rails.logger.debug "[CrossDomainAuth] Signal detected: referrer_from_main_domain"
+    end
+
+    # Signal 2: Recent auth activity for this business
+    if current_tenant && recent_auth_bridge_activity?
+      restoration_signals << :recent_auth_activity
+      Rails.logger.debug "[CrossDomainAuth] Signal detected: recent_auth_activity"
+    end
+
+    # Signal 3: Authentication cookies present (even if expired)
+    if auth_cookies_present?
+      restoration_signals << :auth_cookies_present
+      Rails.logger.debug "[CrossDomainAuth] Signal detected: auth_cookies_present"
+    end
+
+    # Signal 4: User agent suggests returning user (has session storage capabilities)
+    if returning_user_agent?
+      restoration_signals << :returning_user_agent
+      Rails.logger.debug "[CrossDomainAuth] Signal detected: returning_user_agent"
+    end
+
+    # Attempt restoration if we have at least one strong signal
+    should_attempt = restoration_signals.any?
+
+    if should_attempt
+      Rails.logger.info "[CrossDomainAuth] Session restoration signals: #{restoration_signals.join(', ')}"
+    else
+      Rails.logger.debug "[CrossDomainAuth] No session restoration signals detected"
+    end
+
+    should_attempt
   end
   
   def requires_authentication?
@@ -515,6 +595,61 @@ class ApplicationController < ActionController::Base
     # 2. For public pages with no referrer info, don't attempt session restoration
     # This prevents unnecessary redirects for anonymous users who directly visit business pages
     # The main solution is to fix the business links to go through the auth bridge
+    false
+  end
+
+  # Check for recent auth bridge activity for the current business
+  def recent_auth_bridge_activity?
+    return false unless current_tenant
+
+    # Look for auth tokens created in the last 5 minutes for this business
+    AuthToken.where(
+      'created_at > ? AND target_url LIKE ?',
+      5.minutes.ago,
+      "%#{current_tenant.hostname}%"
+    ).exists?
+  rescue => e
+    Rails.logger.debug "[CrossDomainAuth] Error checking recent auth activity: #{e.message}"
+    false
+  end
+
+  # Check if authentication-related cookies are present
+  def auth_cookies_present?
+    # Check for any authentication-related cookies that might indicate a user session
+    session_key = Rails.application.config.session_options[:key] || '_session_id'
+    remember_token_key = 'remember_user_token'
+
+    cookies[session_key].present? ||
+    cookies[remember_token_key].present? ||
+    cookies['_bizblasts_session'].present?
+  rescue => e
+    Rails.logger.debug "[CrossDomainAuth] Error checking auth cookies: #{e.message}"
+    false
+  end
+
+  # Check if user agent suggests a returning user with session capabilities
+  def returning_user_agent?
+    return false unless request.user_agent.present?
+
+    user_agent = request.user_agent.downcase
+
+    # Skip obvious bots and crawlers
+    bot_patterns = [
+      'bot', 'crawler', 'spider', 'scraper', 'checker', 'monitor',
+      'facebook', 'twitter', 'linkedin', 'google', 'bing', 'yahoo',
+      'curl', 'wget', 'postman'
+    ]
+
+    return false if bot_patterns.any? { |pattern| user_agent.include?(pattern) }
+
+    # Look for browsers that support modern session management
+    browser_patterns = [
+      'chrome', 'firefox', 'safari', 'edge', 'opera', 'brave'
+    ]
+
+    browser_patterns.any? { |pattern| user_agent.include?(pattern) }
+  rescue => e
+    Rails.logger.debug "[CrossDomainAuth] Error checking user agent: #{e.message}"
     false
   end
   

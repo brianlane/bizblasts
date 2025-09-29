@@ -417,7 +417,9 @@ class User < ApplicationRecord
 
   # Session token methods for global logout
   def invalidate_all_sessions!
+    Rails.logger.info "[User#invalidate_all_sessions!] User #{id}: Invalidating all sessions"
     update!(session_token: SecureRandom.hex(32))
+    Rails.logger.info "[User#invalidate_all_sessions!] User #{id}: Session token updated successfully"
   end
 
   def valid_session?(token)

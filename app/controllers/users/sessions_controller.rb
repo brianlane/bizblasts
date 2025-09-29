@@ -25,15 +25,31 @@ module Users
     # This prevents UnsafeRedirectError when users are already logged in and Devise tries to
     # redirect them without allow_other_host: true
     def new
-      if user_signed_in?
-        redirect_path = after_sign_in_path_for(current_user)
-        Rails.logger.debug "[Sessions::new] User already signed in, redirecting to: #{redirect_path}"
+      # Force session token validation to handle post-logout inconsistency
+      # user_signed_in? might return true due to Devise memoization, but current_user validates session token
+      authenticated_user = current_user
+      
+      if authenticated_user.present?
+        # Check if there's a return_to URL from the redirect (when coming from custom domain)
+        return_url = session[:return_to]
         
-        # Use allow_other_host: true to handle cross-domain redirects safely
-        if redirect_path.include?("://") && redirect_path != request.url
-          return redirect_to redirect_path, allow_other_host: true, status: :see_other
+        Rails.logger.info "[Sessions::new] User #{authenticated_user.id} already signed in. Session return_to: #{return_url.inspect}"
+        
+        if return_url.present?
+          Rails.logger.info "[Sessions::new] Redirecting already signed-in user back to: #{return_url}"
+          session.delete(:return_to) # Clean up
+          return redirect_to return_url, allow_other_host: true, status: :see_other
         else
-          return redirect_to redirect_path, status: :see_other
+          # Default behavior - redirect to appropriate dashboard
+          redirect_path = after_sign_in_path_for(current_user)
+          Rails.logger.debug "[Sessions::new] User already signed in, redirecting to: #{redirect_path}"
+          
+          # Use allow_other_host: true to handle cross-domain redirects safely
+          if redirect_path.include?("://") && redirect_path != request.url
+            return redirect_to redirect_path, allow_other_host: true, status: :see_other
+          else
+            return redirect_to redirect_path, status: :see_other
+          end
         end
       end
       super
@@ -51,6 +67,9 @@ module Users
       # Rotate session token for extra security and set in session
       resource.rotate_session_token!
       session[:session_token] = resource.session_token
+
+      # Track successful session creation
+      AuthenticationTracker.track_session_created(resource, request)
 
       # Store business ID in session if applicable (still useful for other potential logic)
       # This helps with performance and debugging by caching the business association
@@ -198,103 +217,46 @@ module Users
     end
 
     # Override Devise's destroy method to handle multi-tenant sign-out
-    # This method needs to:
-    # 1. Determine the current tenant context
-    # 2. Clean up tenant-specific session data
-    # 3. Clear cookies with the correct domain scope
-    # 4. Redirect to the appropriate domain after sign-out
+    # This simplified version uses server-side session blacklisting for reliable cross-domain logout
     def destroy
-      # Invalidate all sessions globally for this user
-      current_user&.invalidate_all_sessions!
-
-      # Check if we're on a subdomain or custom domain
-      # This information is used to determine where to redirect after sign-out
       current_business = ActsAsTenant.current_tenant || find_current_business_from_request
+      logout_user = current_user
 
-      # Track where the request originated
-      request_host = request.host.downcase
+      if logout_user
+        Rails.logger.info "[Sessions::destroy] Starting logout for user #{logout_user.id} from #{request.host}"
 
-      # Was the request served from the business *custom* domain?
-      @was_on_custom_domain = current_business&.host_type_custom_domain? && request_host == current_business.hostname.downcase
+        # Track logout event
+        AuthenticationTracker.track_session_invalidated(logout_user, session[:session_token], request)
 
-      # Was it served from the management *sub-domain* instead?
-      @was_on_management_subdomain = current_business&.host_type_custom_domain? && request_host.ends_with?('.bizblasts.com')
-      
-      # Clear ALL session cookies across all domains to ensure complete logout
-      # This ensures users are logged out from base domain, all subdomains, and custom domains
-      if Rails.env.development? || Rails.env.test?
-        # Development: Clear all possible lvh.me variants
-        domains_to_clear = [
-          nil,           # host-only cookie for current domain
-          '.lvh.me',     # wildcard for all lvh.me subdomains
-          'lvh.me'       # explicit lvh.me domain
-        ]
-        delete_session_cookies_for(domains_to_clear)
-      else
-        # Production: Clear ALL possible domain variants for complete logout
-        domains_to_clear = [
-          nil,                    # host-only cookie for current domain
-          '.bizblasts.com',       # wildcard for all bizblasts.com subdomains
-          'bizblasts.com',        # explicit bizblasts.com domain
-          'www.bizblasts.com'     # explicit www.bizblasts.com domain
-        ]
-        
-        # If we're on a custom domain, also clear its variants
-        if current_business&.host_type_custom_domain?
-          apex_domain = current_business.hostname.sub(/^www\./, '')
-          domains_to_clear += [
-            current_business.hostname,     # explicit custom domain
-            ".#{apex_domain}",            # apex wildcard for custom domain
-            apex_domain                   # explicit apex domain
-          ]
-          # Add www variant if not already included
-          www_domain = "www.#{apex_domain}"
-          domains_to_clear << www_domain unless domains_to_clear.include?(www_domain)
+        # 1. Blacklist current session immediately (server-side, works across all domains)
+        if session[:session_token].present?
+          InvalidatedSession.blacklist_session!(logout_user, session[:session_token])
+          AuthenticationTracker.track_session_blacklisted(logout_user, session[:session_token], 'manual_logout')
+          Rails.logger.info "[Sessions::destroy] Session blacklisted for immediate cross-domain effect"
         end
-        
-        delete_session_cookies_for(domains_to_clear)
+
+        # 2. Invalidate all user sessions globally (rotates session token)
+        logout_user.invalidate_all_sessions!
+
+        # 3. Clear local session and cookies
+        reset_session
+        clear_local_cookies(current_business)
+
+        # 4. Trigger background cleanup for additional tasks
+        CrossDomainLogoutJob.perform_later(logout_user.id, request.remote_ip)
       end
-      
-      # Clear tenant context using ActsAsTenant
-      # This ensures no tenant-specific data remains in the session
+
+      # Clear tenant context
       ActsAsTenant.current_tenant = nil
-      
-      # Call Devise's destroy method with custom redirect logic
-      super do
-        # Determine where to redirect after sign-out
-        if params[:x_logout].present? && @was_on_custom_domain
-          # Second stage: we are now on custom domain; cookies here are cleared, return to platform
-          redirect_url = TenantHost.main_domain_url_for(request, '/')
-          Rails.logger.debug "[Sessions::destroy] Completed cross-domain logout, redirecting to main domain: #{redirect_url}"
-          redirect_to redirect_url, allow_other_host: true and return
-        elsif @was_on_management_subdomain && params[:x_logout].blank?
-          # First stage: called from bizblasts management subdomain – hop to custom domain to clear host-only cookie
-          target_host = current_business.canonical_domain.presence || current_business.hostname
-          if target_host.present?
-            logout_url = "https://#{target_host}/users/sign_out?x_logout=1"
-            Rails.logger.debug "[Sessions::destroy] Redirecting to custom domain for cookie cleanup: #{logout_url}"
-            redirect_to logout_url, allow_other_host: true and return
-          else
-            # Fallback: no valid target host, go straight to main domain
-            redirect_url = TenantHost.main_domain_url_for(request, '/')
-            Rails.logger.debug "[Sessions::destroy] No valid custom domain, redirecting to main domain: #{redirect_url}"
-            redirect_to redirect_url, allow_other_host: true and return
-          end
-        elsif @was_on_custom_domain
-          # Simple logout directly from custom domain (no management subdomain involved)
-          redirect_url = determine_logout_redirect_url(current_business)
-          Rails.logger.debug "[Sessions::destroy] Redirecting from custom domain to: #{redirect_url}"
-          redirect_to redirect_url, allow_other_host: true and return
-        elsif current_business&.host_type_subdomain?
-          # Regular subdomain tenant – after logout go to platform main domain root
-          redirect_url = TenantHost.main_domain_url_for(request, '/')
-          Rails.logger.debug "[Sessions::destroy] Redirecting subdomain logout to main domain: #{redirect_url}"
-          redirect_to redirect_url, allow_other_host: true and return
-        else
-          # User was on the main site, just go to root
-          redirect_to root_path and return
-        end
-      end
+
+      # Handle Devise logout manually to avoid double redirect
+      signed_out = (Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
+      set_flash_message! :notice, :signed_out if signed_out
+
+      # Simple redirect logic - no complex two-stage flow needed
+      redirect_url = determine_logout_redirect_url(current_business)
+      Rails.logger.info "[Sessions::destroy] Redirecting to: #{redirect_url}"
+      redirect_to redirect_url, allow_other_host: true
     end
 
     private
@@ -355,6 +317,24 @@ module Users
       sanitized
     end
 
+    # Clear local cookies for the current domain
+    # This is a simplified version of the previous complex multi-domain cookie clearing
+    def clear_local_cookies(current_business)
+      session_key = Rails.application.config.session_options[:key] || :_session_id
+
+      # Clear session cookies for current domain
+      cookies.delete(session_key, path: '/')
+      cookies.delete(:business_id, path: '/')
+
+      # Clear some additional cookies that might be set
+      cookies.delete(:remember_user_token, path: '/') if cookies[:remember_user_token]
+      cookies.delete(:_bizblasts_session, path: '/') if cookies[:_bizblasts_session]
+
+      Rails.logger.debug "[Sessions::clear_local_cookies] Cleared local cookies for #{request.host}"
+    end
+
+    # Legacy method - kept for compatibility but simplified
+    # Note: This method is now primarily used for testing scenarios
     def delete_session_cookies_for(domains)
       session_key = Rails.application.config.session_options[:key] || :_session_id
       domains.uniq.each do |domain_opt|
@@ -371,14 +351,48 @@ module Users
     def redirect_auth_from_subdomain
       return if TenantHost.main_domain?(request.host)
 
-      # Preserve original full URL so we can send users back after authentication
+      # Force session token validation before redirect to handle post-logout inconsistency
+      # This addresses the case where custom domain shows "logged out" but main domain
+      # still thinks user is logged in due to stale session token
+      Rails.logger.info "[Redirect Auth] Checking authentication state. user_signed_in?: #{user_signed_in?}"
+      
+      if user_signed_in?
+        Rails.logger.info "[Redirect Auth] User appears signed in via Devise, validating session token..."
+        
+        # Force current_user evaluation which will validate session token
+        # This bypasses Devise's memoization and forces our session token validation
+        current_user_check = current_user
+        
+        Rails.logger.info "[Redirect Auth] After current_user validation: #{current_user_check.present? ? "valid user #{current_user_check.id}" : "nil (invalid session)"}"
+        
+        if current_user_check.nil?
+          Rails.logger.info "[Redirect Auth] Session token invalid after logout - clearing session and signing out"
+          reset_session
+          sign_out_all_scopes # Ensure Devise also clears its state
+        else
+          Rails.logger.info "[Redirect Auth] Session token valid, user is genuinely signed in"
+        end
+      end
+
+      # Preserve the original URL the user was trying to access
+      # If they were trying to access /users/sign_in, redirect to home page instead
       original_url = request.original_url
-      session[:return_to] = original_url
+      return_url = if original_url.include?('/users/sign_in')
+        # If they were trying to sign in, send them to the home page
+        "#{request.protocol}#{request.host_with_port}/"
+      else
+        # Otherwise, send them back to the original page they were trying to access
+        original_url
+      end
+      
+      Rails.logger.info "[Redirect Auth] Setting return URL to: #{return_url}"
+      session[:return_to] = return_url
+      
       target_url = TenantHost.main_domain_url_for(
         request,
         "/users/sign_in"
       )
-      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}"
+      Rails.logger.info "[Redirect Auth] Sign-in requested from tenant host; redirecting to #{target_url}, will return to #{return_url}"
       redirect_to target_url, status: :moved_permanently, allow_other_host: true and return
     end
 

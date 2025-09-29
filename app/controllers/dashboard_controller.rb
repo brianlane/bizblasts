@@ -2,6 +2,8 @@
 
 # Controller for the user dashboard
 class DashboardController < ApplicationController
+  before_action :authenticate_user!
+
   def index
     if current_user.manager? || current_user.staff?
       # If a business user, they should go to their business manager dashboard
