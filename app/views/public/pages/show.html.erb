@@ -1,10 +1,15 @@
 <% @business = current_tenant %>
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-6"><%= @business.name %></h1>
-  <p class="mb-4 text-gray-700"><%= @business.description %></p>
+  <% if @business %>
+    <h1 class="text-3xl font-bold mb-6"><%= @business.name %></h1>
+    <p class="mb-4 text-gray-700"><%= @business.description %></p>
+  <% else %>
+    <h1 class="text-3xl font-bold mb-6">Welcome</h1>
+    <p class="mb-4 text-gray-700">Business information is not available.</p>
+  <% end %>
 
   <h2 class="text-2xl font-bold mb-4">Our Services</h2>
-  <% if @business.services.active.any? %>
+  <% if @business&.services&.active&.any? %>
     <div class="space-y-4">
       <% @business.services.active.positioned.each do |service| %>
         <% variants = service.service_variants.active.by_position %>
@@ -65,7 +70,7 @@
   <% end %>
   <br>
   <br>
-  <% products = @business.products.active.where(product_type: [:standard, :mixed]).positioned %>
+  <% products = @business&.products&.active&.where(product_type: [:standard, :mixed])&.positioned || [] %>
   <% products = products.select(&:visible_to_customers?) %>
   <% products = products.select { |p| p.name.downcase.include?(params[:q].downcase) } if params[:q].present? %>
   <% if products.any? %>

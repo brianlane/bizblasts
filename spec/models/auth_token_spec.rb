@@ -74,7 +74,7 @@ RSpec.describe AuthToken, type: :model do
       expect(token.ip_address).to eq(ip_address)
       expect(token.user_agent).to eq(user_agent)
       expect(token.used?).to be_falsey
-      expect(token.expires_at).to be_within(1.second).of(AuthToken::TOKEN_TTL.from_now)
+      expect(token.expires_at).to be_within(1.second).of(AuthToken::TOKEN_TTL.call.from_now)
       expect(token.persisted?).to be_truthy
     end
 
@@ -271,7 +271,7 @@ RSpec.describe AuthToken, type: :model do
       expect(token.expires_at).to be_blank
       
       token.save!
-      expect(token.expires_at).to be_within(1.second).of(AuthToken::TOKEN_TTL.from_now)
+      expect(token.expires_at).to be_within(1.second).of(AuthToken::TOKEN_TTL.call.from_now)
     end
 
     it 'does not override existing token' do

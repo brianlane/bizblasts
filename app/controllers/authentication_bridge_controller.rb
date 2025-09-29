@@ -32,6 +32,34 @@ class AuthenticationBridgeController < ApplicationController
     target_url = params[:target_url]
     business_id = params[:business_id]
 
+    # -----------------------------------------------------------------
+    # Validate business presence and type *before* validating the URL so we
+    # can provide more specific error feedback expected by specs (and users)
+    # -----------------------------------------------------------------
+    if business_id.blank?
+      Rails.logger.warn "[AuthBridge] Missing business_id for bridge request"
+      render json: { error: 'business_id is required' }, status: :bad_request
+      return
+    end
+
+    business = Business.find_by(id: business_id)
+    unless business
+      Rails.logger.warn "[AuthBridge] Unknown business_id #{business_id}"
+      render json: { error: 'Unknown business' }, status: :not_found
+      return
+    end
+
+    unless business.host_type_custom_domain?
+      Rails.logger.warn "[AuthBridge] Business #{business_id} is not custom domain type"
+      render json: { error: 'Business is not custom domain type' }, status: :bad_request
+      return
+    end
+
+    # -----------------------------------------------------------------
+    # Validate the target URL now that we know the business is eligible. This
+    # runs *after* the custom-domain check so the error message above takes
+    # precedence when appropriate.
+    # -----------------------------------------------------------------
     unless valid_target_url?(target_url, business_id)
       AuthenticationTracker.track_bridge_failed('invalid_target_url', request, user: current_user, target_url: target_url, business_id: business_id)
       Rails.logger.warn "[AuthBridge] Invalid target URL from user #{current_user.id}: #{target_url&.truncate(100)}"
@@ -56,18 +84,19 @@ class AuthenticationBridgeController < ApplicationController
       end
 
       # Require business_id and validate host matches business canonical domain
-      unless business_id.present?
-        Rails.logger.warn "[AuthBridge] Missing business_id for bridge request"
-        render json: { error: 'business_id is required' }, status: :bad_request
-        return
-      end
+      # This block is now redundant as business is loaded and validated earlier
+      # unless business_id.present?
+      #   Rails.logger.warn "[AuthBridge] Missing business_id for bridge request"
+      #   render json: { error: 'business_id is required' }, status: :bad_request
+      #   return
+      # end
 
-      business = Business.find_by(id: business_id)
-      unless business
-        Rails.logger.warn "[AuthBridge] Unknown business_id #{business_id}"
-        render json: { error: 'Unknown business' }, status: :not_found
-        return
-      end
+      # business = Business.find_by(id: business_id)
+      # unless business
+      #   Rails.logger.warn "[AuthBridge] Unknown business_id #{business_id}"
+      #   render json: { error: 'Unknown business' }, status: :not_found
+      #   return
+      # end
 
       canonical_host = business.canonical_domain.presence || business.hostname
       unless canonical_host.present?
@@ -510,27 +539,42 @@ class AuthenticationBridgeController < ApplicationController
   end
   
   def rate_limit_user
-    # Only apply rate limiting if user is authenticated and Warden is available
-    begin
-      return unless respond_to?(:user_signed_in?) && user_signed_in?
-    rescue Devise::MissingWarden
-      return
-    end
+    # Determine an identifier for rate-limiting. If the user is authenticated and present,
+    # we use their user ID to prevent them from exhausting the quota via multiple IPs.
+    # Otherwise we fall back to the request IP so anonymous traffic is also throttled.
+    identifier =
+      begin
+        if respond_to?(:user_signed_in?) && user_signed_in? && current_user.present?
+          "user:#{current_user.id}"
+        else
+          "ip:#{request.remote_ip}"
+        end
+      rescue Devise::MissingWarden
+        # In cases where Warden middleware is unavailable (e.g. during certain specs)
+        # we still want to apply IP-based throttling.
+        "ip:#{request.remote_ip}"
+      end
 
-    # Simple rate limiting: max 10 bridge attempts per user per hour
-    # Note: Tokens are database-backed; rate limiting uses Rack::Attack with Rails.cache
-    cache_key = "auth_bridge_rate_limit:#{current_user.id}"
-    attempts = Rails.cache.read(cache_key) || 0
+    # Simple rate limiting: max 10 bridge attempts per identifier per hour (5 in test).
+    cache_key = "auth_bridge_rate_limit:#{identifier}"
+    attempts  = Rails.cache.read(cache_key) || 0
+    limit     = Rails.env.test? ? 5 : 10
 
-    limit = Rails.env.test? ? 5 : 10
     if attempts >= limit
-      AuthenticationTracker.track_event(:bridge_rate_limited, user: current_user, request: request, attempts: attempts, limit: limit)
-      Rails.logger.warn "[AuthBridge] Rate limit exceeded for user #{current_user.id}"
+      AuthenticationTracker.track_event(
+        :bridge_rate_limited,
+        user: current_user,
+        request: request,
+        attempts: attempts,
+        limit: limit,
+        identifier: identifier
+      )
+      Rails.logger.warn "[AuthBridge] Rate limit exceeded for #{identifier}"
       render json: { error: 'Rate limit exceeded' }, status: :too_many_requests
       return
     end
 
-    # Increment counter with 1 hour expiry
+    # Increment counter with a 1-hour expiry
     Rails.cache.write(cache_key, attempts + 1, expires_in: 1.hour)
   end
   

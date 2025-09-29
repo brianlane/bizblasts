@@ -151,10 +151,10 @@ RSpec.describe CrossDomainLogoutJob, type: :job do
         test_user = build(:user, id: 999, email: 'test@example.com')
 
         # Only mock the specific logging call that would fail
-        allow(Rails.logger).to receive(:info).with(/User #{test_user.id}/).and_raise(StandardError.new("Logging error"))
         allow(Rails.logger).to receive(:info) # Allow other logging calls
+        allow(Rails.logger).to receive(:info).with(/User #{test_user.id}/).and_raise(StandardError.new("Logging error"))
 
-        expect(Rails.logger).to receive(:error).with(/Failed to log logout event for user #{test_user.id}: Logging error/)
+        expect(Rails.logger).to receive(:error).with(/\[CrossDomainLogoutJob\] Failed to log logout event for user #{test_user.id}: Logging error/)
 
         expect {
           job.send(:log_logout_event, test_user, ip_address)

@@ -90,6 +90,7 @@ Rails.application.configure do
     "127.0.0.1",
     "lvh.me",                      # Allow root lvh.me for system tests
     "www.example.com",
+    "example.com",                # Allow apex example.com host for integration specs
     /.*\.lvh\.me/,
     /[a-z0-9\-]+\.example\.com/
   ]

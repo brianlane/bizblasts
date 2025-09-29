@@ -17,6 +17,10 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
     # Ensure clean state for each test
     AuthToken.delete_all
     InvalidatedSession.delete_all
+    Rails.cache.clear
+
+    # Disable strict IP matching for integration tests to avoid IP mismatch issues
+    allow(SecurityConfig).to receive(:strict_ip_match?).and_return(false)
   end
 
   # Helper method to create test request for token creation
@@ -29,8 +33,12 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
     # Use Warden's login_as helper which is available in integration specs
     login_as(user, scope: :user)
 
-    # Ensure user has a session token
-    user.update!(session_token: SecureRandom.urlsafe_base64(32)) unless user.session_token.present?
+    # Ensure user has a session token and set it in session like the real sign-in flow
+    user.rotate_session_token! unless user.session_token.present?
+
+    # Make a request to establish session, then set session token like SessionsController does
+    get "/dashboard"
+    session[:session_token] = user.session_token
   end
 
   describe 'Auth Bridge Token Creation and Validation' do
@@ -40,7 +48,7 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
 
       # Test auth bridge token creation
       target_url = "https://example.com/dashboard"
-      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }
+      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
 
       # Should redirect to custom domain with auth token
       expect(response).to have_http_status(:redirect)
@@ -57,7 +65,7 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
 
       # Try to create token for invalid domain
       malicious_url = "https://evil.com/steal-data"
-      get "/auth/bridge", params: { target_url: malicious_url, business_id: custom_domain_business.id }
+      get "/auth/bridge", params: { target_url: malicious_url, business_id: custom_domain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
 
       expect(response).to have_http_status(:bad_request)
       expect(response.body).to include('Invalid target URL')
@@ -67,7 +75,7 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
     it 'requires authentication for token creation' do
       # Try to create token without being signed in
       target_url = "https://example.com/dashboard"
-      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }
+      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
 
       # In Rails, unauthenticated requests typically redirect to login, not return 401
       # But our auth bridge controller explicitly returns 401 JSON for unauthenticated requests
@@ -92,10 +100,10 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
       )
 
       # Test token consumption
-      get "/auth/consume", params: { auth_token: auth_token.token }
+      get "/auth/consume", params: { auth_token: auth_token.token }, headers: { 'HOST' => 'www.example.com' }
 
       expect(response).to have_http_status(:redirect)
-      expect(response.location).to include('/dashboard')
+      expect(response.location).to eq('http://www.example.com/dashboard')
 
       # Token should be marked as used
       auth_token.reload
@@ -138,12 +146,13 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
 
       # Make requests up to the rate limit (5 in test environment)
       5.times do
-        get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }
+        get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
         expect(response).to have_http_status(:redirect) # Should redirect
+        sleep(2.1) # Avoid rapid request detection (2 second threshold)
       end
 
       # 6th request should be rate limited
-      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }
+      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
       expect(response).to have_http_status(:too_many_requests)
       expect(response.body).to include('Rate limit exceeded')
     end
@@ -156,7 +165,7 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
 
       # Try to create bridge to subdomain business (should fail)
       target_url = "https://testbiz.bizblasts.com/dashboard"
-      get "/auth/bridge", params: { target_url: target_url, business_id: subdomain_business.id }
+      get "/auth/bridge", params: { target_url: target_url, business_id: subdomain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
 
       expect(response).to have_http_status(:bad_request)
       expect(response.body).to include('Business is not custom domain type')
@@ -177,6 +186,8 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
       get "/auth/consume", params: { auth_token: auth_token.token }
       expect(response).to have_http_status(:redirect)
 
+      # Reload user to get updated session token from database
+      custom_domain_user.reload
       # Get the session token for later verification
       session_token = custom_domain_user.session_token
 
@@ -189,14 +200,22 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
     end
 
     it 'prevents access with blacklisted sessions' do
+      # Change host to custom domain for this test
+      host! 'example.com'
+
+      # Sign in user (this will set up session token properly)
       sign_in custom_domain_user
+      session_token = custom_domain_user.session_token
+
+      # Make another request to verify normal access works
+      get "/dashboard"
+      expect(response).to have_http_status(:ok).or have_http_status(:redirect)
 
       # Manually blacklist the session
-      session_token = custom_domain_user.session_token
       InvalidatedSession.blacklist_session!(custom_domain_user, session_token)
 
-      # Try to access protected area
-      get "/business_manager/dashboard"
+      # Try to access protected area again - should redirect to login
+      get "/dashboard"
       expect(response).to have_http_status(:redirect)
       expect(response.location).to include('/users/sign_in')
     end
@@ -254,7 +273,7 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
       # Token consumption should work (defensive validation)
       get "/auth/consume", params: { auth_token: auth_token.token }
       expect(response).to have_http_status(:redirect)
-      expect(response.location).to include('/test')
+      expect(response.location).to eq('http://www.example.com/test')
     end
   end
 end

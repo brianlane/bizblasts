@@ -33,6 +33,9 @@ class ApplicationController < ActionController::Base
   # Handle cross-domain authentication bridging (runs after tenant is set but before authentication)
   before_action :handle_cross_domain_authentication, unless: :skip_cross_domain_auth?
 
+  # Check for blacklisted sessions before authentication
+  before_action :check_session_blacklist, unless: :skip_user_authentication?
+
   # Authentication (now runs after tenant is set and cross-domain auth handling)
   before_action :authenticate_user!, unless: :skip_user_authentication?
 
@@ -112,7 +115,7 @@ class ApplicationController < ActionController::Base
       AuthenticationTracker.track_event(:session_blacklisted, user: user, request: request,
                                        session_token: session[:session_token]&.first(8))
       Rails.logger.info "[current_user] Session blacklisted - user logged out elsewhere"
-      reset_session
+      sign_out(user)  # Properly clear Warden session and Rails session
       return nil
     end
 
@@ -124,7 +127,7 @@ class ApplicationController < ActionController::Base
         AuthenticationTracker.track_event(:session_invalidated, user: user, request: request,
                                          session_token: session[:session_token]&.first(8))
         Rails.logger.info "[current_user] Session token invalid - user logged out elsewhere"
-        reset_session
+        sign_out(user)  # Properly clear Warden session and Rails session
         return nil
       end
     end
@@ -345,6 +348,33 @@ class ApplicationController < ActionController::Base
   def generate_business_dashboard_url(business, path = '/manage/dashboard')
     # Use TenantHost for all URL generation - it handles all environments and edge cases
     TenantHost.url_for(business, request, path)
+  end
+
+  # Check for blacklisted sessions and redirect if necessary
+  def check_session_blacklist
+    # Get current user if available
+    user = warden.user(:user) if respond_to?(:warden) && warden.present?
+    return unless user
+
+    # Check session token from session OR user's current session token
+    session_token_to_check = session[:session_token].presence || user.session_token
+
+    return unless session_token_to_check.present?
+
+    # Check if session is blacklisted
+    if InvalidatedSession.session_blacklisted?(session_token_to_check)
+      # Track the event
+      AuthenticationTracker.track_event(:session_blacklisted, user: user, request: request,
+                                       session_token: session_token_to_check&.first(8))
+
+      Rails.logger.info "[check_session_blacklist] Session blacklisted - redirecting to login"
+
+      # Clear all session data including Warden
+      sign_out(user)
+
+      # Redirect to login
+      redirect_to new_user_session_path and return
+    end
   end
 
   # Keep other methods private
