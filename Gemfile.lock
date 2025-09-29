@@ -271,7 +271,7 @@ GEM
       multi_xml (>= 0.5.2)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    icalendar (2.11.2)
+    icalendar (2.12.0)
       base64
       ice_cube (~> 0.16)
       logger
@@ -686,7 +686,7 @@ DEPENDENCIES
   googleauth (~> 1.15)
   groupdate
   httparty (~> 0.21)
-  icalendar (~> 2.10)
+  icalendar (~> 2.12)
   image_processing (~> 1.2)
   jbuilder
   kaminari (~> 1.2)
