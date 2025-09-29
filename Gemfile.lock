@@ -686,7 +686,7 @@ DEPENDENCIES
   googleauth (~> 1.15)
   groupdate
   httparty (~> 0.21)
-  icalendar (~> 2.10)
+  icalendar (~> 2.12)
   image_processing (~> 1.2)
   jbuilder
   kaminari (~> 1.2)
