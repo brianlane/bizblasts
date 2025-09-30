@@ -51,6 +51,24 @@ module Bizblasts
     # SMS Configuration
     config.sms_enabled = ActiveModel::Type::Boolean.new.cast(ENV.fetch('ENABLE_SMS', 'true'))
 
+    # Paths that require authentication
+    # Everything else is public by default (simpler and more maintainable)
+    # Defense in depth: Controllers also have authenticate_user!, but this provides a first-pass check
+    config.x.auth_required_paths = [
+      '/manage',        # Business management area
+      '/dashboard',     # User dashboard
+      '/admin',         # Admin panel (has its own authentication, but included for completeness)
+      '/settings',      # Account settings
+      '/profile',       # User profile
+      '/account',       # Account management
+      '/preferences',   # User preferences
+      '/clients',       # Client management
+      # User personal data - requires authentication to view
+      '/my-bookings',   # User's bookings across all businesses
+      '/invoices',      # User's invoices (viewing/paying)
+      '/transactions'   # User's transaction history
+    ]
+
     # Add app/assets/stylesheets to the asset load path
     config.assets.paths << Rails.root.join("app/assets/stylesheets")
 

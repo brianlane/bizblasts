@@ -381,20 +381,20 @@ class ApplicationController < ActionController::Base
   private
 
   def skip_user_authentication?
-    # Public by default - let controllers handle their own authentication
-    # Controllers use before_action :authenticate_user! where auth is needed
-
-    # Always skip at the application level for:
+    # Skip authentication for:
     # 1. Devise controllers (login, registration, etc.)
     # 2. Admin (has its own authentication)
     # 3. Maintenance mode
+    # 4. Public paths (everything except protected areas)
 
     return true if devise_controller?
     return true if request.path.start_with?('/admin')
     return true if maintenance_mode?
 
-    # Default: Public by default, controllers decide if auth is required
-    true
+    # Default: Skip authentication UNLESS path requires it
+    # This makes the app "public by default" with specific protected areas
+    # Defense in depth: Controllers also have authenticate_user!, but this provides first-pass check
+    !requires_authentication?
   end
   
   def skip_cross_domain_auth?
@@ -494,9 +494,15 @@ class ApplicationController < ActionController::Base
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
 
+    # IMPORTANT: Only attempt session restoration for protected paths
+    # This prevents unnecessary redirects for users viewing public content
+    unless requires_authentication?
+      Rails.logger.debug "[CrossDomainAuth] Public path detected, skipping session restoration"
+      return false
+    end
+
     # Multi-signal approach for session restoration detection
-    # Attempt restoration if user shows signs of having session on main domain
-    # Let controllers decide if authentication is actually required
+    # Use multiple indicators to determine if user likely has an active session
     restoration_signals = []
 
     # Signal 1: HTTP referrer from main domain
@@ -534,7 +540,32 @@ class ApplicationController < ActionController::Base
 
     should_attempt
   end
-  
+
+  def requires_authentication?
+    # Only attempt for GET and HEAD requests
+    return false unless (request.get? || request.head?)
+
+    # Skip for asset files and system endpoints
+    return false if skip_system_paths?
+
+    # Simple approach: Only require authentication for protected paths
+    # Everything else is public by default
+    auth_required_paths = Rails.application.config.x.auth_required_paths
+
+    # Defensive: Use sensible defaults if configuration is not loaded
+    unless auth_required_paths.present?
+      Rails.logger.warn "[Auth] auth_required_paths configuration missing, using fallback defaults"
+      auth_required_paths = [
+        '/manage', '/dashboard', '/admin', '/settings',
+        '/profile', '/account', '/preferences', '/clients',
+        '/my-bookings', '/invoices', '/transactions'
+      ]
+    end
+
+    path = request.path.downcase
+    auth_required_paths.any? { |pattern| path.start_with?(pattern) }
+  end
+
   def skip_system_paths?
     skip_paths = [
       '/assets',             # Asset files
