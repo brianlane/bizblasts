@@ -2,10 +2,13 @@ class AuthenticationBridgeController < ApplicationController
   # Skip tenant requirement for this controller since we're bridging across domains
   skip_before_action :set_tenant
   skip_before_action :authenticate_user!, only: [:consume, :consume_token]
-  
+
   # Enforce main-domain restriction only for bridge creation
   # Token consumption happens on the *custom* domain, so we only restrict the create action
   before_action :ensure_main_domain, only: [:create]
+
+  # Enforce custom-domain restriction for reverse bridge (custom → main)
+  before_action :ensure_custom_domain, only: [:bridge_to_main]
 
   # Specs expect rate-limiting behaviour to be enforced even in the test
   # environment, so we no longer skip the callback when Rails.env.test?
@@ -269,18 +272,131 @@ class AuthenticationBridgeController < ApplicationController
   
   # Health check endpoint for authentication bridge
   def health
-    render json: { 
-      status: 'ok', 
+    render json: {
+      status: 'ok',
       environment: Rails.env,
       main_domain: main_domain_request?
     }
   end
-  
+
+  # Reverse bridge: custom domain → main domain
+  # GET /auth/bridge_to_main?target_path=/dashboard
+  def bridge_to_main
+    unless user_signed_in?
+      Rails.logger.warn "[AuthBridge] Unauthenticated reverse bridge attempt from #{request.remote_ip}"
+      # Redirect to sign in on current domain, then redirect back here
+      session[:return_to] = request.fullpath
+      redirect_to new_user_session_path
+      return
+    end
+
+    # Determine main domain based on environment
+    main_domain = if Rails.env.production?
+      'https://bizblasts.com'
+    elsif Rails.env.development?
+      "#{request.protocol}lvh.me:#{request.port}"
+    else
+      # Test environment
+      "#{request.protocol}example.com"
+    end
+
+    # Get target path (default to root)
+    target_path = params[:target_path].presence || '/'
+
+    # Sanitize target path
+    target_path = sanitize_redirect_path(target_path)
+
+    # Build full target URL
+    target_url = "#{main_domain}#{target_path}"
+
+    # Validate target URL
+    unless valid_main_domain_target?(target_url)
+      Rails.logger.warn "[AuthBridge] Invalid main domain target: #{target_url}"
+      redirect_to '/', alert: 'Invalid target destination'
+      return
+    end
+
+    begin
+      # Create auth token for main domain
+      auth_token = AuthToken.create_for_user!(
+        current_user,
+        target_url,
+        request
+      )
+
+      # Track the reverse bridge creation
+      AuthenticationTracker.track_event(
+        :reverse_bridge_created,
+        user: current_user,
+        request: request,
+        target_url: target_url
+      )
+
+      # Build consumption URL on main domain
+      consumption_url = "#{main_domain}/auth/consume?auth_token=#{CGI.escape(auth_token.token)}"
+
+      # Preserve target path
+      if target_path.present? && target_path != '/'
+        consumption_url += "&redirect_to=#{CGI.escape(target_path)}"
+      end
+
+      Rails.logger.info "[AuthBridge] Reverse bridge created for user #{current_user.id}, redirecting to main domain"
+
+      # Redirect to main domain with auth token
+      redirect_to consumption_url, allow_other_host: true
+
+    rescue => e
+      Rails.logger.error "[AuthBridge] Failed to create reverse bridge: #{e.message}"
+      redirect_to '/', alert: 'Failed to authenticate on main domain'
+    end
+  end
+
   private
   
   def ensure_main_domain
     unless main_domain_request?
       render json: { error: 'This endpoint is only available on the main domain' }, status: :forbidden
+    end
+  end
+
+  def ensure_custom_domain
+    # Only allow reverse bridge from custom domains
+    # This prevents users from creating unnecessary tokens when already on main domain
+    if main_domain_request?
+      Rails.logger.debug "[AuthBridge] Reverse bridge attempted from main domain, redirecting directly"
+      # If they're on main domain, just redirect to target path directly
+      target_path = params[:target_path].presence || '/'
+      redirect_to target_path
+      return
+    end
+  end
+
+  def valid_main_domain_target?(url)
+    return false unless url.present?
+
+    begin
+      uri = URI.parse(url)
+
+      # Must have valid host
+      return false unless uri.host.present?
+
+      # Verify it's actually a main domain URL
+      main_domain_hosts = if Rails.env.production?
+        ['bizblasts.com', 'www.bizblasts.com']
+      elsif Rails.env.development?
+        ['lvh.me', 'www.lvh.me', 'localhost']
+      else
+        ['example.com', 'www.example.com', 'test.host']
+      end
+
+      return false unless main_domain_hosts.include?(uri.host&.downcase)
+
+      # Path should be safe
+      return false if uri.path.include?('../')
+
+      true
+    rescue URI::InvalidURIError
+      false
     end
   end
   

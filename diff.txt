@@ -1,0 +1,303 @@
+diff --git a/app/controllers/application_controller.rb b/app/controllers/application_controller.rb
+index 8f8abf1..6824349 100644
+--- a/app/controllers/application_controller.rb
++++ b/app/controllers/application_controller.rb
+@@ -487,6 +487,13 @@ class ApplicationController < ActionController::Base
+     # Skip for asset files and system endpoints
+     return false if skip_system_paths?
+ 
++    # IMPORTANT: Never attempt session restoration for public paths
++    # This prevents unnecessary redirects for users viewing public content
++    if public_path?
++      Rails.logger.debug "[CrossDomainAuth] Public path detected, skipping session restoration"
++      return false
++    end
++
+     # Multi-signal approach for session restoration detection
+     # Use multiple indicators to determine if user likely has an active session
+     restoration_signals = []
+@@ -530,26 +537,20 @@ class ApplicationController < ActionController::Base
+   def requires_authentication?
+     # Only attempt for GET and HEAD requests
+     return false unless (request.get? || request.head?)
+-    
++
+     # Skip for asset files and system endpoints
+     return false if skip_system_paths?
+-    
++
++    # IMPORTANT: Public paths NEVER require authentication
++    # Check this first to avoid any auth redirects for public content
++    return false if public_path?
++
+     # Only require authentication (blocking redirect) for protected areas
+-    protected_patterns = [
+-      '/manage',             # Business management
+-      '/dashboard',          # User dashboard  
+-      '/profile',            # User profile
+-      '/settings',           # Settings
+-      '/my-bookings',        # User's bookings
+-      '/clients',            # Client management
+-      '/orders',             # User orders
+-      '/subscriptions',      # User subscriptions
+-      '/account',            # Account management
+-      '/preferences'         # User preferences
+-    ]
+-    
++    # Use the configured auth_required_paths from application config
++    auth_required_paths = Rails.application.config.x.auth_required_paths
++
+     path = request.path.downcase
+-    protected_patterns.any? { |pattern| path.start_with?(pattern) }
++    auth_required_paths.any? { |pattern| path.start_with?(pattern) }
+   end
+   
+   def skip_system_paths?
+@@ -563,13 +564,26 @@ class ApplicationController < ActionController::Base
+       '/maintenance',        # Maintenance page
+       '/api'                 # API endpoints (exact match and with slash)
+     ]
+-    
++
+     path = request.path.downcase
+     # Check for exact match or path starting with skip_path + '/'
+-    skip_paths.any? { |skip_path| 
+-      path == skip_path || path.start_with?(skip_path + '/') 
++    skip_paths.any? { |skip_path|
++      path == skip_path || path.start_with?(skip_path + '/')
+     }
+   end
++
++  # Check if the current path is a public path that never requires authentication
++  def public_path?
++    return false unless Rails.application.config.x.public_paths.present?
++
++    path = request.path.downcase
++    public_paths = Rails.application.config.x.public_paths
++
++    # Check for exact match or path starting with public_path pattern
++    public_paths.any? do |public_path|
++      path == public_path || path.start_with?(public_path + '/')
++    end
++  end
+   
+   def likely_cross_domain_user?
+     # Check if this user likely came from the main domain and might be signed in
+diff --git a/app/controllers/authentication_bridge_controller.rb b/app/controllers/authentication_bridge_controller.rb
+index dd56f7a..32fd4eb 100644
+--- a/app/controllers/authentication_bridge_controller.rb
++++ b/app/controllers/authentication_bridge_controller.rb
+@@ -2,11 +2,14 @@ class AuthenticationBridgeController < ApplicationController
+   # Skip tenant requirement for this controller since we're bridging across domains
+   skip_before_action :set_tenant
+   skip_before_action :authenticate_user!, only: [:consume, :consume_token]
+-  
++
+   # Enforce main-domain restriction only for bridge creation
+   # Token consumption happens on the *custom* domain, so we only restrict the create action
+   before_action :ensure_main_domain, only: [:create]
+ 
++  # Enforce custom-domain restriction for reverse bridge (custom → main)
++  before_action :ensure_custom_domain, only: [:bridge_to_main]
++
+   # Specs expect rate-limiting behaviour to be enforced even in the test
+   # environment, so we no longer skip the callback when Rails.env.test?
+   before_action :rate_limit_user, only: [:create]
+@@ -269,13 +272,85 @@ class AuthenticationBridgeController < ApplicationController
+   
+   # Health check endpoint for authentication bridge
+   def health
+-    render json: { 
+-      status: 'ok', 
++    render json: {
++      status: 'ok',
+       environment: Rails.env,
+       main_domain: main_domain_request?
+     }
+   end
+-  
++
++  # Reverse bridge: custom domain → main domain
++  # GET /auth/bridge_to_main?target_path=/dashboard
++  def bridge_to_main
++    unless user_signed_in?
++      Rails.logger.warn "[AuthBridge] Unauthenticated reverse bridge attempt from #{request.remote_ip}"
++      # Redirect to sign in on current domain, then redirect back here
++      session[:return_to] = request.fullpath
++      redirect_to new_user_session_path
++      return
++    end
++
++    # Determine main domain based on environment
++    main_domain = if Rails.env.production?
++      'https://bizblasts.com'
++    elsif Rails.env.development?
++      "#{request.protocol}lvh.me:#{request.port}"
++    else
++      # Test environment
++      "#{request.protocol}example.com"
++    end
++
++    # Get target path (default to root)
++    target_path = params[:target_path].presence || '/'
++
++    # Sanitize target path
++    target_path = sanitize_redirect_path(target_path)
++
++    # Build full target URL
++    target_url = "#{main_domain}#{target_path}"
++
++    # Validate target URL
++    unless valid_main_domain_target?(target_url)
++      Rails.logger.warn "[AuthBridge] Invalid main domain target: #{target_url}"
++      redirect_to '/', alert: 'Invalid target destination'
++      return
++    end
++
++    begin
++      # Create auth token for main domain
++      auth_token = AuthToken.create_for_user!(
++        current_user,
++        target_url,
++        request
++      )
++
++      # Track the reverse bridge creation
++      AuthenticationTracker.track_event(
++        :reverse_bridge_created,
++        user: current_user,
++        request: request,
++        target_url: target_url
++      )
++
++      # Build consumption URL on main domain
++      consumption_url = "#{main_domain}/auth/consume?auth_token=#{CGI.escape(auth_token.token)}"
++
++      # Preserve target path
++      if target_path.present? && target_path != '/'
++        consumption_url += "&redirect_to=#{CGI.escape(target_path)}"
++      end
++
++      Rails.logger.info "[AuthBridge] Reverse bridge created for user #{current_user.id}, redirecting to main domain"
++
++      # Redirect to main domain with auth token
++      redirect_to consumption_url, allow_other_host: true
++
++    rescue => e
++      Rails.logger.error "[AuthBridge] Failed to create reverse bridge: #{e.message}"
++      redirect_to '/', alert: 'Failed to authenticate on main domain'
++    end
++  end
++
+   private
+   
+   def ensure_main_domain
+@@ -283,6 +358,47 @@ class AuthenticationBridgeController < ApplicationController
+       render json: { error: 'This endpoint is only available on the main domain' }, status: :forbidden
+     end
+   end
++
++  def ensure_custom_domain
++    # Only allow reverse bridge from custom domains
++    # This prevents users from creating unnecessary tokens when already on main domain
++    if main_domain_request?
++      Rails.logger.debug "[AuthBridge] Reverse bridge attempted from main domain, redirecting directly"
++      # If they're on main domain, just redirect to target path directly
++      target_path = params[:target_path].presence || '/'
++      redirect_to target_path
++      return
++    end
++  end
++
++  def valid_main_domain_target?(url)
++    return false unless url.present?
++
++    begin
++      uri = URI.parse(url)
++
++      # Must have valid host
++      return false unless uri.host.present?
++
++      # Verify it's actually a main domain URL
++      main_domain_hosts = if Rails.env.production?
++        ['bizblasts.com', 'www.bizblasts.com']
++      elsif Rails.env.development?
++        ['lvh.me', 'www.lvh.me', 'localhost']
++      else
++        ['example.com', 'www.example.com', 'test.host']
++      end
++
++      return false unless main_domain_hosts.include?(uri.host&.downcase)
++
++      # Path should be safe
++      return false if uri.path.include?('../')
++
++      true
++    rescue URI::InvalidURIError
++      false
++    end
++  end
+   
+   def build_redirect_from_target_url(target_url, original_query, additional_query = nil)
+     return '/' unless target_url.present?
+diff --git a/config/application.rb b/config/application.rb
+index 5701d0b..c2e5198 100644
+--- a/config/application.rb
++++ b/config/application.rb
+@@ -51,6 +51,41 @@ module Bizblasts
+     # SMS Configuration
+     config.sms_enabled = ActiveModel::Type::Boolean.new.cast(ENV.fetch('ENABLE_SMS', 'true'))
+ 
++    # Public paths that never require authentication
++    config.x.public_paths = [
++      '/',                  # Home page
++      '/calendar',          # Public calendar viewing
++      '/book',              # Public booking pages
++      '/services',          # Public service listings
++      '/products',          # Public product listings
++      '/about',             # Public about pages
++      '/contact',           # Public contact forms
++      '/public',            # Any public paths
++      '/cart',              # Shopping cart
++      '/checkout',          # Checkout process
++      '/orders',            # Order viewing (public for guests)
++      '/policies',          # Policy pages
++      '/privacy',           # Privacy policy
++      '/terms',             # Terms of service
++      '/estimate',          # Estimate page
++      '/available-slots',   # Calendar availability
++      '/staff-availability' # Staff availability
++    ]
++
++    # Paths that require authentication
++    config.x.auth_required_paths = [
++      '/manage',
++      '/dashboard',
++      '/admin',
++      '/settings',
++      '/profile',
++      '/my-bookings',
++      '/clients',
++      '/account',
++      '/preferences',
++      '/subscriptions'
++    ]
++
+     # Add app/assets/stylesheets to the asset load path
+     config.assets.paths << Rails.root.join("app/assets/stylesheets")
+ 
+diff --git a/config/routes.rb b/config/routes.rb
+index 8bae002..5cacdc4 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -21,6 +21,10 @@ Rails.application.routes.draw do
+   # This endpoint receives the redirect from the main domain auth bridge
+   get "auth/consume" => "authentication_bridge#consume_token", as: :auth_consume
+ 
++  # Reverse bridge: custom domain → main domain
++  # This allows users to navigate back to main domain while staying logged in
++  get "auth/bridge_to_main" => "authentication_bridge#bridge_to_main", as: :auth_bridge_to_main
++
+   # Tenant public routes: available on both subdomains and active custom domains
+   constraints TenantPublicConstraint do
+     # (public routes continue)

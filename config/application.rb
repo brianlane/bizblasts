@@ -51,6 +51,41 @@ module Bizblasts
     # SMS Configuration
     config.sms_enabled = ActiveModel::Type::Boolean.new.cast(ENV.fetch('ENABLE_SMS', 'true'))
 
+    # Public paths that never require authentication
+    config.x.public_paths = [
+      '/',                  # Home page
+      '/calendar',          # Public calendar viewing
+      '/book',              # Public booking pages
+      '/services',          # Public service listings
+      '/products',          # Public product listings
+      '/about',             # Public about pages
+      '/contact',           # Public contact forms
+      '/public',            # Any public paths
+      '/cart',              # Shopping cart
+      '/checkout',          # Checkout process
+      '/orders',            # Order viewing (public for guests)
+      '/policies',          # Policy pages
+      '/privacy',           # Privacy policy
+      '/terms',             # Terms of service
+      '/estimate',          # Estimate page
+      '/available-slots',   # Calendar availability
+      '/staff-availability' # Staff availability
+    ]
+
+    # Paths that require authentication
+    config.x.auth_required_paths = [
+      '/manage',
+      '/dashboard',
+      '/admin',
+      '/settings',
+      '/profile',
+      '/my-bookings',
+      '/clients',
+      '/account',
+      '/preferences',
+      '/subscriptions'
+    ]
+
     # Add app/assets/stylesheets to the asset load path
     config.assets.paths << Rails.root.join("app/assets/stylesheets")
 

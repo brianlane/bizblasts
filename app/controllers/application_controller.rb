@@ -487,6 +487,13 @@ class ApplicationController < ActionController::Base
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
 
+    # IMPORTANT: Never attempt session restoration for public paths
+    # This prevents unnecessary redirects for users viewing public content
+    if public_path?
+      Rails.logger.debug "[CrossDomainAuth] Public path detected, skipping session restoration"
+      return false
+    end
+
     # Multi-signal approach for session restoration detection
     # Use multiple indicators to determine if user likely has an active session
     restoration_signals = []
@@ -530,26 +537,20 @@ class ApplicationController < ActionController::Base
   def requires_authentication?
     # Only attempt for GET and HEAD requests
     return false unless (request.get? || request.head?)
-    
+
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
-    
+
+    # IMPORTANT: Public paths NEVER require authentication
+    # Check this first to avoid any auth redirects for public content
+    return false if public_path?
+
     # Only require authentication (blocking redirect) for protected areas
-    protected_patterns = [
-      '/manage',             # Business management
-      '/dashboard',          # User dashboard  
-      '/profile',            # User profile
-      '/settings',           # Settings
-      '/my-bookings',        # User's bookings
-      '/clients',            # Client management
-      '/orders',             # User orders
-      '/subscriptions',      # User subscriptions
-      '/account',            # Account management
-      '/preferences'         # User preferences
-    ]
-    
+    # Use the configured auth_required_paths from application config
+    auth_required_paths = Rails.application.config.x.auth_required_paths
+
     path = request.path.downcase
-    protected_patterns.any? { |pattern| path.start_with?(pattern) }
+    auth_required_paths.any? { |pattern| path.start_with?(pattern) }
   end
   
   def skip_system_paths?
@@ -563,12 +564,25 @@ class ApplicationController < ActionController::Base
       '/maintenance',        # Maintenance page
       '/api'                 # API endpoints (exact match and with slash)
     ]
-    
+
     path = request.path.downcase
     # Check for exact match or path starting with skip_path + '/'
-    skip_paths.any? { |skip_path| 
-      path == skip_path || path.start_with?(skip_path + '/') 
+    skip_paths.any? { |skip_path|
+      path == skip_path || path.start_with?(skip_path + '/')
     }
+  end
+
+  # Check if the current path is a public path that never requires authentication
+  def public_path?
+    return false unless Rails.application.config.x.public_paths.present?
+
+    path = request.path.downcase
+    public_paths = Rails.application.config.x.public_paths
+
+    # Check for exact match or path starting with public_path pattern
+    public_paths.any? do |public_path|
+      path == public_path || path.start_with?(public_path + '/')
+    end
   end
   
   def likely_cross_domain_user?
