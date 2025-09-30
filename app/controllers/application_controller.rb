@@ -381,7 +381,20 @@ class ApplicationController < ActionController::Base
   private
 
   def skip_user_authentication?
-    devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
+    # Public by default - let controllers handle their own authentication
+    # Controllers use before_action :authenticate_user! where auth is needed
+
+    # Always skip at the application level for:
+    # 1. Devise controllers (login, registration, etc.)
+    # 2. Admin (has its own authentication)
+    # 3. Maintenance mode
+
+    return true if devise_controller?
+    return true if request.path.start_with?('/admin')
+    return true if maintenance_mode?
+
+    # Default: Public by default, controllers decide if auth is required
+    true
   end
   
   def skip_cross_domain_auth?
@@ -422,12 +435,6 @@ class ApplicationController < ActionController::Base
       return
     else
       Rails.logger.info "[CrossDomainAuth] Not attempting session restoration - likely_cross_domain_user?: #{likely_cross_domain_user?}"
-    end
-    
-    # For pages that actually REQUIRE authentication, use blocking redirect
-    if requires_authentication?
-      Rails.logger.info "[CrossDomainAuth] Page requires authentication, redirecting to bridge"
-      redirect_to_auth_bridge
     end
   end
   
@@ -487,15 +494,9 @@ class ApplicationController < ActionController::Base
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
 
-    # IMPORTANT: Never attempt session restoration for public paths
-    # This prevents unnecessary redirects for users viewing public content
-    if public_path?
-      Rails.logger.debug "[CrossDomainAuth] Public path detected, skipping session restoration"
-      return false
-    end
-
     # Multi-signal approach for session restoration detection
-    # Use multiple indicators to determine if user likely has an active session
+    # Attempt restoration if user shows signs of having session on main domain
+    # Let controllers decide if authentication is actually required
     restoration_signals = []
 
     # Signal 1: HTTP referrer from main domain
@@ -534,28 +535,6 @@ class ApplicationController < ActionController::Base
     should_attempt
   end
   
-  def requires_authentication?
-    # Only attempt for GET and HEAD requests
-    return false unless (request.get? || request.head?)
-
-    # Skip for asset files and system endpoints
-    return false if skip_system_paths?
-
-    # IMPORTANT: Public paths NEVER require authentication
-    # Check this first to avoid any auth redirects for public content
-    return false if public_path?
-
-    # Only require authentication (blocking redirect) for protected areas
-    # Use the configured auth_required_paths from application config
-    auth_required_paths = Rails.application.config.x.auth_required_paths
-
-    # Defensive: Return false if configuration is not loaded
-    return false unless auth_required_paths.present?
-
-    path = request.path.downcase
-    auth_required_paths.any? { |pattern| path.start_with?(pattern) }
-  end
-  
   def skip_system_paths?
     skip_paths = [
       '/assets',             # Asset files
@@ -573,19 +552,6 @@ class ApplicationController < ActionController::Base
     skip_paths.any? { |skip_path|
       path == skip_path || path.start_with?(skip_path + '/')
     }
-  end
-
-  # Check if the current path is a public path that never requires authentication
-  def public_path?
-    return false unless Rails.application.config.x.public_paths.present?
-
-    path = request.path.downcase
-    public_paths = Rails.application.config.x.public_paths
-
-    # Check for exact match or path starting with public_path pattern
-    public_paths.any? do |public_path|
-      path == public_path || path.start_with?(public_path + '/')
-    end
   end
   
   def likely_cross_domain_user?

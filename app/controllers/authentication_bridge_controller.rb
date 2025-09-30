@@ -295,13 +295,13 @@ class AuthenticationBridgeController < ApplicationController
       'https://bizblasts.com'
     elsif Rails.env.development?
       # In development, use lvh.me as main domain with port
-      port = request.port unless [80, 443].include?(request.port)
-      port_str = port ? ":#{port}" : ""
-      "#{request.protocol}lvh.me#{port_str}"
+      "#{request.protocol}lvh.me:#{request.port}"
     else
-      # Test environment - use example.com as main domain
-      "#{request.protocol}example.com"
-      # Note: Port handling in test is typically not needed as tests use default ports
+      # Test environment - use example.com as main domain with conditional port handling
+      # Matches pattern in redirect_to_auth_bridge (application_controller.rb:684-685)
+      main_domain_base = "#{request.protocol}example.com"
+      main_domain_base += ":#{request.port}" if request.port && ![80, 443].include?(request.port)
+      main_domain_base
     end
 
     # Get target path (default to root)

@@ -625,6 +625,10 @@ Rails.application.routes.draw do
   # New unified transactions view
   resources :transactions, only: [:index, :show]
 
+  # Cart redirect handler for main domain
+  # Since carts are business-specific, redirect users to the appropriate business domain
+  resource :cart, only: [:show], controller: 'cart_redirect'
+
   authenticated :user, ->(user) { user.client? } do
     # Keep this block for any future client-specific routes that need the constraint
   end
