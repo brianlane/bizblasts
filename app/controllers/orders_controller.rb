@@ -1,12 +1,12 @@
 class OrdersController < ApplicationController
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  before_action :set_tenant, if: -> { on_business_domain? }
   skip_before_action :authenticate_user!
   before_action :authenticate_user!
   before_action :set_current_tenant
   before_action :set_tenant_customer
 
   def index
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       # Tenant-specific case: Show orders only for this business
       if @tenant_customer
         @orders = @tenant_customer.orders.order(created_at: :desc).includes(:line_items, :shipping_method, :tax_rate)
@@ -30,7 +30,7 @@ class OrdersController < ApplicationController
       redirect_to orders_path and return
     end
 
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       # Tenant-specific case
       if @tenant_customer
         # Security: Proper scoping to prevent enumeration

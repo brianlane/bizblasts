@@ -5,11 +5,24 @@ class ClientBookingsController < ApplicationController
   before_action :ensure_booking_modifiable, only: [:edit, :update, :cancel]
   
   def index
-    # Get bookings for the current user across all businesses using tenant_customer email
-    @bookings = Booking.joins(:tenant_customer)
-                      .where(tenant_customers: { email: current_user.email })
-                      .includes(:service, :staff_member, :business)
-                      .order(start_time: :desc)
+    if on_business_domain?
+      # Tenant-specific case: Show bookings only for this business
+      current_business = ActsAsTenant.current_tenant
+      if current_business
+        @bookings = current_business.bookings.joins(:tenant_customer)
+                                           .where(tenant_customers: { email: current_user.email })
+                                           .includes(:service, :staff_member)
+                                           .order(start_time: :desc)
+      else
+        @bookings = []
+      end
+    else
+      # Main domain case: Show all bookings for this user across all businesses
+      @bookings = Booking.joins(:tenant_customer)
+                        .where(tenant_customers: { email: current_user.email })
+                        .includes(:service, :staff_member, :business)
+                        .order(start_time: :desc)
+    end
   end
   
   def show

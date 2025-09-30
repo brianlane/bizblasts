@@ -1,5 +1,5 @@
 class TransactionsController < ApplicationController
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  before_action :set_tenant, if: -> { on_business_domain? }
   before_action :authenticate_user!, except: [:show]
   before_action :set_current_tenant
   before_action :set_tenant_customer
@@ -8,7 +8,7 @@ class TransactionsController < ApplicationController
     @filter = params[:filter] || 'orders' # Default to showing orders
     @transactions = []
     
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       # Tenant-specific case: Show transactions only for this business
       if @tenant_customer
         orders = []
@@ -57,7 +57,7 @@ class TransactionsController < ApplicationController
 
   def show
     # Check if this is a business manager trying to access an invoice
-    if current_user&.has_any_role?(:manager, :staff) && params[:type] == 'invoice' && request.subdomain.present? && request.subdomain != 'www'
+    if current_user&.has_any_role?(:manager, :staff) && params[:type] == 'invoice' && on_business_domain?
       # Redirect business managers to their invoice management interface
       redirect_to business_manager_invoice_path(params[:id])
       return
@@ -79,7 +79,7 @@ class TransactionsController < ApplicationController
       else
         # Other cases - redirect with flash message
         flash[:alert] = "Transaction not found."
-        if request.subdomain.present? && request.subdomain != 'www'
+        if on_business_domain?
           redirect_to tenant_transactions_path
         else
           redirect_to transactions_path
@@ -91,7 +91,7 @@ class TransactionsController < ApplicationController
   private
 
   def find_order(id)
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       @tenant_customer&.orders&.includes(
         line_items: { product_variant: :product }, 
         shipping_method: {}, 
@@ -113,7 +113,7 @@ class TransactionsController < ApplicationController
   end
 
   def find_invoice(id)
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       if current_user
         # Authenticated user - verify they own this invoice
         @current_tenant&.invoices&.where(tenant_customer: @tenant_customer)
@@ -146,7 +146,7 @@ class TransactionsController < ApplicationController
   end
 
   def set_current_tenant
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       @current_tenant = Business.find_by(hostname: request.subdomain)
       ActsAsTenant.current_tenant = @current_tenant
     else
@@ -165,7 +165,7 @@ class TransactionsController < ApplicationController
   end
 
   def set_tenant
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       @tenant = Business.find_by(hostname: request.subdomain)
       ActsAsTenant.current_tenant = @tenant
     end

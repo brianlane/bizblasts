@@ -45,17 +45,20 @@ class CartRedirectController < ApplicationController
   def find_business_for_cart_items(variant_ids)
     return nil if variant_ids.blank?
 
-    # Query product variants without tenant scope
-    # Use unscoped to bypass acts_as_tenant
-    variant = ProductVariant.unscoped.where(id: variant_ids).first
-    return nil unless variant
+    # Query all product variants without tenant scope to find all businesses
+    variants = ProductVariant.unscoped.includes(:product => :business).where(id: variant_ids)
+    return nil if variants.empty?
 
-    # Get the product to find the business
-    product = Product.unscoped.find_by(id: variant.product_id)
-    return nil unless product
+    # Group variants by business and log for debugging
+    variants_by_business = variants.group_by { |v| v.product.business }
 
-    # Return the business
-    Business.find_by(id: product.business_id)
+    if variants_by_business.size > 1
+      Rails.logger.info "[CartRedirect] Cart contains items from #{variants_by_business.size} businesses: #{variants_by_business.keys.map(&:name).join(', ')}"
+    end
+
+    # Return the first business (preserves existing redirect behavior)
+    # All cart items will be preserved and accessible on the business domain
+    variants_by_business.keys.first
   end
 
   def build_business_cart_url(business)

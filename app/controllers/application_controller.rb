@@ -436,10 +436,23 @@ class ApplicationController < ActionController::Base
     else
       Rails.logger.info "[CrossDomainAuth] Not attempting session restoration - likely_cross_domain_user?: #{likely_cross_domain_user?}"
     end
+
+    # Even if we don't attempt session restoration, we still need to redirect
+    # unauthenticated users to the auth bridge for protected paths
+    if requires_authentication?
+      Rails.logger.info "[CrossDomainAuth] Protected path detected, redirecting unauthenticated user to bridge"
+      redirect_to_auth_bridge
+      return
+    end
   end
   
+  # Helper method for consistent business context detection across all controllers
+  def on_business_domain?
+    !main_domain_request? && ActsAsTenant.current_tenant.present?
+  end
+
   private
-  
+
   def on_custom_domain?
     return false if main_domain_request?
     
