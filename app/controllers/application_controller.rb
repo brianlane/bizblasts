@@ -549,6 +549,9 @@ class ApplicationController < ActionController::Base
     # Use the configured auth_required_paths from application config
     auth_required_paths = Rails.application.config.x.auth_required_paths
 
+    # Defensive: Return false if configuration is not loaded
+    return false unless auth_required_paths.present?
+
     path = request.path.downcase
     auth_required_paths.any? { |pattern| path.start_with?(pattern) }
   end

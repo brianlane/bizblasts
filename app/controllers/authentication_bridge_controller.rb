@@ -12,7 +12,7 @@ class AuthenticationBridgeController < ApplicationController
 
   # Specs expect rate-limiting behaviour to be enforced even in the test
   # environment, so we no longer skip the callback when Rails.env.test?
-  before_action :rate_limit_user, only: [:create]
+  before_action :rate_limit_user, only: [:create, :bridge_to_main]
   
   # Generate authentication bridge token for authenticated user
   # GET /auth/bridge?target_url=https://custom-domain.com/path&business_id=123
@@ -290,14 +290,18 @@ class AuthenticationBridgeController < ApplicationController
       return
     end
 
-    # Determine main domain based on environment
+    # Determine main domain based on environment (consistent with existing patterns)
     main_domain = if Rails.env.production?
       'https://bizblasts.com'
     elsif Rails.env.development?
-      "#{request.protocol}lvh.me:#{request.port}"
+      # In development, use lvh.me as main domain with port
+      port = request.port unless [80, 443].include?(request.port)
+      port_str = port ? ":#{port}" : ""
+      "#{request.protocol}lvh.me#{port_str}"
     else
-      # Test environment
+      # Test environment - use example.com as main domain
       "#{request.protocol}example.com"
+      # Note: Port handling in test is typically not needed as tests use default ports
     end
 
     # Get target path (default to root)
@@ -365,8 +369,10 @@ class AuthenticationBridgeController < ApplicationController
     if main_domain_request?
       Rails.logger.debug "[AuthBridge] Reverse bridge attempted from main domain, redirecting directly"
       # If they're on main domain, just redirect to target path directly
+      # IMPORTANT: Sanitize the target path to prevent open redirect vulnerability
       target_path = params[:target_path].presence || '/'
-      redirect_to target_path
+      sanitized_path = sanitize_redirect_path(target_path)
+      redirect_to sanitized_path
       return
     end
   end
