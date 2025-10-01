@@ -447,8 +447,15 @@ class ApplicationController < ActionController::Base
   end
   
   # Helper method for consistent business context detection across all controllers
+  # Use this method only AFTER tenant has been set (in controller actions)
   def on_business_domain?
     !main_domain_request? && ActsAsTenant.current_tenant.present?
+  end
+
+  # Helper method for before_action conditions (before tenant is set)
+  # This doesn't rely on ActsAsTenant.current_tenant being set yet
+  def before_action_business_domain_check
+    !main_domain_request?
   end
 
   private

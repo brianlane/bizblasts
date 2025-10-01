@@ -1,5 +1,5 @@
 class OrdersController < ApplicationController
-  before_action :set_tenant, if: -> { on_business_domain? }
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   skip_before_action :authenticate_user!
   before_action :authenticate_user!
   before_action :set_current_tenant

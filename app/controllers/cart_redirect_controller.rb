@@ -45,12 +45,19 @@ class CartRedirectController < ApplicationController
   def find_business_for_cart_items(variant_ids)
     return nil if variant_ids.blank?
 
+    # Validate and sanitize variant IDs from session data
+    valid_variant_ids = variant_ids.select { |id| id.to_s.match?(/\A\d+\z/) }.map(&:to_i)
+    return nil if valid_variant_ids.empty?
+
     # Query all product variants without tenant scope to find all businesses
-    variants = ProductVariant.unscoped.includes(:product => :business).where(id: variant_ids)
+    variants = ProductVariant.unscoped.includes(:product => :business).where(id: valid_variant_ids)
     return nil if variants.empty?
 
-    # Group variants by business and log for debugging
-    variants_by_business = variants.group_by { |v| v.product.business }
+    # Filter out variants with missing associations and group by business
+    valid_variants = variants.select { |v| v.product&.business }
+    return nil if valid_variants.empty?
+
+    variants_by_business = valid_variants.group_by { |v| v.product.business }
 
     if variants_by_business.size > 1
       Rails.logger.info "[CartRedirect] Cart contains items from #{variants_by_business.size} businesses: #{variants_by_business.keys.map(&:name).join(', ')}"
@@ -59,6 +66,9 @@ class CartRedirectController < ApplicationController
     # Return the first business (preserves existing redirect behavior)
     # All cart items will be preserved and accessible on the business domain
     variants_by_business.keys.first
+  rescue => e
+    Rails.logger.error "[CartRedirect] Error finding business for cart items: #{e.message}"
+    nil
   end
 
   def build_business_cart_url(business)

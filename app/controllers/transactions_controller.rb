@@ -1,5 +1,5 @@
 class TransactionsController < ApplicationController
-  before_action :set_tenant, if: -> { on_business_domain? }
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   before_action :authenticate_user!, except: [:show]
   before_action :set_current_tenant
   before_action :set_tenant_customer
@@ -113,35 +113,53 @@ class TransactionsController < ApplicationController
   end
 
   def find_invoice(id)
-    if on_business_domain?
-      if current_user
-        # Authenticated user - verify they own this invoice
+    # FIRST: Handle guest access with token (works on any domain)
+    if !current_user && params[:token].present?
+      if on_business_domain?
+        # Guest access on business domain
+        invoice = @current_tenant&.invoices&.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}],
+                                                     line_items: {product_variant: :product},
+                                                     shipping_method: {}, tax_rate: {}, order: {})
+                                           &.find_by(id: id, guest_access_token: params[:token])
+        if invoice
+          @tenant_customer = invoice.tenant_customer
+          return invoice
+        end
+      else
+        # Guest access on main domain - search across all businesses
+        invoice = Invoice.includes(:business, booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}],
+                                  line_items: {product_variant: :product},
+                                  shipping_method: {}, tax_rate: {}, order: {})
+                         .find_by(id: id, guest_access_token: params[:token])
+        if invoice
+          @tenant_customer = invoice.tenant_customer
+          return invoice
+        end
+      end
+      return nil
+    end
+
+    # SECOND: Handle authenticated users
+    if current_user
+      if on_business_domain?
+        # Business-specific: Show only this business's invoices
         @current_tenant&.invoices&.where(tenant_customer: @tenant_customer)
-                       &.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
+                       &.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}],
                                  line_items: {product_variant: :product},
                                  shipping_method: {}, tax_rate: {}, order: {})
                        &.find_by(id: id)
       else
-        # Guest access - require valid token
-        if params[:token].present?
-          invoice = @current_tenant&.invoices&.includes(booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
-                                                       line_items: {product_variant: :product},
-                                                       shipping_method: {}, tax_rate: {}, order: {})
-                                             &.find_by(id: id, guest_access_token: params[:token])
-          if invoice
-            @tenant_customer = invoice.tenant_customer
-            return invoice
-          end
-        end
-        nil
+        # Main domain: Show invoices across all businesses
+        Invoice.joins(:tenant_customer)
+               .where(tenant_customers: { id: current_user.tenant_customer_ids })
+               .includes(:business, booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}],
+                         line_items: {product_variant: :product},
+                         shipping_method: {}, tax_rate: {}, order: {})
+               .find_by(id: id)
       end
     else
-      Invoice.joins(:tenant_customer)
-             .where(tenant_customers: { id: current_user.tenant_customer_ids })
-             .includes(:business, booking: [:service, :staff_member, :booking_product_add_ons => {product_variant: :product}], 
-                       line_items: {product_variant: :product},
-                       shipping_method: {}, tax_rate: {}, order: {})
-             .find_by(id: id)
+      # THIRD: Unauthenticated access without token
+      nil
     end
   end
 
@@ -157,8 +175,8 @@ class TransactionsController < ApplicationController
   def set_tenant_customer
     if @current_tenant && current_user
       @tenant_customer = TenantCustomer.find_by(business_id: @current_tenant.id, email: current_user.email)
-    elsif @current_tenant && !current_user && params[:type] == 'invoice' && params[:token].blank?
-      # Guest trying to access invoice without token - redirect to login
+    elsif !current_user && params[:type] == 'invoice' && params[:token].blank?
+      # Guest trying to access invoice without token - redirect to login (any domain)
       redirect_to new_user_session_path, alert: "Please log in to view this transaction."
       return false
     end
