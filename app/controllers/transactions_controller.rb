@@ -183,7 +183,7 @@ class TransactionsController < ApplicationController
   end
 
   def set_tenant
-    if on_business_domain?
+    if before_action_business_domain_check
       @tenant = Business.find_by(hostname: request.subdomain)
       ActsAsTenant.current_tenant = @tenant
     end

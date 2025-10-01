@@ -1,4 +1,5 @@
 class InvoicesController < ApplicationController
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   before_action :authenticate_user!
   before_action :set_current_tenant
   before_action :set_tenant_customer
@@ -53,9 +54,11 @@ class InvoicesController < ApplicationController
   private
 
   def set_current_tenant
-    @current_tenant = Business.first 
-    unless @current_tenant
-        Rails.logger.warn "WARN: @current_tenant is not set in InvoicesController."
+    if before_action_business_domain_check
+      @current_tenant = Business.find_by(hostname: request.subdomain)
+      ActsAsTenant.current_tenant = @current_tenant
+    else
+      @current_tenant = nil
     end
   end
 

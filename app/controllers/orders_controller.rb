@@ -114,9 +114,11 @@ class OrdersController < ApplicationController
   private
 
   def set_current_tenant
-    @current_tenant = Business.first
-    unless @current_tenant
-        Rails.logger.warn "WARN: @current_tenant is not set in OrdersController."
+    if before_action_business_domain_check
+      @current_tenant = Business.find_by(hostname: request.subdomain)
+      ActsAsTenant.current_tenant = @current_tenant
+    else
+      @current_tenant = nil
     end
   end
 
