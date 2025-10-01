@@ -562,9 +562,7 @@ class ApplicationController < ActionController::Base
   end
 
   def requires_authentication?
-    # Only attempt for GET and HEAD requests
-    return false unless (request.get? || request.head?)
-
+    # Check ALL request methods - authentication is required regardless of HTTP verb
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
 
