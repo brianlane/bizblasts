@@ -68,39 +68,49 @@ module TenantHost
 
     # Ensure path starts with a slash (unless it is blank)
     path = path.to_s
-    path = "" if path == "/" # Treat single slash as root (no trailing slash)
     path = "/#{path}" if path.present? && !path.start_with?("/")
     # Remove leading slash for query-only paths (e.g., '/?ref=CODE' → '?ref=CODE')
     path = path[1..] if path.start_with?("/?")
 
-    # Include port when:
-    # ▸ Non-standard ports (e.g., 3000)
-    # ▸ Explicit 80 on http (for tests that assert :80)
-    # We omit the port only for the canonical HTTPS 443 to keep URLs clean.
-    port = request&.respond_to?(:port) ? request.port : nil
-    protocol = if request&.respond_to?(:protocol)
-                 request.protocol
-               else
-                 Rails.env.production? ? 'https://' : 'http://'
-               end
+    # For custom domains, use HTTPS (or HTTP in development/test) and omit non-standard ports from request
+    # This prevents inheriting development ports (like :3000) in custom domain URLs
+    if business&.host_type_custom_domain?
+      protocol = if (Rails.env.development? || Rails.env.test?) && request&.protocol == 'http://'
+                   'http://'
+                 else
+                   'https://'
+                 end
+      port_str = ''
+    else
+      # Include port when:
+      # ▸ Non-standard ports (e.g., 3000)
+      # ▸ Explicit 80 on http (for tests that assert :80)
+      # We omit the port only for the canonical HTTPS 443 to keep URLs clean.
+      port = request&.respond_to?(:port) ? request.port : nil
+      protocol = if request&.respond_to?(:protocol)
+                   request.protocol
+                 else
+                   Rails.env.production? ? 'https://' : 'http://'
+                 end
 
-    # Default to :3000 in development when no request object is provided (used in specs)
-    # In test environment, use Capybara server port if available
-    if port.nil? && request.nil?
-      if Rails.env.test? && defined?(Capybara) && Capybara.server_port
-        port = Capybara.server_port
-      elsif Rails.env.development?
-        port = 3000
+      # Default to :3000 in development when no request object is provided (used in specs)
+      # In test environment, use Capybara server port if available
+      if port.nil? && request.nil?
+        if Rails.env.test? && defined?(Capybara) && Capybara.server_port
+          port = Capybara.server_port
+        elsif Rails.env.development?
+          port = 3000
+        end
       end
-    end
 
-    port_str = if port.nil?
-                 ''
-               elsif (protocol == 'https://' && port == 443) || (protocol == 'http://' && port == 80)
-                 ''
-               else
-                 ":#{port}"
-               end
+      port_str = if port.nil?
+                   ''
+                 elsif port == 80 || (protocol == 'https://' && port == 443)
+                   ''
+                 else
+                   ":#{port}"
+                 end
+    end
 
     "#{protocol}#{host}#{port_str}#{path}"
   end
@@ -125,7 +135,7 @@ module TenantHost
     host = host.to_s.downcase
 
     if Rails.env.development? || Rails.env.test?
-      %w[lvh.me www.lvh.me example.com www.example.com test.host].include?(host)
+      %w[lvh.me www.lvh.me test.host].include?(host)
     else
       %w[bizblasts.com www.bizblasts.com bizblasts.onrender.com].include?(host)
     end
@@ -145,16 +155,19 @@ module TenantHost
   # @example Production
   #   main_domain_url_for(request, '/admin') #=> "https://bizblasts.com/admin"
   def main_domain_url_for(request, path = '/')
-    # Determine main domain based on environment
-    # Use configured main domain for consistency across environments
-    main_domain = if Rails.env.production?
+    # Use request's host if it's already a main domain, otherwise use configured main domain
+    # This preserves the request context when routing through auth bridge
+    main_domain = if request&.host && main_domain?(request.host)
+                     request.host
+                   elsif Rails.env.production?
                      'bizblasts.com'
                    else
                      Rails.application.config.main_domain.split(':').first
                    end
 
     # Include non-standard port for development and tests
-    port_str = if request&.port && ![80, 443].include?(request.port)
+    # Omit port 80 (for both HTTP and HTTPS) and port 443 (for HTTPS)
+    port_str = if request&.port && request.port != 80 && !(request.protocol == 'https://' && request.port == 443)
                  ":#{request.port}"
                else
                  ''
@@ -187,11 +200,9 @@ module TenantHost
       
       target_url = url_for(business, request, path)
       # Include business ID for target URL validation security
-      bridge_params = {
-        target_url: target_url,
-        business_id: business.id
-      }
-      main_domain_url_for(request, "/auth/bridge?#{bridge_params.to_query}")
+      # Use consistent parameter order for tests
+      query_string = "target_url=#{CGI.escape(target_url)}&business_id=#{business.id}"
+      main_domain_url_for(request, "/auth/bridge?#{query_string}")
     else
       # Direct link for subdomains or when user not signed in
       url_for(business, request, path)

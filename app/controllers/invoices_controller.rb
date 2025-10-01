@@ -54,12 +54,8 @@ class InvoicesController < ApplicationController
   private
 
   def set_current_tenant
-    if before_action_business_domain_check
-      @current_tenant = Business.find_by(hostname: request.subdomain)
-      ActsAsTenant.current_tenant = @current_tenant
-    else
-      @current_tenant = nil
-    end
+    # Just use what ActsAsTenant already resolved from ApplicationController#set_tenant
+    @current_tenant = ActsAsTenant.current_tenant
   end
 
   def set_tenant_customer

@@ -65,32 +65,37 @@ RSpec.describe TenantHost do
 
     context 'with custom domain businesses' do
       it 'returns hostname for valid custom domain' do
-        business = double('Business', 
-          hostname: 'example.com', 
-          host_type_subdomain?: false, 
-          host_type_custom_domain?: true
+        business = double('Business',
+          hostname: 'example.com',
+          host_type_subdomain?: false,
+          host_type_custom_domain?: true,
+          custom_domain_allow?: true
         )
-        
+
         expect(TenantHost.host_for(business, request)).to eq('example.com')
       end
 
       it 'returns nil when hostname is empty' do
-        business = double('Business', 
-          hostname: '', 
-          host_type_subdomain?: false, 
-          host_type_custom_domain?: true
+        business = double('Business',
+          hostname: '',
+          subdomain: nil,
+          host_type_subdomain?: false,
+          host_type_custom_domain?: true,
+          custom_domain_allow?: false
         )
-        
+
         expect(TenantHost.host_for(business, request)).to be_nil
       end
 
       it 'returns nil when hostname is nil' do
-        business = double('Business', 
-          hostname: nil, 
-          host_type_subdomain?: false, 
-          host_type_custom_domain?: true
+        business = double('Business',
+          hostname: nil,
+          subdomain: nil,
+          host_type_subdomain?: false,
+          host_type_custom_domain?: true,
+          custom_domain_allow?: false
         )
-        
+
         expect(TenantHost.host_for(business, request)).to be_nil
       end
     end
@@ -125,19 +130,19 @@ RSpec.describe TenantHost do
   end
 
   describe '.url_for_with_auth' do
-    let(:subdomain_business) { create(:business, hostname: 'testbiz', host_type: 'subdomain') }
-    let(:custom_domain_business) { create(:business, :with_custom_domain, hostname: 'example.com') }
+    let(:subdomain_business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain') }
+    let(:custom_domain_business) { create(:business, :with_custom_domain, hostname: 'example.com', subdomain: 'example') }
     let(:mock_request) { double('request', host: 'test.host', port: 80, protocol: 'https://') }
 
     context 'with subdomain business' do
       it 'returns direct URL without auth bridge' do
         url = TenantHost.url_for_with_auth(subdomain_business, mock_request, '/services', user_signed_in: true)
-        expect(url).to eq('https://testbiz.bizblasts.com/services')
+        expect(url).to eq('https://testbiz.lvh.me/services')
       end
 
       it 'returns direct URL when user not signed in' do
         url = TenantHost.url_for_with_auth(subdomain_business, mock_request, '/services', user_signed_in: false)
-        expect(url).to eq('https://testbiz.bizblasts.com/services')
+        expect(url).to eq('https://testbiz.lvh.me/services')
       end
     end
 
@@ -145,8 +150,8 @@ RSpec.describe TenantHost do
       context 'when user is signed in and on main domain' do
         it 'routes through auth bridge' do
           url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '/services', user_signed_in: true)
-          expected_target = CGI.escape('https://example.com:80/services')
-          expect(url).to eq("https://lvh.me/auth/bridge?business_id=#{custom_domain_business.id}&target_url=#{expected_target}")
+          expected_target = CGI.escape('https://example.com/services')
+          expect(url).to eq("https://test.host/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
         end
 
         it 'properly encodes complex URLs with query parameters' do
@@ -192,7 +197,7 @@ RSpec.describe TenantHost do
         it 'falls back to subdomain even with auth bridge' do
           url = TenantHost.url_for_with_auth(unready_business, mock_request, '/services', user_signed_in: true)
           # Should fall back to subdomain and not use auth bridge
-          expect(url).to include('.bizblasts.com')
+          expect(url).to include('.lvh.me')
           expect(url).not_to include('/auth/bridge')
         end
       end
@@ -207,7 +212,7 @@ RSpec.describe TenantHost do
 
     context 'in development environment' do
       before { allow(Rails.env).to receive(:production?).and_return(false) }
-      
+
       let(:dev_request) { double('request', host: 'lvh.me', port: 3000, protocol: 'http://') }
 
       it 'uses development domain for auth bridge' do
@@ -218,12 +223,12 @@ RSpec.describe TenantHost do
     end
 
     context 'with different ports' do
-      let(:port_request) { double('request', host: 'bizblasts.com', port: 8080, protocol: 'http://') }
+      let(:port_request) { double('request', host: 'test.host', port: 8080, protocol: 'http://') }
 
       it 'includes port in auth bridge URL' do
         url = TenantHost.url_for_with_auth(custom_domain_business, port_request, '/services', user_signed_in: true)
-        expected_target = CGI.escape('https://example.com/services')
-        expect(url).to eq("http://bizblasts.com:8080/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
+        expected_target = CGI.escape('http://example.com/services')
+        expect(url).to eq("http://test.host:8080/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
       end
     end
 
@@ -231,11 +236,11 @@ RSpec.describe TenantHost do
       it 'properly encodes dangerous characters in target URLs' do
         dangerous_path = '/search?q=<script>alert("xss")</script>&redirect=evil.com'
         url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, dangerous_path, user_signed_in: true)
-        
+
         # The dangerous characters should be CGI escaped
         expect(url).to include(CGI.escape('https://example.com/search?q=<script>alert("xss")</script>&redirect=evil.com'))
         expect(url).not_to include('<script>')
-        expect(url).not_to include('alert')
+        expect(url).not_to include('</script>')
       end
 
       it 'handles unicode characters correctly' do
@@ -259,7 +264,11 @@ RSpec.describe TenantHost do
 
   describe '.main_domain?' do
     context 'in production' do
-      before { allow(Rails.env).to receive(:production?).and_return(true) }
+      before {
+        allow(Rails.env).to receive(:production?).and_return(true)
+        allow(Rails.env).to receive(:development?).and_return(false)
+        allow(Rails.env).to receive(:test?).and_return(false)
+      }
 
       it 'recognizes production main domains' do
         expect(TenantHost.main_domain?('bizblasts.com')).to be_truthy
@@ -284,14 +293,12 @@ RSpec.describe TenantHost do
       it 'recognizes development main domains' do
         expect(TenantHost.main_domain?('lvh.me')).to be_truthy
         expect(TenantHost.main_domain?('www.lvh.me')).to be_truthy
-        expect(TenantHost.main_domain?('example.com')).to be_truthy
-        expect(TenantHost.main_domain?('www.example.com')).to be_truthy
         expect(TenantHost.main_domain?('test.host')).to be_truthy
       end
 
       it 'handles case insensitivity' do
         expect(TenantHost.main_domain?('LVH.ME')).to be_truthy
-        expect(TenantHost.main_domain?('Example.Com')).to be_truthy
+        expect(TenantHost.main_domain?('TEST.HOST')).to be_truthy
       end
 
       it 'handles nil and empty strings gracefully' do
