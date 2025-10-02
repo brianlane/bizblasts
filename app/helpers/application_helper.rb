@@ -541,10 +541,16 @@ module ApplicationHelper
   # @param html_options [Hash] HTML attributes
   # @return [String] HTML content for fallback
   def business_logo_fallback(business, html_options = {})
-    initials = business.name.split.map(&:first).join.upcase[0..1]
+    return '' unless business.present?
+
+    # Handle nil or blank business names gracefully
+    business_name = business.name.to_s.strip
+    business_name = "Business" if business_name.blank?
+
+    initials = business_name.split.map(&:first).join.upcase[0..1]
 
     # Generate a consistent background color based on business name
-    color_hash = business.name.sum % 8
+    color_hash = business_name.sum % 8
     bg_colors = %w[
       bg-blue-500 bg-green-500 bg-purple-500 bg-pink-500
       bg-indigo-500 bg-red-500 bg-yellow-500 bg-gray-500
