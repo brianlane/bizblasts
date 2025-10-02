@@ -109,12 +109,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
-  # This now serves as a fallback for unauthenticated users on custom domains
-  constraints CustomDomainConstraint do
-    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
-  end
-
   # API routes for AI/LLM discovery
   namespace :api do
     namespace :v1 do
@@ -535,6 +529,21 @@ Rails.application.routes.draw do
 
     # Tenant public routes are unified by TenantPublicConstraint (see top block)
   end
+
+  # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
+  # This now serves as a fallback for unauthenticated users on custom domains
+  # constraints CustomDomainConstraint do
+  #   get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
+  # end
+
+  # Fallback redirect for unauthenticated users on custom domains
+  # Uses Warden (Devise) to reliably detect authentication state instead of relying on raw session keys.
+  constraints lambda { |req|
+    CustomDomainConstraint.matches?(req) && !(req.env["warden"]&.user.present?)
+  } do
+    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
+  end
+
 
   # Fallback routes for base OrdersController new/create
   resources :orders, only: [:new, :create, :index, :show]
