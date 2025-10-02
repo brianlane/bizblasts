@@ -1,27 +1,23 @@
 # frozen_string_literal: true
 
-# Constraint to check if the request is for a business tenant (subdomain or custom domain).
-# This is used to route requests to tenant-specific business manager sections.
-# It matches both subdomains and active custom domains to allow the tenant system to handle
-# business management routes on any valid business domain.
+# Constraint to check if the request has a subdomain that should be treated as a tenant request.
+# This is used to route requests to tenant-specific sections.
+# It matches any subdomain (except www, blank, and hosting platform domains) to allow the tenant system to handle
+# both existing and non-existent businesses appropriately.
 class SubdomainConstraint
   def self.matches?(request)
     subdomain = request.subdomain
     host = request.host.downcase
 
+    # Ignore www and blank subdomains/hostnames
+    return false if subdomain.blank? || subdomain == 'www'
+
     # Check if this is a hosting platform request that should be treated as main domain
     return false if hosting_platform_request?(host)
 
-    # First check for subdomain (original logic)
-    if subdomain.present? && subdomain != 'www'
-      # Match any subdomain - let the tenant system decide if business exists
-      # This allows both existing businesses and non-existent ones to be handled properly
-      return true
-    end
-
-    # Second check for custom domain
-    # Use the CustomDomainConstraint logic to check if this is a valid custom domain
-    CustomDomainConstraint.matches?(request)
+    # Match any subdomain - let the tenant system decide if business exists
+    # This allows both existing businesses and non-existent ones to be handled properly
+    true
   end
   
   private
