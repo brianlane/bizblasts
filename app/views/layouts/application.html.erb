@@ -37,7 +37,16 @@
     <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
     <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
     <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
-    
+
+    <!-- Business-specific meta tags when in tenant context -->
+    <% if defined?(current_tenant) && current_tenant&.logo&.attached? %>
+      <!-- Override default platform image with business logo -->
+      <meta property="og:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
+      <meta property="og:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
+      <meta name="twitter:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
+      <meta name="twitter:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
+    <% end %>
+
     <!-- Structured Data for Organization -->
     <script type="application/ld+json">
     <%

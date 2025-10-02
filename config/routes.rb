@@ -2,6 +2,7 @@
 
 require Rails.root.join('lib/constraints/subdomain_constraint')
 require Rails.root.join('lib/constraints/custom_domain_constraint')
+require Rails.root.join('lib/constraints/business_domain_constraint')
 require Rails.root.join('lib/constraints/tenant_public_constraint')
 
 Rails.application.routes.draw do
@@ -109,6 +110,7 @@ Rails.application.routes.draw do
   end
 
   # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
+  # This now serves as a fallback for unauthenticated users on custom domains
   constraints CustomDomainConstraint do
     get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
   end
@@ -208,7 +210,8 @@ Rails.application.routes.draw do
     get '/users/sign_out', to: 'users/sessions#destroy'
   end
 
-  constraints(SubdomainConstraint) do
+  # Business Manager routes available on both subdomains and custom domains
+  constraints BusinessDomainConstraint do
     namespace :business_manager, path: '/manage' do
       get '/dashboard', to: 'dashboard#index', as: :dashboard
       resources :services do
@@ -238,7 +241,7 @@ Rails.application.routes.draw do
           patch 'manage_availability'
         end
       end
-      
+
       # Bookings management
       resources :bookings, only: [:index, :show, :new, :edit, :update, :create] do
         member do
@@ -252,20 +255,20 @@ Rails.application.routes.draw do
           get '/available-slots', to: 'bookings#available_slots', as: :available_slots
         end
       end
-      
+
       # Add route for available slots in business manager context
       get '/available-slots', to: 'bookings#available_slots', as: :available_slots_bookings
 
-      # Allow staff/manager to create bookings under subdomain
+      # Allow staff/manager to create bookings
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
-      
+
       # Business transactions management (unified orders and invoices)
       resources :transactions, only: [:index, :show] do
         collection do
           get :download_csv
         end
       end
-      
+
       # Business orders management
       resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
         member do
@@ -279,13 +282,13 @@ Rails.application.routes.draw do
         get :qr_payment, on: :member
         get :payment_status, on: :member
       end
-      
+
       # Business payments management
       resources :payments, only: [:index, :show]
-      
+
       # Payment collection (singular resource for new payment collection)
       resource :payment, only: [:new, :create]
-      
+
       # Redirect /manage/payment to /manage/payment/new to prevent 404s
       get '/payment', to: redirect('/manage/payment/new')
       get '/settings', to: 'settings#index', as: :settings
@@ -330,10 +333,10 @@ Rails.application.routes.draw do
             post 'google-business/connect-manual', action: :google_business_connect_manual
             delete 'google-business/disconnect', action: :google_business_disconnect
             get 'google-business/status', action: :google_business_status
-            
+
             # Google Business Profile OAuth routes
             get 'google-business/oauth/authorize', action: :google_business_oauth_authorize
-            
+
             # Calendar integration routes
             post 'calendar-integrations/connect', action: :calendar_integration_connect, as: :calendar_integration_connect
             get 'calendar-integrations/new-caldav', action: :calendar_integration_new_caldav, as: :calendar_integration_new_caldav
@@ -348,7 +351,7 @@ Rails.application.routes.draw do
           end
         end
         resource :website_pages, only: [:edit, :update]
-        
+
         # Tips configuration
         resource :tips, only: [:show, :update]
 
@@ -357,7 +360,7 @@ Rails.application.routes.draw do
           patch :update_sidebar
         end
       end
-      
+
       # Customer Subscription Management for Business Managers
       resources :customer_subscriptions, path: 'subscriptions' do
         member do
@@ -368,7 +371,7 @@ Rails.application.routes.draw do
           get :analytics
         end
       end
-      
+
       # Referral and Loyalty Management
       resources :referrals, only: [:index, :show, :edit, :update, :create] do
         collection do
@@ -376,7 +379,7 @@ Rails.application.routes.draw do
           get :analytics
         end
       end
-      
+
       resources :loyalty, only: [:index, :show, :edit, :update, :create] do
         collection do
           patch :toggle_status
@@ -388,7 +391,7 @@ Rails.application.routes.draw do
           post :adjust_points
         end
       end
-      
+
       # Platform (BizBlasts) Loyalty and Referrals
       resources :platform, only: [:index] do
         collection do
@@ -399,7 +402,7 @@ Rails.application.routes.draw do
           get :discount_codes
         end
       end
-      
+
       # Promotion Management
       resources :promotions do
         collection do
@@ -416,7 +419,7 @@ Rails.application.routes.draw do
           patch :cancel
         end
       end
-      
+
       # Subscription loyalty management
       resources :subscription_loyalty, only: [:index, :show] do
         member do
@@ -429,7 +432,7 @@ Rails.application.routes.draw do
           get :export_data
         end
       end
-      
+
       # Website customization routes (Standard & Premium only)
       namespace :website do
         resources :pages do
@@ -445,21 +448,21 @@ Rails.application.routes.draw do
             post :duplicate
             post :track_view
           end
-          
+
           resources :sections, except: [:show] do
             member do
               patch :move_up
-              patch :move_down  
+              patch :move_down
               post :duplicate
               patch :reorder
             end
-            
+
             collection do
               patch :reorder
             end
           end
         end
-        
+
         resources :themes do
           member do
             patch :activate
@@ -467,18 +470,18 @@ Rails.application.routes.draw do
             post :duplicate
             get :export
           end
-          
+
           collection do
             post :import
           end
         end
-        
+
         resources :templates, only: [:index, :show] do
           member do
             post :apply
             get :preview
           end
-          
+
           collection do
             get :search
             get :filter_by_industry
@@ -487,7 +490,10 @@ Rails.application.routes.draw do
         end
       end
     end
+  end
 
+  # Subdomain-only routes (business routes, policy redirects, etc.)
+  constraints(SubdomainConstraint) do
     # Business-specific routes for business owners
     namespace :business do
       resources :orders, only: [:index, :show]

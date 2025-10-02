@@ -67,7 +67,10 @@
     <div id="sidebar" data-navbar-target="sidebar" class="fixed lg:relative w-64 bg-gray-800 text-white h-screen lg:h-full flex flex-col z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto" style="height: calc(100dvh - env(safe-area-inset-top, 0px));">
       <div class="p-4 flex-shrink-0">
         <div class="flex items-center justify-between">
-          <h2 class="text-xl lg:text-2xl font-semibold"><%= @current_business&.name %></h2>
+          <div class="flex items-center space-x-3">
+            <%= business_logo_tag(@current_business, size: :thumb, css_class: "h-8 w-8 rounded-full flex-shrink-0") if @current_business %>
+            <h2 class="text-xl lg:text-2xl font-semibold truncate"><%= @current_business&.name %></h2>
+          </div>
           <!-- Close/Toggle button for all screen sizes -->
           <button data-navbar-target="desktopToggle" data-action="click->navbar#toggle" class="cursor-pointer text-white hover:text-gray-300 bg-gray-700 p-2 rounded-md hover:bg-gray-600 transition-colors">
             <svg data-navbar-target="desktopToggleIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

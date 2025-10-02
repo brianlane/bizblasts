@@ -257,6 +257,37 @@ ActiveAdmin.register Business do
   index do
     selectable_column
     column :id
+    column 'Logo', :logo do |business|
+      if business.logo.attached?
+        begin
+          image_tag business.logo.variant(resize_to_limit: [40, 40]),
+                    class: "h-10 w-10 object-cover rounded-full",
+                    alt: business.name || "Business Logo"
+        rescue => e
+          # Log the error for debugging
+          Rails.logger.warn "[ADMIN] Logo variant failed for business #{business.id}: #{e.message}"
+
+          # Show fallback avatar instead of breaking the page
+          business_name = business.name.to_s.strip
+          business_name = "Business" if business_name.blank?
+          initials = business_name.split.map(&:first).join.upcase[0..1]
+
+          content_tag :div,
+                      initials,
+                      class: "h-10 w-10 bg-red-200 text-red-800 rounded-full flex items-center justify-center text-xs font-medium",
+                      title: "Logo processing error"
+        end
+      else
+        # Fallback for businesses without logos
+        business_name = business.name.to_s.strip
+        business_name = "Business" if business_name.blank?
+        initials = business_name.split.map(&:first).join.upcase[0..1]
+
+        content_tag :div,
+                    initials,
+                    class: "h-10 w-10 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-xs font-medium"
+      end
+    end
     column :name
     column :subdomain
     column :hostname
