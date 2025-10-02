@@ -76,17 +76,26 @@
       display: inline-block;
       padding: 12px 24px;
       background: #0066cc;
-      color: white;
-      text-decoration: none;
+      color: white !important;
+      text-decoration: none !important;
       border-radius: 6px;
       margin: 0 10px;
       font-weight: bold;
+    }
+    .btn, .btn * {
+      color: white !important;
+      text-decoration: none !important;
     }
     .btn:hover {
       background: #0056b3;
     }
     .btn.secondary {
       background: #6c757d;
+      color: white !important;
+    }
+    .btn.secondary, .btn.secondary * {
+      color: white !important;
+      text-decoration: none !important;
     }
     .btn.secondary:hover {
       background: #5a6268;
@@ -110,6 +119,18 @@
     .tier-free { background: #d4edda; color: #155724; }
     .tier-starter { background: #cce5ff; color: #004085; }
     .tier-premium { background: #f8d7da; color: #721c24; }
+
+    /* Email client specific overrides */
+    a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+    }
+
+    /* Force white text in buttons for all email clients */
+    .btn a, a.btn, .btn.secondary a, a.btn.secondary {
+      color: white !important;
+      text-decoration: none !important;
+    }
   </style>
 </head>
 <body>
