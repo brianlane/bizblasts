@@ -6,11 +6,18 @@ class TenantRedirectController < ApplicationController
   # Redirect /manage or /admin requests that arrive on a custom domain back to the canonical sub-domain.
   # Example:
   #   https://www.custom.com/manage/dashboard → https://biztest.bizblasts.com/manage/dashboard
+  #
+  # Note: This controller now serves as a fallback for unauthenticated users only.
+  # Authenticated users are handled by the custom domain business manager routes.
   def manage
     business = ActsAsTenant.current_tenant
 
-    # Only custom-domain tenants need redirect.
+    # Only custom-domain tenants need redirect consideration
     if business&.host_type_custom_domain? && business.subdomain.present?
+      # This controller should only be reached by unauthenticated users now
+      # since authenticated users are handled by custom domain business manager routes
+      Rails.logger.info "[TenantRedirectController] Unauthenticated user on custom domain #{request.host}, redirecting to subdomain for authentication"
+
       subdomain_stub = business.dup
       subdomain_stub.host_type = 'subdomain'
 
@@ -20,7 +27,7 @@ class TenantRedirectController < ApplicationController
       return redirect_to target_url, status: :moved_permanently, allow_other_host: true
     end
 
-    # Fallback – show 404 so bots don’t index wrong host.
+    # Fallback – show 404 so bots don't index wrong host.
     render plain: 'Not Found', status: :not_found
   end
 end

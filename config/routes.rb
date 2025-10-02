@@ -109,6 +109,7 @@ Rails.application.routes.draw do
   end
 
   # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
+  # This now serves as a fallback for unauthenticated users on custom domains
   constraints CustomDomainConstraint do
     get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
   end
