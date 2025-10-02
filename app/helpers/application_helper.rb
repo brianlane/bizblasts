@@ -456,3 +456,110 @@ module ApplicationHelper
 =end
   end
 
+  # Business Logo Helper Methods
+  # =============================
+
+  # Generate an img tag for business logos with proper variants and fallback
+  # @param business [Business] The business object
+  # @param size [Symbol] The variant size (:thumb, :medium, :large)
+  # @param css_class [String] Additional CSS classes
+  # @param fallback [Boolean] Whether to show fallback for businesses without logos
+  # @param html_options [Hash] Additional HTML attributes
+  # @return [String] HTML img tag or fallback content
+  def business_logo_tag(business, size: :thumb, css_class: '', fallback: true, **html_options)
+    return '' unless business.present?
+
+    # Set default HTML options
+    html_options[:alt] ||= business.name
+    html_options[:class] = "#{css_class} #{html_options[:class]}".strip
+    html_options[:loading] ||= 'lazy'
+    html_options[:decoding] ||= 'async'
+
+    if business.logo.attached?
+      begin
+        # Use the specified variant
+        logo_variant = business.logo.variant(variant_options_for_size(size))
+
+        # Build srcset for HiDPI displays
+        srcset_1x = rails_public_blob_url(logo_variant)
+        srcset_2x = rails_public_blob_url(business.logo.variant(variant_options_for_size(size, scale: 2)))
+        html_options[:srcset] = "#{srcset_1x} 1x, #{srcset_2x} 2x"
+
+        image_tag(srcset_1x, html_options)
+      rescue => e
+        Rails.logger.warn "[LOGO HELPER] Failed to generate logo for business #{business.id}: #{e.message}"
+        fallback ? business_logo_fallback(business, html_options) : ''
+      end
+    elsif fallback
+      business_logo_fallback(business, html_options)
+    else
+      ''
+    end
+  end
+
+  # Generate a URL for business logos (useful for emails, meta tags, etc.)
+  # @param business [Business] The business object
+  # @param size [Symbol] The variant size (:thumb, :medium, :large)
+  # @return [String, nil] Public blob URL or nil if no logo
+  def business_logo_url(business, size: :large)
+    return nil unless business&.logo&.attached?
+
+    begin
+      variant = business.logo.variant(variant_options_for_size(size))
+      rails_public_blob_url(variant)
+    rescue => e
+      Rails.logger.warn "[LOGO HELPER] Failed to generate logo URL for business #{business.id}: #{e.message}"
+      nil
+    end
+  end
+
+  private
+
+  # Get variant options for different sizes
+  # @param size [Symbol] The variant size
+  # @param scale [Integer] Scale factor for HiDPI (1 or 2)
+  # @return [Hash] Variant options for Active Storage
+  def variant_options_for_size(size, scale: 1)
+    base_sizes = {
+      thumb: [120, 120],
+      medium: [300, 300],
+      large: [600, 600]
+    }
+
+    width, height = base_sizes[size] || base_sizes[:thumb]
+    scaled_width = width * scale
+    scaled_height = height * scale
+
+    {
+      resize_to_limit: [scaled_width, scaled_height],
+      quality: scale == 1 ? 85 : 80 # Slightly lower quality for 2x to reduce file size
+    }
+  end
+
+  # Generate fallback content for businesses without logos
+  # @param business [Business] The business object
+  # @param html_options [Hash] HTML attributes
+  # @return [String] HTML content for fallback
+  def business_logo_fallback(business, html_options = {})
+    initials = business.name.split.map(&:first).join.upcase[0..1]
+
+    # Generate a consistent background color based on business name
+    color_hash = business.name.sum % 8
+    bg_colors = %w[
+      bg-blue-500 bg-green-500 bg-purple-500 bg-pink-500
+      bg-indigo-500 bg-red-500 bg-yellow-500 bg-gray-500
+    ]
+    bg_color = bg_colors[color_hash]
+
+    # Extract size from class to determine dimensions
+    size_class = html_options[:class]&.match(/[hw]-(\d+)/)&.captures&.first
+    size = size_class ? "#{size_class.to_i * 0.25}rem" : '3rem'
+
+    content_tag(:div,
+      content_tag(:span, initials, class: 'text-white font-semibold text-sm'),
+      class: "#{bg_color} rounded-full flex items-center justify-center text-white #{html_options[:class]}",
+      style: "width: #{size}; height: #{size}; min-width: #{size}; min-height: #{size}",
+      title: business.name
+    )
+  end
+

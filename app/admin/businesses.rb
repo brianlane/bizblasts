@@ -257,6 +257,17 @@ ActiveAdmin.register Business do
   index do
     selectable_column
     column :id
+    column 'Logo', :logo do |business|
+      if business.logo.attached?
+        image_tag business.logo.variant(resize_to_limit: [40, 40]),
+                  class: "h-10 w-10 object-cover rounded-full",
+                  alt: business.name
+      else
+        content_tag :div,
+                    business.name.split.map(&:first).join.upcase[0..1],
+                    class: "h-10 w-10 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-xs font-medium"
+      end
+    end
     column :name
     column :subdomain
     column :hostname
