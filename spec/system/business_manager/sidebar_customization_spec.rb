@@ -9,7 +9,7 @@ RSpec.describe 'Sidebar Customization', type: :system do
     visit edit_sidebar_business_manager_settings_sidebar_path
   end
 
-  it 'shows all sidebar items and allows reordering and hiding' do
+  it 'shows all sidebar items and allows reordering and hiding', js: true do
     expect(page).to have_content('Customize Sidebar')
     expect(page).to have_selector('.sidebar-item', minimum: 3)
     # Hide the first item using Capybara's uncheck

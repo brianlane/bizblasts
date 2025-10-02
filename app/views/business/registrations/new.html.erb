@@ -163,7 +163,7 @@
           <!-- Plan Selection Section -->
           <div class="mt-8">
             <%= business_f.label :tier, "Choose Your Monthly Plan", class: "block text-lg font-semibold text-dark mb-6" %>
-            <%= business_f.hidden_field :tier, id: "selected_tier" %>
+            <%= business_f.hidden_field :tier, value: 'free', id: "selected_tier" %>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 subscription-plans">
               <!-- Free Plan -->
@@ -245,6 +245,9 @@
 
           <!-- Host Type Handling -->
           <%= business_f.hidden_field :host_type, value: 'subdomain', id: 'host_type_input' %>
+
+          <!-- Selected Tier Handling -->
+          <!-- Tier field is already defined above in the plan selection section -->
 
           <!-- Subdomain field for all tiers -->
           <div class="mt-6">

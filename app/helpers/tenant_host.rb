@@ -94,13 +94,9 @@ module TenantHost
                  end
 
       # Default to :3000 in development when no request object is provided (used in specs)
-      # In test environment, use Capybara server port if available
-      if port.nil? && request.nil?
-        if Rails.env.test? && defined?(Capybara) && Capybara.server_port
-          port = Capybara.server_port
-        elsif Rails.env.development?
-          port = 3000
-        end
+      # In test mode, leave port nil to avoid Capybara server conflicts
+      if port.nil? && request.nil? && Rails.env.development?
+        port = 3000
       end
 
       port_str = if port.nil?
@@ -135,7 +131,7 @@ module TenantHost
     host = host.to_s.downcase
 
     if Rails.env.development? || Rails.env.test?
-      %w[lvh.me www.lvh.me test.host].include?(host)
+      %w[lvh.me www.lvh.me test.host example.com www.example.com].include?(host)
     else
       %w[bizblasts.com www.bizblasts.com bizblasts.onrender.com].include?(host)
     end

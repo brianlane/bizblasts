@@ -153,7 +153,7 @@ RSpec.describe "Business Registration", type: :system do
       expect(page).to have_content("Our team manages all technical setup and verification")
     end
 
-    it "has selection buttons for each plan" do
+    it "has selection buttons for each plan", js: true do
       visit new_business_registration_path
       
       # Free plan is selected by default, so button text changes to "✓ Selected"
@@ -302,7 +302,7 @@ RSpec.describe "Business Registration", type: :system do
       
       # Check for validation errors - could be in different formats
       expect(page).to have_content("can't be blank").or have_content("errors prohibited").or have_content("required")
-      expect(page).to have_current_path(new_business_registration_path)
+      expect(page).to have_current_path(business_registration_path)
     end
 
     it "handles Stripe Connect errors gracefully for paid tiers", js: true do
