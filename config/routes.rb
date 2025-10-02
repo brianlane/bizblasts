@@ -536,13 +536,12 @@ Rails.application.routes.draw do
   #   get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
   # end
 
-  # THEN put the fallback redirect for unauthenticated users
-  # But use a custom constraint that checks authentication
-  constraints lambda { |req| 
-    CustomDomainConstraint.matches?(req) && 
-    !req.session[:user_id].present? # Only for non-authenticated
+  # Fallback redirect for unauthenticated users on custom domains
+  # Uses Warden (Devise) to reliably detect authentication state instead of relying on raw session keys.
+  constraints lambda { |req|
+    CustomDomainConstraint.matches?(req) && !(req.env["warden"]&.user.present?)
   } do
-    get '/manage(/*path)', to: 'tenant_redirect#manage'
+    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
   end
 
 
