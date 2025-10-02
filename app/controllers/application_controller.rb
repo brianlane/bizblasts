@@ -381,7 +381,20 @@ class ApplicationController < ActionController::Base
   private
 
   def skip_user_authentication?
-    devise_controller? || request.path.start_with?('/admin') || maintenance_mode?
+    # Skip authentication for:
+    # 1. Devise controllers (login, registration, etc.)
+    # 2. Admin (has its own authentication)
+    # 3. Maintenance mode
+    # 4. Public paths (everything except protected areas)
+
+    return true if devise_controller?
+    return true if request.path.start_with?('/admin')
+    return true if maintenance_mode?
+
+    # Default: Skip authentication UNLESS path requires it
+    # This makes the app "public by default" with specific protected areas
+    # Defense in depth: Controllers also have authenticate_user!, but this provides first-pass check
+    !requires_authentication?
   end
   
   def skip_cross_domain_auth?
@@ -423,16 +436,30 @@ class ApplicationController < ActionController::Base
     else
       Rails.logger.info "[CrossDomainAuth] Not attempting session restoration - likely_cross_domain_user?: #{likely_cross_domain_user?}"
     end
-    
-    # For pages that actually REQUIRE authentication, use blocking redirect
+
+    # Even if we don't attempt session restoration, we still need to redirect
+    # unauthenticated users to the auth bridge for protected paths
     if requires_authentication?
-      Rails.logger.info "[CrossDomainAuth] Page requires authentication, redirecting to bridge"
+      Rails.logger.info "[CrossDomainAuth] Protected path detected, redirecting unauthenticated user to bridge"
       redirect_to_auth_bridge
+      return
     end
   end
   
+  # Helper method for consistent business context detection across all controllers
+  # Use this method only AFTER tenant has been set (in controller actions)
+  def on_business_domain?
+    !main_domain_request? && ActsAsTenant.current_tenant.present?
+  end
+
+  # Helper method for before_action conditions (before tenant is set)
+  # This doesn't rely on ActsAsTenant.current_tenant being set yet
+  def before_action_business_domain_check
+    !main_domain_request?
+  end
+
   private
-  
+
   def on_custom_domain?
     return false if main_domain_request?
     
@@ -487,6 +514,13 @@ class ApplicationController < ActionController::Base
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
 
+    # IMPORTANT: Only attempt session restoration for protected paths
+    # This prevents unnecessary redirects for users viewing public content
+    unless requires_authentication?
+      Rails.logger.debug "[CrossDomainAuth] Public path detected, skipping session restoration"
+      return false
+    end
+
     # Multi-signal approach for session restoration detection
     # Use multiple indicators to determine if user likely has an active session
     restoration_signals = []
@@ -526,32 +560,30 @@ class ApplicationController < ActionController::Base
 
     should_attempt
   end
-  
+
   def requires_authentication?
-    # Only attempt for GET and HEAD requests
-    return false unless (request.get? || request.head?)
-    
+    # Check ALL request methods - authentication is required regardless of HTTP verb
     # Skip for asset files and system endpoints
     return false if skip_system_paths?
-    
-    # Only require authentication (blocking redirect) for protected areas
-    protected_patterns = [
-      '/manage',             # Business management
-      '/dashboard',          # User dashboard  
-      '/profile',            # User profile
-      '/settings',           # Settings
-      '/my-bookings',        # User's bookings
-      '/clients',            # Client management
-      '/orders',             # User orders
-      '/subscriptions',      # User subscriptions
-      '/account',            # Account management
-      '/preferences'         # User preferences
-    ]
-    
+
+    # Simple approach: Only require authentication for protected paths
+    # Everything else is public by default
+    auth_required_paths = Rails.application.config.x.auth_required_paths
+
+    # Defensive: Use sensible defaults if configuration is not loaded
+    unless auth_required_paths.present?
+      Rails.logger.warn "[Auth] auth_required_paths configuration missing, using fallback defaults"
+      auth_required_paths = [
+        '/manage', '/dashboard', '/admin', '/settings',
+        '/profile', '/account', '/preferences', '/clients',
+        '/my-bookings', '/invoices', '/transactions'
+      ]
+    end
+
     path = request.path.downcase
-    protected_patterns.any? { |pattern| path.start_with?(pattern) }
+    auth_required_paths.any? { |pattern| path.start_with?(pattern) }
   end
-  
+
   def skip_system_paths?
     skip_paths = [
       '/assets',             # Asset files
@@ -563,11 +595,11 @@ class ApplicationController < ActionController::Base
       '/maintenance',        # Maintenance page
       '/api'                 # API endpoints (exact match and with slash)
     ]
-    
+
     path = request.path.downcase
     # Check for exact match or path starting with skip_path + '/'
-    skip_paths.any? { |skip_path| 
-      path == skip_path || path.start_with?(skip_path + '/') 
+    skip_paths.any? { |skip_path|
+      path == skip_path || path.start_with?(skip_path + '/')
     }
   end
   

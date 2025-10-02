@@ -151,7 +151,7 @@ RSpec.describe 'Tenant Route Integration', type: :routing do
       
       platform_hosts.each do |host|
         request = create_mock_request(host)
-        expect(TenantPublicConstraint.matches?(request)).to be false,
+        expect(TenantPublicConstraint.matches?(request)).to be(false),
           "Expected TenantPublicConstraint to reject #{host}"
       end
     end

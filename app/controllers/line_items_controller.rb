@@ -1,5 +1,5 @@
 class LineItemsController < ApplicationController
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   include BusinessAccessProtection
   skip_before_action :authenticate_user!
   

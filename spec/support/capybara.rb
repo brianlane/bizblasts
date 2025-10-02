@@ -56,31 +56,37 @@ end
 Capybara.server_host = 'lvh.me'
 # Don't override server_port here - let rails_helper.rb set it for parallel tests
 # Capybara.server_port = 3001 # Use a specific port
-Capybara.app_host = "http://#{Capybara.server_host}:#{Capybara.server_port}"
-Capybara.default_host = Capybara.app_host
 
 RSpec.configure do |config|
   # Configure the driver to use for system tests
   config.before(:each, type: :system) do
+    # Ensure app_host is properly set with the current server port
+    port_suffix = Capybara.server_port ? ":#{Capybara.server_port}" : ""
+    Capybara.app_host = "http://#{Capybara.server_host}#{port_suffix}"
+    Capybara.default_host = Capybara.app_host
+
     driven_by :rack_test
   end
 
   # Use cuprite for JS tests
   config.before(:each, type: :system, js: true) do
+    # Ensure app_host is properly set with the current server port
+    port_suffix = Capybara.server_port ? ":#{Capybara.server_port}" : ""
+    Capybara.app_host = "http://#{Capybara.server_host}#{port_suffix}"
+
     driven_by :cuprite
-    # Set app_host here too, potentially overriding based on test context if needed
-    # Ensure host includes port
-    Capybara.app_host = "http://#{Capybara.server_host}:#{Capybara.server_port}"
   end
-  
+
   # Helper method to switch to subdomain
   config.include Module.new {
     def switch_to_subdomain(subdomain)
-      Capybara.app_host = "http://#{subdomain}.lvh.me:#{Capybara.server_port}"
+      port_suffix = Capybara.server_port ? ":#{Capybara.server_port}" : ""
+      Capybara.app_host = "http://#{subdomain}.lvh.me#{port_suffix}"
     end
 
     def switch_to_main_domain
-      Capybara.app_host = "http://lvh.me:#{Capybara.server_port}"
+      port_suffix = Capybara.server_port ? ":#{Capybara.server_port}" : ""
+      Capybara.app_host = "http://lvh.me#{port_suffix}"
     end
   }, type: :system
 

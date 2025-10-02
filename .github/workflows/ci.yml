@@ -1353,6 +1353,7 @@ jobs:
 
       - name: Run other tests
         run: |
+          set -e  # Exit immediately if any command exits with a non-zero status
           # Run tests from directories that exist and have spec files
           SPEC_DIRS=""
           for dir in spec/helpers spec/lib spec/views spec/channels; do

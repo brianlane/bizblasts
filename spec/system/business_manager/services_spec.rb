@@ -131,7 +131,7 @@ RSpec.describe "BusinessManager::Services", type: :system do
       end
     end
 
-    it "allows deleting services from the edit page" do
+    it "allows deleting services from the edit page", js: true do
       # Create a service to delete
       service_to_delete = FactoryBot.create(:service, 
                                           business: business, 

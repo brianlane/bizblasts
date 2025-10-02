@@ -3,7 +3,7 @@
 class Public::SubscriptionsController < Public::BaseController
   after_action :no_store!
   skip_before_action :authenticate_user!  # Allow guest access for subscription signups
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   before_action :set_product_or_service, except: [:confirmation]
   before_action :ensure_subscriptions_enabled, except: [:confirmation]
 

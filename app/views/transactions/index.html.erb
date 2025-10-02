@@ -12,8 +12,8 @@
   </div>
   
   <p class="text-gray-600">
-    <% if request.subdomain.present? && request.subdomain != 'www' %>
-      Showing 
+    <% if @current_tenant.present? %>
+      Showing
       <%= case @filter
           when 'orders' then 'orders'
           when 'invoices' then 'invoices'

@@ -21,6 +21,10 @@ Rails.application.routes.draw do
   # This endpoint receives the redirect from the main domain auth bridge
   get "auth/consume" => "authentication_bridge#consume_token", as: :auth_consume
 
+  # Reverse bridge: custom domain → main domain
+  # This allows users to navigate back to main domain while staying logged in
+  get "auth/bridge_to_main" => "authentication_bridge#bridge_to_main", as: :auth_bridge_to_main
+
   # Tenant public routes: available on both subdomains and active custom domains
   constraints TenantPublicConstraint do
     # (public routes continue)
@@ -620,6 +624,10 @@ Rails.application.routes.draw do
 
   # New unified transactions view
   resources :transactions, only: [:index, :show]
+
+  # Cart redirect handler for main domain
+  # Since carts are business-specific, redirect users to the appropriate business domain
+  resource :cart, only: [:show], controller: 'cart_redirect'
 
   authenticated :user, ->(user) { user.client? } do
     # Keep this block for any future client-specific routes that need the constraint

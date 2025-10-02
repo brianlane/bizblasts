@@ -198,13 +198,15 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
 
-  # Configure Capybara to use Cuprite driver for system tests
-  config.before(:each, type: :system) do
-    driven_by Capybara.javascript_driver
-  end
+  # Capybara configuration is handled in spec/support/capybara.rb
 
-  # Assign dynamic server ports for parallel system tests
-  Capybara.server_port = 9887 + ENV['TEST_ENV_NUMBER'].to_i
+  # Assign dynamic server ports for parallel tests, or default port for single tests
+  if ENV['TEST_ENV_NUMBER']
+    Capybara.server_port = 9887 + ENV['TEST_ENV_NUMBER'].to_i
+  else
+    # For single test runs, use a consistent port to avoid connection issues
+    Capybara.server_port = 3000
+  end
 
   Capybara.javascript_driver = :cuprite
   

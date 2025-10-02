@@ -8,8 +8,33 @@ class Public::LoyaltyController < Public::BaseController
   before_action :check_loyalty_program_enabled, only: [:show, :redeem_points]
   
   def index
-    @businesses_with_points = get_businesses_with_points
-    @total_points_across_businesses = calculate_total_points
+    if on_business_domain?
+      # Tenant-specific case: Show loyalty only for this business
+      current_business = ActsAsTenant.current_tenant
+      if current_business && current_business.loyalty_program_enabled?
+        customer = TenantCustomer.find_by(email: current_user.email, business: current_business)
+        if customer
+          @businesses_with_points = [{
+            business_id: current_business.id,
+            business_name: current_business.name,
+            business_hostname: current_business.hostname,
+            current_points: customer.loyalty_transactions.sum(:points_amount),
+            customer: customer
+          }]
+          @total_points_across_businesses = customer.loyalty_transactions.sum(:points_amount)
+        else
+          @businesses_with_points = []
+          @total_points_across_businesses = 0
+        end
+      else
+        @businesses_with_points = []
+        @total_points_across_businesses = 0
+      end
+    else
+      # Main domain case: Show loyalty across all businesses
+      @businesses_with_points = get_businesses_with_points
+      @total_points_across_businesses = calculate_total_points
+    end
   end
   
   def show
