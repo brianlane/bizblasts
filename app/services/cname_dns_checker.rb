@@ -9,7 +9,13 @@ class CnameDnsChecker
 
   # Targets that indicate correct routing to Render
   RENDER_CNAME_TARGET = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
-  RENDER_APEX_IP       = '216.24.57.1' # Render documented anycast IP for apex A records
+
+  # Render's apex IP for A record verification (DIFFERENT from outbound IPs)
+  # This is the IP that custom domains should point their A records to
+  # NOTE: This is NOT the same as Render's outbound IP addresses that changed Oct 2025
+  # Check Render docs or contact support if this needs updating: https://render.com/docs/custom-domains
+  # TODO: Consider making this configurable via ENV['RENDER_APEX_IP'] for easier updates
+  RENDER_APEX_IP = ENV['RENDER_APEX_IP'] || '216.24.57.1'
 
   def initialize(domain_name)
     @domain_name = domain_name.to_s.strip.downcase
