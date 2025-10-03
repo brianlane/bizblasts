@@ -606,9 +606,9 @@ class SubscriptionStockService
     begin
       NotificationService.subscription_order_created(order) if defined?(NotificationService)
       BusinessMailer.subscription_order_received(order).deliver_later if defined?(BusinessMailer)
-      Rails.logger.info "[EMAIL] Sent order notifications for order #{order.id}"
+      Rails.logger.info "[NOTIFICATION] Sent order notifications for order #{order.id}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send order notifications: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send order notifications: #{e.message}"
     end
   end
 
