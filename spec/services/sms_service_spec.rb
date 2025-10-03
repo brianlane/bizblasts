@@ -70,7 +70,7 @@ RSpec.describe SmsService, type: :service do
         end
 
         it 'logs successful SMS send' do
-          expect(Rails.logger).to receive(:info).with("SMS sent successfully to #{valid_phone} with Twilio SID: twilio-sid-123")
+          expect(Rails.logger).to receive(:info).with(match(/\[SMS_SERVICE\] SMS sent successfully to #{Regexp.escape(valid_phone)} with Twilio SID: twilio-sid-123 \(\d+\.\d+s\)/))
           described_class.send_message(valid_phone, message, { tenant_customer_id: customer.id })
         end
 
@@ -101,10 +101,13 @@ RSpec.describe SmsService, type: :service do
           # Create a proper mock of Twilio::REST::RestError
           error_class = Class.new(StandardError)
           error_class.define_method(:initialize) { |msg| super(msg) }
-          
+
+          # Add the code method that production code expects
+          error_class.define_method(:code) { 21614 } # "Invalid destination number" error code
+
           # Make it behave like Twilio::REST::RestError for is_a? checks
           stub_const('Twilio::REST::RestError', error_class)
-          
+
           error_class.new("Invalid destination number")
         end
         
@@ -133,7 +136,8 @@ RSpec.describe SmsService, type: :service do
         end
 
         it 'logs error' do
-          expect(Rails.logger).to receive(:error).with("SMS failed to send to #{valid_phone}: Twilio API error: Invalid destination number")
+          expect(Rails.logger).to receive(:error).with(match(/\[SMS_SERVICE\] TWILIO PERMISSION ERROR \(code 21614\) after \d+\.\d+s: Invalid destination number/))
+          expect(Rails.logger).to receive(:error).with("[SMS_SERVICE] This may indicate IP allowlist issues after Render IP change")
           described_class.send_message(valid_phone, message, { tenant_customer_id: customer.id })
         end
       end

@@ -34,6 +34,9 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       # Profile update only (no password change)
       # Remove password parameters to avoid unpermitted params warning
       if @user.update(profile_update_params)
+        # Handle business-specific SMS preferences
+        handle_business_sms_preferences if params[:business_sms_preferences].present?
+
         # Sync changes to tenant customers will happen via User model callback
         redirect_to client_settings_path, notice: 'Profile settings updated successfully.'
       else
@@ -160,5 +163,31 @@ class Client::SettingsController < ApplicationController # Changed from Client::
   # For account deletion
   def deletion_params
     params.require(:user).permit(:current_password, :confirm_deletion)
+  end
+
+  # Handle business-specific SMS preferences
+  def handle_business_sms_preferences
+    business_preferences = params[:business_sms_preferences] || {}
+
+    @user.tenant_customers.includes(:business).each do |customer|
+      next unless customer.business.present?
+
+      business_id = customer.business.id.to_s
+      should_receive_sms = business_preferences[business_id] == "1"
+
+      if should_receive_sms
+        # Customer wants to receive SMS from this business
+        if customer.opted_out_from_business?(customer.business)
+          customer.opt_in_to_business!(customer.business)
+          Rails.logger.info "[CLIENT_SETTINGS] Customer #{customer.id} opted back in to business #{business_id} via web UI"
+        end
+      else
+        # Customer wants to opt out from this business
+        unless customer.opted_out_from_business?(customer.business)
+          customer.opt_out_from_business!(customer.business)
+          Rails.logger.info "[CLIENT_SETTINGS] Customer #{customer.id} opted out from business #{business_id} via web UI"
+        end
+      end
+    end
   end
 end 

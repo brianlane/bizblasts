@@ -63,7 +63,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
         
         expect(SmsService).to receive(:send_message).with(
           '+15551234567',
-          a_string_including('opted in'),
+          "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance.",
           hash_including(auto_reply: true)
         )
         

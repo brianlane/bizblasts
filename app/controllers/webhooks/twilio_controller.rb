@@ -131,47 +131,81 @@ module Webhooks
     end
     
     def process_sms_opt_out(phone_number)
-      # Find customers by phone number and opt them out
-      customers = TenantCustomer.where(phone: normalize_phone(phone_number))
-      
-      customers.each do |customer|
-        customer.opt_out_of_sms!
-        Rails.logger.info "Opted out customer #{customer.id} from SMS"
-      end
-      
-      # Find users by phone number and opt them out  
-      users = User.where(phone: normalize_phone(phone_number))
-      users.each do |user|
-        if user.respond_to?(:opt_out_of_sms!)
-          user.opt_out_of_sms!
-          Rails.logger.info "Opted out user #{user.id} from SMS"
+      # Determine business context from recent SMS activity
+      business_context = determine_business_context(phone_number)
+
+      if business_context
+        Rails.logger.info "Processing business-specific opt-out for #{phone_number} from business #{business_context.id}"
+
+        # Business-specific opt-out
+        customers = TenantCustomer.where(phone: normalize_phone(phone_number), business: business_context)
+        customers.each do |customer|
+          customer.opt_out_from_business!(business_context)
+          Rails.logger.info "Opted out customer #{customer.id} from business #{business_context.id}"
         end
+
+        # Send business-specific confirmation
+        opt_out_message = "You've been unsubscribed from #{business_context.name} SMS. Reply START to re-subscribe or HELP for assistance."
+      else
+        Rails.logger.info "Processing global opt-out for #{phone_number} (no business context found)"
+
+        # Global opt-out (fallback)
+        customers = TenantCustomer.where(phone: normalize_phone(phone_number))
+        customers.each do |customer|
+          customer.opt_out_of_sms!
+          Rails.logger.info "Opted out customer #{customer.id} from SMS globally"
+        end
+
+        # Find users by phone number and opt them out
+        users = User.where(phone: normalize_phone(phone_number))
+        users.each do |user|
+          if user.respond_to?(:opt_out_of_sms!)
+            user.opt_out_of_sms!
+            Rails.logger.info "Opted out user #{user.id} from SMS"
+          end
+        end
+
+        opt_out_message = "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance."
       end
-      
-      # Send confirmation
-      opt_out_message = Sms::MessageTemplates.render('system.opt_out_confirmation', {
-        business_name: 'BizBlasts'
-      })
-      send_auto_reply(phone_number, opt_out_message) if opt_out_message
-      
+
+      send_auto_reply(phone_number, opt_out_message)
       Rails.logger.info "Processed SMS opt-out for #{phone_number}"
     end
     
     def process_sms_opt_in(phone_number)
-      # Find customers by phone number and opt them in
-      customers = TenantCustomer.where(phone: normalize_phone(phone_number))
-      
-      customers.each do |customer|
-        customer.opt_into_sms!
-        Rails.logger.info "Opted in customer #{customer.id} for SMS"
+      # Record any pending invitation responses
+      record_invitation_response(phone_number, 'YES')
+
+      # Determine business context
+      business_context = determine_business_context(phone_number)
+
+      if business_context
+        Rails.logger.info "Processing business-specific opt-in for #{phone_number} to business #{business_context.id}"
+
+        # Business-specific opt-in (remove from opted-out list and global opt-in)
+        customers = TenantCustomer.where(phone: normalize_phone(phone_number), business: business_context)
+        customers.each do |customer|
+          customer.opt_in_to_business!(business_context) # Remove from business opt-out list
+          customer.opt_into_sms! unless customer.phone_opt_in? # Global opt-in if not already
+          Rails.logger.info "Opted in customer #{customer.id} for business #{business_context.id}"
+        end
+
+        # Send business-specific confirmation
+        opt_in_message = "You're now subscribed to #{business_context.name} SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
+      else
+        Rails.logger.info "Processing global opt-in for #{phone_number}"
+
+        # Global opt-in
+        customers = TenantCustomer.where(phone: normalize_phone(phone_number))
+        customers.each do |customer|
+          customer.opt_into_sms!
+          Rails.logger.info "Opted in customer #{customer.id} for SMS"
+        end
+
+        opt_in_message = "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
       end
-      
-      # Send confirmation
-      opt_in_message = Sms::MessageTemplates.render('system.opt_in_confirmation', {
-        business_name: 'BizBlasts'
-      })
-      send_auto_reply(phone_number, opt_in_message) if opt_in_message
-      
+
+      send_auto_reply(phone_number, opt_in_message)
       Rails.logger.info "Processed SMS opt-in for #{phone_number}"
     end
     
@@ -206,6 +240,30 @@ module Webhooks
     rescue => e
       Rails.logger.error "Error verifying Twilio signature: #{e.message}"
       false
+    end
+
+    # Determine business context from recent SMS activity
+    def determine_business_context(phone_number)
+      # Look for recent SMS messages from this phone number to identify business context
+      recent_sms = SmsMessage.where(phone_number: normalize_phone(phone_number))
+                            .where('sent_at > ?', 24.hours.ago)
+                            .order(sent_at: :desc)
+                            .first
+
+      recent_sms&.business
+    end
+
+    # Record invitation response for analytics
+    def record_invitation_response(phone_number, response_text)
+      # Find recent invitations for this phone number
+      recent_invitations = SmsOptInInvitation.where(phone_number: normalize_phone(phone_number))
+                                            .where('sent_at > ?', 30.days.ago)
+                                            .where(responded_at: nil)
+
+      recent_invitations.each do |invitation|
+        invitation.record_response!(response_text)
+        Rails.logger.info "[SMS_INVITATION] Recorded response '#{response_text}' for invitation #{invitation.id}"
+      end
     end
   end
 end

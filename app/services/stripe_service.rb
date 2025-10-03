@@ -2,11 +2,41 @@
 
 class StripeService
   # This service handles integration with the Stripe payment gateway
-  
+
   # Configure API key for all Stripe calls
   def self.configure_stripe_api_key
     stripe_credentials = Rails.application.credentials.stripe || {}
     Stripe.api_key = stripe_credentials[:secret_key] || ENV['STRIPE_SECRET_KEY']
+  end
+
+  # Enhanced wrapper for Stripe API calls with error monitoring
+  # Useful during IP transition to identify connectivity issues
+  def self.with_stripe_error_monitoring(operation_name)
+    configure_stripe_api_key
+    start_time = Time.current
+
+    begin
+      result = yield
+      duration = Time.current - start_time
+      Rails.logger.debug "[StripeService] #{operation_name} successful (#{duration.round(3)}s)"
+      result
+    rescue Stripe::AuthenticationError => e
+      Rails.logger.error "[StripeService] AUTHENTICATION ERROR in #{operation_name}: #{e.message}"
+      Rails.logger.error "[StripeService] This may indicate IP allowlist issues after Render IP change"
+      raise
+    rescue Stripe::PermissionError => e
+      Rails.logger.error "[StripeService] PERMISSION ERROR in #{operation_name}: #{e.message}"
+      Rails.logger.error "[StripeService] This may indicate IP allowlist issues after Render IP change"
+      raise
+    rescue Stripe::APIConnectionError => e
+      Rails.logger.error "[StripeService] CONNECTION ERROR in #{operation_name}: #{e.message}"
+      Rails.logger.error "[StripeService] This may indicate network/IP connectivity issues"
+      raise
+    rescue => e
+      duration = Time.current - start_time
+      Rails.logger.error "[StripeService] #{operation_name} failed after #{duration.round(3)}s: #{e.class.name} - #{e.message}"
+      raise
+    end
   end
   
   def self.stripe_configured?

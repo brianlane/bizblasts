@@ -216,6 +216,7 @@ class TenantCustomer < ApplicationRecord
   def can_receive_sms?(type)
     return false unless phone.present? # Must have phone number
     return false unless business&.sms_enabled? # Business must have SMS enabled
+    return false if opted_out_from_business?(business) # Business-specific opt-out takes precedence
     return true if type == :transactional && phone_opt_in? # Allow transactional if opted in
 
     # Check specific SMS opt-in status and notification preferences
@@ -260,6 +261,36 @@ class TenantCustomer < ApplicationRecord
   # Opt customer out of marketing SMS only
   def opt_out_of_sms_marketing!
     update!(phone_marketing_opt_out: true)
+  end
+
+  # Business-specific opt-out methods
+  def opted_out_from_business?(business)
+    return false unless sms_opted_out_businesses.present?
+    sms_opted_out_businesses.include?(business.id)
+  end
+
+  def opt_out_from_business!(business)
+    self.sms_opted_out_businesses ||= []
+    unless opted_out_from_business?(business)
+      self.sms_opted_out_businesses = sms_opted_out_businesses + [business.id]
+      save!
+      Rails.logger.info "[SMS_OPT_OUT] Customer #{id} opted out from business #{business.id} (#{business.name})"
+    end
+  end
+
+  def opt_in_to_business!(business)
+    return unless sms_opted_out_businesses.present?
+    if opted_out_from_business?(business)
+      self.sms_opted_out_businesses = sms_opted_out_businesses - [business.id]
+      save!
+      Rails.logger.info "[SMS_OPT_IN] Customer #{id} opted back in to business #{business.id} (#{business.name})"
+    end
+  end
+
+  def can_receive_invitation_from?(business)
+    return false if opted_out_from_business?(business)
+    # Check 30-day limit
+    !SmsOptInInvitation.recent_invitation_sent?(phone, business.id)
   end
 
   # Check if phone number appears valid for SMS

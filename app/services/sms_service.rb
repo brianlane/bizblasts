@@ -26,43 +26,66 @@ class SmsService
     # Create an SMS message record
     sms_message = create_sms_record(phone_number, message, options)
     
-    # Send SMS via Twilio API
+    # Send SMS via Twilio API with enhanced error monitoring
+    start_time = Time.current
     begin
+      Rails.logger.debug "[SMS_SERVICE] Initiating Twilio API call to send SMS to #{phone_number}"
+
       client = Twilio::REST::Client.new(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
       message_resource = client.messages.create(
         messaging_service_sid: TWILIO_MESSAGING_SERVICE_SID,
         to: phone_number,
         body: message
       )
-      
+
       # Twilio returns a message resource with sid. Validate it's present.
       if message_resource.sid.nil? || message_resource.sid.empty?
         raise StandardError, "Twilio did not return a message SID"
       end
 
       external_id = message_resource.sid
-      
+
       sms_message.update!(
         status: :sent,
         sent_at: Time.current,
         external_id: external_id
       )
-      
-      Rails.logger.info "SMS sent successfully to #{phone_number} with Twilio SID: #{external_id}"
+
+      duration = Time.current - start_time
+      Rails.logger.info "[SMS_SERVICE] SMS sent successfully to #{phone_number} with Twilio SID: #{external_id} (#{duration.round(3)}s)"
       { success: true, sms_message: sms_message, external_id: external_id }
-      
+
     rescue Twilio::REST::RestError => e
+      duration = Time.current - start_time
       error_message = "Twilio API error: #{e.message}"
+
+      # Enhanced logging for IP transition monitoring
+      if e.code == 20003 # Authentication Error
+        Rails.logger.error "[SMS_SERVICE] TWILIO AUTHENTICATION ERROR after #{duration.round(3)}s: #{e.message}"
+        Rails.logger.error "[SMS_SERVICE] This may indicate IP allowlist issues after Render IP change"
+      elsif e.code.to_s.start_with?('2') # 2xxxx codes are typically auth/permission related
+        Rails.logger.error "[SMS_SERVICE] TWILIO PERMISSION ERROR (code #{e.code}) after #{duration.round(3)}s: #{e.message}"
+        Rails.logger.error "[SMS_SERVICE] This may indicate IP allowlist issues after Render IP change"
+      else
+        Rails.logger.error "[SMS_SERVICE] TWILIO ERROR (code #{e.code}) after #{duration.round(3)}s: #{e.message}"
+      end
+
       sms_message.mark_as_failed!(error_message)
-      
-      Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
       { success: false, error: error_message, sms_message: sms_message }
-      
-    rescue => e
-      error_message = "Unexpected error: #{e.message}"
+
+    rescue Net::OpenTimeout, Net::ReadTimeout => e
+      duration = Time.current - start_time
+      error_message = "Network timeout: #{e.message}"
+      Rails.logger.error "[SMS_SERVICE] NETWORK TIMEOUT after #{duration.round(3)}s: #{e.message}"
+      Rails.logger.error "[SMS_SERVICE] This may indicate network connectivity issues"
       sms_message.mark_as_failed!(error_message)
-      
-      Rails.logger.error "SMS failed to send to #{phone_number}: #{error_message}"
+      { success: false, error: error_message, sms_message: sms_message }
+
+    rescue => e
+      duration = Time.current - start_time
+      error_message = "Unexpected error: #{e.message}"
+      Rails.logger.error "[SMS_SERVICE] UNEXPECTED ERROR after #{duration.round(3)}s: #{e.class.name} - #{e.message}"
+      sms_message.mark_as_failed!(error_message)
       { success: false, error: error_message, sms_message: sms_message }
     end
   end
@@ -73,6 +96,12 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless booking.tenant_customer.can_receive_sms?(:booking)
       Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for booking SMS"
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(booking.tenant_customer, booking.business, :booking_confirmation)
+        send_opt_in_invitation(booking.tenant_customer, booking.business, :booking_confirmation)
+      end
+
       return { success: false, error: "Customer not opted in for SMS notifications" }
     end
     
@@ -89,10 +118,16 @@ class SmsService
 
   def self.send_booking_reminder(booking, timeframe)
     customer = booking.tenant_customer
-    
+
     # Check TCPA compliance - customer must be opted in
     unless customer.can_receive_sms?(:reminder)
       Rails.logger.info "[SMS_SERVICE] Customer #{customer.id} not opted in for reminder SMS"
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(customer, booking.business, :booking_reminder)
+        send_opt_in_invitation(customer, booking.business, :booking_reminder)
+      end
+
       return { success: false, error: "Customer not opted in for SMS notifications" }
     end
     
@@ -537,5 +572,111 @@ class SmsService
       booking_id: options[:booking_id],
       marketing_campaign_id: options[:marketing_campaign_id]
     )
+  end
+
+  # ===== SMS OPT-IN INVITATION METHODS =====
+
+  # Check if we should send an opt-in invitation to the customer
+  def self.should_send_invitation?(customer, business, context)
+    # Global feature flag check
+    unless Rails.application.config.sms_enabled
+      Rails.logger.debug "[SMS_INVITATION] SMS disabled globally, not sending invitation"
+      return false
+    end
+
+    # Business feature flag check
+    unless business.sms_auto_invitations_enabled?
+      Rails.logger.debug "[SMS_INVITATION] Auto-invitations disabled for business #{business.id}"
+      return false
+    end
+
+    # Customer must have a phone number
+    unless customer.phone.present?
+      Rails.logger.debug "[SMS_INVITATION] Customer #{customer.id} has no phone number"
+      return false
+    end
+
+    # Business must be able to send SMS
+    unless business.can_send_sms?
+      Rails.logger.debug "[SMS_INVITATION] Business #{business.id} cannot send SMS"
+      return false
+    end
+
+    # Customer must not already be opted in
+    if customer.phone_opt_in?
+      Rails.logger.debug "[SMS_INVITATION] Customer #{customer.id} already opted in"
+      return false
+    end
+
+    # Customer must not be opted out from this business
+    if customer.opted_out_from_business?(business)
+      Rails.logger.debug "[SMS_INVITATION] Customer #{customer.id} opted out from business #{business.id}"
+      return false
+    end
+
+    # Must not have sent invitation recently (30-day rule)
+    unless customer.can_receive_invitation_from?(business)
+      Rails.logger.debug "[SMS_INVITATION] Recent invitation already sent to customer #{customer.id} for business #{business.id}"
+      return false
+    end
+
+    # Never invite for marketing SMS (compliance)
+    if context == :marketing
+      Rails.logger.debug "[SMS_INVITATION] Not sending invitation for marketing context"
+      return false
+    end
+
+    true
+  end
+
+  # Send an opt-in invitation to the customer
+  def self.send_opt_in_invitation(customer, business, context)
+    Rails.logger.info "[SMS_INVITATION] Sending invitation to customer #{customer.id} for business #{business.id} (#{context})"
+
+    # Create invitation record
+    invitation = SmsOptInInvitation.create!(
+      phone_number: customer.phone,
+      business: business,
+      tenant_customer: customer,
+      context: context.to_s,
+      sent_at: Time.current
+    )
+
+    # Generate context-specific message
+    message = generate_invitation_message(business, context)
+
+    # Send the invitation SMS (bypass rate limiting for invitations)
+    result = send_message(customer.phone, message, {
+      business_id: business.id,
+      tenant_customer_id: customer.id
+    })
+
+    if result[:success]
+      Rails.logger.info "[SMS_INVITATION] Invitation sent successfully to #{customer.phone} for business #{business.name}"
+    else
+      Rails.logger.error "[SMS_INVITATION] Failed to send invitation to #{customer.phone}: #{result[:error]}"
+    end
+
+    result
+  end
+
+  # Generate context-aware invitation message
+  def self.generate_invitation_message(business, context)
+    context_description = case context.to_sym
+    when :booking_confirmation
+      "booking confirmation"
+    when :booking_reminder
+      "booking reminder"
+    when :order_confirmation, :order_update
+      "order update"
+    when :payment_reminder
+      "payment reminder"
+    else
+      "notification"
+    end
+
+    "Hi! #{business.name} tried to send you a #{context_description}. " \
+    "Reply YES to receive SMS from #{business.name} or STOP to opt out. " \
+    "Msg & data rates may apply."
   end
 end
