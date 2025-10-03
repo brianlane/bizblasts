@@ -213,12 +213,16 @@ class NotificationService
         end
       end
 
-      # Send SMS if recipient can receive this type
-      if recipient.respond_to?(:can_receive_sms?) && recipient.can_receive_sms?(sms_type)
+      # Always attempt SMS - let SmsService handle TCPA compliance and opt-in invitations
+      if recipient.respond_to?(:can_receive_sms?) && recipient.phone.present?
         begin
-          sms.call
-          results[:sms] = true
-          Rails.logger.info "[NOTIFICATION] SMS sent to #{recipient.phone || 'phone'} for #{sms_type}"
+          sms_result = sms.call
+          if sms_result && sms_result[:success]
+            results[:sms] = true
+            Rails.logger.info "[NOTIFICATION] SMS sent to #{recipient.phone} for #{sms_type}"
+          else
+            Rails.logger.info "[NOTIFICATION] SMS not sent to #{recipient.phone} for #{sms_type}: #{sms_result&.dig(:error) || 'opt-in required or rate limited'}"
+          end
         rescue => e
           Rails.logger.error "[NOTIFICATION] SMS failed to #{recipient.phone || 'phone'}: #{e.message}"
         end
