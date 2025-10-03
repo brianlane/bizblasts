@@ -790,7 +790,13 @@ class Business < ApplicationRecord
   def can_send_sms?
     sms_enabled? && Rails.application.config.sms_enabled && !free_tier?
   end
-  
+
+  def sms_auto_invitations_enabled?
+    # Check if auto-invitations are enabled for this business
+    # Defaults to true if column doesn't exist yet (migration pending)
+    respond_to?(:sms_auto_invitations_enabled) ? sms_auto_invitations_enabled : true
+  end
+
   def free_tier?
     tier == 'free'
   end

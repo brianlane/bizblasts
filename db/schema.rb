@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_02_200002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -297,6 +297,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
     t.string "canonical_preference", default: "www", null: false, comment: "Preferred canonical version: \"www\" or \"apex\" for custom domains"
     t.boolean "sms_enabled", default: false, null: false
     t.boolean "sms_marketing_enabled", default: false, null: false
+    t.boolean "sms_auto_invitations_enabled", default: true, null: false
     t.index ["canonical_preference"], name: "index_businesses_on_canonical_preference"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
@@ -312,6 +313,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
     t.index ["name"], name: "index_businesses_on_name"
     t.index ["platform_referral_code"], name: "index_businesses_on_platform_referral_code", unique: true
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
+    t.index ["sms_auto_invitations_enabled"], name: "index_businesses_on_sms_auto_invitations_enabled"
     t.index ["status"], name: "index_businesses_on_status"
     t.index ["stock_management_enabled"], name: "index_businesses_on_stock_management_enabled"
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
@@ -801,7 +803,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1254,6 +1256,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
     t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
   end
 
+  create_table "sms_opt_in_invitations", force: :cascade do |t|
+    t.string "phone_number", null: false
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id"
+    t.string "context", null: false
+    t.datetime "sent_at", null: false
+    t.datetime "responded_at"
+    t.string "response"
+    t.boolean "successful_opt_in", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_sms_opt_in_invitations_on_business_id"
+    t.index ["phone_number", "business_id", "sent_at"], name: "idx_on_phone_number_business_id_sent_at_175e5cb6a6"
+    t.index ["phone_number", "business_id"], name: "index_sms_opt_in_invitations_on_phone_number_and_business_id"
+    t.index ["responded_at"], name: "index_sms_opt_in_invitations_on_responded_at"
+    t.index ["sent_at"], name: "index_sms_opt_in_invitations_on_sent_at"
+    t.index ["successful_opt_in"], name: "index_sms_opt_in_invitations_on_successful_opt_in"
+    t.index ["tenant_customer_id"], name: "index_sms_opt_in_invitations_on_tenant_customer_id"
+  end
+
   create_table "solid_cache_entries", force: :cascade do |t|
     t.binary "key", null: false
     t.binary "value", null: false
@@ -1517,10 +1539,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
     t.boolean "phone_opt_in", default: false, null: false
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
+    t.jsonb "sms_opted_out_businesses", default: []
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
+    t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
     t.index ["unsubscribe_token"], name: "index_tenant_customers_on_unsubscribe_token", unique: true
     t.index ["user_id"], name: "index_tenant_customers_on_user_id"
@@ -1775,6 +1799,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_28_162612) do
   add_foreign_key "sms_messages", "businesses"
   add_foreign_key "sms_messages", "marketing_campaigns"
   add_foreign_key "sms_messages", "tenant_customers"
+  add_foreign_key "sms_opt_in_invitations", "businesses"
+  add_foreign_key "sms_opt_in_invitations", "tenant_customers"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

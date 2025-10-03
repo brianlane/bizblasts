@@ -220,6 +220,58 @@
     </div>
   <% end %>
 
+  <!-- Business-Specific SMS Preferences -->
+  <% if @user.tenant_customers.any? %>
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">SMS Preferences by Business</h2>
+        <p class="mt-1 text-sm text-gray-600">
+          Control SMS notifications from specific businesses. You can opt out from individual businesses while staying subscribed to others.
+        </p>
+      </div>
+      <div class="px-6 py-6">
+        <%= form_with(model: @user, url: client_settings_path, method: :patch, local: true, class: "space-y-4") do |form| %>
+          <% @user.tenant_customers.includes(:business).each do |customer| %>
+            <% next unless customer.business.present? %>
+            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1">
+                <h3 class="text-sm font-medium text-gray-900"><%= customer.business.name %></h3>
+                <p class="text-xs text-gray-500">
+                  <% if customer.phone_opt_in? && !customer.opted_out_from_business?(customer.business) %>
+                    <span class="text-green-600">✓ Subscribed to SMS</span>
+                  <% elsif customer.opted_out_from_business?(customer.business) %>
+                    <span class="text-red-600">✗ Opted out from this business</span>
+                  <% else %>
+                    <span class="text-yellow-600">⚠ Not opted in for SMS</span>
+                  <% end %>
+                </p>
+              </div>
+              <div class="flex items-center">
+                <%= check_box_tag "business_sms_preferences[#{customer.business.id}]",
+                                  "1",
+                                  !customer.opted_out_from_business?(customer.business),
+                                  class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded",
+                                  id: "business_sms_#{customer.business.id}" %>
+                <%= label_tag "business_sms_#{customer.business.id}", "Receive SMS", class: "ml-2 text-sm text-gray-700" %>
+              </div>
+            </div>
+          <% end %>
+
+          <div class="pt-4">
+            <p class="text-xs text-gray-500">
+              Note: To receive SMS notifications, you must also have a phone number set and general SMS opt-in enabled.
+              You can also text "START" or "STOP" to any business to manage SMS preferences.
+            </p>
+          </div>
+
+          <div class="flex justify-end pt-4">
+            <%= form.submit "Update SMS Preferences", class: "bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Unsubscribe Section -->
   <div class="bg-white shadow rounded-lg">
     <div class="px-6 py-4 border-b border-gray-200">
