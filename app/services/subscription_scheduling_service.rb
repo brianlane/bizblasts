@@ -342,7 +342,7 @@ class SubscriptionSchedulingService
   def send_booking_notifications(booking)
     begin
       if defined?(BookingMailer) && BookingMailer.respond_to?(:subscription_booking_created)
-        BookingMailer.subscription_booking_created(booking).deliver_later
+        NotificationService.subscription_booking_created(booking)
       end
       if defined?(BusinessMailer) && BusinessMailer.respond_to?(:subscription_booking_received)
         BusinessMailer.subscription_booking_received(booking).deliver_later

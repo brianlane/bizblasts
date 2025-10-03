@@ -11,7 +11,7 @@ class BookingReminderJob < ApplicationJob
     return if booking.start_time < Time.current
     
     # Send the reminder (email + SMS)
-    NotificationService.booking_reminder(booking)
+    NotificationService.booking_reminder(booking, reminder_type)
 
     # Log the reminder
     Rails.logger.info "[BookingReminderJob] Sent #{reminder_type} reminder for Booking ##{booking.id}"

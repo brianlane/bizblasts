@@ -184,8 +184,8 @@ class SubscriptionOrderService
   def send_order_notifications(order)
     # Send customer notification
     begin
-      OrderMailer.subscription_order_created(order).deliver_later
-      Rails.logger.info "[EMAIL] Sent subscription order notification to customer for order #{order.id}"
+      NotificationService.subscription_order_created(order)
+      Rails.logger.info "[NOTIFICATION] Sent subscription order notification (email + SMS) to customer for order #{order.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send customer notification for order #{order.id}: #{e.message}"
     end
