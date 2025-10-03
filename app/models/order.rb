@@ -246,10 +246,10 @@ class Order < ApplicationRecord
     return unless business&.tier.in?(['standard', 'premium'])
     
     begin
-      OrderMailer.order_status_update(self, previous_status).deliver_later
-      Rails.logger.info "[EMAIL] Sent order status update email for Order ##{order_number} (#{previous_status} → #{status})"
+      NotificationService.order_status_update(self, previous_status)
+      Rails.logger.info "[NOTIFICATION] Sent order status update notification for Order ##{order_number} (#{previous_status} → #{status})"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send order status update email for Order ##{order_number}: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send order status update notification for Order ##{order_number}: #{e.message}"
     end
   end
 

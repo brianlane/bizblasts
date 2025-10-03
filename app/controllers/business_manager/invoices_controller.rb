@@ -6,7 +6,7 @@ class BusinessManager::InvoicesController < BusinessManager::BaseController
   # POST /manage/invoices/:id/resend
   def resend
     authorize @invoice
-    InvoiceMailer.invoice_created(@invoice).deliver_later
+    NotificationService.invoice_created(@invoice)
     redirect_to business_manager_invoice_path(@invoice), notice: 'Invoice resent to customer.'
   end
 
@@ -56,12 +56,12 @@ class BusinessManager::InvoicesController < BusinessManager::BaseController
         # Check if order should be completed (for service orders without bookings)
         order.complete_if_ready!
       else
-        # No associated order – this is a standalone invoice payment. Send confirmation email.
+        # No associated order – this is a standalone invoice payment. Send confirmation (email + SMS).
         begin
-          InvoiceMailer.payment_confirmation(@invoice, payment).deliver_later
-          Rails.logger.info "[EMAIL] Sent payment confirmation email for manually paid Invoice ##{@invoice.invoice_number}"
+          NotificationService.invoice_payment_confirmation(@invoice, payment)
+          Rails.logger.info "[NOTIFICATION] Sent payment confirmation for manually paid Invoice ##{@invoice.invoice_number}"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{@invoice.invoice_number}: #{e.message}"
+          Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for manually paid Invoice ##{@invoice.invoice_number}: #{e.message}"
         end
       end
       

@@ -28,12 +28,12 @@ class SendPaymentRemindersJob < ApplicationJob
       reminder_hours = [48, 24, 12, 6, 2]
       
       if reminder_hours.include?(hours_until_booking)
-        # Only send email reminders if customer has an email address
+        # Send payment reminder (email + SMS) if customer has contact info
         if booking.tenant_customer.email.present?
           Rails.logger.info "[SendPaymentRemindersJob] Sending experience payment reminder for booking ##{booking.id} (#{hours_until_booking}h before)"
-          BookingMailer.payment_reminder(booking).deliver_later
+          NotificationService.invoice_payment_reminder(booking.invoice)
         else
-          Rails.logger.info "[SendPaymentRemindersJob] Skipping email reminder for booking ##{booking.id} - no email address"
+          Rails.logger.info "[SendPaymentRemindersJob] Skipping reminder for booking ##{booking.id} - no customer email"
         end
       end
     end
@@ -56,12 +56,12 @@ class SendPaymentRemindersJob < ApplicationJob
       reminder_hours = [168, 72, 24] # 7*24, 3*24, 1*24
       
       if reminder_hours.include?(hours_until_booking)
-        # Only send email reminders if customer has an email address
+        # Send payment reminder (email + SMS) if customer has contact info
         if booking.tenant_customer.email.present?
           Rails.logger.info "[SendPaymentRemindersJob] Sending standard payment reminder for booking ##{booking.id} (#{hours_until_booking}h before)"
-          BookingMailer.payment_reminder(booking).deliver_later
+          NotificationService.invoice_payment_reminder(booking.invoice)
         else
-          Rails.logger.info "[SendPaymentRemindersJob] Skipping email reminder for booking ##{booking.id} - no email address"
+          Rails.logger.info "[SendPaymentRemindersJob] Skipping reminder for booking ##{booking.id} - no customer email"
         end
       end
     end

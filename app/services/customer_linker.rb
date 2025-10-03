@@ -71,6 +71,18 @@ class CustomerLinker
         value = customer_attributes[attr]
         updates[attr] = value if value.present? && customer.send(attr) != value
       end
+
+      # Handle phone_opt_in updates
+      if customer_attributes.key?(:phone_opt_in)
+        opt_in_value = customer_attributes[:phone_opt_in]
+        new_opt_in = (opt_in_value == true || opt_in_value == "true")
+
+        if customer.phone_opt_in? != new_opt_in
+          updates[:phone_opt_in] = new_opt_in
+          updates[:phone_opt_in_at] = new_opt_in ? Time.current : nil
+        end
+      end
+
       customer.update!(updates) if updates.any?
       return customer
     end
@@ -86,7 +98,16 @@ class CustomerLinker
       email: email,
       user_id: nil
     }.merge(customer_attributes)
-    
+
+    # Set phone_opt_in_at if phone_opt_in is true
+    if customer_data[:phone_opt_in] == true || customer_data[:phone_opt_in] == "true"
+      customer_data[:phone_opt_in] = true
+      customer_data[:phone_opt_in_at] = Time.current
+    else
+      customer_data[:phone_opt_in] = false
+      customer_data[:phone_opt_in_at] = nil
+    end
+
     @business.tenant_customers.create!(customer_data)
   end
   

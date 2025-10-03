@@ -233,7 +233,7 @@ class TenantCustomer < ApplicationRecord
     when :order
       # Order SMS requires phone opt-in and order update preference
       phone_opt_in? && sms_preference_enabled?('sms_order_updates')
-    when :payment, :system, :subscription
+    when :payment, :system, :subscription, :review_request
       # Other SMS types require general phone opt-in (no specific preference controls in UI yet)
       phone_opt_in?
     else

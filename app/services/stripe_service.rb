@@ -843,36 +843,36 @@ class StripeService
       # Check if order should be completed (for service orders without bookings)
       order.complete_if_ready!
       
-      # Send order confirmation email (available to all tiers)
+      # Send order confirmation (email + SMS)
       begin
-        OrderMailer.order_confirmation(order).deliver_later
-        Rails.logger.info "[EMAIL] Sent order confirmation email for Order ##{order.order_number}"
+        NotificationService.order_confirmation(order)
+        Rails.logger.info "[NOTIFICATION] Sent order confirmation for Order ##{order.order_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to send order confirmation email for Order ##{order.order_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to send order confirmation for Order ##{order.order_number}: #{e.message}"
       end
       
-      # Send business payment notification
+      # Send business payment notification (email + SMS)
       begin
-        BusinessMailer.payment_received_notification(payment).deliver_later
-        Rails.logger.info "[EMAIL] Scheduled business payment notification for Order ##{order.order_number}"
+        NotificationService.business_payment_received(payment)
+        Rails.logger.info "[NOTIFICATION] Scheduled business payment notification for Order ##{order.order_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Order ##{order.order_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to schedule business payment notification for Order ##{order.order_number}: #{e.message}"
       end
     else
-      # Send invoice payment confirmation email (available to all tiers)
+      # Send invoice payment confirmation (email + SMS)
       begin
-        InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
-        Rails.logger.info "[EMAIL] Sent payment confirmation email for Invoice ##{invoice.invoice_number}"
+        NotificationService.invoice_payment_confirmation(invoice, payment)
+        Rails.logger.info "[NOTIFICATION] Sent payment confirmation for Invoice ##{invoice.invoice_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{invoice.invoice_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for Invoice ##{invoice.invoice_number}: #{e.message}"
       end
       
-      # Send business payment notification
+      # Send business payment notification (email + SMS)
       begin
-        BusinessMailer.payment_received_notification(payment).deliver_later
-        Rails.logger.info "[EMAIL] Scheduled business payment notification for Invoice ##{invoice.invoice_number}"
+        NotificationService.business_payment_received(payment)
+        Rails.logger.info "[NOTIFICATION] Scheduled business payment notification for Invoice ##{invoice.invoice_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Invoice ##{invoice.invoice_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to schedule business payment notification for Invoice ##{invoice.invoice_number}: #{e.message}"
       end
     end
   end
@@ -948,12 +948,12 @@ class StripeService
         # Check if order should be completed (for service orders without bookings)
         order.complete_if_ready!
       else
-        # No associated order – this is a standalone invoice payment. Send confirmation email.
+        # No associated order – this is a standalone invoice payment. Send confirmation (email + SMS).
         begin
-          InvoiceMailer.payment_confirmation(payment.invoice, payment).deliver_later
-          Rails.logger.info "[EMAIL] Sent payment confirmation email for Invoice ##{payment.invoice.invoice_number}"
+          NotificationService.invoice_payment_confirmation(payment.invoice, payment)
+          Rails.logger.info "[NOTIFICATION] Sent payment confirmation for Invoice ##{payment.invoice.invoice_number}"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{payment.invoice&.invoice_number}: #{e.message}"
+          Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for Invoice ##{payment.invoice&.invoice_number}: #{e.message}"
         end
       end
     end
@@ -1301,31 +1301,31 @@ class StripeService
         
         Rails.logger.info "[BOOKING] Successfully created booking ##{booking.id} with payment ##{payment.id}"
         
-        # Send payment confirmation email (since booking invoice is now paid)
+        # Send payment confirmation (email + SMS) since booking invoice is now paid
         begin
-          InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
-          Rails.logger.info "[EMAIL] Sent payment confirmation email for booking invoice ##{invoice.invoice_number}"
+          NotificationService.invoice_payment_confirmation(invoice, payment)
+          Rails.logger.info "[NOTIFICATION] Sent payment confirmation for booking invoice ##{invoice.invoice_number}"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to send payment confirmation email for booking invoice ##{invoice.invoice_number}: #{e.message}"
-          # Don't fail the whole transaction for email issues
+          Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for booking invoice ##{invoice.invoice_number}: #{e.message}"
+          # Don't fail the whole transaction for notification issues
         end
         
-        # Send business notifications for the booking
+        # Send business notifications for the booking (email + SMS)
         begin
-          BusinessMailer.new_booking_notification(booking).deliver_later
-          Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{booking.id}"
+          NotificationService.business_new_booking(booking)
+          Rails.logger.info "[NOTIFICATION] Scheduled business booking notification for Booking ##{booking.id}"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{booking.id}: #{e.message}"
-          # Don't fail the whole transaction for email issues
+          Rails.logger.error "[NOTIFICATION] Failed to schedule business booking notification for Booking ##{booking.id}: #{e.message}"
+          # Don't fail the whole transaction for notification issues
         end
         
-        # Send business payment notification
+        # Send business payment notification (email + SMS)
         begin
-          BusinessMailer.payment_received_notification(payment).deliver_later
-          Rails.logger.info "[EMAIL] Scheduled business payment notification for Booking ##{booking.id} payment"
+          NotificationService.business_payment_received(payment)
+          Rails.logger.info "[NOTIFICATION] Scheduled business payment notification for Booking ##{booking.id} payment"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Booking ##{booking.id}: #{e.message}"
-          # Don't fail the whole transaction for email issues
+          Rails.logger.error "[NOTIFICATION] Failed to schedule business payment notification for Booking ##{booking.id}: #{e.message}"
+          # Don't fail the whole transaction for notification issues
         end
       end
       
@@ -1563,9 +1563,9 @@ class StripeService
         create_tip_record_from_payment(payment, invoice)
       end
 
-      # Send confirmation emails
+      # Send confirmation notifications (email + SMS)
       if invoice.tenant_customer&.email
-        InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
+        NotificationService.invoice_payment_confirmation(invoice, payment)
       end
 
       Rails.logger.info "Payment processed successfully for invoice #{invoice.id}"
