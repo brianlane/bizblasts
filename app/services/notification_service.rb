@@ -213,8 +213,12 @@ class NotificationService
         end
       end
 
-      # Send SMS if recipient can receive this type
-      if recipient.respond_to?(:can_receive_sms?) && recipient.can_receive_sms?(sms_type)
+      # Attempt to send SMS regardless of current opt-in state. SmsService will
+      # internally decide whether to actually deliver the message or enqueue an
+      # opt-in invitation. This change ensures customers who are not yet opted
+      # in will still receive an invitation flow rather than silently skipping
+      # SMS entirely.
+      if recipient.respond_to?(:phone)
         begin
           sms_result = sms.call
           # Handle various SMS result formats more robustly
