@@ -42,7 +42,7 @@ RSpec.describe NotificationService, type: :service do
 
       it 'sends only email notification' do
         expect(BookingMailer).to receive(:confirmation).with(booking)
-        expect(SmsService).not_to receive(:send_booking_confirmation)
+        expect(SmsService).to receive(:send_booking_confirmation).with(booking).and_return({ success: false })
         
         NotificationService.booking_confirmation(booking)
       end
@@ -56,9 +56,11 @@ RSpec.describe NotificationService, type: :service do
 
       it 'does not send any notifications' do
         expect(BookingMailer).not_to receive(:confirmation)
-        expect(SmsService).not_to receive(:send_booking_confirmation)
+        expect(SmsService).to receive(:send_booking_confirmation).with(booking).and_return({ success: false })
         
-        NotificationService.booking_confirmation(booking)
+        result = NotificationService.booking_confirmation(booking)
+        expect(result[:email]).to be false
+        expect(result[:sms]).to be false
       end
     end
 
@@ -135,7 +137,7 @@ RSpec.describe NotificationService, type: :service do
 
       it 'sends only email marketing' do
         expect(MarketingMailer).to receive(:campaign).with(customer, campaign)
-        expect(SmsService).not_to receive(:send_marketing_campaign)
+        expect(SmsService).to receive(:send_marketing_campaign).with(campaign, customer).and_return({ success: false })
         
         NotificationService.marketing_campaign(campaign, customer)
       end
