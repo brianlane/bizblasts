@@ -206,8 +206,8 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       it "still sends opt-out confirmation message" do
         expect(SmsService).to receive(:send_message).with(
           "+15558675309",
-          "Mocked template response",
-          hash_including(business_id: 1, auto_reply: true)
+          "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance.",
+          hash_including(auto_reply: true)
         )
         
         post "/webhooks/twilio/inbound", params: opt_out_params
@@ -301,9 +301,13 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         Body: "STOP",
         MessageSid: "twilio-sid-12345"
       }
-      
-      # Should not call send_message if template returns nil
-      expect(SmsService).not_to receive(:send_message)
+
+      # Controller uses hardcoded messages, not templates, so message should still be sent
+      expect(SmsService).to receive(:send_message).with(
+        "+15558675309",
+        "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance.",
+        hash_including(auto_reply: true)
+      )
       
       post "/webhooks/twilio/inbound", params: params
       

@@ -156,10 +156,22 @@
                 <% begin %>
                   <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
                 <% rescue => e %>
-                  <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>" 
+                  <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>"
                        alt="BizBlasts - Professional Business Websites and Booking Systems" class="h-10 w-auto" />
                 <% end %>
               <% end %>
+
+              <!-- Business Logo (when not on homepage) -->
+              <% if ActsAsTenant.current_tenant.logo.attached? && !request.path.in?(['/', '/home']) %>
+                <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity mr-3" do %>
+                  <div class="h-10 w-10 border border-gray-200 rounded overflow-hidden bg-white flex items-center justify-center">
+                    <%= image_tag business_logo_url(ActsAsTenant.current_tenant, size: :thumb),
+                        alt: "#{ActsAsTenant.current_tenant.name} Logo",
+                        class: "h-8 w-8 object-contain" %>
+                  </div>
+                <% end %>
+              <% end %>
+
               <!-- Company Name - links to tenant home -->
               <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity" do %>
                 <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>

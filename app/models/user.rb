@@ -240,6 +240,11 @@ class User < ApplicationRecord
     return TenantCustomer.none unless client?
     TenantCustomer.where(user_id: id)
   end
+
+  # Alias for linked_tenant_customers to maintain compatibility with view templates
+  def tenant_customers
+    linked_tenant_customers
+  end
   
   # Clear all policy-related caches
   def clear_policy_caches
