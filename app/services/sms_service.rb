@@ -442,6 +442,31 @@ class SmsService
     }) if business_user.phone.present?
   end
 
+  # Send review request SMS to customer
+  def self.send_review_request(customer, business, service_name, review_url)
+    return unless customer.phone.present?
+
+    # Build variables for template
+    variables = {
+      service_name: service_name,
+      link: review_url,
+      business_name: business.name
+    }
+
+    # Render the message using existing template system
+    message = Sms::MessageTemplates.render('review_request.google_review_request', variables)
+
+    send_message_with_rate_limit(
+      customer.phone,
+      message,
+      {
+        business_id: business.id,
+        tenant_customer_id: customer.id,
+        message_type: 'review_request'
+      }
+    )
+  end
+
   def self.process_webhook(params)
     # Handle Twilio webhook callbacks for delivery receipts
     # Twilio sends MessageSid in the webhook payload

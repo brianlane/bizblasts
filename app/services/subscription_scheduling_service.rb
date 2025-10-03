@@ -342,14 +342,14 @@ class SubscriptionSchedulingService
   def send_booking_notifications(booking)
     begin
       if defined?(BookingMailer) && BookingMailer.respond_to?(:subscription_booking_created)
-        BookingMailer.subscription_booking_created(booking).deliver_later
+        NotificationService.subscription_booking_created(booking)
       end
       if defined?(BusinessMailer) && BusinessMailer.respond_to?(:subscription_booking_received)
         BusinessMailer.subscription_booking_received(booking).deliver_later
       end
-      Rails.logger.info "[EMAIL] Sent booking notifications for booking #{booking.id}"
+      Rails.logger.info "[NOTIFICATION] Sent booking notifications for booking #{booking.id}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send booking notifications: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send booking notifications: #{e.message}"
     end
   end
 

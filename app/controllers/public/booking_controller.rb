@@ -224,14 +224,22 @@ module Public
           
           generate_or_update_invoice_for_booking(@booking)
           
-          # Send business notification email
+          # Send business notification (email + SMS)
           begin
-            BusinessMailer.new_booking_notification(@booking).deliver_later
-            Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{@booking.id}"
+            NotificationService.business_new_booking(@booking)
+            Rails.logger.info "[NOTIFICATION] Scheduled business booking notification for Booking ##{@booking.id}"
           rescue => e
-            Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
+            Rails.logger.error "[NOTIFICATION] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
           end
-          
+
+          # Send customer booking confirmation (email + SMS)
+          begin
+            NotificationService.booking_confirmation(@booking)
+            Rails.logger.info "[NOTIFICATION] Scheduled customer booking confirmation for Booking ##{@booking.id}"
+          rescue => e
+            Rails.logger.error "[NOTIFICATION] Failed to schedule customer booking confirmation for Booking ##{@booking.id}: #{e.message}"
+          end
+
           flash[:notice] = "Booking was successfully created."
           redirect_to tenant_booking_confirmation_path(@booking)
         else
@@ -336,14 +344,22 @@ module Public
               @booking.update!(status: :confirmed)
             end
             
-            # Send business notification email for standard bookings too
+            # Send business notification (email + SMS) for standard bookings too
             begin
-              BusinessMailer.new_booking_notification(@booking).deliver_later
-              Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{@booking.id}"
+              NotificationService.business_new_booking(@booking)
+              Rails.logger.info "[NOTIFICATION] Scheduled business booking notification for Booking ##{@booking.id}"
             rescue => e
-              Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
+              Rails.logger.error "[NOTIFICATION] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
             end
-            
+
+            # Send customer booking confirmation (email + SMS)
+            begin
+              NotificationService.booking_confirmation(@booking)
+              Rails.logger.info "[NOTIFICATION] Scheduled customer booking confirmation for Booking ##{@booking.id}"
+            rescue => e
+              Rails.logger.error "[NOTIFICATION] Failed to schedule customer booking confirmation for Booking ##{@booking.id}: #{e.message}"
+            end
+
             flash[:notice] = "Booking confirmed! You can pay now or later."
             redirect_to tenant_booking_confirmation_path(@booking)
           else
@@ -440,7 +456,7 @@ module Public
         :notes, :tenant_customer_id, :date, :duration, :promo_code,
         :create_account, :password, :password_confirmation,
         booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy],
-        tenant_customer_attributes: [:first_name, :last_name, :email, :phone]
+        tenant_customer_attributes: [:first_name, :last_name, :email, :phone, :phone_opt_in]
       )
     end
 

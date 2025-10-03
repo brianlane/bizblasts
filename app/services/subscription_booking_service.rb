@@ -280,11 +280,11 @@ class SubscriptionBookingService
     # Send customer notification
     begin
       if defined?(BookingMailer) && BookingMailer.respond_to?(:subscription_booking_created)
-        BookingMailer.subscription_booking_created(booking).deliver_later
-        Rails.logger.info "[EMAIL] Sent subscription booking notification to customer for booking #{booking.id}"
+        NotificationService.subscription_booking_created(booking)
+        Rails.logger.info "[NOTIFICATION] Sent subscription booking notification (email + SMS) to customer for booking #{booking.id}"
       end
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send customer notification for booking #{booking.id}: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send customer notification for booking #{booking.id}: #{e.message}"
     end
 
     # Send business notification

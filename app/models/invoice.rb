@@ -186,6 +186,31 @@ class Invoice < ApplicationRecord
       elsif mail.present?
         mail.deliver_later
         Rails.logger.info "[ReviewRequest] Review request email enqueued for Invoice ##{invoice_number} to #{tenant_customer.email}"
+
+        # Send SMS review request if customer can receive SMS
+        begin
+          if tenant_customer.can_receive_sms?(:review_request)
+            # Generate the Google review URL
+            review_url = "https://search.google.com/local/writereview?placeid=#{business.google_place_id}"
+
+            # Determine service name for personalization
+            service_name = if booking&.service
+              booking.service.name
+            elsif order&.service_line_items&.any?
+              service_names = order.service_line_items.map { |item| item.service&.name }.compact
+              service_names.first # Use first service name for simplicity
+            else
+              "our service"
+            end
+
+            # Send review request SMS
+            SmsService.send_review_request(tenant_customer, business, service_name, review_url)
+            Rails.logger.info "[ReviewRequest] Review request SMS sent for Invoice ##{invoice_number} to #{tenant_customer.phone}"
+          end
+        rescue => sms_error
+          Rails.logger.error "[ReviewRequest] Failed to send review request SMS for Invoice ##{invoice_number}: #{sms_error.message}"
+          # Don't fail the whole review request process for SMS issues
+        end
       else
         # This shouldn't happen with current mailer implementation, but kept for safety
         Rails.logger.warn "[ReviewRequest] Mailer returned nil for Invoice ##{invoice_number}; email not enqueued"

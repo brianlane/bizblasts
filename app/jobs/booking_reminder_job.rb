@@ -10,9 +10,9 @@ class BookingReminderJob < ApplicationJob
     # Skip if booking is in the past (this shouldn't happen but just in case)
     return if booking.start_time < Time.current
     
-    # Send the reminder email
-    BookingMailer.reminder(booking, reminder_type).deliver_now
-    
+    # Send the reminder (email + SMS)
+    NotificationService.booking_reminder(booking, reminder_type)
+
     # Log the reminder
     Rails.logger.info "[BookingReminderJob] Sent #{reminder_type} reminder for Booking ##{booking.id}"
   end

@@ -210,8 +210,8 @@ module BusinessManager
       if @booking.status == 'confirmed'
         flash[:notice] = "This booking was already confirmed."
       elsif @booking.update(status: :confirmed)
-        # Send email notification
-        BookingMailer.status_update(@booking).deliver_later
+        # Send status update notification (email + SMS)
+        NotificationService.booking_status_update(@booking)
         flash[:notice] = "Booking has been confirmed."
       else
         flash[:alert] = "There was a problem confirming the booking."
@@ -312,8 +312,8 @@ module BusinessManager
       new_end_time = new_start_time + service_duration.minutes
       
       if @booking.update(start_time: new_start_time, end_time: new_end_time)
-        # Send email notification about reschedule
-        BookingMailer.status_update(@booking).deliver_later
+        # Send notification about reschedule (email + SMS)
+        NotificationService.booking_status_update(@booking)
         flash[:notice] = "Booking has been rescheduled."
         redirect_to business_manager_booking_path(@booking)
       else
