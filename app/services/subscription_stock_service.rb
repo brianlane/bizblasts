@@ -604,7 +604,7 @@ class SubscriptionStockService
   # Notification methods
   def send_order_notifications(order)
     begin
-      NotificationService.subscription_order_created(order) if defined?(OrderMailer)
+      NotificationService.subscription_order_created(order) if defined?(NotificationService)
       BusinessMailer.subscription_order_received(order).deliver_later if defined?(BusinessMailer)
       Rails.logger.info "[EMAIL] Sent order notifications for order #{order.id}"
     rescue => e
