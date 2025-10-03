@@ -10,7 +10,7 @@ RSpec.describe NotificationService, type: :service do
   before do
     allow(Rails.application.config).to receive(:sms_enabled).and_return(true)
     allow(BookingMailer).to receive_message_chain(:confirmation, :deliver_later)
-    allow(SmsService).to receive(:send_booking_confirmation)
+    allow(SmsService).to receive(:send_booking_confirmation).and_return(true)
   end
 
   describe '.booking_confirmation' do
@@ -22,7 +22,7 @@ RSpec.describe NotificationService, type: :service do
 
       it 'sends both email and SMS notifications' do
         expect(BookingMailer).to receive(:confirmation).with(booking)
-        expect(SmsService).to receive(:send_booking_confirmation).with(booking)
+        expect(SmsService).to receive(:send_booking_confirmation).with(booking).and_return(true)
         
         NotificationService.booking_confirmation(booking)
       end
@@ -70,7 +70,7 @@ RSpec.describe NotificationService, type: :service do
       end
 
       it 'continues with SMS notification' do
-        expect(SmsService).to receive(:send_booking_confirmation).with(booking)
+        expect(SmsService).to receive(:send_booking_confirmation).with(booking).and_return(true)
         
         result = NotificationService.booking_confirmation(booking)
         expect(result[:email]).to be false
@@ -87,7 +87,7 @@ RSpec.describe NotificationService, type: :service do
   describe '.invoice_created' do
     before do
       allow(InvoiceMailer).to receive_message_chain(:invoice_created, :deliver_later)
-      allow(SmsService).to receive(:send_invoice_created)
+      allow(SmsService).to receive(:send_invoice_created).and_return(true)
     end
 
     context 'when customer can receive transactional SMS' do
@@ -98,7 +98,7 @@ RSpec.describe NotificationService, type: :service do
 
       it 'sends both email and SMS notifications' do
         expect(InvoiceMailer).to receive(:invoice_created).with(invoice)
-        expect(SmsService).to receive(:send_invoice_created).with(invoice)
+        expect(SmsService).to receive(:send_invoice_created).with(invoice).and_return(true)
         
         NotificationService.invoice_created(invoice)
       end
@@ -110,7 +110,7 @@ RSpec.describe NotificationService, type: :service do
 
     before do
       allow(MarketingMailer).to receive_message_chain(:campaign, :deliver_later)
-      allow(SmsService).to receive(:send_marketing_campaign)
+      allow(SmsService).to receive(:send_marketing_campaign).and_return(true)
     end
 
     context 'when customer can receive marketing communications' do
@@ -121,7 +121,7 @@ RSpec.describe NotificationService, type: :service do
 
       it 'sends both email and SMS marketing' do
         expect(MarketingMailer).to receive(:campaign).with(customer, campaign)
-        expect(SmsService).to receive(:send_marketing_campaign).with(campaign, customer)
+        expect(SmsService).to receive(:send_marketing_campaign).with(campaign, customer).and_return(true)
         
         NotificationService.marketing_campaign(campaign, customer)
       end
@@ -147,7 +147,7 @@ RSpec.describe NotificationService, type: :service do
 
     before do
       allow(BusinessMailer).to receive_message_chain(:new_booking_notification, :deliver_later)
-      allow(SmsService).to receive(:send_business_new_booking)
+      allow(SmsService).to receive(:send_business_new_booking).and_return(true)
       allow(business).to receive_message_chain(:users, :where, :first).and_return(business_user)
     end
 
@@ -160,7 +160,7 @@ RSpec.describe NotificationService, type: :service do
 
       it 'sends notifications to business user' do
         expect(BusinessMailer).to receive(:new_booking_notification).with(booking)
-        expect(SmsService).to receive(:send_business_new_booking).with(booking, business_user)
+        expect(SmsService).to receive(:send_business_new_booking).with(booking, business_user).and_return(true)
         
         NotificationService.business_new_booking(booking)
       end
