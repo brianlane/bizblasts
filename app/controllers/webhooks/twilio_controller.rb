@@ -188,6 +188,9 @@ module Webhooks
           customer.opt_in_to_business!(business_context) # Remove from business opt-out list
           customer.opt_into_sms! unless customer.phone_opt_in? # Global opt-in if not already
           Rails.logger.info "Opted in customer #{customer.id} for business #{business_context.id}"
+
+          # Schedule replay of pending notifications for this customer and business
+          schedule_notification_replay(customer, business_context)
         end
 
         # Send business-specific confirmation
@@ -200,6 +203,9 @@ module Webhooks
         customers.each do |customer|
           customer.opt_into_sms!
           Rails.logger.info "Opted in customer #{customer.id} for SMS"
+
+          # Schedule replay of all pending notifications for this customer
+          schedule_notification_replay(customer, nil)
         end
 
         opt_in_message = "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
@@ -264,6 +270,35 @@ module Webhooks
         invitation.record_response!(response_text)
         Rails.logger.info "[SMS_INVITATION] Recorded response '#{response_text}' for invitation #{invitation.id}"
       end
+    end
+
+    # Schedule replay of pending SMS notifications after opt-in
+    def schedule_notification_replay(customer, business = nil)
+      # Check if there are any pending notifications for this customer
+      pending_count = if business
+        PendingSmsNotification.pending
+                             .for_customer(customer)
+                             .for_business(business)
+                             .count
+      else
+        PendingSmsNotification.pending
+                             .for_customer(customer)
+                             .count
+      end
+
+      if pending_count > 0
+        Rails.logger.info "[SMS_REPLAY] Scheduling replay for customer #{customer.id} (#{business&.id || 'all businesses'}) - #{pending_count} pending notifications"
+
+        # Schedule the replay job (immediate for webhook response time)
+        SmsNotificationReplayJob.schedule_for_customer(customer, business)
+
+        Rails.logger.info "[SMS_REPLAY] Replay job scheduled for customer #{customer.id}"
+      else
+        Rails.logger.info "[SMS_REPLAY] No pending notifications for customer #{customer.id} (#{business&.id || 'all businesses'})"
+      end
+    rescue => e
+      Rails.logger.error "[SMS_REPLAY] Error scheduling replay for customer #{customer.id}: #{e.message}"
+      # Don't raise - this shouldn't break the webhook response
     end
   end
 end

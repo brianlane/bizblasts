@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_02_200002) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_04_001352) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -904,6 +904,38 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_02_200002) do
     t.index ["tip_amount"], name: "index_payments_on_tip_amount"
   end
 
+  create_table "pending_sms_notifications", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "tenant_customer_id", null: false
+    t.bigint "booking_id"
+    t.bigint "invoice_id"
+    t.bigint "order_id"
+    t.string "notification_type", null: false
+    t.string "sms_type", null: false
+    t.json "template_data", null: false
+    t.text "phone_number", null: false
+    t.datetime "queued_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "processed_at"
+    t.datetime "failed_at"
+    t.text "failure_reason"
+    t.string "status", default: "pending"
+    t.string "deduplication_key", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_pending_sms_notifications_on_booking_id"
+    t.index ["business_id", "tenant_customer_id"], name: "idx_on_business_id_tenant_customer_id_7f0c30b769"
+    t.index ["business_id"], name: "index_pending_sms_notifications_on_business_id"
+    t.index ["deduplication_key"], name: "index_pending_sms_notifications_on_deduplication_key", unique: true
+    t.index ["expires_at"], name: "index_pending_sms_notifications_on_expires_at"
+    t.index ["invoice_id"], name: "index_pending_sms_notifications_on_invoice_id"
+    t.index ["notification_type"], name: "index_pending_sms_notifications_on_notification_type"
+    t.index ["order_id"], name: "index_pending_sms_notifications_on_order_id"
+    t.index ["phone_number"], name: "index_pending_sms_notifications_on_phone_number"
+    t.index ["status", "queued_at"], name: "index_pending_sms_notifications_on_status_and_queued_at"
+    t.index ["tenant_customer_id"], name: "index_pending_sms_notifications_on_tenant_customer_id"
+  end
+
   create_table "platform_discount_codes", force: :cascade do |t|
     t.bigint "business_id", null: false
     t.string "code", null: false
@@ -1766,6 +1798,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_02_200002) do
   add_foreign_key "payments", "invoices", on_delete: :nullify
   add_foreign_key "payments", "orders", on_delete: :nullify
   add_foreign_key "payments", "tenant_customers", on_delete: :nullify
+  add_foreign_key "pending_sms_notifications", "bookings"
+  add_foreign_key "pending_sms_notifications", "businesses"
+  add_foreign_key "pending_sms_notifications", "invoices"
+  add_foreign_key "pending_sms_notifications", "orders"
+  add_foreign_key "pending_sms_notifications", "tenant_customers"
   add_foreign_key "platform_discount_codes", "businesses", on_delete: :cascade
   add_foreign_key "platform_loyalty_transactions", "businesses", on_delete: :cascade
   add_foreign_key "platform_loyalty_transactions", "platform_referrals", column: "related_platform_referral_id"

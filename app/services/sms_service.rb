@@ -102,12 +102,23 @@ class SmsService
         send_opt_in_invitation(booking.tenant_customer, booking.business, :booking_confirmation)
       end
 
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_confirmation',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking confirmation for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
-    
+
     message = Sms::MessageTemplates.render('booking.confirmation', variables)
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
@@ -128,14 +139,27 @@ class SmsService
         send_opt_in_invitation(customer, booking.business, :booking_reminder)
       end
 
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+      # Queue the notification for later delivery instead of failing
+      service = booking.service
+      variables = build_booking_variables(booking)
+      variables[:timeframe_text] = timeframe == '24h' ? 'tomorrow' : 'in 1 hour'
+      variables[:service_name] = service&.name || 'booking'
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_reminder',
+        booking,
+        variables.merge(timeframe: timeframe)
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking reminder for customer #{customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     service = booking.service
-      
+
     message = "Reminder: Your #{service&.name || 'booking'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply HELP for assistance or CONFIRM to confirm."
-      
-    send_message_with_rate_limit(customer.phone, message, { 
+
+    send_message_with_rate_limit(customer.phone, message, {
       tenant_customer_id: customer.id,
       booking_id: booking.id,
       business_id: booking.business_id
@@ -146,12 +170,24 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless booking.tenant_customer.can_receive_sms?(:booking)
       Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for booking status SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_status_update',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking status update for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
-    
+
     message = Sms::MessageTemplates.render('booking.status_update', variables)
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
@@ -221,12 +257,24 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless invoice.tenant_customer.can_receive_sms?(:order)
       Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for invoice SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_invoice_variables(invoice)
+      variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
+
+      queued_notification = PendingSmsNotification.queue_invoice_notification(
+        'invoice_created',
+        invoice,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued invoice created notification for customer #{invoice.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
-    
+
     message = Sms::MessageTemplates.render('invoice.created', variables)
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
