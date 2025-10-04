@@ -13,7 +13,11 @@ class CustomerLinker
     
     # First try to find existing customer by user_id
     customer = @business.tenant_customers.find_by(user_id: user.id)
-    return customer if customer
+    if customer
+      # Always sync user data to existing linked customer to keep phone/preferences current
+      sync_user_data_to_customer(user, customer)
+      return customer
+    end
     
     # Look for unlinked customer with same email
     email = user.email.downcase.strip
@@ -123,13 +127,15 @@ class CustomerLinker
     updates[:first_name] = user.first_name if customer.first_name.blank? && user.first_name.present?
     updates[:last_name] = user.last_name if customer.last_name.blank? && user.last_name.present?
     
-    # Sync phone if customer phone is blank and user has phone
-    if customer.phone.blank? && user.phone.present?
+    # Sync phone from user to customer - prioritize user's phone since they actively manage it
+    if user.phone.present? && customer.phone != user.phone
       updates[:phone] = user.phone
-      # Set opt-in if user has opted in
-      if user.respond_to?(:phone_opt_in?) && user.phone_opt_in?
-        updates[:phone_opt_in] = true
-        updates[:phone_opt_in_at] = user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : Time.current
+      # Sync opt-in status from user when phone changes
+      if user.respond_to?(:phone_opt_in?)
+        updates[:phone_opt_in] = user.phone_opt_in?
+        updates[:phone_opt_in_at] = user.phone_opt_in? ?
+          (user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : Time.current) :
+          nil
       end
     end
     

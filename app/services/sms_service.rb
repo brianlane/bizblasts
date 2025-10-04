@@ -102,13 +102,29 @@ class SmsService
         send_opt_in_invitation(booking.tenant_customer, booking.business, :booking_confirmation)
       end
 
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_confirmation',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking confirmation for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
-    
+
     message = Sms::MessageTemplates.render('booking.confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -119,6 +135,10 @@ class SmsService
   def self.send_booking_reminder(booking, timeframe)
     customer = booking.tenant_customer
 
+    # Prepare variables for template rendering (used by both paths)
+    variables = build_booking_variables(booking)
+    variables[:timeframe_text] = timeframe == '24h' ? 'tomorrow' : 'in 1 hour'
+
     # Check TCPA compliance - customer must be opted in
     unless customer.can_receive_sms?(:reminder)
       Rails.logger.info "[SMS_SERVICE] Customer #{customer.id} not opted in for reminder SMS"
@@ -128,14 +148,25 @@ class SmsService
         send_opt_in_invitation(customer, booking.business, :booking_reminder)
       end
 
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+      # Queue the notification for later delivery instead of failing
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_reminder',
+        booking,
+        variables.merge(timeframe: timeframe)
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking reminder for customer #{customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
-    service = booking.service
-      
-    message = "Reminder: Your #{service&.name || 'booking'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply HELP for assistance or CONFIRM to confirm."
-      
-    send_message_with_rate_limit(customer.phone, message, { 
+
+    # Use template rendering for immediate send (consistent with queued path)
+    message = Sms::MessageTemplates.render('booking.reminder', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(customer.phone, message, {
       tenant_customer_id: customer.id,
       booking_id: booking.id,
       business_id: booking.business_id
@@ -146,13 +177,30 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless booking.tenant_customer.can_receive_sms?(:booking)
       Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for booking status SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_status_update',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking status update for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
-    
+
     message = Sms::MessageTemplates.render('booking.status_update', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking status update template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -164,7 +212,25 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless booking.tenant_customer.can_receive_sms?(:booking)
       Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for cancellation SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(booking.tenant_customer, booking.business, :booking_cancellation)
+        send_opt_in_invitation(booking.tenant_customer, booking.business, :booking_cancellation)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:reason] = booking.cancellation_reason || 'No reason provided'
+      variables[:link] = generate_sms_link(booking.business, "/services", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_cancellation',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking cancellation for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_booking_variables(booking)
@@ -172,6 +238,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/services", booking_id: booking.id)
     
     message = Sms::MessageTemplates.render('booking.cancellation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking cancellation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -183,7 +254,25 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless booking.tenant_customer.can_receive_sms?(:payment)
       Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for payment reminder SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(booking.tenant_customer, booking.business, :booking_payment_reminder)
+        send_opt_in_invitation(booking.tenant_customer, booking.business, :booking_payment_reminder)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:amount] = format_currency(booking.invoice&.amount || booking.total_amount)
+      variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/pay", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'booking_payment_reminder',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued booking payment reminder for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_booking_variables(booking)
@@ -191,6 +280,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/pay", booking_id: booking.id)
     
     message = Sms::MessageTemplates.render('booking.payment_reminder', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking payment reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -202,13 +296,35 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless booking.tenant_customer.can_receive_sms?(:subscription)
       Rails.logger.info "[SMS_SERVICE] Customer #{booking.tenant_customer.id} not opted in for subscription SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(booking.tenant_customer, booking.business, :subscription_booking_created)
+        send_opt_in_invitation(booking.tenant_customer, booking.business, :subscription_booking_created)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_booking_variables(booking)
+      variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
+
+      queued_notification = PendingSmsNotification.queue_booking_notification(
+        'subscription_booking_created',
+        booking,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued subscription booking created for customer #{booking.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_booking_variables(booking)
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
     
     message = Sms::MessageTemplates.render('booking.subscription_booking_created', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render subscription booking created template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -221,13 +337,30 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless invoice.tenant_customer.can_receive_sms?(:order)
       Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for invoice SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_invoice_variables(invoice)
+      variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
+
+      queued_notification = PendingSmsNotification.queue_invoice_notification(
+        'invoice_created',
+        invoice,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued invoice created notification for customer #{invoice.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
-    
+
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
-    
+
     message = Sms::MessageTemplates.render('invoice.created', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice created template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -239,13 +372,36 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless invoice.tenant_customer.can_receive_sms?(:payment)
       Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for payment confirmation SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(invoice.tenant_customer, invoice.business, :invoice_payment_confirmation)
+        send_opt_in_invitation(invoice.tenant_customer, invoice.business, :invoice_payment_confirmation)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_invoice_variables(invoice)
+      variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}", invoice_id: invoice.id)
+      variables[:payment_id] = payment.id if payment
+
+      queued_notification = PendingSmsNotification.queue_invoice_notification(
+        'invoice_payment_confirmation',
+        invoice,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued invoice payment confirmation for customer #{invoice.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}", invoice_id: invoice.id)
     
     message = Sms::MessageTemplates.render('invoice.payment_confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice payment confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -257,7 +413,25 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless invoice.tenant_customer.can_receive_sms?(:payment)
       Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for payment reminder SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(invoice.tenant_customer, invoice.business, :invoice_payment_reminder)
+        send_opt_in_invitation(invoice.tenant_customer, invoice.business, :invoice_payment_reminder)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_invoice_variables(invoice)
+      variables[:days_overdue] = (Date.current - invoice.due_date).to_i
+      variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
+
+      queued_notification = PendingSmsNotification.queue_invoice_notification(
+        'invoice_payment_reminder',
+        invoice,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued invoice payment reminder for customer #{invoice.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_invoice_variables(invoice)
@@ -265,6 +439,11 @@ class SmsService
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
     
     message = Sms::MessageTemplates.render('invoice.payment_reminder', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice payment reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -276,13 +455,36 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless invoice.tenant_customer.can_receive_sms?(:payment)
       Rails.logger.info "[SMS_SERVICE] Customer #{invoice.tenant_customer.id} not opted in for payment failed SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(invoice.tenant_customer, invoice.business, :invoice_payment_failed)
+        send_opt_in_invitation(invoice.tenant_customer, invoice.business, :invoice_payment_failed)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_invoice_variables(invoice)
+      variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
+      variables[:payment_id] = payment.id if payment
+
+      queued_notification = PendingSmsNotification.queue_invoice_notification(
+        'invoice_payment_failed',
+        invoice,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued invoice payment failed for customer #{invoice.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_invoice_variables(invoice)
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
     
     message = Sms::MessageTemplates.render('invoice.payment_failed', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice payment failed template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -295,13 +497,35 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless order.tenant_customer.can_receive_sms?(:order)
       Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for order confirmation SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(order.tenant_customer, order.business, :order_confirmation)
+        send_opt_in_invitation(order.tenant_customer, order.business, :order_confirmation)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_order_variables(order)
+      variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
+
+      queued_notification = PendingSmsNotification.queue_order_notification(
+        'order_confirmation',
+        order,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued order confirmation for customer #{order.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_order_variables(order)
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
     message = Sms::MessageTemplates.render('order.confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render order confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -313,7 +537,26 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless order.tenant_customer.can_receive_sms?(:order)
       Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for order status SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(order.tenant_customer, order.business, :order_status_update)
+        send_opt_in_invitation(order.tenant_customer, order.business, :order_status_update)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_order_variables(order)
+      variables[:status] = order.status.humanize
+      variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
+      variables[:previous_status] = previous_status
+
+      queued_notification = PendingSmsNotification.queue_order_notification(
+        'order_status_update',
+        order,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued order status update for customer #{order.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_order_variables(order)
@@ -321,6 +564,11 @@ class SmsService
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
     message = Sms::MessageTemplates.render('order.status_update', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render order status update template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -332,13 +580,36 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless order.tenant_customer.can_receive_sms?(:order)
       Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for refund confirmation SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(order.tenant_customer, order.business, :order_refund_confirmation)
+        send_opt_in_invitation(order.tenant_customer, order.business, :order_refund_confirmation)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_order_variables(order)
+      variables[:amount] = format_currency(payment.refunded_amount || payment.amount)
+      variables[:payment_id] = payment.id if payment
+
+      queued_notification = PendingSmsNotification.queue_order_notification(
+        'order_refund_confirmation',
+        order,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued order refund confirmation for customer #{order.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_order_variables(order)
     variables[:amount] = format_currency(payment.refunded_amount || payment.amount)
     
     message = Sms::MessageTemplates.render('order.refund_confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render order refund confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -350,13 +621,35 @@ class SmsService
     # Check TCPA compliance - customer must be opted in
     unless order.tenant_customer.can_receive_sms?(:subscription)
       Rails.logger.info "[SMS_SERVICE] Customer #{order.tenant_customer.id} not opted in for subscription order SMS"
-      return { success: false, error: "Customer not opted in for SMS notifications" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(order.tenant_customer, order.business, :subscription_order_created)
+        send_opt_in_invitation(order.tenant_customer, order.business, :subscription_order_created)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = build_order_variables(order)
+      variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
+
+      queued_notification = PendingSmsNotification.queue_order_notification(
+        'subscription_order_created',
+        order,
+        variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued subscription order created for customer #{order.tenant_customer.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = build_order_variables(order)
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
     message = Sms::MessageTemplates.render('order.subscription_order_created', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render subscription order created template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -370,6 +663,11 @@ class SmsService
     variables[:customer_name] = booking.tenant_customer.full_name
     
     message = Sms::MessageTemplates.render('business.new_booking_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business new booking notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       booking_id: booking.id,
@@ -382,6 +680,11 @@ class SmsService
     variables[:customer_name] = order.tenant_customer.full_name
     
     message = Sms::MessageTemplates.render('business.new_order_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business new order notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       order_id: order.id,
@@ -398,6 +701,11 @@ class SmsService
     }
     
     message = Sms::MessageTemplates.render('business.payment_received_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business payment received notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       payment_id: payment.id,
@@ -410,7 +718,29 @@ class SmsService
     # Check TCPA compliance - customer must be opted in for marketing SMS
     unless recipient.can_receive_sms?(:marketing)
       Rails.logger.info "[SMS_SERVICE] Customer #{recipient.id} not opted in for marketing SMS"
-      return { success: false, error: "Customer not opted in for marketing SMS" }
+
+      # Try to send opt-in invitation if appropriate
+      if should_send_invitation?(recipient, campaign.business, :marketing_campaign)
+        send_opt_in_invitation(recipient, campaign.business, :marketing_campaign)
+      end
+
+      # Queue the notification for later delivery instead of failing
+      variables = {
+        business_name: campaign.business.name,
+        offer_text: campaign.content || 'Special offer available',
+        link: generate_sms_link(campaign.business, '/', marketing_campaign_id: campaign.id)
+      }
+
+      queued_notification = PendingSmsNotification.queue_notification(
+        notification_type: 'marketing_campaign',
+        customer: recipient,
+        business: campaign.business,
+        sms_type: 'marketing',
+        template_data: variables
+      )
+
+      Rails.logger.info "[SMS_SERVICE] Queued marketing campaign for customer #{recipient.id} (notification #{queued_notification.id})"
+      return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
     
     variables = {
@@ -420,6 +750,11 @@ class SmsService
     }
     
     message = Sms::MessageTemplates.render('marketing.campaign_promotional', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render marketing campaign promotional template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(recipient.phone, message, {
       tenant_customer_id: recipient.id,
       marketing_campaign_id: campaign.id,
@@ -435,6 +770,11 @@ class SmsService
     }
     
     message = Sms::MessageTemplates.render('business.new_customer_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business new customer notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       tenant_customer_id: customer.id,
@@ -455,6 +795,10 @@ class SmsService
 
     # Render the message using existing template system
     message = Sms::MessageTemplates.render('review_request.google_review_request', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render review request template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
 
     send_message_with_rate_limit(
       customer.phone,

@@ -4,7 +4,7 @@
 booking:
   confirmation: "✅ Booking confirmed! %SERVICE_NAME% on %DATE% at %TIME% with %BUSINESS_NAME%. Details: %LINK%"
   cancellation: "❌ Booking cancelled: %DATE% at %TIME%. Reason: %REASON%. Reschedule: %LINK%"
-  reminder: "⏰ Reminder: %SERVICE_NAME% tomorrow at %TIME% with %BUSINESS_NAME%. Location: %ADDRESS%"
+  reminder: "⏰ Reminder: %SERVICE_NAME% %TIMEFRAME_TEXT% at %TIME% with %BUSINESS_NAME%. Reply HELP for assistance or CONFIRM to confirm."
   status_update: "📝 Booking updated: %SERVICE_NAME% now %DATE% at %TIME%. Changes: %LINK%"
   payment_reminder: "💳 Payment due: $%AMOUNT% for %SERVICE_NAME% on %DATE%. Pay now: %LINK%"
   subscription_booking_created: "📅 Subscription booking scheduled: %SERVICE_NAME% on %DATE% at %TIME%. Details: %LINK%"

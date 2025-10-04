@@ -185,68 +185,160 @@ RSpec.describe SmsService, type: :service do
   describe '.send_booking_confirmation' do
     let!(:service) { create(:service, name: "Consultation", business: tenant) }
     let!(:booking) { create(:booking, tenant_customer: customer, service: service, start_time: Time.current + 3.days, business: tenant) }
-    
-    
-    it 'calls send_message_with_rate_limit with template-rendered message' do
-      # Mock the template system
-      expected_template_message = "Booking confirmed: Consultation on #{booking.local_start_time.strftime('%m/%d/%Y')} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply STOP to opt out."
-      allow(Sms::MessageTemplates).to receive(:render)
-        .with('booking.confirmation', anything)
-        .and_return(expected_template_message)
-      
-      expected_options = { 
-        tenant_customer_id: customer.id,
-        booking_id: booking.id,
-        business_id: tenant.id
-      }
-      
-      expect(described_class).to receive(:send_message_with_rate_limit)
-        .with(customer.phone, expected_template_message, expected_options)
-        .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
-        
-      described_class.send_booking_confirmation(booking)
+
+    context 'when customer is opted in for SMS' do
+      it 'calls send_message_with_rate_limit with template-rendered message' do
+        # Mock the template system
+        expected_template_message = "Booking confirmed: Consultation on #{booking.local_start_time.strftime('%m/%d/%Y')} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply STOP to opt out."
+        allow(Sms::MessageTemplates).to receive(:render)
+          .with('booking.confirmation', anything)
+          .and_return(expected_template_message)
+
+        expected_options = {
+          tenant_customer_id: customer.id,
+          booking_id: booking.id,
+          business_id: tenant.id
+        }
+
+        expect(described_class).to receive(:send_message_with_rate_limit)
+          .with(customer.phone, expected_template_message, expected_options)
+          .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
+
+        described_class.send_booking_confirmation(booking)
+      end
+    end
+
+    context 'when customer is not opted in for SMS' do
+      let!(:non_opted_customer) { create(:tenant_customer, business: tenant, phone: "+15551234567", phone_opt_in: false) }
+      let!(:non_opted_booking) { create(:booking, tenant_customer: non_opted_customer, service: service, start_time: Time.current + 3.days, business: tenant) }
+
+      it 'queues the notification instead of sending immediately' do
+        # Mock PendingSmsNotification queuing
+        queued_notification = double("PendingSmsNotification", id: 123)
+        expect(PendingSmsNotification).to receive(:queue_booking_notification)
+          .with('booking_confirmation', non_opted_booking, anything)
+          .and_return(queued_notification)
+
+        # Mock opt-in invitation logic
+        allow(described_class).to receive(:should_send_invitation?).and_return(false)
+
+        result = described_class.send_booking_confirmation(non_opted_booking)
+
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq("Customer not opted in for SMS notifications")
+        expect(result[:queued]).to be true
+        expect(result[:notification_id]).to eq(123)
+      end
+
+      it 'sends opt-in invitation if appropriate' do
+        # Mock opt-in invitation should be sent
+        allow(described_class).to receive(:should_send_invitation?)
+          .with(non_opted_customer, tenant, :booking_confirmation)
+          .and_return(true)
+
+        expect(described_class).to receive(:send_opt_in_invitation)
+          .with(non_opted_customer, tenant, :booking_confirmation)
+
+        # Mock PendingSmsNotification queuing
+        queued_notification = double("PendingSmsNotification", id: 123)
+        allow(PendingSmsNotification).to receive(:queue_booking_notification).and_return(queued_notification)
+
+        described_class.send_booking_confirmation(non_opted_booking)
+      end
     end
   end
 
   describe '.send_booking_reminder' do
     let!(:service) { create(:service, name: "Follow-up", business: tenant) }
     let!(:booking) { create(:booking, tenant_customer: customer, service: service, start_time: Time.current + 1.day, business: tenant) }
-    
-    
-    context 'for 24h timeframe' do
-      it 'calls send_message with the correct arguments and formatted message' do
-        expected_message = "Reminder: Your Follow-up is tomorrow at #{booking.local_start_time.strftime('%I:%M %p')}. " \
-                           "Reply HELP for assistance or CONFIRM to confirm."
-        expected_options = { 
-          tenant_customer_id: customer.id,
-          booking_id: booking.id,
-          business_id: tenant.id
-        }
-        
-        expect(described_class).to receive(:send_message_with_rate_limit)
-          .with(customer.phone, expected_message, expected_options)
-          .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
-          
-        described_class.send_booking_reminder(booking, '24h')
+
+    context 'when customer is opted in for SMS' do
+      context 'for 24h timeframe' do
+        it 'calls send_message_with_rate_limit with template-rendered message' do
+          # The actual template format: "⏰ Reminder: %SERVICE_NAME% %TIMEFRAME_TEXT% at %TIME% with %BUSINESS_NAME%. Reply HELP for assistance or CONFIRM to confirm."
+          expected_message = "⏰ Reminder: Follow-up tomorrow at #{booking.local_start_time.strftime('%I:%M %p')} with #{tenant.name}. Reply HELP for assistance or CONFIRM to confirm."
+
+          # Mock the template rendering
+          allow(Sms::MessageTemplates).to receive(:render)
+            .with('booking.reminder', anything)
+            .and_return(expected_message)
+
+          expected_options = {
+            tenant_customer_id: customer.id,
+            booking_id: booking.id,
+            business_id: tenant.id
+          }
+
+          expect(described_class).to receive(:send_message_with_rate_limit)
+            .with(customer.phone, expected_message, expected_options)
+            .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
+
+          described_class.send_booking_reminder(booking, '24h')
+        end
+      end
+
+      context 'for 1h timeframe' do
+        it 'calls send_message_with_rate_limit with template-rendered message' do
+          # The actual template format: "⏰ Reminder: %SERVICE_NAME% %TIMEFRAME_TEXT% at %TIME% with %BUSINESS_NAME%. Reply HELP for assistance or CONFIRM to confirm."
+          expected_message = "⏰ Reminder: Follow-up in 1 hour at #{booking.local_start_time.strftime('%I:%M %p')} with #{tenant.name}. Reply HELP for assistance or CONFIRM to confirm."
+
+          # Mock the template rendering
+          allow(Sms::MessageTemplates).to receive(:render)
+            .with('booking.reminder', anything)
+            .and_return(expected_message)
+
+          expected_options = {
+            tenant_customer_id: customer.id,
+            booking_id: booking.id,
+            business_id: tenant.id
+          }
+
+          expect(described_class).to receive(:send_message_with_rate_limit)
+            .with(customer.phone, expected_message, expected_options)
+            .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
+
+          described_class.send_booking_reminder(booking, '1h')
+        end
       end
     end
 
-    context 'for 1h timeframe' do
-       it 'calls send_message with the correct arguments and formatted message' do
-         expected_message = "Reminder: Your Follow-up is in 1 hour at #{booking.local_start_time.strftime('%I:%M %p')}. " \
-                            "Reply HELP for assistance or CONFIRM to confirm."
-         expected_options = { 
-           tenant_customer_id: customer.id,
-           booking_id: booking.id,
-           business_id: tenant.id
-         }
-         
-         expect(described_class).to receive(:send_message_with_rate_limit)
-           .with(customer.phone, expected_message, expected_options)
-           .and_return({ success: true, sms_message: double("SmsMessage"), external_id: "test-uuid" })
-           
-         described_class.send_booking_reminder(booking, '1h')
-       end
+    context 'when customer is not opted in for SMS' do
+      let!(:non_opted_customer) { create(:tenant_customer, business: tenant, phone: "+15551234567", phone_opt_in: false) }
+      let!(:non_opted_booking) { create(:booking, tenant_customer: non_opted_customer, service: service, start_time: Time.current + 1.day, business: tenant) }
+
+      it 'queues the notification instead of sending immediately' do
+        # Mock PendingSmsNotification queuing
+        queued_notification = double("PendingSmsNotification", id: 456)
+        expect(PendingSmsNotification).to receive(:queue_booking_notification)
+          .with('booking_reminder', non_opted_booking, anything)
+          .and_return(queued_notification)
+
+        # Mock opt-in invitation logic
+        allow(described_class).to receive(:should_send_invitation?).and_return(false)
+
+        result = described_class.send_booking_reminder(non_opted_booking, '24h')
+
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq("Customer not opted in for SMS notifications")
+        expect(result[:queued]).to be true
+        expect(result[:notification_id]).to eq(456)
+      end
+
+      it 'sends opt-in invitation if appropriate' do
+        # Mock opt-in invitation should be sent
+        allow(described_class).to receive(:should_send_invitation?)
+          .with(non_opted_customer, tenant, :booking_reminder)
+          .and_return(true)
+
+        expect(described_class).to receive(:send_opt_in_invitation)
+          .with(non_opted_customer, tenant, :booking_reminder)
+
+        # Mock PendingSmsNotification queuing
+        queued_notification = double("PendingSmsNotification", id: 456)
+        allow(PendingSmsNotification).to receive(:queue_booking_notification).and_return(queued_notification)
+
+        described_class.send_booking_reminder(non_opted_booking, '24h')
+      end
     end
   end
   
