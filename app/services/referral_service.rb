@@ -89,7 +89,7 @@ class ReferralService
       # For now, referral customers are created without special notification handling
 
       customer
-    rescue CustomerLinker::EmailConflictError => e
+    rescue EmailConflictError => e
       Rails.logger.error "[ReferralService] CustomerLinker error for user #{user.id}: #{e.message}"
       raise e
     rescue StandardError => e

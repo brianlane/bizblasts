@@ -183,7 +183,7 @@ class Public::SubscriptionsController < Public::BaseController
       begin
         linker = CustomerLinker.new(current_business)
         linker.link_user_to_customer(current_user)
-      rescue CustomerLinker::EmailConflictError => e
+      rescue EmailConflictError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
         return nil
       rescue StandardError => e
