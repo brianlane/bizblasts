@@ -157,13 +157,20 @@ class Public::SubscriptionsController < Public::BaseController
 
   def find_or_initialize_tenant_customer
     if user_signed_in?
-      # Find existing tenant customer for this user's email and business
-      current_business.tenant_customers.find_by(email: current_user.email) ||
+      # Use CustomerLinker to ensure proper data sync for existing customers
+      begin
+        linker = CustomerLinker.new(current_business)
+        linker.link_user_to_customer(current_user)
+      rescue StandardError => e
+        Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        # Fallback to build new customer for form display
         current_business.tenant_customers.build(
           first_name: current_user.first_name,
           last_name: current_user.last_name,
-          email: current_user.email
+          email: current_user.email,
+          phone: current_user.phone
         )
+      end
     else
       # For guest checkout, we'll need to collect customer info
       current_business.tenant_customers.build
@@ -172,24 +179,36 @@ class Public::SubscriptionsController < Public::BaseController
 
   def find_or_create_tenant_customer
     if user_signed_in?
-      current_business.tenant_customers.find_or_create_by(email: current_user.email) do |tc|
-        tc.first_name = current_user.first_name
-        tc.last_name = current_user.last_name
-        tc.phone = current_user.phone if current_user.respond_to?(:phone)
+      # Use CustomerLinker to ensure proper data sync
+      begin
+        linker = CustomerLinker.new(current_business)
+        linker.link_user_to_customer(current_user)
+      rescue CustomerLinker::EmailConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        return nil
+      rescue StandardError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        return nil
       end
     else
-      # Create tenant customer from form data
+      # Use CustomerLinker for guest customer management
       customer_attrs = subscription_params[:tenant_customer_attributes] || {}
-      customer = current_business.tenant_customers.create(
-        first_name: customer_attrs[:first_name],
-        last_name: customer_attrs[:last_name],
-        email: customer_attrs[:email],
-        phone: customer_attrs[:phone],
-        address: customer_attrs[:address]
-      )
-      
-      # If customer creation fails, return nil so create action can handle the error
-      customer.persisted? ? customer : nil
+      begin
+        linker = CustomerLinker.new(current_business)
+        customer = linker.find_or_create_guest_customer(
+          customer_attrs[:email],
+          first_name: customer_attrs[:first_name],
+          last_name: customer_attrs[:last_name],
+          phone: customer_attrs[:phone],
+          phone_opt_in: customer_attrs[:phone_opt_in] == 'true' || customer_attrs[:phone_opt_in] == true
+        )
+
+        # Return customer if created successfully, nil otherwise
+        customer&.persisted? ? customer : nil
+      rescue StandardError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for guest: #{e.message}"
+        return nil
+      end
     end
   end
 

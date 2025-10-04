@@ -767,11 +767,13 @@ class User < ApplicationRecord
         # Update phone if customer doesn't have one or if different
         if customer.phone.blank? || customer.phone != phone
           updates[:phone] = phone
-          
-          # Set opt-in if user has opted in and customer hasn't
-          if respond_to?(:phone_opt_in?) && phone_opt_in? && !customer.phone_opt_in?                                                                             
-            updates[:phone_opt_in] = true
-            updates[:phone_opt_in_at] = respond_to?(:phone_opt_in_at) ? phone_opt_in_at : Time.current                                                           
+
+          # Sync opt-in status from user when phone changes (TCPA compliance)
+          if respond_to?(:phone_opt_in?) && customer.phone_opt_in? != phone_opt_in?
+            updates[:phone_opt_in] = phone_opt_in?
+            updates[:phone_opt_in_at] = phone_opt_in? ?
+              (respond_to?(:phone_opt_in_at) ? phone_opt_in_at : Time.current) :
+              nil
           end
         end
         

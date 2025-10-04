@@ -81,15 +81,20 @@ class ReferralService
     # Finds or creates a TenantCustomer record for a given User.
     # This ensures a user can receive rewards even if they haven't made a purchase.
     def find_or_create_tenant_customer(user, business)
-      TenantCustomer.find_or_create_by!(
-        email: user.email,
-        business: business
-      ) do |customer|
-        customer.first_name = user.first_name
-        customer.last_name = user.last_name
-        customer.phone = user.phone
-        customer.skip_notification_email = true # Don't send a "new customer" email
-      end
+      # Use CustomerLinker to ensure proper data sync and handle edge cases
+      linker = CustomerLinker.new(business)
+      customer = linker.link_user_to_customer(user)
+
+      # Note: Skip notification email functionality can be implemented if needed
+      # For now, referral customers are created without special notification handling
+
+      customer
+    rescue CustomerLinker::EmailConflictError => e
+      Rails.logger.error "[ReferralService] CustomerLinker error for user #{user.id}: #{e.message}"
+      raise e
+    rescue StandardError => e
+      Rails.logger.error "[ReferralService] CustomerLinker error for user #{user.id}: #{e.message}"
+      raise e
     end
   end
 end 

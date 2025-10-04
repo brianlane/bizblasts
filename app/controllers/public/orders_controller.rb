@@ -47,13 +47,20 @@ module Public
     
     # Handle customer identification based on user type (similar to booking logic)
     if current_user&.client?
-      # Logged-in client: find or create their TenantCustomer by email
-      customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-        c.first_name = current_user.first_name
-        c.last_name  = current_user.last_name
-        c.phone      = current_user.phone
+      # Use CustomerLinker to ensure proper data sync
+      begin
+        linker = CustomerLinker.new(current_tenant)
+        customer = linker.link_user_to_customer(current_user)
+      rescue CustomerLinker::EmailConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
+      rescue StandardError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        flash[:alert] = "Unable to process order. Please try again."
+        redirect_to new_order_path and return
       end
-      
+
       creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
       creation_params[:tenant_customer_id] = customer.id
       creation_params[:business_id]        = current_tenant.id
@@ -70,24 +77,20 @@ module Public
           redirect_to new_order_path and return
         end
         
-        # Try to find existing customer by email
-        customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-        
-        if customer
-          # Update existing customer with new info if provided
-          customer.update!(
-            first_name: nested[:first_name].present? ? nested[:first_name] : customer.first_name,
-            last_name: nested[:last_name].present? ? nested[:last_name] : customer.last_name,
-            phone: nested[:phone].present? ? nested[:phone] : customer.phone
-          )
-        else
-          # Create new customer
-          customer = current_tenant.tenant_customers.create!(
+        # Use CustomerLinker for guest customer management
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          customer = linker.find_or_create_guest_customer(
+            nested[:email],
             first_name: nested[:first_name] || 'Unknown',
             last_name: nested[:last_name] || 'Customer',
             phone: nested[:phone],
-            email: nested[:email].presence
+            phone_opt_in: nested[:phone_opt_in] == 'true' || nested[:phone_opt_in] == true
           )
+        rescue StandardError => e
+          Rails.logger.error "[OrdersController#create] CustomerLinker error for staff/manager: #{e.message}"
+          flash[:alert] = "Unable to process customer information. Please try again."
+          redirect_to new_order_path and return
         end
       end
       
@@ -100,24 +103,20 @@ module Public
       nested = order_params[:tenant_customer_attributes] || {}
       full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
       
-      # Try to find existing customer by email
-      customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-      
-      if customer
-        # Update existing customer with new info if provided
-        customer.update!(
-          first_name: nested[:first_name].present? ? nested[:first_name] : customer.first_name,
-          last_name: nested[:last_name].present? ? nested[:last_name] : customer.last_name,
-          phone: nested[:phone].present? ? nested[:phone] : customer.phone
-        )
-      else
-        # Create new customer
-        customer = current_tenant.tenant_customers.new(
+      # Use CustomerLinker for guest customer management
+      begin
+        linker = CustomerLinker.new(current_tenant)
+        customer = linker.find_or_create_guest_customer(
+          nested[:email],
           first_name: nested[:first_name] || 'Unknown',
           last_name: nested[:last_name] || 'Customer',
           phone: nested[:phone],
-          email: nested[:email]
+          phone_opt_in: nested[:phone_opt_in] == 'true' || nested[:phone_opt_in] == true
         )
+      rescue StandardError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker error for guest: #{e.message}"
+        flash[:alert] = "Unable to process customer information. Please try again."
+        redirect_to new_order_path and return
       end
 
       # Handle account creation if requested
