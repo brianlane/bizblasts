@@ -130,6 +130,10 @@ class SmsService
   def self.send_booking_reminder(booking, timeframe)
     customer = booking.tenant_customer
 
+    # Prepare variables for template rendering (used by both paths)
+    variables = build_booking_variables(booking)
+    variables[:timeframe_text] = timeframe == '24h' ? 'tomorrow' : 'in 1 hour'
+
     # Check TCPA compliance - customer must be opted in
     unless customer.can_receive_sms?(:reminder)
       Rails.logger.info "[SMS_SERVICE] Customer #{customer.id} not opted in for reminder SMS"
@@ -140,11 +144,6 @@ class SmsService
       end
 
       # Queue the notification for later delivery instead of failing
-      service = booking.service
-      variables = build_booking_variables(booking)
-      variables[:timeframe_text] = timeframe == '24h' ? 'tomorrow' : 'in 1 hour'
-      variables[:service_name] = service&.name || 'booking'
-
       queued_notification = PendingSmsNotification.queue_booking_notification(
         'booking_reminder',
         booking,
@@ -155,9 +154,12 @@ class SmsService
       return { success: false, error: "Customer not opted in for SMS notifications", queued: true, notification_id: queued_notification.id }
     end
 
-    service = booking.service
-
-    message = "Reminder: Your #{service&.name || 'booking'} is #{timeframe == '24h' ? 'tomorrow' : 'in 1 hour'} at #{booking.local_start_time.strftime('%I:%M %p')}. Reply HELP for assistance or CONFIRM to confirm."
+    # Use template rendering for immediate send (consistent with queued path)
+    message = Sms::MessageTemplates.render('booking.reminder', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
 
     send_message_with_rate_limit(customer.phone, message, {
       tenant_customer_id: customer.id,
