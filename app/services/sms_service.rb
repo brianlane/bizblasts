@@ -120,6 +120,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
 
     message = Sms::MessageTemplates.render('booking.confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -191,6 +196,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
 
     message = Sms::MessageTemplates.render('booking.status_update', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking status update template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -210,6 +220,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/services", booking_id: booking.id)
     
     message = Sms::MessageTemplates.render('booking.cancellation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking cancellation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -229,6 +244,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/pay", booking_id: booking.id)
     
     message = Sms::MessageTemplates.render('booking.payment_reminder', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render booking payment reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -247,6 +267,11 @@ class SmsService
     variables[:link] = generate_sms_link(booking.business, "/booking/#{booking.id}/confirmation", booking_id: booking.id)
     
     message = Sms::MessageTemplates.render('booking.subscription_booking_created', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render subscription booking created template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(booking.tenant_customer.phone, message, {
       tenant_customer_id: booking.tenant_customer.id,
       booking_id: booking.id,
@@ -278,6 +303,11 @@ class SmsService
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
 
     message = Sms::MessageTemplates.render('invoice.created', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice created template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -296,6 +326,11 @@ class SmsService
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}", invoice_id: invoice.id)
     
     message = Sms::MessageTemplates.render('invoice.payment_confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice payment confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -315,6 +350,11 @@ class SmsService
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
     
     message = Sms::MessageTemplates.render('invoice.payment_reminder', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice payment reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -333,6 +373,11 @@ class SmsService
     variables[:link] = generate_sms_link(invoice.business, "/invoices/#{invoice.id}/pay", invoice_id: invoice.id)
     
     message = Sms::MessageTemplates.render('invoice.payment_failed', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render invoice payment failed template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(invoice.tenant_customer.phone, message, {
       tenant_customer_id: invoice.tenant_customer.id,
       invoice_id: invoice.id,
@@ -352,6 +397,11 @@ class SmsService
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
     message = Sms::MessageTemplates.render('order.confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render order confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -371,6 +421,11 @@ class SmsService
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
     message = Sms::MessageTemplates.render('order.status_update', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render order status update template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -389,6 +444,11 @@ class SmsService
     variables[:amount] = format_currency(payment.refunded_amount || payment.amount)
     
     message = Sms::MessageTemplates.render('order.refund_confirmation', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render order refund confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -407,6 +467,11 @@ class SmsService
     variables[:link] = generate_sms_link(order.business, "/orders/#{order.id}", order_id: order.id)
     
     message = Sms::MessageTemplates.render('order.subscription_order_created', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render subscription order created template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(order.tenant_customer.phone, message, {
       tenant_customer_id: order.tenant_customer.id,
       order_id: order.id,
@@ -420,6 +485,11 @@ class SmsService
     variables[:customer_name] = booking.tenant_customer.full_name
     
     message = Sms::MessageTemplates.render('business.new_booking_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business new booking notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       booking_id: booking.id,
@@ -432,6 +502,11 @@ class SmsService
     variables[:customer_name] = order.tenant_customer.full_name
     
     message = Sms::MessageTemplates.render('business.new_order_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business new order notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       order_id: order.id,
@@ -448,6 +523,11 @@ class SmsService
     }
     
     message = Sms::MessageTemplates.render('business.payment_received_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business payment received notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       payment_id: payment.id,
@@ -470,6 +550,11 @@ class SmsService
     }
     
     message = Sms::MessageTemplates.render('marketing.campaign_promotional', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render marketing campaign promotional template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(recipient.phone, message, {
       tenant_customer_id: recipient.id,
       marketing_campaign_id: campaign.id,
@@ -485,6 +570,11 @@ class SmsService
     }
     
     message = Sms::MessageTemplates.render('business.new_customer_notification', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render business new customer notification template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
     send_message_with_rate_limit(business_user.phone, message, {
       user_id: business_user.id,
       tenant_customer_id: customer.id,
@@ -505,6 +595,10 @@ class SmsService
 
     # Render the message using existing template system
     message = Sms::MessageTemplates.render('review_request.google_review_request', variables)
+    unless message
+      Rails.logger.error "[SMS_SERVICE] Failed to render review request template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
 
     send_message_with_rate_limit(
       customer.phone,
