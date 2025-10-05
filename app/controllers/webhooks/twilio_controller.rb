@@ -115,7 +115,12 @@ module Webhooks
           Rails.logger.info "Found user #{user.id} for phone #{to_phone}, linking to business #{business.id}"
           begin
             tenant_customer = CustomerLinker.new(business).link_user_to_customer(user)
-            Rails.logger.info "Successfully linked user #{user.id} to tenant customer #{tenant_customer.id}"
+            if tenant_customer
+              Rails.logger.info "Successfully linked user #{user.id} to tenant customer #{tenant_customer.id}"
+            else
+              Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business.id}"
+              return
+            end
           rescue => linking_error
             Rails.logger.error "Failed to link user #{user.id} to business #{business.id}: #{linking_error.message}"
             return
@@ -495,8 +500,14 @@ module Webhooks
         user = User.find_by(phone: normalized_phone)
         if user
           begin
-            CustomerLinker.new(business_context).link_user_to_customer(user)
-            Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for opt-in"
+            linked_customer = CustomerLinker.new(business_context).link_user_to_customer(user)
+            if linked_customer
+              Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for opt-in"
+            else
+              Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business_context.id} for opt-in"
+              # Fall through to create minimal customer
+              create_minimal_customer(normalized_phone, business_context)
+            end
           rescue => linking_error
             Rails.logger.error "Failed to link user for opt-in: #{linking_error.message}"
             # Fall through to create minimal customer
