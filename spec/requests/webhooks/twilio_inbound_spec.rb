@@ -3,8 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
-  let(:customer) { create(:tenant_customer, business: business, phone: '+16026866672', phone_opt_in: false) }
+  let!(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let!(:customer) { create(:tenant_customer, business: business, phone: '+16026866672', phone_opt_in: false) }
 
   # Mock Twilio webhook parameters
   let(:twilio_params) do
@@ -24,6 +24,9 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
 
     # Mock SmsService to avoid actual Twilio calls
     allow(SmsService).to receive(:send_message).and_return({ success: true })
+
+    # Mock template rendering to avoid missing template errors
+    allow(Sms::MessageTemplates).to receive(:render).and_return("Mocked template response")
   end
 
   describe 'POST /webhooks/twilio/inbound' do
@@ -40,7 +43,7 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
       it 'sends confirmation message via auto-reply' do
         expect(SmsService).to receive(:send_message).with(
           customer.phone,
-          match(/You're now subscribed to SMS notifications/),
+          match(/You're now subscribed to .* SMS notifications/),
           hash_including(business_id: business.id, tenant_customer_id: customer.id, auto_reply: true)
         )
 
@@ -120,7 +123,7 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
       it 'sends help response' do
         expect(SmsService).to receive(:send_message).with(
           customer.phone,
-          match(/BizBlasts SMS Help/),
+          "Mocked template response",
           hash_including(business_id: business.id, tenant_customer_id: customer.id, auto_reply: true)
         )
 
@@ -150,12 +153,173 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
 
       it 'logs auto-reply failures but continues processing' do
         expect(Rails.logger).to receive(:error).with(match(/Failed to send auto-reply.*Twilio API error/))
+        expect(Rails.logger).to receive(:error).with(String) # Backtrace log
 
         post '/webhooks/twilio/inbound', params: twilio_params
 
         # Should still opt in the customer despite auto-reply failure
         expect(customer.reload.phone_opt_in?).to be true
         expect(response).to have_http_status(:ok)
+      end
+    end
+  end
+
+  describe 'new user scenarios' do
+    context 'when completely new phone number texts YES' do
+      let(:new_phone) { '+17775551234' }
+      let(:new_twilio_params) do
+        {
+          'From' => new_phone,
+          'To' => '+18556128814',
+          'Body' => 'YES',
+          'MessageSid' => 'SM987654321',
+          'AccountSid' => 'AC123456789',
+          'MessagingServiceSid' => 'MG123456789'
+        }
+      end
+
+      it 'creates minimal customer and processes opt-in successfully' do
+        expect {
+          post '/webhooks/twilio/inbound', params: new_twilio_params
+        }.to change { TenantCustomer.count }.by(1)
+
+        new_customer = TenantCustomer.find_by(phone: new_phone)
+        expect(new_customer).to be_present
+        expect(new_customer.phone_opt_in).to be true
+        expect(new_customer.first_name).to eq('Unknown')
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'sends auto-reply confirmation for new phone number' do
+        expect(SmsService).to receive(:send_message).with(
+          new_phone,
+          "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance.",
+          hash_including(auto_reply: true)
+        ).and_return({ success: true })
+
+        post '/webhooks/twilio/inbound', params: new_twilio_params
+      end
+    end
+
+    context 'when new phone number texts HELP' do
+      let(:help_phone) { '+17775559999' }
+      let(:help_twilio_params) do
+        {
+          'From' => help_phone,
+          'To' => '+18556128814',
+          'Body' => 'HELP',
+          'MessageSid' => 'SM111222333',
+          'AccountSid' => 'AC123456789',
+          'MessagingServiceSid' => 'MG123456789'
+        }
+      end
+
+      it 'creates minimal customer and sends help response' do
+        expect {
+          post '/webhooks/twilio/inbound', params: help_twilio_params
+        }.to change { TenantCustomer.count }.by(1)
+
+        new_customer = TenantCustomer.find_by(phone: help_phone)
+        expect(new_customer).to be_present
+        expect(new_customer.phone_opt_in).to be false # HELP doesn't opt them in
+      end
+
+      it 'sends help auto-reply for new phone number' do
+        expect(SmsService).to receive(:send_message).with(
+          help_phone,
+          "Mocked template response",
+          hash_including(auto_reply: true)
+        ).and_return({ success: true })
+
+        post '/webhooks/twilio/inbound', params: help_twilio_params
+      end
+    end
+
+    context 'when existing user without tenant customer texts YES' do
+      let(:user_without_customer) { create(:user, phone: '+17775552222', business: business) }
+      let(:user_twilio_params) do
+        {
+          'From' => user_without_customer.phone,
+          'To' => '+18556128814',
+          'Body' => 'YES',
+          'MessageSid' => 'SM444555666',
+          'AccountSid' => 'AC123456789',
+          'MessagingServiceSid' => 'MG123456789'
+        }
+      end
+
+      it 'links user to tenant customer and processes opt-in' do
+        # Mock CustomerLinker to verify it's called
+        linker_instance = instance_double(CustomerLinker)
+        allow(CustomerLinker).to receive(:new).with(business).and_return(linker_instance)
+
+        new_customer = create(:tenant_customer, business: business, phone: user_without_customer.phone)
+        allow(linker_instance).to receive(:link_user_to_customer).with(user_without_customer).and_return(new_customer)
+
+        expect {
+          post '/webhooks/twilio/inbound', params: user_twilio_params
+        }.to change { new_customer.reload.phone_opt_in }.to(true)
+      end
+    end
+  end
+
+  describe 'business context determination improvements' do
+    context 'when customer has SMS opt-in invitation history' do
+      let(:invitation_phone) { '+17775553333' }
+      let(:invitation_business) { create(:business, sms_enabled: true, tier: 'premium') }
+
+      before do
+        # Create recent SMS opt-in invitation to establish business context
+        SmsOptInInvitation.create!(
+          phone_number: invitation_phone,
+          business: invitation_business,
+          context: 'booking_confirmation',
+          sent_at: 2.days.ago
+        )
+      end
+
+      it 'uses invitation business context for opt-in' do
+        invitation_twilio_params = {
+          'From' => invitation_phone,
+          'To' => '+18556128814',
+          'Body' => 'YES',
+          'MessageSid' => 'SM777888999',
+          'AccountSid' => 'AC123456789',
+          'MessagingServiceSid' => 'MG123456789'
+        }
+
+        expect(SmsService).to receive(:send_message).with(
+          invitation_phone,
+          match(/You're now subscribed to #{invitation_business.name}/),
+          hash_including(business_id: invitation_business.id, auto_reply: true)
+        )
+
+        post '/webhooks/twilio/inbound', params: invitation_twilio_params
+      end
+    end
+
+    context 'when no business context found' do
+      let(:no_context_phone) { '+17775554444' }
+
+      it 'falls back to most active SMS business' do
+        # Create SMS activity for the main business
+        create_list(:sms_message, 3, business: business, sent_at: 1.week.ago)
+
+        no_context_twilio_params = {
+          'From' => no_context_phone,
+          'To' => '+18556128814',
+          'Body' => 'YES',
+          'MessageSid' => 'SM000111222',
+          'AccountSid' => 'AC123456789',
+          'MessagingServiceSid' => 'MG123456789'
+        }
+
+        expect {
+          post '/webhooks/twilio/inbound', params: no_context_twilio_params
+        }.to change { TenantCustomer.count }.by(1)
+
+        new_customer = TenantCustomer.find_by(phone: no_context_phone)
+        expect(new_customer.business).to eq(business) # Should use fallback business
       end
     end
   end

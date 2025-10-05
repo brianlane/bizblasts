@@ -66,7 +66,7 @@ module Webhooks
           phone: ENV.fetch('SUPPORT_PHONE', '555-123-4567')
         })
         send_auto_reply(from, help_message) if help_message
-        
+
       when "CANCEL", "STOP", "UNSUBSCRIBE"
         Rails.logger.info "STOP keyword received from #{from} - processing opt-out"
         process_sms_opt_out(from)
@@ -105,23 +105,39 @@ module Webhooks
       end
 
       # Find or create tenant customer for this phone number and business
-      tenant_customer = TenantCustomer.find_by(phone: normalize_phone(to_phone), business: business)
+      normalized_phone = normalize_phone(to_phone)
+      tenant_customer = TenantCustomer.find_by(phone: normalized_phone, business: business)
 
       # If no tenant customer exists, try to find a user and link them
       unless tenant_customer
-        user = User.find_by(phone: normalize_phone(to_phone))
+        user = User.find_by(phone: normalized_phone)
         if user
           Rails.logger.info "Found user #{user.id} for phone #{to_phone}, linking to business #{business.id}"
           begin
-            tenant_customer = CustomerLinker.link_user_to_business(user, business)
+            tenant_customer = CustomerLinker.new(business).link_user_to_customer(user)
             Rails.logger.info "Successfully linked user #{user.id} to tenant customer #{tenant_customer.id}"
           rescue => linking_error
             Rails.logger.error "Failed to link user #{user.id} to business #{business.id}: #{linking_error.message}"
             return
           end
         else
-          Rails.logger.error "No tenant customer or user found for phone #{to_phone} in business #{business.id}"
-          return
+          Rails.logger.info "Creating minimal tenant customer for new phone number #{to_phone} in business #{business.id}"
+          begin
+            # Create minimal tenant customer record for completely new phone numbers
+            # This enables auto-replies for new users discovered through SMS interactions
+            tenant_customer = TenantCustomer.create!(
+              business: business,
+              phone: normalized_phone,
+              first_name: 'Unknown', # Will be updated when they provide more info
+              last_name: 'User',     # Will be updated when they provide more info
+              email: "sms-user-#{SecureRandom.hex(8)}@temp.bizblasts.com", # Temporary email to satisfy validation
+              phone_opt_in: false   # Start with opt-out, they need to explicitly opt-in
+            )
+            Rails.logger.info "Created minimal tenant customer #{tenant_customer.id} for phone #{to_phone}"
+          rescue => creation_error
+            Rails.logger.error "Failed to create tenant customer for phone #{to_phone}: #{creation_error.message}"
+            return
+          end
         end
       end
 
@@ -133,6 +149,7 @@ module Webhooks
       })
     rescue => e
       Rails.logger.error "Failed to send auto-reply to #{to_phone}: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
     end
     
     def find_business_for_auto_reply(phone_number)
@@ -163,6 +180,7 @@ module Webhooks
         customers = TenantCustomer.where(phone: normalize_phone(phone_number), business: business_context)
         customers.each do |customer|
           customer.opt_out_from_business!(business_context)
+          customer.opt_out_of_sms! # Also update global opt-in status
           Rails.logger.info "Opted out customer #{customer.id} from business #{business_context.id}"
         end
 
@@ -200,6 +218,10 @@ module Webhooks
 
       # Determine business context
       business_context = determine_business_context(phone_number)
+
+      # Ensure customer exists before processing opt-in
+      # This prevents timing issues where new users text "YES" as first interaction
+      ensure_customer_exists(phone_number, business_context)
 
       if business_context
         Rails.logger.info "Processing business-specific opt-in for #{phone_number} to business #{business_context.id}"
@@ -302,15 +324,105 @@ module Webhooks
       end
     end
 
-    # Determine business context from recent SMS activity
+    # Determine business context using multiple signals
+    # Improved to handle new users without SMS history
     def determine_business_context(phone_number)
-      # Look for recent SMS messages from this phone number to identify business context
-      recent_sms = SmsMessage.where(phone_number: normalize_phone(phone_number))
-                            .where('sent_at > ?', 24.hours.ago)
+      normalized_phone = normalize_phone(phone_number)
+
+      # Strategy 1: Recent SMS messages (original logic, but extended timeframe)
+      recent_sms = SmsMessage.where(phone_number: normalized_phone)
+                            .where('sent_at > ?', 7.days.ago) # Extended from 24 hours
                             .order(sent_at: :desc)
                             .first
+      return recent_sms.business if recent_sms&.business
 
-      recent_sms&.business
+      # Strategy 2: Recent SMS opt-in invitations
+      # If they received an invitation recently, use that business context
+      recent_invitation = SmsOptInInvitation.where(phone_number: normalized_phone)
+                                           .where('sent_at > ?', 30.days.ago)
+                                           .order(sent_at: :desc)
+                                           .first
+      return recent_invitation.business if recent_invitation&.business
+
+      # Strategy 3: Existing customer records
+      # If they're already a customer of a business, prefer that context
+      customer_businesses = TenantCustomer.where(phone: normalized_phone)
+                                         .joins(:business)
+                                         .where(businesses: { sms_enabled: true })
+                                         .includes(:business)
+                                         .order('tenant_customers.created_at DESC')
+      return customer_businesses.first.business if customer_businesses.exists?
+
+      # Strategy 4: User business association
+      # If a User record exists with this phone, use their business
+      user = User.where(phone: normalized_phone).first
+      if user&.business&.sms_enabled?
+        return user.business
+      end
+
+      # Strategy 5: Recent booking/order activity
+      # Check for recent business interactions through bookings or orders
+      recent_booking_business = find_business_from_recent_bookings(normalized_phone)
+      return recent_booking_business if recent_booking_business
+
+      # Strategy 6: Smart fallback - most active SMS business
+      # Use the business that sends the most SMS (likely the main business)
+      fallback_business = Business.joins(:sms_messages)
+                                 .where(sms_enabled: true)
+                                 .where.not(tier: 'free')
+                                 .where('sms_messages.sent_at > ?', 30.days.ago)
+                                 .group('businesses.id')
+                                 .order('COUNT(sms_messages.id) DESC')
+                                 .first
+
+      Rails.logger.info "[BUSINESS_CONTEXT] Using fallback business #{fallback_business&.id} for #{phone_number}" if fallback_business
+      fallback_business
+    end
+
+    # Find business from recent booking/order activity
+    def find_business_from_recent_bookings(phone_number)
+      normalized_phone = normalize_phone(phone_number)
+
+      # Check for recent bookings by tenant customers
+      if defined?(Booking)
+        recent_booking = Booking.joins(:tenant_customer)
+                               .where(tenant_customers: { phone: normalized_phone })
+                               .where('bookings.created_at > ?', 90.days.ago)
+                               .order('bookings.created_at DESC')
+                               .first
+        return recent_booking.business if recent_booking&.business&.sms_enabled?
+
+        # Also check for bookings placed by client users (without tenant customer)
+        recent_user_booking = Booking.joins(:user)
+                                    .where(users: { phone: normalized_phone })
+                                    .where('bookings.created_at > ?', 90.days.ago)
+                                    .order('bookings.created_at DESC')
+                                    .first
+        return recent_user_booking.business if recent_user_booking&.business&.sms_enabled?
+      end
+
+      # Check for recent orders by tenant customers
+      if defined?(Order)
+        recent_order = Order.joins(:tenant_customer)
+                           .where(tenant_customers: { phone: normalized_phone })
+                           .where('orders.created_at > ?', 90.days.ago)
+                           .order('orders.created_at DESC')
+                           .first
+        return recent_order.business if recent_order&.business&.sms_enabled?
+
+        # Also check for orders placed by client users (without tenant customer)
+        recent_user_order = Order.joins(:user)
+                                .where(users: { phone: normalized_phone })
+                                .where('orders.created_at > ?', 90.days.ago)
+                                .order('orders.created_at DESC')
+                                .first
+        return recent_user_order.business if recent_user_order&.business&.sms_enabled?
+      end
+
+      nil
+    rescue => e
+      Rails.logger.warn "[BUSINESS_CONTEXT] Error checking recent bookings/orders for #{phone_number}: #{e.message}"
+      nil
     end
 
     # Record invitation response for analytics
@@ -353,6 +465,70 @@ module Webhooks
     rescue => e
       Rails.logger.error "[SMS_REPLAY] Error scheduling replay for customer #{customer.id}: #{e.message}"
       # Don't raise - this shouldn't break the webhook response
+    end
+
+    # Ensure a customer record exists for the phone number before processing opt-in
+    # This prevents timing issues where new users text "YES" as their first interaction
+    def ensure_customer_exists(phone_number, business_context = nil)
+      normalized_phone = normalize_phone(phone_number)
+
+      # If we have business context, check if customer exists for that business
+      if business_context
+        existing_customer = TenantCustomer.find_by(phone: normalized_phone, business: business_context)
+        return if existing_customer
+
+        Rails.logger.info "Creating customer for opt-in: phone #{phone_number}, business #{business_context.id}"
+
+        # Try to find user and link, or create minimal customer
+        user = User.find_by(phone: normalized_phone)
+        if user
+          begin
+            CustomerLinker.new(business_context).link_user_to_customer(user)
+            Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for opt-in"
+          rescue => linking_error
+            Rails.logger.error "Failed to link user for opt-in: #{linking_error.message}"
+            # Fall through to create minimal customer
+            create_minimal_customer(normalized_phone, business_context)
+          end
+        else
+          create_minimal_customer(normalized_phone, business_context)
+        end
+      else
+        # No business context - ensure at least one customer exists for this phone
+        existing_customers = TenantCustomer.where(phone: normalized_phone)
+        return if existing_customers.exists?
+
+        Rails.logger.info "Creating customer for global opt-in: phone #{phone_number}"
+
+        # Find any business that can handle SMS
+        fallback_business = Business.where(sms_enabled: true).where.not(tier: 'free').first ||
+                           Business.where.not(tier: 'free').first
+
+        if fallback_business
+          create_minimal_customer(normalized_phone, fallback_business)
+        else
+          Rails.logger.error "No suitable business found for global opt-in customer creation"
+        end
+      end
+    rescue => e
+      Rails.logger.error "Failed to ensure customer exists for #{phone_number}: #{e.message}"
+      # Don't raise - this shouldn't break the opt-in process
+    end
+
+    # Create a minimal customer record for SMS interactions
+    def create_minimal_customer(phone, business)
+      TenantCustomer.create!(
+        business: business,
+        phone: phone,
+        first_name: 'Unknown',
+        last_name: 'User',
+        email: "sms-user-#{SecureRandom.hex(8)}@temp.bizblasts.com",
+        phone_opt_in: false # Will be set to true by opt-in process
+      )
+      Rails.logger.info "Created minimal customer for phone #{phone} in business #{business.id}"
+    rescue => e
+      Rails.logger.error "Failed to create minimal customer for #{phone}: #{e.message}"
+      raise # Re-raise so caller can handle
     end
   end
 end

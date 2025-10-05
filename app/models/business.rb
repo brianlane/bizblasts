@@ -179,6 +179,10 @@ class Business < ApplicationRecord
   # Tips associations
   has_many :tips, dependent: :destroy
   has_one :tip_configuration, dependent: :destroy
+
+  # SMS associations
+  has_many :sms_messages, dependent: :destroy
+  has_many :sms_opt_in_invitations, dependent: :destroy
   
   # Calendar integration associations
   has_many :calendar_connections, dependent: :destroy
