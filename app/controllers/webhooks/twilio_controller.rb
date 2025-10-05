@@ -223,9 +223,14 @@ module Webhooks
     end
     
     def verify_webhook_signature?
-      # Only verify signatures in production for security
+      # Verify signatures in production unless explicitly disabled
+      # Can be disabled by setting TWILIO_VERIFY_SIGNATURES=false
       # Can be enabled in other environments by setting TWILIO_VERIFY_SIGNATURES=true
-      Rails.env.production? || ENV['TWILIO_VERIFY_SIGNATURES'] == 'true'
+      if Rails.env.production?
+        ENV['TWILIO_VERIFY_SIGNATURES'] != 'false'
+      else
+        ENV['TWILIO_VERIFY_SIGNATURES'] == 'true'
+      end
     end
     
     def valid_signature?
