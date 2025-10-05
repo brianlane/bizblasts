@@ -98,15 +98,37 @@ module Webhooks
       # Find a business that can handle auto-replies
       # Try to find business associated with the phone number first
       business = find_business_for_auto_reply(to_phone)
-      
+
       unless business
         Rails.logger.error "No suitable business found for auto-reply to #{to_phone}"
         return
       end
-      
+
+      # Find or create tenant customer for this phone number and business
+      tenant_customer = TenantCustomer.find_by(phone: normalize_phone(to_phone), business: business)
+
+      # If no tenant customer exists, try to find a user and link them
+      unless tenant_customer
+        user = User.find_by(phone: normalize_phone(to_phone))
+        if user
+          Rails.logger.info "Found user #{user.id} for phone #{to_phone}, linking to business #{business.id}"
+          begin
+            tenant_customer = CustomerLinker.link_user_to_business(user, business)
+            Rails.logger.info "Successfully linked user #{user.id} to tenant customer #{tenant_customer.id}"
+          rescue => linking_error
+            Rails.logger.error "Failed to link user #{user.id} to business #{business.id}: #{linking_error.message}"
+            return
+          end
+        else
+          Rails.logger.error "No tenant customer or user found for phone #{to_phone} in business #{business.id}"
+          return
+        end
+      end
+
       # Send automatic reply via SMS service
       SmsService.send_message(to_phone, message, {
         business_id: business.id,
+        tenant_customer_id: tenant_customer.id,
         auto_reply: true
       })
     rescue => e
@@ -236,21 +258,48 @@ module Webhooks
     def valid_signature?
       # Twilio webhook signature verification
       # This implements the signature verification as per Twilio's documentation
-      
+
       signature = request.headers['X-Twilio-Signature']
       return false unless signature
-      
+
       # Get the request URL and POST body
-      url = request.original_url
+      # Use the URL Twilio actually called (before any redirects)
+      # If the request was redirected from bizblasts.com to www.bizblasts.com,
+      # we need to use the original URL for signature validation
+      url = reconstruct_original_url
       body = request.raw_post
-      
+
+      # Debug logging for signature validation
+      Rails.logger.info "[WEBHOOK] Signature validation: URL=#{url}, Signature=#{signature[0..10]}..."
+
       # Twilio signature verification using the Twilio SDK
       validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
-      validator.validate(url, body, signature)
-      
+      result = validator.validate(url, body, signature)
+
+      Rails.logger.info "[WEBHOOK] Signature validation result: #{result}"
+      result
+
     rescue => e
       Rails.logger.error "Error verifying Twilio signature: #{e.message}"
       false
+    end
+
+    def reconstruct_original_url
+      # If request came to www.bizblasts.com but Twilio called bizblasts.com,
+      # we need to reconstruct the original URL for signature validation
+      current_url = request.original_url
+
+      # In production, Twilio is configured to call bizblasts.com (without www)
+      # but Rails redirects to www.bizblasts.com
+      if Rails.env.production? && current_url.include?('www.bizblasts.com')
+        # Replace www.bizblasts.com with bizblasts.com for signature validation
+        original_url = current_url.gsub('www.bizblasts.com', 'bizblasts.com')
+        Rails.logger.debug "[WEBHOOK] URL reconstruction: #{current_url} -> #{original_url}"
+        original_url
+      else
+        # In other environments, use the current URL as-is
+        current_url
+      end
     end
 
     # Determine business context from recent SMS activity
