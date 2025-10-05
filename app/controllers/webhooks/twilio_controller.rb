@@ -170,8 +170,8 @@ module Webhooks
     end
     
     def process_sms_opt_out(phone_number)
-      # Determine business context from recent SMS activity
-      business_context = determine_business_context(phone_number)
+      # Determine business context from recent SMS activity (conservative mode for opt-out)
+      business_context = determine_business_context(phone_number, conservative: true)
 
       if business_context
         Rails.logger.info "Processing business-specific opt-out for #{phone_number} from business #{business_context.id}"
@@ -180,7 +180,6 @@ module Webhooks
         customers = TenantCustomer.where(phone: normalize_phone(phone_number), business: business_context)
         customers.each do |customer|
           customer.opt_out_from_business!(business_context)
-          customer.opt_out_of_sms! # Also update global opt-in status
           Rails.logger.info "Opted out customer #{customer.id} from business #{business_context.id}"
         end
 
@@ -326,12 +325,13 @@ module Webhooks
 
     # Determine business context using multiple signals
     # Improved to handle new users without SMS history
-    def determine_business_context(phone_number)
+    def determine_business_context(phone_number, conservative: false)
       normalized_phone = normalize_phone(phone_number)
 
-      # Strategy 1: Recent SMS messages (original logic, but extended timeframe)
+      # Strategy 1: Recent SMS messages (conservative: 24 hours, aggressive: 7 days)
+      timeframe = conservative ? 24.hours.ago : 7.days.ago
       recent_sms = SmsMessage.where(phone_number: normalized_phone)
-                            .where('sent_at > ?', 7.days.ago) # Extended from 24 hours
+                            .where('sent_at > ?', timeframe)
                             .order(sent_at: :desc)
                             .first
       return recent_sms.business if recent_sms&.business
@@ -344,14 +344,26 @@ module Webhooks
                                            .first
       return recent_invitation.business if recent_invitation&.business
 
-      # Strategy 3: Existing customer records
+      # Strategy 3: Existing customer records (with conservative mode logic)
       # If they're already a customer of a business, prefer that context
       customer_businesses = TenantCustomer.where(phone: normalized_phone)
                                          .joins(:business)
                                          .where(businesses: { sms_enabled: true })
                                          .includes(:business)
                                          .order('tenant_customers.created_at DESC')
-      return customer_businesses.first.business if customer_businesses.exists?
+
+      if customer_businesses.exists?
+        # In conservative mode, only return business context if there's a clear single business
+        # If multiple businesses exist but no recent activity, this creates ambiguity
+        if conservative && customer_businesses.group_by(&:business).keys.count > 1
+          # Multiple businesses found, no recent activity to disambiguate - return nil for global opt-out
+          return nil
+        end
+        return customer_businesses.first.business
+      end
+
+      # Stop here for conservative mode (opt-out scenarios)
+      return nil if conservative
 
       # Strategy 4: User business association
       # If a User record exists with this phone, use their business

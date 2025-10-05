@@ -101,9 +101,11 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
       before { customer.update!(phone_opt_in: true) }
 
       it 'processes opt-out successfully' do
-        expect {
-          post '/webhooks/twilio/inbound', params: twilio_params
-        }.to change { customer.reload.phone_opt_in? }.from(true).to(false)
+        post '/webhooks/twilio/inbound', params: twilio_params
+
+        customer.reload
+        expect(customer.opted_out_from_business?(business)).to be true
+        expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
       end
 
       it 'sends opt-out confirmation message' do
