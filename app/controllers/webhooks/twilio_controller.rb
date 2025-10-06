@@ -316,16 +316,41 @@ module Webhooks
       return false unless signature.length > 0 && auth_token.length > 0
 
       # Generate expected signature using Twilio's algorithm
-      data_to_sign = url + body
+      # For webhooks, Twilio uses URL + sorted form parameters, not raw body
+      data_to_sign = build_twilio_signature_data(url, body)
       digest = OpenSSL::Digest.new('sha1')
       expected_signature = Base64.encode64(OpenSSL::HMAC.digest(digest, auth_token, data_to_sign)).strip
 
       # Secure constant-time comparison to prevent timing attacks
+      # Fix: Use fixed-length comparison to prevent truncation bypass
       return false unless signature.length == expected_signature.length
 
+      # Constant-time comparison - ensure we compare every byte
       result = 0
-      signature.bytes.zip(expected_signature.bytes) { |a, b| result |= a ^ b }
+      signature.length.times do |i|
+        result |= signature[i].ord ^ expected_signature[i].ord
+      end
       result == 0
+    end
+
+    def build_twilio_signature_data(url, body)
+      # Build the data string that Twilio uses for signature generation
+      # For webhook POST requests, this is URL + sorted form parameters
+
+      # Parse the form-encoded POST body into parameters
+      parsed_params = URI.decode_www_form(body).sort_by(&:first)
+
+      # Build the signature data: URL + sorted key=value pairs
+      signature_data = url
+      parsed_params.each do |key, value|
+        signature_data += "#{key}#{value}"
+      end
+
+      signature_data
+    rescue => e
+      # Fallback to URL + raw body if parsing fails
+      Rails.logger.warn "[WEBHOOK] Failed to parse POST body for signature: #{e.message}"
+      url + body
     end
 
     def reconstruct_original_url
