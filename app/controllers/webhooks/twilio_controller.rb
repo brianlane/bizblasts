@@ -312,21 +312,36 @@ module Webhooks
     end
 
     def reconstruct_original_url
-      # If request came to www.bizblasts.com but Twilio called bizblasts.com,
-      # we need to reconstruct the original URL for signature validation
+      # Reconstruct the URL that Twilio originally called for signature validation
+      # This handles cases where the request was redirected (e.g., non-www to www)
       current_url = request.original_url
 
-      # In production, Twilio is configured to call bizblasts.com (without www)
-      # but Rails redirects to www.bizblasts.com
-      if Rails.env.production? && current_url.include?('www.bizblasts.com')
-        # Replace www.bizblasts.com with bizblasts.com for signature validation
-        original_url = current_url.gsub('www.bizblasts.com', 'bizblasts.com')
-        Rails.logger.debug "[WEBHOOK] URL reconstruction: #{current_url} -> #{original_url}"
-        original_url
-      else
-        # In other environments, use the current URL as-is
-        current_url
+      # Check if there's a forwarded host header (set by proxies/load balancers during redirects)
+      forwarded_host = request.headers['X-Forwarded-Host']
+      original_host = request.headers['X-Original-Host']
+      
+      # Use the forwarded/original host if available
+      if forwarded_host.present? && forwarded_host != request.host
+        original_url = current_url.gsub(request.host, forwarded_host)
+        Rails.logger.debug "[WEBHOOK] URL reconstruction via X-Forwarded-Host: #{current_url} -> #{original_url}"
+        return original_url
+      elsif original_host.present? && original_host != request.host
+        original_url = current_url.gsub(request.host, original_host)
+        Rails.logger.debug "[WEBHOOK] URL reconstruction via X-Original-Host: #{current_url} -> #{original_url}"
+        return original_url
       end
+
+      # Fallback: Check environment variable for domain mapping (e.g., TWILIO_WEBHOOK_DOMAIN)
+      # This allows configuration without code changes: TWILIO_WEBHOOK_DOMAIN=bizblasts.com
+      if ENV['TWILIO_WEBHOOK_DOMAIN'].present? && request.host != ENV['TWILIO_WEBHOOK_DOMAIN']
+        original_url = current_url.gsub(request.host, ENV['TWILIO_WEBHOOK_DOMAIN'])
+        Rails.logger.debug "[WEBHOOK] URL reconstruction via ENV: #{current_url} -> #{original_url}"
+        return original_url
+      end
+
+      # If no redirect indicators found, use the current URL as-is
+      # This is the correct behavior when Twilio calls the same URL we're receiving
+      current_url
     end
 
     # Determine business context using multiple signals
@@ -569,12 +584,18 @@ module Webhooks
     # Create a minimal customer record for SMS interactions
     # Always creates customers as opted-out; use process_sms_opt_in for proper opt-in handling
     def create_minimal_customer(phone, business)
+      # Generate unique email using phone (normalized), timestamp, and business ID
+      # This prevents uniqueness constraint violations better than random hex alone
+      normalized = phone.gsub(/\D/, '') # Remove non-digits for email
+      timestamp = Time.current.to_i
+      email = "sms-#{normalized}-#{timestamp}-b#{business.id}@temp.bizblasts.com"
+      
       TenantCustomer.create!(
         business: business,
         phone: phone,
         first_name: 'Unknown',
         last_name: 'User',
-        email: "sms-user-#{SecureRandom.hex(8)}@temp.bizblasts.com",
+        email: email,
         phone_opt_in: false # Always start opted-out; process_sms_opt_in handles opt-in logic
       )
       Rails.logger.info "Created minimal customer for phone #{phone} in business #{business.id}"
