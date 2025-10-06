@@ -61,9 +61,10 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         expect(response).to have_http_status(:ok)
         expect(JSON.parse(response.body)).to include("status" => "received")
         
-        # Verify customer was opted out
+        # Verify customer was opted out from this business (but remains globally opted-in)
         customer.reload
-        expect(customer.phone_opt_in?).to be false
+        expect(customer.opted_out_from_business?(business)).to be true
+        expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
       end
     end
 
@@ -160,12 +161,13 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
 
       it "still processes opt-out for customer only" do
         expect(customer.phone_opt_in?).to be true
-        
+
         post "/webhooks/twilio/inbound", params: opt_out_params
-        
+
         expect(response).to have_http_status(:ok)
         customer.reload
-        expect(customer.phone_opt_in?).to be false
+        expect(customer.opted_out_from_business?(business)).to be true
+        expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
       end
     end
 
@@ -177,7 +179,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         allow(mock_user).to receive(:respond_to?).with(:opt_out_of_sms!).and_return(true)
         allow(mock_user).to receive(:opt_out_of_sms!)
         allow(mock_user).to receive(:business).and_return(nil)
-        allow(User).to receive(:where).with(phone: "+15558675309").and_return([mock_user])
+        allow(User).to receive(:where).and_return([mock_user])
         @mock_user = mock_user
       end
 
@@ -204,12 +206,13 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       end
 
       it "still sends opt-out confirmation message" do
+        # With auto-reply improvements, a customer gets created and auto-reply is sent
         expect(SmsService).to receive(:send_message).with(
           "+15558675309",
           "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance.",
           hash_including(auto_reply: true)
         )
-        
+
         post "/webhooks/twilio/inbound", params: opt_out_params
       end
     end
@@ -220,19 +223,21 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
 
       it "opts out all customers with the same normalized phone number" do
         post "/webhooks/twilio/inbound", params: opt_out_params
-        
+
         expect(response).to have_http_status(:ok)
-        
-        # Both customers in the same business should be opted out
+
+        # Both customers in the same business should be opted out from this business
         customer.reload
         customer2.reload
         customer3.reload
-        
-        expect(customer.phone_opt_in?).to be false
-        expect(customer2.phone_opt_in?).to be false  
-        
-        # Customer3 is in a different business - behavior depends on implementation
-        # but should be included if phone normalization works globally
+
+        expect(customer.opted_out_from_business?(business)).to be true
+        expect(customer2.opted_out_from_business?(business)).to be true
+        expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
+        expect(customer2.phone_opt_in?).to be true # Should remain globally opted-in
+
+        # Customer3 is in a different business - should not be affected by business-specific opt-out
+        expect(customer3.phone_opt_in?).to be true
       end
     end
   end
@@ -282,9 +287,10 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         
         expect(response).to have_http_status(:ok)
         
-        # Customer should be opted out regardless of phone format  
+        # Customer should be opted out from this business regardless of phone format
         customer.reload
-        expect(customer.phone_opt_in?).to be false
+        expect(customer.opted_out_from_business?(business)).to be true
+        expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
       end
     end
   end
@@ -303,9 +309,10 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       }
 
       # Controller uses hardcoded messages, not templates, so message should still be sent
+      # With business context found, should get business-specific message
       expect(SmsService).to receive(:send_message).with(
         "+15558675309",
-        "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance.",
+        match(/You've been unsubscribed from .+ SMS\. Reply START to re-subscribe or HELP for assistance\./),
         hash_including(auto_reply: true)
       )
       
@@ -313,9 +320,10 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       
       expect(response).to have_http_status(:ok)
       
-      # Customer should still be opted out even if confirmation message fails
+      # Customer should still be opted out from this business even if confirmation message fails
       customer.reload
-      expect(customer.phone_opt_in?).to be false
+      expect(customer.opted_out_from_business?(business)).to be true
+      expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
     end
 
     it "gracefully handles template rendering failures for help response" do
@@ -351,15 +359,17 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       
       # Should log the error but not crash
       expect(Rails.logger).to receive(:error).with("Failed to send auto-reply to +15558675309: SMS API error")
+      expect(Rails.logger).to receive(:error).with(String) # Backtrace log
       allow(Rails.logger).to receive(:info) # Allow other logging
       
       post "/webhooks/twilio/inbound", params: params
       
       expect(response).to have_http_status(:ok)
       
-      # Customer should still be opted out even if confirmation message fails  
+      # Customer should still be opted out from this business even if confirmation message fails
       customer.reload
-      expect(customer.phone_opt_in?).to be false
+      expect(customer.opted_out_from_business?(business)).to be true
+      expect(customer.phone_opt_in?).to be true # Should remain globally opted-in
     end
   end
 end

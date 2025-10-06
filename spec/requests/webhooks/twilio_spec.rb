@@ -172,6 +172,7 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
 
       context "with invalid signature" do
         before do
+          allow_any_instance_of(Webhooks::TwilioController).to receive(:verify_webhook_signature?).and_return(true)
           allow_any_instance_of(Webhooks::TwilioController).to receive(:valid_signature?).and_return(false)
         end
 
