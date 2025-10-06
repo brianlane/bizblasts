@@ -283,73 +283,58 @@ module Webhooks
     end
     
     def valid_signature?
-      # Twilio webhook signature verification with enhanced logging
-      signature = request.headers['X-Twilio-Signature']
-
-      Rails.logger.info "[WEBHOOK_DEBUG] ===== SIGNATURE VERIFICATION DEBUG ====="
-      Rails.logger.info "[WEBHOOK_DEBUG] Request headers:"
-      request.headers.each do |key, value|
-        if key.start_with?('HTTP_') || key.include?('Twilio') || key.include?('Host') || key.include?('Forwarded')
-          Rails.logger.info "[WEBHOOK_DEBUG]   #{key}: #{value}"
-        end
-      end
-
-      Rails.logger.info "[WEBHOOK_DEBUG] X-Twilio-Signature: #{signature || 'MISSING'}"
-
-      return false unless signature
-
-      # Get URL and body with detailed logging
-      reconstructed_url = reconstruct_original_url
-      body = request.raw_post
-
-      Rails.logger.info "[WEBHOOK_DEBUG] Request details:"
-      Rails.logger.info "[WEBHOOK_DEBUG]   request.host: #{request.host}"
-      Rails.logger.info "[WEBHOOK_DEBUG]   request.original_url: #{request.original_url}"
-      Rails.logger.info "[WEBHOOK_DEBUG]   reconstructed_url: #{reconstructed_url}"
-      Rails.logger.info "[WEBHOOK_DEBUG]   request.raw_post: #{body}"
-      Rails.logger.info "[WEBHOOK_DEBUG]   body length: #{body.length}"
-
-      # Log environment details
-      Rails.logger.info "[WEBHOOK_DEBUG] Environment:"
-      Rails.logger.info "[WEBHOOK_DEBUG]   Rails.env: #{Rails.env}"
-      Rails.logger.info "[WEBHOOK_DEBUG]   TWILIO_AUTH_TOKEN present: #{ENV['TWILIO_AUTH_TOKEN'].present?}"
-      Rails.logger.info "[WEBHOOK_DEBUG]   TWILIO_AUTH_TOKEN length: #{ENV['TWILIO_AUTH_TOKEN']&.length}"
-
-      # Test signature validation
+      # Twilio webhook signature verification with secure debugging
       result = false
+
       begin
+        signature = request.headers['X-Twilio-Signature']
+
+        Rails.logger.info "[WEBHOOK_DEBUG] ===== SIGNATURE VERIFICATION DEBUG ====="
+        Rails.logger.info "[WEBHOOK_DEBUG] Signature present: #{signature.present?}"
+
+        return false unless signature
+
+        # Get URL and body for validation
+        reconstructed_url = reconstruct_original_url
+        body = request.raw_post
+
+        Rails.logger.info "[WEBHOOK_DEBUG] URL comparison:"
+        Rails.logger.info "[WEBHOOK_DEBUG]   Original: #{request.original_url}"
+        Rails.logger.info "[WEBHOOK_DEBUG]   Reconstructed: #{reconstructed_url}"
+        Rails.logger.info "[WEBHOOK_DEBUG]   URLs match: #{request.original_url == reconstructed_url}"
+
+        # Validate signature with reconstructed URL
         validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
         result = validator.validate(reconstructed_url, body, signature)
 
-        Rails.logger.info "[WEBHOOK_DEBUG] Signature validation:"
-        Rails.logger.info "[WEBHOOK_DEBUG]   validator created: YES"
-        Rails.logger.info "[WEBHOOK_DEBUG]   validation result: #{result}"
+        Rails.logger.info "[WEBHOOK_DEBUG] Primary validation result: #{result}"
 
-        # Try validation with different URL variations to identify the issue
-        url_variations = [
-          request.original_url,
-          reconstructed_url
-        ].uniq
+        # If primary validation fails, test common URL variations
+        unless result
+          Rails.logger.info "[WEBHOOK_DEBUG] Testing URL variations to identify mismatch:"
 
-        # Add environment-specific test URLs dynamically
-        if Rails.env.production?
-          url_variations += [
-            "https://bizblasts.com#{request.path}",
-            "https://www.bizblasts.com#{request.path}"
-          ]
-        end
+          test_urls = []
+          if Rails.env.production?
+            test_urls = [
+              "https://bizblasts.com#{request.path}",
+              "https://www.bizblasts.com#{request.path}"
+            ]
+          else
+            test_urls = [request.original_url]
+          end
 
-        Rails.logger.info "[WEBHOOK_DEBUG] Testing URL variations:"
-        url_variations.each_with_index do |test_url, index|
-          test_result = validator.validate(test_url, body, signature)
-          Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{test_url} -> #{test_result}"
+          test_urls.each_with_index do |test_url, index|
+            test_result = validator.validate(test_url, body, signature)
+            Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{test_url.gsub(request.host, '[HOST]')} -> #{test_result}"
+            result = test_result if test_result # Use first successful validation
+          end
         end
 
       rescue => e
-        Rails.logger.error "[WEBHOOK_DEBUG] Error in signature validation: #{e.message}"
-        Rails.logger.error "[WEBHOOK_DEBUG] Backtrace: #{e.backtrace.first(3).join(', ')}"
+        Rails.logger.error "[WEBHOOK_DEBUG] Signature validation error: #{e.class.name} - #{e.message}"
         result = false
       ensure
+        Rails.logger.info "[WEBHOOK_DEBUG] Final result: #{result}"
         Rails.logger.info "[WEBHOOK_DEBUG] ===== END SIGNATURE VERIFICATION DEBUG ====="
       end
 
