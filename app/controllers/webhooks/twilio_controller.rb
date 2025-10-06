@@ -225,7 +225,8 @@ module Webhooks
 
       # Ensure customer exists before processing opt-in
       # This prevents timing issues where new users text "YES" as first interaction
-      ensure_customer_exists(phone_number, business_context)
+      # Pass opt_in_intent: true so customer is created with opt-in status if needed
+      ensure_customer_exists(phone_number, business_context, opt_in_intent: true)
 
       if business_context
         Rails.logger.info "Processing business-specific opt-in for #{phone_number} to business #{business_context.id}"
@@ -370,20 +371,30 @@ module Webhooks
         return customer_businesses.first.business
       end
 
-      # Stop here for conservative mode (opt-out scenarios)
-      return nil if conservative
-
-      # Strategy 4: User business association
+      # Strategy 4: User business association (checked even in conservative mode - authoritative signal)
       # If a User record exists with this phone, use their business
       user = User.where(phone: normalized_phone).first
       if user&.business&.sms_enabled?
+        Rails.logger.info "[BUSINESS_CONTEXT] Found business #{user.business.id} via User association for #{phone_number}"
         return user.business
       end
 
-      # Strategy 5: Recent booking/order activity
+      # Strategy 5: Recent booking/order activity (conservative: 7 days, aggressive: 90 days)
       # Check for recent business interactions through bookings or orders
-      recent_booking_business = find_business_from_recent_bookings(normalized_phone)
-      return recent_booking_business if recent_booking_business
+      if conservative
+        recent_booking_business = find_business_from_recent_bookings(normalized_phone, days: 7)
+        if recent_booking_business
+          Rails.logger.info "[BUSINESS_CONTEXT] Found business #{recent_booking_business.id} via recent booking (7 days) for #{phone_number}"
+          return recent_booking_business
+        end
+      else
+        recent_booking_business = find_business_from_recent_bookings(normalized_phone, days: 90)
+        return recent_booking_business if recent_booking_business
+      end
+
+      # Stop here for conservative mode (opt-out scenarios)
+      # This prevents overly aggressive fallbacks but keeps authoritative signals above
+      return nil if conservative
 
       # Strategy 6: Smart fallback - most active SMS business
       # Use the business that sends the most SMS (likely the main business)
@@ -412,14 +423,15 @@ module Webhooks
     end
 
     # Find business from recent booking/order activity
-    def find_business_from_recent_bookings(phone_number)
+    def find_business_from_recent_bookings(phone_number, days: 90)
       normalized_phone = normalize_phone(phone_number)
+      timeframe = days.days.ago
 
       # Check for recent bookings by tenant customers
       if defined?(Booking)
         recent_booking = Booking.joins(:tenant_customer)
                                .where(tenant_customers: { phone: normalized_phone })
-                               .where('bookings.created_at > ?', 90.days.ago)
+                               .where('bookings.created_at > ?', timeframe)
                                .order('bookings.created_at DESC')
                                .first
         return recent_booking.business if recent_booking&.business&.sms_enabled?
@@ -427,7 +439,7 @@ module Webhooks
         # Also check for bookings placed by client users (without tenant customer)
         recent_user_booking = Booking.joins(:user)
                                     .where(users: { phone: normalized_phone })
-                                    .where('bookings.created_at > ?', 90.days.ago)
+                                    .where('bookings.created_at > ?', timeframe)
                                     .order('bookings.created_at DESC')
                                     .first
         return recent_user_booking.business if recent_user_booking&.business&.sms_enabled?
@@ -437,7 +449,7 @@ module Webhooks
       if defined?(Order)
         recent_order = Order.joins(:tenant_customer)
                            .where(tenant_customers: { phone: normalized_phone })
-                           .where('orders.created_at > ?', 90.days.ago)
+                           .where('orders.created_at > ?', timeframe)
                            .order('orders.created_at DESC')
                            .first
         return recent_order.business if recent_order&.business&.sms_enabled?
@@ -445,7 +457,7 @@ module Webhooks
         # Also check for orders placed by client users (without tenant customer)
         recent_user_order = Order.joins(:user)
                                 .where(users: { phone: normalized_phone })
-                                .where('orders.created_at > ?', 90.days.ago)
+                                .where('orders.created_at > ?', timeframe)
                                 .order('orders.created_at DESC')
                                 .first
         return recent_user_order.business if recent_user_order&.business&.sms_enabled?
@@ -501,7 +513,8 @@ module Webhooks
 
     # Ensure a customer record exists for the phone number before processing opt-in
     # This prevents timing issues where new users text "YES" as their first interaction
-    def ensure_customer_exists(phone_number, business_context = nil)
+    # opt_in_intent: Set to true if this is being called during an opt-in flow
+    def ensure_customer_exists(phone_number, business_context = nil, opt_in_intent: false)
       normalized_phone = normalize_phone(phone_number)
 
       # If we have business context, check if customer exists for that business
@@ -509,7 +522,7 @@ module Webhooks
         existing_customer = TenantCustomer.find_by(phone: normalized_phone, business: business_context)
         return if existing_customer
 
-        Rails.logger.info "Creating customer for opt-in: phone #{phone_number}, business #{business_context.id}"
+        Rails.logger.info "Creating customer for #{opt_in_intent ? 'opt-in' : 'SMS interaction'}: phone #{phone_number}, business #{business_context.id}"
 
         # Try to find user and link, or create minimal customer
         user = User.find_by(phone: normalized_phone)
@@ -517,33 +530,38 @@ module Webhooks
           begin
             linked_customer = CustomerLinker.new(business_context).link_user_to_customer(user)
             if linked_customer
-              Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for opt-in"
+              Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for #{opt_in_intent ? 'opt-in' : 'SMS interaction'}"
+              # If this is an opt-in intent and the customer isn't already opted in, opt them in now
+              if opt_in_intent && !linked_customer.phone_opt_in?
+                linked_customer.update!(phone_opt_in: true, phone_opt_in_at: Time.current)
+                Rails.logger.info "Opted in linked customer #{linked_customer.id} after creation"
+              end
             else
-              Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business_context.id} for opt-in"
+              Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business_context.id}"
               # Fall through to create minimal customer
-              create_minimal_customer(normalized_phone, business_context)
+              create_minimal_customer(normalized_phone, business_context, opt_in_intent: opt_in_intent)
             end
           rescue => linking_error
-            Rails.logger.error "Failed to link user for opt-in: #{linking_error.message}"
+            Rails.logger.error "Failed to link user: #{linking_error.message}"
             # Fall through to create minimal customer
-            create_minimal_customer(normalized_phone, business_context)
+            create_minimal_customer(normalized_phone, business_context, opt_in_intent: opt_in_intent)
           end
         else
-          create_minimal_customer(normalized_phone, business_context)
+          create_minimal_customer(normalized_phone, business_context, opt_in_intent: opt_in_intent)
         end
       else
         # No business context - ensure at least one customer exists for this phone
         existing_customers = TenantCustomer.where(phone: normalized_phone)
         return if existing_customers.exists?
 
-        Rails.logger.info "Creating customer for global opt-in: phone #{phone_number}"
+        Rails.logger.info "Creating customer for global #{opt_in_intent ? 'opt-in' : 'SMS interaction'}: phone #{phone_number}"
 
         # Find any business that can handle SMS
         fallback_business = Business.where(sms_enabled: true).where.not(tier: 'free').first ||
                            Business.where.not(tier: 'free').first
 
         if fallback_business
-          create_minimal_customer(normalized_phone, fallback_business)
+          create_minimal_customer(normalized_phone, fallback_business, opt_in_intent: opt_in_intent)
         else
           Rails.logger.error "No suitable business found for global opt-in customer creation"
         end
@@ -554,14 +572,15 @@ module Webhooks
     end
 
     # Create a minimal customer record for SMS interactions
-    def create_minimal_customer(phone, business)
+    # opt_in_intent: Set to true if customer is actively opting in (e.g., texted YES/START)
+    def create_minimal_customer(phone, business, opt_in_intent: false)
       TenantCustomer.create!(
         business: business,
         phone: phone,
         first_name: 'Unknown',
         last_name: 'User',
         email: "sms-user-#{SecureRandom.hex(8)}@temp.bizblasts.com",
-        phone_opt_in: false # Will be set to true by opt-in process
+        phone_opt_in: opt_in_intent # True if created during opt-in flow, false otherwise
       )
       Rails.logger.info "Created minimal customer for phone #{phone} in business #{business.id}"
     rescue => e
