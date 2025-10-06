@@ -283,32 +283,70 @@ module Webhooks
     end
     
     def valid_signature?
-      # Twilio webhook signature verification
-      # This implements the signature verification as per Twilio's documentation
-
+      # Twilio webhook signature verification with enhanced logging
       signature = request.headers['X-Twilio-Signature']
+
+      Rails.logger.info "[WEBHOOK_DEBUG] ===== SIGNATURE VERIFICATION DEBUG ====="
+      Rails.logger.info "[WEBHOOK_DEBUG] Request headers:"
+      request.headers.each do |key, value|
+        if key.start_with?('HTTP_') || key.include?('Twilio') || key.include?('Host') || key.include?('Forwarded')
+          Rails.logger.info "[WEBHOOK_DEBUG]   #{key}: #{value}"
+        end
+      end
+
+      Rails.logger.info "[WEBHOOK_DEBUG] X-Twilio-Signature: #{signature || 'MISSING'}"
+
       return false unless signature
 
-      # Get the request URL and POST body
-      # Use the URL Twilio actually called (before any redirects)
-      # If the request was redirected from bizblasts.com to www.bizblasts.com,
-      # we need to use the original URL for signature validation
-      url = reconstruct_original_url
+      # Get URL and body with detailed logging
+      reconstructed_url = reconstruct_original_url
       body = request.raw_post
 
-      # Debug logging for signature validation
-      Rails.logger.info "[WEBHOOK] Signature validation: URL=#{url}, Signature=#{signature[0..10]}..."
+      Rails.logger.info "[WEBHOOK_DEBUG] Request details:"
+      Rails.logger.info "[WEBHOOK_DEBUG]   request.host: #{request.host}"
+      Rails.logger.info "[WEBHOOK_DEBUG]   request.original_url: #{request.original_url}"
+      Rails.logger.info "[WEBHOOK_DEBUG]   reconstructed_url: #{reconstructed_url}"
+      Rails.logger.info "[WEBHOOK_DEBUG]   request.raw_post: #{body}"
+      Rails.logger.info "[WEBHOOK_DEBUG]   body length: #{body.length}"
 
-      # Twilio signature verification using the Twilio SDK
-      validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
-      result = validator.validate(url, body, signature)
+      # Log environment details
+      Rails.logger.info "[WEBHOOK_DEBUG] Environment:"
+      Rails.logger.info "[WEBHOOK_DEBUG]   Rails.env: #{Rails.env}"
+      Rails.logger.info "[WEBHOOK_DEBUG]   TWILIO_AUTH_TOKEN present: #{ENV['TWILIO_AUTH_TOKEN'].present?}"
+      Rails.logger.info "[WEBHOOK_DEBUG]   TWILIO_AUTH_TOKEN length: #{ENV['TWILIO_AUTH_TOKEN']&.length}"
 
-      Rails.logger.info "[WEBHOOK] Signature validation result: #{result}"
-      result
+      # Test signature validation
+      begin
+        validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
+        result = validator.validate(reconstructed_url, body, signature)
 
-    rescue => e
-      Rails.logger.error "Error verifying Twilio signature: #{e.message}"
-      false
+        Rails.logger.info "[WEBHOOK_DEBUG] Signature validation:"
+        Rails.logger.info "[WEBHOOK_DEBUG]   validator created: YES"
+        Rails.logger.info "[WEBHOOK_DEBUG]   validation result: #{result}"
+
+        # Try validation with different URL variations to identify the issue
+        url_variations = [
+          request.original_url,
+          reconstructed_url,
+          "https://bizblasts.com/webhooks/twilio/inbound",
+          "https://www.bizblasts.com/webhooks/twilio/inbound"
+        ].uniq
+
+        Rails.logger.info "[WEBHOOK_DEBUG] Testing URL variations:"
+        url_variations.each_with_index do |test_url, index|
+          test_result = validator.validate(test_url, body, signature)
+          Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{test_url} -> #{test_result}"
+        end
+
+        return result
+
+      rescue => e
+        Rails.logger.error "[WEBHOOK_DEBUG] Error in signature validation: #{e.message}"
+        Rails.logger.error "[WEBHOOK_DEBUG] Backtrace: #{e.backtrace.first(3).join(', ')}"
+        return false
+      ensure
+        Rails.logger.info "[WEBHOOK_DEBUG] ===== END SIGNATURE VERIFICATION DEBUG ====="
+      end
     end
 
     def reconstruct_original_url
