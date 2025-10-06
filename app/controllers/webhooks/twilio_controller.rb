@@ -438,49 +438,77 @@ module Webhooks
     end
 
     # Find business from recent booking/order activity
+    # Uses defensive programming to handle missing models or associations gracefully
     def find_business_from_recent_bookings(phone_number, days: 90)
       normalized_phone = normalize_phone(phone_number)
       timeframe = days.days.ago
 
       # Check for recent bookings by tenant customers
-      if defined?(Booking)
-        recent_booking = Booking.joins(:tenant_customer)
-                               .where(tenant_customers: { phone: normalized_phone })
-                               .where('bookings.created_at > ?', timeframe)
-                               .order('bookings.created_at DESC')
-                               .first
-        return recent_booking.business if recent_booking&.business&.sms_enabled?
+      # Verify model exists AND has necessary associations before querying
+      if defined?(Booking) && Booking.respond_to?(:joins) && 
+         Booking.reflect_on_association(:tenant_customer) && 
+         Booking.reflect_on_association(:business)
+        begin
+          recent_booking = Booking.joins(:tenant_customer)
+                                 .where(tenant_customers: { phone: normalized_phone })
+                                 .where('bookings.created_at > ?', timeframe)
+                                 .order('bookings.created_at DESC')
+                                 .first
+          return recent_booking.business if recent_booking&.business&.sms_enabled?
+        rescue => e
+          Rails.logger.warn "[BUSINESS_CONTEXT] Error querying Booking with tenant_customer: #{e.message}"
+        end
 
         # Also check for bookings placed by client users (without tenant customer)
-        recent_user_booking = Booking.joins(:user)
-                                    .where(users: { phone: normalized_phone })
-                                    .where('bookings.created_at > ?', timeframe)
-                                    .order('bookings.created_at DESC')
-                                    .first
-        return recent_user_booking.business if recent_user_booking&.business&.sms_enabled?
+        if Booking.reflect_on_association(:user)
+          begin
+            recent_user_booking = Booking.joins(:user)
+                                        .where(users: { phone: normalized_phone })
+                                        .where('bookings.created_at > ?', timeframe)
+                                        .order('bookings.created_at DESC')
+                                        .first
+            return recent_user_booking.business if recent_user_booking&.business&.sms_enabled?
+          rescue => e
+            Rails.logger.warn "[BUSINESS_CONTEXT] Error querying Booking with user: #{e.message}"
+          end
+        end
       end
 
       # Check for recent orders by tenant customers
-      if defined?(Order)
-        recent_order = Order.joins(:tenant_customer)
-                           .where(tenant_customers: { phone: normalized_phone })
-                           .where('orders.created_at > ?', timeframe)
-                           .order('orders.created_at DESC')
-                           .first
-        return recent_order.business if recent_order&.business&.sms_enabled?
+      # Verify model exists AND has necessary associations before querying
+      if defined?(Order) && Order.respond_to?(:joins) && 
+         Order.reflect_on_association(:tenant_customer) && 
+         Order.reflect_on_association(:business)
+        begin
+          recent_order = Order.joins(:tenant_customer)
+                             .where(tenant_customers: { phone: normalized_phone })
+                             .where('orders.created_at > ?', timeframe)
+                             .order('orders.created_at DESC')
+                             .first
+          return recent_order.business if recent_order&.business&.sms_enabled?
+        rescue => e
+          Rails.logger.warn "[BUSINESS_CONTEXT] Error querying Order with tenant_customer: #{e.message}"
+        end
 
         # Also check for orders placed by client users (without tenant customer)
-        recent_user_order = Order.joins(:user)
-                                .where(users: { phone: normalized_phone })
-                                .where('orders.created_at > ?', timeframe)
-                                .order('orders.created_at DESC')
-                                .first
-        return recent_user_order.business if recent_user_order&.business&.sms_enabled?
+        if Order.reflect_on_association(:user)
+          begin
+            recent_user_order = Order.joins(:user)
+                                    .where(users: { phone: normalized_phone })
+                                    .where('orders.created_at > ?', timeframe)
+                                    .order('orders.created_at DESC')
+                                    .first
+            return recent_user_order.business if recent_user_order&.business&.sms_enabled?
+          rescue => e
+            Rails.logger.warn "[BUSINESS_CONTEXT] Error querying Order with user: #{e.message}"
+          end
+        end
       end
 
       nil
     rescue => e
-      Rails.logger.warn "[BUSINESS_CONTEXT] Error checking recent bookings/orders for #{phone_number}: #{e.message}"
+      # Catch-all for unexpected errors
+      Rails.logger.error "[BUSINESS_CONTEXT] Unexpected error in find_business_from_recent_bookings: #{e.message}"
       nil
     end
 
