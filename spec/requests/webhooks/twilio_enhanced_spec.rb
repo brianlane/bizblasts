@@ -12,11 +12,11 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
       }
     end
 
+    let!(:business) { create(:business, sms_enabled: true, tier: 'standard') }
+
     before do
       # Skip signature verification for tests
       allow_any_instance_of(Webhooks::TwilioController).to receive(:verify_webhook_signature?).and_return(false)
-      # Create a standard tier business with SMS enabled for auto-replies (free tier cannot send SMS)
-      create(:business, sms_enabled: true, tier: 'standard')
     end
 
     context 'HELP keyword' do
@@ -36,7 +36,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
     end
 
     context 'STOP keyword' do
-      let!(:customer) { create(:tenant_customer, phone: '+15551234567', phone_opt_in: true) }
+      let!(:customer) { create(:tenant_customer, phone: '+15551234567', phone_opt_in: true, business: business) }
       
       it 'opts out customer and sends confirmation' do
         twilio_params[:Body] = 'STOP'
@@ -50,20 +50,20 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
         post '/webhooks/twilio/inbound', params: twilio_params
         
         customer.reload
-        expect(customer.phone_opt_in?).to be false
+        expect(customer.opted_out_from_business?(business)).to be true
         expect(response).to have_http_status(:ok)
       end
     end
 
     context 'START keyword' do
-      let!(:customer) { create(:tenant_customer, phone: '+15551234567', phone_opt_in: false) }
+      let!(:customer) { create(:tenant_customer, phone: '+15551234567', phone_opt_in: false, business: business) }
       
       it 'opts in customer and sends confirmation' do
         twilio_params[:Body] = 'START'
         
         expect(SmsService).to receive(:send_message).with(
           '+15551234567',
-          "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance.",
+          match(/You're now subscribed to .+ SMS notifications\. Reply STOP to unsubscribe or HELP for assistance\./),
           hash_including(auto_reply: true)
         )
         

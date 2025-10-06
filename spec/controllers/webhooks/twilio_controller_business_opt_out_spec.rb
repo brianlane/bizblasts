@@ -60,20 +60,22 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
         TenantCustomer.where(phone: '+15551234567').destroy_all
       end
 
-      it 'performs global opt-out' do
-        # Use a completely new phone number with no business associations to test global opt-out
+      it 'performs business-specific opt-out for most recent customer relationship' do
+        # Use a completely new phone number to test multi-business scenario
         test_phone = '+15559999999'
 
-        # Create customers with this phone across different businesses to test global opt-out
+        # Create customers with this phone across different businesses
+        # global_customer2 will be more recent (created after global_customer1)
         global_customer1 = create(:tenant_customer, business: business1, phone: test_phone, phone_opt_in: true)
+        sleep(0.01) # Ensure different timestamps
         global_customer2 = create(:tenant_customer, business: business2, phone: test_phone, phone_opt_in: true)
 
-        # This test requires specific log expectations to work due to test isolation issues
+        # Expect business-specific opt-out for the most recent customer (business2)
         allow(Rails.logger).to receive(:info).and_call_original
         expect(Rails.logger).to receive(:info).with("STOP keyword received from #{test_phone} - processing opt-out")
-        expect(Rails.logger).to receive(:info).with("Processing global opt-out for #{test_phone} (no business context found)")
-        expect(Rails.logger).to receive(:info).with("Opted out customer #{global_customer1.id} from SMS globally")
-        expect(Rails.logger).to receive(:info).with("Opted out customer #{global_customer2.id} from SMS globally")
+        expect(Rails.logger).to receive(:info).with(match(/\[BUSINESS_CONTEXT\] Multiple businesses found for #{Regexp.escape(test_phone)}: .*using most recent customer relationship/))
+        expect(Rails.logger).to receive(:info).with("Processing business-specific opt-out for #{test_phone} from business #{business2.id}")
+        expect(Rails.logger).to receive(:info).with("Opted out customer #{global_customer2.id} from business #{business2.id}")
 
         post :inbound_message, params: {
           From: test_phone,
@@ -83,8 +85,30 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
         global_customer1.reload
         global_customer2.reload
 
-        expect(global_customer1.phone_opt_in).to be_falsey
-        expect(global_customer2.phone_opt_in).to be_falsey
+        # Customer 1 should remain globally opted in (not affected)
+        expect(global_customer1.phone_opt_in).to be_truthy
+        expect(global_customer1.opted_out_from_business?(business1)).to be_falsey
+
+        # Customer 2 should be opted out from business2 specifically, but remain globally opted in
+        expect(global_customer2.phone_opt_in).to be_truthy
+        expect(global_customer2.opted_out_from_business?(business2)).to be_truthy
+      end
+
+      it 'performs global opt-out when no customer records exist' do
+        # Use a phone number with no customer records anywhere
+        unknown_phone = '+15556666666'
+
+        # This should trigger global opt-out since no business context can be determined
+        allow(Rails.logger).to receive(:info).and_call_original
+        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{unknown_phone} - processing opt-out")
+        expect(Rails.logger).to receive(:info).with("Processing global opt-out for #{unknown_phone} (no business context found)")
+
+        post :inbound_message, params: {
+          From: unknown_phone,
+          Body: 'STOP'
+        }
+
+        expect(response).to have_http_status(:ok)
       end
 
       it 'sends global opt-out confirmation' do

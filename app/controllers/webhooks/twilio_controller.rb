@@ -358,12 +358,15 @@ module Webhooks
                                          .order('tenant_customers.created_at DESC')
 
       if customer_businesses.exists?
-        # In conservative mode, only return business context if there's a clear single business
-        # If multiple businesses exist but no recent activity, this creates ambiguity
-        if conservative && customer_businesses.group_by(&:business).keys.count > 1
-          # Multiple businesses found, no recent activity to disambiguate - return nil for global opt-out
-          return nil
+        # In conservative mode with multiple businesses, prefer the most recent customer relationship
+        # rather than triggering global opt-out, since customers likely intend business-specific opt-out
+        unique_businesses = customer_businesses.group_by(&:business).keys
+
+        if conservative && unique_businesses.count > 1
+          Rails.logger.info "[BUSINESS_CONTEXT] Multiple businesses found for #{phone_number}: #{unique_businesses.map(&:id).join(', ')}, using most recent customer relationship"
         end
+
+        # Return the business associated with the most recent customer record (already ordered by created_at DESC)
         return customer_businesses.first.business
       end
 
@@ -392,8 +395,20 @@ module Webhooks
                                  .order('COUNT(sms_messages.id) DESC')
                                  .first
 
-      Rails.logger.info "[BUSINESS_CONTEXT] Using fallback business #{fallback_business&.id} for #{phone_number}" if fallback_business
-      fallback_business
+      if fallback_business
+        Rails.logger.info "[BUSINESS_CONTEXT] Using fallback business #{fallback_business.id} for #{phone_number}"
+        return fallback_business
+      end
+
+      # Strategy 7: Final fallback - any SMS-enabled business (when no recent SMS activity exists)
+      # This ensures auto-replies and interactions can still function for new businesses
+      final_fallback = Business.where(sms_enabled: true)
+                              .where.not(tier: 'free')
+                              .order(:created_at)
+                              .first
+
+      Rails.logger.info "[BUSINESS_CONTEXT] Using final fallback business #{final_fallback&.id} for #{phone_number} (no recent SMS activity)" if final_fallback
+      final_fallback
     end
 
     # Find business from recent booking/order activity
