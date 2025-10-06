@@ -283,61 +283,49 @@ module Webhooks
     end
     
     def valid_signature?
-      # Twilio webhook signature verification with secure debugging
-      # SECURITY: Only validate against the exact URL Twilio used to generate signature
+      # Twilio webhook signature verification with manual implementation
+      # Using manual validation due to Twilio Ruby SDK compatibility issues with Ruby 3.4+/OpenSSL 3.0+
 
       begin
         signature = request.headers['X-Twilio-Signature']
-
-        Rails.logger.info "[WEBHOOK_DEBUG] ===== SIGNATURE VERIFICATION DEBUG ====="
-        Rails.logger.info "[WEBHOOK_DEBUG] Signature present: #{signature.present?}"
-
         return false unless signature
 
         # Get URL and body for validation - must match exactly what Twilio used
         reconstructed_url = reconstruct_original_url
         body = request.raw_post
 
-        Rails.logger.info "[WEBHOOK_DEBUG] URL analysis:"
-        Rails.logger.info "[WEBHOOK_DEBUG]   Original: #{request.original_url}"
-        Rails.logger.info "[WEBHOOK_DEBUG]   Reconstructed: #{reconstructed_url}"
-        Rails.logger.info "[WEBHOOK_DEBUG]   URLs match: #{request.original_url == reconstructed_url}"
+        # Manual Twilio signature validation (more reliable than SDK)
+        result = validate_twilio_signature_manual(reconstructed_url, body, signature, TWILIO_AUTH_TOKEN)
 
-        # STRICT validation - only use the reconstructed URL
-        validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
-        result = validator.validate(reconstructed_url, body, signature)
-
-        Rails.logger.info "[WEBHOOK_DEBUG] Signature validation result: #{result}"
-
-        # DIAGNOSTIC ONLY: If validation fails, test variations for debugging info
-        # These results are NOT used for authorization - only for diagnostics
-        unless result
-          Rails.logger.info "[WEBHOOK_DEBUG] DIAGNOSTIC: Testing URL variations (results ignored for security):"
-
-          if Rails.env.production?
-            diagnostic_urls = [
-              "https://bizblasts.com#{request.path}#{request.query_string.present? ? '?' + request.query_string : ''}",
-              "https://www.bizblasts.com#{request.path}#{request.query_string.present? ? '?' + request.query_string : ''}"
-            ]
-          else
-            diagnostic_urls = [request.original_url]
-          end
-
-          diagnostic_urls.each_with_index do |test_url, index|
-            test_result = validator.validate(test_url, body, signature)
-            masked_url = test_url.gsub(/https:\/\/[^\/]+/, 'https://[HOST]')
-            Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{masked_url} -> #{test_result}"
-          end
-        end
-
+        Rails.logger.info "[WEBHOOK] Signature validation: URL=#{reconstructed_url}, Valid=#{result}"
         return result
 
       rescue => e
-        Rails.logger.error "[WEBHOOK_DEBUG] Signature validation error: #{e.class.name} - #{e.message}"
+        Rails.logger.error "[WEBHOOK] Signature validation error: #{e.class.name} - #{e.message}"
         return false
-      ensure
-        Rails.logger.info "[WEBHOOK_DEBUG] ===== END SIGNATURE VERIFICATION DEBUG ====="
       end
+    end
+
+    private
+
+    def validate_twilio_signature_manual(url, body, signature, auth_token)
+      # Manual implementation of Twilio's signature validation algorithm
+      # This is more reliable than the Twilio Ruby SDK in certain Ruby/OpenSSL combinations
+
+      return false unless signature && auth_token
+      return false unless signature.length > 0 && auth_token.length > 0
+
+      # Generate expected signature using Twilio's algorithm
+      data_to_sign = url + body
+      digest = OpenSSL::Digest.new('sha1')
+      expected_signature = Base64.encode64(OpenSSL::HMAC.digest(digest, auth_token, data_to_sign)).strip
+
+      # Secure constant-time comparison to prevent timing attacks
+      return false unless signature.length == expected_signature.length
+
+      result = 0
+      signature.bytes.zip(expected_signature.bytes) { |a, b| result |= a ^ b }
+      result == 0
     end
 
     def reconstruct_original_url
