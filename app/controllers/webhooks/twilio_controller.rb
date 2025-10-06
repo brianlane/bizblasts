@@ -283,32 +283,61 @@ module Webhooks
     end
     
     def valid_signature?
-      # Twilio webhook signature verification
-      # This implements the signature verification as per Twilio's documentation
+      # Twilio webhook signature verification with secure debugging
+      # SECURITY: Only validate against the exact URL Twilio used to generate signature
 
-      signature = request.headers['X-Twilio-Signature']
-      return false unless signature
+      begin
+        signature = request.headers['X-Twilio-Signature']
 
-      # Get the request URL and POST body
-      # Use the URL Twilio actually called (before any redirects)
-      # If the request was redirected from bizblasts.com to www.bizblasts.com,
-      # we need to use the original URL for signature validation
-      url = reconstruct_original_url
-      body = request.raw_post
+        Rails.logger.info "[WEBHOOK_DEBUG] ===== SIGNATURE VERIFICATION DEBUG ====="
+        Rails.logger.info "[WEBHOOK_DEBUG] Signature present: #{signature.present?}"
 
-      # Debug logging for signature validation
-      Rails.logger.info "[WEBHOOK] Signature validation: URL=#{url}, Signature=#{signature[0..10]}..."
+        return false unless signature
 
-      # Twilio signature verification using the Twilio SDK
-      validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
-      result = validator.validate(url, body, signature)
+        # Get URL and body for validation - must match exactly what Twilio used
+        reconstructed_url = reconstruct_original_url
+        body = request.raw_post
 
-      Rails.logger.info "[WEBHOOK] Signature validation result: #{result}"
-      result
+        Rails.logger.info "[WEBHOOK_DEBUG] URL analysis:"
+        Rails.logger.info "[WEBHOOK_DEBUG]   Original: #{request.original_url}"
+        Rails.logger.info "[WEBHOOK_DEBUG]   Reconstructed: #{reconstructed_url}"
+        Rails.logger.info "[WEBHOOK_DEBUG]   URLs match: #{request.original_url == reconstructed_url}"
 
-    rescue => e
-      Rails.logger.error "Error verifying Twilio signature: #{e.message}"
-      false
+        # STRICT validation - only use the reconstructed URL
+        validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
+        result = validator.validate(reconstructed_url, body, signature)
+
+        Rails.logger.info "[WEBHOOK_DEBUG] Signature validation result: #{result}"
+
+        # DIAGNOSTIC ONLY: If validation fails, test variations for debugging info
+        # These results are NOT used for authorization - only for diagnostics
+        unless result
+          Rails.logger.info "[WEBHOOK_DEBUG] DIAGNOSTIC: Testing URL variations (results ignored for security):"
+
+          if Rails.env.production?
+            diagnostic_urls = [
+              "https://bizblasts.com#{request.path}#{request.query_string.present? ? '?' + request.query_string : ''}",
+              "https://www.bizblasts.com#{request.path}#{request.query_string.present? ? '?' + request.query_string : ''}"
+            ]
+          else
+            diagnostic_urls = [request.original_url]
+          end
+
+          diagnostic_urls.each_with_index do |test_url, index|
+            test_result = validator.validate(test_url, body, signature)
+            masked_url = test_url.gsub(/https:\/\/[^\/]+/, 'https://[HOST]')
+            Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{masked_url} -> #{test_result}"
+          end
+        end
+
+        return result
+
+      rescue => e
+        Rails.logger.error "[WEBHOOK_DEBUG] Signature validation error: #{e.class.name} - #{e.message}"
+        return false
+      ensure
+        Rails.logger.info "[WEBHOOK_DEBUG] ===== END SIGNATURE VERIFICATION DEBUG ====="
+      end
     end
 
     def reconstruct_original_url
