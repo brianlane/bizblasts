@@ -225,8 +225,8 @@ module Webhooks
 
       # Ensure customer exists before processing opt-in
       # This prevents timing issues where new users text "YES" as first interaction
-      # Pass opt_in_intent: true so customer is created with opt-in status if needed
-      ensure_customer_exists(phone_number, business_context, opt_in_intent: true)
+      # Customer will be created as opted-out; opt-in logic below will handle proper opt-in
+      ensure_customer_exists(phone_number, business_context)
 
       if business_context
         Rails.logger.info "Processing business-specific opt-in for #{phone_number} to business #{business_context.id}"
@@ -513,8 +513,8 @@ module Webhooks
 
     # Ensure a customer record exists for the phone number before processing opt-in
     # This prevents timing issues where new users text "YES" as their first interaction
-    # opt_in_intent: Set to true if this is being called during an opt-in flow
-    def ensure_customer_exists(phone_number, business_context = nil, opt_in_intent: false)
+    # Note: This only ensures customer existence; use process_sms_opt_in for actual opt-in logic
+    def ensure_customer_exists(phone_number, business_context = nil)
       normalized_phone = normalize_phone(phone_number)
 
       # If we have business context, check if customer exists for that business
@@ -522,7 +522,7 @@ module Webhooks
         existing_customer = TenantCustomer.find_by(phone: normalized_phone, business: business_context)
         return if existing_customer
 
-        Rails.logger.info "Creating customer for #{opt_in_intent ? 'opt-in' : 'SMS interaction'}: phone #{phone_number}, business #{business_context.id}"
+        Rails.logger.info "Creating customer for SMS interaction: phone #{phone_number}, business #{business_context.id}"
 
         # Try to find user and link, or create minimal customer
         user = User.find_by(phone: normalized_phone)
@@ -530,57 +530,52 @@ module Webhooks
           begin
             linked_customer = CustomerLinker.new(business_context).link_user_to_customer(user)
             if linked_customer
-              Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for #{opt_in_intent ? 'opt-in' : 'SMS interaction'}"
-              # If this is an opt-in intent and the customer isn't already opted in, opt them in now
-              if opt_in_intent && !linked_customer.phone_opt_in?
-                linked_customer.update!(phone_opt_in: true, phone_opt_in_at: Time.current)
-                Rails.logger.info "Opted in linked customer #{linked_customer.id} after creation"
-              end
+              Rails.logger.info "Linked existing user #{user.id} to business #{business_context.id} for SMS interaction"
             else
               Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business_context.id}"
               # Fall through to create minimal customer
-              create_minimal_customer(normalized_phone, business_context, opt_in_intent: opt_in_intent)
+              create_minimal_customer(normalized_phone, business_context)
             end
           rescue => linking_error
             Rails.logger.error "Failed to link user: #{linking_error.message}"
             # Fall through to create minimal customer
-            create_minimal_customer(normalized_phone, business_context, opt_in_intent: opt_in_intent)
+            create_minimal_customer(normalized_phone, business_context)
           end
         else
-          create_minimal_customer(normalized_phone, business_context, opt_in_intent: opt_in_intent)
+          create_minimal_customer(normalized_phone, business_context)
         end
       else
         # No business context - ensure at least one customer exists for this phone
         existing_customers = TenantCustomer.where(phone: normalized_phone)
         return if existing_customers.exists?
 
-        Rails.logger.info "Creating customer for global #{opt_in_intent ? 'opt-in' : 'SMS interaction'}: phone #{phone_number}"
+        Rails.logger.info "Creating customer for global SMS interaction: phone #{phone_number}"
 
         # Find any business that can handle SMS
         fallback_business = Business.where(sms_enabled: true).where.not(tier: 'free').first ||
                            Business.where.not(tier: 'free').first
 
         if fallback_business
-          create_minimal_customer(normalized_phone, fallback_business, opt_in_intent: opt_in_intent)
+          create_minimal_customer(normalized_phone, fallback_business)
         else
-          Rails.logger.error "No suitable business found for global opt-in customer creation"
+          Rails.logger.error "No suitable business found for customer creation"
         end
       end
     rescue => e
       Rails.logger.error "Failed to ensure customer exists for #{phone_number}: #{e.message}"
-      # Don't raise - this shouldn't break the opt-in process
+      # Don't raise - this shouldn't break the webhook response
     end
 
     # Create a minimal customer record for SMS interactions
-    # opt_in_intent: Set to true if customer is actively opting in (e.g., texted YES/START)
-    def create_minimal_customer(phone, business, opt_in_intent: false)
+    # Always creates customers as opted-out; use process_sms_opt_in for proper opt-in handling
+    def create_minimal_customer(phone, business)
       TenantCustomer.create!(
         business: business,
         phone: phone,
         first_name: 'Unknown',
         last_name: 'User',
         email: "sms-user-#{SecureRandom.hex(8)}@temp.bizblasts.com",
-        phone_opt_in: opt_in_intent # True if created during opt-in flow, false otherwise
+        phone_opt_in: false # Always start opted-out; process_sms_opt_in handles opt-in logic
       )
       Rails.logger.info "Created minimal customer for phone #{phone} in business #{business.id}"
     rescue => e
