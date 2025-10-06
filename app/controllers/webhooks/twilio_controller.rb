@@ -284,7 +284,7 @@ module Webhooks
     
     def valid_signature?
       # Twilio webhook signature verification with secure debugging
-      result = false
+      # SECURITY: Only validate against the exact URL Twilio used to generate signature
 
       begin
         signature = request.headers['X-Twilio-Signature']
@@ -294,51 +294,50 @@ module Webhooks
 
         return false unless signature
 
-        # Get URL and body for validation
+        # Get URL and body for validation - must match exactly what Twilio used
         reconstructed_url = reconstruct_original_url
         body = request.raw_post
 
-        Rails.logger.info "[WEBHOOK_DEBUG] URL comparison:"
+        Rails.logger.info "[WEBHOOK_DEBUG] URL analysis:"
         Rails.logger.info "[WEBHOOK_DEBUG]   Original: #{request.original_url}"
         Rails.logger.info "[WEBHOOK_DEBUG]   Reconstructed: #{reconstructed_url}"
         Rails.logger.info "[WEBHOOK_DEBUG]   URLs match: #{request.original_url == reconstructed_url}"
 
-        # Validate signature with reconstructed URL
+        # STRICT validation - only use the reconstructed URL
         validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
         result = validator.validate(reconstructed_url, body, signature)
 
-        Rails.logger.info "[WEBHOOK_DEBUG] Primary validation result: #{result}"
+        Rails.logger.info "[WEBHOOK_DEBUG] Signature validation result: #{result}"
 
-        # If primary validation fails, test common URL variations
+        # DIAGNOSTIC ONLY: If validation fails, test variations for debugging info
+        # These results are NOT used for authorization - only for diagnostics
         unless result
-          Rails.logger.info "[WEBHOOK_DEBUG] Testing URL variations to identify mismatch:"
+          Rails.logger.info "[WEBHOOK_DEBUG] DIAGNOSTIC: Testing URL variations (results ignored for security):"
 
-          test_urls = []
           if Rails.env.production?
-            test_urls = [
-              "https://bizblasts.com#{request.path}",
-              "https://www.bizblasts.com#{request.path}"
+            diagnostic_urls = [
+              "https://bizblasts.com#{request.path}#{request.query_string.present? ? '?' + request.query_string : ''}",
+              "https://www.bizblasts.com#{request.path}#{request.query_string.present? ? '?' + request.query_string : ''}"
             ]
           else
-            test_urls = [request.original_url]
+            diagnostic_urls = [request.original_url]
           end
 
-          test_urls.each_with_index do |test_url, index|
+          diagnostic_urls.each_with_index do |test_url, index|
             test_result = validator.validate(test_url, body, signature)
-            Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{test_url.gsub(request.host, '[HOST]')} -> #{test_result}"
-            result = test_result if test_result # Use first successful validation
+            masked_url = test_url.gsub(/https:\/\/[^\/]+/, 'https://[HOST]')
+            Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{masked_url} -> #{test_result}"
           end
         end
 
+        return result
+
       rescue => e
         Rails.logger.error "[WEBHOOK_DEBUG] Signature validation error: #{e.class.name} - #{e.message}"
-        result = false
+        return false
       ensure
-        Rails.logger.info "[WEBHOOK_DEBUG] Final result: #{result}"
         Rails.logger.info "[WEBHOOK_DEBUG] ===== END SIGNATURE VERIFICATION DEBUG ====="
       end
-
-      result
     end
 
     def reconstruct_original_url
