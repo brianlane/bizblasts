@@ -316,6 +316,7 @@ module Webhooks
       Rails.logger.info "[WEBHOOK_DEBUG]   TWILIO_AUTH_TOKEN length: #{ENV['TWILIO_AUTH_TOKEN']&.length}"
 
       # Test signature validation
+      result = false
       begin
         validator = Twilio::Security::RequestValidator.new(TWILIO_AUTH_TOKEN)
         result = validator.validate(reconstructed_url, body, signature)
@@ -327,10 +328,16 @@ module Webhooks
         # Try validation with different URL variations to identify the issue
         url_variations = [
           request.original_url,
-          reconstructed_url,
-          "https://bizblasts.com/webhooks/twilio/inbound",
-          "https://www.bizblasts.com/webhooks/twilio/inbound"
+          reconstructed_url
         ].uniq
+
+        # Add environment-specific test URLs dynamically
+        if Rails.env.production?
+          url_variations += [
+            "https://bizblasts.com#{request.path}",
+            "https://www.bizblasts.com#{request.path}"
+          ]
+        end
 
         Rails.logger.info "[WEBHOOK_DEBUG] Testing URL variations:"
         url_variations.each_with_index do |test_url, index|
@@ -338,15 +345,15 @@ module Webhooks
           Rails.logger.info "[WEBHOOK_DEBUG]   #{index + 1}. #{test_url} -> #{test_result}"
         end
 
-        return result
-
       rescue => e
         Rails.logger.error "[WEBHOOK_DEBUG] Error in signature validation: #{e.message}"
         Rails.logger.error "[WEBHOOK_DEBUG] Backtrace: #{e.backtrace.first(3).join(', ')}"
-        return false
+        result = false
       ensure
         Rails.logger.info "[WEBHOOK_DEBUG] ===== END SIGNATURE VERIFICATION DEBUG ====="
       end
+
+      result
     end
 
     def reconstruct_original_url
