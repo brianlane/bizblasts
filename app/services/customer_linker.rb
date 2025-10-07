@@ -32,7 +32,21 @@ class CustomerLinker
       sync_user_data_to_customer(user, unlinked_customer)
       return unlinked_customer
     end
-    
+
+    # Look for unlinked customer with same phone number
+    if user.phone.present?
+      phone_customers = find_customers_by_phone(user.phone)
+      unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
+
+      if unlinked_phone_customer
+        Rails.logger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user.phone} to user #{user.id}"
+        # Link the existing customer to this user
+        unlinked_phone_customer.update!(user_id: user.id)
+        sync_user_data_to_customer(user, unlinked_phone_customer)
+        return unlinked_phone_customer
+      end
+    end
+
     # Check for existing linked customer with same email (different user)
     existing_customer = @business.tenant_customers.find_by(email: email)
     if existing_customer&.user_id && existing_customer.user_id != user.id
@@ -48,7 +62,19 @@ class CustomerLinker
         attempted_user_id: user.id
       )
     end
-    
+
+    # Check for phone duplicates and resolve them automatically
+    if user.phone.present?
+      canonical_customer = resolve_phone_duplicates(user.phone)
+      if canonical_customer
+        Rails.logger.info "[CUSTOMER_LINKER] Auto-resolving phone duplicates for user #{user.id}, using canonical customer #{canonical_customer.id}"
+        # Link the canonical customer to this user
+        canonical_customer.update!(user_id: user.id)
+        sync_user_data_to_customer(user, canonical_customer)
+        return canonical_customer
+      end
+    end
+
     # Create new customer linked to user
     customer_data = {
       email: email,
@@ -97,7 +123,17 @@ class CustomerLinker
       Rails.logger.info "[CUSTOMER_LINKER] Guest checkout with email #{email} matches existing linked customer #{linked_customer.id}"
       return linked_customer
     end
-    
+
+    # Check if phone belongs to an existing linked customer
+    if customer_attributes[:phone].present?
+      phone_customers = find_customers_by_phone(customer_attributes[:phone])
+      linked_phone_customer = phone_customers.find { |c| c.user_id.present? }
+      if linked_phone_customer
+        Rails.logger.info "[CUSTOMER_LINKER] Guest checkout with phone #{customer_attributes[:phone]} matches existing linked customer #{linked_phone_customer.id}"
+        return linked_phone_customer
+      end
+    end
+
     customer_data = {
       email: email,
       user_id: nil
