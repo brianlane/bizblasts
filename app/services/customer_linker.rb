@@ -259,15 +259,7 @@ class CustomerLinker
     duplicates_resolved
   end
 
-  private
-
-  # Phone number normalization (consistent with TwilioController)
-  def normalize_phone(phone)
-    return nil if phone.blank?
-    cleaned = phone.gsub(/\D/, '')
-    cleaned = "1#{cleaned}" if cleaned.length == 10
-    "+#{cleaned}"
-  end
+  protected
 
   # Robust phone lookup that handles multiple formats in database
   def find_customers_by_phone(phone_number)
@@ -284,6 +276,16 @@ class CustomerLinker
     ].uniq.compact
 
     @business.tenant_customers.where(phone: possible_formats)
+  end
+
+  private
+
+  # Phone number normalization (consistent with TwilioController)
+  def normalize_phone(phone)
+    return nil if phone.blank?
+    cleaned = phone.gsub(/\D/, '')
+    cleaned = "1#{cleaned}" if cleaned.length == 10
+    "+#{cleaned}"
   end
 
   # Merge duplicate customers, selecting the most authoritative as canonical
