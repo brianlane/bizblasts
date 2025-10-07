@@ -420,19 +420,32 @@ RSpec.describe CustomerLinker do
           expect(result_customer.phone).to be_present
         end
 
-        it 'prevents data integrity issues when canonical customer is linked to different user' do
+        it 'allows legitimate phone sharing when canonical customer is linked to different user' do
           # Given: Canonical customer already linked to different user
           other_user = create(:user, :client, email: 'other@example.com', phone: '5551234567')
           customer_18_format.update!(user_id: other_user.id)
 
-          # When: Current user tries to link (should raise error for data integrity)
-          expect {
-            linker.link_user_to_customer(user)
-          }.to raise_error(ArgumentError, /phone number conflicts with existing customer accounts/)
+          # When: Current user tries to link (should create new customer for legitimate phone sharing)
+          result_customer = linker.link_user_to_customer(user)
 
-          # Then: Existing user link should be preserved
+          # Then: Should create new customer for current user
+          expect(result_customer).to be_persisted
+          expect(result_customer.user_id).to eq(user.id)
+          expect(result_customer.phone).to eq(user.phone)
+
+          # And: Should preserve existing user link (data integrity protection)
           customer_18_format.reload
           expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
+
+          # And: Both customers can coexist with same phone (legitimate sharing)
+          same_phone_customers = business.tenant_customers.where(
+            'phone IN (?)',
+            ['+16026866672', '16026866672', '6026866672']
+          ).where.not(user_id: nil)
+
+          user_ids = same_phone_customers.pluck(:user_id).uniq
+          expect(user_ids.count).to eq(2), "Expected two users with shared phone, but found: #{user_ids}"
+          expect(user_ids).to contain_exactly(user.id, other_user.id)
         end
 
 

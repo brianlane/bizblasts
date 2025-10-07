@@ -100,11 +100,10 @@ class CustomerLinker
       )
     end
 
-    # IMPORTANT: Don't create new customer if phone duplicates exist but resolution was skipped
-    # This prevents data integrity issues where multiple customers have same phone
+    # IMPORTANT: Log when phone duplicates exist but we're creating a new customer anyway
+    # This is acceptable for legitimate phone sharing (family, etc.) since we've protected existing user relationships
     if phone_duplicates_found
-      Rails.logger.error "[CUSTOMER_LINKER] Cannot create new customer for user #{user.id} with phone #{user.phone} - duplicates exist but resolution was skipped due to existing user links"
-      raise ArgumentError, "Cannot create customer account - phone number conflicts with existing customer accounts. Please contact support for assistance."
+      Rails.logger.info "[CUSTOMER_LINKER] Creating new customer for user #{user.id} with phone #{user.phone} - phone duplicates exist but are linked to different users (legitimate phone sharing)"
     end
 
     # Create new customer linked to user
