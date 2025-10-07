@@ -51,6 +51,10 @@ module Public
       begin
         linker = CustomerLinker.new(current_tenant)
         customer = linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
       rescue EmailConflictError => e
         Rails.logger.error "[OrdersController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
         flash[:alert] = e.message

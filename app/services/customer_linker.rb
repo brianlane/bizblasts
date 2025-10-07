@@ -10,30 +10,8 @@ class CustomerLinker
   # Links the user if not already linked
   def link_user_to_customer(user, customer_attributes = {})
     raise ArgumentError, "User must be a client" unless user.client?
-    
-    # First try to find existing customer by user_id
-    customer = @business.tenant_customers.find_by(user_id: user.id)
-    if customer
-      # For idempotent calls, only sync basic info (not phone) to preserve data from duplicate resolution
-      sync_user_data_to_customer(user, customer, preserve_phone: true)
-      return customer
-    end
-    
-    # Look for unlinked customer with same email
-    email = user.email.downcase.strip
-    unlinked_customer = @business.tenant_customers.find_by(
-      email: email,
-      user_id: nil
-    )
-    
-    if unlinked_customer
-      # Link the existing customer to this user
-      unlinked_customer.update!(user_id: user.id)
-      sync_user_data_to_customer(user, unlinked_customer)
-      return unlinked_customer
-    end
 
-    # Check for phone duplicates and resolve them automatically FIRST
+    # FIRST: Check for phone duplicates and resolve them automatically
     # This handles cases where multiple customers exist with the same phone number
     phone_duplicates_found = false
     if user.phone.present?
@@ -49,9 +27,10 @@ class CustomerLinker
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, skipping phone duplicate resolution for user #{user.id}"
           # Skip duplicate resolution - and skip individual phone linking to prevent data integrity issues
         elsif canonical_customer.user_id == user.id
-          # Already linked to this user, just return it
-          Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{user.id}"
-          return canonical_customer
+          # Already linked to this user, but still merge duplicates for data cleanup
+          Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{user.id}, merging remaining duplicates"
+          merged_canonical = merge_duplicate_customers(duplicate_customers)
+          return merged_canonical
         else
           # Canonical customer is unlinked, safe to merge duplicates and link to this user
           Rails.logger.info "[CUSTOMER_LINKER] Auto-resolving phone duplicates for user #{user.id}, using canonical customer #{canonical_customer.id}"
@@ -69,12 +48,48 @@ class CustomerLinker
       end
     end
 
-    # Look for unlinked customer with same phone number (single customer case)
+    # SECOND: Check if user already has a linked customer (after duplicate resolution)
+    existing_customer = @business.tenant_customers.find_by(user_id: user.id)
+    if existing_customer
+      # For idempotent calls, only sync basic info (not phone) to preserve data from duplicate resolution
+      sync_user_data_to_customer(user, existing_customer, preserve_phone: true)
+      return existing_customer
+    end
+
+    # THIRD: Look for unlinked customer with same email
+    email = user.email.downcase.strip
+    unlinked_customer = @business.tenant_customers.find_by(
+      email: email,
+      user_id: nil
+    )
+
+    if unlinked_customer
+      # Link the existing customer to this user
+      unlinked_customer.update!(user_id: user.id)
+      sync_user_data_to_customer(user, unlinked_customer)
+      return unlinked_customer
+    end
+
+    # FOURTH: Look for existing customers with same phone number (single customer case)
     # IMPORTANT: Skip this if we found phone duplicates to prevent data integrity issues
     if user.phone.present? && !phone_duplicates_found
       phone_customers = find_customers_by_phone(user.phone)
-      unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
 
+      # Check if any customer with this phone is linked to a different user (phone uniqueness enforcement)
+      linked_to_different_user = phone_customers.find { |c| c.user_id.present? && c.user_id != user.id }
+      if linked_to_different_user
+        Rails.logger.error "[CUSTOMER_LINKER] Cannot create new customer for user #{user.id} with phone #{user.phone} - phone number already linked to different user #{linked_to_different_user.user_id}"
+        raise PhoneConflictError.new(
+          "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
+          phone: user.phone,
+          business_id: @business.id,
+          existing_user_id: linked_to_different_user.user_id,
+          attempted_user_id: user.id
+        )
+      end
+
+      # Look for unlinked customer to reuse
+      unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
       if unlinked_phone_customer
         Rails.logger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user.phone} to user #{user.id}"
         # Link the existing customer to this user
@@ -100,10 +115,17 @@ class CustomerLinker
       )
     end
 
-    # IMPORTANT: Log when phone duplicates exist but we're creating a new customer anyway
-    # This is acceptable for legitimate phone sharing (family, etc.) since we've protected existing user relationships
+    # IMPORTANT: Don't create new customer if phone duplicates exist but resolution was skipped
+    # This prevents data integrity issues where multiple customers have same phone linked to different users
     if phone_duplicates_found
-      Rails.logger.info "[CUSTOMER_LINKER] Creating new customer for user #{user.id} with phone #{user.phone} - phone duplicates exist but are linked to different users (legitimate phone sharing)"
+      Rails.logger.error "[CUSTOMER_LINKER] Cannot create new customer for user #{user.id} with phone #{user.phone} - phone number conflicts with existing customer accounts (phone sharing not allowed)"
+      raise PhoneConflictError.new(
+        "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
+        phone: user.phone,
+        business_id: @business.id,
+        existing_user_id: nil, # Unknown which specific user in duplicate scenario
+        attempted_user_id: user.id
+      )
     end
 
     # Create new customer linked to user

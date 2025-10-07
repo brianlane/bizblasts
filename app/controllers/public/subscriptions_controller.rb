@@ -161,6 +161,15 @@ class Public::SubscriptionsController < Public::BaseController
       begin
         linker = CustomerLinker.new(current_business)
         linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        # Fallback to build new customer for form display
+        current_business.tenant_customers.build(
+          first_name: current_user.first_name,
+          last_name: current_user.last_name,
+          email: current_user.email,
+          phone: current_user.phone
+        )
       rescue StandardError => e
         Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker error for user #{current_user.id}: #{e.message}"
         # Fallback to build new customer for form display
@@ -183,6 +192,9 @@ class Public::SubscriptionsController < Public::BaseController
       begin
         linker = CustomerLinker.new(current_business)
         linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        return nil
       rescue EmailConflictError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
         return nil
@@ -205,6 +217,9 @@ class Public::SubscriptionsController < Public::BaseController
 
         # Return customer if created successfully, nil otherwise
         customer&.persisted? ? customer : nil
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for guest: #{e.message}"
+        return nil
       rescue StandardError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for guest: #{e.message}"
         return nil

@@ -36,6 +36,10 @@ module Public
           linker = CustomerLinker.new(current_tenant)
           client_cust = linker.link_user_to_customer(current_user)
           @booking.tenant_customer = client_cust if client_cust
+        rescue PhoneConflictError => e
+          Rails.logger.error "[BookingController#new] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to tenant_root_path and return
         rescue StandardError => e
           Rails.logger.error "[BookingController#new] CustomerLinker error for user #{current_user.id}: #{e.message}"
           flash[:alert] = e.message
@@ -76,6 +80,10 @@ module Public
         begin
           linker = CustomerLinker.new(current_tenant)
           customer = linker.link_user_to_customer(current_user)
+        rescue PhoneConflictError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]) and return
         rescue StandardError => e
           Rails.logger.error "[BookingController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
           flash[:alert] = e.message
@@ -104,6 +112,10 @@ module Public
                 phone: nested[:phone]
               }
             )
+          rescue PhoneConflictError => e
+            Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for staff/manager: #{e.message}"
+            flash[:alert] = "Error creating customer: #{e.message}"
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           rescue StandardError => e
             Rails.logger.error "[BookingController#create] CustomerLinker error for staff/manager: #{e.message}"
             flash[:alert] = "Error creating customer: #{e.message}"
@@ -131,6 +143,10 @@ module Public
               phone: nested[:phone]
             }
           )
+        rescue PhoneConflictError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for guest: #{e.message}"
+          flash[:alert] = "Error creating customer: #{e.message}"
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         rescue StandardError => e
           Rails.logger.error "[BookingController#create] CustomerLinker error for guest: #{e.message}"
           flash[:alert] = "Error creating customer: #{e.message}"

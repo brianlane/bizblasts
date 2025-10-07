@@ -89,7 +89,7 @@ RSpec.describe 'Authentication', type: :system do
         fill_in 'Email', with: 'newclient@example.com'
         fill_in 'Password', with: 'password'
         fill_in 'Password confirmation', with: 'password'
-        click_button 'Create Client Account'
+        click_button 'Create Customer Account'
       end
       expect(page).to have_content('A message with a confirmation link has been sent to your email address. Please follow the link to activate your account.')
       expect(User.last.email).to eq('newclient@example.com')

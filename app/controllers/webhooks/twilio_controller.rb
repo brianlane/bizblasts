@@ -121,6 +121,9 @@ module Webhooks
               Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business.id}"
               return
             end
+          rescue PhoneConflictError => linking_error
+            Rails.logger.error "Failed to link user #{user.id} to business #{business.id} - phone conflict: #{linking_error.message}"
+            return
           rescue => linking_error
             Rails.logger.error "Failed to link user #{user.id} to business #{business.id}: #{linking_error.message}"
             return
@@ -618,6 +621,10 @@ module Webhooks
               # Fall through to create minimal customer
               create_minimal_customer(normalized_phone, business_context)
             end
+          rescue PhoneConflictError => linking_error
+            Rails.logger.error "Failed to link user #{user.id} to business #{business_context.id} - phone conflict: #{linking_error.message}"
+            # Fall through to create minimal customer
+            create_minimal_customer(normalized_phone, business_context)
           rescue => linking_error
             Rails.logger.error "Failed to link user: #{linking_error.message}"
             # Fall through to create minimal customer
