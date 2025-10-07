@@ -14,6 +14,7 @@ class CustomerLinker
     # FIRST: Check for phone duplicates and resolve them automatically
     # This handles cases where multiple customers exist with the same phone number
     phone_duplicates_found = false
+    phone_duplicate_resolution_skipped = false
     if user.phone.present?
       # First, find duplicates without merging to avoid destroying data
       duplicate_customers = find_customers_by_phone(user.phone)
@@ -26,6 +27,7 @@ class CustomerLinker
         if canonical_customer.user_id.present? && canonical_customer.user_id != user.id
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, skipping phone duplicate resolution for user #{user.id}"
           # Skip duplicate resolution - and skip individual phone linking to prevent data integrity issues
+          phone_duplicate_resolution_skipped = true
         elsif canonical_customer.user_id == user.id
           # Already linked to this user, but still merge duplicates for data cleanup
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{user.id}, merging remaining duplicates"
@@ -115,9 +117,9 @@ class CustomerLinker
       )
     end
 
-    # IMPORTANT: Don't create new customer if phone duplicates exist but resolution was skipped
+    # IMPORTANT: Don't create new customer if phone duplicate resolution was skipped
     # This prevents data integrity issues where multiple customers have same phone linked to different users
-    if phone_duplicates_found
+    if phone_duplicate_resolution_skipped
       Rails.logger.error "[CUSTOMER_LINKER] Cannot create new customer for user #{user.id} with phone #{user.phone} - phone number conflicts with existing customer accounts (phone sharing not allowed)"
       raise PhoneConflictError.new(
         "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",

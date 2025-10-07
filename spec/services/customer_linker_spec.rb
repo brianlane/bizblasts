@@ -428,7 +428,7 @@ RSpec.describe CustomerLinker do
           # When: Current user tries to link (should raise error for data integrity)
           expect {
             linker.link_user_to_customer(user)
-          }.to raise_error(ArgumentError, /phone number conflicts with existing customer accounts/)
+          }.to raise_error(PhoneConflictError, /phone number is already associated with another account/)
 
           # Then: Existing user link should be preserved
           customer_18_format.reload
