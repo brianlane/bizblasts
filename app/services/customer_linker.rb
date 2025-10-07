@@ -14,8 +14,8 @@ class CustomerLinker
     # First try to find existing customer by user_id
     customer = @business.tenant_customers.find_by(user_id: user.id)
     if customer
-      # Always sync user data to existing linked customer to keep phone/preferences current
-      sync_user_data_to_customer(user, customer)
+      # For idempotent calls, only sync basic info (not phone) to preserve data from duplicate resolution
+      sync_user_data_to_customer(user, customer, preserve_phone: true)
       return customer
     end
     
@@ -35,35 +35,43 @@ class CustomerLinker
 
     # Check for phone duplicates and resolve them automatically FIRST
     # This handles cases where multiple customers exist with the same phone number
+    phone_duplicates_found = false
     if user.phone.present?
-      canonical_customer = resolve_phone_duplicates(user.phone)
-      if canonical_customer
+      # First, find duplicates without merging to avoid destroying data
+      duplicate_customers = find_customers_by_phone(user.phone)
+      if duplicate_customers.count > 1
+        phone_duplicates_found = true
+        # Select canonical customer without merging yet
+        canonical_customer = select_canonical_customer(duplicate_customers)
+
         # Check if canonical customer is already linked to a different user
         if canonical_customer.user_id.present? && canonical_customer.user_id != user.id
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, skipping phone duplicate resolution for user #{user.id}"
-          # Skip duplicate resolution - let normal flow handle this user
+          # Skip duplicate resolution - and skip individual phone linking to prevent data integrity issues
         elsif canonical_customer.user_id == user.id
           # Already linked to this user, just return it
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{user.id}"
           return canonical_customer
         else
-          # Canonical customer is unlinked, safe to link to this user
+          # Canonical customer is unlinked, safe to merge duplicates and link to this user
           Rails.logger.info "[CUSTOMER_LINKER] Auto-resolving phone duplicates for user #{user.id}, using canonical customer #{canonical_customer.id}"
-          canonical_customer.update!(user_id: user.id)
+          merged_canonical = merge_duplicate_customers(duplicate_customers)
+          merged_canonical.update!(user_id: user.id)
           # Note: Do NOT sync user data here - canonical customer already has the best data (normalized phone, SMS opt-in)
           # Only sync basic info if customer values are blank
           updates = {}
-          updates[:first_name] = user.first_name if canonical_customer.first_name.blank? && user.first_name.present?
-          updates[:last_name] = user.last_name if canonical_customer.last_name.blank? && user.last_name.present?
-          updates[:email] = user.email.downcase.strip if canonical_customer.email.to_s.casecmp?(user.email.to_s) == false
-          canonical_customer.update!(updates) if updates.any?
-          return canonical_customer
+          updates[:first_name] = user.first_name if merged_canonical.first_name.blank? && user.first_name.present?
+          updates[:last_name] = user.last_name if merged_canonical.last_name.blank? && user.last_name.present?
+          updates[:email] = user.email.downcase.strip if merged_canonical.email.to_s.casecmp?(user.email.to_s) == false
+          merged_canonical.update!(updates) if updates.any?
+          return merged_canonical
         end
       end
     end
 
     # Look for unlinked customer with same phone number (single customer case)
-    if user.phone.present?
+    # IMPORTANT: Skip this if we found phone duplicates to prevent data integrity issues
+    if user.phone.present? && !phone_duplicates_found
       phone_customers = find_customers_by_phone(user.phone)
       unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
 
@@ -92,6 +100,13 @@ class CustomerLinker
       )
     end
 
+    # IMPORTANT: Don't create new customer if phone duplicates exist but resolution was skipped
+    # This prevents data integrity issues where multiple customers have same phone
+    if phone_duplicates_found
+      Rails.logger.error "[CUSTOMER_LINKER] Cannot create new customer for user #{user.id} with phone #{user.phone} - duplicates exist but resolution was skipped due to existing user links"
+      raise ArgumentError, "Cannot create customer account - phone number conflicts with existing customer accounts. Please contact support for assistance."
+    end
+
     # Create new customer linked to user
     customer_data = {
       email: email,
@@ -102,7 +117,7 @@ class CustomerLinker
       phone_opt_in: user.respond_to?(:phone_opt_in?) ? user.phone_opt_in? : false,
       phone_opt_in_at: user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : nil
     }.merge(customer_attributes)
-    
+
     @business.tenant_customers.create!(customer_data)
   end
   
@@ -170,34 +185,39 @@ class CustomerLinker
   
   
   # Sync user data to their linked customer
-  def sync_user_data_to_customer(user, customer = nil)
+  def sync_user_data_to_customer(user, customer = nil, preserve_phone: false)
     customer ||= @business.tenant_customers.find_by(user_id: user.id)
     return unless customer
-    
+
     updates = {}
-    
+
     # Sync basic info if customer values are blank
     updates[:first_name] = user.first_name if customer.first_name.blank? && user.first_name.present?
     updates[:last_name] = user.last_name if customer.last_name.blank? && user.last_name.present?
-    
-    # Sync phone from user to customer - prioritize user's phone since they actively manage it
-    if user.phone.present? && customer.phone != user.phone
+
+    # Sync phone from user to customer - but only if not preserving phone data
+    if !preserve_phone && user.phone.present? && customer.phone != user.phone
       updates[:phone] = user.phone
-      # Preserve customer's SMS opt-in status unless user has explicit opt-in
-      # This prevents overwriting SMS opt-in from duplicate resolution with user's default false
-      if user.respond_to?(:phone_opt_in?) && user.phone_opt_in? && !customer.phone_opt_in?
-        # Only sync user's opt-in if user is opted in and customer is not
+      # IMPORTANT: When phone number changes, sync SMS opt-in status from user for compliance
+      # Only update if user has explicit opt-in preferences to avoid overwriting customer's existing consent
+      if user.respond_to?(:phone_opt_in?) && user.phone_opt_in?
+        # User has explicit opt-in - sync it (compliance: respect user's consent for new number)
         updates[:phone_opt_in] = true
         updates[:phone_opt_in_at] = user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : Time.current
+      elsif user.respond_to?(:phone_opt_in?) && !user.phone_opt_in? && customer.phone_opt_in?
+        # User explicitly opted out but customer was opted in - reset for compliance
+        # This prevents sending SMS to a number that explicitly opted out
+        updates[:phone_opt_in] = false
+        updates[:phone_opt_in_at] = nil
       end
-      # Note: We don't sync user's opt-out over customer's opt-in to preserve SMS preferences from duplicate resolution
+      # Note: If user has no explicit preference and customer has no opt-in, leave unchanged
     end
-    
+
     # Sync email if different (case-insensitive). to_s ensures no nil errors.
     if customer.email.to_s.casecmp?(user.email.to_s) == false
       updates[:email] = user.email.downcase.strip
     end
-    
+
     customer.update!(updates) if updates.any?
   end
 

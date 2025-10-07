@@ -420,22 +420,64 @@ RSpec.describe CustomerLinker do
           expect(result_customer.phone).to be_present
         end
 
-        it 'does not overwrite existing user links during phone duplicate resolution' do
-          # Given: Another user already linked to one of the duplicate customers
+        it 'prevents data integrity issues when canonical customer is linked to different user' do
+          # Given: Canonical customer already linked to different user
           other_user = create(:user, :client, email: 'other@example.com', phone: '5551234567')
           customer_18_format.update!(user_id: other_user.id)
 
-          # When: Current user tries to link (should not break existing link)
-          result_customer = linker.link_user_to_customer(user)
+          # When: Current user tries to link (should raise error for data integrity)
+          expect {
+            linker.link_user_to_customer(user)
+          }.to raise_error(ArgumentError, /phone number conflicts with existing customer accounts/)
 
-          # Then: Should not overwrite existing user link
+          # Then: Existing user link should be preserved
           customer_18_format.reload
           expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
+        end
 
-          # And: Should create/link different customer for current user
-          expect(result_customer).to be_persisted
-          expect(result_customer.user_id).to eq(user.id)
-          expect(result_customer.id).not_to eq(customer_18_format.id)  # Different customer
+
+        it 'updates SMS opt-in status when user phone number changes for compliance' do
+          # Given: Customer linked to user with SMS opt-in
+          result_customer = linker.link_user_to_customer(user)
+          expect(result_customer.phone_opt_in?).to be true  # From duplicate resolution
+
+          # When: User's phone number changes to a number without SMS opt-in
+          user.update!(phone: '5551112222', phone_opt_in: false, phone_opt_in_at: nil)
+
+          # And: Customer data is synced (like during subsequent booking)
+          linker.sync_user_data_to_customer(user, result_customer)
+
+          # Then: Customer's SMS opt-in should be updated for compliance
+          result_customer.reload
+          expect(result_customer.phone).to eq('5551112222')
+          expect(result_customer.phone_opt_in?).to be false  # Updated for compliance
+          expect(result_customer.phone_opt_in_at).to be_nil
+
+          # And: Customer should not be able to receive SMS for new number
+          expect(result_customer.can_receive_sms?(:booking)).to be false
+        end
+
+        it 'preserves SMS opt-in status when user phone number changes to opted-in number' do
+          # Given: Customer linked to user without SMS opt-in initially
+          user.update!(phone_opt_in: false, phone_opt_in_at: nil)
+          result_customer = linker.link_user_to_customer(user)
+          expect(result_customer.phone_opt_in?).to be true  # From duplicate resolution
+
+          # When: User's phone number changes to a number WITH SMS opt-in
+          new_opt_in_time = 1.hour.ago
+          user.update!(phone: '5551112222', phone_opt_in: true, phone_opt_in_at: new_opt_in_time)
+
+          # And: Customer data is synced
+          linker.sync_user_data_to_customer(user, result_customer)
+
+          # Then: Customer's SMS opt-in should reflect new number's consent
+          result_customer.reload
+          expect(result_customer.phone).to eq('5551112222')
+          expect(result_customer.phone_opt_in?).to be true
+          expect(result_customer.phone_opt_in_at).to be_within(1.second).of(new_opt_in_time)
+
+          # And: Customer should be able to receive SMS
+          expect(result_customer.can_receive_sms?(:booking)).to be true
         end
       end
     end
