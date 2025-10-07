@@ -146,5 +146,172 @@ class CustomerLinker
     
     customer.update!(updates) if updates.any?
   end
-  
+
+  # Phone number deduplication methods
+
+  # Find or resolve phone number duplicates, returning the canonical customer
+  def resolve_phone_duplicates(phone_number)
+    return nil if phone_number.blank?
+
+    # Find all customers with any variation of this phone number
+    duplicate_customers = find_customers_by_phone(phone_number)
+
+    return nil if duplicate_customers.empty?
+    return duplicate_customers.first if duplicate_customers.count == 1
+
+    # Multiple customers found - merge duplicates
+    Rails.logger.info "[CUSTOMER_LINKER] Found #{duplicate_customers.count} duplicate customers for phone #{phone_number}"
+    merge_duplicate_customers(duplicate_customers)
+  end
+
+  # Scan business for phone duplicates and resolve them all
+  def resolve_all_phone_duplicates
+    duplicates_resolved = 0
+
+    # Group customers by normalized phone number
+    phone_groups = @business.tenant_customers
+                           .where.not(phone: [nil, ''])
+                           .group_by { |customer| normalize_phone(customer.phone) }
+
+    phone_groups.each do |normalized_phone, customers|
+      next if customers.count <= 1 # No duplicates
+
+      Rails.logger.info "[CUSTOMER_LINKER] Resolving #{customers.count} duplicates for phone #{normalized_phone}"
+      canonical_customer = merge_duplicate_customers(customers)
+      duplicates_resolved += customers.count - 1 if canonical_customer
+    end
+
+    Rails.logger.info "[CUSTOMER_LINKER] Resolved #{duplicates_resolved} duplicate customers for business #{@business.id}"
+    duplicates_resolved
+  end
+
+  private
+
+  # Phone number normalization (consistent with TwilioController)
+  def normalize_phone(phone)
+    return nil if phone.blank?
+    cleaned = phone.gsub(/\D/, '')
+    cleaned = "1#{cleaned}" if cleaned.length == 10
+    "+#{cleaned}"
+  end
+
+  # Robust phone lookup that handles multiple formats in database
+  def find_customers_by_phone(phone_number)
+    # Generate all possible phone number formats that might be stored
+    normalized = normalize_phone(phone_number)
+    digits_only = phone_number.gsub(/\D/, '')
+    without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
+
+    possible_formats = [
+      normalized,           # +16026866672
+      digits_only,         # 16026866672 or 6026866672
+      without_country,     # 6026866672
+      "1#{without_country}" # 16026866672
+    ].uniq.compact
+
+    @business.tenant_customers.where(phone: possible_formats)
+  end
+
+  # Merge duplicate customers, selecting the most authoritative as canonical
+  def merge_duplicate_customers(customers)
+    # Select canonical customer (prioritize linked users, then completeness, then age)
+    canonical_customer = select_canonical_customer(customers)
+    duplicate_customers = customers - [canonical_customer]
+
+    Rails.logger.info "[CUSTOMER_LINKER] Using customer #{canonical_customer.id} as canonical, merging #{duplicate_customers.count} duplicates"
+
+    # Merge data from duplicates into canonical customer
+    merge_customer_data(canonical_customer, duplicate_customers)
+
+    # Update all related records to point to canonical customer
+    migrate_customer_relationships(canonical_customer, duplicate_customers)
+
+    # Normalize phone number format
+    if canonical_customer.phone.present?
+      canonical_customer.update_column(:phone, normalize_phone(canonical_customer.phone))
+    end
+
+    # Delete duplicate customers
+    duplicate_customers.each do |duplicate|
+      Rails.logger.info "[CUSTOMER_LINKER] Deleting duplicate customer #{duplicate.id}"
+      duplicate.destroy!
+    end
+
+    canonical_customer
+  end
+
+  def select_canonical_customer(customers)
+    # Priority order for canonical customer:
+    # 1. Customer linked to User account (most authoritative)
+    # 2. Customer with real email (not temp/SMS-generated)
+    # 3. Customer with most complete data
+    # 4. Oldest customer
+
+    customers.sort_by do |customer|
+      [
+        customer.user_id ? 0 : 1,                    # User-linked first
+        customer.email&.include?('@temp.') ? 1 : 0,  # Real email over temp
+        -customer_completeness_score(customer),       # Most complete data
+        customer.created_at                          # Oldest first
+      ]
+    end.first
+  end
+
+  def customer_completeness_score(customer)
+    score = 0
+    score += 1 if customer.first_name.present?
+    score += 1 if customer.last_name.present?
+    score += 1 if customer.email.present? && !customer.email.include?('@temp.')
+    score += 1 if customer.phone.present?
+    score += 1 if customer.phone_opt_in?
+    score
+  end
+
+  def merge_customer_data(canonical, duplicates)
+    updates = {}
+
+    duplicates.each do |duplicate|
+      # Merge missing data from duplicates
+      updates[:first_name] = duplicate.first_name if canonical.first_name.blank? && duplicate.first_name.present?
+      updates[:last_name] = duplicate.last_name if canonical.last_name.blank? && duplicate.last_name.present?
+
+      # Use real email over temp email
+      if canonical.email.include?('@temp.') && duplicate.email.present? && !duplicate.email.include?('@temp.')
+        updates[:email] = duplicate.email
+      end
+
+      # Preserve SMS opt-in if any duplicate has it
+      if !canonical.phone_opt_in? && duplicate.phone_opt_in?
+        updates[:phone_opt_in] = true
+        updates[:phone_opt_in_at] = duplicate.phone_opt_in_at || Time.current
+      end
+    end
+
+    canonical.update!(updates) if updates.any?
+  end
+
+  def migrate_customer_relationships(canonical, duplicates)
+    duplicate_ids = duplicates.map(&:id)
+
+    # Update relationships to point to canonical customer
+    models_to_update = [
+      { model: Booking, foreign_key: :tenant_customer_id },
+      { model: Order, foreign_key: :tenant_customer_id },
+      { model: SmsMessage, foreign_key: :tenant_customer_id },
+      { model: SmsOptInInvitation, foreign_key: :tenant_customer_id }
+    ]
+
+    models_to_update.each do |config|
+      model = config[:model]
+      foreign_key = config[:foreign_key]
+
+      next unless defined?(model)
+
+      updated_count = model.where(foreign_key => duplicate_ids)
+                           .update_all(foreign_key => canonical.id)
+
+      Rails.logger.info "[CUSTOMER_LINKER] Updated #{updated_count} #{model.name} records to canonical customer #{canonical.id}" if updated_count > 0
+    end
+  end
+
 end
