@@ -162,7 +162,8 @@ module Webhooks
       normalized_phone = normalize_phone(phone_number)
 
       # Option 1: Find business through customer with this phone number
-      customer = TenantCustomer.where(phone: normalized_phone).first
+      customers = find_customers_by_phone_global(phone_number)
+      customer = customers.first
       return customer.business if customer&.business
 
       # Option 2: Find business through user with this phone number
@@ -182,7 +183,7 @@ module Webhooks
         Rails.logger.info "Processing business-specific opt-out for #{phone_number} from business #{business_context.id}"
 
         # Business-specific opt-out
-        customers = TenantCustomer.where(phone: normalize_phone(phone_number), business: business_context)
+        customers = find_customers_by_phone(phone_number, business_context)
         customers.each do |customer|
           customer.opt_out_from_business!(business_context)
           Rails.logger.info "Opted out customer #{customer.id} from business #{business_context.id}"
@@ -194,7 +195,7 @@ module Webhooks
         Rails.logger.info "Processing global opt-out for #{phone_number} (no business context found)"
 
         # Global opt-out (fallback)
-        customers = TenantCustomer.where(phone: normalize_phone(phone_number))
+        customers = find_customers_by_phone_global(phone_number)
         customers.each do |customer|
           customer.opt_out_of_sms!
           Rails.logger.info "Opted out customer #{customer.id} from SMS globally"
@@ -232,7 +233,7 @@ module Webhooks
         Rails.logger.info "Processing business-specific opt-in for #{phone_number} to business #{business_context.id}"
 
         # Business-specific opt-in (remove from opted-out list and global opt-in)
-        customers = TenantCustomer.where(phone: normalize_phone(phone_number), business: business_context)
+        customers = find_customers_by_phone(phone_number, business_context)
         customers.each do |customer|
           customer.opt_in_to_business!(business_context) # Remove from business opt-out list
           customer.opt_into_sms! unless customer.phone_opt_in? # Global opt-in if not already
@@ -248,7 +249,7 @@ module Webhooks
         Rails.logger.info "Processing global opt-in for #{phone_number}"
 
         # Global opt-in
-        customers = TenantCustomer.where(phone: normalize_phone(phone_number))
+        customers = find_customers_by_phone_global(phone_number)
         customers.each do |customer|
           customer.opt_into_sms!
           Rails.logger.info "Opted in customer #{customer.id} for SMS"
@@ -409,11 +410,7 @@ module Webhooks
 
       # Strategy 3: Existing customer records (with conservative mode logic)
       # If they're already a customer of a business, prefer that context
-      customer_businesses = TenantCustomer.where(phone: normalized_phone)
-                                         .joins(:business)
-                                         .where(businesses: { sms_enabled: true })
-                                         .includes(:business)
-                                         .order('tenant_customers.created_at DESC')
+      customer_businesses = find_customer_businesses_with_sms(phone_number)
 
       if customer_businesses.exists?
         # In conservative mode with multiple businesses, prefer the most recent customer relationship
@@ -631,8 +628,8 @@ module Webhooks
         end
       else
         # No business context - ensure at least one customer exists for this phone
-        existing_customers = TenantCustomer.where(phone: normalized_phone)
-        return if existing_customers.exists?
+        existing_customers = find_customers_by_phone_global(phone_number)
+        return if existing_customers.any?
 
         Rails.logger.info "Creating customer for global SMS interaction: phone #{phone_number}"
 
@@ -672,6 +669,68 @@ module Webhooks
     rescue => e
       Rails.logger.error "Failed to create minimal customer for #{phone}: #{e.message}"
       raise # Re-raise so caller can handle
+    end
+
+    # Robust phone number lookup that handles multiple formats in the database
+    # Addresses issue where existing customer records have inconsistent phone formatting
+    def find_customers_by_phone(phone_number, business = nil)
+      # Generate all possible phone number formats that might be stored
+      normalized = normalize_phone(phone_number)  # +16026866672
+      digits_only = phone_number.gsub(/\D/, '')   # 16026866672 or 6026866672
+      without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only  # 6026866672
+
+      possible_formats = [
+        normalized,           # +16026866672
+        digits_only,         # 16026866672 or 6026866672
+        without_country,     # 6026866672
+        "1#{without_country}" # 16026866672
+      ].uniq
+
+      Rails.logger.debug "[PHONE_LOOKUP] Searching for phone formats: #{possible_formats.inspect}"
+
+      # Build query to find customers with any of these phone number formats
+      query = TenantCustomer.where(phone: possible_formats)
+      query = query.where(business: business) if business
+
+      customers = query.to_a
+      Rails.logger.info "[PHONE_LOOKUP] Found #{customers.count} customers for phone #{phone_number}"
+
+      # If customers found with different phone formats, normalize their phone numbers
+      # This prevents future lookup issues
+      customers.each do |customer|
+        if customer.phone != normalized
+          Rails.logger.info "[PHONE_NORMALIZE] Updating customer #{customer.id} phone from '#{customer.phone}' to '#{normalized}'"
+          customer.update_column(:phone, normalized)
+        end
+      end
+
+      customers
+    end
+
+    # Enhanced customer lookup by phone that handles format variations
+    def find_customers_by_phone_global(phone_number)
+      find_customers_by_phone(phone_number, nil)
+    end
+
+    # Find customer-business relationships with SMS enabled using robust phone lookup
+    def find_customer_businesses_with_sms(phone_number)
+      # Generate all possible phone number formats
+      normalized = normalize_phone(phone_number)
+      digits_only = phone_number.gsub(/\D/, '')
+      without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
+
+      possible_formats = [
+        normalized,           # +16026866672
+        digits_only,         # 16026866672 or 6026866672
+        without_country,     # 6026866672
+        "1#{without_country}" # 16026866672
+      ].uniq
+
+      TenantCustomer.where(phone: possible_formats)
+                    .joins(:business)
+                    .where(businesses: { sms_enabled: true })
+                    .includes(:business)
+                    .order('tenant_customers.created_at DESC')
     end
   end
 end
