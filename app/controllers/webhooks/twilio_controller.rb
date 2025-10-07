@@ -695,15 +695,8 @@ module Webhooks
       customers = query.to_a
       Rails.logger.info "[PHONE_LOOKUP] Found #{customers.count} customers for phone #{phone_number}"
 
-      # If customers found with different phone formats, normalize their phone numbers
-      # This prevents future lookup issues
-      customers.each do |customer|
-        if customer.phone != normalized
-          Rails.logger.info "[PHONE_NORMALIZE] Updating customer #{customer.id} phone from '#{customer.phone}' to '#{normalized}'"
-          customer.update_column(:phone, normalized)
-        end
-      end
-
+      # Note: Phone normalization should be done separately, not during webhook processing
+      # to avoid race conditions and performance issues
       customers
     end
 
