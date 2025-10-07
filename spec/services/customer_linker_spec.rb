@@ -294,4 +294,150 @@ RSpec.describe CustomerLinker do
       end
     end
   end
+
+  describe 'production SMS duplicate scenario' do
+    context 'when business has SMS enabled' do
+      before { business.update!(sms_enabled: true, tier: 'premium') }
+
+      context 'when user has multiple duplicate customers with different phone formats and SMS opt-in status' do
+        let(:user) { create(:user, :client, email: 'user@example.com', phone: '6026866672') }
+
+        # Create the exact production scenario: 3 customers with same phone, different formats
+        let!(:customer_8_format) do
+          create(:tenant_customer,
+            business: business,
+            email: 'customer8@example.com',
+            phone: '6026866672',           # Original format like Customer 8
+            phone_opt_in: false,           # Not opted in
+            user_id: nil,
+            first_name: 'Customer',
+            last_name: 'Eight',
+            created_at: 3.days.ago
+          )
+        end
+
+        let!(:customer_9_format) do
+          create(:tenant_customer,
+            business: business,
+            email: 'customer9@example.com',
+            phone: '16026866672',          # Another format like Customer 9
+            phone_opt_in: false,           # Not opted in
+            user_id: nil,
+            first_name: 'Customer',
+            last_name: 'Nine',
+            created_at: 2.days.ago
+          )
+        end
+
+        let!(:customer_18_format) do
+          create(:tenant_customer,
+            business: business,
+            email: 'customer18@example.com',
+            phone: '+16026866672',         # Normalized format like Customer 18
+            phone_opt_in: true,            # SMS OPTED IN - this is the important one!
+            phone_opt_in_at: 1.day.ago,
+            user_id: nil,
+            first_name: 'Customer',
+            last_name: 'Eighteen',
+            created_at: 1.day.ago
+          )
+        end
+
+        it 'automatically resolves phone duplicates and preserves SMS opt-in during user linking' do
+          # Verify initial state: 3 duplicate customers, only one with SMS opt-in
+          expect(business.tenant_customers.count).to eq(3)
+
+          customers_with_phone = [customer_8_format, customer_9_format, customer_18_format]
+          sms_opted_customers = customers_with_phone.select(&:phone_opt_in?)
+          expect(sms_opted_customers.count).to eq(1)
+          expect(sms_opted_customers.first).to eq(customer_18_format)
+
+          # When user links to customer (like during booking flow)
+          result_customer = linker.link_user_to_customer(user)
+
+          # Then: CustomerLinker should automatically resolve phone duplicates
+          expect(result_customer).to be_persisted
+          expect(result_customer.user_id).to eq(user.id)
+
+          # And: Should preserve SMS opt-in status from the best customer (customer_18_format)
+          expect(result_customer.phone_opt_in?).to be true
+          expect(result_customer.phone_opt_in_at).to be_present
+
+          # And: Phone should be normalized to consistent format
+          expect(result_customer.phone).to eq('+16026866672')
+
+          # And: Customer should be able to receive SMS notifications
+          expect(result_customer.can_receive_sms?(:booking)).to be true
+          expect(result_customer.can_receive_sms?(:payment)).to be true
+
+          # And: Duplicates should be resolved (fewer total customers)
+          expect(business.tenant_customers.count).to be < 3
+
+          # And: No other customers should have the same phone number
+          remaining_customers = business.tenant_customers.where.not(id: result_customer.id)
+          phone_numbers = remaining_customers.pluck(:phone).map { |p| linker.send(:normalize_phone, p) }
+          expect(phone_numbers).not_to include('+16026866672')
+        end
+
+        it 'preserves complete customer data during phone duplicate resolution' do
+          # When user links to customer
+          result_customer = linker.link_user_to_customer(user)
+
+          # Then: Should have complete customer information
+          expect(result_customer.first_name).to be_present
+          expect(result_customer.last_name).to be_present
+          expect(result_customer.email).to be_present
+          expect(result_customer.phone).to eq('+16026866672')
+
+          # And: Should preserve the best data from merged customers
+          # (In this case, preserving the customer with SMS opt-in)
+          expect(result_customer.phone_opt_in?).to be true
+        end
+
+        it 'handles subsequent calls to link_user_to_customer idempotently' do
+          # When user links to customer multiple times (like multiple bookings)
+          first_result = linker.link_user_to_customer(user)
+          second_result = linker.link_user_to_customer(user)
+
+          # Then: Should return the same customer
+          expect(second_result.id).to eq(first_result.id)
+          expect(second_result.phone_opt_in?).to be true
+
+          # And: Should not create additional duplicate customers
+          expect(business.tenant_customers.count).to eq(1)
+        end
+
+        it 'enables end-to-end SMS notification flow' do
+          # When user links to customer
+          result_customer = linker.link_user_to_customer(user)
+
+          # Then: Complete SMS flow should be possible
+          expect(business.can_send_sms?).to be true
+          expect(result_customer.can_receive_sms?(:booking)).to be true
+
+          # And: Would allow SMS notifications to be sent
+          expect(result_customer.phone_opt_in?).to be true
+          expect(result_customer.phone).to be_present
+        end
+
+        it 'does not overwrite existing user links during phone duplicate resolution' do
+          # Given: Another user already linked to one of the duplicate customers
+          other_user = create(:user, :client, email: 'other@example.com', phone: '5551234567')
+          customer_18_format.update!(user_id: other_user.id)
+
+          # When: Current user tries to link (should not break existing link)
+          result_customer = linker.link_user_to_customer(user)
+
+          # Then: Should not overwrite existing user link
+          customer_18_format.reload
+          expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
+
+          # And: Should create/link different customer for current user
+          expect(result_customer).to be_persisted
+          expect(result_customer.user_id).to eq(user.id)
+          expect(result_customer.id).not_to eq(customer_18_format.id)  # Different customer
+        end
+      end
+    end
+  end
 end
