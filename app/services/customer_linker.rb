@@ -198,9 +198,12 @@ class CustomerLinker
   # Only use global lookups for legitimate cross-business scenarios (e.g., SMS webhooks)
   # Reuses the phone normalization and format generation logic
   def self.find_customers_by_phone_global(phone_number, business = nil)
-    # Generate all possible phone number formats (same logic as instance method)
+    # Generate all possible phone number formats consistently from normalized input
     normalized = self.normalize_phone_static(phone_number)
-    digits_only = phone_number.gsub(/\D/, '')
+    return TenantCustomer.none if normalized.blank?
+
+    # Derive all format variations from the normalized phone number for consistency
+    digits_only = normalized.gsub(/\D/, '')
     without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
 
     possible_formats = [
@@ -249,9 +252,12 @@ class CustomerLinker
 
   # Robust phone lookup that handles multiple formats in database
   def find_customers_by_phone(phone_number)
-    # Generate all possible phone number formats that might be stored
+    # Generate all possible phone number formats consistently from normalized input
     normalized = normalize_phone(phone_number)
-    digits_only = phone_number.gsub(/\D/, '')
+    return @business.tenant_customers.none if normalized.blank?
+
+    # Derive all format variations from the normalized phone number for consistency
+    digits_only = normalized.gsub(/\D/, '')
     without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
 
     possible_formats = [

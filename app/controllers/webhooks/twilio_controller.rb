@@ -684,14 +684,19 @@ module Webhooks
     def find_customers_by_phone(phone_number, business = nil)
       Rails.logger.debug "[PHONE_LOOKUP] Using CustomerLinker for phone lookup: #{phone_number}"
 
-      # Use consistent CustomerLinker class method for both business-scoped and global searches
-      # This method handles both cases: when business is provided (scoped) and when nil (global)
-      customers = CustomerLinker.find_customers_by_phone_global(phone_number, business)
+      # Use appropriate method based on business context
+      if business.present?
+        # Business-scoped search using instance method
+        customers = CustomerLinker.new(business).find_customers_by_phone_public(phone_number)
+        Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business.id}"
+      else
+        # Global search when no business context is available
+        customers = CustomerLinker.find_customers_by_phone_global(phone_number, nil)
+        Rails.logger.debug "[PHONE_LOOKUP] Using global search (no business context)"
+      end
 
-      # Log customer count efficiently using size (cached) instead of count (SQL query)
-      # This preserves ActiveRecord::Relation interface while avoiding repeated SQL queries
-      customer_count = customers.size
-      Rails.logger.info "[PHONE_LOOKUP] Found #{customer_count} customers for phone #{phone_number}"
+      # Note: Phone normalization should be done separately, not during webhook processing
+      # to avoid race conditions and performance issues
 
       # Return ActiveRecord::Relation to preserve query chaining capabilities
       customers
