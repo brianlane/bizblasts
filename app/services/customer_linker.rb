@@ -199,8 +199,12 @@ class CustomerLinker
     # Check if email belongs to an existing linked customer
     linked_customer = @business.tenant_customers.find_by(email: email)
     if linked_customer&.user_id
-      Rails.logger.info "[CUSTOMER_LINKER] Guest checkout with email #{email} matches existing linked customer #{linked_customer.id}"
-      return linked_customer
+      raise GuestConflictError.new(
+        "This email address is already associated with an existing account. Please sign in to continue, or use a different email address.",
+        email: email,
+        business_id: @business.id,
+        existing_user_id: linked_customer.user_id
+      )
     end
 
     # Check if phone belongs to an existing linked customer
@@ -208,8 +212,12 @@ class CustomerLinker
       phone_customers = find_customers_by_phone(customer_attributes[:phone])
       linked_phone_customer = phone_customers.find { |c| c.user_id.present? }
       if linked_phone_customer
-        Rails.logger.info "[CUSTOMER_LINKER] Guest checkout with phone #{customer_attributes[:phone]} matches existing linked customer #{linked_phone_customer.id}"
-        return linked_phone_customer
+        raise GuestConflictError.new(
+          "This phone number is already associated with an existing account. Please sign in to continue, or use a different phone number.",
+          phone: customer_attributes[:phone],
+          business_id: @business.id,
+          existing_user_id: linked_phone_customer.user_id
+        )
       end
     end
 
@@ -304,6 +312,41 @@ class CustomerLinker
 
     Rails.logger.info "[CUSTOMER_LINKER] Resolved #{duplicates_resolved} duplicate customers for business #{@business.id}"
     duplicates_resolved
+  end
+
+  # Public interface for external classes to find customers by phone
+  # This allows other classes like TwilioController to reuse the phone lookup logic
+  def find_customers_by_phone_public(phone_number)
+    find_customers_by_phone(phone_number)
+  end
+
+  # Class method for external use - allows global or business-scoped phone lookup
+  # Reuses the phone normalization and format generation logic
+  def self.find_customers_by_phone_global(phone_number, business = nil)
+    # Generate all possible phone number formats (same logic as instance method)
+    normalized = normalize_phone_static(phone_number)
+    digits_only = phone_number.gsub(/\D/, '')
+    without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
+
+    possible_formats = [
+      normalized,           # +16026866672
+      digits_only,         # 16026866672 or 6026866672
+      without_country,     # 6026866672
+      "1#{without_country}" # 16026866672
+    ].uniq.compact
+
+    # Build query - global or business-scoped
+    query = TenantCustomer.where(phone: possible_formats)
+    query = query.where(business: business) if business
+    query
+  end
+
+  # Static version of phone normalization for class method use
+  def self.normalize_phone_static(phone)
+    return nil if phone.blank?
+    cleaned = phone.gsub(/\D/, '')
+    cleaned = "1#{cleaned}" if cleaned.length == 10
+    "+#{cleaned}"
   end
 
   protected

@@ -680,26 +680,12 @@ module Webhooks
 
     # Robust phone number lookup that handles multiple formats in the database
     # Addresses issue where existing customer records have inconsistent phone formatting
+    # Now delegates to CustomerLinker for consistent phone lookup logic
     def find_customers_by_phone(phone_number, business = nil)
-      # Generate all possible phone number formats that might be stored
-      normalized = normalize_phone(phone_number)  # +16026866672
-      digits_only = phone_number.gsub(/\D/, '')   # 16026866672 or 6026866672
-      without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only  # 6026866672
+      Rails.logger.debug "[PHONE_LOOKUP] Using CustomerLinker for phone lookup: #{phone_number}"
 
-      possible_formats = [
-        normalized,           # +16026866672
-        digits_only,         # 16026866672 or 6026866672
-        without_country,     # 6026866672
-        "1#{without_country}" # 16026866672
-      ].uniq
-
-      Rails.logger.debug "[PHONE_LOOKUP] Searching for phone formats: #{possible_formats.inspect}"
-
-      # Build query to find customers with any of these phone number formats
-      query = TenantCustomer.where(phone: possible_formats)
-      query = query.where(business: business) if business
-
-      customers = query.to_a
+      # Use CustomerLinker's class method for consistent phone lookup logic
+      customers = CustomerLinker.find_customers_by_phone_global(phone_number, business).to_a
       Rails.logger.info "[PHONE_LOOKUP] Found #{customers.count} customers for phone #{phone_number}"
 
       # Note: Phone normalization should be done separately, not during webhook processing

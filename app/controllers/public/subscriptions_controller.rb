@@ -220,6 +220,9 @@ class Public::SubscriptionsController < Public::BaseController
       rescue PhoneConflictError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for guest: #{e.message}"
         return nil
+      rescue GuestConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker guest conflict for guest: #{e.message}"
+        return nil
       rescue StandardError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for guest: #{e.message}"
         return nil

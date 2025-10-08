@@ -95,10 +95,23 @@ RSpec.describe CustomerLinker do
     context 'when linked customer exists with same email' do
       let(:user) { create(:user, :client) }
       let!(:linked_customer) { create(:tenant_customer, business: business, user: user, email: email) }
-      
-      it 'returns the linked customer' do
-        customer = linker.find_or_create_guest_customer(email)
-        expect(customer).to eq(linked_customer)
+
+      it 'raises GuestConflictError' do
+        expect {
+          linker.find_or_create_guest_customer(email)
+        }.to raise_error(GuestConflictError, /email address is already associated with an existing account/)
+      end
+    end
+
+    context 'when linked customer exists with same phone' do
+      let(:user) { create(:user, :client) }
+      let(:phone) { '+16026866672' }
+      let!(:linked_customer) { create(:tenant_customer, business: business, user: user, phone: phone) }
+
+      it 'raises GuestConflictError' do
+        expect {
+          linker.find_or_create_guest_customer('guest@example.com', phone: phone)
+        }.to raise_error(GuestConflictError, /phone number is already associated with an existing account/)
       end
     end
   end

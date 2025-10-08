@@ -91,6 +91,14 @@ module Public
             phone: nested[:phone],
             phone_opt_in: nested[:phone_opt_in] == 'true' || nested[:phone_opt_in] == true
           )
+        rescue PhoneConflictError => e
+          Rails.logger.error "[OrdersController#create] CustomerLinker phone conflict for staff/manager: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_order_path and return
+        rescue GuestConflictError => e
+          Rails.logger.error "[OrdersController#create] CustomerLinker guest conflict for staff/manager: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_order_path and return
         rescue StandardError => e
           Rails.logger.error "[OrdersController#create] CustomerLinker error for staff/manager: #{e.message}"
           flash[:alert] = "Unable to process customer information. Please try again."
@@ -117,6 +125,14 @@ module Public
           phone: nested[:phone],
           phone_opt_in: nested[:phone_opt_in] == 'true' || nested[:phone_opt_in] == true
         )
+      rescue PhoneConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker phone conflict for guest: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
+      rescue GuestConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker guest conflict for guest: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
       rescue StandardError => e
         Rails.logger.error "[OrdersController#create] CustomerLinker error for guest: #{e.message}"
         flash[:alert] = "Unable to process customer information. Please try again."

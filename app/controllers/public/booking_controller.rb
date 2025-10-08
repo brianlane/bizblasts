@@ -116,6 +116,10 @@ module Public
             Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for staff/manager: #{e.message}"
             flash[:alert] = "Error creating customer: #{e.message}"
             redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+          rescue GuestConflictError => e
+            Rails.logger.error "[BookingController#create] CustomerLinker guest conflict for staff/manager: #{e.message}"
+            flash[:alert] = e.message
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           rescue StandardError => e
             Rails.logger.error "[BookingController#create] CustomerLinker error for staff/manager: #{e.message}"
             flash[:alert] = "Error creating customer: #{e.message}"
@@ -146,6 +150,10 @@ module Public
         rescue PhoneConflictError => e
           Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for guest: #{e.message}"
           flash[:alert] = "Error creating customer: #{e.message}"
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+        rescue GuestConflictError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker guest conflict for guest: #{e.message}"
+          flash[:alert] = e.message
           redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         rescue StandardError => e
           Rails.logger.error "[BookingController#create] CustomerLinker error for guest: #{e.message}"
