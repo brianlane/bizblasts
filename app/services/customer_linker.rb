@@ -364,6 +364,12 @@ class CustomerLinker
     find_customers_by_phone_global(phone_number, nil)
   end
 
+  # Class method version of find_customers_by_phone_public for flexible usage
+  # Delegates to the global method with business parameter
+  def self.find_customers_by_phone_public(phone_number, business)
+    find_customers_by_phone_global(phone_number, business)
+  end
+
   # Static version of phone normalization for class method use
   def self.normalize_phone_static(phone)
     return nil if phone.blank?
@@ -391,15 +397,16 @@ class CustomerLinker
     @business.tenant_customers.where(phone: possible_formats)
   end
 
-  private
-
   # Phone number normalization (consistent with TwilioController)
+  # Moved to protected to allow access from other protected methods
   def normalize_phone(phone)
     return nil if phone.blank?
     cleaned = phone.gsub(/\D/, '')
     cleaned = "1#{cleaned}" if cleaned.length == 10
     "+#{cleaned}"
   end
+
+  private
 
   # Merge duplicate customers, selecting the most authoritative as canonical
   def merge_duplicate_customers(customers)

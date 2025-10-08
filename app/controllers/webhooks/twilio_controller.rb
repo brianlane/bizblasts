@@ -684,14 +684,9 @@ module Webhooks
     def find_customers_by_phone(phone_number, business = nil)
       Rails.logger.debug "[PHONE_LOOKUP] Using CustomerLinker for phone lookup: #{phone_number}"
 
-      # Use appropriate CustomerLinker method based on whether business context is provided
-      if business
-        # Use instance method when business context is available (more efficient)
-        customers = CustomerLinker.new(business).find_customers_by_phone_public(phone_number)
-      else
-        # Use class method for global searches
-        customers = CustomerLinker.find_customers_by_phone_global(phone_number)
-      end
+      # Use consistent CustomerLinker class method for both business-scoped and global searches
+      # This method handles both cases: when business is provided (scoped) and when nil (global)
+      customers = CustomerLinker.find_customers_by_phone_global(phone_number, business)
 
       # Convert to array to avoid repeated SQL COUNT queries when .count is called for logging
       # This maintains compatibility with existing calling code while improving performance
