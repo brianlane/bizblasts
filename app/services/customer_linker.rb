@@ -257,17 +257,21 @@ class CustomerLinker
       updates[:phone] = user.phone
       # IMPORTANT: When phone number changes, sync SMS opt-in status from user for compliance
       # Only update if user has explicit opt-in preferences to avoid overwriting customer's existing consent
-      if user.respond_to?(:phone_opt_in?) && user.phone_opt_in?
-        # User has explicit opt-in - sync it (compliance: respect user's consent for new number)
-        updates[:phone_opt_in] = true
-        updates[:phone_opt_in_at] = user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : Time.current
-      elsif user.respond_to?(:phone_opt_in?) && !user.phone_opt_in? && customer.phone_opt_in?
-        # User explicitly opted out but customer was opted in - reset for compliance
-        # This prevents sending SMS to a number that explicitly opted out
-        updates[:phone_opt_in] = false
-        updates[:phone_opt_in_at] = nil
+      if user.respond_to?(:phone_opt_in?)
+        user_opt_in_preference = user.phone_opt_in?
+
+        if user_opt_in_preference == true
+          # User has explicit opt-in - sync it (compliance: respect user's consent for new number)
+          updates[:phone_opt_in] = true
+          updates[:phone_opt_in_at] = user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : Time.current
+        elsif user_opt_in_preference == false && customer.phone_opt_in?
+          # User explicitly opted out (false, not nil) but customer was opted in - reset for compliance
+          # This prevents sending SMS to a number that explicitly opted out
+          updates[:phone_opt_in] = false
+          updates[:phone_opt_in_at] = nil
+        end
+        # Note: If user_opt_in_preference is nil (no explicit preference), leave customer opt-in status unchanged
       end
-      # Note: If user has no explicit preference and customer has no opt-in, leave unchanged (implicit else)
     end
 
     # Sync email if different (case-insensitive). to_s ensures no nil errors.

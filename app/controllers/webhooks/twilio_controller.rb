@@ -697,8 +697,8 @@ module Webhooks
 
       # Note: Phone normalization should be done separately, not during webhook processing
       # to avoid race conditions and performance issues
-      # Return as array for backward compatibility with existing code
-      customers.to_a
+      # Return ActiveRecord::Relation for efficiency - calling code works with both arrays and relations
+      customers
     end
 
     # Enhanced customer lookup by phone that handles format variations
