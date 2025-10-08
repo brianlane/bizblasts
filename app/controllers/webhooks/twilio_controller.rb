@@ -688,14 +688,13 @@ module Webhooks
       # This method handles both cases: when business is provided (scoped) and when nil (global)
       customers = CustomerLinker.find_customers_by_phone_global(phone_number, business)
 
-      # Convert to array to avoid repeated SQL COUNT queries when .count is called for logging
-      # This maintains compatibility with existing calling code while improving performance
-      customers_array = customers.to_a
+      # Log customer count efficiently using size (cached) instead of count (SQL query)
+      # This preserves ActiveRecord::Relation interface while avoiding repeated SQL queries
+      customer_count = customers.size
+      Rails.logger.info "[PHONE_LOOKUP] Found #{customer_count} customers for phone #{phone_number}"
 
-      Rails.logger.info "[PHONE_LOOKUP] Found #{customers_array.count} customers for phone #{phone_number}"
-
-      # Return array for consistent behavior and efficient .count operations
-      customers_array
+      # Return ActiveRecord::Relation to preserve query chaining capabilities
+      customers
     end
 
     # Enhanced customer lookup by phone that handles format variations
