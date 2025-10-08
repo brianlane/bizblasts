@@ -134,5 +134,5 @@ gem 'googleauth', '~> 1.15'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.12'
-gem 'httparty', '~> 0.21'
+gem 'httparty', '~> 0.23'
 # gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues
