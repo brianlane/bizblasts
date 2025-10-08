@@ -693,12 +693,14 @@ module Webhooks
         customers = CustomerLinker.find_customers_by_phone_global(phone_number)
       end
 
-      Rails.logger.info "[PHONE_LOOKUP] Found #{customers.count} customers for phone #{phone_number}"
+      # Convert to array to avoid repeated SQL COUNT queries when .count is called for logging
+      # This maintains compatibility with existing calling code while improving performance
+      customers_array = customers.to_a
 
-      # Note: Phone normalization should be done separately, not during webhook processing
-      # to avoid race conditions and performance issues
-      # Return ActiveRecord::Relation for efficiency - calling code works with both arrays and relations
-      customers
+      Rails.logger.info "[PHONE_LOOKUP] Found #{customers_array.count} customers for phone #{phone_number}"
+
+      # Return array for consistent behavior and efficient .count operations
+      customers_array
     end
 
     # Enhanced customer lookup by phone that handles format variations

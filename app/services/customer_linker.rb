@@ -327,6 +327,8 @@ class CustomerLinker
   end
 
   # Class method for external use - allows global or business-scoped phone lookup
+  # WARNING: When business is nil, this performs a GLOBAL lookup across ALL businesses
+  # Only use global lookups for legitimate cross-business scenarios (e.g., SMS webhooks)
   # Reuses the phone normalization and format generation logic
   def self.find_customers_by_phone_global(phone_number, business = nil)
     # Generate all possible phone number formats (same logic as instance method)
@@ -342,9 +344,24 @@ class CustomerLinker
     ].uniq.compact
 
     # Build query - global or business-scoped
+    # When business is nil/blank, this intentionally searches across ALL businesses
+    # This is typically only appropriate for webhook processing where business context is unknown
     query = TenantCustomer.where(phone: possible_formats)
-    query = query.where(business: business) if business
+    query = query.where(business: business) if business.present?
+
+    # Log global lookups for security auditing
+    if business.blank?
+      Rails.logger.info "[SECURITY] Global customer lookup performed for phone #{phone_number} - ensure this is intentional"
+    end
+
     query
+  end
+
+  # Safer alternative that requires explicit intent for global lookups
+  # Use this when you specifically need to search across all businesses
+  def self.find_customers_by_phone_across_all_businesses(phone_number)
+    Rails.logger.info "[SECURITY] Intentional global customer lookup for phone #{phone_number}"
+    find_customers_by_phone_global(phone_number, nil)
   end
 
   # Static version of phone normalization for class method use
