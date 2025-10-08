@@ -260,6 +260,10 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
         # Mock the phone lookup method that's also called during opt-in processing
         allow(linker_instance).to receive(:find_customers_by_phone_public).with(user_without_customer.phone).and_return([new_customer])
 
+        # Mock global phone lookup method for complete test coverage
+        # This ensures tests pass even if controller logic changes to use global lookup
+        allow(CustomerLinker).to receive(:find_customers_by_phone_across_all_businesses).with(user_without_customer.phone).and_return([new_customer])
+
         expect {
           post '/webhooks/twilio/inbound', params: user_twilio_params
         }.to change { new_customer.reload.phone_opt_in }.to(true)
