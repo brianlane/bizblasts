@@ -15,6 +15,7 @@ class CustomerLinker
     # This handles cases where multiple customers exist with the same phone number
     phone_duplicates_found = false
     phone_duplicate_resolution_skipped = false
+    conflicting_user_id = nil
     if user.phone.present?
       # First, find duplicates without merging to avoid destroying data
       duplicate_customers = find_customers_by_phone(user.phone)
@@ -28,6 +29,7 @@ class CustomerLinker
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, skipping phone duplicate resolution for user #{user.id}"
           # Skip duplicate resolution - and skip individual phone linking to prevent data integrity issues
           phone_duplicate_resolution_skipped = true
+          conflicting_user_id = canonical_customer.user_id
         elsif canonical_customer.user_id == user.id
           # Already linked to this user, but still merge duplicates for data cleanup
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{user.id}, merging remaining duplicates"
@@ -149,7 +151,7 @@ class CustomerLinker
         "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
         phone: user.phone,
         business_id: @business.id,
-        existing_user_id: nil, # Unknown which specific user in duplicate scenario
+        existing_user_id: conflicting_user_id, # ID of user linked to canonical customer
         attempted_user_id: user.id
       )
     end
@@ -265,7 +267,7 @@ class CustomerLinker
         updates[:phone_opt_in] = false
         updates[:phone_opt_in_at] = nil
       end
-      # Note: If user has no explicit preference and customer has no opt-in, leave unchanged
+      # Note: If user has no explicit preference and customer has no opt-in, leave unchanged (implicit else)
     end
 
     # Sync email if different (case-insensitive). to_s ensures no nil errors.
@@ -324,7 +326,7 @@ class CustomerLinker
   # Reuses the phone normalization and format generation logic
   def self.find_customers_by_phone_global(phone_number, business = nil)
     # Generate all possible phone number formats (same logic as instance method)
-    normalized = normalize_phone_static(phone_number)
+    normalized = self.normalize_phone_static(phone_number)
     digits_only = phone_number.gsub(/\D/, '')
     without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
 

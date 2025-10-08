@@ -257,6 +257,8 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
 
         new_customer = create(:tenant_customer, business: business, phone: user_without_customer.phone)
         allow(linker_instance).to receive(:link_user_to_customer).with(user_without_customer).and_return(new_customer)
+        # Mock the phone lookup method that's also called during opt-in processing
+        allow(linker_instance).to receive(:find_customers_by_phone_public).with(user_without_customer.phone).and_return([new_customer])
 
         expect {
           post '/webhooks/twilio/inbound', params: user_twilio_params

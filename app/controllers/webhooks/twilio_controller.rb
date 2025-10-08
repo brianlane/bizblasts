@@ -684,13 +684,21 @@ module Webhooks
     def find_customers_by_phone(phone_number, business = nil)
       Rails.logger.debug "[PHONE_LOOKUP] Using CustomerLinker for phone lookup: #{phone_number}"
 
-      # Use CustomerLinker's class method for consistent phone lookup logic
-      customers = CustomerLinker.find_customers_by_phone_global(phone_number, business).to_a
+      # Use appropriate CustomerLinker method based on whether business context is provided
+      if business
+        # Use instance method when business context is available (more efficient)
+        customers = CustomerLinker.new(business).find_customers_by_phone_public(phone_number)
+      else
+        # Use class method for global searches
+        customers = CustomerLinker.find_customers_by_phone_global(phone_number)
+      end
+
       Rails.logger.info "[PHONE_LOOKUP] Found #{customers.count} customers for phone #{phone_number}"
 
       # Note: Phone normalization should be done separately, not during webhook processing
       # to avoid race conditions and performance issues
-      customers
+      # Return as array for backward compatibility with existing code
+      customers.to_a
     end
 
     # Enhanced customer lookup by phone that handles format variations

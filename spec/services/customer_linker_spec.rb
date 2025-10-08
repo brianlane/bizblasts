@@ -99,7 +99,7 @@ RSpec.describe CustomerLinker do
       it 'raises GuestConflictError' do
         expect {
           linker.find_or_create_guest_customer(email)
-        }.to raise_error(GuestConflictError, /email address is already associated with an existing account/)
+        }.to raise_error(GuestConflictError, "This email address is already associated with an existing account. Please sign in to continue, or use a different email address.")
       end
     end
 
@@ -111,7 +111,7 @@ RSpec.describe CustomerLinker do
       it 'raises GuestConflictError' do
         expect {
           linker.find_or_create_guest_customer('guest@example.com', phone: phone)
-        }.to raise_error(GuestConflictError, /phone number is already associated with an existing account/)
+        }.to raise_error(GuestConflictError, "This phone number is already associated with an existing account. Please sign in to continue, or use a different phone number.")
       end
     end
   end
