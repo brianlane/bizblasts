@@ -200,7 +200,9 @@ class CustomerLinker
   def self.find_customers_by_phone_global(phone_number, business = nil)
     # Generate all possible phone number formats consistently from normalized input
     normalized = self.normalize_phone_static(phone_number)
-    return TenantCustomer.none if normalized.blank?
+    # Return empty array for blank input to maintain consistency with instance method
+    # This ensures downstream methods like select_canonical_customer work consistently
+    return [] if normalized.blank?
 
     # Derive all format variations from the normalized phone number for consistency
     digits_only = normalized.gsub(/\D/, '')
@@ -244,6 +246,8 @@ class CustomerLinker
   def self.normalize_phone_static(phone)
     return nil if phone.blank?
     cleaned = phone.gsub(/\D/, '')
+    # Treat phone numbers with fewer than 7 digits as invalid (too short to be real phone numbers)
+    return nil if cleaned.length < 7
     cleaned = "1#{cleaned}" if cleaned.length == 10
     "+#{cleaned}"
   end
@@ -254,7 +258,9 @@ class CustomerLinker
   def find_customers_by_phone(phone_number)
     # Generate all possible phone number formats consistently from normalized input
     normalized = normalize_phone(phone_number)
-    return @business.tenant_customers.none if normalized.blank?
+    # Return empty array for blank input to maintain consistency with global method expectations
+    # This ensures downstream methods like select_canonical_customer work consistently
+    return [] if normalized.blank?
 
     # Derive all format variations from the normalized phone number for consistency
     digits_only = normalized.gsub(/\D/, '')
@@ -275,6 +281,8 @@ class CustomerLinker
   def normalize_phone(phone)
     return nil if phone.blank?
     cleaned = phone.gsub(/\D/, '')
+    # Treat phone numbers with fewer than 7 digits as invalid (too short to be real phone numbers)
+    return nil if cleaned.length < 7
     cleaned = "1#{cleaned}" if cleaned.length == 10
     "+#{cleaned}"
   end
