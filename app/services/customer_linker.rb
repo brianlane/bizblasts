@@ -53,6 +53,18 @@ class CustomerLinker
     # SECOND: Check if user already has a linked customer (after duplicate resolution)
     existing_customer = @business.tenant_customers.find_by(user_id: user.id)
     if existing_customer
+      # SECURITY: Don't allow linking if phone duplicate resolution was skipped due to conflicts
+      if phone_duplicate_resolution_skipped
+        Rails.logger.error "[CUSTOMER_LINKER] Cannot link user #{user.id} to existing customer #{existing_customer.id} - phone number conflicts with existing customer accounts (phone sharing not allowed)"
+        raise PhoneConflictError.new(
+          "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
+          phone: user.phone,
+          business_id: @business.id,
+          existing_user_id: nil, # Unknown which specific user in duplicate scenario
+          attempted_user_id: user.id
+        )
+      end
+
       # For idempotent calls, only sync basic info (not phone) to preserve data from duplicate resolution
       sync_user_data_to_customer(user, existing_customer, preserve_phone: true)
       return existing_customer
@@ -66,6 +78,18 @@ class CustomerLinker
     )
 
     if unlinked_customer
+      # SECURITY: Don't allow linking if phone duplicate resolution was skipped due to conflicts
+      if phone_duplicate_resolution_skipped
+        Rails.logger.error "[CUSTOMER_LINKER] Cannot link user #{user.id} to unlinked customer #{unlinked_customer.id} - phone number conflicts with existing customer accounts (phone sharing not allowed)"
+        raise PhoneConflictError.new(
+          "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
+          phone: user.phone,
+          business_id: @business.id,
+          existing_user_id: nil, # Unknown which specific user in duplicate scenario
+          attempted_user_id: user.id
+        )
+      end
+
       # Link the existing customer to this user
       unlinked_customer.update!(user_id: user.id)
       sync_user_data_to_customer(user, unlinked_customer)
