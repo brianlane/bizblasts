@@ -170,16 +170,27 @@ class CustomerLinker
   def resolve_all_phone_duplicates
     duplicates_resolved = 0
 
-    # Group customers by normalized phone number
-    # Filter out customers with invalid phone numbers to prevent grouping under nil key
-    phone_groups = @business.tenant_customers
-                           .where.not(phone: [nil, ''])
-                           .filter_map { |customer|
-                             normalized = normalize_phone(customer.phone)
-                             [normalized, customer] if normalized.present?
-                           }
-                           .group_by { |normalized_phone, customer| normalized_phone }
-                           .transform_values { |pairs| pairs.map { |normalized_phone, customer| customer } }
+    # Process customers in batches to avoid memory overload for large datasets
+    # Use database-level filtering to minimize records loaded into memory
+    phone_groups = {}
+
+    @business.tenant_customers
+             .where.not(phone: [nil, ''])
+             .where("LENGTH(REGEXP_REPLACE(phone, '[^0-9]', '', 'g')) >= ?", 7)
+             .find_in_batches(batch_size: 1000) do |batch|
+
+      # Group this batch by normalized phone
+      batch_groups = batch.group_by { |customer|
+        normalized = normalize_phone(customer.phone)
+        normalized.presence # Skip customers where normalization fails
+      }.reject { |normalized_phone, customers| normalized_phone.nil? }
+
+      # Merge batch groups into main phone_groups hash
+      batch_groups.each do |normalized_phone, customers|
+        phone_groups[normalized_phone] ||= []
+        phone_groups[normalized_phone].concat(customers)
+      end
+    end
 
     phone_groups.each do |normalized_phone, customers|
       next if customers.count <= 1 # No duplicates
@@ -197,8 +208,7 @@ class CustomerLinker
   # This allows other classes like TwilioController to reuse the phone lookup logic
   # Returns Array for consistent behavior with webhook processing
   def find_customers_by_phone_public(phone_number)
-    result = find_customers_by_phone(phone_number)
-    result.is_a?(Array) ? result : result.to_a
+    find_customers_by_phone(phone_number).to_a
   end
 
   # Class method for external use - allows global or business-scoped phone lookup
@@ -264,12 +274,13 @@ class CustomerLinker
   protected
 
   # Robust phone lookup that handles multiple formats in database
+  # Returns ActiveRecord::Relation for consistent chaining in internal CustomerLinker methods
   def find_customers_by_phone(phone_number)
     # Generate all possible phone number formats consistently from normalized input
     normalized = normalize_phone(phone_number)
-    # Return empty array for blank input to maintain consistency with global method expectations
+    # Return empty relation for blank input to maintain ActiveRecord::Relation type consistency
     # This ensures downstream methods like select_canonical_customer work consistently
-    return [] if normalized.blank?
+    return @business.tenant_customers.none if normalized.blank?
 
     # Derive all format variations from the normalized phone number for consistency
     digits_only = normalized.gsub(/\D/, '')
