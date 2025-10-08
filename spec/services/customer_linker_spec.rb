@@ -433,29 +433,33 @@ RSpec.describe CustomerLinker do
           expect(result_customer.phone).to be_present
         end
 
-        it 'prevents data integrity issues when canonical customer is linked to different user' do
+        it 'merges duplicates but preserves existing user linkage when canonical customer is linked to different user' do
           # Given: Canonical customer already linked to different user
           other_user = create(:user, :client, email: 'other@example.com', phone: '5551234567')
           customer_18_format.update!(user_id: other_user.id)
 
-          # When: Current user tries to link (should raise error for data integrity)
-          expect {
-            linker.link_user_to_customer(user)
-          }.to raise_error(PhoneConflictError, /phone number is already associated with another account/)
+          initial_customer_count = business.tenant_customers.where(
+            'phone IN (?)',
+            ['+16026866672', '16026866672', '6026866672']
+          ).count
 
-          # Then: Existing user link should be preserved
+          # When: Current user tries to link (should merge duplicates but create new customer for current user)
+          result_customer = linker.link_user_to_customer(user)
+
+          # Then: Duplicates should be merged (fewer customer records)
+          final_customer_count = business.tenant_customers.where(
+            'phone IN (?)',
+            ['+16026866672', '16026866672', '6026866672']
+          ).count
+          expect(final_customer_count).to be < initial_customer_count, "Expected duplicates to be merged"
+
+          # And: Existing user link should be preserved on canonical customer
           customer_18_format.reload
           expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
 
-          # And: No duplicate phone numbers should exist across different users
-          same_phone_customers = business.tenant_customers.where(
-            'phone IN (?)',
-            ['+16026866672', '16026866672', '6026866672']
-          ).where.not(user_id: nil)
-
-          user_ids = same_phone_customers.pluck(:user_id).uniq
-          expect(user_ids.count).to eq(1), "Expected only one user with phone +16026866672, but found: #{user_ids}"
-          expect(user_ids.first).to eq(other_user.id)
+          # And: Current user should get a new customer (not linked to the existing one)
+          expect(result_customer.user_id).to eq(user.id)
+          expect(result_customer.id).not_to eq(customer_18_format.id)
         end
 
 

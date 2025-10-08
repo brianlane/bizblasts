@@ -171,9 +171,15 @@ class CustomerLinker
     duplicates_resolved = 0
 
     # Group customers by normalized phone number
+    # Filter out customers with invalid phone numbers to prevent grouping under nil key
     phone_groups = @business.tenant_customers
                            .where.not(phone: [nil, ''])
-                           .group_by { |customer| normalize_phone(customer.phone) }
+                           .filter_map { |customer|
+                             normalized = normalize_phone(customer.phone)
+                             [normalized, customer] if normalized.present?
+                           }
+                           .group_by { |normalized_phone, customer| normalized_phone }
+                           .transform_values { |pairs| pairs.map { |normalized_phone, customer| customer } }
 
     phone_groups.each do |normalized_phone, customers|
       next if customers.count <= 1 # No duplicates
@@ -310,9 +316,11 @@ class CustomerLinker
 
         # Check if canonical customer is already linked to a different user
         if canonical_customer.user_id.present? && canonical_customer.user_id != user.id
-          Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, skipping phone duplicate resolution for user #{user.id}"
-          # Skip duplicate resolution - and skip individual phone linking to prevent data integrity issues
-          phone_duplicate_resolution_skipped = true
+          Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, merging duplicates but preserving existing linkage"
+          # Still merge duplicates for data integrity, but don't link to current user
+          merge_duplicate_customers(duplicate_customers)
+          # Don't set phone_duplicate_resolution_skipped since we successfully resolved duplicates
+          # Only set conflicting_user_id to indicate the canonical customer is linked elsewhere
           conflicting_user_id = canonical_customer.user_id
         elsif canonical_customer.user_id == user.id
           # Already linked to this user, but still merge duplicates for data cleanup
@@ -348,17 +356,9 @@ class CustomerLinker
     existing_customer = @business.tenant_customers.find_by(user_id: user.id)
     return nil unless existing_customer
 
-    # SECURITY: Don't allow linking if phone duplicate resolution was skipped due to conflicts
-    if phone_conflict_result[:phone_duplicate_resolution_skipped]
-      Rails.logger.error "[CUSTOMER_LINKER] Cannot link user #{user.id} to existing customer #{existing_customer.id} - phone number conflicts with existing customer accounts (phone sharing not allowed)"
-      raise PhoneConflictError.new(
-        "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
-        phone: user.phone,
-        business_id: @business.id,
-        existing_user_id: nil, # Unknown which specific user in duplicate scenario
-        attempted_user_id: user.id
-      )
-    end
+    # User should always be able to access their own existing customer account
+    # Phone conflicts only prevent NEW linkages, not accessing existing ones
+    Rails.logger.info "[CUSTOMER_LINKER] User #{user.id} accessing existing linked customer #{existing_customer.id}"
 
     # For idempotent calls, only sync basic info (not phone) to preserve data from duplicate resolution
     sync_user_data_to_customer(user, existing_customer, preserve_phone: true)
@@ -493,7 +493,9 @@ class CustomerLinker
 
     # Normalize phone number format
     if canonical_customer.phone.present?
-      canonical_customer.update_column(:phone, normalize_phone(canonical_customer.phone))
+      normalized_phone = normalize_phone(canonical_customer.phone)
+      # Only update if normalization succeeded to preserve original data for invalid phone numbers
+      canonical_customer.update_column(:phone, normalized_phone) if normalized_phone.present?
     end
 
     # Delete duplicate customers
