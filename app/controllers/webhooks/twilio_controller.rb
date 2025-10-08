@@ -698,9 +698,8 @@ module Webhooks
       # Note: Phone normalization should be done separately, not during webhook processing
       # to avoid race conditions and performance issues
 
-      # Convert to Array for consistent behavior and immediate processing in webhook context
-      # This ensures compatibility with test mocks and eliminates ActiveRecord::Relation complexity
-      customers_relation.to_a
+      # CustomerLinker methods now consistently return Arrays for webhook processing
+      customers_relation
     end
 
     # Enhanced customer lookup by phone that handles format variations

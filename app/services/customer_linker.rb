@@ -189,8 +189,10 @@ class CustomerLinker
 
   # Public interface for external classes to find customers by phone
   # This allows other classes like TwilioController to reuse the phone lookup logic
+  # Returns Array for consistent behavior with webhook processing
   def find_customers_by_phone_public(phone_number)
-    find_customers_by_phone(phone_number)
+    result = find_customers_by_phone(phone_number)
+    result.is_a?(Array) ? result : result.to_a
   end
 
   # Class method for external use - allows global or business-scoped phone lookup
@@ -226,7 +228,8 @@ class CustomerLinker
       Rails.logger.info "[SECURITY] Global customer lookup performed for phone #{phone_number} - ensure this is intentional"
     end
 
-    query
+    # Return Array for consistent type with instance method
+    query.to_a
   end
 
   # Safer alternative that requires explicit intent for global lookups
