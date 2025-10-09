@@ -48,7 +48,8 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(customer).to be_persisted
-        expect(customer.phone).to eq('123456') # Stored as-is (invalid)
+        # Bug 11 fix: Invalid phones are not stored (cleared to prevent garbage data)
+        expect(customer.phone).to be_nil
       end
 
       it 'does not query database for phone with only special characters' do
@@ -62,7 +63,8 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(customer).to be_persisted
-        expect(customer.phone).to eq('()---')
+        # Bug 11 fix: Invalid phones are not stored (cleared to prevent garbage data)
+        expect(customer.phone).to be_nil
       end
 
       it 'does not query database for whitespace-only phone' do
@@ -176,8 +178,8 @@ RSpec.describe CustomerLinker, type: :service do
         expect(guest2.id).not_to eq(guest1.id)
       end
 
-      it 'allows creating guest customer with invalid phone even if same invalid phone exists' do
-        # First guest with invalid phone
+      it 'clears invalid phones to prevent duplicate accounts with same invalid phone (Bug 11 fix)' do
+        # First guest with invalid phone - phone should be cleared
         guest1 = linker.find_or_create_guest_customer(
           'guest1@example.com',
           first_name: 'Guest',
@@ -186,9 +188,10 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(guest1).to be_persisted
-        expect(guest1.phone).to eq('123')
+        # Bug 11 fix: Invalid phones are cleared, not stored
+        expect(guest1.phone).to be_nil
 
-        # Second guest with same invalid phone (should be allowed - no query performed)
+        # Second guest with same invalid phone - also cleared
         guest2 = linker.find_or_create_guest_customer(
           'guest2@example.com',
           first_name: 'Guest',
@@ -197,7 +200,8 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(guest2).to be_persisted
-        expect(guest2.phone).to eq('123')
+        # Bug 11 fix: Invalid phones are cleared, not stored
+        expect(guest2.phone).to be_nil
         expect(guest2.id).not_to eq(guest1.id)
       end
     end

@@ -55,9 +55,24 @@ class CustomerLinker
     if customer
       # Update existing guest customer with any new attributes provided
       updates = {}
-      %i[first_name last_name phone].each do |attr|
+      %i[first_name last_name].each do |attr|
         value = customer_attributes[attr]
         updates[attr] = value if value.present? && customer.send(attr) != value
+      end
+
+      # Handle phone updates with validation (Bug 11 fix)
+      if customer_attributes[:phone].present?
+        phone_value = customer_attributes[:phone]
+        normalized_phone = normalize_phone(phone_value)
+
+        if normalized_phone.present?
+          # Valid phone - update if different
+          updates[:phone] = phone_value if customer.phone != phone_value
+        else
+          # Invalid phone - clear it and log warning (Bug 11 fix)
+          Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer update (too short or invalid format), clearing phone field: #{phone_value}"
+          updates[:phone] = nil if customer.phone.present? # Only clear if customer currently has a phone
+        end
       end
 
       # Handle phone_opt_in updates
@@ -108,6 +123,13 @@ class CustomerLinker
             existing_user_id: linked_phone_customer.user_id
           )
         end
+      else
+        # Bug 11 fix: If phone is invalid (normalization returned nil), don't store it
+        # This prevents storing garbage data and prevents duplicate accounts with same invalid phone
+        # Remove invalid phone from attributes before storing
+        Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer (too short or invalid format), clearing phone field: #{customer_attributes[:phone]}"
+        customer_attributes = customer_attributes.dup
+        customer_attributes.delete(:phone)
       end
     end
 
@@ -381,14 +403,18 @@ class CustomerLinker
           # Canonical customer is unlinked, safe to merge duplicates and link to this user
           Rails.logger.info "[CUSTOMER_LINKER] Auto-resolving phone duplicates for user #{user.id}, using canonical customer #{canonical_customer.id}"
           merged_canonical = merge_duplicate_customers(duplicate_customers)
-          merged_canonical.update!(user_id: user.id)
+
           # Note: Do NOT sync user data here - canonical customer already has the best data (normalized phone, SMS opt-in)
           # Only sync basic info if customer values are blank
-          updates = {}
+          # IMPORTANT (Bug 10 fix): Combine user_id and other updates into single atomic operation
+          # This prevents data integrity issues if second update fails after user_id is already set
+          updates = { user_id: user.id }
           updates[:first_name] = user.first_name if merged_canonical.first_name.blank? && user.first_name.present?
           updates[:last_name] = user.last_name if merged_canonical.last_name.blank? && user.last_name.present?
           updates[:email] = user.email.downcase.strip if merged_canonical.email.to_s.casecmp?(user.email.to_s) == false
-          merged_canonical.update!(updates) if updates.any?
+
+          # Single atomic update for data integrity (Bug 10 fix)
+          merged_canonical.update!(updates)
           return { customer: merged_canonical }
         end
       end

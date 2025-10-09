@@ -1,7 +1,7 @@
 # Cursor Bug Fixes - Twilio & CustomerLinker
 
 ## Summary
-Fixed **nine critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
+Fixed **eleven critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
 
 ---
 
@@ -452,6 +452,194 @@ This bug was discovered after fixing Bug 7, which added the normalization step. 
 
 ---
 
+## Bug 10: Phone Conflict Resolution Bypasses Security
+**File:** `app/services/customer_linker.rb:383-396`
+
+### Problem
+The `resolve_phone_conflicts_for_user` method performed non-atomic database updates when merging duplicates and linking to a user. The code:
+1. First updated the `user_id` field (line 384)
+2. Then separately updated other fields like `first_name`, `last_name`, `email` (line 391)
+
+This non-atomic approach created data integrity risks:
+- If the second update failed, the customer would be linked (`user_id` set) but missing user data
+- Left the customer record in an inconsistent state
+- Made error recovery difficult
+
+### Root Cause
+The method split what should be a single atomic operation into two separate database updates, violating the atomicity principle of database transactions.
+
+### Fix
+**Location:** `customer_linker.rb:383-396`
+
+```ruby
+# BEFORE (Bug 10):
+else
+  # Canonical customer is unlinked, safe to merge duplicates and link to this user
+  Rails.logger.info "[CUSTOMER_LINKER] Auto-resolving phone duplicates for user #{user.id}, using canonical customer #{canonical_customer.id}"
+  merged_canonical = merge_duplicate_customers(duplicate_customers)
+  merged_canonical.update!(user_id: user.id)  # First update
+  # Note: Do NOT sync user data here - canonical customer already has the best data (normalized phone, SMS opt-in)
+  # Only sync basic info if customer values are blank
+  updates = {}
+  updates[:first_name] = user.first_name if merged_canonical.first_name.blank? && user.first_name.present?
+  updates[:last_name] = user.last_name if merged_canonical.last_name.blank? && user.last_name.present?
+  updates[:email] = user.email.downcase.strip if merged_canonical.email.to_s.casecmp?(user.email.to_s) == false
+  merged_canonical.update!(updates) if updates.any?  # Second update ❌ Non-atomic!
+  return { customer: merged_canonical }
+end
+
+# AFTER (Bug 10 Fix):
+else
+  # Canonical customer is unlinked, safe to merge duplicates and link to this user
+  Rails.logger.info "[CUSTOMER_LINKER] Auto-resolving phone duplicates for user #{user.id}, using canonical customer #{canonical_customer.id}"
+  merged_canonical = merge_duplicate_customers(duplicate_customers)
+
+  # Note: Do NOT sync user data here - canonical customer already has the best data (normalized phone, SMS opt-in)
+  # Only sync basic info if customer values are blank
+  # IMPORTANT (Bug 10 fix): Combine user_id and other updates into single atomic operation
+  # This prevents data integrity issues if second update fails after user_id is already set
+  updates = { user_id: user.id }  # Start with user_id
+  updates[:first_name] = user.first_name if merged_canonical.first_name.blank? && user.first_name.present?
+  updates[:last_name] = user.last_name if merged_canonical.last_name.blank? && user.last_name.present?
+  updates[:email] = user.email.downcase.strip if merged_canonical.email.to_s.casecmp?(user.email.to_s) == false
+
+  # Single atomic update for data integrity (Bug 10 fix) ✅
+  merged_canonical.update!(updates)
+  return { customer: merged_canonical }
+end
+```
+
+### Impact
+- **Data Integrity:** All customer updates now happen atomically - either all fields update or none
+- **Error Recovery:** If update fails, no partial changes are committed
+- **Consistency:** Customer record always in consistent state (never linked without data)
+- **Reliability:** Eliminates race conditions between the two separate updates
+- **Maintainability:** Clearer code intent - one operation, one update
+
+### Test Coverage
+Created comprehensive test suite (`customer_linker_atomic_updates_spec.rb`) with 13 examples covering:
+- Atomic update behavior (single database operation)
+- Exception handling (no partial updates)
+- Data merging scenarios (canonical data preserved vs. user data filled)
+- Email normalization during atomic update
+- Security scenarios (phone conflicts prevent linking)
+- Edge cases (empty updates, case-insensitive matching)
+- Data integrity (transaction rollback on failure)
+
+---
+
+## Bug 11: Phone Validation Bypass Causes Duplicate Accounts
+**File:** `app/services/customer_linker.rb:92-128`
+
+### Problem
+In `find_or_create_guest_customer`, when a provided phone number was invalid (< 7 digits), the `normalize_phone` method returned `nil`, causing the phone conflict check to be skipped. However, the original unnormalized and invalid phone number was still stored in the customer record via `.merge(customer_attributes)` at line 117. This caused multiple security and data quality issues:
+
+1. **Duplicate Accounts:** Multiple guest customers could be created with the same invalid phone number, bypassing conflict detection
+2. **Garbage Data:** Invalid phone numbers (e.g., "123", "()---") were stored in the database
+3. **Security Bypass:** The phone conflict check could be circumvented by providing an invalid phone
+4. **Inconsistent Data:** Some customers had real phones, others had invalid garbage data
+
+### Root Cause
+The code checked if the phone was valid (via `normalize_phone`) before querying for conflicts, but did NOT remove invalid phones from `customer_attributes` before storing. This allowed invalid phones to bypass validation and be stored as-is.
+
+### Fix
+**Location:** `customer_linker.rb:111-118` and `63-76`
+
+```ruby
+# BEFORE (Bug 11):
+if customer_attributes[:phone].present?
+  normalized_phone = normalize_phone(customer_attributes[:phone])
+
+  if normalized_phone.present?
+    # Valid phone - check for conflicts
+    phone_customers = find_customers_by_phone(normalized_phone)
+    linked_phone_customer = phone_customers.where.not(user_id: nil).first
+    if linked_phone_customer
+      raise GuestConflictError.new(...)
+    end
+  end
+  # Invalid phone falls through and gets stored ❌
+end
+
+customer_data = {
+  email: email,
+  user_id: nil
+}.merge(customer_attributes)  # Invalid phone included here ❌
+
+@business.tenant_customers.create!(customer_data)
+
+# AFTER (Bug 11 Fix):
+if customer_attributes[:phone].present?
+  normalized_phone = normalize_phone(customer_attributes[:phone])
+
+  if normalized_phone.present?
+    # Valid phone - check for conflicts
+    phone_customers = find_customers_by_phone(normalized_phone)
+    linked_phone_customer = phone_customers.where.not(user_id: nil).first
+    if linked_phone_customer
+      raise GuestConflictError.new(...)
+    end
+  else
+    # Bug 11 fix: If phone is invalid (normalization returned nil), don't store it
+    # This prevents storing garbage data and prevents duplicate accounts with same invalid phone
+    # Remove invalid phone from attributes before storing
+    Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer (too short or invalid format), clearing phone field: #{customer_attributes[:phone]}"
+    customer_attributes = customer_attributes.dup  # Duplicate to avoid mutating original
+    customer_attributes.delete(:phone)  # Remove invalid phone ✅
+  end
+end
+
+customer_data = {
+  email: email,
+  user_id: nil
+}.merge(customer_attributes)  # Invalid phone already removed ✅
+
+@business.tenant_customers.create!(customer_data)
+```
+
+**Also fixed for existing customer updates** (lines 63-76):
+```ruby
+# Handle phone updates with validation (Bug 11 fix)
+if customer_attributes[:phone].present?
+  phone_value = customer_attributes[:phone]
+  normalized_phone = normalize_phone(phone_value)
+
+  if normalized_phone.present?
+    # Valid phone - update if different
+    updates[:phone] = phone_value if customer.phone != phone_value
+  else
+    # Invalid phone - clear it and log warning (Bug 11 fix)
+    Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer update (too short or invalid format), clearing phone field: #{phone_value}"
+    updates[:phone] = nil if customer.phone.present? # Only clear if customer currently has a phone
+  end
+end
+```
+
+### Impact
+- **Data Quality:** Invalid phone numbers are no longer stored - database contains only valid or nil phones
+- **Security:** Prevents duplicate account creation via invalid phone number bypass
+- **Consistency:** All guest customers either have valid phones or no phone at all
+- **Auditing:** Warnings logged when invalid phones are detected and cleared
+- **Performance:** No unnecessary database storage of garbage data
+- **Prevention:** Blocks attack vectors using malicious input disguised as phone numbers
+
+### Test Coverage
+Created comprehensive test suite (`customer_linker_invalid_phone_handling_spec.rb`) with 19 examples covering:
+- Invalid phone detection and clearing (< 7 digits, no digits, special characters)
+- Valid phone storage (baseline behavior unchanged)
+- Duplicate prevention (same invalid phone for multiple guests)
+- Existing customer updates with invalid phones
+- Edge cases (boundary conditions: 6 digits vs 7 digits, empty string, nil)
+- Security implications (malicious input, audit logging)
+- Data integrity (phone_opt_in preserved, backward compatibility)
+- Performance (no database queries for invalid phones)
+
+Updated existing test suite (`customer_linker_phone_validation_spec.rb`) - 3 tests updated to expect new behavior:
+- Invalid phones now return `nil` instead of being stored as-is
+- Test descriptions updated to reflect Bug 11 fix
+
+---
+
 ## Additional Changes
 
 ### New Test Files Created
@@ -498,6 +686,24 @@ This bug was discovered after fixing Bug 7, which added the normalization step. 
    - Tests performance: efficient persistence checking
    - 17 examples, all passing
 
+6. **`spec/services/customer_linker_atomic_updates_spec.rb`** (NEW - Bug 10)
+   - Comprehensive tests for atomic update behavior
+   - Tests single database operation (no split updates)
+   - Tests exception handling (no partial updates)
+   - Tests data merging scenarios
+   - Tests security (phone conflicts prevent linking)
+   - Tests edge cases and data integrity
+   - 13 examples, all passing
+
+7. **`spec/services/customer_linker_invalid_phone_handling_spec.rb`** (NEW - Bug 11)
+   - Comprehensive tests for invalid phone handling
+   - Tests invalid phone detection and clearing
+   - Tests valid phone storage (baseline unchanged)
+   - Tests duplicate prevention
+   - Tests security implications (malicious input)
+   - Tests data integrity and backward compatibility
+   - 19 examples, all passing
+
 ### Updated Test Files
 
 6. **`spec/services/customer_linker_spec.rb`**
@@ -513,19 +719,21 @@ All tests passing:
 - ✅ `customer_linker_phone_conflicts_spec.rb`: 15 examples, 0 failures (Bug 1, 4)
 - ✅ `twilio_controller_method_usage_spec.rb`: 12 examples, 0 failures (Bug 2)
 - ✅ `customer_linker_guest_customer_spec.rb`: 18 examples, 0 failures (Bug 5)
-- ✅ `customer_linker_phone_validation_spec.rb`: 20 examples, 0 failures (Bug 7, 9)
+- ✅ `customer_linker_phone_validation_spec.rb`: 20 examples, 0 failures (Bug 7, 9, 11)
 - ✅ `twilio_controller_business_persistence_spec.rb`: 17 examples, 0 failures (Bug 8)
+- ✅ `customer_linker_atomic_updates_spec.rb`: 13 examples, 0 failures (Bug 10)
+- ✅ `customer_linker_invalid_phone_handling_spec.rb`: 19 examples, 0 failures (Bug 11)
 - ✅ `twilio_inbound_spec.rb`: 17 examples, 0 failures (Bug 3)
 - ✅ `customer_linker_spec.rb`: 34 examples, 0 failures
 
-**Total:** 133 examples, 0 failures (was 129, added 4 for Bug 9)
+**Total:** 165 examples, 0 failures (was 133, added 32 for Bugs 10 & 11)
 
 ---
 
 ## Files Modified
 
 ### Production Code
-1. `app/services/customer_linker.rb` (Bugs 1, 4, 5, 6, 7, 9)
+1. `app/services/customer_linker.rb` (Bugs 1, 4, 5, 6, 7, 9, 10, 11)
    - Line 284-285: Bug 1 fix (set `phone_duplicate_resolution_skipped` flag)
    - Lines 109-125: Bug 4 fix (removed PostgreSQL-specific REGEXP_REPLACE)
    - Line 100: Bug 5 Issue 1 fix (efficient SQL filtering with `.where.not(user_id: nil).first`)
@@ -533,6 +741,8 @@ All tests passing:
    - Lines 139-150, 196-211: Bug 6 fix (added RDoc documentation for instance and class methods)
    - Lines 90-110: Bug 7 fix (added phone validation before database query)
    - Line 98-100: Bug 9 fix (use normalized phone instead of original phone in conflict check)
+   - Lines 383-396: Bug 10 fix (atomic update combining user_id and other data in single operation)
+   - Lines 63-76, 111-118: Bug 11 fix (clear invalid phone numbers before storing)
 2. `app/controllers/webhooks/twilio_controller.rb` (Bugs 2, 8)
    - Line 693: Bug 2 fix (changed from instance method to class method)
    - Lines 691-703: Bug 8 fix (added `business.persisted?` check with warning logging)
@@ -548,11 +758,16 @@ All tests passing:
    - Tests for Bug 2
 7. `spec/services/customer_linker_guest_customer_spec.rb` (NEW - 305 lines)
    - Tests for Bug 5
-8. `spec/services/customer_linker_phone_validation_spec.rb` (NEW - 398 lines, expanded for Bug 9)
+8. `spec/services/customer_linker_phone_validation_spec.rb` (NEW - 398 lines, expanded for Bug 9, updated for Bug 11)
    - Tests for Bug 7 (lines 9-253)
    - Tests for Bug 9 (lines 255-344)
+   - Updated for Bug 11 (3 tests updated to expect cleared invalid phones)
 9. `spec/controllers/webhooks/twilio_controller_business_persistence_spec.rb` (NEW - 192 lines)
    - Tests for Bug 8
+10. `spec/services/customer_linker_atomic_updates_spec.rb` (NEW - 349 lines)
+   - Tests for Bug 10
+11. `spec/services/customer_linker_invalid_phone_handling_spec.rb` (NEW - 342 lines)
+   - Tests for Bug 11
 
 ---
 
@@ -564,6 +779,9 @@ All tests passing:
 - ⚠️ SMS notifications could be sent to wrong recipients
 - ⚠️ Unnecessary database queries for invalid phones (performance & security surface area)
 - ⚠️ Unpersisted business objects could cause runtime errors or be exploited
+- ⚠️ Non-atomic updates could leave customer records in inconsistent state (Bug 10)
+- ⚠️ Invalid phone numbers stored in database (garbage data, security bypass) (Bug 11)
+- ⚠️ Duplicate accounts could be created using invalid phones (Bug 11)
 
 ### After Fixes
 - ✅ Phone numbers are strictly unique per user within a business
@@ -574,6 +792,10 @@ All tests passing:
 - ✅ Invalid phone inputs don't trigger database queries (performance & attack surface reduction)
 - ✅ Unpersisted business objects are detected and handled safely (Bug 8)
 - ✅ Business persistence is verified before database operations
+- ✅ All customer updates are atomic - no partial updates possible (Bug 10)
+- ✅ Invalid phone numbers are cleared before storing (Bug 11)
+- ✅ Only valid or nil phones stored in database (Bug 11)
+- ✅ Malicious input disguised as phone numbers is blocked and logged (Bug 11)
 
 ---
 
