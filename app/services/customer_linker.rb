@@ -171,18 +171,18 @@ class CustomerLinker
     duplicates_resolved = 0
 
     # Process customers in batches to avoid memory overload for large datasets
-    # Use database-level filtering to minimize records loaded into memory
+    # Database-portable approach: filter valid phones in Ruby after loading
     phone_groups = {}
 
     @business.tenant_customers
              .where.not(phone: [nil, ''])
-             .where("LENGTH(REGEXP_REPLACE(phone, '[^0-9]', '', 'g')) >= ?", 7)
              .find_in_batches(batch_size: 1000) do |batch|
 
       # Group this batch by normalized phone
+      # Ruby-level normalization handles validity checks (length >= 7) for database portability
       batch_groups = batch.group_by { |customer|
         normalized = normalize_phone(customer.phone)
-        normalized.presence # Skip customers where normalization fails
+        normalized.presence # Skip customers where normalization fails (nil for invalid phones)
       }.reject { |normalized_phone, customers| normalized_phone.nil? }
 
       # Merge batch groups into main phone_groups hash

@@ -1,7 +1,7 @@
 # Cursor Bug Fixes - Twilio & CustomerLinker
 
 ## Summary
-Fixed three critical bugs identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, and runtime errors.
+Fixed **four critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, and database portability problems.
 
 ---
 
@@ -90,6 +90,45 @@ allow(CustomerLinker).to receive(:find_customers_by_phone_public).with(user_with
 - **Test Accuracy:** Tests now correctly reflect the actual implementation
 - **Maintainability:** Prevents false positives and ensures tests catch real issues
 - **Documentation:** Tests serve as accurate documentation of the API
+
+---
+
+## Bug 4: Database Portability Issue with REGEXP_REPLACE
+**File:** `app/services/customer_linker.rb:179`
+
+### Problem
+The `resolve_all_phone_duplicates` method used PostgreSQL-specific syntax `REGEXP_REPLACE(phone, '[^0-9]', '', 'g')` with the 'g' flag in its WHERE clause. This would cause runtime errors on MySQL, SQLite, or other databases, breaking database portability.
+
+### Root Cause
+Attempting to filter phone numbers by digit count at the database level using PostgreSQL-specific regex functions instead of using database-agnostic approaches.
+
+### Fix
+**Location:** `customer_linker.rb:177-186`
+
+```ruby
+# BEFORE:
+@business.tenant_customers
+         .where.not(phone: [nil, ''])
+         .where("LENGTH(REGEXP_REPLACE(phone, '[^0-9]', '', 'g')) >= ?", 7)  # PostgreSQL-specific!
+         .find_in_batches(batch_size: 1000) do |batch|
+
+# AFTER:
+@business.tenant_customers
+         .where.not(phone: [nil, ''])
+         .find_in_batches(batch_size: 1000) do |batch|
+  # Group this batch by normalized phone
+  # Ruby-level normalization handles validity checks (length >= 7) for database portability
+  batch_groups = batch.group_by { |customer|
+    normalized = normalize_phone(customer.phone)
+    normalized.presence # Skip customers where normalization fails (nil for invalid phones)
+  }.reject { |normalized_phone, customers| normalized_phone.nil? }
+```
+
+### Impact
+- **Database Portability:** Code now works on PostgreSQL, MySQL, SQLite, and any ActiveRecord-supported database
+- **Maintainability:** Reduces database-specific code and centralizes phone validation in Ruby
+- **Performance:** Minimal impact - validation already happened in Ruby during batch processing
+- **Reliability:** Prevents runtime errors when switching databases or running tests with different database engines
 
 ---
 
