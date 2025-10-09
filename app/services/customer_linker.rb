@@ -405,26 +405,30 @@ class CustomerLinker
       Rails.logger.info "[CUSTOMER_LINKER] No duplicates to merge. duplicate_customers: #{result[:duplicate_customers]&.count}, canonical_customer: #{result[:canonical_customer]&.id}"
     end
 
-      if result[:canonical_customer].user_id == user.id
+    # Handle linking logic if we have a canonical customer
+    if result[:canonical_customer]
+      canonical = result[:canonical_customer]
+      if canonical.user_id == user.id
         # Already linked to this user, return the merged canonical customer
-        return { customer: merged_canonical }
-      elsif result[:canonical_customer].user_id.nil?
+        return { customer: merged_canonical || canonical }
+      elsif canonical.user_id.nil?
         # Canonical customer is unlinked, link to user and update fields
+        customer_to_update = merged_canonical || canonical
 
         # IMPORTANT (Bug 10 fix): Combine user_id and other updates into single atomic operation
         updates = { user_id: user.id }
-        updates[:first_name] = user.first_name if merged_canonical.first_name.blank? && user.first_name.present?
-        updates[:last_name] = user.last_name if merged_canonical.last_name.blank? && user.last_name.present?
-        updates[:email] = user.email.downcase.strip if merged_canonical.email.to_s.casecmp?(user.email.to_s) == false
+        updates[:first_name] = user.first_name if customer_to_update.first_name.blank? && user.first_name.present?
+        updates[:last_name] = user.last_name if customer_to_update.last_name.blank? && user.last_name.present?
+        updates[:email] = user.email.downcase.strip if customer_to_update.email.to_s.casecmp?(user.email.to_s) == false
 
-        merged_canonical.update!(updates)
-        return { customer: merged_canonical }
+        customer_to_update.update!(updates)
+        return { customer: customer_to_update }
       else
         # Canonical already linked to different user. Merge happened above.
         # The merge is complete, but don't return customer to allow error to be raised later
-        canonical_customer = result[:canonical_customer]
-        Rails.logger.info "[CUSTOMER_LINKER] Phone conflict found: canonical customer #{canonical_customer.id} linked to different user #{canonical_customer.user_id}. Merge performed."
+        Rails.logger.info "[CUSTOMER_LINKER] Phone conflict found: canonical customer #{canonical.id} linked to different user #{canonical.user_id}. Merge performed."
       end
+    end
 
     # Return original result (now without :canonical_customer and :duplicate_customers, but possibly with conflict flags)
     # The conflict flags will be used in later steps (Step 6) to raise the final error,

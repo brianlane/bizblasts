@@ -16,13 +16,16 @@ class CustomerConflictResolver
     conflicting_user_id = nil
 
     if user.phone.present?
-      # First, find duplicates without merging to avoid destroying data
+      # First, find customers with same phone without merging to avoid destroying data
       # Use send to access protected method
-      duplicate_customers = customer_finder.send(:find_customers_by_phone, user.phone)
-      if duplicate_customers.count > 1
-        phone_duplicates_found = true
-        # Select canonical customer without merging yet
-        canonical_customer = CustomerMerger.select_canonical_customer(duplicate_customers)
+      customers_with_phone = customer_finder.send(:find_customers_by_phone, user.phone)
+      if customers_with_phone.count > 0
+        # Select canonical customer from all customers with this phone
+        canonical_customer = CustomerMerger.select_canonical_customer(customers_with_phone)
+
+        if customers_with_phone.count > 1
+          phone_duplicates_found = true
+        end
 
         # Check if canonical customer is already linked to a different user
         if canonical_customer.user_id.present? && canonical_customer.user_id != user.id
@@ -30,13 +33,13 @@ class CustomerConflictResolver
           # CRITICAL: Set phone_duplicate_resolution_skipped to prevent linking/creating customers with conflicting phones
           phone_duplicate_resolution_skipped = true
           conflicting_user_id = canonical_customer.user_id
-          # Return conflict result but still include duplicate info for merging
+          # Return conflict result but still include customer info for potential merging
           return {
             phone_duplicates_found: phone_duplicates_found,
             phone_duplicate_resolution_skipped: phone_duplicate_resolution_skipped,
             conflicting_user_id: conflicting_user_id,
             canonical_customer: canonical_customer,
-            duplicate_customers: duplicate_customers
+            duplicate_customers: phone_duplicates_found ? customers_with_phone : nil
           }
         elsif canonical_customer.user_id == user.id
           # Already linked to this user
@@ -46,17 +49,17 @@ class CustomerConflictResolver
             phone_duplicate_resolution_skipped: phone_duplicate_resolution_skipped,
             conflicting_user_id: conflicting_user_id,
             canonical_customer: canonical_customer,
-            duplicate_customers: duplicate_customers
+            duplicate_customers: phone_duplicates_found ? customers_with_phone : nil
           }
         else
-          # Canonical customer is unlinked, safe to merge
-          Rails.logger.info "[CONFLICT_RESOLVER] Canonical customer #{canonical_customer.id} is unlinked, can proceed with merge and link"
+          # Canonical customer is unlinked, safe to link
+          Rails.logger.info "[CONFLICT_RESOLVER] Canonical customer #{canonical_customer.id} is unlinked, can proceed with link"
           return {
             phone_duplicates_found: phone_duplicates_found,
             phone_duplicate_resolution_skipped: phone_duplicate_resolution_skipped,
             conflicting_user_id: conflicting_user_id,
             canonical_customer: canonical_customer,
-            duplicate_customers: duplicate_customers
+            duplicate_customers: phone_duplicates_found ? customers_with_phone : nil
           }
         end
       end
