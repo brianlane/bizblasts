@@ -7,6 +7,7 @@ class Public::SubscriptionsController < Public::BaseController
   before_action :set_product_or_service, except: [:confirmation]
   before_action :ensure_subscriptions_enabled, except: [:confirmation]
 
+
   # GET /subscriptions/new
   def new
     @customer_subscription = current_business.customer_subscriptions.build
@@ -53,6 +54,13 @@ class Public::SubscriptionsController < Public::BaseController
       return
     end
     
+    # Ensure business is persisted before creating subscription
+    unless current_business&.persisted?
+      Rails.logger.error "[SUBSCRIPTION] Cannot create subscription for unpersisted business"
+      flash[:alert] = "Unable to create subscription. Please try again."
+      redirect_to new_tenant_subscription_path and return
+    end
+
     # Build subscription data for Stripe
     subscription_data = build_subscription_data(@tenant_customer)
     
@@ -161,6 +169,15 @@ class Public::SubscriptionsController < Public::BaseController
       begin
         linker = CustomerLinker.new(current_business)
         linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        # Fallback to build new customer for form display
+        current_business.tenant_customers.build(
+          first_name: current_user.first_name,
+          last_name: current_user.last_name,
+          email: current_user.email,
+          phone: current_user.phone
+        )
       rescue StandardError => e
         Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker error for user #{current_user.id}: #{e.message}"
         # Fallback to build new customer for form display
@@ -183,6 +200,9 @@ class Public::SubscriptionsController < Public::BaseController
       begin
         linker = CustomerLinker.new(current_business)
         linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        return nil
       rescue EmailConflictError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
         return nil
@@ -205,6 +225,12 @@ class Public::SubscriptionsController < Public::BaseController
 
         # Return customer if created successfully, nil otherwise
         customer&.persisted? ? customer : nil
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for guest: #{e.message}"
+        return nil
+      rescue GuestConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker guest conflict for guest: #{e.message}"
+        return nil
       rescue StandardError => e
         Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for guest: #{e.message}"
         return nil

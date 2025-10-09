@@ -1,5 +1,6 @@
 class SmsService
   # This service handles sending SMS messages using Twilio
+
   
   def self.send_message(phone_number, message, options = {})
     # Early return if SMS is globally disabled
@@ -800,11 +801,18 @@ class SmsService
       return { success: false, error: "Failed to render SMS template" }
     end
 
+    # Use the customer's business_id if the provided business is not persisted
+    business_id = if business&.persisted?
+      business.id
+    else
+      customer.business_id
+    end
+
     send_message_with_rate_limit(
       customer.phone,
       message,
       {
-        business_id: business.id,
+        business_id: business_id,
         tenant_customer_id: customer.id,
         message_type: 'review_request'
       }
@@ -955,7 +963,7 @@ class SmsService
 
     # Business feature flag check
     unless business.sms_auto_invitations_enabled?
-      Rails.logger.debug "[SMS_INVITATION] Auto-invitations disabled for business #{business.id}"
+      Rails.logger.debug "[SMS_INVITATION] Auto-invitations disabled for business #{business&.safe_identifier_for_logging}"
       return false
     end
 
@@ -967,7 +975,7 @@ class SmsService
 
     # Business must be able to send SMS
     unless business.can_send_sms?
-      Rails.logger.debug "[SMS_INVITATION] Business #{business.id} cannot send SMS"
+      Rails.logger.debug "[SMS_INVITATION] Business #{business&.safe_identifier_for_logging} cannot send SMS"
       return false
     end
 
@@ -979,13 +987,13 @@ class SmsService
 
     # Customer must not be opted out from this business
     if customer.opted_out_from_business?(business)
-      Rails.logger.debug "[SMS_INVITATION] Customer #{customer.id} opted out from business #{business.id}"
+      Rails.logger.debug "[SMS_INVITATION] Customer #{customer.id} opted out from business #{business&.safe_identifier_for_logging}"
       return false
     end
 
     # Must not have sent invitation recently (30-day rule)
     unless customer.can_receive_invitation_from?(business)
-      Rails.logger.debug "[SMS_INVITATION] Recent invitation already sent to customer #{customer.id} for business #{business.id}"
+      Rails.logger.debug "[SMS_INVITATION] Recent invitation already sent to customer #{customer.id} for business #{business&.safe_identifier_for_logging}"
       return false
     end
 
@@ -1000,7 +1008,7 @@ class SmsService
 
   # Send an opt-in invitation to the customer
   def self.send_opt_in_invitation(customer, business, context)
-    Rails.logger.info "[SMS_INVITATION] Sending invitation to customer #{customer.id} for business #{business.id} (#{context})"
+    Rails.logger.info "[SMS_INVITATION] Sending invitation to customer #{customer.id} for business #{business&.safe_identifier_for_logging} (#{context})"
 
     # Create invitation record
     invitation = SmsOptInInvitation.create!(
@@ -1015,8 +1023,15 @@ class SmsService
     message = generate_invitation_message(business, context)
 
     # Send the invitation SMS (bypass rate limiting for invitations)
+    # Use the customer's business_id if the provided business is not persisted
+    business_id = if business&.persisted?
+      business.id
+    else
+      customer.business_id
+    end
+
     result = send_message(customer.phone, message, {
-      business_id: business.id,
+      business_id: business_id,
       tenant_customer_id: customer.id
     })
 
