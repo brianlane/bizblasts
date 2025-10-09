@@ -102,6 +102,10 @@ class CustomerLinker
       )
     end
 
+    # Initialize filtered attributes to original customer attributes
+    # This ensures filtered_attributes is always defined to prevent NameError
+    filtered_attributes = customer_attributes
+
     # Check if phone belongs to an existing linked customer
     # IMPORTANT: Validate phone is actually valid before querying (Bug 7 fix)
     # This prevents unnecessary database queries for blank/invalid phone numbers
@@ -134,8 +138,8 @@ class CustomerLinker
       end
     end
 
-    # Use filtered attributes if phone was invalid, otherwise use original attributes
-    attributes_to_merge = filtered_attributes || customer_attributes
+    # Use filtered attributes (already initialized to customer_attributes above)
+    attributes_to_merge = filtered_attributes
 
     customer_data = {
       email: email,

@@ -2,6 +2,12 @@
 
 # Simple test to verify the filtered_attributes bug fix
 
+class Hash
+  def except(*keys)
+    dup.tap { |hash| keys.each { |key| hash.delete(key) } }
+  end
+end
+
 puts "Testing filtered_attributes bug fix..."
 
 # Simulate the scenario that would cause NameError before the fix
@@ -21,11 +27,11 @@ def test_filtered_attributes_bug_fix
   filtered_attributes = customer_attributes
 
   # Simulate the phone validation logic
-  if customer_attributes[:phone].present?
+  if !customer_attributes[:phone].nil? && !customer_attributes[:phone].empty?
     # Simulate normalize_phone returning a valid normalized phone
     normalized_phone = '+16026866672' # Valid phone, so normalize_phone would return this
 
-    if normalized_phone.present?
+    if !normalized_phone.nil? && !normalized_phone.empty?
       # Valid phone case - filtered_attributes remains as customer_attributes
       puts "✓ Valid phone case: filtered_attributes is defined"
     else
@@ -60,10 +66,10 @@ def test_filtered_attributes_bug_fix
 
   filtered_attributes = customer_attributes_invalid
 
-  if customer_attributes_invalid[:phone].present?
+  if !customer_attributes_invalid[:phone].nil? && !customer_attributes_invalid[:phone].empty?
     normalized_phone = nil # Simulate invalid phone (normalize_phone returns nil)
 
-    if normalized_phone.present?
+    if !normalized_phone.nil? && !normalized_phone.empty?
       # This won't execute for invalid phone
     else
       # Invalid phone case - modify filtered_attributes
