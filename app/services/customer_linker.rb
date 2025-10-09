@@ -87,17 +87,25 @@ class CustomerLinker
     end
 
     # Check if phone belongs to an existing linked customer
+    # IMPORTANT: Validate phone is actually valid before querying (Bug 7 fix)
+    # This prevents unnecessary database queries for blank/invalid phone numbers
     if customer_attributes[:phone].present?
-      phone_customers = find_customers_by_phone(customer_attributes[:phone])
-      # Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
-      linked_phone_customer = phone_customers.where.not(user_id: nil).first
-      if linked_phone_customer
-        raise GuestConflictError.new(
-          "This phone number is already associated with an existing account. Please sign in to continue, or use a different phone number.",
-          phone: customer_attributes[:phone],
-          business_id: @business.id,
-          existing_user_id: linked_phone_customer.user_id
-        )
+      normalized_phone = normalize_phone(customer_attributes[:phone])
+
+      # Only check for conflicts if phone is valid (normalize_phone returns non-nil)
+      # Invalid phones (< 7 digits) will be nil and skip this check
+      if normalized_phone.present?
+        phone_customers = find_customers_by_phone(customer_attributes[:phone])
+        # Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
+        linked_phone_customer = phone_customers.where.not(user_id: nil).first
+        if linked_phone_customer
+          raise GuestConflictError.new(
+            "This phone number is already associated with an existing account. Please sign in to continue, or use a different phone number.",
+            phone: customer_attributes[:phone],
+            business_id: @business.id,
+            existing_user_id: linked_phone_customer.user_id
+          )
+        end
       end
     end
 

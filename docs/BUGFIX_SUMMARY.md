@@ -1,7 +1,7 @@
 # Cursor Bug Fixes - Twilio & CustomerLinker
 
 ## Summary
-Fixed **five critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
+Fixed **seven critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
 
 ---
 
@@ -198,6 +198,128 @@ The `GuestConflictError` exceptions are **intentional security features**, not b
 
 ---
 
+## Bug 6: Ambiguous Method Naming Causes Confusion
+**File:** `app/services/customer_linker.rb:218-229, 275-290`
+
+### Problem
+CustomerLinker has both an instance method and a class method with the same name `find_customers_by_phone_public` but different arities (1 parameter vs 2 parameters). While technically valid Ruby (different arities prevent NoMethodError), this creates confusion about which method to call and when.
+
+### Root Cause
+The service class evolved to support both instance-based operations (when you have a CustomerLinker instance with business context) and class-method lookups (when calling from controllers). Both methods ended up with the same name, leading to ambiguity.
+
+### Fix
+**Location:** `customer_linker.rb:218-229, 275-290`
+
+Added comprehensive RDoc documentation to both methods:
+
+```ruby
+# Instance method: Find customers by phone within the business scope set during initialization
+#
+# Use this when you have a CustomerLinker instance already (e.g., in tests or internal methods)
+# Returns Array for consistent behavior with webhook processing
+#
+# @param phone_number [String] The phone number to search for
+# @return [Array<TenantCustomer>] Customers matching the phone number in this business
+# @note This method is scoped to @business. For external callers, prefer the class method.
+# @see .find_customers_by_phone_public for the class method version
+def find_customers_by_phone_public(phone_number)
+  find_customers_by_phone(phone_number).to_a
+end
+
+# Class method: Find customers by phone for a specific business (preferred for external callers)
+#
+# Use this when calling from controllers or other services without a CustomerLinker instance.
+# This is the RECOMMENDED method for external callers.
+#
+# @param phone_number [String] The phone number to search for
+# @param business [Business] The business to scope the search to
+# @return [Array<TenantCustomer>] Customers matching the phone number in the specified business
+# @note This is the class method version. There is also an instance method with the same name
+#   but different arity (1 parameter vs 2). Use this class method for external calls.
+# @see #find_customers_by_phone_public for the instance method version
+# @example
+#   CustomerLinker.find_customers_by_phone_public('+16026866672', current_business)
+def self.find_customers_by_phone_public(phone_number, business)
+  find_customers_by_phone_global(phone_number, business)
+end
+```
+
+### Impact
+- **Clarity:** Clear documentation explains when to use each method
+- **Discoverability:** Developers can easily find the right method through RDoc
+- **Maintainability:** Cross-references (@see) link instance and class methods
+- **No Breaking Changes:** Existing code continues to work - this is purely documentation
+- **Prevention:** Future developers won't be confused by the dual-method pattern
+
+### Note
+This is NOT a runtime bug (different arities prevent NoMethodError), but it's valid design feedback that improves code maintainability and reduces confusion.
+
+---
+
+## Bug 7: Phone Validation Bypass in Guest Customer Creation
+**File:** `app/services/customer_linker.rb:90-94`
+
+### Problem
+The `find_or_create_guest_customer` method's phone conflict check calls `find_customers_by_phone` even with blank or invalid phone numbers. This leads to:
+1. **Unnecessary Database Queries:** Invalid phones (< 7 digits) trigger database lookups that will always return empty results
+2. **Code Inefficiency:** The `normalize_phone` method returns `nil` for invalid phones, but we're not checking this before the database query
+3. **Chaining Risk:** Potential issues when chaining `.where.not(...).first` onto an empty relation
+
+### Root Cause
+The code checks `customer_attributes[:phone].present?` but this only verifies the phone is not blank - it doesn't validate that the phone is actually valid (7+ digits). The validation happens inside `find_customers_by_phone`, but by then we've already committed to the database query.
+
+### Fix
+**Location:** `customer_linker.rb:90-110`
+
+```ruby
+# BEFORE:
+# Check if phone belongs to an existing linked customer
+if customer_attributes[:phone].present?
+  phone_customers = find_customers_by_phone(customer_attributes[:phone])
+  # Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
+  linked_phone_customer = phone_customers.where.not(user_id: nil).first
+  if linked_phone_customer
+    raise GuestConflictError.new(...)
+  end
+end
+
+# AFTER:
+# Check if phone belongs to an existing linked customer
+# IMPORTANT: Validate phone is actually valid before querying (Bug 7 fix)
+# This prevents unnecessary database queries for blank/invalid phone numbers
+if customer_attributes[:phone].present?
+  normalized_phone = normalize_phone(customer_attributes[:phone])
+
+  # Only check for conflicts if phone is valid (normalize_phone returns non-nil)
+  # Invalid phones (< 7 digits) will be nil and skip this check
+  if normalized_phone.present?
+    phone_customers = find_customers_by_phone(customer_attributes[:phone])
+    # Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
+    linked_phone_customer = phone_customers.where.not(user_id: nil).first
+    if linked_phone_customer
+      raise GuestConflictError.new(...)
+    end
+  end
+end
+```
+
+### Impact
+- **Performance:** Prevents unnecessary database queries for invalid phone numbers
+- **Efficiency:** Short-circuits the phone lookup for phones with < 7 digits
+- **Correctness:** Ensures we only query for phones that could actually match
+- **Validation:** Centralizes phone validation logic before database access
+- **Guest Checkout:** Invalid phones are still stored (backward compatible) but don't trigger queries
+
+### Test Coverage
+Created comprehensive test suite (`customer_linker_phone_validation_spec.rb`) with 16 examples covering:
+- Invalid phones: blank, nil, < 7 digits, whitespace-only, special characters
+- Valid phones: 7 digits, 10 digits, international format, formatted
+- Performance: Ensures no phone lookup queries for invalid phones
+- Security: Ensures conflict detection still works for valid phones
+- Edge cases: Missing phone attribute, formatting variations
+
+---
+
 ## Additional Changes
 
 ### New Test Files Created
@@ -223,9 +345,18 @@ The `GuestConflictError` exceptions are **intentional security features**, not b
    - Tests edge cases and validation
    - 18 examples, all passing
 
+4. **`spec/services/customer_linker_phone_validation_spec.rb`** (NEW - Bug 7)
+   - Comprehensive tests for phone validation bypass fix
+   - Tests that invalid phones don't trigger database queries
+   - Tests that valid phones DO trigger appropriate conflict checks
+   - Tests performance optimization (no queries for invalid phones)
+   - Tests phone uniqueness for guest customers
+   - Tests edge cases: blank, nil, whitespace, special characters, formatted phones
+   - 16 examples, all passing
+
 ### Updated Test Files
 
-4. **`spec/services/customer_linker_spec.rb`**
+5. **`spec/services/customer_linker_spec.rb`**
    - Updated test expectations to match the new secure behavior
    - Changed test "merges duplicates but preserves existing user linkage when canonical customer is linked to different user" to expect `PhoneConflictError`
    - This reflects the CORRECT behavior after the bug fix
@@ -238,21 +369,24 @@ All tests passing:
 - ✅ `customer_linker_phone_conflicts_spec.rb`: 15 examples, 0 failures
 - ✅ `twilio_controller_method_usage_spec.rb`: 12 examples, 0 failures
 - ✅ `customer_linker_guest_customer_spec.rb`: 18 examples, 0 failures
+- ✅ `customer_linker_phone_validation_spec.rb`: 16 examples, 0 failures (Bug 7)
 - ✅ `twilio_inbound_spec.rb`: 17 examples, 0 failures
 - ✅ `customer_linker_spec.rb`: 34 examples, 0 failures
 
-**Total:** 96 examples, 0 failures
+**Total:** 102 examples, 0 failures
 
 ---
 
 ## Files Modified
 
 ### Production Code
-1. `app/services/customer_linker.rb` (Bugs 1, 4, 5)
-   - Line 335: Bug 1 fix (set `phone_duplicate_resolution_skipped` flag)
-   - Lines 177-186: Bug 4 fix (removed PostgreSQL-specific REGEXP_REPLACE)
-   - Line 83: Bug 5 Issue 1 fix (efficient SQL filtering)
-   - Lines 40-50: Bug 5 Issue 2 fix (added documentation)
+1. `app/services/customer_linker.rb` (Bugs 1, 4, 5, 6, 7)
+   - Line 284-285: Bug 1 fix (set `phone_duplicate_resolution_skipped` flag)
+   - Lines 109-125: Bug 4 fix (removed PostgreSQL-specific REGEXP_REPLACE)
+   - Line 100: Bug 5 Issue 1 fix (efficient SQL filtering with `.where.not(user_id: nil).first`)
+   - Lines 40-50: Bug 5 Issue 2 fix (added comprehensive RDoc documentation)
+   - Lines 139-150, 196-211: Bug 6 fix (added RDoc documentation for instance and class methods)
+   - Lines 90-110: Bug 7 fix (added phone validation before database query)
 2. `app/controllers/webhooks/twilio_controller.rb` (Bug 2)
    - Line 691: Changed from instance method to class method
 
@@ -267,6 +401,8 @@ All tests passing:
    - Tests for Bug 2
 7. `spec/services/customer_linker_guest_customer_spec.rb` (NEW - 305 lines)
    - Tests for Bug 5
+8. `spec/services/customer_linker_phone_validation_spec.rb` (NEW - 276 lines)
+   - Tests for Bug 7
 
 ---
 
@@ -276,12 +412,15 @@ All tests passing:
 - ⚠️ Users could share phone numbers across accounts (data privacy violation)
 - ⚠️ Phone uniqueness constraints were not enforced
 - ⚠️ SMS notifications could be sent to wrong recipients
+- ⚠️ Unnecessary database queries for invalid phones (performance & security surface area)
 
 ### After Fixes
 - ✅ Phone numbers are strictly unique per user within a business
 - ✅ `PhoneConflictError` is raised when attempting to use a phone number linked to a different user
 - ✅ Clear error messages guide users to resolve conflicts
 - ✅ Data integrity maintained while merging duplicates
+- ✅ Phone validation happens before database access (Bug 7)
+- ✅ Invalid phone inputs don't trigger database queries (performance & attack surface reduction)
 
 ---
 
