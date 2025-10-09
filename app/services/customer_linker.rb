@@ -127,16 +127,20 @@ class CustomerLinker
       else
         # Bug 11 fix: If phone is invalid (normalization returned nil), don't store it
         # This prevents storing garbage data and prevents duplicate accounts with same invalid phone
-        # Remove invalid phone from attributes before storing
+        # Filter out invalid phone from customer data instead of mutating caller's hash
         Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer (too short or invalid format), clearing phone field: #{customer_attributes[:phone]}"
-        customer_attributes.delete(:phone)
+        # Create filtered attributes without the invalid phone
+        filtered_attributes = customer_attributes.except(:phone)
       end
     end
+
+    # Use filtered attributes if phone was invalid, otherwise use original attributes
+    attributes_to_merge = filtered_attributes || customer_attributes
 
     customer_data = {
       email: email,
       user_id: nil
-    }.merge(customer_attributes)
+    }.merge(attributes_to_merge)
 
     # Set phone_opt_in_at if phone_opt_in is true
     if customer_data[:phone_opt_in] == true || customer_data[:phone_opt_in] == "true"
@@ -378,19 +382,33 @@ class CustomerLinker
     result = conflict_resolver.resolve_phone_conflicts_for_user(user, customer_finder: self)
 
     # Handle scenarios where merging and linking should happen
+    Rails.logger.info "[CUSTOMER_LINKER] Checking for duplicates to merge. Result keys: #{result.keys}"
     if result[:duplicate_customers] && result[:canonical_customer]
       canonical = result[:canonical_customer]
       duplicates = result[:duplicate_customers]
 
+      Rails.logger.info "[CUSTOMER_LINKER] Found #{duplicates.count} duplicates for canonical customer #{canonical.id}"
+
       # IMPORTANT FIX: Merge duplicates first for data integrity, regardless of the linking outcome.
       # This addresses the failing test case where duplicates must be consolidated even if a
       # conflict prevents linking.
-      merged_canonical = merge_duplicate_customers(duplicates)
+      Rails.logger.info "[CUSTOMER_LINKER] Merging #{duplicates.count} duplicate customers for user #{user.id}"
+      begin
+        merged_canonical = merge_duplicate_customers(duplicates)
+        Rails.logger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_canonical.phone}"
+      rescue => e
+        Rails.logger.error "[CUSTOMER_LINKER] Failed to merge duplicate customers: #{e.message}"
+        Rails.logger.error "[CUSTOMER_LINKER] Duplicate customer IDs: #{duplicates.map(&:id)}"
+        raise e
+      end
+    else
+      Rails.logger.info "[CUSTOMER_LINKER] No duplicates to merge. duplicate_customers: #{result[:duplicate_customers]&.count}, canonical_customer: #{result[:canonical_customer]&.id}"
+    end
 
-      if canonical.user_id == user.id
+      if result[:canonical_customer].user_id == user.id
         # Already linked to this user, return the merged canonical customer
         return { customer: merged_canonical }
-      elsif canonical.user_id.nil?
+      elsif result[:canonical_customer].user_id.nil?
         # Canonical customer is unlinked, link to user and update fields
 
         # IMPORTANT (Bug 10 fix): Combine user_id and other updates into single atomic operation
@@ -403,11 +421,10 @@ class CustomerLinker
         return { customer: merged_canonical }
       else
         # Canonical already linked to different user. Merge happened above.
-        # Now, return the conflict flag/result for the subsequent steps to raise the error,
-        # but the essential merge is now complete.
-        Rails.logger.info "[CUSTOMER_LINKER] Phone conflict found: canonical customer #{canonical.id} linked to different user #{canonical.user_id}. Merge performed."
+        # The merge is complete, but don't return customer to allow error to be raised later
+        canonical_customer = result[:canonical_customer]
+        Rails.logger.info "[CUSTOMER_LINKER] Phone conflict found: canonical customer #{canonical_customer.id} linked to different user #{canonical_customer.user_id}. Merge performed."
       end
-    end
 
     # Return original result (now without :canonical_customer and :duplicate_customers, but possibly with conflict flags)
     # The conflict flags will be used in later steps (Step 6) to raise the final error,

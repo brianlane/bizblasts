@@ -30,6 +30,14 @@ class CustomerConflictResolver
           # CRITICAL: Set phone_duplicate_resolution_skipped to prevent linking/creating customers with conflicting phones
           phone_duplicate_resolution_skipped = true
           conflicting_user_id = canonical_customer.user_id
+          # Return conflict result but still include duplicate info for merging
+          return {
+            phone_duplicates_found: phone_duplicates_found,
+            phone_duplicate_resolution_skipped: phone_duplicate_resolution_skipped,
+            conflicting_user_id: conflicting_user_id,
+            canonical_customer: canonical_customer,
+            duplicate_customers: duplicate_customers
+          }
         elsif canonical_customer.user_id == user.id
           # Already linked to this user
           Rails.logger.info "[CONFLICT_RESOLVER] Canonical customer #{canonical_customer.id} already linked to user #{user.id}"

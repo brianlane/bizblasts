@@ -262,7 +262,26 @@ class Business < ApplicationRecord
   after_update :handle_tier_downgrade, if: :saved_change_to_tier?
   after_update :handle_canonical_preference_change, if: :saved_change_to_canonical_preference?
   after_validation :set_time_zone_from_address, if: :address_components_changed?
-  
+
+  # ---------------------------------------------------------------------------
+  # Automatic custom-domain setup triggers
+  # ---------------------------------------------------------------------------
+
+  # 1. Newly-registered businesses that signed up for the Premium tier **and**
+  #    provided a custom domain should have the CNAME setup sequence started
+  #    automatically right after creation.
+  after_commit :trigger_custom_domain_setup_after_create, on: :create
+
+  # 2. Send admin notification when a new business registers
+  after_commit :send_admin_new_business_notification, on: :create
+
+  # 2. Existing businesses that upgrade to the Premium tier (tier change
+  #    detected) and already have a custom-domain host type should also kick
+  #    off the setup sequence automatically – but only if the setup hasn’t
+  #    already been started/completed.
+  after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
+  after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
+
   # Find the current tenant
   def self.current
     ActsAsTenant.current_tenant
@@ -829,7 +848,10 @@ class Business < ApplicationRecord
       "unpersisted_business_#{name || 'unknown'}_#{object_id}"
     end
   end
-
+  
+  # ---------------------------------------------------------------------------
+  # Private callback helper methods
+  # ---------------------------------------------------------------------------
   private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
@@ -855,30 +877,6 @@ class Business < ApplicationRecord
     # Additional safety: ensure hostname doesn't contain any suspicious patterns
     hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
   end
-  
-  # ---------------------------------------------------------------------------
-  # Automatic custom-domain setup triggers
-  # ---------------------------------------------------------------------------
-
-  # 1. Newly-registered businesses that signed up for the Premium tier **and**
-  #    provided a custom domain should have the CNAME setup sequence started
-  #    automatically right after creation.
-  after_commit :trigger_custom_domain_setup_after_create, on: :create
-  
-  # 2. Send admin notification when a new business registers
-  after_commit :send_admin_new_business_notification, on: :create
-
-  # 2. Existing businesses that upgrade to the Premium tier (tier change
-  #    detected) and already have a custom-domain host type should also kick
-  #    off the setup sequence automatically – but only if the setup hasn’t
-  #    already been started/completed.
-  after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
-  after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
-
-  # ---------------------------------------------------------------------------
-  # Callback helpers (private)
-  # ---------------------------------------------------------------------------
-  private
 
   # Triggered after *create* for eligible businesses.
   def trigger_custom_domain_setup_after_create

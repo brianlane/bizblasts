@@ -270,6 +270,29 @@ RSpec.describe CustomerLinker, type: :service do
 
         expect(customer.phone).to be_nil
       end
+
+      it 'does not mutate the original customer_attributes hash' do
+        original_attributes = {
+          first_name: 'Guest',
+          last_name: 'User',
+          phone: '12345' # Invalid phone
+        }
+
+        # Make a copy to verify the original is not mutated
+        attributes_copy = original_attributes.dup
+
+        customer = linker.find_or_create_guest_customer(
+          'guest@example.com',
+          original_attributes
+        )
+
+        # Original hash should remain unchanged
+        expect(original_attributes).to eq(attributes_copy)
+        expect(original_attributes[:phone]).to eq('12345') # Phone should still be present in original
+
+        # But customer should have phone cleared
+        expect(customer.phone).to be_nil
+      end
     end
 
     context 'security implications' do
