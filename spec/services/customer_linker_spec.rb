@@ -433,33 +433,33 @@ RSpec.describe CustomerLinker do
           expect(result_customer.phone).to be_present
         end
 
-        it 'merges duplicates but preserves existing user linkage when canonical customer is linked to different user' do
+        it 'raises PhoneConflictError when canonical customer is linked to different user (security fix)' do
           # Given: Canonical customer already linked to different user
           other_user = create(:user, :client, email: 'other@example.com', phone: '5551234567')
           customer_18_format.update!(user_id: other_user.id)
 
-          initial_customer_count = business.tenant_customers.where(
-            'phone IN (?)',
-            ['+16026866672', '16026866672', '6026866672']
-          ).count
+          # When: Current user tries to link with phone that belongs to another user
+          # Then: Should raise PhoneConflictError (BUG FIX - this was silently failing before)
+          expect {
+            linker.link_user_to_customer(user)
+          }.to raise_error(PhoneConflictError) do |error|
+            expect(error.message).to include('already associated with another account')
+            expect(error.existing_user_id).to eq(other_user.id)
+            expect(error.attempted_user_id).to eq(user.id)
+            expect(error.phone).to eq(user.phone)
+            expect(error.business_id).to eq(business.id)
+          end
 
-          # When: Current user tries to link (should merge duplicates but create new customer for current user)
-          result_customer = linker.link_user_to_customer(user)
+          # And: Duplicates should still be merged for data integrity
+          customer_18_format.reload
+          expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
 
-          # Then: Duplicates should be merged (fewer customer records)
+          # And: Verify duplicates were merged
           final_customer_count = business.tenant_customers.where(
             'phone IN (?)',
             ['+16026866672', '16026866672', '6026866672']
           ).count
-          expect(final_customer_count).to be < initial_customer_count, "Expected duplicates to be merged"
-
-          # And: Existing user link should be preserved on canonical customer
-          customer_18_format.reload
-          expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
-
-          # And: Current user should get a new customer (not linked to the existing one)
-          expect(result_customer.user_id).to eq(user.id)
-          expect(result_customer.id).not_to eq(customer_18_format.id)
+          expect(final_customer_count).to eq(1), "Expected duplicates to be merged to canonical customer"
         end
 
 

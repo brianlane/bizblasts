@@ -330,8 +330,9 @@ class CustomerLinker
           Rails.logger.info "[CUSTOMER_LINKER] Canonical customer #{canonical_customer.id} already linked to user #{canonical_customer.user_id}, merging duplicates but preserving existing linkage"
           # Still merge duplicates for data integrity, but don't link to current user
           merge_duplicate_customers(duplicate_customers)
-          # Don't set phone_duplicate_resolution_skipped since we successfully resolved duplicates
-          # Only set conflicting_user_id to indicate the canonical customer is linked elsewhere
+          # CRITICAL: Set phone_duplicate_resolution_skipped to prevent linking/creating customers with conflicting phones
+          # This ensures security checks in handle_unlinked_customer_by_email and check_final_phone_conflicts trigger
+          phone_duplicate_resolution_skipped = true
           conflicting_user_id = canonical_customer.user_id
         elsif canonical_customer.user_id == user.id
           # Already linked to this user, but still merge duplicates for data cleanup

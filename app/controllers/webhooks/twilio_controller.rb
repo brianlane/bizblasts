@@ -685,9 +685,10 @@ module Webhooks
       Rails.logger.debug "[PHONE_LOOKUP] Using CustomerLinker for phone lookup: #{phone_number}"
 
       # Use appropriate method based on business context
+      # CustomerLinker methods consistently return Arrays for efficient webhook processing
       if business.present?
-        # Business-scoped search using instance method
-        customers_array = CustomerLinker.new(business).find_customers_by_phone_public(phone_number)
+        # Business-scoped search using class method for consistency
+        customers_array = CustomerLinker.find_customers_by_phone_public(phone_number, business)
         Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business.id}"
       else
         # Intentional global search when no business context is available (e.g., SMS webhooks)
@@ -698,7 +699,6 @@ module Webhooks
       # Note: Phone normalization should be done separately, not during webhook processing
       # to avoid race conditions and performance issues
 
-      # CustomerLinker methods consistently return Arrays for efficient webhook processing
       customers_array
     end
 
