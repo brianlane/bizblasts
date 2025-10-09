@@ -238,14 +238,14 @@
       
       <div class="<%= condensed ? '' : 'flex justify-end' %>">
         <% if admin_mode %>
-          <%= button_to "Cancel Booking", admin_cancel_booking_path(booking), method: :patch, 
-                      class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+          <%= button_to "Cancel Booking", admin_cancel_booking_path(booking), method: :patch,
+                      class: "cursor-pointer bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
                       data: { confirm: "Are you sure you want to cancel this booking?" } %>
         <% else %>
           <%# Show this client-side cancel button only if the current user is a client. Business-manager users already have their own actions elsewhere. %>
           <% if current_user&.client? %>
-            <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch, 
-                        class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+            <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch,
+                        class: "cursor-pointer bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
                         data: { confirm: "Are you sure you want to cancel this booking?" } %>
           <% end %>
         <% end %>
