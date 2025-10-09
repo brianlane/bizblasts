@@ -5,6 +5,7 @@ module Webhooks
     # For API-only controller, CSRF is not enabled by default.
     # Skip Devise-auth if present in parent modules (not included in ActionController::API, but guard anyway)
     skip_before_action :authenticate_user! if respond_to?(:authenticate_user!)
+
     
     # Twilio webhook for delivery receipts
     def delivery_receipt
@@ -112,24 +113,24 @@ module Webhooks
       unless tenant_customer
         user = User.find_by(phone: normalized_phone)
         if user
-          Rails.logger.info "Found user #{user.id} for phone #{to_phone}, linking to business #{business.id}"
+          Rails.logger.info "Found user #{user.id} for phone #{to_phone}, linking to business #{business&.safe_identifier_for_logging}"
           begin
             tenant_customer = CustomerLinker.new(business).link_user_to_customer(user)
             if tenant_customer
               Rails.logger.info "Successfully linked user #{user.id} to tenant customer #{tenant_customer.id}"
             else
-              Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business.id}"
+              Rails.logger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business&.safe_identifier_for_logging}"
               return
             end
           rescue PhoneConflictError => linking_error
-            Rails.logger.error "Failed to link user #{user.id} to business #{business.id} - phone conflict: #{linking_error.message}"
+            Rails.logger.error "Failed to link user #{user.id} to business #{business&.safe_identifier_for_logging} - phone conflict: #{linking_error.message}"
             return
           rescue => linking_error
-            Rails.logger.error "Failed to link user #{user.id} to business #{business.id}: #{linking_error.message}"
+            Rails.logger.error "Failed to link user #{user.id} to business #{business&.safe_identifier_for_logging}: #{linking_error.message}"
             return
           end
         else
-          Rails.logger.info "Creating minimal tenant customer for new phone number #{to_phone} in business #{business.id}"
+          Rails.logger.info "Creating minimal tenant customer for new phone number #{to_phone} in business #{business&.safe_identifier_for_logging}"
           begin
             # Create minimal tenant customer record for completely new phone numbers
             # This enables auto-replies for new users discovered through SMS interactions
@@ -138,7 +139,7 @@ module Webhooks
               phone: normalized_phone,
               first_name: 'Unknown', # Will be updated when they provide more info
               last_name: 'User',     # Will be updated when they provide more info
-              email: "sms-user-#{SecureRandom.hex(8)}@temp.bizblasts.com", # Temporary email to satisfy validation
+              email: "sms-user-#{SecureRandom.hex(8)}@invalid.example", # RFC 2606 reserved domain for invalid emails
               phone_opt_in: false   # Start with opt-out, they need to explicitly opt-in
             )
             Rails.logger.info "Created minimal tenant customer #{tenant_customer.id} for phone #{to_phone}"
@@ -151,7 +152,7 @@ module Webhooks
 
       # Send automatic reply via SMS service
       SmsService.send_message(to_phone, message, {
-        business_id: business.id,
+        business_id: business&.safe_identifier_for_logging,
         tenant_customer_id: tenant_customer.id,
         auto_reply: true
       })
@@ -313,6 +314,12 @@ module Webhooks
     private
 
     def validate_twilio_signature_manual(url, body, signature, auth_token)
+      # TODO: Revert to Twilio SDK when Ruby 3.4/OpenSSL 3.0 compatibility is fixed
+      # Current issue: Twilio Ruby SDK has compatibility issues with Ruby 3.4+ and OpenSSL 3.0+
+      # causing signature validation failures. This manual implementation provides
+      # a reliable workaround until the SDK is updated.
+      # Related: https://github.com/twilio/twilio-ruby/issues (check for updates)
+      #
       # Manual implementation of Twilio's signature validation algorithm
       # This is more reliable than the Twilio Ruby SDK in certain Ruby/OpenSSL combinations
 
@@ -660,9 +667,10 @@ module Webhooks
     def create_minimal_customer(phone, business)
       # Generate unique email using phone (normalized), timestamp, and business ID
       # This prevents uniqueness constraint violations better than random hex alone
+      # Using RFC 2606 reserved domain @invalid.example for temporary emails
       normalized = phone.gsub(/\D/, '') # Remove non-digits for email
       timestamp = Time.current.to_i
-      email = "sms-#{normalized}-#{timestamp}-b#{business.id}@temp.bizblasts.com"
+      email = "sms-#{normalized}-#{timestamp}-b#{business.id}@invalid.example"
       
       TenantCustomer.create!(
         business: business,
@@ -672,7 +680,7 @@ module Webhooks
         email: email,
         phone_opt_in: false # Always start opted-out; process_sms_opt_in handles opt-in logic
       )
-      Rails.logger.info "Created minimal customer for phone #{phone} in business #{business.id}"
+      Rails.logger.info "Created minimal customer for phone #{phone} in business #{business&.safe_identifier_for_logging}"
     rescue => e
       Rails.logger.error "Failed to create minimal customer for #{phone}: #{e.message}"
       raise # Re-raise so caller can handle
@@ -691,7 +699,7 @@ module Webhooks
       if business.present? && business.persisted?
         # Business-scoped search using class method for consistency
         customers_array = CustomerLinker.find_customers_by_phone_public(phone_number, business)
-        Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business.id}"
+        Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business&.safe_identifier_for_logging}"
       else
         # Intentional global search when no business context is available (e.g., SMS webhooks)
         # Also falls back to global search if business is unpersisted (safety guard)

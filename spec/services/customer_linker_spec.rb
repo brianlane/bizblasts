@@ -187,7 +187,7 @@ RSpec.describe CustomerLinker do
       end
 
       context 'when customers have different completeness scores' do
-        let!(:minimal_customer) { create(:tenant_customer, business: business, phone: '5551234567', first_name: 'Min', last_name: 'Customer', email: 'sms-temp@temp.bizblasts.com', phone_opt_in: false, created_at: 2.days.ago) }
+        let!(:minimal_customer) { create(:tenant_customer, business: business, phone: '5551234567', first_name: 'Min', last_name: 'Customer', email: 'sms-temp@invalid.example', phone_opt_in: false, created_at: 2.days.ago) }
         let!(:complete_customer) { create(:tenant_customer, business: business, phone: '+15551234567', first_name: 'John', last_name: 'Doe', email: 'john@example.com', phone_opt_in: true, created_at: 1.day.ago) }
 
         it 'prioritizes more complete customer data' do

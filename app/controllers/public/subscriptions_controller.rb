@@ -7,6 +7,7 @@ class Public::SubscriptionsController < Public::BaseController
   before_action :set_product_or_service, except: [:confirmation]
   before_action :ensure_subscriptions_enabled, except: [:confirmation]
 
+
   # GET /subscriptions/new
   def new
     @customer_subscription = current_business.customer_subscriptions.build
@@ -311,7 +312,7 @@ class Public::SubscriptionsController < Public::BaseController
     end
     
     {
-      business_id: current_business.id,
+      business_id: current_business&.safe_identifier_for_logging,
       tenant_customer_id: tenant_customer.id,
       subscription_type: @product ? 'product' : 'service',
       item_id: item.id,

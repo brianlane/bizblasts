@@ -1356,7 +1356,7 @@ jobs:
           set -e  # Exit immediately if any command exits with a non-zero status
           # Run tests from directories that exist and have spec files
           SPEC_DIRS=""
-          for dir in spec/helpers spec/lib spec/views spec/channels; do
+          for dir in spec/helpers spec/lib spec/views spec/security spec/channels; do
             if [ -d "$dir" ] && find "$dir" -name "*_spec.rb" | grep -q .; then
               SPEC_DIRS="$SPEC_DIRS $dir"
             fi
