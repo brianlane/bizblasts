@@ -686,12 +686,18 @@ module Webhooks
 
       # Use appropriate method based on business context
       # CustomerLinker methods consistently return Arrays for efficient webhook processing
-      if business.present?
+      # IMPORTANT: Verify business is persisted before using (Bug 8 fix)
+      # This prevents errors when accessing business.id or querying by business
+      if business.present? && business.persisted?
         # Business-scoped search using class method for consistency
         customers_array = CustomerLinker.find_customers_by_phone_public(phone_number, business)
         Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business.id}"
       else
         # Intentional global search when no business context is available (e.g., SMS webhooks)
+        # Also falls back to global search if business is unpersisted (safety guard)
+        if business.present? && !business.persisted?
+          Rails.logger.warn "[PHONE_LOOKUP] Received unpersisted business object, falling back to global search"
+        end
         customers_array = CustomerLinker.find_customers_by_phone_across_all_businesses(phone_number)
         Rails.logger.debug "[PHONE_LOOKUP] Using intentional global search (no business context)"
       end

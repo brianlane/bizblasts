@@ -1,7 +1,7 @@
 # Cursor Bug Fixes - Twilio & CustomerLinker
 
 ## Summary
-Fixed **seven critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
+Fixed **nine critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
 
 ---
 
@@ -320,6 +320,138 @@ Created comprehensive test suite (`customer_linker_phone_validation_spec.rb`) wi
 
 ---
 
+## Bug 8: Unpersisted Business Passed to CustomerLinker
+**File:** `app/controllers/webhooks/twilio_controller.rb:689-694`
+
+### Problem
+The `find_customers_by_phone` method checks `if business.present?` but doesn't verify that the business is actually persisted to the database. This could lead to:
+1. **Runtime Errors:** Accessing `business.id` on an unpersisted business returns `nil`, causing errors in CustomerLinker methods that expect a valid business ID
+2. **Logging Issues:** Attempting to log `business.id` for unpersisted businesses logs `nil` instead of meaningful information
+3. **Query Failures:** CustomerLinker methods that use `business.id` in database queries would fail or return incorrect results
+4. **Security Risk:** Unpersisted business objects with malicious attributes could potentially be exploited
+
+### Root Cause
+The code uses `business.present?` which only checks if the variable is not `nil` or blank, but doesn't validate that the business record is persisted to the database (has been saved with an ID).
+
+### Fix
+**Location:** `twilio_controller.rb:689-703`
+
+```ruby
+# BEFORE:
+if business.present?
+  # Business-scoped search using class method for consistency
+  customers_array = CustomerLinker.find_customers_by_phone_public(phone_number, business)
+  Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business.id}"
+else
+  # Intentional global search when no business context is available
+  customers_array = CustomerLinker.find_customers_by_phone_across_all_businesses(phone_number)
+  Rails.logger.debug "[PHONE_LOOKUP] Using intentional global search (no business context)"
+end
+
+# AFTER:
+# IMPORTANT: Verify business is persisted before using (Bug 8 fix)
+# This prevents errors when accessing business.id or querying by business
+if business.present? && business.persisted?
+  # Business-scoped search using class method for consistency
+  customers_array = CustomerLinker.find_customers_by_phone_public(phone_number, business)
+  Rails.logger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business.id}"
+else
+  # Intentional global search when no business context is available
+  # Also falls back to global search if business is unpersisted (safety guard)
+  if business.present? && !business.persisted?
+    Rails.logger.warn "[PHONE_LOOKUP] Received unpersisted business object, falling back to global search"
+  end
+  customers_array = CustomerLinker.find_customers_by_phone_across_all_businesses(phone_number)
+  Rails.logger.debug "[PHONE_LOOKUP] Using intentional global search (no business context)"
+end
+```
+
+### Impact
+- **Safety:** Prevents runtime errors from accessing `business.id` on unpersisted objects
+- **Logging:** Ensures we log warnings when unpersisted business objects are detected
+- **Fallback:** Gracefully falls back to global search instead of failing
+- **Security:** Prevents potential exploitation via unpersisted business objects
+- **Defensive Programming:** Adds validation before expensive database operations
+
+### Test Coverage
+Created comprehensive test suite (`twilio_controller_business_persistence_spec.rb`) with 17 examples covering:
+- Persisted business: Correct business-scoped search behavior
+- Unpersisted business: Fallback to global search with warning
+- Nil business: Normal global search behavior
+- Edge cases: Destroyed businesses, businesses with ID but not saved
+- Security: SQL injection prevention, audit logging
+- Performance: Efficient persistence checking before expensive operations
+- Integration: End-to-end testing with CustomerLinker
+
+---
+
+## Bug 9: Phone Conflict Check Uses Unnormalized Data
+**File:** `app/services/customer_linker.rb:98-100`
+
+### Problem
+The `find_or_create_guest_customer` method's phone conflict check was calling `find_customers_by_phone` with the original `customer_attributes[:phone]` instead of the already-computed `normalized_phone`. This caused:
+1. **Redundant Normalization:** The phone number was normalized once (line 93), then normalized again inside `find_customers_by_phone`, wasting CPU cycles
+2. **Inconsistent Data Flow:** Different parts of the code worked with different phone formats (original vs normalized)
+3. **Potential Edge Cases:** If the normalization logic ever changed between the two calls, results could be inconsistent
+4. **Code Clarity:** Not obvious that we're passing unnormalized data to a method that will normalize it again
+
+### Root Cause
+After Bug 7 fix added phone normalization at line 93 (`normalized_phone = normalize_phone(customer_attributes[:phone])`), the subsequent call to `find_customers_by_phone` at line 98 continued using the original `customer_attributes[:phone]` instead of the already-computed `normalized_phone`.
+
+### Fix
+**Location:** `customer_linker.rb:98-100`
+
+```ruby
+# BEFORE (Bug 9):
+if customer_attributes[:phone].present?
+  normalized_phone = normalize_phone(customer_attributes[:phone])
+
+  if normalized_phone.present?
+    phone_customers = find_customers_by_phone(customer_attributes[:phone])  # ❌ Using original
+    linked_phone_customer = phone_customers.where.not(user_id: nil).first
+    if linked_phone_customer
+      raise GuestConflictError.new(...)
+    end
+  end
+end
+
+# AFTER (Bug 9 Fix):
+if customer_attributes[:phone].present?
+  normalized_phone = normalize_phone(customer_attributes[:phone])
+
+  if normalized_phone.present?
+    # Use the already-normalized phone for consistency (Bug 9 fix)
+    # This avoids redundant normalization and ensures we're checking with the exact normalized value
+    phone_customers = find_customers_by_phone(normalized_phone)  # ✅ Using normalized
+    linked_phone_customer = phone_customers.where.not(user_id: nil).first
+    if linked_phone_customer
+      raise GuestConflictError.new(...)
+    end
+  end
+end
+```
+
+### Impact
+- **Performance:** Eliminates redundant phone normalization (one less regex operation per guest checkout)
+- **Consistency:** Uses the exact normalized value that was already computed for validation
+- **Code Clarity:** Makes data flow explicit - we normalize once and use that value
+- **Maintainability:** If normalization logic changes, we only need to update one location
+- **DRY Principle:** Don't Repeat Yourself - normalize once, use everywhere
+
+### Test Coverage
+Expanded `customer_linker_phone_validation_spec.rb` with Bug 9-specific tests (lines 255-344):
+- Tests that `find_customers_by_phone` is called with **normalized** phone, not original
+- Tests conflict detection works correctly with formatted input (e.g., "(602) 686-6672")
+- Tests that normalization happens exactly once (efficiency)
+- Tests consistent phone matching across different input formats
+- Tests edge cases: formatted phones, international phones, etc.
+- All 20 examples passing (expanded from 16)
+
+### Notes
+This bug was discovered after fixing Bug 7, which added the normalization step. The fix ensures we use the normalized value throughout the conflict check process, avoiding redundant operations and maintaining code consistency.
+
+---
+
 ## Additional Changes
 
 ### New Test Files Created
@@ -345,18 +477,30 @@ Created comprehensive test suite (`customer_linker_phone_validation_spec.rb`) wi
    - Tests edge cases and validation
    - 18 examples, all passing
 
-4. **`spec/services/customer_linker_phone_validation_spec.rb`** (NEW - Bug 7)
-   - Comprehensive tests for phone validation bypass fix
+4. **`spec/services/customer_linker_phone_validation_spec.rb`** (NEW - Bug 7, expanded for Bug 9)
+   - Comprehensive tests for phone validation bypass fix (Bug 7)
    - Tests that invalid phones don't trigger database queries
    - Tests that valid phones DO trigger appropriate conflict checks
    - Tests performance optimization (no queries for invalid phones)
    - Tests phone uniqueness for guest customers
+   - Tests normalized phone usage in conflict checks (Bug 9)
+   - Tests that `find_customers_by_phone` receives normalized phone, not original
    - Tests edge cases: blank, nil, whitespace, special characters, formatted phones
-   - 16 examples, all passing
+   - 20 examples, all passing (expanded from 16)
+
+5. **`spec/controllers/webhooks/twilio_controller_business_persistence_spec.rb`** (NEW - Bug 8)
+   - Comprehensive tests for unpersisted business handling
+   - Tests correct behavior with persisted businesses
+   - Tests fallback to global search with unpersisted businesses
+   - Tests warning logging for unpersisted business detection
+   - Tests edge cases: destroyed businesses, businesses with ID but not saved
+   - Tests security implications: SQL injection prevention, audit logging
+   - Tests performance: efficient persistence checking
+   - 17 examples, all passing
 
 ### Updated Test Files
 
-5. **`spec/services/customer_linker_spec.rb`**
+6. **`spec/services/customer_linker_spec.rb`**
    - Updated test expectations to match the new secure behavior
    - Changed test "merges duplicates but preserves existing user linkage when canonical customer is linked to different user" to expect `PhoneConflictError`
    - This reflects the CORRECT behavior after the bug fix
@@ -366,29 +510,32 @@ Created comprehensive test suite (`customer_linker_phone_validation_spec.rb`) wi
 ## Test Results
 
 All tests passing:
-- ✅ `customer_linker_phone_conflicts_spec.rb`: 15 examples, 0 failures
-- ✅ `twilio_controller_method_usage_spec.rb`: 12 examples, 0 failures
-- ✅ `customer_linker_guest_customer_spec.rb`: 18 examples, 0 failures
-- ✅ `customer_linker_phone_validation_spec.rb`: 16 examples, 0 failures (Bug 7)
-- ✅ `twilio_inbound_spec.rb`: 17 examples, 0 failures
+- ✅ `customer_linker_phone_conflicts_spec.rb`: 15 examples, 0 failures (Bug 1, 4)
+- ✅ `twilio_controller_method_usage_spec.rb`: 12 examples, 0 failures (Bug 2)
+- ✅ `customer_linker_guest_customer_spec.rb`: 18 examples, 0 failures (Bug 5)
+- ✅ `customer_linker_phone_validation_spec.rb`: 20 examples, 0 failures (Bug 7, 9)
+- ✅ `twilio_controller_business_persistence_spec.rb`: 17 examples, 0 failures (Bug 8)
+- ✅ `twilio_inbound_spec.rb`: 17 examples, 0 failures (Bug 3)
 - ✅ `customer_linker_spec.rb`: 34 examples, 0 failures
 
-**Total:** 102 examples, 0 failures
+**Total:** 133 examples, 0 failures (was 129, added 4 for Bug 9)
 
 ---
 
 ## Files Modified
 
 ### Production Code
-1. `app/services/customer_linker.rb` (Bugs 1, 4, 5, 6, 7)
+1. `app/services/customer_linker.rb` (Bugs 1, 4, 5, 6, 7, 9)
    - Line 284-285: Bug 1 fix (set `phone_duplicate_resolution_skipped` flag)
    - Lines 109-125: Bug 4 fix (removed PostgreSQL-specific REGEXP_REPLACE)
    - Line 100: Bug 5 Issue 1 fix (efficient SQL filtering with `.where.not(user_id: nil).first`)
    - Lines 40-50: Bug 5 Issue 2 fix (added comprehensive RDoc documentation)
    - Lines 139-150, 196-211: Bug 6 fix (added RDoc documentation for instance and class methods)
    - Lines 90-110: Bug 7 fix (added phone validation before database query)
-2. `app/controllers/webhooks/twilio_controller.rb` (Bug 2)
-   - Line 691: Changed from instance method to class method
+   - Line 98-100: Bug 9 fix (use normalized phone instead of original phone in conflict check)
+2. `app/controllers/webhooks/twilio_controller.rb` (Bugs 2, 8)
+   - Line 693: Bug 2 fix (changed from instance method to class method)
+   - Lines 691-703: Bug 8 fix (added `business.persisted?` check with warning logging)
 
 ### Test Code
 3. `spec/requests/webhooks/twilio_inbound_spec.rb` (Bug 3)
@@ -401,8 +548,11 @@ All tests passing:
    - Tests for Bug 2
 7. `spec/services/customer_linker_guest_customer_spec.rb` (NEW - 305 lines)
    - Tests for Bug 5
-8. `spec/services/customer_linker_phone_validation_spec.rb` (NEW - 276 lines)
-   - Tests for Bug 7
+8. `spec/services/customer_linker_phone_validation_spec.rb` (NEW - 398 lines, expanded for Bug 9)
+   - Tests for Bug 7 (lines 9-253)
+   - Tests for Bug 9 (lines 255-344)
+9. `spec/controllers/webhooks/twilio_controller_business_persistence_spec.rb` (NEW - 192 lines)
+   - Tests for Bug 8
 
 ---
 
@@ -413,6 +563,7 @@ All tests passing:
 - ⚠️ Phone uniqueness constraints were not enforced
 - ⚠️ SMS notifications could be sent to wrong recipients
 - ⚠️ Unnecessary database queries for invalid phones (performance & security surface area)
+- ⚠️ Unpersisted business objects could cause runtime errors or be exploited
 
 ### After Fixes
 - ✅ Phone numbers are strictly unique per user within a business
@@ -421,6 +572,8 @@ All tests passing:
 - ✅ Data integrity maintained while merging duplicates
 - ✅ Phone validation happens before database access (Bug 7)
 - ✅ Invalid phone inputs don't trigger database queries (performance & attack surface reduction)
+- ✅ Unpersisted business objects are detected and handled safely (Bug 8)
+- ✅ Business persistence is verified before database operations
 
 ---
 

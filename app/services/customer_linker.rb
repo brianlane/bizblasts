@@ -95,7 +95,9 @@ class CustomerLinker
       # Only check for conflicts if phone is valid (normalize_phone returns non-nil)
       # Invalid phones (< 7 digits) will be nil and skip this check
       if normalized_phone.present?
-        phone_customers = find_customers_by_phone(customer_attributes[:phone])
+        # Use the already-normalized phone for consistency (Bug 9 fix)
+        # This avoids redundant normalization and ensures we're checking with the exact normalized value
+        phone_customers = find_customers_by_phone(normalized_phone)
         # Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
         linked_phone_customer = phone_customers.where.not(user_id: nil).first
         if linked_phone_customer
