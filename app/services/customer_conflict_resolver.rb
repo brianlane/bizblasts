@@ -71,7 +71,7 @@ class CustomerConflictResolver
       raise EmailConflictError.new(
         "Email #{email} is already associated with a different customer account in this business. Please contact support for assistance.",
         email: email,
-        business_id: @business.safe_identifier_for_logging,
+        business_id: @business.id,
         existing_user_id: existing_customer.user_id,
         attempted_user_id: user.id
       )
@@ -85,7 +85,7 @@ class CustomerConflictResolver
       raise PhoneConflictError.new(
         "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
         phone: user.phone,
-        business_id: @business.safe_identifier_for_logging,
+        business_id: @business.id,
         existing_user_id: phone_conflict_result[:conflicting_user_id],
         attempted_user_id: user.id
       )
@@ -100,7 +100,7 @@ class CustomerConflictResolver
       raise PhoneConflictError.new(
         "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
         phone: user.phone,
-        business_id: @business.safe_identifier_for_logging,
+        business_id: @business.id,
         existing_user_id: linked_to_different_user.user_id,
         attempted_user_id: user.id
       )

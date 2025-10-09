@@ -54,6 +54,13 @@ class Public::SubscriptionsController < Public::BaseController
       return
     end
     
+    # Ensure business is persisted before creating subscription
+    unless current_business&.persisted?
+      Rails.logger.error "[SUBSCRIPTION] Cannot create subscription for unpersisted business"
+      flash[:alert] = "Unable to create subscription. Please try again."
+      redirect_to new_tenant_subscription_path and return
+    end
+
     # Build subscription data for Stripe
     subscription_data = build_subscription_data(@tenant_customer)
     
@@ -312,7 +319,7 @@ class Public::SubscriptionsController < Public::BaseController
     end
     
     {
-      business_id: current_business&.safe_identifier_for_logging,
+      business_id: current_business.id,
       tenant_customer_id: tenant_customer.id,
       subscription_type: @product ? 'product' : 'service',
       item_id: item.id,

@@ -819,6 +819,17 @@ class Business < ApplicationRecord
     end
   end
 
+  # Helper method to get a safe business identifier for logging
+  # Returns the business ID if persisted, otherwise returns a descriptive string
+  # This prevents confusing log messages when business objects are not yet saved to the database
+  def safe_identifier_for_logging
+    if persisted?
+      id
+    else
+      "unpersisted_business_#{name || 'unknown'}_#{object_id}"
+    end
+  end
+
   private
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
@@ -1138,16 +1149,4 @@ class Business < ApplicationRecord
       # Don't raise - this is a background operation
     end
   end
-
-  # Helper method to get a safe business identifier for logging
-  # Returns the business ID if persisted, otherwise returns a descriptive string
-  # This prevents confusing log messages when business objects are not yet saved to the database
-  def safe_identifier_for_logging
-    if persisted?
-      id
-    else
-      "unpersisted_business_#{name || 'unknown'}_#{object_id}"
-    end
-  end
-
 end 

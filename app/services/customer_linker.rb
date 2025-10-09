@@ -97,7 +97,7 @@ class CustomerLinker
       raise GuestConflictError.new(
         "This email address is already associated with an existing account. Please sign in to continue, or use a different email address.",
         email: email,
-        business_id: @business.safe_identifier_for_logging,
+        business_id: @business.id,
         existing_user_id: linked_customer.user_id
       )
     end
@@ -120,7 +120,7 @@ class CustomerLinker
           raise GuestConflictError.new(
             "This phone number is already associated with an existing account. Please sign in to continue, or use a different phone number.",
             phone: customer_attributes[:phone],
-            business_id: @business.safe_identifier_for_logging,
+            business_id: @business.id,
             existing_user_id: linked_phone_customer.user_id
           )
         end

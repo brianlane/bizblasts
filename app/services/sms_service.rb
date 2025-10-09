@@ -801,11 +801,18 @@ class SmsService
       return { success: false, error: "Failed to render SMS template" }
     end
 
+    # Use the customer's business_id if the provided business is not persisted
+    business_id = if business&.persisted?
+      business.id
+    else
+      customer.business_id
+    end
+
     send_message_with_rate_limit(
       customer.phone,
       message,
       {
-        business_id: business&.safe_identifier_for_logging,
+        business_id: business_id,
         tenant_customer_id: customer.id,
         message_type: 'review_request'
       }
@@ -1016,8 +1023,15 @@ class SmsService
     message = generate_invitation_message(business, context)
 
     # Send the invitation SMS (bypass rate limiting for invitations)
+    # Use the customer's business_id if the provided business is not persisted
+    business_id = if business&.persisted?
+      business.id
+    else
+      customer.business_id
+    end
+
     result = send_message(customer.phone, message, {
-      business_id: business&.safe_identifier_for_logging,
+      business_id: business_id,
       tenant_customer_id: customer.id
     })
 

@@ -151,8 +151,15 @@ module Webhooks
       end
 
       # Send automatic reply via SMS service
+      # Use the tenant_customer's business_id if the provided business is not persisted
+      business_id = if business&.persisted?
+        business.id
+      else
+        tenant_customer.business_id
+      end
+
       SmsService.send_message(to_phone, message, {
-        business_id: business&.safe_identifier_for_logging,
+        business_id: business_id,
         tenant_customer_id: tenant_customer.id,
         auto_reply: true
       })
