@@ -1,7 +1,7 @@
 # Cursor Bug Fixes - Twilio & CustomerLinker
 
 ## Summary
-Fixed **four critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, and database portability problems.
+Fixed **five critical bugs** identified by Cursor in the Twilio webhook and CustomerLinker code that could lead to data integrity issues, security vulnerabilities, runtime errors, database portability problems, and performance issues.
 
 ---
 
@@ -132,6 +132,72 @@ Attempting to filter phone numbers by digit count at the database level using Po
 
 ---
 
+## Bug 5: Guest Customer Method Inefficient Phone Lookup and API Contract
+**File:** `app/services/customer_linker.rb:82`
+
+### Problem
+The `find_or_create_guest_customer` method had two issues:
+1. **Performance Issue (Line 82):** Used inefficient Ruby enumeration (`phone_customers.find { |c| c.user_id.present? }`) instead of SQL filtering
+2. **API Contract:** Method name implies "find or create" behavior but raises `GuestConflictError` exceptions
+
+### Root Cause
+**Issue 1:** The phone conflict check used `.find { }` on an ActiveRecord::Relation, which implicitly converts the Relation to an Array and iterates in Ruby instead of filtering in SQL. This loads all matching phone customers into memory unnecessarily.
+
+**Issue 2:** Security checks were added to prevent guests from using credentials belonging to registered users, but this changed the method's contract from "always returns a customer" to "returns customer OR raises exception." While this is intentional security behavior, it was not documented.
+
+### Fix
+
+**Issue 1 Fix - Line 83:**
+```ruby
+# BEFORE:
+phone_customers = find_customers_by_phone(customer_attributes[:phone])
+linked_phone_customer = phone_customers.find { |c| c.user_id.present? }
+
+# AFTER:
+phone_customers = find_customers_by_phone(customer_attributes[:phone])
+# Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
+linked_phone_customer = phone_customers.where.not(user_id: nil).first
+```
+
+**Issue 2 Fix - Added Documentation (Lines 40-50):**
+```ruby
+# Find or create customer for guest checkout (no user account)
+#
+# Returns the guest customer if found or created successfully.
+#
+# @raise [GuestConflictError] if the email or phone is already linked to a registered user account
+#   This security check prevents guests from using credentials belonging to registered users.
+#   Callers should handle this exception and prompt the user to sign in instead.
+#
+# @param email [String] The email address for the guest customer
+# @param customer_attributes [Hash] Additional attributes (first_name, last_name, phone, phone_opt_in)
+# @return [TenantCustomer] The guest customer record
+def find_or_create_guest_customer(email, customer_attributes = {})
+```
+
+### Impact
+
+**Issue 1 Impact:**
+- **Performance:** Phone lookups now use SQL WHERE clause instead of loading and filtering in Ruby
+- **Efficiency:** Reduces memory usage by filtering in the database layer
+- **Database Load:** Fewer rows transferred from database to application
+- **Maintainability:** More idiomatic ActiveRecord usage
+
+**Issue 2 Impact:**
+- **Documentation:** API contract is now clearly documented with `@raise` annotations
+- **Caller Awareness:** All callers already handle `GuestConflictError` (verified in controllers)
+- **Security Maintained:** Security checks remain in place to prevent credential reuse
+- **No Breaking Changes:** Existing code continues to work as callers already handle exceptions
+
+### Security Implications
+The `GuestConflictError` exceptions are **intentional security features**, not bugs:
+- Prevents guests from checking out with emails belonging to registered users
+- Prevents guests from using phone numbers belonging to registered users
+- Forces users to sign in if they already have an account
+- All callers (BookingController, OrdersController, SubscriptionsController) properly handle these exceptions
+
+---
+
 ## Additional Changes
 
 ### New Test Files Created
@@ -149,9 +215,17 @@ Attempting to filter phone numbers by digit count at the database level using Po
    - Ensures no `NoMethodError` from incorrect method calls
    - 12 examples, all passing
 
+3. **`spec/services/customer_linker_guest_customer_spec.rb`**
+   - Comprehensive tests for `find_or_create_guest_customer` method
+   - Tests efficient SQL filtering for phone lookups (Bug 5 Issue 1)
+   - Tests `GuestConflictError` exception handling (Bug 5 Issue 2)
+   - Tests normal "find or create" behavior without conflicts
+   - Tests edge cases and validation
+   - 18 examples, all passing
+
 ### Updated Test Files
 
-3. **`spec/services/customer_linker_spec.rb`**
+4. **`spec/services/customer_linker_spec.rb`**
    - Updated test expectations to match the new secure behavior
    - Changed test "merges duplicates but preserves existing user linkage when canonical customer is linked to different user" to expect `PhoneConflictError`
    - This reflects the CORRECT behavior after the bug fix
@@ -163,24 +237,36 @@ Attempting to filter phone numbers by digit count at the database level using Po
 All tests passing:
 - ✅ `customer_linker_phone_conflicts_spec.rb`: 15 examples, 0 failures
 - ✅ `twilio_controller_method_usage_spec.rb`: 12 examples, 0 failures
+- ✅ `customer_linker_guest_customer_spec.rb`: 18 examples, 0 failures
 - ✅ `twilio_inbound_spec.rb`: 17 examples, 0 failures
 - ✅ `customer_linker_spec.rb`: 34 examples, 0 failures
 
-**Total:** 78 examples, 0 failures
+**Total:** 96 examples, 0 failures
 
 ---
 
 ## Files Modified
 
 ### Production Code
-1. `app/services/customer_linker.rb` (1 line changed)
-2. `app/controllers/webhooks/twilio_controller.rb` (4 lines changed)
+1. `app/services/customer_linker.rb` (Bugs 1, 4, 5)
+   - Line 335: Bug 1 fix (set `phone_duplicate_resolution_skipped` flag)
+   - Lines 177-186: Bug 4 fix (removed PostgreSQL-specific REGEXP_REPLACE)
+   - Line 83: Bug 5 Issue 1 fix (efficient SQL filtering)
+   - Lines 40-50: Bug 5 Issue 2 fix (added documentation)
+2. `app/controllers/webhooks/twilio_controller.rb` (Bug 2)
+   - Line 691: Changed from instance method to class method
 
 ### Test Code
-3. `spec/requests/webhooks/twilio_inbound_spec.rb` (3 lines changed)
-4. `spec/services/customer_linker_spec.rb` (27 lines changed - updated expectations)
-5. `spec/services/customer_linker_phone_conflicts_spec.rb` (NEW - 179 lines)
+3. `spec/requests/webhooks/twilio_inbound_spec.rb` (Bug 3)
+   - Line 263: Updated mock to use class method
+4. `spec/services/customer_linker_spec.rb` (Bug 1)
+   - Updated test expectations to expect `PhoneConflictError`
+5. `spec/services/customer_linker_phone_conflicts_spec.rb` (NEW - 263 lines)
+   - Tests for Bugs 1 and 4
 6. `spec/controllers/webhooks/twilio_controller_method_usage_spec.rb` (NEW - 156 lines)
+   - Tests for Bug 2
+7. `spec/services/customer_linker_guest_customer_spec.rb` (NEW - 305 lines)
+   - Tests for Bug 5
 
 ---
 

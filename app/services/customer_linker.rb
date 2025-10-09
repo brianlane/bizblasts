@@ -38,6 +38,16 @@ class CustomerLinker
   end
 
   # Find or create customer for guest checkout (no user account)
+  #
+  # Returns the guest customer if found or created successfully.
+  #
+  # @raise [GuestConflictError] if the email or phone is already linked to a registered user account
+  #   This security check prevents guests from using credentials belonging to registered users.
+  #   Callers should handle this exception and prompt the user to sign in instead.
+  #
+  # @param email [String] The email address for the guest customer
+  # @param customer_attributes [Hash] Additional attributes (first_name, last_name, phone, phone_opt_in)
+  # @return [TenantCustomer] The guest customer record
   def find_or_create_guest_customer(email, customer_attributes = {})
     email = email.downcase.strip
     
@@ -79,7 +89,8 @@ class CustomerLinker
     # Check if phone belongs to an existing linked customer
     if customer_attributes[:phone].present?
       phone_customers = find_customers_by_phone(customer_attributes[:phone])
-      linked_phone_customer = phone_customers.find { |c| c.user_id.present? }
+      # Use ActiveRecord to filter in SQL instead of loading all customers and filtering in Ruby
+      linked_phone_customer = phone_customers.where.not(user_id: nil).first
       if linked_phone_customer
         raise GuestConflictError.new(
           "This phone number is already associated with an existing account. Please sign in to continue, or use a different phone number.",
@@ -204,9 +215,15 @@ class CustomerLinker
     duplicates_resolved
   end
 
-  # Public interface for external classes to find customers by phone
-  # This allows other classes like TwilioController to reuse the phone lookup logic
+  # Instance method: Find customers by phone within the business scope set during initialization
+  #
+  # Use this when you have a CustomerLinker instance already (e.g., in tests or internal methods)
   # Returns Array for consistent behavior with webhook processing
+  #
+  # @param phone_number [String] The phone number to search for
+  # @return [Array<TenantCustomer>] Customers matching the phone number in this business
+  # @note This method is scoped to @business. For external callers, prefer the class method.
+  # @see .find_customers_by_phone_public for the class method version
   def find_customers_by_phone_public(phone_number)
     find_customers_by_phone(phone_number).to_a
   end
@@ -255,8 +272,19 @@ class CustomerLinker
     find_customers_by_phone_global(phone_number, nil)
   end
 
-  # Class method version of find_customers_by_phone_public for flexible usage
-  # Delegates to the global method with business parameter
+  # Class method: Find customers by phone for a specific business (preferred for external callers)
+  #
+  # Use this when calling from controllers or other services without a CustomerLinker instance.
+  # This is the RECOMMENDED method for external callers.
+  #
+  # @param phone_number [String] The phone number to search for
+  # @param business [Business] The business to scope the search to
+  # @return [Array<TenantCustomer>] Customers matching the phone number in the specified business
+  # @note This is the class method version. There is also an instance method with the same name
+  #   but different arity (1 parameter vs 2). Use this class method for external calls.
+  # @see #find_customers_by_phone_public for the instance method version
+  # @example
+  #   CustomerLinker.find_customers_by_phone_public('+16026866672', current_business)
   def self.find_customers_by_phone_public(phone_number, business)
     find_customers_by_phone_global(phone_number, business)
   end
