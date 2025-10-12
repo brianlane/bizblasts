@@ -290,7 +290,7 @@ class SubscriptionBookingService
     # Send business notification
     begin
       if defined?(BusinessMailer) && BusinessMailer.respond_to?(:subscription_booking_received)
-        BusinessMailer.subscription_booking_received(booking).deliver_later
+        BusinessMailer.subscription_booking_received(booking).deliver_later(queue: 'mailers')
         Rails.logger.info "[EMAIL] Sent subscription booking notification to business for booking #{booking.id}"
       end
     rescue => e

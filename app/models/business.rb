@@ -899,7 +899,7 @@ class Business < ApplicationRecord
 
     begin
       Rails.logger.info "[BUSINESS CALLBACK] Sending admin notification for new business registration: #{name} (ID: #{id})"
-      AdminMailer.new_business_registration(self, owner).deliver_later
+      AdminMailer.new_business_registration(self, owner).deliver_later(queue: 'mailers')
     rescue => e
       Rails.logger.error "[BUSINESS CALLBACK] Failed to send admin notification for business #{id}: #{e.message}"
     end

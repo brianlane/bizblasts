@@ -21,7 +21,7 @@ class BlogNotificationJob < ApplicationJob
     subscribed_users.each_slice(50) do |user_batch|
       user_batch.each do |user|
         begin
-          BlogMailer.new_post_notification(user, blog_post).deliver_later
+          BlogMailer.new_post_notification(user, blog_post).deliver_later(queue: 'mailers')
           Rails.logger.info "[BLOG] Scheduled email notification for user: #{user.email}"
         rescue => e
           Rails.logger.error "[BLOG] Failed to schedule email notification for user #{user.email}: #{e.message}"

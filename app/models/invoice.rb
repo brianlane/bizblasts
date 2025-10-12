@@ -184,7 +184,7 @@ class Invoice < ApplicationRecord
         Rails.logger.info "[ReviewRequest] Review request email skipped for Invoice ##{invoice_number} (validation failed or ineligible)"
         return
       elsif mail.present?
-        mail.deliver_later
+        mail.deliver_later(queue: 'mailers')
         Rails.logger.info "[ReviewRequest] Review request email enqueued for Invoice ##{invoice_number} to #{tenant_customer.email}"
 
         # Send SMS review request if customer can receive SMS
