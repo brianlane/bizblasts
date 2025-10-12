@@ -45,7 +45,7 @@ class SmsNotificationReplayJob < ApplicationJob
       delay = calculate_retry_delay(retry_count)
       Rails.logger.info "[SMS_REPLAY_JOB] Scheduling retry #{retry_count + 1} for #{results[:rate_limited]} rate-limited notifications in #{delay}"
 
-      self.class.perform_in(delay, customer_id, business_id, retry_count + 1)
+      self.class.set(wait: delay).perform_later(customer_id, business_id, retry_count + 1)
     end
 
     results
@@ -66,7 +66,7 @@ class SmsNotificationReplayJob < ApplicationJob
 
   # Class method to schedule replay with delay (useful for rate limiting)
   def self.schedule_for_customer_delayed(customer, business = nil, delay: 1.hour)
-    perform_in(delay, customer.id, business&.id, 0) # Start with retry_count = 0
+    set(wait: delay).perform_later(customer.id, business&.id, 0) # Start with retry_count = 0
     Rails.logger.info "[SMS_REPLAY_JOB] Scheduled delayed replay (#{delay}) for customer #{customer.id}, business #{business&.id || 'all'}"
   end
 

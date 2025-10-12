@@ -45,9 +45,17 @@ class PendingSmsNotification < ApplicationRecord
 
     # Check if this notification is already queued
     existing = find_by(deduplication_key: dedup_key)
-    if existing&.pending?
-      Rails.logger.info "[PENDING_SMS] Notification already queued: #{dedup_key}"
-      return existing
+    if existing
+      if existing.pending?
+        Rails.logger.info "[PENDING_SMS] Notification already queued: #{dedup_key}"
+        return existing
+      else
+        # If notification was already processed (sent/failed/expired), allow re-queuing
+        # by updating the old notification's key to avoid uniqueness constraint
+        old_key = "#{dedup_key}_completed_#{existing.id}_#{Time.current.to_i}"
+        existing.update_column(:deduplication_key, old_key)
+        Rails.logger.info "[PENDING_SMS] Updated old notification key to allow re-queuing: #{existing.id}"
+      end
     end
 
     # Create new pending notification
