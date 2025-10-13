@@ -657,7 +657,7 @@ class User < ApplicationRecord
   # Send domain request notification email
   def send_domain_request_notification
     begin
-      BusinessMailer.domain_request_notification(self).deliver_later
+      BusinessMailer.domain_request_notification(self).deliver_later(queue: 'mailers')
       Rails.logger.info "[EMAIL] Sent domain request notification for User ##{id} - Business: #{business.name}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send domain request notification for User ##{id}: #{e.message}"

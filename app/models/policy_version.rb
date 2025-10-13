@@ -93,9 +93,9 @@ class PolicyVersion < ApplicationRecord
     # Only send email notifications for privacy policy changes (GDPR/CCPA requirement)
     # and terms of service changes (affects rights)
     return unless policy_type.in?(['privacy_policy', 'terms_of_service'])
-    
+
     User.find_each do |user|
-      PolicyMailer.policy_update_notification(user, [self]).deliver_later
+      PolicyMailer.policy_update_notification(user, [self]).deliver_later(queue: 'mailers')
     end
   end
 end 

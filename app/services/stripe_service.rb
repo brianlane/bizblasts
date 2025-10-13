@@ -1135,7 +1135,7 @@ class StripeService
       
       # Send payment failure notification
       begin
-        SubscriptionMailer.payment_failed(customer_subscription).deliver_later
+        SubscriptionMailer.payment_failed(customer_subscription).deliver_later(queue: 'mailers')
       rescue => e
         Rails.logger.error "[EMAIL] Failed to send payment failure email for subscription #{customer_subscription.id}: #{e.message}"
       end
@@ -1732,16 +1732,16 @@ class StripeService
         
         # Send confirmation emails
         begin
-          SubscriptionMailer.signup_confirmation(customer_subscription).deliver_later
+          SubscriptionMailer.signup_confirmation(customer_subscription).deliver_later(queue: 'mailers')
           Rails.logger.info "[EMAIL] Sent subscription confirmation email for subscription ##{customer_subscription.id}"
         rescue => e
           Rails.logger.error "[EMAIL] Failed to send subscription confirmation email for subscription ##{customer_subscription.id}: #{e.message}"
           # Don't fail the whole transaction for email issues
         end
-        
+
         # Send business notification
         begin
-          BusinessMailer.new_subscription_notification(customer_subscription).deliver_later
+          BusinessMailer.new_subscription_notification(customer_subscription).deliver_later(queue: 'mailers')
           Rails.logger.info "[EMAIL] Scheduled business subscription notification for subscription ##{customer_subscription.id}"
         rescue => e
           Rails.logger.error "[EMAIL] Failed to schedule business subscription notification for subscription ##{customer_subscription.id}: #{e.message}"

@@ -121,13 +121,13 @@ class SubscriptionLoyaltyProcessorJob < ApplicationJob
 
   def send_loyalty_notifications(customer_subscription, points_awarded)
     return unless points_awarded > 0
-    
+
     # Send email notification for significant point awards (>= 100 points)
     if points_awarded >= 100
       SubscriptionMailer.loyalty_points_awarded(
         customer_subscription.id,
         points_awarded
-      ).deliver_later
+      ).deliver_later(queue: 'mailers')
     end
   end
 
@@ -136,7 +136,7 @@ class SubscriptionLoyaltyProcessorJob < ApplicationJob
       customer_subscription.id,
       milestone_type,
       points_awarded
-    ).deliver_later
+    ).deliver_later(queue: 'mailers')
   end
 
   def send_tier_upgrade_notification(customer_subscription, tier_info)
@@ -144,7 +144,7 @@ class SubscriptionLoyaltyProcessorJob < ApplicationJob
       customer_subscription.id,
       tier_info[:tier_name],
       tier_info[:benefits]
-    ).deliver_later
+    ).deliver_later(queue: 'mailers')
   end
 end 
  

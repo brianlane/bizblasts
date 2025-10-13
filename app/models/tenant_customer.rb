@@ -365,14 +365,14 @@ class TenantCustomer < ApplicationRecord
   def send_business_customer_notification
     # Skip if explicitly disabled (used by staggered email service)
     return if skip_notification_email
-    
+
     begin
       # Create a new customer notification - this will go to business owner
       business_user = business.users.where(role: :manager).first
       if business_user
         # Send email
-        BusinessMailer.new_customer_notification(self).deliver_later if business_user.can_receive_email?(:customer)
-        
+        BusinessMailer.new_customer_notification(self).deliver_later(queue: 'mailers') if business_user.can_receive_email?(:customer)
+
         # Send SMS if opted in
         if business_user.respond_to?(:can_receive_sms?) && business_user.can_receive_sms?(:booking)
           SmsService.send_business_new_customer(self, business_user)

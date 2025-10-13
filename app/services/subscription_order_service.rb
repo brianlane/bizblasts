@@ -192,7 +192,7 @@ class SubscriptionOrderService
 
     # Send business notification
     begin
-      BusinessMailer.subscription_order_received(order).deliver_later
+      BusinessMailer.subscription_order_received(order).deliver_later(queue: 'mailers')
       Rails.logger.info "[EMAIL] Sent subscription order notification to business for order #{order.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send business notification for order #{order.id}: #{e.message}"
