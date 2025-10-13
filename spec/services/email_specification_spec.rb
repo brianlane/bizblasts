@@ -152,7 +152,7 @@ RSpec.describe EmailSpecification, type: :service do
       # Mock the mailer to avoid actual email sending
       mailer_instance = double('mailer_instance')
       allow(BusinessMailer).to receive(:new_order_notification).with(order).and_return(mailer_instance)
-      expect(mailer_instance).to receive(:deliver_later)
+      expect(mailer_instance).to receive(:deliver_later).with(queue: 'mailers')
 
       result = spec.execute
       expect(result).to be true
@@ -170,7 +170,7 @@ RSpec.describe EmailSpecification, type: :service do
 
       mailer_instance = double('mailer_instance')
       allow(BusinessMailer).to receive(:new_customer_notification).with(tenant_customer).and_return(mailer_instance)
-      expect(mailer_instance).to receive(:deliver_later)
+      expect(mailer_instance).to receive(:deliver_later).with(queue: 'mailers')
 
       result = spec_with_tenant.execute
       expect(result).to be true
@@ -201,7 +201,7 @@ RSpec.describe EmailSpecification, type: :service do
 
         mailer_instance = double('mailer_instance')
         allow(BusinessMailer).to receive(:new_order_notification).with(order).and_return(mailer_instance)
-        expect(mailer_instance).to receive(:deliver_later)
+        expect(mailer_instance).to receive(:deliver_later).with(queue: 'mailers')
 
         result = spec_with_condition.execute
         expect(result).to be true
@@ -252,10 +252,10 @@ RSpec.describe EmailSpecification, type: :service do
 
     it 'executes the mailer method with delay in non-test environment' do
       allow(Rails.env).to receive(:test?).and_return(false)
-      
+
       mailer_instance = double('mailer_instance')
       allow(BusinessMailer).to receive(:new_order_notification).with(order).and_return(mailer_instance)
-      expect(mailer_instance).to receive(:deliver_later).with(wait: 5.seconds)
+      expect(mailer_instance).to receive(:deliver_later).with(wait: 5.seconds, queue: 'mailers')
 
       result = spec.execute_with_delay(wait: 5.seconds)
       expect(result).to be true
@@ -263,10 +263,10 @@ RSpec.describe EmailSpecification, type: :service do
 
     it 'executes without delay in test environment' do
       allow(Rails.env).to receive(:test?).and_return(true)
-      
+
       mailer_instance = double('mailer_instance')
       allow(BusinessMailer).to receive(:new_order_notification).with(order).and_return(mailer_instance)
-      expect(mailer_instance).to receive(:deliver_later).with(no_args)
+      expect(mailer_instance).to receive(:deliver_later).with(queue: 'mailers')
 
       result = spec.execute_with_delay(wait: 5.seconds)
       expect(result).to be true
@@ -284,7 +284,7 @@ RSpec.describe EmailSpecification, type: :service do
 
       mailer_instance = double('mailer_instance')
       allow(BusinessMailer).to receive(:new_customer_notification).with(tenant_customer).and_return(mailer_instance)
-      expect(mailer_instance).to receive(:deliver_later)
+      expect(mailer_instance).to receive(:deliver_later).with(queue: 'mailers')
 
       result = spec_with_tenant.execute_with_delay(wait: 5.seconds)
       expect(result).to be true
