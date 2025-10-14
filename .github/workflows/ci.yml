@@ -164,7 +164,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -256,7 +256,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -359,7 +359,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -459,7 +459,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -559,7 +559,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -659,7 +659,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -750,7 +750,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -844,7 +844,7 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -936,7 +936,7 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -1028,7 +1028,7 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -1120,7 +1120,7 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -1212,7 +1212,7 @@ jobs:
       - name: Install all gems
         run: bundle install --jobs 4 --retry 3 --with development test
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -1303,7 +1303,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -1416,7 +1416,7 @@ jobs:
         run: bundle install --jobs 4 --retry 3 --with development test
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
