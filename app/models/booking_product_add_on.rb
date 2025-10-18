@@ -111,7 +111,7 @@ class BookingProductAddOn < ApplicationRecord
     end
   end
 
-  # Security: Ensure product is eligible for customers
+  # Security: Ensure product is eligible
   def product_is_eligible_for_customers
     return unless product_variant
 
@@ -122,12 +122,9 @@ class BookingProductAddOn < ApplicationRecord
       errors.add(:product_variant, "product is not active")
     end
 
-    # Only service and mixed product types should be available as booking add-ons
-    unless product.product_type.in?(['service', 'mixed'])
-      errors.add(:product_variant, "product type must be service or mixed")
-    end
-
-    # Check if product is visible to customers (respects hide_when_out_of_stock setting)
+    # Check if product is visible (respects hide_when_out_of_stock setting)
+    # Note: Product type restrictions (service/mixed) are enforced at controller level for customer-facing UIs
+    # Business managers can add any product type as needed
     unless product.visible_to_customers?
       errors.add(:product_variant, "product is not available")
     end
