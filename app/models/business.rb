@@ -282,6 +282,10 @@ class Business < ApplicationRecord
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
 
+  # Clear CORS origins cache when custom domain status changes
+  # This ensures ActionCable and API endpoints immediately reflect verified custom domains
+  after_commit :clear_cors_cache_if_domain_changed, on: [:create, :update, :destroy]
+
   # Find the current tenant
   def self.current
     ActsAsTenant.current_tenant
@@ -853,6 +857,25 @@ class Business < ApplicationRecord
   # Private callback helper methods
   # ---------------------------------------------------------------------------
   private
+
+  # Clear CORS origins cache when custom domain verification status changes
+  # This ensures ActionCable and API endpoints immediately reflect newly verified domains
+  def clear_cors_cache_if_domain_changed
+    # Clear cache if this is a custom domain business and relevant fields changed
+    if host_type_custom_domain? && (
+      saved_change_to_status? ||
+      saved_change_to_domain_health_verified? ||
+      saved_change_to_hostname? ||
+      saved_change_to_host_type? ||
+      destroyed?
+    )
+      DomainSecurity.clear_origins_cache
+      Rails.logger.info "[Business #{id}] Cleared CORS cache due to custom domain changes"
+    end
+  rescue StandardError => e
+    # Don't let cache clearing fail the transaction
+    Rails.logger.error "[Business #{id}] Failed to clear CORS cache: #{e.message}"
+  end
 
   # Returns the most reliable host for critical mailer URLs (payments, invoices)
   # Always defaults to subdomain for maximum reliability unless explicitly overridden

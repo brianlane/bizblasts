@@ -99,17 +99,16 @@ Rails.application.configure do
   # Configure standard ActionCable
   config.action_cable.mount_path = '/cable'
   config.action_cable.url = "wss://bizblasts.onrender.com/cable"
-  config.action_cable.allowed_request_origins = [
-    "https://bizblasts.onrender.com", 
-    "http://bizblasts.onrender.com",
-    "https://www.bizblasts.com",
-    "http://www.bizblasts.com",
-    "https://bizblasts.com",
-    "http://bizblasts.com",
-    # Allow Render PR preview URLs
-    /https:\/\/bizblasts-pr-\d+\.onrender\.com/,
-    /http:\/\/bizblasts-pr-\d+\.onrender\.com/
-  ]
+
+  # SECURITY: Use DomainSecurity module for consistent CORS validation
+  # Dynamically allows:
+  # - Platform domains (main + www + render)
+  # - All tenant subdomains (e.g., salon.bizblasts.com)
+  # - Verified custom domains (DNS + SSL + health verified)
+  # This prevents domain spoofing while allowing legitimate cross-origin WebSocket connections
+  config.action_cable.allowed_request_origins = -> {
+    DomainSecurity.allowed_cors_origins
+  }
   
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

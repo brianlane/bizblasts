@@ -4,9 +4,11 @@ class Api::V1::BusinessesController < ApplicationController
   # Skip Rails authentication for all API endpoints - we use API key auth instead
   skip_before_action :authenticate_user!
   skip_before_action :verify_authenticity_token
-  
+
   # Add CORS headers for API access
   before_action :set_cors_headers
+  before_action :set_security_headers
+  before_action :handle_cors_preflight
   before_action :check_api_rate_limit
   before_action :authenticate_api_access, except: [:categories, :ai_summary]
   before_action :set_tenant_for_api, only: [:show]
@@ -173,11 +175,48 @@ class Api::V1::BusinessesController < ApplicationController
   end
   
   def set_cors_headers
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Key'
+    # SECURITY: Validate origin against allowed domains (platform + verified custom domains)
+    # Prevents domain spoofing attacks while allowing legitimate cross-origin requests
+    origin = request.headers['Origin']
+
+    if origin.present? && DomainSecurity.valid_cors_origin?(origin)
+      # Origin is valid - allow CORS request
+      response.headers['Access-Control-Allow-Origin'] = origin
+      response.headers['Access-Control-Allow-Credentials'] = 'true'
+    elsif origin.blank?
+      # No origin header (same-origin request or direct API call) - allow
+      response.headers['Access-Control-Allow-Origin'] = '*'
+    else
+      # Invalid origin - log and deny
+      Rails.logger.warn "[API CORS] Rejected origin: #{origin} from IP: #{request.remote_ip}"
+      # Don't set CORS headers for invalid origins (browser will block)
+    end
+
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Key, Authorization'
+    response.headers['Access-Control-Max-Age'] = '86400'  # Cache preflight for 24 hours
   end
-  
+
+  def set_security_headers
+    # SECURITY: Additional security headers to prevent common attacks
+    # These headers protect against XSS, clickjacking, MIME sniffing, and other threats
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    # Content Security Policy for API responses (restrictive for JSON endpoints)
+    response.headers['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'none'"
+  end
+
+  def handle_cors_preflight
+    # Handle CORS preflight OPTIONS requests
+    if request.method == 'OPTIONS'
+      head :ok
+      return
+    end
+  end
+
   def check_api_rate_limit
     # Simple rate limiting for API endpoints
     cache_key = "api_requests_#{request.remote_ip}"

@@ -10,6 +10,9 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
+  # SECURITY: Set security headers for all responses
+  before_action :set_security_headers
+
   # Handle CSRF token issues for admin login after user logout
   before_action :handle_admin_csrf_token, if: -> { request.path == '/admin/login' && request.post? }
 
@@ -379,6 +382,53 @@ class ApplicationController < ActionController::Base
 
   # Keep other methods private
   private
+
+  # SECURITY: Set security headers for all responses to prevent common attacks
+  # These headers protect against XSS, clickjacking, MIME sniffing, and other threats
+  def set_security_headers
+    # Prevent MIME type sniffing (ensures browsers respect Content-Type)
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # Prevent clickjacking attacks (prevents page from being framed)
+    # SAMEORIGIN allows framing within same domain (needed for some admin features)
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+
+    # Enable browser XSS protection (legacy browsers)
+    # Modern browsers use CSP, but this provides defense in depth
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # Control referrer information sent with requests
+    # strict-origin-when-cross-origin: Send full URL for same-origin, origin only for cross-origin HTTPS
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    # Content Security Policy (allows inline styles/scripts needed for Rails UJS and Turbo)
+    # This is a balanced policy that maintains security while allowing necessary functionality
+    unless response.headers['Content-Security-Policy'].present?
+      response.headers['Content-Security-Policy'] =
+        "default-src 'self'; " \
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net; " \
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " \
+        "font-src 'self' https://fonts.gstatic.com; " \
+        "img-src 'self' data: https: blob:; " \
+        "connect-src 'self' https://api.stripe.com wss://*.bizblasts.com wss://*.onrender.com; " \
+        "frame-src https://js.stripe.com https://hooks.stripe.com; " \
+        "object-src 'none'; " \
+        "base-uri 'self'; " \
+        "form-action 'self'"
+    end
+
+    # Permissions Policy (formerly Feature-Policy)
+    # Restrict browser features to prevent abuse
+    response.headers['Permissions-Policy'] =
+      "geolocation=(), " \
+      "microphone=(), " \
+      "camera=(), " \
+      "payment=(self), " \
+      "usb=(), " \
+      "magnetometer=(), " \
+      "gyroscope=(), " \
+      "accelerometer=()"
+  end
 
   def skip_user_authentication?
     # Skip authentication for:
