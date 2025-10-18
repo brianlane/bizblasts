@@ -7,6 +7,8 @@ class BookingProductAddOn < ApplicationRecord
   validates :price, :total_amount, numericality: { greater_than_or_equal_to: 0 }
   validate :variant_in_stock, on: :create
   validate :variant_in_stock_for_update, on: :update, if: :quantity_changed?
+  validate :product_variant_belongs_to_same_business
+  validate :product_is_eligible_for_customers
 
   before_validation :set_price_and_total # Runs on create and update if price/quantity could change
 
@@ -90,5 +92,44 @@ class BookingProductAddOn < ApplicationRecord
     return if product_variant.business&.stock_management_disabled?
     # quantity here is the quantity at the time of destruction
     product_variant.increment_stock!(quantity)
+  end
+
+  # Security: Ensure product_variant belongs to the same business as the booking
+  def product_variant_belongs_to_same_business
+    return unless product_variant && booking
+
+    variant_business_id = product_variant.product&.business_id
+    booking_business_id = booking.business_id
+
+    if variant_business_id.blank?
+      errors.add(:product_variant, "must have an associated business")
+      return
+    end
+
+    if variant_business_id != booking_business_id
+      errors.add(:product_variant, "must belong to the same business as the booking")
+    end
+  end
+
+  # Security: Ensure product is eligible for customers
+  def product_is_eligible_for_customers
+    return unless product_variant
+
+    product = product_variant.product
+    return unless product
+
+    unless product.active?
+      errors.add(:product_variant, "product is not active")
+    end
+
+    # Only service and mixed product types should be available as booking add-ons
+    unless product.product_type.in?(['service', 'mixed'])
+      errors.add(:product_variant, "product type must be service or mixed")
+    end
+
+    # Check if product is visible to customers (respects hide_when_out_of_stock setting)
+    unless product.visible_to_customers?
+      errors.add(:product_variant, "product is not available")
+    end
   end
 end 

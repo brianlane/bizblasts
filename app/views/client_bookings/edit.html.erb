@@ -39,21 +39,24 @@
       <%= form.fields_for :booking_product_add_ons do |addOnFields| %>
         <%# This will render fields for existing add_ons because @booking.booking_product_add_ons are pre-populated %>
         <% variant = addOnFields.object.product_variant %>
-        <div class="product-variant-selection" style="margin-bottom: 10px; padding: 5px; border: 1px solid #eee;">
-          <strong><%= variant.product.name %> - <%= variant.name %></strong> (<%= number_to_currency variant.final_price %>)
-          <%= addOnFields.hidden_field :product_variant_id %> <%# Keeps association %>
-          <%= addOnFields.hidden_field :id %> <%# Important for updating existing records %>
-          <div>
-            <%= addOnFields.label :quantity, "Quantity:" %>
-            <%# Calculate current stock correctly for editing an existing item %>
-            <% current_item_stock = variant.stock_quantity + addOnFields.object.quantity_was.to_i %>
-            <%= addOnFields.number_field :quantity, min: 0, in: 0..current_item_stock, value: addOnFields.object.quantity %>
+        <%# Security: Only render if product is accessible (prevents cross-business product rendering) %>
+        <% if variant&.product.present? %>
+          <div class="product-variant-selection" style="margin-bottom: 10px; padding: 5px; border: 1px solid #eee;">
+            <strong><%= variant.product.name %> - <%= variant.name %></strong> (<%= number_to_currency variant.final_price %>)
+            <%= addOnFields.hidden_field :product_variant_id %> <%# Keeps association %>
+            <%= addOnFields.hidden_field :id %> <%# Important for updating existing records %>
+            <div>
+              <%= addOnFields.label :quantity, "Quantity:" %>
+              <%# Calculate current stock correctly for editing an existing item %>
+              <% current_item_stock = variant.stock_quantity + addOnFields.object.quantity_was.to_i %>
+              <%= addOnFields.number_field :quantity, min: 0, in: 0..current_item_stock, value: addOnFields.object.quantity %>
+            </div>
+            <div>
+              <%= addOnFields.check_box :_destroy %>
+              <%= addOnFields.label :_destroy, "Remove this product" %>
+            </div>
           </div>
-          <div>
-            <%= addOnFields.check_box :_destroy %>
-            <%= addOnFields.label :_destroy, "Remove this product" %>
-          </div>
-        </div>
+        <% end %>
       <% end %>
 
       <%# Offer new products that are not yet part of the booking %>
@@ -105,7 +108,9 @@
       addonPrices[<%= variant.id %>] = <%= variant.final_price || 0 %>;
     <% end %>
     <% @booking.booking_product_add_ons.each do |addon| %>
-      addonPrices[<%= addon.product_variant_id %>] = <%= addon.price || 0 %>; // Use booked price for existing
+      <% if addon.product_variant&.product.present? %>
+        addonPrices[<%= addon.product_variant_id %>] = <%= addon.price || 0 %>; // Use booked price for existing
+      <% end %>
     <% end %>
 
     function updateTotalPrice() {
