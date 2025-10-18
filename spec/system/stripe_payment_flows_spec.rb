@@ -4,8 +4,8 @@ require 'rails_helper'
 
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   include StripeWebhookHelpers
-  
-  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', stripe_account_id: 'acct_test123') }
+
+  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain') }
   
   before do
     ActsAsTenant.current_tenant = business
