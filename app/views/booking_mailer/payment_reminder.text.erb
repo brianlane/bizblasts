@@ -55,6 +55,7 @@ To view invoice details, visit: <%= tenant_invoice_url(@invoice.id, token: @invo
 
 <% unless @booking.service.experience? %>
 Remember: Your booking is confirmed regardless of payment timing.
+<% end %>
 
 Thank you for choosing <%= @business.name %>!
 
