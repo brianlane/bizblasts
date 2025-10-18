@@ -175,7 +175,7 @@ class ClientBookingsController < ApplicationController
       :notes,
       :start_time,
       :end_time,
-      booking_product_add_ons_attributes: {}
+      booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy]
     )
   end
 
