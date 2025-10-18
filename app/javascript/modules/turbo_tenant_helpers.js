@@ -2,6 +2,48 @@
 // Provides helpers for managing Turbo navigation in a multi-tenant environment
 
 export class TurboTenantHelpers {
+  // Get server-provided platform domain (injected via meta tag)
+  static getPlatformDomain() {
+    const metaTag = document.querySelector('meta[name="platform-domain"]');
+    return metaTag?.content || 'bizblasts.com'; // Fallback for non-Rails contexts
+  }
+
+  // Get current tenant type from server
+  static getTenantType() {
+    const metaTag = document.querySelector('meta[name="tenant-type"]');
+    return metaTag?.content || 'platform';
+  }
+
+  // Check if current context is a custom domain
+  static isCustomDomain() {
+    const metaTag = document.querySelector('meta[name="is-custom-domain"]');
+    return metaTag?.content === 'true';
+  }
+
+  // SECURITY: Validate hostname against platform domain (prevents domain spoofing)
+  // Only accepts exact match or valid subdomain (e.g., "tenant.bizblasts.com")
+  // Rejects: "bizblasts.com.evil.com", "evil-bizblasts.com", "mybizblasts.com"
+  static isValidPlatformDomain(hostname) {
+    if (!hostname) return false;
+
+    const platformDomain = this.getPlatformDomain();
+    const normalizedHost = hostname.toLowerCase();
+    const normalizedDomain = platformDomain.toLowerCase();
+
+    // Exact match (e.g., "bizblasts.com" === "bizblasts.com")
+    if (normalizedHost === normalizedDomain) {
+      return true;
+    }
+
+    // Valid subdomain (ends with ".bizblasts.com")
+    // This prevents "bizblasts.com.evil.com" and "evil-bizblasts.com"
+    if (normalizedHost.endsWith(`.${normalizedDomain}`)) {
+      return true;
+    }
+
+    return false;
+  }
+
   // Check if current page is in business manager area
   static isBusinessManagerArea() {
     return window.location.pathname.startsWith('/manage/');
@@ -11,18 +53,14 @@ export class TurboTenantHelpers {
   static isOnTenantSubdomain() {
     const host = window.location.host;
     const parts = host.split('.');
-    
-    // In development: something.lvh.me
-    // In production: something.bizblasts.com
-    if (host.includes('lvh.me')) {
-      return parts.length >= 3 && parts[0] !== 'www';
+
+    // Check if we're on a valid platform domain
+    if (!this.isValidPlatformDomain(host)) {
+      return false;
     }
-    
-    if (host.includes('bizblasts.com')) {
-      return parts.length >= 3 && parts[0] !== 'www';
-    }
-    
-    return false;
+
+    // Must have at least 3 parts (subdomain.platform.tld) and not be www
+    return parts.length >= 3 && parts[0] !== 'www';
   }
   
   // Get current tenant subdomain
@@ -57,35 +95,30 @@ export class TurboTenantHelpers {
     const protocol = window.location.protocol;
     const port = window.location.port;
     const portSuffix = port && !['80', '443'].includes(port) ? `:${port}` : '';
-    
-    if (window.location.host.includes('lvh.me')) {
-      return `${protocol}//lvh.me${portSuffix}${path}`;
-    }
-    
-    if (window.location.host.includes('bizblasts.com')) {
-      return `${protocol}//www.bizblasts.com${path}`;
-    }
-    
-    // Fallback for other environments
-    return `${protocol}//${window.location.host}${path}`;
+
+    const platformDomain = this.getPlatformDomain();
+    return `${protocol}//${platformDomain}${portSuffix}${path}`;
   }
   
   // Get tenant-specific URL
+  // IMPORTANT: Only works for subdomain tenants on platform domain
+  // Custom domain businesses cannot be accessed via this method
   static getTenantUrl(tenantSlug, path = '/') {
     const protocol = window.location.protocol;
     const port = window.location.port;
     const portSuffix = port && !['80', '443'].includes(port) ? `:${port}` : '';
-    
-    if (window.location.host.includes('lvh.me')) {
-      return `${protocol}//${tenantSlug}.lvh.me${portSuffix}${path}`;
+
+    const tenantType = this.getTenantType();
+    const platformDomain = this.getPlatformDomain();
+
+    // Only construct subdomain URLs when on platform domain or subdomain tenant
+    if (tenantType === 'subdomain' || tenantType === 'platform') {
+      return `${protocol}//${tenantSlug}.${platformDomain}${portSuffix}${path}`;
     }
-    
-    if (window.location.host.includes('bizblasts.com')) {
-      return `${protocol}//${tenantSlug}.bizblasts.com${path}`;
-    }
-    
-    // Fallback for other environments
-    return `${protocol}//${tenantSlug}.${window.location.host}${path}`;
+
+    // Custom domain businesses - cannot construct cross-tenant URLs
+    console.warn('[TenantHelpers] getTenantUrl called from custom domain context - returning relative path');
+    return path; // Return relative path as fallback
   }
   
   // Navigate to main domain (useful for logout, etc.)
@@ -170,16 +203,21 @@ export class TurboTenantHelpers {
   
   // Debug helper - log tenant information
   static debugTenantInfo() {
+    const platformDomain = this.getPlatformDomain();
     // Check for development environment more robustly
     const isDev = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') ||
-                  (typeof window !== 'undefined' && window.location && 
-                   (window.location.hostname.includes('lvh.me') || window.location.hostname === 'localhost'));
-    
+                  (typeof window !== 'undefined' && window.location &&
+                   this.isValidPlatformDomain(window.location.hostname));
+
     if (isDev) {
       console.group('🏢 Tenant Debug Info');
+      console.log('Platform Domain:', platformDomain);
       console.log('Current Host:', window.location.host);
+      console.log('Is Valid Platform Domain:', this.isValidPlatformDomain(window.location.host));
       console.log('Is Tenant Subdomain:', this.isOnTenantSubdomain());
       console.log('Current Tenant:', this.getCurrentTenant());
+      console.log('Tenant Type:', this.getTenantType());
+      console.log('Is Custom Domain:', this.isCustomDomain());
       console.log('Is Business Manager:', this.isBusinessManagerArea());
       console.log('Main Domain URL:', this.getMainDomainUrl());
       console.groupEnd();
@@ -191,14 +229,13 @@ export class TurboTenantHelpers {
 if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
   // Add global helper for debugging
   window.TenantHelpers = TurboTenantHelpers;
-  
+
   // Log tenant info on page load
   document.addEventListener('DOMContentLoaded', () => {
     TurboTenantHelpers.debugTenantInfo();
   });
-} else if (typeof window !== 'undefined' && window.location && window.location.hostname && 
-           (window.location.hostname.includes('lvh.me') || window.location.hostname === 'localhost')) {
-  // Development environment detection fallback
+} else if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+  // Make helpers available in all environments for debugging
   window.TenantHelpers = TurboTenantHelpers;
 }
 

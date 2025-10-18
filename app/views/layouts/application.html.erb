@@ -47,6 +47,13 @@
       <meta name="twitter:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
     <% end %>
 
+    <!-- Tenant context for client-side JavaScript (security-critical) -->
+    <meta name="tenant-type" content="<%= current_tenant&.host_type || 'platform' %>">
+    <meta name="tenant-hostname" content="<%= current_tenant&.hostname %>">
+    <meta name="tenant-subdomain" content="<%= current_tenant&.subdomain %>">
+    <meta name="platform-domain" content="<%= Rails.env.production? ? 'bizblasts.com' : (Rails.application.config.main_domain&.split(':')&.first || 'lvh.me') %>">
+    <meta name="is-custom-domain" content="<%= current_tenant&.host_type == 'custom_domain' ? 'true' : 'false' %>">
+
     <!-- Structured Data for Organization -->
     <script type="application/ld+json">
     <%
