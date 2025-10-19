@@ -263,6 +263,72 @@ RSpec.describe DomainSecurity do
       expect(subdomain_pattern).to be_present
     end
 
+    context 'subdomain regex validation' do
+      let(:origins) { DomainSecurity.allowed_cors_origins }
+      let(:subdomain_pattern) { origins.find { |o| o.is_a?(Regexp) && o.match?('https://test.lvh.me') } }
+
+      it 'accepts valid single-label subdomains' do
+        expect(subdomain_pattern.match?('https://salon.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://myspa.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://test123.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://a.lvh.me')).to be true  # Single character
+      end
+
+      it 'accepts valid multi-level subdomains' do
+        expect(subdomain_pattern.match?('https://api.v1.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://staging.api.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://a.b.c.lvh.me')).to be true
+      end
+
+      it 'accepts valid subdomains with hyphens in middle' do
+        expect(subdomain_pattern.match?('https://my-salon.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://test-api-v2.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://api-v1.staging.lvh.me')).to be true
+      end
+
+      it 'accepts subdomains with port numbers' do
+        expect(subdomain_pattern.match?('https://salon.lvh.me:3000')).to be true
+        expect(subdomain_pattern.match?('https://api.v1.lvh.me:8080')).to be true
+      end
+
+      it 'rejects subdomains with leading hyphens' do
+        expect(subdomain_pattern.match?('https://-salon.lvh.me')).to be false
+        expect(subdomain_pattern.match?('https://-test.lvh.me')).to be false
+      end
+
+      it 'rejects subdomains with trailing hyphens' do
+        expect(subdomain_pattern.match?('https://salon-.lvh.me')).to be false
+        expect(subdomain_pattern.match?('https://test-.lvh.me')).to be false
+      end
+
+      it 'accepts subdomains with consecutive hyphens (valid per RFC 1123)' do
+        # Note: While uncommon, consecutive hyphens are technically valid in DNS
+        expect(subdomain_pattern.match?('https://sal--on.lvh.me')).to be true
+        expect(subdomain_pattern.match?('https://test--api.lvh.me')).to be true
+      end
+
+      it 'rejects subdomain labels starting with hyphens in multi-level' do
+        expect(subdomain_pattern.match?('https://-api.staging.lvh.me')).to be false
+        expect(subdomain_pattern.match?('https://api.-staging.lvh.me')).to be false
+      end
+
+      it 'rejects subdomain labels ending with hyphens in multi-level' do
+        expect(subdomain_pattern.match?('https://api-.staging.lvh.me')).to be false
+        expect(subdomain_pattern.match?('https://api.staging-.lvh.me')).to be false
+      end
+
+      it 'accepts both http and https protocols' do
+        http_pattern = origins.find { |o| o.is_a?(Regexp) && o.match?('http://test.lvh.me') }
+        expect(http_pattern.match?('http://salon.lvh.me')).to be true
+        expect(http_pattern.match?('http://api.v1.lvh.me')).to be true
+      end
+
+      it 'rejects non-platform domains' do
+        expect(subdomain_pattern.match?('https://evil.com')).to be false
+        expect(subdomain_pattern.match?('https://lvh.me.evil.com')).to be false
+      end
+    end
+
     it 'includes verified custom domains' do
       origins = DomainSecurity.allowed_cors_origins
       expect(origins).to include('https://salon.com')

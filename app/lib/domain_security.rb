@@ -171,10 +171,18 @@ module DomainSecurity
     end
 
     # Allow all subdomains of platform domain
-    # Pattern: https://anything.bizblasts.com
+    # SECURITY: Regex properly validates subdomain format:
+    # - Must start/end with alphanumeric (no leading/trailing hyphens)
+    # - Can contain hyphens in the middle
+    # - Supports multi-level subdomains (e.g., api.v1.bizblasts.com)
+    # Pattern: [subdomain.]bizblasts.com where subdomain = label(.label)*
+    # Label format: alphanumeric start/end, hyphens allowed in middle
     main_escaped = Regexp.escape(main)
-    origins << /https:\/\/[a-z0-9-]+\.#{main_escaped}(:\d+)?/
-    origins << /http:\/\/[a-z0-9-]+\.#{main_escaped}(:\d+)?/
+    # Subdomain label: [a-z0-9] followed by optional [a-z0-9-]* ending with [a-z0-9]
+    # Supports single labels (salon) and multi-level (api.v1)
+    subdomain_pattern = '[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*'
+    origins << /https:\/\/#{subdomain_pattern}\.#{main_escaped}(:\d+)?/
+    origins << /http:\/\/#{subdomain_pattern}\.#{main_escaped}(:\d+)?/
 
     # Add verified custom domains (if database is available)
     if defined?(Business) && Business.connection.table_exists?('businesses')

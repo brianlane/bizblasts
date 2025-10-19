@@ -48,10 +48,14 @@
     <% end %>
 
     <!-- Tenant context for client-side JavaScript (security-critical) -->
-    <meta name="tenant-type" content="<%= current_tenant&.host_type || 'platform' %>">
-    <meta name="tenant-hostname" content="<%= current_tenant&.hostname %>">
-    <meta name="tenant-subdomain" content="<%= current_tenant&.subdomain %>">
+    <!-- SECURITY: Explicitly HTML-escape all tenant-controlled values to prevent XSS -->
+    <meta name="tenant-type" content="<%= h(current_tenant&.host_type || 'platform') %>">
+    <meta name="tenant-hostname" content="<%= h(current_tenant&.hostname || '') %>">
+    <meta name="tenant-subdomain" content="<%= h(current_tenant&.subdomain || '') %>">
+    <!-- Platform domain: Base domain for subdomain validation (e.g., bizblasts.com) -->
     <meta name="platform-domain" content="<%= Rails.env.production? ? 'bizblasts.com' : (Rails.application.config.main_domain&.split(':')&.first || 'lvh.me') %>">
+    <!-- Canonical domain: Preferred domain for main site URLs (e.g., www.bizblasts.com) -->
+    <meta name="canonical-domain" content="<%= Rails.env.production? ? 'www.bizblasts.com' : (Rails.application.config.main_domain&.split(':')&.first || 'lvh.me') %>">
     <meta name="is-custom-domain" content="<%= current_tenant&.host_type == 'custom_domain' ? 'true' : 'false' %>">
 
     <!-- Structured Data for Organization -->

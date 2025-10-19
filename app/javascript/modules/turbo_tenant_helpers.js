@@ -2,10 +2,19 @@
 // Provides helpers for managing Turbo navigation in a multi-tenant environment
 
 export class TurboTenantHelpers {
-  // Get server-provided platform domain (injected via meta tag)
+  // Get server-provided platform domain (base domain for subdomain validation)
+  // Returns: "bizblasts.com" (production) or "lvh.me" (dev/test)
   static getPlatformDomain() {
     const metaTag = document.querySelector('meta[name="platform-domain"]');
     return metaTag?.content || 'bizblasts.com'; // Fallback for non-Rails contexts
+  }
+
+  // Get server-provided canonical domain (preferred domain for main site URLs)
+  // Returns: "www.bizblasts.com" (production) or "lvh.me" (dev/test)
+  static getCanonicalDomain() {
+    const metaTag = document.querySelector('meta[name="canonical-domain"]');
+    // Fallback to platform domain if canonical not set
+    return metaTag?.content || this.getPlatformDomain();
   }
 
   // Get current tenant type from server
@@ -22,22 +31,30 @@ export class TurboTenantHelpers {
 
   // SECURITY: Validate hostname against platform domain (prevents domain spoofing)
   // Only accepts exact match or valid subdomain (e.g., "tenant.bizblasts.com")
+  // Also accepts canonical domain (e.g., "www.bizblasts.com" in production)
   // Rejects: "bizblasts.com.evil.com", "evil-bizblasts.com", "mybizblasts.com"
   static isValidPlatformDomain(hostname) {
     if (!hostname) return false;
 
     const platformDomain = this.getPlatformDomain();
+    const canonicalDomain = this.getCanonicalDomain();
     const normalizedHost = hostname.toLowerCase();
-    const normalizedDomain = platformDomain.toLowerCase();
+    const normalizedPlatform = platformDomain.toLowerCase();
+    const normalizedCanonical = canonicalDomain.toLowerCase();
 
-    // Exact match (e.g., "bizblasts.com" === "bizblasts.com")
-    if (normalizedHost === normalizedDomain) {
+    // Exact match with platform domain (e.g., "bizblasts.com" === "bizblasts.com")
+    if (normalizedHost === normalizedPlatform) {
+      return true;
+    }
+
+    // Exact match with canonical domain (e.g., "www.bizblasts.com" === "www.bizblasts.com")
+    if (normalizedHost === normalizedCanonical) {
       return true;
     }
 
     // Valid subdomain (ends with ".bizblasts.com")
     // This prevents "bizblasts.com.evil.com" and "evil-bizblasts.com"
-    if (normalizedHost.endsWith(`.${normalizedDomain}`)) {
+    if (normalizedHost.endsWith(`.${normalizedPlatform}`)) {
       return true;
     }
 
@@ -51,11 +68,12 @@ export class TurboTenantHelpers {
   
   // Check if current page is on a tenant subdomain
   static isOnTenantSubdomain() {
-    const host = window.location.host;
-    const parts = host.split('.');
+    // Use hostname (without port) instead of host for proper domain checking
+    const hostname = window.location.hostname;
+    const parts = hostname.split('.');
 
     // Check if we're on a valid platform domain
-    if (!this.isValidPlatformDomain(host)) {
+    if (!this.isValidPlatformDomain(hostname)) {
       return false;
     }
 
@@ -91,13 +109,14 @@ export class TurboTenantHelpers {
   }
   
   // Get main domain URL for current environment
+  // Uses canonical domain (www.bizblasts.com in production, lvh.me in dev/test)
   static getMainDomainUrl(path = '/') {
     const protocol = window.location.protocol;
     const port = window.location.port;
     const portSuffix = port && !['80', '443'].includes(port) ? `:${port}` : '';
 
-    const platformDomain = this.getPlatformDomain();
-    return `${protocol}//${platformDomain}${portSuffix}${path}`;
+    const canonicalDomain = this.getCanonicalDomain();
+    return `${protocol}//${canonicalDomain}${portSuffix}${path}`;
   }
   
   // Get tenant-specific URL
@@ -204,16 +223,23 @@ export class TurboTenantHelpers {
   // Debug helper - log tenant information
   static debugTenantInfo() {
     const platformDomain = this.getPlatformDomain();
-    // Check for development environment more robustly
+    const canonicalDomain = this.getCanonicalDomain();
+
+    // SECURITY: Only enable debug logging in actual development environments
+    // Check for development-specific domains (localhost, 127.0.0.1, lvh.me)
+    // This prevents debug logging from being enabled in production
     const isDev = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') ||
                   (typeof window !== 'undefined' && window.location &&
-                   this.isValidPlatformDomain(window.location.hostname));
+                   (window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.hostname.includes('lvh.me')));
 
     if (isDev) {
       console.group('🏢 Tenant Debug Info');
-      console.log('Platform Domain:', platformDomain);
+      console.log('Platform Domain (base):', platformDomain);
+      console.log('Canonical Domain (www):', canonicalDomain);
       console.log('Current Host:', window.location.host);
-      console.log('Is Valid Platform Domain:', this.isValidPlatformDomain(window.location.host));
+      console.log('Is Valid Platform Domain:', this.isValidPlatformDomain(window.location.hostname));
       console.log('Is Tenant Subdomain:', this.isOnTenantSubdomain());
       console.log('Current Tenant:', this.getCurrentTenant());
       console.log('Tenant Type:', this.getTenantType());

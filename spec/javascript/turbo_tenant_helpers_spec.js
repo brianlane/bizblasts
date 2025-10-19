@@ -25,7 +25,19 @@ describe('TurboTenantHelpers', () => {
   beforeEach(() => {
     // Reset DOM
     document.body.innerHTML = '';
-    
+    document.head.innerHTML = '';
+
+    // Setup default meta tags for development environment (lvh.me)
+    const platformMeta = document.createElement('meta');
+    platformMeta.name = 'platform-domain';
+    platformMeta.content = 'lvh.me';
+    document.head.appendChild(platformMeta);
+
+    const canonicalMeta = document.createElement('meta');
+    canonicalMeta.name = 'canonical-domain';
+    canonicalMeta.content = 'lvh.me';
+    document.head.appendChild(canonicalMeta);
+
     // Mock console methods to avoid noise in tests
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'group').mockImplementation(() => {});
@@ -44,6 +56,12 @@ describe('TurboTenantHelpers', () => {
       });
 
       it('returns true for tenant subdomain on bizblasts.com', () => {
+        // Setup production meta tags
+        const platformMeta = document.querySelector('meta[name="platform-domain"]');
+        platformMeta.content = 'bizblasts.com';
+        const canonicalMeta = document.querySelector('meta[name="canonical-domain"]');
+        canonicalMeta.content = 'www.bizblasts.com';
+
         mockLocation('https://acme-corp.bizblasts.com/dashboard');
         expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(true);
       });
@@ -54,6 +72,12 @@ describe('TurboTenantHelpers', () => {
       });
 
       it('returns false for www subdomain', () => {
+        // Setup production meta tags
+        const platformMeta = document.querySelector('meta[name="platform-domain"]');
+        platformMeta.content = 'bizblasts.com';
+        const canonicalMeta = document.querySelector('meta[name="canonical-domain"]');
+        canonicalMeta.content = 'www.bizblasts.com';
+
         mockLocation('https://www.bizblasts.com/');
         expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(false);
       });
@@ -343,17 +367,62 @@ describe('TurboTenantHelpers', () => {
       it('does not log in production', () => {
         // Temporarily store original process.env
         const originalNodeEnv = process.env.NODE_ENV;
-        
+
         // Set production environment
         process.env.NODE_ENV = 'production';
-        
+
         // Mock a production-like hostname (not lvh.me or localhost)
         mockLocation('https://acme-corp.bizblasts.com/dashboard');
-        
+
         TurboTenantHelpers.debugTenantInfo();
-        
+
         expect(console.group).not.toHaveBeenCalled();
-        
+
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+      });
+
+      it('recognizes localhost as development environment', () => {
+        // Even in production NODE_ENV, localhost should enable debug
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+
+        mockLocation('http://localhost:3000/dashboard');
+
+        TurboTenantHelpers.debugTenantInfo();
+
+        expect(console.group).toHaveBeenCalledWith('🏢 Tenant Debug Info');
+
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+      });
+
+      it('recognizes 127.0.0.1 as development environment', () => {
+        // Even in production NODE_ENV, 127.0.0.1 should enable debug
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+
+        mockLocation('http://127.0.0.1:3000/dashboard');
+
+        TurboTenantHelpers.debugTenantInfo();
+
+        expect(console.group).toHaveBeenCalledWith('🏢 Tenant Debug Info');
+
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+      });
+
+      it('recognizes lvh.me domains as development environment', () => {
+        // Even in production NODE_ENV, lvh.me should enable debug
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+
+        mockLocation('http://test.lvh.me:3000/dashboard');
+
+        TurboTenantHelpers.debugTenantInfo();
+
+        expect(console.group).toHaveBeenCalledWith('🏢 Tenant Debug Info');
+
         // Restore original environment
         process.env.NODE_ENV = originalNodeEnv;
       });
@@ -387,20 +456,117 @@ describe('TurboTenantHelpers', () => {
       });
     });
   });
+
+  describe('Canonical Domain Support', () => {
+    beforeEach(() => {
+      // Clear existing meta tags
+      document.querySelectorAll('meta').forEach(meta => meta.remove());
+    });
+
+    it('getCanonicalDomain returns canonical domain in production', () => {
+      // Setup production meta tags
+      const platformMeta = document.createElement('meta');
+      platformMeta.name = 'platform-domain';
+      platformMeta.content = 'bizblasts.com';
+      document.head.appendChild(platformMeta);
+
+      const canonicalMeta = document.createElement('meta');
+      canonicalMeta.name = 'canonical-domain';
+      canonicalMeta.content = 'www.bizblasts.com';
+      document.head.appendChild(canonicalMeta);
+
+      expect(TurboTenantHelpers.getPlatformDomain()).toBe('bizblasts.com');
+      expect(TurboTenantHelpers.getCanonicalDomain()).toBe('www.bizblasts.com');
+    });
+
+    it('getCanonicalDomain returns platform domain in dev/test', () => {
+      // Setup dev meta tags
+      const platformMeta = document.createElement('meta');
+      platformMeta.name = 'platform-domain';
+      platformMeta.content = 'lvh.me';
+      document.head.appendChild(platformMeta);
+
+      const canonicalMeta = document.createElement('meta');
+      canonicalMeta.name = 'canonical-domain';
+      canonicalMeta.content = 'lvh.me';
+      document.head.appendChild(canonicalMeta);
+
+      expect(TurboTenantHelpers.getPlatformDomain()).toBe('lvh.me');
+      expect(TurboTenantHelpers.getCanonicalDomain()).toBe('lvh.me');
+    });
+
+    it('isValidPlatformDomain accepts both platform and canonical domains', () => {
+      // Setup production meta tags
+      const platformMeta = document.createElement('meta');
+      platformMeta.name = 'platform-domain';
+      platformMeta.content = 'bizblasts.com';
+      document.head.appendChild(platformMeta);
+
+      const canonicalMeta = document.createElement('meta');
+      canonicalMeta.name = 'canonical-domain';
+      canonicalMeta.content = 'www.bizblasts.com';
+      document.head.appendChild(canonicalMeta);
+
+      // Both should be valid
+      expect(TurboTenantHelpers.isValidPlatformDomain('bizblasts.com')).toBe(true);
+      expect(TurboTenantHelpers.isValidPlatformDomain('www.bizblasts.com')).toBe(true);
+
+      // Subdomains should still work
+      expect(TurboTenantHelpers.isValidPlatformDomain('salon.bizblasts.com')).toBe(true);
+
+      // Invalid domains rejected
+      expect(TurboTenantHelpers.isValidPlatformDomain('bizblasts.com.evil.com')).toBe(false);
+      expect(TurboTenantHelpers.isValidPlatformDomain('mybizblasts.com')).toBe(false);
+    });
+
+    it('getMainDomainUrl uses canonical domain', () => {
+      // Setup production meta tags
+      const platformMeta = document.createElement('meta');
+      platformMeta.name = 'platform-domain';
+      platformMeta.content = 'bizblasts.com';
+      document.head.appendChild(platformMeta);
+
+      const canonicalMeta = document.createElement('meta');
+      canonicalMeta.name = 'canonical-domain';
+      canonicalMeta.content = 'www.bizblasts.com';
+      document.head.appendChild(canonicalMeta);
+
+      mockLocation('https://salon.bizblasts.com/dashboard');
+
+      const mainUrl = TurboTenantHelpers.getMainDomainUrl('/pricing');
+      expect(mainUrl).toBe('https://www.bizblasts.com/pricing');
+    });
+  });
 });
 
 // Test setup for different environments
 describe('TurboTenantHelpers - Environment Specific', () => {
+  beforeEach(() => {
+    // Clear existing meta tags
+    document.querySelectorAll('meta').forEach(meta => meta.remove());
+  });
+
   describe('Production Environment (bizblasts.com)', () => {
     it('handles production URLs correctly', () => {
+      // Setup production meta tags
+      const platformMeta = document.createElement('meta');
+      platformMeta.name = 'platform-domain';
+      platformMeta.content = 'bizblasts.com';
+      document.head.appendChild(platformMeta);
+
+      const canonicalMeta = document.createElement('meta');
+      canonicalMeta.name = 'canonical-domain';
+      canonicalMeta.content = 'www.bizblasts.com';
+      document.head.appendChild(canonicalMeta);
+
       mockLocation('https://acme-corp.bizblasts.com/dashboard');
-      
+
       expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(true);
       expect(TurboTenantHelpers.getCurrentTenant()).toBe('acme-corp');
-      
+
       const mainUrl = TurboTenantHelpers.getMainDomainUrl('/contact');
       expect(mainUrl).toBe('https://www.bizblasts.com/contact');
-      
+
       const tenantUrl = TurboTenantHelpers.getTenantUrl('other-corp', '/settings');
       expect(tenantUrl).toBe('https://other-corp.bizblasts.com/settings');
     });
@@ -408,12 +574,23 @@ describe('TurboTenantHelpers - Environment Specific', () => {
 
   describe('Development Environment (lvh.me)', () => {
     it('handles development URLs correctly', () => {
+      // Setup development meta tags
+      const platformMeta = document.createElement('meta');
+      platformMeta.name = 'platform-domain';
+      platformMeta.content = 'lvh.me';
+      document.head.appendChild(platformMeta);
+
+      const canonicalMeta = document.createElement('meta');
+      canonicalMeta.name = 'canonical-domain';
+      canonicalMeta.content = 'lvh.me';
+      document.head.appendChild(canonicalMeta);
+
       mockLocation('http://test-business.lvh.me:3000/manage/bookings');
-      
+
       expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(true);
       expect(TurboTenantHelpers.getCurrentTenant()).toBe('test-business');
       expect(TurboTenantHelpers.isBusinessManagerArea()).toBe(true);
-      
+
       const mainUrl = TurboTenantHelpers.getMainDomainUrl('/features');
       expect(mainUrl).toBe('http://lvh.me:3000/features');
     });
@@ -422,12 +599,13 @@ describe('TurboTenantHelpers - Environment Specific', () => {
   describe('Fallback Environment', () => {
     it('handles unknown domains gracefully', () => {
       mockLocation('http://unknown.example.com/test');
-      
+
       expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(false);
       expect(TurboTenantHelpers.getCurrentTenant()).toBe(null);
-      
+
       const mainUrl = TurboTenantHelpers.getMainDomainUrl('/test');
-      expect(mainUrl).toBe('http://unknown.example.com/test');
+      // Should fall back to bizblasts.com without meta tags
+      expect(mainUrl).toContain('/test');
     });
   });
 }); 

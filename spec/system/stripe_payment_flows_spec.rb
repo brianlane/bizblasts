@@ -36,7 +36,8 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:staff_member) { create(:staff_member, business: business, name: 'John Stylist') }
     let!(:user) { create(:user, :client, email: 'client@example.com', password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
-    
+    let!(:client_business) { create(:client_business, user: user, business: business) }
+
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
     end
@@ -48,10 +49,13 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
         click_button 'Sign In'
-        
-        # Book service
+
+        # Reset to subdomain (sign-in redirects to main domain)
+        Capybara.app_host = url_for_business(business)
+
+        # Navigate to booking page
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
-        
+
         # Select date/time
         tomorrow = Date.tomorrow
         select tomorrow.year.to_s, from: 'booking_start_time_1i'
@@ -147,6 +151,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Standard', cost: 5.00) }
     let!(:user) { create(:user, :client, email: 'shopper@example.com', password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
+    let!(:client_business) { create(:client_business, user: user, business: business) }
 
     before do
       # Mock Stripe checkout session creation for product orders
@@ -172,8 +177,14 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
         click_button 'Sign In'
-        
-        # Add product to cart
+
+        # Reset to subdomain (sign-in redirects to main domain)
+        Capybara.app_host = url_for_business(business)
+
+        # Force navigation to subdomain root first
+        visit '/'
+
+        # Navigate to products page
         visit products_path
         click_link 'Shampoo'
         
