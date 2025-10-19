@@ -163,6 +163,14 @@ class AllowedHostService
     # Custom domains are stored in the Business table with host_type='custom_domain'
     # and must be in an active state (cname_pending, cname_monitoring, or cname_active)
     #
+    # Results are cached for 5 minutes to reduce database load on high-traffic sites.
+    # Cache is automatically invalidated when business hostname or status changes via
+    # the Business model's invalidate_allowed_host_cache callback.
+    #
+    # Cache implementation uses exact key deletion (not pattern matching) for:
+    # - Better performance (no key scanning required)
+    # - Universal compatibility (works with Memcached, Redis, etc.)
+    #
     # @param host [String] The hostname to validate
     # @return [Boolean] true if this is a valid custom domain
     def valid_custom_domain?(host)
@@ -176,10 +184,17 @@ class AllowedHostService
       root = host.sub(/\Awww\./, '')
       candidates = [host, root, "www.#{root}"].uniq.map(&:downcase)
 
-      Business.where(host_type: 'custom_domain')
-              .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
-              .where('LOWER(hostname) IN (?)', candidates)
-              .exists?
+      # Cache for 5 minutes to reduce database load
+      # Key includes all candidate hostnames to ensure proper cache hits
+      # Cache is invalidated automatically via Business model callback
+      cache_key = "allowed_host:custom_domain:#{candidates.sort.join(':')}"
+
+      Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+        Business.where(host_type: 'custom_domain')
+                .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
+                .where('LOWER(hostname) IN (?)', candidates)
+                .exists?
+      end
     rescue ActiveRecord::StatementInvalid, PG::Error => e
       # Database error - log and fail closed (deny access)
       Rails.logger.error "[AllowedHostService] Database error checking custom domain: #{e.message}"

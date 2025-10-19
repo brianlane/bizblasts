@@ -398,4 +398,104 @@ RSpec.describe AllowedHostService do
       end
     end
   end
+
+  describe 'caching behavior for custom domains' do
+    before do
+      # Clear cache before each test
+      Rails.cache.clear
+    end
+
+    context 'when validating custom domains' do
+      let!(:business) do
+        create(:business, :with_custom_domain,
+               hostname: 'cached-domain.com',
+               status: 'cname_active')
+      end
+
+      it 'caches custom domain validation results' do
+        # First call - should hit database
+        expect(Business).to receive(:where).once.and_call_original
+        expect(described_class.valid_custom_domain?('cached-domain.com')).to be true
+
+        # Second call - should use cache (no database query)
+        expect(Business).not_to receive(:where)
+        expect(described_class.valid_custom_domain?('cached-domain.com')).to be true
+      end
+
+      it 'caches results for www and apex variations together' do
+        # First call with www variant
+        expect(Business).to receive(:where).once.and_call_original
+        expect(described_class.valid_custom_domain?('www.cached-domain.com')).to be true
+
+        # Second call with apex variant - should use same cache
+        expect(Business).not_to receive(:where)
+        expect(described_class.valid_custom_domain?('cached-domain.com')).to be true
+      end
+
+      it 'cache expires after 5 minutes' do
+        # Cache the result
+        expect(described_class.valid_custom_domain?('cached-domain.com')).to be true
+
+        # Travel forward 6 minutes
+        travel 6.minutes do
+          # Should hit database again after cache expiration
+          expect(Business).to receive(:where).once.and_call_original
+          expect(described_class.valid_custom_domain?('cached-domain.com')).to be true
+        end
+      end
+    end
+
+    context 'cache invalidation' do
+      let!(:business) do
+        create(:business, :with_custom_domain,
+               hostname: 'invalidate-test.com',
+               status: 'cname_active')
+      end
+
+      it 'invalidates cache when business hostname changes' do
+        # Cache the result
+        expect(described_class.valid_custom_domain?('invalidate-test.com')).to be true
+        expect(described_class.valid_custom_domain?('www.invalidate-test.com')).to be true
+
+        # Change hostname - should trigger cache invalidation
+        business.update!(hostname: 'new-domain.com')
+
+        # Old domain should not be in cache anymore
+        expect(Business).to receive(:where).and_call_original
+        expect(described_class.valid_custom_domain?('invalidate-test.com')).to be false
+      end
+
+      it 'invalidates cache when business status changes' do
+        # Cache the result
+        expect(described_class.valid_custom_domain?('invalidate-test.com')).to be true
+
+        # Change status to inactive - should trigger cache invalidation
+        business.update!(status: 'inactive')
+
+        # Should hit database again and return false (inactive not allowed)
+        expect(Business).to receive(:where).and_call_original
+        expect(described_class.valid_custom_domain?('invalidate-test.com')).to be false
+      end
+
+      it 'invalidates cache when host_type changes' do
+        # Cache the result
+        expect(described_class.valid_custom_domain?('invalidate-test.com')).to be true
+
+        # Change to subdomain type - should trigger cache invalidation
+        business.update!(host_type: 'subdomain', subdomain: 'invalidate-test')
+
+        # Should hit database again and return false (not custom_domain anymore)
+        expect(Business).to receive(:where).and_call_original
+        expect(described_class.valid_custom_domain?('invalidate-test.com')).to be false
+      end
+
+      it 'does not invalidate cache for subdomain businesses' do
+        subdomain_business = create(:business, hostname: 'subdomain-test', host_type: 'subdomain')
+
+        # Update subdomain business - should NOT trigger cache invalidation
+        expect(Rails.cache).not_to receive(:delete_matched)
+        subdomain_business.update!(name: 'Updated Name')
+      end
+    end
+  end
 end

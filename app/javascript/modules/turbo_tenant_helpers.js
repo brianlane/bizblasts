@@ -71,7 +71,12 @@ export class TurboTenantHelpers {
     // - Starts with subdomain name (alphanumeric + hyphens)
     // - Has exactly one dot before the primary domain
     // - Ends with the primary domain (anchored with $)
-    // Escape backslashes first, then dots, for proper regex construction
+    //
+    // Escape special regex characters in domain name:
+    // 1. Backslashes (\\) - technically unnecessary since domain names never contain backslashes,
+    //    but included for defensive programming and future-proofing
+    // 2. Dots (.) - required to match literal dots instead of "any character" in regex
+    // Example: "example.com" becomes "example\\.com" for use in RegExp constructor
     const escapedDomain = primaryDomain.replace(/\\/g, '\\\\').replace(/\./g, '\\.');
     const subdomainPattern = new RegExp(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.${escapedDomain}$`, 'i');
 
