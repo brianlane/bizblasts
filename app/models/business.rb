@@ -277,10 +277,14 @@ class Business < ApplicationRecord
 
   # 2. Existing businesses that upgrade to the Premium tier (tier change
   #    detected) and already have a custom-domain host type should also kick
-  #    off the setup sequence automatically – but only if the setup hasn’t
+  #    off the setup sequence automatically – but only if the setup hasn't
   #    already been started/completed.
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
+
+  # 3. Invalidate AllowedHostService cache when custom domain configuration changes
+  #    This ensures the host validation cache stays in sync with database changes
+  after_save :invalidate_allowed_host_cache, if: :custom_domain_cache_invalidation_needed?
 
   # Find the current tenant
   def self.current
@@ -935,6 +939,60 @@ class Business < ApplicationRecord
     # Run domain setup in background to prevent 502 crashes from external API calls
     Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after host_type change (subdomain -> custom_domain)"
     CustomDomainSetupJob.perform_later(id)
+  end
+
+  # Determines if we need to invalidate the AllowedHostService cache
+  # Cache invalidation is needed when:
+  # - hostname changes (domain name changed)
+  # - status changes (domain activation state changed)
+  # - host_type changes (switching between subdomain/custom_domain)
+  # AND the business uses (or USED to use) custom domains
+  def custom_domain_cache_invalidation_needed?
+    # Check if business is currently OR was previously using custom domains
+    # This handles the case where host_type changes from custom_domain to subdomain
+    is_or_was_custom_domain = host_type_custom_domain? ||
+                               (saved_change_to_host_type? && saved_change_to_host_type[0] == 'custom_domain')
+
+    is_or_was_custom_domain &&
+      (saved_change_to_hostname? || saved_change_to_status? || saved_change_to_host_type?)
+  end
+
+  # Invalidates the AllowedHostService cache for this business's custom domain
+  # This ensures that host validation reflects the latest database state
+  #
+  # Uses exact key deletion instead of pattern matching for better performance
+  # and compatibility with all cache stores (e.g., Memcached doesn't support patterns)
+  def invalidate_allowed_host_cache
+    hostnames_to_invalidate = []
+
+    # If hostname changed, invalidate BOTH old and new values
+    if saved_change_to_hostname?
+      old_hostname, new_hostname = saved_change_to_hostname
+      hostnames_to_invalidate << old_hostname if old_hostname.present?
+      hostnames_to_invalidate << new_hostname if new_hostname.present?
+    else
+      # No hostname change - just invalidate current hostname
+      hostnames_to_invalidate << hostname if hostname.present?
+    end
+
+    # Invalidate cache for each hostname (old and/or new)
+    hostnames_to_invalidate.each do |host|
+      # Generate candidates the SAME way as AllowedHostService.valid_custom_domain?
+      # This ensures we construct the exact same cache key
+      root = host.downcase.sub(/\Awww\./, '')
+      candidates = [host.downcase, root, "www.#{root}"].uniq.map(&:downcase)
+
+      # Sort candidates the same way as the service does when creating the key
+      sorted_candidates = candidates.sort
+
+      # Construct the exact cache key used by AllowedHostService
+      cache_key = "allowed_host:custom_domain:#{sorted_candidates.join(':')}"
+
+      # Delete the exact key (works with all cache stores, more efficient than pattern matching)
+      Rails.cache.delete(cache_key)
+    end
+
+    Rails.logger.info "[AllowedHostService] Cache invalidated for custom domain changes"
   end
 
   # ---------------------------------------------------------------------------
