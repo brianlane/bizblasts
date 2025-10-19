@@ -34,7 +34,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   context 'Client user books a service and redirects to Stripe' do
     let!(:service) { create(:service, business: business, name: 'Haircut', price: 50.00, duration: 30) }
     let!(:staff_member) { create(:staff_member, business: business, name: 'John Stylist') }
-    let!(:user) { create(:user, :client, email: 'client@example.com', password: 'password123') }
+    let!(:user) { create(:user, :client, password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
     
     before do
@@ -145,7 +145,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:product) { create(:product, business: business, name: 'Shampoo', price: 25.00, active: true) }
     let!(:variant) { create(:product_variant, product: product, name: 'Large', stock_quantity: 10) }
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Standard', cost: 5.00) }
-    let!(:user) { create(:user, :client, email: 'shopper@example.com', password: 'password123') }
+    let!(:user) { create(:user, :client, password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
 
     before do
