@@ -265,7 +265,7 @@ RSpec.describe DomainSecurity do
 
     context 'subdomain regex validation' do
       let(:origins) { DomainSecurity.allowed_cors_origins }
-      let(:subdomain_pattern) { origins.find { |o| o.is_a?(Regexp) && o.match?('https://test.lvh.me') } }
+      let(:subdomain_pattern) { origins.find { |o| o.is_a?(Regexp) && o.source.match?(/lvh\.me/) } }
 
       it 'accepts valid single-label subdomains' do
         expect(subdomain_pattern.match?('https://salon.lvh.me')).to be true
