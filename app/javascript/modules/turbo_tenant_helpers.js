@@ -71,7 +71,8 @@ export class TurboTenantHelpers {
     // - Starts with subdomain name (alphanumeric + hyphens)
     // - Has exactly one dot before the primary domain
     // - Ends with the primary domain (anchored with $)
-    const escapedDomain = primaryDomain.replace(/\./g, '\\.');
+    // Escape backslashes first, then dots, for proper regex construction
+    const escapedDomain = primaryDomain.replace(/\\/g, '\\\\').replace(/\./g, '\\.');
     const subdomainPattern = new RegExp(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.${escapedDomain}$`, 'i');
 
     if (subdomainPattern.test(normalizedHost)) {
