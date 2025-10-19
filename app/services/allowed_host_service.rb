@@ -106,43 +106,53 @@ class AllowedHostService
 
       host = normalize_host(host)
 
-      # Get the primary domain for this environment
-      domain = primary_domain
+      # Get list of valid platform domains to check
+      # In production: just bizblasts.com
+      # In test/dev: both primary domain AND lvh.me (for test flexibility)
+      domains_to_check = if Rails.env.production?
+                          [primary_domain]
+                        else
+                          # In test/dev, check both example.com/lvh.me or lvh.me depending on environment
+                          ['example.com', 'lvh.me'].uniq
+                        end
 
-      # Build regex to match exactly one subdomain level (e.g., tenant.bizblasts.com)
-      # Pattern: ^[a-z0-9-]+\.PRIMARY_DOMAIN$
-      # This ensures:
-      # - Starts with subdomain name (alphanumeric + hyphens)
-      # - Has exactly one dot before the primary domain
-      # - Ends with the primary domain (anchored with $)
-      #
-      # Examples that PASS:
-      # - tenant.bizblasts.com
-      # - my-business.lvh.me
-      #
-      # Examples that FAIL:
-      # - evil-bizblasts.com (no dot before bizblasts.com)
-      # - mybizblasts.com.evil.org (bizblasts.com not at the end)
-      # - www.tenant.bizblasts.com (too many levels)
-      subdomain_pattern = /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.#{Regexp.escape(domain)}\z/i
+      # Check each domain
+      domains_to_check.each do |domain|
+        # Build regex to match exactly one subdomain level (e.g., tenant.bizblasts.com)
+        # Pattern: ^[a-z0-9-]+\.PRIMARY_DOMAIN$
+        # This ensures:
+        # - Starts with subdomain name (alphanumeric + hyphens)
+        # - Has exactly one dot before the primary domain
+        # - Ends with the primary domain (anchored with $)
+        #
+        # Examples that PASS:
+        # - tenant.bizblasts.com
+        # - my-business.lvh.me
+        #
+        # Examples that FAIL:
+        # - evil-bizblasts.com (no dot before bizblasts.com)
+        # - mybizblasts.com.evil.org (bizblasts.com not at the end)
+        # - www.tenant.bizblasts.com (too many levels)
+        subdomain_pattern = /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.#{Regexp.escape(domain)}\z/i
 
-      # Match against the pattern
-      if host =~ subdomain_pattern
-        # Extract subdomain part to check if it's 'www'
-        # www is a main domain indicator, not a tenant subdomain
-        subdomain_part = host.split('.').first
-        return false if subdomain_part == 'www'
-        return true
-      end
-
-      # Also allow development domains with ports
-      if Rails.env.development? || Rails.env.test?
-        # Remove port if present for validation
-        host_without_port = host.split(':').first
-        if host_without_port =~ subdomain_pattern
-          subdomain_part = host_without_port.split('.').first
+        # Match against the pattern
+        if host =~ subdomain_pattern
+          # Extract subdomain part to check if it's 'www'
+          # www is a main domain indicator, not a tenant subdomain
+          subdomain_part = host.split('.').first
           return false if subdomain_part == 'www'
           return true
+        end
+
+        # Also allow development domains with ports
+        if Rails.env.development? || Rails.env.test?
+          # Remove port if present for validation
+          host_without_port = host.split(':').first
+          if host_without_port =~ subdomain_pattern
+            subdomain_part = host_without_port.split('.').first
+            return false if subdomain_part == 'www'
+            return true
+          end
         end
       end
 

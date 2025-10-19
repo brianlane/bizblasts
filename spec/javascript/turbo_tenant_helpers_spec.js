@@ -174,10 +174,100 @@ describe('TurboTenantHelpers', () => {
         expect(TurboTenantHelpers.isPlatformSubdomain('mylvh.me.evil.org')).toBe(false);
       });
     });
+
+    describe('isActualDevelopmentEnvironment - CRITICAL SECURITY TESTS', () => {
+      // This method controls whether debug features and window.TenantHelpers are exposed
+      // It MUST return false for production domains to prevent information disclosure
+
+      it('returns true for localhost', () => {
+        mockLocation('http://localhost:3000/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for 127.0.0.1', () => {
+        mockLocation('http://127.0.0.1:3000/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for lvh.me', () => {
+        mockLocation('http://lvh.me:3000/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for www.lvh.me', () => {
+        mockLocation('http://www.lvh.me:3000/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for example.com (test environment)', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for www.example.com', () => {
+        mockLocation('http://www.example.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for test.host', () => {
+        mockLocation('http://test.host/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for lvh.me subdomains', () => {
+        mockLocation('http://tenant.lvh.me:3000/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      it('returns true for example.com subdomains', () => {
+        mockLocation('http://tenant.example.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(true);
+      });
+
+      // CRITICAL: These must ALL return FALSE to prevent security issues in production
+      it('returns FALSE for bizblasts.com (production main domain)', () => {
+        mockLocation('https://bizblasts.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+
+      it('returns FALSE for www.bizblasts.com (production)', () => {
+        mockLocation('https://www.bizblasts.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+
+      it('returns FALSE for tenant.bizblasts.com (production tenant)', () => {
+        mockLocation('https://tenant.bizblasts.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+
+      it('returns FALSE for any bizblasts.com subdomain (production)', () => {
+        mockLocation('https://my-business.bizblasts.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+
+      it('returns FALSE for bizblasts.onrender.com (production deployment)', () => {
+        mockLocation('https://bizblasts.onrender.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+
+      it('returns FALSE for custom domains', () => {
+        mockLocation('https://custom-domain.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+
+      it('returns FALSE for unknown production domains', () => {
+        mockLocation('https://unknown-production.com/');
+        expect(TurboTenantHelpers.isActualDevelopmentEnvironment()).toBe(false);
+      });
+    });
   });
 
   describe('Domain Detection', () => {
     describe('isOnTenantSubdomain', () => {
+      // Note: This method now delegates to isPlatformSubdomain() which performs
+      // all necessary validation (subdomain structure, www exclusion, regex validation).
+      // The redundant checks were removed per cursor bot code review.
+
       it('returns true for tenant subdomain on lvh.me', () => {
         mockLocation('http://acme-corp.lvh.me:3000/dashboard');
         expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(true);
@@ -193,8 +283,17 @@ describe('TurboTenantHelpers', () => {
         expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(false);
       });
 
-      it('returns false for www subdomain', () => {
+      it('returns false for www subdomain (verified by isPlatformSubdomain)', () => {
+        // This test verifies that isPlatformSubdomain() correctly excludes www
+        // so isOnTenantSubdomain() doesn't need redundant validation
         mockLocation('https://www.bizblasts.com/');
+        expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(false);
+      });
+
+      it('returns false for multi-level subdomains (verified by isPlatformSubdomain)', () => {
+        // This test verifies that isPlatformSubdomain() correctly validates structure
+        // so isOnTenantSubdomain() doesn't need redundant parts.length check
+        mockLocation('https://sub.tenant.bizblasts.com/');
         expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(false);
       });
 

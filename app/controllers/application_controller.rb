@@ -398,9 +398,8 @@ class ApplicationController < ActionController::Base
       if defined?(AuthenticationTracker)
         AuthenticationTracker.track_suspicious_request(
           request,
-          'unauthorized_host',
-          user: current_user,
-          details: { blocked_host: request.host }
+          "unauthorized_host: #{request.host}",
+          user: current_user
         )
       end
 

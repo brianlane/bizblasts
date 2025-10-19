@@ -95,15 +95,12 @@ export class TurboTenantHelpers {
   // Check if current page is on a tenant subdomain
   static isOnTenantSubdomain() {
     const host = window.location.host;
-    const parts = host.split('.');
 
-    // Use strict validation instead of substring matching
-    if (this.isPlatformSubdomain(host)) {
-      // Ensure it's not the www subdomain (which is main domain, not tenant)
-      return parts.length >= 3 && parts[0] !== 'www';
-    }
-
-    return false;
+    // isPlatformSubdomain already performs all necessary checks:
+    // 1. Validates single-level subdomain structure (tenant.example.com)
+    // 2. Excludes www subdomain (reserved for main domain)
+    // 3. Uses strict regex validation (prevents bypass attacks)
+    return this.isPlatformSubdomain(host);
   }
   
   // Get current tenant subdomain
@@ -257,16 +254,49 @@ export class TurboTenantHelpers {
     }
   }
   
+  // Check if current environment is actual development (not production)
+  // This is used ONLY for debug features and should NOT be used for security validation
+  // Returns true only for localhost, lvh.me, example.com, test.host - NOT production domains
+  static isActualDevelopmentEnvironment() {
+    // First check process.env if available (webpack/build time)
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+      return true;
+    }
+
+    // Check hostname against known development/test domains
+    if (typeof window === 'undefined' || !window.location) {
+      return false;
+    }
+
+    const hostname = window.location.hostname.toLowerCase();
+
+    // Exact matches for development/test domains only
+    const devDomains = [
+      'localhost',
+      '127.0.0.1',
+      'lvh.me',
+      'www.lvh.me',
+      'example.com',
+      'www.example.com',
+      'test.host'
+    ];
+
+    // Check exact match
+    if (devDomains.includes(hostname)) {
+      return true;
+    }
+
+    // Check for subdomains of lvh.me or example.com ONLY (not bizblasts.com)
+    // This specifically excludes production domains
+    const devSubdomainPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.(lvh\.me|example\.com)$/i;
+    return devSubdomainPattern.test(hostname);
+  }
+
   // Debug helper - log tenant information
   static debugTenantInfo() {
-    // Check for development environment more robustly
-    // Use strict domain checking instead of substring matching
-    const hostname = window.location.hostname.toLowerCase();
-    const isDev = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') ||
-                  (typeof window !== 'undefined' && window.location &&
-                   (this.isMainDomain(hostname) || this.isPlatformSubdomain(hostname)));
-
-    if (isDev) {
+    // Only run debug logging in actual development environments
+    // NEVER in production (bizblasts.com)
+    if (this.isActualDevelopmentEnvironment()) {
       console.group('🏢 Tenant Debug Info');
       console.log('Current Host:', window.location.host);
       console.log('Primary Domain:', this.getPrimaryDomain());
@@ -281,7 +311,9 @@ export class TurboTenantHelpers {
   }
 }
 
-// Auto-initialize debugging in development
+// Auto-initialize debugging in development ONLY
+// IMPORTANT: Only expose window.TenantHelpers in actual development environments
+// NEVER in production (bizblasts.com) - this would be a security issue
 if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
   // Add global helper for debugging
   window.TenantHelpers = TurboTenantHelpers;
@@ -290,15 +322,10 @@ if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'd
   document.addEventListener('DOMContentLoaded', () => {
     TurboTenantHelpers.debugTenantInfo();
   });
-} else if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-  // Development environment detection fallback
-  // Use strict validation instead of substring matching
-  const hostname = window.location.hostname.toLowerCase();
-  if (TurboTenantHelpers.isMainDomain(hostname) ||
-      TurboTenantHelpers.isPlatformSubdomain(hostname) ||
-      hostname === 'localhost' || hostname === '127.0.0.1') {
-    window.TenantHelpers = TurboTenantHelpers;
-  }
+} else if (TurboTenantHelpers.isActualDevelopmentEnvironment()) {
+  // Fallback for runtime detection in development/test environments
+  // This check specifically excludes production domains (bizblasts.com)
+  window.TenantHelpers = TurboTenantHelpers;
 }
 
 export default TurboTenantHelpers; 
