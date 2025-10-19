@@ -395,11 +395,14 @@ class ApplicationController < ActionController::Base
       Rails.logger.warn "[Security] Blocked unauthorized host: #{request.host} from IP: #{request.remote_ip}"
 
       # Track security event
+      # IMPORTANT: Do NOT call current_user here - this runs before set_tenant!
+      # Calling current_user before tenant setup can cause session corruption
+      # The request IP, host, and headers are sufficient for security tracking
       if defined?(AuthenticationTracker)
         AuthenticationTracker.track_suspicious_request(
           request,
-          "unauthorized_host: #{request.host}",
-          user: current_user
+          "unauthorized_host: #{request.host}"
+          # Note: user parameter intentionally omitted - tenant context not yet established
         )
       end
 
