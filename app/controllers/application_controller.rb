@@ -10,6 +10,11 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
+  # Security: Verify allowed hosts to prevent CWE-20 (Incomplete URL Substring Sanitization)
+  # This provides defense-in-depth against malicious domains bypassing client-side validation
+  # Uses AllowedHostService for centralized domain validation
+  before_action :verify_allowed_host!, unless: -> { maintenance_mode? }
+
   # Handle CSRF token issues for admin login after user logout
   before_action :handle_admin_csrf_token, if: -> { request.path == '/admin/login' && request.post? }
 
@@ -379,6 +384,31 @@ class ApplicationController < ActionController::Base
 
   # Keep other methods private
   private
+
+  # Verify that the request host is allowed
+  # Uses AllowedHostService to prevent CWE-20 (Incomplete URL Substring Sanitization)
+  # This provides defense-in-depth against malicious domains like:
+  # - evil-bizblasts.com (bypass via missing dot)
+  # - mybizblasts.com.evil.org (bypass via domain in middle)
+  def verify_allowed_host!
+    unless AllowedHostService.allowed?(request.host)
+      Rails.logger.warn "[Security] Blocked unauthorized host: #{request.host} from IP: #{request.remote_ip}"
+
+      # Track security event
+      if defined?(AuthenticationTracker)
+        AuthenticationTracker.track_suspicious_request(
+          request,
+          'unauthorized_host',
+          user: current_user,
+          details: { blocked_host: request.host }
+        )
+      end
+
+      # Return 400 Bad Request with generic message
+      # Don't reveal why the request was rejected to prevent information disclosure
+      head :bad_request
+    end
+  end
 
   def skip_user_authentication?
     # Skip authentication for:

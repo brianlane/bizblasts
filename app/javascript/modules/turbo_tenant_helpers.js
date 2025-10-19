@@ -2,26 +2,107 @@
 // Provides helpers for managing Turbo navigation in a multi-tenant environment
 
 export class TurboTenantHelpers {
+  // Get the primary platform domain for current environment
+  // This should match Rails' AllowedHostService.primary_domain
+  static getPrimaryDomain() {
+    // In production builds, this would be injected as 'bizblasts.com'
+    // In development/test, we detect based on current host
+    const host = window.location.host.toLowerCase().split(':')[0];
+
+    // Check if we're on a known development/test domain
+    // Use strict checking: exact match or single-level subdomain only
+    if (host === 'lvh.me' || host === 'localhost' || host === '127.0.0.1' ||
+        /^[a-z0-9-]+\.lvh\.me$/i.test(host)) {
+      return 'lvh.me';
+    }
+
+    // Check if we're on a test domain
+    // Use strict checking: exact match, www, or single-level subdomain
+    if (host === 'example.com' || host === 'www.example.com' || host === 'test.host' ||
+        /^[a-z0-9-]+\.example\.com$/i.test(host)) {
+      return 'example.com';
+    }
+
+    // Check if we're on bizblasts.com domain
+    if (host === 'bizblasts.com' || host === 'www.bizblasts.com' ||
+        /^[a-z0-9-]+\.bizblasts\.com$/i.test(host)) {
+      return 'bizblasts.com';
+    }
+
+    // Default to production domain for unknown hosts
+    return 'bizblasts.com';
+  }
+
+  // Check if a host is the main platform domain (not a tenant)
+  // Uses exact matching to prevent bypass attacks
+  static isMainDomain(host) {
+    if (!host) return false;
+
+    // Normalize: remove port and lowercase
+    const normalizedHost = host.toLowerCase().split(':')[0];
+    const primaryDomain = this.getPrimaryDomain();
+
+    // Exact match for main domains
+    const mainDomains = [
+      primaryDomain,
+      `www.${primaryDomain}`,
+      'localhost',
+      '127.0.0.1',
+      'test.host'
+    ];
+
+    return mainDomains.includes(normalizedHost);
+  }
+
+  // Check if a host is a valid platform subdomain
+  // Uses regex structural validation to prevent bypass attacks like:
+  // - evil-bizblasts.com (missing dot before domain)
+  // - mybizblasts.com.evil.org (domain not at end)
+  static isPlatformSubdomain(host) {
+    if (!host) return false;
+
+    // Normalize: remove port and lowercase
+    const normalizedHost = host.toLowerCase().split(':')[0];
+    const primaryDomain = this.getPrimaryDomain();
+
+    // Build regex to match exactly one subdomain level
+    // Pattern: ^[a-z0-9-]+\.PRIMARY_DOMAIN$
+    // This ensures:
+    // - Starts with subdomain name (alphanumeric + hyphens)
+    // - Has exactly one dot before the primary domain
+    // - Ends with the primary domain (anchored with $)
+    const escapedDomain = primaryDomain.replace(/\./g, '\\.');
+    const subdomainPattern = new RegExp(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.${escapedDomain}$`, 'i');
+
+    if (subdomainPattern.test(normalizedHost)) {
+      // Extract subdomain part to check if it's 'www'
+      // www is a main domain indicator, not a tenant subdomain
+      const subdomain = normalizedHost.split('.')[0];
+      if (subdomain === 'www') {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+
   // Check if current page is in business manager area
   static isBusinessManagerArea() {
     return window.location.pathname.startsWith('/manage/');
   }
-  
+
   // Check if current page is on a tenant subdomain
   static isOnTenantSubdomain() {
     const host = window.location.host;
     const parts = host.split('.');
-    
-    // In development: something.lvh.me
-    // In production: something.bizblasts.com
-    if (host.includes('lvh.me')) {
+
+    // Use strict validation instead of substring matching
+    if (this.isPlatformSubdomain(host)) {
+      // Ensure it's not the www subdomain (which is main domain, not tenant)
       return parts.length >= 3 && parts[0] !== 'www';
     }
-    
-    if (host.includes('bizblasts.com')) {
-      return parts.length >= 3 && parts[0] !== 'www';
-    }
-    
+
     return false;
   }
   
@@ -57,16 +138,23 @@ export class TurboTenantHelpers {
     const protocol = window.location.protocol;
     const port = window.location.port;
     const portSuffix = port && !['80', '443'].includes(port) ? `:${port}` : '';
-    
-    if (window.location.host.includes('lvh.me')) {
-      return `${protocol}//lvh.me${portSuffix}${path}`;
+    const primaryDomain = this.getPrimaryDomain();
+
+    // Use strict domain validation
+    const currentHost = window.location.host.toLowerCase().split(':')[0];
+
+    // Check if we're on a platform domain (main or subdomain)
+    if (this.isMainDomain(currentHost) || this.isPlatformSubdomain(currentHost)) {
+      // For development/test, use plain domain
+      if (primaryDomain === 'lvh.me' || primaryDomain === 'example.com') {
+        return `${protocol}//${primaryDomain}${portSuffix}${path}`;
+      }
+
+      // For production, use www variant
+      return `${protocol}//www.${primaryDomain}${path}`;
     }
-    
-    if (window.location.host.includes('bizblasts.com')) {
-      return `${protocol}//www.bizblasts.com${path}`;
-    }
-    
-    // Fallback for other environments
+
+    // Fallback for other environments (custom domains, etc.)
     return `${protocol}//${window.location.host}${path}`;
   }
   
@@ -75,15 +163,16 @@ export class TurboTenantHelpers {
     const protocol = window.location.protocol;
     const port = window.location.port;
     const portSuffix = port && !['80', '443'].includes(port) ? `:${port}` : '';
-    
-    if (window.location.host.includes('lvh.me')) {
-      return `${protocol}//${tenantSlug}.lvh.me${portSuffix}${path}`;
+    const primaryDomain = this.getPrimaryDomain();
+
+    // Use strict domain validation
+    const currentHost = window.location.host.toLowerCase().split(':')[0];
+
+    // Check if we're on a platform domain (main or subdomain)
+    if (this.isMainDomain(currentHost) || this.isPlatformSubdomain(currentHost)) {
+      return `${protocol}//${tenantSlug}.${primaryDomain}${portSuffix}${path}`;
     }
-    
-    if (window.location.host.includes('bizblasts.com')) {
-      return `${protocol}//${tenantSlug}.bizblasts.com${path}`;
-    }
-    
+
     // Fallback for other environments
     return `${protocol}//${tenantSlug}.${window.location.host}${path}`;
   }
@@ -171,13 +260,18 @@ export class TurboTenantHelpers {
   // Debug helper - log tenant information
   static debugTenantInfo() {
     // Check for development environment more robustly
+    // Use strict domain checking instead of substring matching
+    const hostname = window.location.hostname.toLowerCase();
     const isDev = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') ||
-                  (typeof window !== 'undefined' && window.location && 
-                   (window.location.hostname.includes('lvh.me') || window.location.hostname === 'localhost'));
-    
+                  (typeof window !== 'undefined' && window.location &&
+                   (this.isMainDomain(hostname) || this.isPlatformSubdomain(hostname)));
+
     if (isDev) {
       console.group('🏢 Tenant Debug Info');
       console.log('Current Host:', window.location.host);
+      console.log('Primary Domain:', this.getPrimaryDomain());
+      console.log('Is Main Domain:', this.isMainDomain(window.location.host));
+      console.log('Is Platform Subdomain:', this.isPlatformSubdomain(window.location.host));
       console.log('Is Tenant Subdomain:', this.isOnTenantSubdomain());
       console.log('Current Tenant:', this.getCurrentTenant());
       console.log('Is Business Manager:', this.isBusinessManagerArea());
@@ -191,15 +285,20 @@ export class TurboTenantHelpers {
 if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
   // Add global helper for debugging
   window.TenantHelpers = TurboTenantHelpers;
-  
+
   // Log tenant info on page load
   document.addEventListener('DOMContentLoaded', () => {
     TurboTenantHelpers.debugTenantInfo();
   });
-} else if (typeof window !== 'undefined' && window.location && window.location.hostname && 
-           (window.location.hostname.includes('lvh.me') || window.location.hostname === 'localhost')) {
+} else if (typeof window !== 'undefined' && window.location && window.location.hostname) {
   // Development environment detection fallback
-  window.TenantHelpers = TurboTenantHelpers;
+  // Use strict validation instead of substring matching
+  const hostname = window.location.hostname.toLowerCase();
+  if (TurboTenantHelpers.isMainDomain(hostname) ||
+      TurboTenantHelpers.isPlatformSubdomain(hostname) ||
+      hostname === 'localhost' || hostname === '127.0.0.1') {
+    window.TenantHelpers = TurboTenantHelpers;
+  }
 }
 
 export default TurboTenantHelpers; 

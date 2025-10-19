@@ -25,7 +25,7 @@ describe('TurboTenantHelpers', () => {
   beforeEach(() => {
     // Reset DOM
     document.body.innerHTML = '';
-    
+
     // Mock console methods to avoid noise in tests
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'group').mockImplementation(() => {});
@@ -34,6 +34,146 @@ describe('TurboTenantHelpers', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe('Security - Domain Validation', () => {
+    describe('getPrimaryDomain', () => {
+      it('returns example.com for test environment', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.getPrimaryDomain()).toBe('example.com');
+      });
+
+      it('returns lvh.me for development environment', () => {
+        mockLocation('http://lvh.me:3000/');
+        expect(TurboTenantHelpers.getPrimaryDomain()).toBe('lvh.me');
+      });
+
+      it('returns lvh.me for localhost', () => {
+        mockLocation('http://localhost:3000/');
+        expect(TurboTenantHelpers.getPrimaryDomain()).toBe('lvh.me');
+      });
+
+      it('defaults to bizblasts.com for production', () => {
+        mockLocation('https://bizblasts.com/');
+        expect(TurboTenantHelpers.getPrimaryDomain()).toBe('bizblasts.com');
+      });
+    });
+
+    describe('isMainDomain', () => {
+      it('returns true for exact main domain match', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.isMainDomain('example.com')).toBe(true);
+      });
+
+      it('returns true for www variant', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.isMainDomain('www.example.com')).toBe(true);
+      });
+
+      it('returns true for localhost', () => {
+        mockLocation('http://localhost:3000/');
+        expect(TurboTenantHelpers.isMainDomain('localhost')).toBe(true);
+      });
+
+      it('returns false for tenant subdomain', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.isMainDomain('tenant.example.com')).toBe(false);
+      });
+
+      it('normalizes host with port', () => {
+        mockLocation('http://example.com:3000/');
+        expect(TurboTenantHelpers.isMainDomain('example.com:3000')).toBe(true);
+      });
+
+      it('normalizes case', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.isMainDomain('EXAMPLE.COM')).toBe(true);
+      });
+
+      it('returns false for null/undefined', () => {
+        mockLocation('http://example.com/');
+        expect(TurboTenantHelpers.isMainDomain(null)).toBe(false);
+        expect(TurboTenantHelpers.isMainDomain(undefined)).toBe(false);
+        expect(TurboTenantHelpers.isMainDomain('')).toBe(false);
+      });
+    });
+
+    describe('isPlatformSubdomain - Security Tests', () => {
+      beforeEach(() => {
+        mockLocation('http://example.com/');
+      });
+
+      it('returns true for valid tenant subdomain', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('tenant.example.com')).toBe(true);
+      });
+
+      it('returns true for subdomain with hyphens', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('my-business.example.com')).toBe(true);
+      });
+
+      it('returns true for subdomain with numbers', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('tenant123.example.com')).toBe(true);
+      });
+
+      // CRITICAL SECURITY TESTS - These should all return FALSE
+      it('rejects evil-example.com (bypass attempt - no dot before domain)', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('evil-example.com')).toBe(false);
+      });
+
+      it('rejects myexample.com.evil.org (bypass attempt - domain in middle)', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('myexample.com.evil.org')).toBe(false);
+      });
+
+      it('rejects example.com.evil.org (bypass attempt)', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('example.com.evil.org')).toBe(false);
+      });
+
+      it('rejects multi-level subdomains', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('sub.tenant.example.com')).toBe(false);
+      });
+
+      it('rejects main domain without subdomain', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('example.com')).toBe(false);
+      });
+
+      it('rejects www subdomain (reserved for main domain)', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('www.example.com')).toBe(false);
+      });
+
+      it('handles case normalization', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('TENANT.EXAMPLE.COM')).toBe(true);
+      });
+
+      it('handles ports correctly', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain('tenant.example.com:3000')).toBe(true);
+      });
+
+      it('returns false for null/undefined/empty', () => {
+        expect(TurboTenantHelpers.isPlatformSubdomain(null)).toBe(false);
+        expect(TurboTenantHelpers.isPlatformSubdomain(undefined)).toBe(false);
+        expect(TurboTenantHelpers.isPlatformSubdomain('')).toBe(false);
+      });
+    });
+
+    describe('isPlatformSubdomain - Production Environment', () => {
+      it('validates bizblasts.com subdomains correctly', () => {
+        mockLocation('https://bizblasts.com/');
+
+        expect(TurboTenantHelpers.isPlatformSubdomain('tenant.bizblasts.com')).toBe(true);
+        expect(TurboTenantHelpers.isPlatformSubdomain('evil-bizblasts.com')).toBe(false);
+        expect(TurboTenantHelpers.isPlatformSubdomain('mybizblasts.com.evil.org')).toBe(false);
+      });
+    });
+
+    describe('isPlatformSubdomain - Development Environment', () => {
+      it('validates lvh.me subdomains correctly', () => {
+        mockLocation('http://lvh.me:3000/');
+
+        expect(TurboTenantHelpers.isPlatformSubdomain('tenant.lvh.me')).toBe(true);
+        expect(TurboTenantHelpers.isPlatformSubdomain('evil-lvh.me')).toBe(false);
+        expect(TurboTenantHelpers.isPlatformSubdomain('mylvh.me.evil.org')).toBe(false);
+      });
+    });
   });
 
   describe('Domain Detection', () => {
@@ -340,20 +480,20 @@ describe('TurboTenantHelpers', () => {
         expect(console.groupEnd).toHaveBeenCalled();
       });
 
-      it('does not log in production', () => {
+      it('does not log in production on unknown domains', () => {
         // Temporarily store original process.env
         const originalNodeEnv = process.env.NODE_ENV;
-        
+
         // Set production environment
         process.env.NODE_ENV = 'production';
-        
-        // Mock a production-like hostname (not lvh.me or localhost)
-        mockLocation('https://acme-corp.bizblasts.com/dashboard');
-        
+
+        // Mock an unknown hostname (not platform domain)
+        mockLocation('https://custom-domain.com/dashboard');
+
         TurboTenantHelpers.debugTenantInfo();
-        
+
         expect(console.group).not.toHaveBeenCalled();
-        
+
         // Restore original environment
         process.env.NODE_ENV = originalNodeEnv;
       });
@@ -420,14 +560,30 @@ describe('TurboTenantHelpers - Environment Specific', () => {
   });
 
   describe('Fallback Environment', () => {
-    it('handles unknown domains gracefully', () => {
+    it('validates unknown subdomains by pattern (server validates registration)', () => {
+      // unknown.example.com is a valid subdomain PATTERN - server will check if it's registered
       mockLocation('http://unknown.example.com/test');
-      
+
+      // Client-side validation only checks pattern, not registration
+      expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(true);
+      expect(TurboTenantHelpers.getCurrentTenant()).toBe('unknown');
+
+      // Since it's a platform subdomain, main domain URL should point to example.com
+      const mainUrl = TurboTenantHelpers.getMainDomainUrl('/test');
+      expect(mainUrl).toBe('http://example.com/test');
+    });
+
+    it('handles truly unknown domains (not platform)', () => {
+      // A domain that's not part of any platform domain
+      mockLocation('http://completely-different.org/test');
+
+      // Not a platform subdomain (doesn't end with .example.com, .lvh.me, or .bizblasts.com)
       expect(TurboTenantHelpers.isOnTenantSubdomain()).toBe(false);
       expect(TurboTenantHelpers.getCurrentTenant()).toBe(null);
-      
+
+      // Fallback returns current host
       const mainUrl = TurboTenantHelpers.getMainDomainUrl('/test');
-      expect(mainUrl).toBe('http://unknown.example.com/test');
+      expect(mainUrl).toBe('http://completely-different.org/test');
     });
   });
 }); 
