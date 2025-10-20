@@ -51,6 +51,12 @@ class Rack::Attack
     req.ip if req.path.include?('password') && req.post?
   end
 
+  # SECURITY: Throttle Place ID extraction to prevent DoS via headless browser
+  # Limit: 5 extractions per hour per IP (in addition to user-based limit in controller)
+  throttle('place_id_extraction/ip', limit: 5, period: 1.hour) do |req|
+    req.ip if req.path == '/manage/settings/integrations/lookup-place-id' && req.post?
+  end
+
   # General request throttling for potential DDoS protection
   throttle('req/ip', limit: 300, period: 5.minutes) do |req|
     req.ip unless req.path.start_with?('/assets', '/cable', '/up', '/healthcheck')

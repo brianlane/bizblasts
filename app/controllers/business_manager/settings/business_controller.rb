@@ -101,18 +101,25 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       # providing a default notice when none exists.
       flash_already_set = flash[:alert].present? || flash[:notice].present?
 
+      # Determine redirect path - allow override via return_to parameter
+      redirect_path = if params[:return_to].present?
+        params[:return_to]
+      else
+        edit_business_manager_settings_business_path
+      end
+
       if params[:sync_location] == '1'
         sync_with_default_location
         if flash_already_set
-          redirect_to edit_business_manager_settings_business_path
+          redirect_to redirect_path
         else
-          redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated.'
+          redirect_to redirect_path, notice: 'Business information updated.'
         end
       else
         if flash_already_set
-          redirect_to edit_business_manager_settings_business_path
+          redirect_to redirect_path
         else
-          redirect_to edit_business_manager_settings_business_path, notice: 'Business information updated successfully.'
+          redirect_to redirect_path, notice: 'Business information updated successfully.'
         end
       end
     else

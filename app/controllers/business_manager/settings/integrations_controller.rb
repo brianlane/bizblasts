@@ -249,13 +249,28 @@ module BusinessManager
           return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_entity
         end
 
-        # Validate that it's a Google Maps URL
-        unless google_maps_url.match?(/google\.com\/maps/i)
+        # SECURITY: Strict URL validation to prevent injection attacks
+        unless valid_google_maps_url?(google_maps_url)
           return render json: {
             success: false,
-            error: 'Please enter a valid Google Maps URL (must contain "google.com/maps")'
+            error: 'Invalid Google Maps URL. Must be from google.com or google.co domain.'
           }, status: :unprocessable_entity
         end
+
+        # SECURITY: Rate limiting - check user-specific limit (5 per hour)
+        rate_limit_key = "place_id_extraction:user:#{current_user.id}"
+        current_count = Rails.cache.read(rate_limit_key).to_i
+
+        if current_count >= 5
+          return render json: {
+            success: false,
+            error: 'Rate limit exceeded. You can extract 5 Place IDs per hour. Please try again later.'
+          }, status: :too_many_requests
+        end
+
+        # Increment rate limit counter
+        Rails.cache.increment(rate_limit_key, 1, expires_in: 1.hour)
+        Rails.cache.write(rate_limit_key, current_count + 1, expires_in: 1.hour) if current_count.zero?
 
         # Generate unique job ID
         job_id = SecureRandom.uuid
@@ -263,7 +278,7 @@ module BusinessManager
         # Start background job to extract Place ID
         PlaceIdExtractionJob.perform_later(job_id, google_maps_url)
 
-        Rails.logger.info "[IntegrationsController] Started Place ID extraction job: #{job_id}"
+        Rails.logger.info "[IntegrationsController] Started Place ID extraction job: #{job_id} for user: #{current_user.id}"
 
         # Return job ID for polling
         render json: {
@@ -607,6 +622,35 @@ module BusinessManager
       
       def calendar_connection_params
         params.require(:calendar_connection).permit(:provider, :staff_member_id)
+      end
+
+      # SECURITY: Strict URL validation for Place ID extraction
+      # Prevents URL injection attacks by validating:
+      # 1. Must be HTTPS
+      # 2. Must be from google.com or google.co.* domain (not subdomain of attacker's domain)
+      # 3. Must contain /maps/ in path
+      def valid_google_maps_url?(url)
+        return false if url.blank?
+
+        begin
+          uri = URI.parse(url)
+
+          # Must be HTTPS (reject http://)
+          return false unless uri.scheme == 'https'
+
+          # Must be Google domain (not subdomain of attacker's domain)
+          # Valid: google.com, www.google.com, google.co.uk, www.google.co.uk
+          # Invalid: google.com.evil.com, evil.com/google.com/maps
+          return false unless uri.host =~ /\A(www\.)?google\.(com|co\.[a-z]{2})\z/i
+
+          # Must contain /maps/ in path
+          return false unless uri.path&.include?('/maps/')
+
+          true
+        rescue URI::InvalidURIError => e
+          Rails.logger.warn "[IntegrationsController] Invalid URI for Place ID extraction: #{e.message}"
+          false
+        end
       end
     end
   end

@@ -2,15 +2,42 @@
 
 # PlaceIdExtractionJob extracts Google Place ID from a Google Maps URL using headless browser
 # This job runs asynchronously to avoid blocking the user request
+# SECURITY: This job has rate limiting, circuit breaker, and resource limits to prevent abuse
 class PlaceIdExtractionJob < ApplicationJob
-  queue_as :default
+  queue_as :place_id_extraction  # SECURITY: Separate queue to isolate resource-intensive operations
 
   # Timeout after 30 seconds to prevent hung jobs
   EXTRACTION_TIMEOUT = 30.seconds
 
+  # SECURITY: Circuit breaker - max concurrent jobs to prevent resource exhaustion
+  MAX_CONCURRENT_JOBS = 3
+
+  # SECURITY: Circuit breaker - disable extraction after repeated failures
+  CIRCUIT_BREAKER_THRESHOLD = 10
+
   def perform(job_id, google_maps_url)
+    # SECURITY: Sanitize URL in logs (truncate to prevent log injection)
+    sanitized_url = google_maps_url[0..60] + "..."
     Rails.logger.info "[PlaceIdExtractionJob] Starting extraction for job_id: #{job_id}"
-    Rails.logger.info "[PlaceIdExtractionJob] URL: #{google_maps_url}"
+    Rails.logger.info "[PlaceIdExtractionJob] URL (truncated): #{sanitized_url}"
+
+    # SECURITY: Circuit breaker - check recent failure rate
+    recent_failures = Rails.cache.read('place_id_extraction:recent_failures') || 0
+    if recent_failures >= CIRCUIT_BREAKER_THRESHOLD
+      error_msg = 'Automatic extraction is temporarily unavailable due to repeated failures. Please use manual method.'
+      Rails.logger.warn "[PlaceIdExtractionJob] Circuit breaker triggered: #{recent_failures} recent failures"
+      store_status(job_id, status: 'failed', error: error_msg)
+      return
+    end
+
+    # SECURITY: Check concurrent job limit to prevent resource exhaustion
+    concurrent_jobs_count = count_concurrent_jobs
+    if concurrent_jobs_count >= MAX_CONCURRENT_JOBS
+      error_msg = 'System busy processing other extractions. Please try again in a few minutes.'
+      Rails.logger.warn "[PlaceIdExtractionJob] Too many concurrent jobs: #{concurrent_jobs_count}"
+      store_status(job_id, status: 'failed', error: error_msg)
+      return
+    end
 
     # Store initial status
     store_status(job_id, status: 'processing', message: 'Loading Google Maps...')
@@ -19,13 +46,33 @@ class PlaceIdExtractionJob < ApplicationJob
     place_id = extract_place_id_from_maps(google_maps_url, job_id)
 
     if place_id
+      # SECURITY: Reset failure counter on success
+      Rails.cache.write('place_id_extraction:recent_failures', 0, expires_in: 1.hour)
+
+      # Track success metric
+      track_extraction_metric('success')
+
       Rails.logger.info "[PlaceIdExtractionJob] Successfully extracted Place ID: #{place_id}"
       store_status(job_id, status: 'completed', place_id: place_id, message: "Place ID found: #{place_id}")
     else
-      Rails.logger.warn "[PlaceIdExtractionJob] Failed to extract Place ID from: #{google_maps_url}"
+      # SECURITY: Increment failure counter
+      Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour)
+      Rails.cache.write('place_id_extraction:recent_failures', recent_failures + 1, expires_in: 1.hour) if recent_failures.zero?
+
+      # Track failure metric
+      track_extraction_metric('not_found')
+
+      Rails.logger.warn "[PlaceIdExtractionJob] Failed to extract Place ID from: #{sanitized_url}"
       store_status(job_id, status: 'failed', error: 'Could not find Place ID. Please use manual method.')
     end
   rescue StandardError => e
+    # SECURITY: Increment failure counter on exception
+    Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour)
+    Rails.cache.write('place_id_extraction:recent_failures', (recent_failures || 0) + 1, expires_in: 1.hour) if (recent_failures || 0).zero?
+
+    # Track error metric
+    track_extraction_metric('error')
+
     Rails.logger.error "[PlaceIdExtractionJob] Error: #{e.message}"
     Rails.logger.error "[PlaceIdExtractionJob] Backtrace: #{e.backtrace.first(5).join(', ')}"
     store_status(job_id, status: 'failed', error: 'An error occurred during extraction. Please try again or use manual method.')
@@ -36,20 +83,32 @@ class PlaceIdExtractionJob < ApplicationJob
   def extract_place_id_from_maps(url, job_id)
     require 'capybara/cuprite'
 
-    # Configure Cuprite for headless Chrome
-    browser = Capybara::Cuprite::Browser.new(
-      headless: true,
-      window_size: [1920, 1080],
-      browser_options: {
-        'no-sandbox': nil,
-        'disable-dev-shm-usage': nil,
-        'disable-gpu': nil
-      },
-      timeout: EXTRACTION_TIMEOUT,
-      process_timeout: EXTRACTION_TIMEOUT
-    )
+    browser = nil
+    browser_pid = nil
 
     begin
+      # SECURITY: Configure Cuprite with resource limits
+      browser = Capybara::Cuprite::Browser.new(
+        headless: true,
+        window_size: [1920, 1080],
+        browser_options: {
+          'no-sandbox': nil,
+          'disable-dev-shm-usage': nil,   # Prevent /dev/shm issues
+          'disable-gpu': nil,              # Reduce GPU usage
+          'disable-extensions': nil,       # Disable extensions for security
+          'disable-popup-blocking': nil,   # For clicking review button
+          # SECURITY: Limit memory usage
+          'js-flags': '--max-old-space-size=512'  # 512MB max
+        },
+        timeout: EXTRACTION_TIMEOUT,
+        # SECURITY: Process timeout slightly longer than job timeout
+        process_timeout: EXTRACTION_TIMEOUT + 5.seconds
+      )
+
+      # SECURITY: Track browser process ID for force kill if needed
+      browser_pid = browser.process&.pid if browser.respond_to?(:process)
+      Rails.logger.debug "[PlaceIdExtractionJob] Browser PID: #{browser_pid}"
+
       # Navigate to Google Maps URL
       browser.visit(url)
       store_status(job_id, status: 'processing', message: 'Page loaded, waiting for content to render...')
@@ -92,7 +151,29 @@ class PlaceIdExtractionJob < ApplicationJob
 
       nil
     ensure
-      browser.quit rescue nil
+      # SECURITY: Aggressive cleanup to prevent browser process leaks
+      if browser
+        begin
+          Rails.logger.debug "[PlaceIdExtractionJob] Attempting graceful browser shutdown..."
+          browser.quit
+          Rails.logger.debug "[PlaceIdExtractionJob] Browser quit successfully"
+        rescue => e
+          Rails.logger.error "[PlaceIdExtractionJob] Failed to quit browser gracefully: #{e.message}"
+
+          # SECURITY: Force kill the browser process if graceful quit fails
+          if browser_pid
+            begin
+              Rails.logger.warn "[PlaceIdExtractionJob] Force killing browser process: #{browser_pid}"
+              Process.kill('KILL', browser_pid)
+              Rails.logger.info "[PlaceIdExtractionJob] Browser process #{browser_pid} killed"
+            rescue Errno::ESRCH
+              Rails.logger.debug "[PlaceIdExtractionJob] Browser process #{browser_pid} already terminated"
+            rescue => kill_error
+              Rails.logger.error "[PlaceIdExtractionJob] Failed to kill browser process #{browser_pid}: #{kill_error.message}"
+            end
+          end
+        end
+      end
     end
   end
 
@@ -208,5 +289,43 @@ class PlaceIdExtractionJob < ApplicationJob
 
     # Store in Rails cache with 10 minute expiry
     Rails.cache.write("place_id_extraction:#{job_id}", data, expires_in: 10.minutes)
+  end
+
+  # SECURITY: Count concurrent extraction jobs to prevent resource exhaustion
+  # Note: This uses Solid Queue's job table. For other queue backends, adjust accordingly.
+  def count_concurrent_jobs
+    begin
+      # Count jobs in our queue that haven't finished yet
+      # Solid Queue uses the `solid_queue_jobs` table
+      if defined?(Solid::Queue::Job)
+        Solid::Queue::Job.where(
+          queue_name: 'place_id_extraction',
+          finished_at: nil
+        ).count
+      else
+        # Fallback for development/test or if Solid Queue isn't available
+        0
+      end
+    rescue => e
+      Rails.logger.error "[PlaceIdExtractionJob] Error counting concurrent jobs: #{e.message}"
+      0  # Allow job to proceed on error
+    end
+  end
+
+  # SECURITY: Track extraction metrics for monitoring
+  # This helps identify if the feature is being abused or if Google is blocking us
+  def track_extraction_metric(result_type)
+    begin
+      # Increment counter for this result type
+      metric_key = "place_id_extraction:metrics:#{result_type}:#{Date.current}"
+      Rails.cache.increment(metric_key, 1, expires_in: 7.days)
+      Rails.cache.write(metric_key, 1, expires_in: 7.days) unless Rails.cache.read(metric_key)
+
+      # Log metric for external monitoring systems
+      Rails.logger.info "[PlaceIdExtractionJob] Metric: #{result_type}"
+    rescue => e
+      Rails.logger.error "[PlaceIdExtractionJob] Error tracking metric: #{e.message}"
+      # Don't fail job if metrics fail
+    end
   end
 end
