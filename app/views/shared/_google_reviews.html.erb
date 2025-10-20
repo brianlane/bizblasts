@@ -9,7 +9,7 @@
   - Displays reviews as returned by Google API
 %>
 
-<% if business.show_google_reviews && (business.google_place_id.present? || business.google_business_profile_id.present?) %>
+<% if business.google_place_id.present? %>
   <% reviews_data = GoogleReviewsService.fetch(business) %>
   
   <% if reviews_data[:success] && reviews_data[:reviews].present? %>

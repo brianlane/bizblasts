@@ -123,6 +123,7 @@ import DropdownUpdaterController from "./controllers/dropdown_updater_controller
 import ServiceAvailabilityController from "./controllers/service_availability_controller"
 import GoogleBusinessSearchController from "./controllers/google_business_search_controller"
 import QrPaymentController from "./controllers/qr_payment_controller"
+import PlaceIdLookupController from "./controllers/place_id_lookup_controller"
 
 application.register("page-editor", PageEditorController)
 application.register("theme-editor", ThemeEditorController)
@@ -140,6 +141,7 @@ application.register("dropdown-updater", DropdownUpdaterController)
 application.register("service-availability", ServiceAvailabilityController)
 application.register("google-business-search", GoogleBusinessSearchController)
 application.register("qr-payment", QrPaymentController)
+application.register("place-id-lookup", PlaceIdLookupController)
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -155,7 +157,8 @@ function autoDiscoverControllers() {
     const manuallyRegistered = new Set([
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
-      'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment'
+      'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
+      'place-id-lookup'
     ]);
     
     // Dynamically import and register each controller

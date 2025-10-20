@@ -301,12 +301,13 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
 
   def business_params
     # Permit base attributes
-    # NOTE: google_place_id is NOT permitted here - it must be set via the verified integrations flow
-    # in IntegrationsController to ensure proper verification through GoogleBusinessVerificationService
+    # NOTE: google_place_id can be set two ways:
+    # 1. Via verified integrations flow in IntegrationsController (using GoogleBusinessVerificationService)
+    # 2. Via manual entry for service businesses that can't use the search flow
     permitted = params.require(:business).permit(
       :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled,
       :subdomain, :hostname, :host_type, :custom_domain_owned, :canonical_preference,
-      :google_business_profile_id, :show_google_reviews,
+      :google_place_id,
       # Permit individual hour fields, which will be processed into a JSON hash
       *days_of_week.flat_map { |day| ["hours_#{day}_open", "hours_#{day}_close"] }
     )

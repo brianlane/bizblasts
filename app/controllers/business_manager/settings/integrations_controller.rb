@@ -240,6 +240,80 @@ module BusinessManager
         }
       end
 
+      # POST /manage/settings/integrations/lookup-place-id
+      # Initiates async extraction of Place ID from Google Maps URL
+      def lookup_place_id
+        google_maps_url = params[:input]&.strip
+
+        if google_maps_url.blank?
+          return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_entity
+        end
+
+        # Validate that it's a Google Maps URL
+        unless google_maps_url.match?(/google\.com\/maps/i)
+          return render json: {
+            success: false,
+            error: 'Please enter a valid Google Maps URL (must contain "google.com/maps")'
+          }, status: :unprocessable_entity
+        end
+
+        # Generate unique job ID
+        job_id = SecureRandom.uuid
+
+        # Start background job to extract Place ID
+        PlaceIdExtractionJob.perform_later(job_id, google_maps_url)
+
+        Rails.logger.info "[IntegrationsController] Started Place ID extraction job: #{job_id}"
+
+        # Return job ID for polling
+        render json: {
+          success: true,
+          job_id: job_id,
+          message: 'Extraction started. This may take 5-10 seconds...'
+        }
+      rescue StandardError => e
+        Rails.logger.error "[IntegrationsController] Error starting Place ID extraction: #{e.message}"
+        render json: {
+          success: false,
+          error: 'Failed to start extraction. Please try again.'
+        }, status: :internal_server_error
+      end
+
+      # GET /manage/settings/integrations/check-place-id-status/:job_id
+      # Check status of Place ID extraction job
+      def check_place_id_status
+        job_id = params[:job_id]
+
+        if job_id.blank?
+          return render json: { success: false, error: 'Job ID is required' }, status: :bad_request
+        end
+
+        # Retrieve status from cache
+        status_data = Rails.cache.read("place_id_extraction:#{job_id}")
+
+        unless status_data
+          return render json: {
+            success: false,
+            status: 'not_found',
+            error: 'Job not found or expired'
+          }, status: :not_found
+        end
+
+        render json: {
+          success: true,
+          status: status_data[:status],
+          place_id: status_data[:place_id],
+          message: status_data[:message],
+          error: status_data[:error]
+        }
+      rescue StandardError => e
+        Rails.logger.error "[IntegrationsController] Error checking Place ID status: #{e.message}"
+        render json: {
+          success: false,
+          error: 'Failed to check status'
+        }, status: :internal_server_error
+      end
+
       # GET /manage/settings/integrations/google-business/oauth/authorize
       def google_business_oauth_authorize
         # Generate OAuth URL for Google Business Profile API using unified OAuth credentials

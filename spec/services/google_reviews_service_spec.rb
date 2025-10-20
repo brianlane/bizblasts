@@ -32,24 +32,6 @@ RSpec.describe GoogleReviewsService, type: :service do
       end
     end
 
-    context 'when business has google_business_profile_id but no google_place_id' do
-      let(:business_with_profile_id) { create(:business, google_place_id: nil, google_business_profile_id: 'ChIJProfileID123456') }
-      let(:service) { described_class.new(business_with_profile_id) }
-
-      it 'uses google_business_profile_id for API calls' do
-        expect(service.instance_variable_get(:@place_id)).to eq('ChIJProfileID123456')
-      end
-    end
-
-    context 'when business has both google_place_id and google_business_profile_id' do
-      let(:business_with_both) { create(:business, google_place_id: 'ChIJPlaceID123', google_business_profile_id: 'ChIJProfileID456') }
-      let(:service) { described_class.new(business_with_both) }
-
-      it 'prioritizes google_place_id over google_business_profile_id' do
-        expect(service.instance_variable_get(:@place_id)).to eq('ChIJPlaceID123')
-      end
-    end
-
     context 'when Google API key is not configured' do
       before do
         allow(ENV).to receive(:[]).with('GOOGLE_API_KEY').and_return(nil)

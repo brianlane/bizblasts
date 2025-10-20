@@ -77,6 +77,10 @@ gem "stripe", "~> 17.0"
 gem "rqrcode", "~> 3.1"
 gem "chunky_png", "~> 1.4"
 
+# Headless browser for automated Place ID extraction
+gem "cuprite"
+gem "capybara"
+
 # Use node based css bundling
 gem "cssbundling-rails"
 gem "tailwindcss-rails"
@@ -88,8 +92,6 @@ group :development, :test do
   gem "factory_bot_rails"
   gem "faker"
   gem "rspec-rails"
-  gem "capybara"
-  gem "cuprite"
   gem "webdrivers"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]

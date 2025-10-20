@@ -32,7 +32,7 @@ class GoogleReviewsService
   
   def initialize(business)
     @business = business
-    @place_id = business.google_place_id.presence || business.google_business_profile_id.presence
+    @place_id = business.google_place_id
     @api_key = ENV['GOOGLE_API_KEY']
   end
   
