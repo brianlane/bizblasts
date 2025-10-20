@@ -306,6 +306,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     permitted = params.require(:business).permit(
       :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled,
       :subdomain, :hostname, :host_type, :custom_domain_owned, :canonical_preference,
+      :google_business_profile_id, :show_google_reviews,
       # Permit individual hour fields, which will be processed into a JSON hash
       *days_of_week.flat_map { |day| ["hours_#{day}_open", "hours_#{day}_close"] }
     )

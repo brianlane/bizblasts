@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_04_005649) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_20_010304) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -298,6 +298,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_04_005649) do
     t.boolean "sms_enabled", default: false, null: false
     t.boolean "sms_marketing_enabled", default: false, null: false
     t.boolean "sms_auto_invitations_enabled", default: true, null: false
+    t.string "google_business_profile_id"
+    t.boolean "show_google_reviews", default: true, null: false
     t.index ["canonical_preference"], name: "index_businesses_on_canonical_preference"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
@@ -306,6 +308,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_04_005649) do
     t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"
     t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
     t.index ["google_business_manual"], name: "index_businesses_on_google_business_manual"
+    t.index ["google_business_profile_id"], name: "index_businesses_on_google_business_profile_id"
     t.index ["google_place_id"], name: "index_businesses_on_google_place_id", unique: true
     t.index ["host_type", "status", "domain_health_verified"], name: "index_businesses_on_custom_domain_health"
     t.index ["host_type"], name: "index_businesses_on_host_type"

@@ -142,7 +142,33 @@ RSpec.describe Business, type: :model do
         expect(existing_business).to be_valid
       end
     end
-    
+
+    # Google Business Profile validations
+    context 'google_business_profile_id validations' do
+      it 'allows unique google_business_profile_id' do
+        business1 = create(:business, google_business_profile_id: 'ChIJN1t_tDeuEmsRUsoyG83frY4')
+        business2 = build(:business, google_business_profile_id: 'ChIJOther_different_place_id')
+        expect(business2).to be_valid
+      end
+
+      it 'does not allow duplicate google_business_profile_id' do
+        create(:business, google_business_profile_id: 'ChIJN1t_tDeuEmsRUsoyG83frY4')
+        duplicate = build(:business, google_business_profile_id: 'ChIJN1t_tDeuEmsRUsoyG83frY4')
+        expect(duplicate).not_to be_valid
+        expect(duplicate.errors[:google_business_profile_id]).to include('has already been taken')
+      end
+
+      it 'allows nil google_business_profile_id' do
+        business = build(:business, google_business_profile_id: nil)
+        expect(business).to be_valid
+      end
+
+      it 'allows blank google_business_profile_id' do
+        business = build(:business, google_business_profile_id: '')
+        expect(business).to be_valid
+      end
+    end
+
     # Tier requirements
     context 'when tier is free' do
       subject { build(:business, tier: :free, host_type: 'custom_domain') }
