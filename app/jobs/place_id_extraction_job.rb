@@ -295,11 +295,11 @@ class PlaceIdExtractionJob < ApplicationJob
   # Note: This uses Solid Queue's job table. For other queue backends, adjust accordingly.
   def count_concurrent_jobs
     begin
-      # Count jobs in our queue that haven't finished yet
-      # Solid Queue uses the `solid_queue_jobs` table
+      # Count PlaceIdExtractionJob instances that haven't finished yet
+      # Filter by class_name instead of queue_name to work regardless of queue
       if defined?(Solid::Queue::Job)
         Solid::Queue::Job.where(
-          queue_name: 'place_id_extraction',
+          class_name: 'PlaceIdExtractionJob',
           finished_at: nil
         ).count
       else
