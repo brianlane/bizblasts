@@ -142,7 +142,7 @@ RSpec.describe Business, type: :model do
         expect(existing_business).to be_valid
       end
     end
-    
+
     # Tier requirements
     context 'when tier is free' do
       subject { build(:business, tier: :free, host_type: 'custom_domain') }

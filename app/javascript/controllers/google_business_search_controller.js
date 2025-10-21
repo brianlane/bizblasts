@@ -6,15 +6,14 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "searchInput",
-    "locationInput", 
+    "locationInput",
     "searchResults",
     "searchButton",
     "loadingIndicator",
     "errorMessage",
     "connectedBusiness",
     "connectionStatus",
-    "disconnectButton",
-    "manualEntry"
+    "disconnectButton"
   ]
   
   static values = {
@@ -70,34 +69,11 @@ export default class extends Controller {
   onSearchClick(event) {
     console.log('Search button clicked', event)
     event.preventDefault()
-    
+
     try {
       this.performSearch()
     } catch (error) {
       console.error('Error in onSearchClick:', error)
-    }
-  }
-
-  // Handle Service Business OAuth button click
-  onServiceBusinessClick(event) {
-    console.log('Service Business button clicked', event)
-    event.preventDefault()
-    
-    try {
-      this.initiateServiceBusinessOAuth()
-    } catch (error) {
-      console.error('Error in onServiceBusinessClick:', error)
-    }
-  }
-
-  // Initiate OAuth flow for service businesses
-  async initiateServiceBusinessOAuth() {
-    try {
-      // Redirect to OAuth authorization URL
-      window.location.href = '/manage/settings/integrations/google-business/oauth/authorize'
-    } catch (error) {
-      console.error('OAuth initiation error:', error)
-      this.showError('Failed to start OAuth process. Please try again.')
     }
   }
 
@@ -512,11 +488,6 @@ export default class extends Controller {
   }
 
   // Utility methods
-  toggleManualEntry() {
-    if (this.hasManualEntryTarget) {
-      this.manualEntryTarget.classList.toggle('hidden')
-    }
-  }
   showLoading() {
     if (this.hasLoadingIndicatorTarget) {
       this.loadingIndicatorTarget.classList.remove('hidden')
@@ -686,7 +657,7 @@ export default class extends Controller {
         <div class="ml-3">
           <h3 class="text-green-800 font-medium">Can't Find Your Business?</h3>
           <p class="text-green-700 text-sm mt-1 mb-3">
-            Some businesses exist on Google but aren't discoverable through search. If you know your exact address exists on Google Maps, you can connect it using its Place ID. Otherwise, please use the Service Businesses option if you don't have an exact address.
+            Some businesses exist on Google but aren't discoverable through search. If you know your business exists on Google Maps, you can connect it using its Place ID.
           </p>
           <button class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors manual-entry-button cursor-pointer">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -729,11 +700,11 @@ export default class extends Controller {
       </div>
       
       <div class="space-y-4">
-        <!-- Option 1: Place ID Entry -->
+        <!-- Place ID Entry -->
         <div class="border border-gray-200 rounded-lg p-4">
-          <h4 class="font-medium text-gray-900 mb-2">Option 1: Enter Google Place ID</h4>
+          <h4 class="font-medium text-gray-900 mb-2">Enter Google Place ID</h4>
           <p class="text-sm text-gray-600 mb-3">
-            Find your business on <a href="https://maps.google.com" target="_blank" class="text-blue-600 hover:underline">Google Maps</a>, 
+            Find your business on <a href="https://maps.google.com" target="_blank" class="text-blue-600 hover:underline">Google Maps</a>,
             copy the URL, and we'll extract the Place ID for you.
           </p>
           <div class="space-y-3">
@@ -751,33 +722,6 @@ export default class extends Controller {
           </div>
         </div>
         
-        <!-- Option 2: Service Businesses -->
-        <div class="border border-green-200 rounded-lg p-4 bg-green-50">
-          <h4 class="font-medium text-gray-900 mb-2">Option 2: Service Businesses (No Exact Address)</h4>
-          <p class="text-sm text-gray-600 mb-3">
-            For mobile or service-area businesses that don't have a specific street address. Connect using Google Business Profile OAuth to access your business listings directly.
-          </p>
-          <div class="space-y-3">
-            <div class="p-3 bg-white border border-green-200 rounded-md">
-              <h5 class="text-sm font-medium text-green-800 mb-1">Perfect for:</h5>
-              <ul class="text-sm text-green-700 space-y-1">
-                <li>• Mobile services (cleaning, detailing, repair)</li>
-                <li>• Consultants and freelancers</li>
-                <li>• Service-area businesses</li>
-                <li>• Home-based businesses</li>
-              </ul>
-            </div>
-            <button type="button" 
-                    class="w-full px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors service-oauth-button cursor-pointer">
-              <div class="flex items-center justify-center">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-                Connect with Google Business Profile
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
       
       <div class="mt-4 pt-4 border-t border-gray-200">
@@ -793,12 +737,7 @@ export default class extends Controller {
     placeIdButton.addEventListener('click', () => {
       this.handlePlaceIdEntry()
     })
-    
-    const serviceOAuthButton = manualForm.querySelector('.service-oauth-button')
-    serviceOAuthButton.addEventListener('click', () => {
-      this.initiateServiceBusinessOAuth()
-    })
-    
+
     const backButton = manualForm.querySelector('.back-to-search-button')
     backButton.addEventListener('click', () => {
       this.clearResults()

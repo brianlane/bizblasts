@@ -30,8 +30,9 @@ Rails.application.configure do
   # Devise
   config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
-  # Change to :null_store to avoid any caching.
-  config.cache_store = :memory_store
+  # Use solid_cache for development to support async jobs with solid_queue
+  # (solid_queue workers run in separate processes, so memory_store doesn't work)
+  config.cache_store = :solid_cache_store
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local

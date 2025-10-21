@@ -327,6 +327,8 @@ Rails.application.routes.draw do
             post 'google-business/connect-manual', action: :google_business_connect_manual
             delete 'google-business/disconnect', action: :google_business_disconnect
             get 'google-business/status', action: :google_business_status
+            post 'lookup-place-id', action: :lookup_place_id
+            get 'check-place-id-status/:job_id', action: :check_place_id_status
 
             # Google Business Profile OAuth routes
             get 'google-business/oauth/authorize', action: :google_business_oauth_authorize
