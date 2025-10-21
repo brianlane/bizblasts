@@ -268,9 +268,9 @@ module BusinessManager
           }, status: :too_many_requests
         end
 
-        # Increment rate limit counter
-        Rails.cache.increment(rate_limit_key, 1, expires_in: 1.hour)
-        Rails.cache.write(rate_limit_key, current_count + 1, expires_in: 1.hour) if current_count.zero?
+        # Increment rate limit counter (atomic operation)
+        new_count = Rails.cache.increment(rate_limit_key, 1, expires_in: 1.hour) || 1
+        Rails.cache.write(rate_limit_key, 1, expires_in: 1.hour) if new_count == 1
 
         # Generate unique job ID
         job_id = SecureRandom.uuid

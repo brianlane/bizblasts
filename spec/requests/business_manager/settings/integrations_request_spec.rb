@@ -33,6 +33,11 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
   describe "POST /lookup-place-id" do
     let(:valid_google_maps_url) { "https://www.google.com/maps/place/My+Business/@40.7128,-74.0060,17z" }
 
+    before do
+      # Clear rate limit cache before each test to prevent cross-contamination
+      Rails.cache.delete("place_id_extraction:user:#{business_manager_user.id}")
+    end
+
     context "with valid URL" do
       it "accepts valid google.com URL" do
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
@@ -53,7 +58,7 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       it "rejects http:// URLs (must be HTTPS)" do
         url = "http://www.google.com/maps/place/My+Business"
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['error']).to include('Invalid Google Maps URL')
       end
@@ -61,7 +66,7 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       it "rejects URL injection attempts (subdomain attack)" do
         url = "https://google.com.evil.com/maps/place/My+Business"
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['error']).to include('Invalid Google Maps URL')
       end
@@ -69,7 +74,7 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       it "rejects URL injection attempts (path injection)" do
         url = "https://evil.com/google.com/maps/place/My+Business"
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['error']).to include('Invalid Google Maps URL')
       end
@@ -77,14 +82,14 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       it "rejects URLs without /maps/ in path" do
         url = "https://www.google.com/search?q=My+Business"
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['error']).to include('Invalid Google Maps URL')
       end
 
       it "rejects empty input" do
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: "" }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['error']).to include('Please enter a Google Maps URL')
       end
@@ -92,18 +97,13 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       it "rejects malformed URLs" do
         url = "not-a-valid-url"
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['error']).to include('Invalid Google Maps URL')
       end
     end
 
     context "rate limiting (security)" do
-      before do
-        # Clear any existing rate limit for this user
-        Rails.cache.delete("place_id_extraction:user:#{business_manager_user.id}")
-      end
-
       it "allows up to 5 requests per hour" do
         5.times do
           post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }

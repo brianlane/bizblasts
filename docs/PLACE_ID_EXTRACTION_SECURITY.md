@@ -126,16 +126,22 @@ This document describes the security and legal improvements made to the Place ID
 - Prevents log injection attacks
 - Reduces PII exposure
 
-### 9. ✅ Separate Queue
+### 9. ⚠️ Separate Queue (REVERTED)
 
 **File**: `app/jobs/place_id_extraction_job.rb` (line 7)
 
-**Change**: `queue_as :place_id_extraction` (was `:default`)
+**Original Change**: `queue_as :place_id_extraction` (was `:default`)
+**Current State**: `queue_as :default` (reverted to original)
 
-**Benefits**:
-- Isolates resource-intensive operations
-- Can be scaled separately
-- Prevents blocking other jobs
+**Reason for Revert**:
+- Solid Queue not configured to process custom queue
+- Caused jobs to be enqueued but never executed (404 errors)
+- Isolation achieved through `MAX_CONCURRENT_JOBS` limit instead
+
+**Benefits of Current Approach**:
+- Works with existing queue infrastructure
+- MAX_CONCURRENT_JOBS provides resource isolation
+- No additional queue configuration needed
 
 ### 10. ✅ Comprehensive Tests
 
@@ -206,7 +212,7 @@ This document describes the security and legal improvements made to the Place ID
 ## Performance Impact
 
 ### Positive
-- ✅ Separate queue prevents blocking other jobs
+- ✅ MAX_CONCURRENT_JOBS limit prevents resource exhaustion
 - ✅ Concurrent limit prevents system overload
 - ✅ Circuit breaker stops wasting resources on failures
 
@@ -247,6 +253,42 @@ unless google_maps_url.match?(/google\.com\/maps/i)
 - Circuit breaker triggered (10+ failures)
 - Success rate drops below 50%
 - Sudden spike in rate limit violations
+
+## Bug Fixes (2025-10-20)
+
+### Race Condition Fixes
+
+**Files Modified:**
+- `app/controllers/business_manager/settings/integrations_controller.rb` (lines 271-273)
+- `app/jobs/place_id_extraction_job.rb` (lines 59-60, 70-71)
+
+**Issue**: Non-atomic cache operations caused race conditions:
+```ruby
+# BEFORE (race condition):
+Rails.cache.increment(key, 1, expires_in: 1.hour)
+Rails.cache.write(key, old_value + 1, expires_in: 1.hour) if old_value.zero?
+# Problem: old_value is stale after increment!
+```
+
+**Fix**: Use increment's return value atomically:
+```ruby
+# AFTER (atomic):
+new_value = Rails.cache.increment(key, 1, expires_in: 1.hour) || 1
+Rails.cache.write(key, 1, expires_in: 1.hour) if new_value == 1
+```
+
+**Impact**:
+- Prevents rate limit bypass
+- Ensures circuit breaker triggers correctly
+- Eliminates incorrect counter values
+
+### Queue Configuration Revert
+
+**Issue**: Changing queue from `:default` to `:place_id_extraction` broke job execution
+- Jobs enqueued but never processed (Solid Queue not configured for custom queue)
+- Resulted in 404 errors when checking job status
+
+**Fix**: Reverted to `:default` queue, maintaining isolation via `MAX_CONCURRENT_JOBS` instead
 
 ## Related Documentation
 - [Security Fixes Implementation](./SECURITY_FIXES_IMPLEMENTATION.md)

@@ -4,7 +4,7 @@
 # This job runs asynchronously to avoid blocking the user request
 # SECURITY: This job has rate limiting, circuit breaker, and resource limits to prevent abuse
 class PlaceIdExtractionJob < ApplicationJob
-  queue_as :place_id_extraction  # SECURITY: Separate queue to isolate resource-intensive operations
+  queue_as :default  # SECURITY: Isolation via MAX_CONCURRENT_JOBS limit instead of separate queue
 
   # Timeout after 30 seconds to prevent hung jobs
   EXTRACTION_TIMEOUT = 30.seconds
@@ -55,9 +55,9 @@ class PlaceIdExtractionJob < ApplicationJob
       Rails.logger.info "[PlaceIdExtractionJob] Successfully extracted Place ID: #{place_id}"
       store_status(job_id, status: 'completed', place_id: place_id, message: "Place ID found: #{place_id}")
     else
-      # SECURITY: Increment failure counter
-      Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour)
-      Rails.cache.write('place_id_extraction:recent_failures', recent_failures + 1, expires_in: 1.hour) if recent_failures.zero?
+      # SECURITY: Increment failure counter (atomic operation)
+      new_failures = Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour) || 1
+      Rails.cache.write('place_id_extraction:recent_failures', 1, expires_in: 1.hour) if new_failures == 1
 
       # Track failure metric
       track_extraction_metric('not_found')
@@ -66,9 +66,9 @@ class PlaceIdExtractionJob < ApplicationJob
       store_status(job_id, status: 'failed', error: 'Could not find Place ID. Please use manual method.')
     end
   rescue StandardError => e
-    # SECURITY: Increment failure counter on exception
-    Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour)
-    Rails.cache.write('place_id_extraction:recent_failures', (recent_failures || 0) + 1, expires_in: 1.hour) if (recent_failures || 0).zero?
+    # SECURITY: Increment failure counter on exception (atomic operation)
+    new_failures = Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour) || 1
+    Rails.cache.write('place_id_extraction:recent_failures', 1, expires_in: 1.hour) if new_failures == 1
 
     # Track error metric
     track_extraction_metric('error')
