@@ -172,9 +172,11 @@ module ApplicationHelper
     # Example attack: <sc<script>ript> or ononloadload
 
     # Remove script tags - loop until none remain
+    # Handles tags like <script>, <script >, </script >, etc.
     loop do
       before = css_content
-      css_content = css_content.gsub(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi, '')
+      # Match opening tag with optional attributes and whitespace, content, and closing tag with optional whitespace
+      css_content = css_content.gsub(/<script\b[^>]*>.*?<\/script\s*>/mi, '')
       break if before == css_content
     end
 
