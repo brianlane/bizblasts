@@ -66,40 +66,45 @@ module Calendar
     
     def parse_calendar_list(xml_response, base_url)
       calendars = []
-      
-      # Parse Nextcloud calendar list from PropFind response
-      xml_response.scan(/<D:response>(.*?)<\/D:response>/m).each do |response_match|
-        response_xml = response_match[0]
-        
+
+      # Use Nokogiri XML parser instead of regex to prevent ReDoS attacks
+      doc = Nokogiri::XML(xml_response)
+      doc.remove_namespaces! # Simplify XPath queries
+
+      # Parse each response element
+      doc.xpath('//response').each do |response_node|
         # Extract href (calendar URL)
-        href_match = response_xml.match(/<D:href>(.*?)<\/D:href>/)
-        next unless href_match
-        
-        href = href_match[1].strip
-        next unless href.end_with?('/')
+        href = response_node.at_xpath('./href')&.text&.strip
+        next unless href.present? && href.end_with?('/')
         next if href == base_url.gsub(@base_url, '') # Skip the parent collection
-        
-        # Extract display name
-        display_name_match = response_xml.match(/<D:displayname><!\[CDATA\[(.*?)\]\]><\/D:displayname>/) ||
-                            response_xml.match(/<D:displayname>(.*?)<\/D:displayname>/)
-        display_name = display_name_match ? display_name_match[1].strip : File.basename(href, '/')
-        
+
+        # Extract display name - handle both CDATA and plain text
+        display_name_node = response_node.at_xpath('./propstat/prop/displayname')
+        display_name = if display_name_node
+          # Get text content, which automatically handles CDATA
+          display_name_node.text.strip
+        else
+          File.basename(href, '/')
+        end
+
         # Check if it's a calendar collection
-        is_calendar = response_xml.include?('calendar') && 
-                     (response_xml.include?('collection') || response_xml.include?('resourcetype'))
-        
+        resourcetype = response_node.at_xpath('./propstat/prop/resourcetype')&.to_s || ''
+        is_calendar = resourcetype.include?('calendar') &&
+                     (resourcetype.include?('collection') || resourcetype.include?('resourcetype'))
+
         # Check if it supports VEVENT (calendar events)
-        supports_events = response_xml.include?('VEVENT') || 
-                         !response_xml.include?('supported-calendar-component-set')
-        
+        component_set = response_node.at_xpath('./propstat/prop/supported-calendar-component-set')&.to_s || ''
+        supports_events = component_set.include?('VEVENT') || component_set.empty?
+
         # Check write permissions
-        writable = !response_xml.include?('need-privileges') || 
-                  response_xml.include?('write') ||
-                  response_xml.include?('write-content')
-        
+        privilege_set = response_node.at_xpath('./propstat/prop/current-user-privilege-set')&.to_s || ''
+        writable = !privilege_set.include?('need-privileges') ||
+                  privilege_set.include?('write') ||
+                  privilege_set.include?('write-content')
+
         if is_calendar
           full_url = href.start_with?('http') ? href : "#{@base_url}#{href}"
-          
+
           calendars << {
             url: full_url,
             name: display_name,
@@ -108,8 +113,11 @@ module Calendar
           }
         end
       end
-      
+
       calendars
+    rescue Nokogiri::XML::SyntaxError => e
+      Rails.logger.error("Failed to parse Nextcloud calendar list XML: #{e.message}")
+      []
     end
     
     def calendar_list_xml

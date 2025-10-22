@@ -181,19 +181,30 @@ class GooglePlacesSearchService
   
   # Clean business name by removing common suffixes and descriptors
   def clean_business_name(name)
-    # Remove common business descriptors and suffixes
-    cleaned = name.gsub(/\s*(&|and)\s*(Protection|Services?|Solutions?|Company|Corp|Inc|LLC)\s*$/i, '')
-    cleaned = cleaned.gsub(/\s*(Detail|Detailing|Auto|Car|Vehicle)\s*(&|and)\s*/i, ' ')
-    cleaned.gsub(/\s+/, ' ').strip
-    
+    # Limit input length to prevent ReDoS
+    return name if name.length > 200
+
+    # Remove common business descriptors and suffixes - simplified patterns to prevent ReDoS
+    # Split into simpler, non-backtracking patterns
+    cleaned = name.dup
+
+    # Remove "& Protection/Services/etc" or "and Protection/Services/etc" at end
+    cleaned = cleaned.sub(/\s+(?:&|and)\s+(?:Protection|Service|Services|Solution|Solutions|Company|Corp|Inc|LLC)\s*\z/i, '')
+
+    # Remove "Detail/Auto/etc & " or "Detail/Auto/etc and " patterns
+    cleaned = cleaned.gsub(/\s+(?:Detail|Detailing|Auto|Car|Vehicle)\s+(?:&|and)\s+/i, ' ')
+
+    # Clean up multiple spaces
+    cleaned.gsub(/\s{2,}/, ' ').strip
   end
-  
+
   # Extract the core business name (typically first 1-3 words)
   def extract_core_business_name(name)
     words = name.split(/\s+/)
-    
+
     # For possessive names like "Joe's" or "Mike's", keep at least 2 words
-    if words.first&.match?(/\w+'s$/i) && words.length > 1
+    # Use simpler pattern to avoid ReDoS
+    if words.first && words.first.end_with?("'s") && words.length > 1
       words.first(2).join(' ')
     else
       # Otherwise, take first 1-2 words
