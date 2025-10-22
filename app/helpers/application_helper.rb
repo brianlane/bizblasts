@@ -172,13 +172,9 @@ module ApplicationHelper
     # Example attack: <sc<script>ript> or ononloadload
 
     # Remove script tags - loop until none remain
-    # Handles tags like <script>, <script >, </script >, etc.
-    loop do
-      before = css_content
-      # Match opening tag with optional attributes and whitespace, content, and closing tag with optional whitespace
-      css_content = css_content.gsub(/<script\b[^>]*>.*?<\/script\s*>/mi, '')
-      break if before == css_content
-    end
+    # Remove script tags using Rails' built-in HTML sanitizer
+    # This handles malformed tags and browser quirks more reliably than regex
+    css_content = sanitize(css_content, tags: [], attributes: [])
 
     # Remove javascript: URLs - loop until none remain
     loop do
