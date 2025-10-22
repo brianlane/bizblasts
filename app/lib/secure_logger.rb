@@ -5,9 +5,13 @@
 class SecureLogger
   SENSITIVE_PATTERNS = {
     email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/,
-    phone: /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/,
-    ssn: /\b\d{3}-?\d{2}-?\d{4}\b/,
+    # Process credit cards first to avoid phone regex matching parts of them
     credit_card: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/,
+    # Enhanced phone pattern to match various formats with negative lookahead to avoid matching credit cards:
+    # - 555-123-4567, (602) 686-6672, +1-555-123-4567, +16026866672, 1 (555) 123-4567
+    # Negative lookahead (?!\d) ensures we don't match within longer digit sequences (like credit cards)
+    phone: /(?<!\d)(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}(?!\d)/,
+    ssn: /\b\d{3}-?\d{2}-?\d{4}\b/,
     api_key: /\b[A-Za-z0-9]{20,}\b/
   }.freeze
 

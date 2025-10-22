@@ -130,7 +130,7 @@ module Webhooks
             return
           end
         else
-          Rails.logger.info "Creating minimal tenant customer for new phone number #{to_phone} in business #{business&.safe_identifier_for_logging}"
+          SecureLogger.info "Creating minimal tenant customer for new phone number #{to_phone} in business #{business&.safe_identifier_for_logging}"
           begin
             # Create minimal tenant customer record for completely new phone numbers
             # This enables auto-replies for new users discovered through SMS interactions
@@ -142,9 +142,9 @@ module Webhooks
               email: "sms-user-#{SecureRandom.hex(8)}@invalid.example", # RFC 2606 reserved domain for invalid emails
               phone_opt_in: false   # Start with opt-out, they need to explicitly opt-in
             )
-            Rails.logger.info "Created minimal tenant customer #{tenant_customer.id} for phone #{to_phone}"
+            SecureLogger.info "Created minimal tenant customer #{tenant_customer.id} for phone #{to_phone}"
           rescue => creation_error
-            Rails.logger.error "Failed to create tenant customer for phone #{to_phone}: #{creation_error.message}"
+            SecureLogger.error "Failed to create tenant customer for phone #{to_phone}: #{creation_error.message}"
             return
           end
         end
@@ -687,9 +687,9 @@ module Webhooks
         email: email,
         phone_opt_in: false # Always start opted-out; process_sms_opt_in handles opt-in logic
       )
-      Rails.logger.info "Created minimal customer for phone #{phone} in business #{business&.safe_identifier_for_logging}"
+      SecureLogger.info "Created minimal customer for phone #{phone} in business #{business&.safe_identifier_for_logging}"
     rescue => e
-      Rails.logger.error "Failed to create minimal customer for #{phone}: #{e.message}"
+      SecureLogger.error "Failed to create minimal customer for #{phone}: #{e.message}"
       raise # Re-raise so caller can handle
     end
 

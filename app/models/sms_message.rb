@@ -3,7 +3,10 @@ class SmsMessage < ApplicationRecord
   belongs_to :marketing_campaign, optional: true
   belongs_to :tenant_customer
   belongs_to :booking, optional: true
-  
+
+  # Encrypt phone numbers with deterministic encryption to allow querying
+  encrypts :phone_number, deterministic: true
+
   validates :phone_number, presence: true
   validates :content, presence: true
   validates :status, presence: true

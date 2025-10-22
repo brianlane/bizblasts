@@ -23,7 +23,10 @@ class TenantCustomer < ApplicationRecord
   
   # Allow access to User accounts associated with this customer's business
   has_many :users, through: :business, source: :clients
-  
+
+  # Encrypt phone numbers with deterministic encryption to allow querying
+  encrypts :phone, deterministic: true
+
   # Base validations - updated to match User model
   validates :first_name, presence: true
   validates :last_name, presence: true

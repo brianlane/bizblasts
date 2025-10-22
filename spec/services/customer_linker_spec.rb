@@ -455,9 +455,9 @@ RSpec.describe CustomerLinker do
           expect(customer_18_format.user_id).to eq(other_user.id)  # Preserved existing link
 
           # And: Verify duplicates were merged
+          # Use ActiveRecord query method instead of raw SQL to work with encrypted phone column
           final_customer_count = business.tenant_customers.where(
-            'phone IN (?)',
-            ['+16026866672', '16026866672', '6026866672']
+            phone: ['+16026866672', '16026866672', '6026866672']
           ).count
           expect(final_customer_count).to eq(1), "Expected duplicates to be merged to canonical customer"
         end
