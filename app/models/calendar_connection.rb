@@ -119,12 +119,16 @@ class CalendarConnection < ApplicationRecord
   
   # Check if connection has required calendar permissions
   def has_calendar_permissions?
-    return false if scopes.blank?
-    
     case provider
     when 'google'
-      sync_scopes.include?('https://www.googleapis.com/auth/calendar')
+      # OAuth providers require scopes
+      return false if scopes.blank?
+      # Use exact match instead of .include?() to prevent substring injection attacks
+      # OAuth scopes must match exactly, not just contain the string
+      sync_scopes.any? { |scope| scope == 'https://www.googleapis.com/auth/calendar' }
     when 'microsoft'
+      # OAuth providers require scopes
+      return false if scopes.blank?
       sync_scopes.any? { |scope| scope.include?('Calendars') }
     when 'caldav'
       true # CalDAV doesn't use OAuth scopes
