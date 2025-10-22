@@ -80,32 +80,76 @@ module Calendar
     end
     
     private
-    
+
+    # Helper method to safely check if a URL's host matches an expected host
+    # This prevents URL substring injection attacks like https://evil.com/caldav.icloud.com
+    def self.url_host_matches?(url, expected_host)
+      return false if url.blank?
+
+      begin
+        # Parse the URL to extract the actual host component
+        uri = URI.parse(url.to_s)
+        # Compare the actual host (case-insensitive) with expected
+        uri.host&.downcase == expected_host.downcase
+      rescue URI::InvalidURIError
+        # Invalid URLs should not match
+        false
+      end
+    end
+
+    # Helper method to check if URL path contains a specific string
+    # This is safer than checking the entire URL string
+    def self.url_path_contains?(url, path_substring)
+      return false if url.blank?
+
+      begin
+        uri = URI.parse(url.to_s)
+        uri.path&.downcase&.include?(path_substring.downcase) || false
+      rescue URI::InvalidURIError
+        false
+      end
+    end
+
+    # Helper method to check if URL host contains a substring
+    # Used for detecting Nextcloud/ownCloud which can be on any domain
+    def self.url_host_contains?(url, host_substring)
+      return false if url.blank?
+
+      begin
+        uri = URI.parse(url.to_s)
+        uri.host&.downcase&.include?(host_substring.downcase) || false
+      rescue URI::InvalidURIError
+        false
+      end
+    end
+
     def self.detect_provider(calendar_connection)
       # First check explicit provider setting
       if calendar_connection.caldav_provider.present?
         return calendar_connection.caldav_provider.to_sym
       end
-      
+
       # Auto-detect based on username/email and URL
       username = calendar_connection.caldav_username&.downcase
-      url = calendar_connection.caldav_url&.downcase
-      
+      url = calendar_connection.caldav_url
+
       # iCloud detection
-      if username&.include?('@icloud.com') || 
-         username&.include?('@me.com') || 
+      # Check username domain or exact URL host match
+      if username&.include?('@icloud.com') ||
+         username&.include?('@me.com') ||
          username&.include?('@mac.com') ||
-         url&.include?('caldav.icloud.com')
+         url_host_matches?(url, 'caldav.icloud.com')
         return :icloud
       end
-      
+
       # Nextcloud detection
-      if url&.include?('nextcloud') || 
-         url&.include?('owncloud') ||
-         url&.include?('remote.php/dav')
+      # Check if host contains 'nextcloud'/'owncloud' or path contains specific pattern
+      if url_host_contains?(url, 'nextcloud') ||
+         url_host_contains?(url, 'owncloud') ||
+         url_path_contains?(url, 'remote.php/dav')
         return :nextcloud
       end
-      
+
       # Default to generic
       :generic
     end
