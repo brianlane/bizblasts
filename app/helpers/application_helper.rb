@@ -167,17 +167,64 @@ module ApplicationHelper
   # CSS sanitization helper to prevent XSS attacks in custom CSS
   def sanitize_css(css_content)
     return '' if css_content.blank?
-    
-    # Remove script tags and javascript: URLs
-    css_content = css_content.gsub(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi, '')
-    css_content = css_content.gsub(/javascript:/i, '')
-    css_content = css_content.gsub(/expression\s*\(/i, '')
-    css_content = css_content.gsub(/behavior\s*:/i, '')
-    css_content = css_content.gsub(/@import/i, '')
-    css_content = css_content.gsub(/vbscript:/i, '')
-    css_content = css_content.gsub(/onload/i, '')
-    css_content = css_content.gsub(/onerror/i, '')
-    
+
+    # Remove dangerous patterns repeatedly to prevent nested injection attacks
+    # Example attack: <sc<script>ript> or ononloadload
+
+    # Remove script tags - loop until none remain
+    # Remove script tags using Rails' built-in HTML sanitizer
+    # This handles malformed tags and browser quirks more reliably than regex
+    css_content = sanitize(css_content, tags: [], attributes: [])
+
+    # Remove javascript: URLs - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/javascript:/i, '')
+      break if before == css_content
+    end
+
+    # Remove CSS expressions - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/expression\s*\(/i, '')
+      break if before == css_content
+    end
+
+    # Remove behavior CSS property - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/behavior\s*:/i, '')
+      break if before == css_content
+    end
+
+    # Remove @import - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/@import/i, '')
+      break if before == css_content
+    end
+
+    # Remove vbscript: URLs - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/vbscript:/i, '')
+      break if before == css_content
+    end
+
+    # Remove onload event - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/onload/i, '')
+      break if before == css_content
+    end
+
+    # Remove onerror event - loop until none remain
+    loop do
+      before = css_content
+      css_content = css_content.gsub(/onerror/i, '')
+      break if before == css_content
+    end
+
     # Strip HTML tags while preserving CSS
     strip_tags(css_content)
   end
