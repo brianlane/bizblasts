@@ -234,7 +234,24 @@ class AuthenticationTracker
     def sanitize_domain(domain)
       return nil unless domain.present?
       # Remove script tags and other HTML-like patterns, then clean
-      cleaned = domain.to_s.downcase.gsub(/<[^>]*>/, '').gsub(/[^a-z0-9.-]/, '')
+      # Use loop to prevent nested injection attacks (e.g., <sc<script>ript>)
+      cleaned = domain.to_s.downcase
+
+      # Repeatedly remove anything between < and > (including nested tags)
+      # This prevents nested injection where tags hide within other tags
+      loop do
+        before = cleaned
+        # Remove complete HTML-like patterns including content between brackets
+        cleaned = cleaned.gsub(/<[^>]*>/, '')
+        break if before == cleaned
+      end
+
+      # Remove ALL remaining angle brackets (catches malformed tags)
+      cleaned = cleaned.gsub(/[<>]/, '')
+
+      # Remove non-allowed characters (whitelist approach)
+      # This catches any other dangerous characters
+      cleaned = cleaned.gsub(/[^a-z0-9.-]/, '')
       cleaned[0...100] # Use ... for exclusive range to get exactly 100 chars
     end
 

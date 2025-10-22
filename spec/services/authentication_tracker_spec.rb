@@ -425,6 +425,65 @@ RSpec.describe AuthenticationTracker, type: :service do
         result = AuthenticationTracker.send(:sanitize_domain, nil)
         expect(result).to be_nil
       end
+
+      # Security tests for nested injection attacks
+      it 'removes nested script tags' do
+        result = AuthenticationTracker.send(:sanitize_domain, 'example<sc<script>ript>.com')
+        # After removing tags, "ript" remains (valid domain chars)
+        expect(result).to eq('exampleript.com')
+        expect(result).not_to include('<')
+        expect(result).not_to include('>')
+      end
+
+      it 'removes deeply nested script tags' do
+        result = AuthenticationTracker.send(:sanitize_domain, 'ex<sc<sc<script>ript>ript>ample.com')
+        # After removing nested tags, leftover text remains
+        expect(result).not_to include('<')
+        expect(result).not_to include('>')
+        expect(result).not_to include('script>') # No complete tags
+      end
+
+      it 'removes multiple nested HTML tags' do
+        result = AuthenticationTracker.send(:sanitize_domain, 'ex<di<div>v>ample<spa<span>n>.com')
+        # All angle brackets should be removed
+        expect(result).not_to include('<')
+        expect(result).not_to include('>')
+        # Result will have leftover chars like 'v' and 'n'
+        expect(result).to match(/^[a-z0-9.-]+$/)
+      end
+
+      it 'removes nested tags with various tag names' do
+        result = AuthenticationTracker.send(:sanitize_domain, '<scr<iframe>ipt>example.com</script>')
+        # All tags and angle brackets removed
+        expect(result).not_to include('<')
+        expect(result).not_to include('>')
+        expect(result).to include('example.com')
+      end
+
+      it 'handles mixed case nested tags' do
+        result = AuthenticationTracker.send(:sanitize_domain, 'example<SC<SCRIPT>RIPT>.com')
+        # Mixed case gets lowercased, tags removed
+        expect(result).not_to include('<')
+        expect(result).not_to include('>')
+        expect(result).to match(/^[a-z0-9.-]+$/)
+      end
+
+      it 'completely blocks tag-based injection attempts' do
+        # The key security test: ensure no angle brackets survive
+        dangerous_inputs = [
+          'test<script>alert(1)</script>.com',
+          'test<sc<script>ript>alert(1)</script>.com',
+          'test<<script>>alert(1)<</script>>.com',
+          'TEST<SCRIPT>ALERT(1)</SCRIPT>.COM'
+        ]
+
+        dangerous_inputs.each do |input|
+          result = AuthenticationTracker.send(:sanitize_domain, input)
+          expect(result).not_to include('<'), "Failed for input: #{input}"
+          expect(result).not_to include('>'), "Failed for input: #{input}"
+          expect(result).to match(/^[a-z0-9.-]+$/), "Failed for input: #{input}"
+        end
+      end
     end
 
     describe '#sanitize_user_agent' do
