@@ -114,41 +114,49 @@ module Calendar
     
     def parse_generic_calendar_list(xml_response, base_url)
       calendars = []
-      
-      xml_response.scan(/<D:response>(.*?)<\/D:response>/m).each do |response_match|
-        response_xml = response_match[0]
-        
+
+      # Use Nokogiri XML parser instead of regex to prevent ReDoS attacks
+      doc = Nokogiri::XML(xml_response)
+      doc.remove_namespaces! # Simplify XPath queries
+
+      base_path = URI.parse(base_url).path
+
+      # Parse each response element
+      doc.xpath('//response').each do |response_node|
         # Extract href
-        href_match = response_xml.match(/<D:href>(.*?)<\/D:href>/)
-        next unless href_match
-        
-        href = href_match[1].strip
+        href = response_node.at_xpath('./href')&.text&.strip
         next if href.blank?
-        
+
         # Skip if it's the same as base URL or doesn't end with /
-        next unless href.end_with?('/') && href != URI.parse(base_url).path
-        
-        # Extract display name
-        display_name_match = response_xml.match(/<D:displayname><!\[CDATA\[(.*?)\]\]><\/D:displayname>/) ||
-                            response_xml.match(/<D:displayname>(.*?)<\/D:displayname>/)
-        display_name = display_name_match ? display_name_match[1].strip : File.basename(href, '/')
-        
+        next unless href.end_with?('/') && href != base_path
+
+        # Extract display name - handle both CDATA and plain text
+        display_name_node = response_node.at_xpath('./propstat/prop/displayname')
+        display_name = if display_name_node
+          # Get text content, which automatically handles CDATA
+          display_name_node.text.strip
+        else
+          File.basename(href, '/')
+        end
+
         # Check if it's a calendar
-        is_calendar = response_xml.include?('calendar') ||
-                     response_xml.include?('VEVENT') ||
-                     response_xml.include?('resourcetype')
-        
+        resourcetype = response_node.at_xpath('./propstat/prop/resourcetype')&.to_s || ''
+        # Strictly detect calendars: must include either "calendar" or VEVENT indicator; avoid always-true fallback.
+        is_calendar = resourcetype.include?('calendar') || resourcetype.include?('VEVENT')
+
         # Check if it supports events
-        supports_events = !response_xml.include?('supported-calendar-component-set') ||
-                         response_xml.include?('VEVENT')
-        
+        component_set = response_node.at_xpath('./propstat/prop/supported-calendar-component-set')&.to_s || ''
+        supports_events = component_set.empty? || component_set.include?('VEVENT')
+
         # Assume writable unless explicitly denied
-        writable = !response_xml.include?('need-privileges') ||
-                  response_xml.include?('write')
-        
+        privilege_set = response_node.at_xpath('./propstat/prop/current-user-privilege-set')&.to_s || ''
+        writable = !privilege_set.include?('need-privileges') ||
+                  privilege_set.include?('write')
+
         if is_calendar
-          full_url = href.start_with?('http') ? href : "#{URI.parse(base_url).scheme}://#{URI.parse(base_url).host}#{href}"
-          
+          base_uri = URI.parse(base_url)
+          full_url = href.start_with?('http') ? href : "#{base_uri.scheme}://#{base_uri.host}#{href}"
+
           calendars << {
             url: full_url,
             name: display_name,
@@ -157,8 +165,11 @@ module Calendar
           }
         end
       end
-      
+
       calendars
+    rescue Nokogiri::XML::SyntaxError => e
+      Rails.logger.error("Failed to parse generic CalDAV calendar list XML: #{e.message}")
+      []
     end
     
     def calendar_check_xml

@@ -343,8 +343,22 @@ module Calendar
           calendars << cal_node.text
         end
       rescue Nokogiri::XML::SyntaxError
-        # Fallback to regex if XML malformed
-        calendars = response_data.scan(/BEGIN:VCALENDAR.*?END:VCALENDAR/m)
+        # Fallback to safer pattern matching if XML malformed
+        # Use more specific pattern to prevent ReDoS - match line by line instead of greedy .*?
+        # Split by BEGIN:VCALENDAR and reconstruct blocks
+        blocks = response_data.split('BEGIN:VCALENDAR')
+        blocks.shift if blocks.first && !blocks.first.include?('END:VCALENDAR')
+
+        blocks.each do |block|
+          if block.include?('END:VCALENDAR')
+            # Extract up to END:VCALENDAR (take first occurrence)
+            end_index = block.index('END:VCALENDAR')
+            if end_index
+              calendar_block = 'BEGIN:VCALENDAR' + block[0..end_index + 'END:VCALENDAR'.length - 1]
+              calendars << calendar_block
+            end
+          end
+        end
       end
 
       events = []

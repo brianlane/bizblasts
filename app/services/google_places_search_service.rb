@@ -181,19 +181,63 @@ class GooglePlacesSearchService
   
   # Clean business name by removing common suffixes and descriptors
   def clean_business_name(name)
-    # Remove common business descriptors and suffixes
-    cleaned = name.gsub(/\s*(&|and)\s*(Protection|Services?|Solutions?|Company|Corp|Inc|LLC)\s*$/i, '')
-    cleaned = cleaned.gsub(/\s*(Detail|Detailing|Auto|Car|Vehicle)\s*(&|and)\s*/i, ' ')
-    cleaned.gsub(/\s+/, ' ').strip
-    
+    # Limit input length to prevent ReDoS
+    return name if name.length > 200
+
+    # Use string operations instead of regex to completely avoid ReDoS
+    cleaned = name.dup
+
+    # Remove "& Protection/Services/etc" or "and Protection/Services/etc" at end
+    business_suffixes = [
+      ' & Protection', ' and Protection',
+      ' & Service', ' and Service', ' & Services', ' and Services',
+      ' & Solution', ' and Solution', ' & Solutions', ' and Solutions',
+      ' & Company', ' and Company',
+      ' & Corp', ' and Corp',
+      ' & Inc', ' and Inc',
+      ' & LLC', ' and LLC'
+    ]
+
+    business_suffixes.each do |suffix|
+      # Case-insensitive removal at end of string
+      if cleaned.downcase.end_with?(suffix.downcase)
+        cleaned = cleaned[0...-suffix.length].rstrip
+        break
+      end
+    end
+
+    # Remove "Detail/Auto/etc & " or "Detail/Auto/etc and " patterns
+    detail_prefixes = [
+      'Detail & ', 'Detail and ',
+      'Detailing & ', 'Detailing and ',
+      'Auto & ', 'Auto and ',
+      'Car & ', 'Car and ',
+      'Vehicle & ', 'Vehicle and '
+    ]
+
+    detail_prefixes.each do |prefix|
+      # Case-insensitive string replacement (no regex!)
+      # Find all occurrences and replace
+      cleaned_lower = cleaned.downcase
+      prefix_lower = prefix.downcase
+      while (index = cleaned_lower.index(prefix_lower))
+        cleaned = cleaned[0...index] + ' ' + cleaned[(index + prefix.length)..-1]
+        cleaned_lower = cleaned.downcase
+      end
+    end
+
+    # Clean up multiple spaces
+    cleaned.squeeze(' ').strip
   end
-  
+
   # Extract the core business name (typically first 1-3 words)
   def extract_core_business_name(name)
     words = name.split(/\s+/)
-    
-    # For possessive names like "Joe's" or "Mike's", keep at least 2 words
-    if words.first&.match?(/\w+'s$/i) && words.length > 1
+
+    # For possessive names like "Joe's" or "Mike's" (case-insensitive), keep at least 2 words
+    # Use case-insensitive check to handle "Joe'S" or "Mike'S"
+    first_word_lower = words.first&.downcase || ''
+    if first_word_lower.end_with?("'s") && words.length > 1
       words.first(2).join(' ')
     else
       # Otherwise, take first 1-2 words
