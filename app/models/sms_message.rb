@@ -22,8 +22,8 @@ class SmsMessage < ApplicationRecord
 
   # Lookup by plain phone number using deterministic encryption
   scope :for_phone, ->(plain_phone) {
-    cipher = ActiveRecord::Encryption.encryptor.encrypt(plain_phone, deterministic: true)
-    where(phone_number_ciphertext: cipher)
+    return none if plain_phone.blank?
+    where(phone_number: plain_phone)
   }
   
   def deliver

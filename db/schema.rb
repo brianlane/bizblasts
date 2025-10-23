@@ -1579,7 +1579,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
-    t.index ["phone_ciphertext"], name: "index_tenant_customers_on_phone_ciphertext", unique: true
     t.index ["phone_ciphertext"], name: "index_tenant_customers_on_phone_ciphertext_unique", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
