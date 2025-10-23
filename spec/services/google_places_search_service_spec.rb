@@ -258,9 +258,102 @@ RSpec.describe GooglePlacesSearchService, type: :service do
     end
   end
 
+  # Security tests for ReDoS vulnerabilities and edge cases
+  describe 'security and edge case handling' do
+    describe '#clean_business_name (private method)' do
+      it 'handles very long strings without performance degradation' do
+        # Test that we avoid ReDoS with long repetitive input
+        long_string = 'Business ' + ('& ' * 500) + 'Services'
+
+        start_time = Time.now
+        result = service.send(:clean_business_name, long_string)
+        end_time = Time.now
+
+        expect(end_time - start_time).to be < 1.0 # Should complete in less than 1 second
+        expect(result).to be_a(String)
+      end
+
+      it 'safely removes business suffixes without regex' do
+        expect(service.send(:clean_business_name, 'ABC Company & Protection')).to eq('ABC Company')
+        expect(service.send(:clean_business_name, 'XYZ Corp and Services')).to eq('XYZ Corp')
+        expect(service.send(:clean_business_name, 'Test Business & LLC')).to eq('Test Business')
+      end
+
+      it 'handles case-insensitive suffix removal' do
+        expect(service.send(:clean_business_name, 'Business & PROTECTION')).to eq('Business')
+        expect(service.send(:clean_business_name, 'Business AND services')).to eq('Business')
+      end
+
+      it 'removes detail prefixes safely' do
+        expect(service.send(:clean_business_name, 'Detail & Car Wash')).to eq('Car Wash')
+        expect(service.send(:clean_business_name, 'Auto and Detailing Shop')).to eq('Detailing Shop')
+      end
+
+      it 'cleans up multiple spaces' do
+        expect(service.send(:clean_business_name, 'Business   with    spaces')).to eq('Business with spaces')
+      end
+
+      it 'handles edge cases safely' do
+        expect(service.send(:clean_business_name, '')).to eq('')
+        expect(service.send(:clean_business_name, '   ')).to eq('')
+        expect(service.send(:clean_business_name, 'A')).to eq('A')
+      end
+
+      it 'limits input length to prevent attacks' do
+        very_long_string = 'a' * 250
+        result = service.send(:clean_business_name, very_long_string)
+        expect(result).to eq(very_long_string) # Should return unchanged for very long strings
+      end
+    end
+
+    describe '#extract_core_business_name (private method)' do
+      it 'handles possessive names case-insensitively' do
+        # Bug fix: Should handle "Joe'S" (uppercase S) correctly
+        expect(service.send(:extract_core_business_name, "Joe's Car Wash")).to eq("Joe's Car")
+        expect(service.send(:extract_core_business_name, "Joe'S Car Wash")).to eq("Joe'S Car")
+        expect(service.send(:extract_core_business_name, "Mike's Auto Shop")).to eq("Mike's Auto")
+        expect(service.send(:extract_core_business_name, "MIKE'S AUTO SHOP")).to eq("MIKE'S AUTO")
+      end
+
+      it 'extracts first 1-2 words for non-possessive names' do
+        expect(service.send(:extract_core_business_name, "ABC Company")).to eq("ABC Company")
+        expect(service.send(:extract_core_business_name, "XYZ Corp Detail Shop")).to eq("XYZ Corp")
+      end
+
+      it 'handles single word names' do
+        expect(service.send(:extract_core_business_name, "Business")).to eq("Business")
+      end
+    end
+
+    describe 'query variation generation' do
+      it 'generates safe query variations without ReDoS risk' do
+        query = 'Auto Detail & Protection Services'
+        location = 'Phoenix, AZ'
+
+        variations = service.send(:generate_query_variations, query, location)
+
+        expect(variations).to be_an(Array)
+        expect(variations.length).to be > 0
+        expect(variations.all? { |v| v[:query].is_a?(String) }).to be true
+      end
+
+      it 'handles malicious input safely' do
+        # Test with potentially problematic patterns
+        malicious_query = 'a' * 100 + ' & ' + 'b' * 100
+
+        start_time = Time.now
+        variations = service.send(:generate_query_variations, malicious_query, nil)
+        end_time = Time.now
+
+        expect(end_time - start_time).to be < 1.0
+        expect(variations).to be_an(Array)
+      end
+    end
+  end
+
   describe '#make_request_v1' do
     let(:url) { 'https://example.com/api' }
-    
+
     context 'with successful HTTP response' do
       let(:response_body) { '{"success": true}' }
       let(:mock_response) { double(code: '200', body: response_body) }
