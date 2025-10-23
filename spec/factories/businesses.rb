@@ -62,10 +62,8 @@ FactoryBot.define do
     # but do NOT override an explicitly provided hostname in the spec.
     after(:build) do |biz|
       if biz.host_type == 'subdomain'
-        # Ensure hostname is present and unique (already set by sequence above)
-        biz.hostname = biz.hostname.to_s.downcase.strip.presence || "factory-host-#{SecureRandom.alphanumeric(6).downcase}"
-        # Keep subdomain in sync with hostname unless explicitly set
-        biz.subdomain ||= biz.hostname
+        # Keep subdomain in sync with hostname unless explicitly set by the test
+        biz.subdomain ||= biz.hostname.to_s.downcase.strip.presence
       end
     end
     

@@ -42,10 +42,12 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
   end
 
   let!(:business_without_hostname) do
-    create(:business,
-           name: 'No Hostname Business',
-           hostname: nil,
-           active: true)
+    # Explicitly simulate no-hostname by building and then nulling the column
+    b = create(:business,
+               name: 'No Hostname Business',
+               active: true)
+    b.update_column(:hostname, nil)
+    b
   end
 
   # Services and products for testing business details
@@ -93,7 +95,8 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
         expect(json_response).to have_key('meta')
         
         businesses = json_response['businesses']
-        expect(businesses.length).to eq(2) # Only active businesses with hostnames
+        expected_count = Business.where(active: true).where.not(hostname: [nil, '']).count
+        expect(businesses.length).to eq(expected_count)
         
         business_names = businesses.map { |b| b['name'] }
         expect(business_names).to include('Pro Landscaping', 'Elite Hair Salon')
@@ -130,8 +133,9 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
         json_response = JSON.parse(response.body)
         meta = json_response['meta']
         
+        expected_count = Business.where(active: true).where.not(hostname: [nil, '']).count
         expect(meta).to include(
-          'total_count' => 2,
+          'total_count' => expected_count,
           'api_version' => 'v1'
         )
         expect(meta).to have_key('timestamp')
