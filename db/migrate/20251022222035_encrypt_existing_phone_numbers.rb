@@ -8,18 +8,20 @@ class EncryptExistingPhoneNumbers < ActiveRecord::Migration[8.0]
     # Encrypt existing phone numbers in tenant_customers
     say_with_time "Encrypting phone numbers in tenant_customers" do
       TenantCustomer.where.not(phone: nil).find_each do |customer|
-        # Rails Active Record Encryption will automatically encrypt the phone number
-        # when we call update_column or save
-        customer.update_column(:phone, customer.phone)
+        # Read the raw plaintext value (skip decryption) and then write it back so
+        # Active Record encrypts it on save
+        plaintext = ActiveRecord::Encryption.without_encryption { customer.read_attribute(:phone) }
+        customer.update_column(:phone, plaintext)
       end
     end
 
     # Encrypt existing phone numbers in sms_messages
     say_with_time "Encrypting phone numbers in sms_messages" do
       SmsMessage.where.not(phone_number: nil).find_each do |message|
-        # Rails Active Record Encryption will automatically encrypt the phone number
-        # when we call update_column or save
-        message.update_column(:phone_number, message.phone_number)
+        # Read the raw plaintext value (skip decryption) and then write it back so
+        # Active Record encrypts it on save
+        plaintext = ActiveRecord::Encryption.without_encryption { message.read_attribute(:phone_number) }
+        message.update_column(:phone_number, plaintext)
       end
     end
   end
