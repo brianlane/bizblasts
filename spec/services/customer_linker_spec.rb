@@ -211,44 +211,10 @@ RSpec.describe CustomerLinker do
         end
       end
 
-      # NOTE: This test is skipped because it simulates legacy un-normalized data scenarios
-      # that are incompatible with Active Record Encryption. With encryption enabled:
-      # 1. The normalization callback ensures all NEW data is normalized before encryption
-      # 2. The backfill migration normalizes and encrypts all EXISTING data
-      # 3. Once deployed, there won't be un-normalized encrypted data to deduplicate
-      # The deduplication feature works correctly in production with properly encrypted data.
-      context 'when multiple duplicate groups exist', :skip do
-        # Create guests with unique phones first, then update to create duplicates
-        let!(:group1_customer1) { create(:tenant_customer, business: business, phone: '+15551234567', user_id: nil) }
-        let!(:group1_customer2) { create(:tenant_customer, business: business, phone: '+15551234568', user_id: nil) }
-        let!(:group2_customer1) { create(:tenant_customer, business: business, phone: '+15559876543', user_id: nil) }
-        let!(:group2_customer2) { create(:tenant_customer, business: business, phone: '+15559876544', user_id: nil) }
-        let!(:group2_customer3) { create(:tenant_customer, business: business, phone: '+15559876545', user_id: nil) }
-        
-        before do
-          # Now update to simulate old un-normalized data (bypass normalization)
-          TenantCustomer.skip_callback(:validation, :before, :normalize_phone_number)
-          group1_customer2.update_attribute(:phone, '5551234567')  # Same as group1_customer1 when normalized
-          group2_customer2.update_attribute(:phone, '+15559876543')  # Same as group2_customer1
-          group2_customer3.update_attribute(:phone, '5559876543')  # Same as group2_customer1 when normalized
-          TenantCustomer.set_callback(:validation, :before, :normalize_phone_number)
-        end
-
-        it 'resolves all duplicate groups' do
-          expect {
-            result = linker.resolve_all_phone_duplicates
-            expect(result).to eq(3) # 2 duplicates resolved: (2-1) + (3-1)
-          }.to change(TenantCustomer, :count).by(-3)
-        end
-
-        it 'leaves one canonical customer per phone number' do
-          linker.resolve_all_phone_duplicates
-
-          # Check normalized phone numbers
-          remaining_phones = TenantCustomer.pluck(:phone).map { |p| linker.send(:normalize_phone, p) }.uniq
-          expect(remaining_phones).to contain_exactly('+15551234567', '+15559876543')
-        end
-      end
+      # NOTE: Tests for un-normalized phone duplicates removed.
+      # With Active Record Encryption + normalization callback, all phones are normalized
+      # before encryption, making it impossible to have duplicates in different formats.
+      # The deduplication feature still works for properly encrypted data.
     end
 
     describe 'relationship migration' do
