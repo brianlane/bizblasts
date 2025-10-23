@@ -54,14 +54,9 @@ FactoryBot.define do
     stock_management_enabled { true }
     tip_mailer_if_no_tip_received { true }
     
-    # Set subdomain same as hostname for subdomain host types
-    subdomain do
-      if host_type == 'custom_domain'
-        nil
-      else
-        hostname
-      end
-    end
+    # Always provide a subdomain value (used by tests to switch hosts)
+    # Use a random suffix to avoid collisions when sequences rewind
+    subdomain { "factory-sub-#{SecureRandom.alphanumeric(8).downcase}" }
     
     # Traits for specific host types/tiers
     trait :subdomain_host do
