@@ -1574,6 +1574,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.jsonb "sms_opted_out_businesses", default: []
     t.text "phone_ciphertext"
+    t.string "phone"
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"

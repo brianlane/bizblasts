@@ -226,7 +226,7 @@ class CustomerLinker
     phone_groups = {}
 
     @business.tenant_customers
-             .where.not(phone: [nil, ''])
+             .with_phone
              .find_in_batches(batch_size: 1000) do |batch|
 
       # Group this batch by normalized phone
@@ -293,7 +293,7 @@ class CustomerLinker
     # Build query - global or business-scoped
     # When business is nil/blank, this intentionally searches across ALL businesses
     # This is typically only appropriate for webhook processing where business context is unknown
-    query = TenantCustomer.where(phone: possible_formats)
+    query = TenantCustomer.for_phone_set(possible_formats)
     query = query.where(business: business) if business.present?
 
     # Log global lookups for security auditing
@@ -361,7 +361,7 @@ class CustomerLinker
       "1#{without_country}" # 16026866672
     ].uniq.compact
 
-    @business.tenant_customers.where(phone: possible_formats)
+    @business.tenant_customers.for_phone_set(possible_formats)
   end
 
   # Phone number normalization (consistent with TwilioController)

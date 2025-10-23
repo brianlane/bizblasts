@@ -49,6 +49,20 @@ class TenantCustomer < ApplicationRecord
   scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
   scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
   
+  # Encrypted phone lookup scopes
+  scope :for_phone, ->(plain_phone) {
+    return none if plain_phone.blank?
+    # Use the model's encryption to ensure deterministic encryption
+    where(phone: plain_phone)
+  }
+  
+  scope :for_phone_set, ->(phones) {
+    return none if phones.blank?
+    where(phone: phones.compact)
+  }
+  
+  scope :with_phone, -> { where.not(phone_ciphertext: nil) }
+  
   def full_name
     [first_name, last_name].compact.join(' ').presence || email
   end
