@@ -356,11 +356,17 @@ class TenantCustomer < ApplicationRecord
     
     # Normalize phone to E.164 format (+1XXXXXXXXXX)
     cleaned = phone.gsub(/\D/, '')
-    return if cleaned.length < 7  # Too short to be valid
     
-    # Add country code if missing
-    cleaned = "1#{cleaned}" if cleaned.length == 10
-    self.phone = "+#{cleaned}"
+    # If too short to be valid, normalize with + prefix anyway for consistency
+    # Validation layer can reject if needed, but format should be consistent
+    if cleaned.length < 7
+      # Still normalize to E.164 format for consistency
+      self.phone = "+#{cleaned}"
+    else
+      # Add country code if missing
+      cleaned = "1#{cleaned}" if cleaned.length == 10
+      self.phone = "+#{cleaned}"
+    end
   end
 
   def unique_email_per_business

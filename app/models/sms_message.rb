@@ -55,10 +55,16 @@ class SmsMessage < ApplicationRecord
     
     # Normalize phone to E.164 format (+1XXXXXXXXXX)
     cleaned = phone_number.gsub(/\D/, '')
-    return if cleaned.length < 7  # Too short to be valid
     
-    # Add country code if missing
-    cleaned = "1#{cleaned}" if cleaned.length == 10
-    self.phone_number = "+#{cleaned}"
+    # If too short to be valid, normalize with + prefix anyway for consistency
+    # Validation layer can reject if needed, but format should be consistent
+    if cleaned.length < 7
+      # Still normalize to E.164 format for consistency
+      self.phone_number = "+#{cleaned}"
+    else
+      # Add country code if missing
+      cleaned = "1#{cleaned}" if cleaned.length == 10
+      self.phone_number = "+#{cleaned}"
+    end
   end
 end

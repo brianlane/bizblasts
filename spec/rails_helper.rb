@@ -124,7 +124,7 @@ RSpec.configure do |config|
     # Set the default strategy for the suite
     DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
     # Rewind sequences AFTER cleaning and setting strategy
-    # FactoryBot.rewind_sequences # Removed from here
+    FactoryBot.rewind_sequences
   end
 
   config.around(:each) do |example|
@@ -153,8 +153,6 @@ RSpec.configure do |config|
     end
     # Reset tenant after each test (important)
     ActsAsTenant.current_tenant = nil
-    # Rewind sequences after each test
-    FactoryBot.rewind_sequences
     # Reset Capybara session state
     # Reset Capybara session state only if it's a system/feature test (Keep this specific reset)
     if example.metadata[:type] == :system || example.metadata[:type] == :feature
