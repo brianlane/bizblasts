@@ -1278,6 +1278,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
     t.string "external_id"
     t.bigint "business_id", null: false
     t.text "phone_number_ciphertext"
+    t.string "phone_number"
     t.index ["booking_id"], name: "index_sms_messages_on_booking_id"
     t.index ["business_id", "created_at"], name: "index_sms_messages_on_business_id_and_created_at"
     t.index ["business_id"], name: "index_sms_messages_on_business_id"
@@ -1578,6 +1579,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["phone_ciphertext"], name: "index_tenant_customers_on_phone_ciphertext", unique: true
+    t.index ["phone_ciphertext"], name: "index_tenant_customers_on_phone_ciphertext_unique", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
     t.index ["unsubscribe_token"], name: "index_tenant_customers_on_unsubscribe_token", unique: true
