@@ -19,6 +19,12 @@ class SmsMessage < ApplicationRecord
   }
   
   scope :recent, -> { order(created_at: :desc).limit(20) }
+
+  # Lookup by plain phone number using deterministic encryption
+  scope :for_phone, ->(plain_phone) {
+    cipher = ActiveRecord::Encryption.encryptor.encrypt(plain_phone, deterministic: true)
+    where(phone_number_ciphertext: cipher)
+  }
   
   def deliver
     SmsNotificationJob.perform_later(phone_number, content, { 
