@@ -13,17 +13,19 @@ FactoryBot.define do
     host_type { 'subdomain' }
     
     # Sequence hostname based on host_type
+    # Add a short random suffix to guarantee uniqueness even if sequences rewind
     sequence(:hostname) do |n|
       worker_num = ENV['TEST_ENV_NUMBER']
-      prefix = "factory-host-#{worker_num.present? ? worker_num + '-' : ''}#{n}"
+      random_suffix = SecureRandom.alphanumeric(6).downcase
+      prefix = "factory-host-#{worker_num.present? ? worker_num + '-' : ''}#{n}-#{random_suffix}"
       # Ensure hostname format matches host_type (simplistic check)
       # Override this in traits or specific create calls if needed
       if host_type == 'custom_domain'
-        "#{prefix}.com" 
+        "#{prefix}.com"
       else
         prefix # Assumed subdomain
       end
-    end 
+    end
 
     # Default industry to a known valid enum key
     industry { :other }
@@ -53,7 +55,13 @@ FactoryBot.define do
     tip_mailer_if_no_tip_received { true }
     
     # Set subdomain same as hostname for subdomain host types
-    subdomain { hostname }
+    subdomain do
+      if host_type == 'custom_domain'
+        nil
+      else
+        hostname
+      end
+    end
     
     # Traits for specific host types/tiers
     trait :subdomain_host do
