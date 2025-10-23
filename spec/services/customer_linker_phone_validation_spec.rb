@@ -123,7 +123,7 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(customer).to be_persisted
-        expect(customer.phone).to eq('8675309')
+        expect(customer.phone).to eq('+8675309') # Normalized to E.164 format
       end
 
       it 'raises GuestConflictError when valid phone is linked to another user' do
@@ -365,7 +365,7 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(customer).to be_persisted
-        expect(customer.phone).to eq(original_phone) # Original format preserved in database
+        expect(customer.phone).to eq(normalized_phone) # Normalized to E.164 format
       end
 
       it 'handles phone with international prefix' do

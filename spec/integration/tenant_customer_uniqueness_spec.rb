@@ -107,7 +107,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
         # Verify customer was updated with new info
         original_customer.reload
         expect(original_customer.full_name).to eq('Johnny Doe') # Updated name
-        expect(original_customer.phone).to eq('555-999-8888') # Updated phone
+        expect(original_customer.phone).to eq('+15559998888') # Updated phone (normalized to E.164)
         expect(original_customer.email).to eq('john.doe@example.com') # Same email
       end
     end

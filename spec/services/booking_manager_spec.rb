@@ -112,7 +112,7 @@ RSpec.describe BookingManager, type: :service do
           expect(booking.tenant_customer).to be_present
           expect(booking.tenant_customer.full_name).to eq("New Customer")
           expect(booking.tenant_customer.email).to eq("new@example.com")
-          expect(booking.tenant_customer.phone).to eq("123-456-7890")
+          expect(booking.tenant_customer.phone).to eq("+11234567890") # Normalized to E.164
         }.to change(TenantCustomer, :count).by(1)
       end
       

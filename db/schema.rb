@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_23_192513) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1577,9 +1577,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
     t.string "phone"
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
+    t.index ["business_id", "phone_ciphertext", "user_id"], name: "index_tenant_customers_on_business_phone_and_user_unique", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
-    t.index ["phone_ciphertext"], name: "index_tenant_customers_on_phone_ciphertext_unique", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
     t.index ["unsubscribe_token"], name: "index_tenant_customers_on_unsubscribe_token", unique: true
