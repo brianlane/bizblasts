@@ -40,6 +40,7 @@ class TenantCustomer < ApplicationRecord
   after_create :generate_unsubscribe_token
   after_create :set_default_email_preferences
   before_validation :normalize_email
+  before_validation :normalize_phone_number
   validate :unique_email_per_business
   
   # Add accessor to skip email notifications when handled by staggered delivery
@@ -170,8 +171,9 @@ class TenantCustomer < ApplicationRecord
   end
   
   # Define ransackable attributes for ActiveAdmin - updated for new fields
+  # Note: phone excluded from ransackable attributes because it's encrypted and doesn't support partial searches
   def self.ransackable_attributes(auth_object = nil)
-    %w[id first_name last_name email phone address notes active last_booking created_at updated_at business_id]
+    %w[id first_name last_name email address notes active last_booking created_at updated_at business_id]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -347,6 +349,18 @@ class TenantCustomer < ApplicationRecord
 
   def normalize_email
     self.email = email.downcase.strip if email.present?
+  end
+
+  def normalize_phone_number
+    return if phone.blank?
+    
+    # Normalize phone to E.164 format (+1XXXXXXXXXX)
+    cleaned = phone.gsub(/\D/, '')
+    return if cleaned.length < 7  # Too short to be valid
+    
+    # Add country code if missing
+    cleaned = "1#{cleaned}" if cleaned.length == 10
+    self.phone = "+#{cleaned}"
   end
 
   def unique_email_per_business

@@ -218,19 +218,22 @@ class CustomerLinker
   end
 
   # Scan business for phone duplicates and resolve them all
+  # NOTE: With Active Record Encryption, this method assumes all phone data is properly
+  # encrypted and normalized. Legacy un-normalized data should be handled by the
+  # encrypt_existing_phone_numbers migration before running this method.
   def resolve_all_phone_duplicates
     duplicates_resolved = 0
 
+    # Group customers by normalized phone (deterministic encryption ensures matching ciphertexts)
     # Process customers in batches to avoid memory overload for large datasets
-    # Database-portable approach: filter valid phones in Ruby after loading
     phone_groups = {}
 
     @business.tenant_customers
-             .with_phone
+             .with_phone  # Only customers with encrypted phone data
              .find_in_batches(batch_size: 1000) do |batch|
 
       # Group this batch by normalized phone
-      # Ruby-level normalization handles validity checks (length >= 7) for database portability
+      # Since all phones are normalized before encryption, phones with same value have same ciphertext
       batch_groups = batch.group_by { |customer|
         normalized = normalize_phone(customer.phone)
         normalized.presence # Skip customers where normalization fails (nil for invalid phones)

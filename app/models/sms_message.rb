@@ -11,6 +11,8 @@ class SmsMessage < ApplicationRecord
   validates :content, presence: true
   validates :status, presence: true
   
+  before_validation :normalize_phone_number
+  
   enum :status, {
     pending: 0,
     sent: 1,
@@ -44,5 +46,19 @@ class SmsMessage < ApplicationRecord
   
   def mark_as_failed!(error_message)
     update(status: :failed, error_message: error_message)
+  end
+  
+  private
+  
+  def normalize_phone_number
+    return if phone_number.blank?
+    
+    # Normalize phone to E.164 format (+1XXXXXXXXXX)
+    cleaned = phone_number.gsub(/\D/, '')
+    return if cleaned.length < 7  # Too short to be valid
+    
+    # Add country code if missing
+    cleaned = "1#{cleaned}" if cleaned.length == 10
+    self.phone_number = "+#{cleaned}"
   end
 end

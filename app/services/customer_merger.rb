@@ -17,11 +17,13 @@ class CustomerMerger
     # Update all related records to point to canonical customer
     migrate_customer_relationships(canonical_customer, duplicate_customers)
 
-    # Normalize phone number format
+    # Normalize phone number format and re-encrypt with normalized value
+    # This ensures legacy un-normalized data gets fixed during deduplication
     if canonical_customer.phone.present?
       normalized_phone = phone_normalizer.call(canonical_customer.phone)
       # Only update if normalization succeeded to preserve original data for invalid phone numbers
-      canonical_customer.update_column(:phone, normalized_phone) if normalized_phone.present?
+      # Use update_attribute (not update_column) to trigger Active Record Encryption
+      canonical_customer.update_attribute(:phone, normalized_phone) if normalized_phone.present?
     end
 
     # Delete duplicate customers
