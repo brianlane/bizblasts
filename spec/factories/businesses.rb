@@ -54,9 +54,20 @@ FactoryBot.define do
     stock_management_enabled { true }
     tip_mailer_if_no_tip_received { true }
     
-    # Always provide a subdomain value (used by tests to switch hosts)
-    # Use a random suffix to avoid collisions when sequences rewind
-    subdomain { "factory-sub-#{SecureRandom.alphanumeric(8).downcase}" }
+    # Subdomain used for subdomain host type. Default to mirror hostname to
+    # satisfy tests that expect `business.hostname` to represent the subdomain.
+    subdomain { nil }
+
+    # Ensure for subdomain host type the hostname mirrors the subdomain
+    # but do NOT override an explicitly provided hostname in the spec.
+    after(:build) do |biz|
+      if biz.host_type == 'subdomain'
+        # Ensure hostname is present and unique (already set by sequence above)
+        biz.hostname = biz.hostname.to_s.downcase.strip.presence || "factory-host-#{SecureRandom.alphanumeric(6).downcase}"
+        # Keep subdomain in sync with hostname unless explicitly set
+        biz.subdomain ||= biz.hostname
+      end
+    end
     
     # Traits for specific host types/tiers
     trait :subdomain_host do

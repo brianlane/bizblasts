@@ -1019,12 +1019,17 @@ class Business < ApplicationRecord
     # let the format validator handle invalid characters/structures.
   end
   # Keeps hostname in sync with subdomain for subdomain-based tenants.
-  # • Runs when the record is new OR the subdomain itself is being changed.
-  # • Normalises the value for consistency.
+  # • Never overwrites an explicitly provided hostname on create.
+  # • If the subdomain changes later and hostname wasn't modified in the
+  #   same operation, bring hostname back in sync.
+  # • Also fill hostname when it's blank.
   def sync_hostname_with_subdomain
+    return unless host_type_subdomain?
     return if subdomain.blank?
 
-    if new_record? || will_save_change_to_subdomain? || hostname.blank?
+    if hostname.blank?
+      self.hostname = subdomain.to_s.downcase.strip
+    elsif will_save_change_to_subdomain? && !will_save_change_to_hostname?
       self.hostname = subdomain.to_s.downcase.strip
     end
   end
