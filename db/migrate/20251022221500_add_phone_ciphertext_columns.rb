@@ -5,8 +5,11 @@ class AddPhoneCiphertextColumns < ActiveRecord::Migration[8.0]
     unless column_exists?(:tenant_customers, :phone_ciphertext)
       add_column :tenant_customers, :phone_ciphertext, :text
     end
+    if index_exists?(:tenant_customers, :phone_ciphertext, name: :index_tenant_customers_on_phone_ciphertext, unique: true)
+      remove_index :tenant_customers, name: :index_tenant_customers_on_phone_ciphertext
+    end
     unless index_exists?(:tenant_customers, :phone_ciphertext, name: :index_tenant_customers_on_phone_ciphertext)
-      add_index :tenant_customers, :phone_ciphertext, unique: true, name: :index_tenant_customers_on_phone_ciphertext
+      add_index :tenant_customers, :phone_ciphertext, name: :index_tenant_customers_on_phone_ciphertext
     end
 
     unless column_exists?(:sms_messages, :phone_number_ciphertext)
