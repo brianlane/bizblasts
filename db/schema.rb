@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_22_222035) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_23_101500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -803,7 +803,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_22_222035) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1268,7 +1268,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_22_222035) do
     t.bigint "marketing_campaign_id"
     t.bigint "tenant_customer_id", null: false
     t.bigint "booking_id"
-    t.string "phone_number", null: false
     t.text "content", null: false
     t.integer "status", default: 0, null: false
     t.datetime "sent_at"
@@ -1278,11 +1277,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_22_222035) do
     t.datetime "updated_at", null: false
     t.string "external_id"
     t.bigint "business_id", null: false
+    t.text "phone_number_ciphertext"
     t.index ["booking_id"], name: "index_sms_messages_on_booking_id"
     t.index ["business_id", "created_at"], name: "index_sms_messages_on_business_id_and_created_at"
     t.index ["business_id"], name: "index_sms_messages_on_business_id"
     t.index ["external_id"], name: "index_sms_messages_on_external_id"
     t.index ["marketing_campaign_id"], name: "index_sms_messages_on_marketing_campaign_id"
+    t.index ["phone_number_ciphertext"], name: "index_sms_messages_on_phone_number_ciphertext"
     t.index ["status"], name: "index_sms_messages_on_status"
     t.index ["tenant_customer_id", "created_at"], name: "index_sms_messages_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
@@ -1553,7 +1554,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_22_222035) do
 
   create_table "tenant_customers", force: :cascade do |t|
     t.string "email"
-    t.string "phone"
     t.string "address"
     t.text "notes"
     t.bigint "business_id", null: false
@@ -1572,10 +1572,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_22_222035) do
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.jsonb "sms_opted_out_businesses", default: []
+    t.text "phone_ciphertext"
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
+    t.index ["phone_ciphertext"], name: "index_tenant_customers_on_phone_ciphertext", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
     t.index ["unsubscribe_token"], name: "index_tenant_customers_on_unsubscribe_token", unique: true
