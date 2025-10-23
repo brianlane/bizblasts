@@ -89,8 +89,8 @@ module Calendar
 
         # Check if it's a calendar collection
         resourcetype = response_node.at_xpath('./propstat/prop/resourcetype')&.to_s || ''
-        is_calendar = resourcetype.include?('calendar') &&
-                     (resourcetype.include?('collection') || resourcetype.include?('resourcetype'))
+        # Identify calendar collections strictly: must advertise both "calendar" and "collection".
+        is_calendar = resourcetype.include?('calendar') && resourcetype.include?('collection')
 
         # Check if it supports VEVENT (calendar events)
         component_set = response_node.at_xpath('./propstat/prop/supported-calendar-component-set')&.to_s || ''
