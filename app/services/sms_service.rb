@@ -940,10 +940,7 @@ class SmsService
       SecureLogger.error "[SMS_SERVICE] Could not determine business_id for SMS message"
       raise ArgumentError, "business_id is required for SMS messages"
     end
-    phone_attribute_type = SmsMessage.attribute_types["phone_number"]
-    encrypted_phone = phone_attribute_type.serialize(normalized_phone_number) if phone_attribute_type.respond_to?(:serialize)
-
-    attributes = {
+    SmsMessage.create!(
       phone_number: normalized_phone_number,
       content: content,
       status: :pending,
@@ -951,11 +948,7 @@ class SmsService
       tenant_customer_id: options[:tenant_customer_id],
       booking_id: options[:booking_id],
       marketing_campaign_id: options[:marketing_campaign_id]
-    }
-
-    attributes[:phone_number_ciphertext] = encrypted_phone if encrypted_phone.present?
-
-    SmsMessage.create!(attributes)
+    )
   end
 
   # ===== SMS OPT-IN INVITATION METHODS =====

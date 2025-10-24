@@ -53,6 +53,7 @@ RSpec.describe SmsService, type: :service do
           
           sms = SmsMessage.last
           expect(SmsMessage.for_phone(valid_phone).exists?).to be true
+          expect(sms.reload.phone_number).to eq(PhoneNormalizer.normalize(valid_phone))
           expect(sms.content).to eq(message)
           expect(sms.tenant_customer).to eq(customer)
           expect(sms.status).to eq('sent')

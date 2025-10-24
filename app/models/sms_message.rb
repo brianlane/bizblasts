@@ -4,6 +4,10 @@ class SmsMessage < ApplicationRecord
   belongs_to :tenant_customer
   belongs_to :booking, optional: true
 
+  # Map phone_number attribute to phone_number_ciphertext column for encryption
+  # The phone_number column was removed; we only have phone_number_ciphertext
+  alias_attribute :phone_number, :phone_number_ciphertext
+  
   # Encrypt phone numbers with deterministic encryption to allow querying
   encrypts :phone_number, deterministic: true
 
@@ -27,11 +31,8 @@ class SmsMessage < ApplicationRecord
     normalized = PhoneNormalizer.normalize(plain_phone)
     return none if normalized.blank?
 
-    type = attribute_types["phone_number"]
-    ciphertext = type.serialize(normalized) if type.respond_to?(:serialize)
-    return none if ciphertext.blank?
-
-    where(phone_number_ciphertext: ciphertext)
+    # Use the encrypted attribute directly - Rails handles the encryption
+    where(phone_number: normalized)
   }
   
   def deliver
