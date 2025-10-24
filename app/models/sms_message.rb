@@ -11,6 +11,8 @@ class SmsMessage < ApplicationRecord
   validates :content, presence: true
   validates :status, presence: true
   
+  before_validation :normalize_phone_number
+  
   enum :status, {
     pending: 0,
     sent: 1,
@@ -19,6 +21,12 @@ class SmsMessage < ApplicationRecord
   }
   
   scope :recent, -> { order(created_at: :desc).limit(20) }
+
+  # Lookup by plain phone number using deterministic encryption
+  scope :for_phone, ->(plain_phone) {
+    return none if plain_phone.blank?
+    where(phone_number: plain_phone)
+  }
   
   def deliver
     SmsNotificationJob.perform_later(phone_number, content, { 
@@ -38,5 +46,25 @@ class SmsMessage < ApplicationRecord
   
   def mark_as_failed!(error_message)
     update(status: :failed, error_message: error_message)
+  end
+  
+  private
+  
+  def normalize_phone_number
+    return if phone_number.blank?
+    
+    # Normalize phone to E.164 format (+1XXXXXXXXXX)
+    cleaned = phone_number.gsub(/\D/, '')
+    
+    # If too short to be valid, normalize with + prefix anyway for consistency
+    # Validation layer can reject if needed, but format should be consistent
+    if cleaned.length < 7
+      # Still normalize to E.164 format for consistency
+      self.phone_number = "+#{cleaned}"
+    else
+      # Add country code if missing
+      cleaned = "1#{cleaned}" if cleaned.length == 10
+      self.phone_number = "+#{cleaned}"
+    end
   end
 end

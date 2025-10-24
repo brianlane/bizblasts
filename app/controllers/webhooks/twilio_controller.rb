@@ -353,7 +353,7 @@ module Webhooks
 
     def build_twilio_signature_data(url, body)
       # Build the data string that Twilio uses for signature generation
-      # For webhook POST requests, this is URL + sorted form parameters
+      # For webhook POST requests, this is URL + sorted key=value pairs
 
       # Parse the form-encoded POST body into parameters
       parsed_params = URI.decode_www_form(body).sort_by(&:first)
@@ -411,7 +411,7 @@ module Webhooks
 
       # Strategy 1: Recent SMS messages (conservative: 24 hours, aggressive: 7 days)
       timeframe = conservative ? 24.hours.ago : 7.days.ago
-      recent_sms = SmsMessage.where(phone_number: normalized_phone)
+      recent_sms = SmsMessage.for_phone(normalized_phone)
                             .where('sent_at > ?', timeframe)
                             .order(sent_at: :desc)
                             .first

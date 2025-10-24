@@ -123,7 +123,7 @@ class User < ApplicationRecord
   # Ransackable Attributes & Associations
   def self.ransackable_attributes(auth_object = nil)
     # Allow searching by associated business name via business_name, including login tracking fields
-    %w[id email role first_name last_name active created_at updated_at business_id sign_in_count current_sign_in_at last_sign_in_at]
+    %w[id email role first_name last_name phone active created_at updated_at business_id sign_in_count current_sign_in_at last_sign_in_at]
   end
 
   def self.ransackable_associations(auth_object = nil)

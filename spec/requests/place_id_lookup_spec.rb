@@ -11,6 +11,9 @@ RSpec.describe 'Place ID Lookup - Async Extraction', type: :request do
     host! "#{business.hostname}.lvh.me"
     ActsAsTenant.current_tenant = business
     sign_in user
+    
+    # Clear rate limit cache for this user to prevent 429 errors
+    Rails.cache.delete("place_id_extraction:user:#{user.id}")
   end
 
   after do

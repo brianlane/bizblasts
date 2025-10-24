@@ -218,19 +218,22 @@ class CustomerLinker
   end
 
   # Scan business for phone duplicates and resolve them all
+  # NOTE: With Active Record Encryption, this method assumes all phone data is properly
+  # encrypted and normalized. Legacy un-normalized data should be handled by the
+  # encrypt_existing_phone_numbers migration before running this method.
   def resolve_all_phone_duplicates
     duplicates_resolved = 0
 
+    # Group customers by normalized phone (deterministic encryption ensures matching ciphertexts)
     # Process customers in batches to avoid memory overload for large datasets
-    # Database-portable approach: filter valid phones in Ruby after loading
     phone_groups = {}
 
     @business.tenant_customers
-             .where.not(phone: [nil, ''])
+             .with_phone  # Only customers with encrypted phone data
              .find_in_batches(batch_size: 1000) do |batch|
 
       # Group this batch by normalized phone
-      # Ruby-level normalization handles validity checks (length >= 7) for database portability
+      # Since all phones are normalized before encryption, phones with same value have same ciphertext
       batch_groups = batch.group_by { |customer|
         normalized = normalize_phone(customer.phone)
         normalized.presence # Skip customers where normalization fails (nil for invalid phones)
@@ -293,7 +296,7 @@ class CustomerLinker
     # Build query - global or business-scoped
     # When business is nil/blank, this intentionally searches across ALL businesses
     # This is typically only appropriate for webhook processing where business context is unknown
-    query = TenantCustomer.where(phone: possible_formats)
+    query = TenantCustomer.for_phone_set(possible_formats)
     query = query.where(business: business) if business.present?
 
     # Log global lookups for security auditing
@@ -361,7 +364,7 @@ class CustomerLinker
       "1#{without_country}" # 16026866672
     ].uniq.compact
 
-    @business.tenant_customers.where(phone: possible_formats)
+    @business.tenant_customers.for_phone_set(possible_formats)
   end
 
   # Phone number normalization (consistent with TwilioController)

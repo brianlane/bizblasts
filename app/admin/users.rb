@@ -5,6 +5,7 @@ ActiveAdmin.register User do
   filter :email, label: "Email Address"
   filter :first_name, label: "First Name"
   filter :last_name, label: "Last Name"
+  filter :phone, label: "Phone Number"
   filter :role, as: :select, 
          collection: User.roles.map { |key, value| [key.humanize, key] },
          include_blank: "All Roles"
@@ -159,6 +160,7 @@ ActiveAdmin.register User do
     id_column
     column :email
     column "Name", :full_name
+    column :phone
     column :role do |user|
       user.role&.humanize
     end
@@ -221,6 +223,7 @@ ActiveAdmin.register User do
       row :id
       row :email
       row :full_name
+      row :phone
       row :role do |user|
         user.role&.humanize
       end

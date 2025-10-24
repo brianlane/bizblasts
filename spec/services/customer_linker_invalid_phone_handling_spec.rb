@@ -384,11 +384,13 @@ RSpec.describe CustomerLinker, type: :service do
           email: 'legacy@example.com',
           first_name: 'Legacy',
           last_name: 'Customer',
-          phone: '123', # Invalid phone that was stored before Bug 11 fix
+          phone: nil,
           user_id: nil
         )
+        # Simulate legacy un-normalized data written before callbacks/encryption
+        legacy_customer.update_column(:phone, '123')
 
-        expect(legacy_customer.phone).to eq('123')
+        expect(legacy_customer.reload.phone).to eq('123')
 
         # Update this customer - should clear the invalid phone
         updated = linker.find_or_create_guest_customer(

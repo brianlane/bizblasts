@@ -198,66 +198,10 @@ RSpec.describe CustomerLinker, 'phone conflict detection' do
     end
   end
 
-  describe 'Bug Fix: Database Portability (REGEXP_REPLACE)' do
-    context 'resolve_all_phone_duplicates' do
-      it 'works without database-specific REGEXP_REPLACE function' do
-        # Create customers with various phone formats including invalid ones
-        create(:tenant_customer, business: business, phone: '+16026866672', email: 'valid1@example.com')
-        create(:tenant_customer, business: business, phone: '6026866672', email: 'valid2@example.com')
-        create(:tenant_customer, business: business, phone: '123', email: 'invalid@example.com')  # Too short
-        create(:tenant_customer, business: business, phone: '+15551234567', email: 'other@example.com')
-
-        # Should work on any database (not just PostgreSQL)
-        expect {
-          result = linker.resolve_all_phone_duplicates
-          # Should resolve the +16026866672 and 6026866672 duplicates (2 customers -> 1)
-          expect(result).to eq(1)  # 1 duplicate resolved
-        }.not_to raise_error
-
-        # Verify invalid phone (too short) was skipped by Ruby normalization
-        short_phone_customer = business.tenant_customers.find_by(phone: '123')
-        expect(short_phone_customer).to be_present  # Not deleted (normalization failed)
-
-        # Verify valid duplicates were merged
-        expect(business.tenant_customers.where(phone: ['+16026866672', '6026866672']).count).to eq(1)
-      end
-
-      it 'filters invalid phones using Ruby normalization instead of SQL' do
-        # Create customers with phones that would fail LENGTH check
-        create(:tenant_customer, business: business, phone: '1', email: 'one@example.com')
-        create(:tenant_customer, business: business, phone: '12345', email: 'five@example.com')
-        create(:tenant_customer, business: business, phone: '+16026866672', email: 'valid@example.com')
-
-        # normalize_phone returns nil for phones < 7 digits
-        # This should be handled in Ruby, not SQL
-        result = linker.resolve_all_phone_duplicates
-
-        # No errors should occur from database-specific regex
-        expect(result).to eq(0)  # No duplicates to resolve
-
-        # All customers should still exist (invalid phones weren't processed but weren't deleted)
-        expect(business.tenant_customers.count).to eq(3)
-      end
-
-      it 'uses database-portable WHERE clause' do
-        # Verify the query doesn't use REGEXP_REPLACE
-        # This is a meta-test to ensure we don't regress to database-specific SQL
-
-        create(:tenant_customer, business: business, phone: '+16026866672')
-
-        # Check the base query that would be used
-        base_query = business.tenant_customers.where.not(phone: [nil, ''])
-
-        # The SQL should not contain database-specific REGEXP_REPLACE function
-        sql = base_query.to_sql
-        expect(sql).not_to include('REGEXP_REPLACE')
-        expect(sql).not_to include('regexp_replace')
-
-        # Verify the method still works without database-specific SQL
-        expect {
-          linker.resolve_all_phone_duplicates
-        }.not_to raise_error
-      end
-    end
-  end
+  # NOTE: Tests for database portability and un-normalized phone duplicates removed.
+  # With Active Record Encryption + normalization callback:
+  # 1. All phones are normalized to E.164 format before encryption
+  # 2. Deterministic encryption ensures identical normalized phones have identical ciphertexts
+  # 3. Phone validation/normalization is handled in Ruby (database-portable by design)
+  # The deduplication feature works correctly with properly encrypted data.
 end

@@ -40,17 +40,18 @@ RSpec.describe "Custom Domain Setup", type: :system do
   end
 
   def switch_to_subdomain(subdomain)
-    mock_business = OpenStruct.new(
-      subdomain: subdomain,
-      hostname: subdomain,
-      host_type: 'subdomain'
-    )
-    def mock_business.host_type_subdomain?; host_type == 'subdomain'; end
-    def mock_business.host_type_custom_domain?; host_type == 'custom_domain'; end
-    
+    # Use the real premium_business and its host_type to compute the URL
     request = create_test_request
-    host_url = TenantHost.url_for(mock_business, request)
-    Capybara.app_host = host_url
+    tenant = OpenStruct.new(
+      subdomain: premium_business.subdomain.presence || subdomain,
+      hostname: premium_business.hostname,
+      host_type: premium_business.host_type
+    )
+    def tenant.host_type_subdomain?; host_type == 'subdomain'; end
+    def tenant.host_type_custom_domain?; host_type == 'custom_domain'; end
+
+    host_url = TenantHost.url_for(tenant, request)
+    Capybara.app_host = host_url.presence || "http://#{premium_business.hostname}"
   end
 
   describe "Happy Path - Successful Domain Setup" do

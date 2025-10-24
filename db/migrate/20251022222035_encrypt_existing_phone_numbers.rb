@@ -11,6 +11,8 @@ class EncryptExistingPhoneNumbers < ActiveRecord::Migration[8.0]
         # Read the raw plaintext value (skip decryption) and then write it back so
         # Active Record encrypts it on save
         plaintext = ActiveRecord::Encryption.without_encryption { customer.read_attribute(:phone) }
+        next if customer.read_attribute(:phone_ciphertext).present? || plaintext.blank?
+
         customer.update!(phone: plaintext)
       end
     end
@@ -21,6 +23,8 @@ class EncryptExistingPhoneNumbers < ActiveRecord::Migration[8.0]
         # Read the raw plaintext value (skip decryption) and then write it back so
         # Active Record encrypts it on save
         plaintext = ActiveRecord::Encryption.without_encryption { message.read_attribute(:phone_number) }
+        next if message.read_attribute(:phone_number_ciphertext).present? || plaintext.blank?
+
         message.update!(phone_number: plaintext)
       end
     end

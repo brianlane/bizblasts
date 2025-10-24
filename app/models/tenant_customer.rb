@@ -40,6 +40,7 @@ class TenantCustomer < ApplicationRecord
   after_create :generate_unsubscribe_token
   after_create :set_default_email_preferences
   before_validation :normalize_email
+  before_validation :normalize_phone_number
   validate :unique_email_per_business
   
   # Add accessor to skip email notifications when handled by staggered delivery
@@ -48,6 +49,20 @@ class TenantCustomer < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
   scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
+  
+  # Encrypted phone lookup scopes
+  scope :for_phone, ->(plain_phone) {
+    return none if plain_phone.blank?
+    # Use the model's encryption to ensure deterministic encryption
+    where(phone: plain_phone)
+  }
+  
+  scope :for_phone_set, ->(phones) {
+    return none if phones.blank?
+    where(phone: phones.compact)
+  }
+  
+  scope :with_phone, -> { where.not(phone_ciphertext: nil) }
   
   def full_name
     [first_name, last_name].compact.join(' ').presence || email
@@ -156,8 +171,9 @@ class TenantCustomer < ApplicationRecord
   end
   
   # Define ransackable attributes for ActiveAdmin - updated for new fields
+  # Note: phone excluded from ransackable attributes because it's encrypted and doesn't support partial searches
   def self.ransackable_attributes(auth_object = nil)
-    %w[id first_name last_name email phone address notes active last_booking created_at updated_at business_id]
+    %w[id first_name last_name email address notes active last_booking created_at updated_at business_id]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -333,6 +349,24 @@ class TenantCustomer < ApplicationRecord
 
   def normalize_email
     self.email = email.downcase.strip if email.present?
+  end
+
+  def normalize_phone_number
+    return if phone.blank?
+    
+    # Normalize phone to E.164 format (+1XXXXXXXXXX)
+    cleaned = phone.gsub(/\D/, '')
+    
+    # If too short to be valid, normalize with + prefix anyway for consistency
+    # Validation layer can reject if needed, but format should be consistent
+    if cleaned.length < 7
+      # Still normalize to E.164 format for consistency
+      self.phone = "+#{cleaned}"
+    else
+      # Add country code if missing
+      cleaned = "1#{cleaned}" if cleaned.length == 10
+      self.phone = "+#{cleaned}"
+    end
   end
 
   def unique_email_per_business
