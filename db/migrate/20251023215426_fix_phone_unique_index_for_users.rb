@@ -11,19 +11,19 @@ class FixPhoneUniqueIndexForUsers < ActiveRecord::Migration[8.0]
 
     # Add the correct partial unique index on business_id + phone_ciphertext
     # Enforce uniqueness only for linked users (user_id IS NOT NULL)
-    unless index_exists?(:tenant_customers, [:business_id, :phone_ciphertext], name: :idx_tenant_cust_on_biz_and_phone_users_only)
+    unless index_exists?(:tenant_customers, [:business_id, :phone_ciphertext], name: :index_tenant_customers_on_business_phone_unique)
       add_index :tenant_customers, [:business_id, :phone_ciphertext],
                 unique: true,
                 where: "user_id IS NOT NULL",
                 algorithm: :concurrently,
-                name: :idx_tenant_cust_on_biz_and_phone_users_only
+                name: :index_tenant_customers_on_business_phone_unique
     end
   end
 
   def down
     # Remove the corrected index
-    if index_exists?(:tenant_customers, [:business_id, :phone_ciphertext], name: :idx_tenant_cust_on_biz_and_phone_users_only)
-      remove_index :tenant_customers, name: :idx_tenant_cust_on_biz_and_phone_users_only
+    if index_exists?(:tenant_customers, [:business_id, :phone_ciphertext], name: :index_tenant_customers_on_business_phone_unique)
+      remove_index :tenant_customers, name: :index_tenant_customers_on_business_phone_unique
     end
 
     # Re-create the previous (incorrect) index only if needed for rollback symmetry

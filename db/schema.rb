@@ -1577,7 +1577,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_215426) do
     t.string "phone"
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
-    t.index ["business_id", "phone_ciphertext"], name: "idx_tenant_cust_on_biz_and_phone_users_only", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["business_id", "phone_ciphertext"], name: "index_tenant_customers_on_business_phone_unique", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin

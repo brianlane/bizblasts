@@ -52,14 +52,17 @@ class TenantCustomer < ApplicationRecord
   
   # Encrypted phone lookup scopes
   scope :for_phone, ->(plain_phone) {
-    return none if plain_phone.blank?
-    # Use the model's encryption to ensure deterministic encryption
-    where(phone: plain_phone)
+    normalized = PhoneNormalizer.normalize(plain_phone)
+    return none if normalized.blank?
+
+    where(phone: normalized)
   }
-  
+
   scope :for_phone_set, ->(phones) {
-    return none if phones.blank?
-    where(phone: phones.compact)
+    normalized_set = PhoneNormalizer.normalize_collection(phones)
+    return none if normalized_set.blank?
+
+    where(phone: normalized_set)
   }
   
   scope :with_phone, -> { where.not(phone_ciphertext: nil) }
@@ -352,21 +355,7 @@ class TenantCustomer < ApplicationRecord
   end
 
   def normalize_phone_number
-    return if phone.blank?
-    
-    # Normalize phone to E.164 format (+1XXXXXXXXXX)
-    cleaned = phone.gsub(/\D/, '')
-    
-    # If too short to be valid, normalize with + prefix anyway for consistency
-    # Validation layer can reject if needed, but format should be consistent
-    if cleaned.length < 7
-      # Still normalize to E.164 format for consistency
-      self.phone = "+#{cleaned}"
-    else
-      # Add country code if missing
-      cleaned = "1#{cleaned}" if cleaned.length == 10
-      self.phone = "+#{cleaned}"
-    end
+    self.phone = PhoneNormalizer.normalize(phone)
   end
 
   def unique_email_per_business
