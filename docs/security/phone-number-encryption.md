@@ -8,8 +8,9 @@ Phone numbers are classified as Personally Identifiable Information (PII) and mu
 
 ### Database Schema
 
-- **Column**: `phone_number_ciphertext` (text type)
-- **Note**: The `phone_number` column was removed in a previous migration to avoid storing plaintext data
+- **Column**: `phone_number` (text type)
+- **Important**: This column stores ONLY encrypted data, never plaintext
+- **Note**: The column name matches the attribute name, following Rails conventions
 
 ### Encryption Method
 
@@ -17,14 +18,19 @@ We use **Rails ActiveRecord::Encryption** with deterministic encryption:
 
 ```ruby
 # In app/models/sms_message.rb
-alias_attribute :phone_number, :phone_number_ciphertext
 encrypts :phone_number, deterministic: true
 ```
+
+**That's it!** Rails automatically:
+- Encrypts data on write
+- Decrypts data on read  
+- Handles querying with deterministic encryption
+- Ensures plaintext NEVER touches the database
 
 ### How It Works
 
 1. **Assignment**: When you assign a value to `phone_number`, Rails automatically encrypts it
-2. **Storage**: The encrypted value is stored in the `phone_number_ciphertext` column
+2. **Storage**: The encrypted value is stored in the `phone_number` column in the database
 3. **Retrieval**: When you read `phone_number`, Rails automatically decrypts it
 4. **Querying**: Deterministic encryption allows querying by phone number using the `for_phone` scope
 
@@ -85,13 +91,14 @@ SmsMessage.for_phone("+15551234567")  # Uses encrypted comparison
 
 ### Service Usage
 - **File**: `app/services/sms_service.rb`
-- **Method**: `create_sms_record` (line 932)
-- **Note**: Comment explains that encryption happens automatically
+- **Method**: `create_sms_record` (line 946)
+- **Uses**: `SmsMessage.create_with_encrypted_phone!` factory method
+- **Note**: Makes encryption explicit for security auditing
 
 ### Test Helper
 - **File**: `spec/controllers/webhooks/twilio_controller_business_opt_out_spec.rb`
-- **Method**: `create_encrypted_sms!` (line 9)
-- **Note**: Helper includes security documentation
+- **Method**: `create_encrypted_sms!` (line 11)
+- **Note**: Uses explicit factory method for clarity
 
 ## Addressing Security Scan Alerts
 
@@ -134,13 +141,17 @@ To verify encryption is working:
 # In Rails console
 sms = SmsMessage.last
 
-# Check the encrypted column directly
-sms.read_attribute_before_type_cast(:phone_number_ciphertext)
+# Check the encrypted column directly (raw database value)
+sms.read_attribute_before_type_cast(:phone_number)
 # => Should show encrypted JSON like: {"p":"...", "h":{"iv":"...", "at":"..."}}
 
-# Check the decrypted value
+# Check the decrypted value (Rails automatically decrypts)
 sms.phone_number
 # => Should show plaintext like: "+15551234567"
+
+# Verify the column name
+ActiveRecord::Base.connection.columns(:sms_messages).find { |c| c.name == 'phone_number' }
+# => Should exist and be of type 'text'
 ```
 
 ## Related Models

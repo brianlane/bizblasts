@@ -8,14 +8,13 @@ class SmsMessage < ApplicationRecord
   # Phone numbers are PII and must be encrypted at rest for GDPR/CCPA compliance
   # 
   # Implementation:
-  # - The database has only 'phone_number_ciphertext' column (text type)
-  # - We use alias_attribute to map 'phone_number' to 'phone_number_ciphertext'
+  # - The database column 'phone_number' (text type) stores encrypted data
   # - ActiveRecord::Encryption with deterministic: true handles encryption/decryption
   # - Deterministic encryption allows for querying (e.g., for_phone scope)
   # 
   # Security: When you assign to phone_number, it's automatically encrypted
-  # before being stored in the phone_number_ciphertext column
-  alias_attribute :phone_number, :phone_number_ciphertext
+  # before being stored in the database. When you read it, it's automatically decrypted.
+  # The plaintext phone number NEVER touches the database.
   encrypts :phone_number, deterministic: true
 
   validates :phone_number, presence: true
@@ -38,7 +37,8 @@ class SmsMessage < ApplicationRecord
     normalized = PhoneNormalizer.normalize(plain_phone)
     return none if normalized.blank?
 
-    # Use the encrypted attribute directly - Rails handles the encryption
+    # Query using the encrypted attribute - Rails handles encryption automatically
+    # The alias_attribute ensures 'phone_number' maps to 'phone_number_ciphertext'
     where(phone_number: normalized)
   }
   

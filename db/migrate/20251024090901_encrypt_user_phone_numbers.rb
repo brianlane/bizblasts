@@ -62,13 +62,14 @@ class EncryptUserPhoneNumbers < ActiveRecord::Migration[8.0]
     return nil if raw_phone.nil?
 
     phone_str = raw_phone.to_s
-    return phone_str if phone_str.blank?
+    return nil if phone_str.blank?
 
     digits = phone_str.gsub(/\D/, "")
-    return "" if digits.blank?
+    return nil if digits.blank?
 
     minimum_digits = 7
-    return "+#{digits}" if digits.length < minimum_digits
+    # Reject phone numbers that are too short to be valid
+    return nil if digits.length < minimum_digits
 
     default_country_code = "1"
     normalized_digits = digits.length == 10 ? "#{default_country_code}#{digits}" : digits

@@ -925,8 +925,9 @@ class SmsService
   end
 
   def self.valid_phone_number?(phone)
-    # Very basic phone validation - this should be enhanced for production
-    phone.present? && phone.gsub(/\D/, '').length >= 10
+    # Validate phone using PhoneNormalizer for consistency
+    # Returns true if phone normalizes to a valid format (>= 7 digits)
+    PhoneNormalizer.normalize(phone).present?
   end
   
   def self.create_sms_record(normalized_phone_number, content, options = {})
