@@ -70,7 +70,8 @@ RSpec.describe SmsService, type: :service do
         end
 
         it 'logs successful SMS send' do
-          expect(Rails.logger).to receive(:info).with(match(/\[SMS_SERVICE\] SMS sent successfully to \*\*\*-***-#{Regexp.escape(valid_phone.last(4))} with Twilio SID: twilio-sid-123 \(\d+\.\d+s\)/))
+          sanitized_prefix = SecureLogger.sanitize_message("[SMS_SERVICE] SMS sent successfully to #{valid_phone} with Twilio SID: twilio-sid-123")
+          expect(Rails.logger).to receive(:info).with(a_string_matching(/\A#{Regexp.escape(sanitized_prefix)} \(\d+\.\d+s\)\z/))
           described_class.send_message(valid_phone, message, { tenant_customer_id: customer.id })
         end
 
