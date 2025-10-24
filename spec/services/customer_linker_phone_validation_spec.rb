@@ -19,7 +19,7 @@ RSpec.describe CustomerLinker, type: :service do
         )
 
         expect(customer).to be_persisted
-        expect(customer.phone).to eq('')
+        expect(customer.phone).to be_nil  # PhoneNormalizer returns nil for empty/invalid phones
       end
 
       it 'does not query database for nil phone' do

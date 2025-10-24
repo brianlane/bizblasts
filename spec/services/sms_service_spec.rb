@@ -52,7 +52,8 @@ RSpec.describe SmsService, type: :service do
           }.to change(SmsMessage, :count).by(1)
           
           sms = SmsMessage.last
-          expect(sms.phone_number).to eq(valid_phone)
+          expect(SmsMessage.for_phone(valid_phone).exists?).to be true
+          expect(sms.reload.phone_number).to eq(PhoneNormalizer.normalize(valid_phone))
           expect(sms.content).to eq(message)
           expect(sms.tenant_customer).to eq(customer)
           expect(sms.status).to eq('sent')
@@ -70,7 +71,8 @@ RSpec.describe SmsService, type: :service do
         end
 
         it 'logs successful SMS send' do
-          expect(Rails.logger).to receive(:info).with(match(/\[SMS_SERVICE\] SMS sent successfully to #{Regexp.escape(valid_phone)} with Twilio SID: twilio-sid-123 \(\d+\.\d+s\)/))
+          sanitized_prefix = SecureLogger.sanitize_message("[SMS_SERVICE] SMS sent successfully to #{valid_phone} with Twilio SID: twilio-sid-123")
+          expect(Rails.logger).to receive(:info).with(a_string_matching(/\A#{Regexp.escape(sanitized_prefix)} \(\d+\.\d+s\)\z/))
           described_class.send_message(valid_phone, message, { tenant_customer_id: customer.id })
         end
 

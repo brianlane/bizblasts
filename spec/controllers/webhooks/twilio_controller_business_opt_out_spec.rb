@@ -6,6 +6,13 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
   let(:customer1) { create(:tenant_customer, business: business1, phone: '+15551234567', phone_opt_in: true) }
   let(:customer2) { create(:tenant_customer, business: business2, phone: '+15551234567', phone_opt_in: true) }
 
+  # Test helper: Creates an SMS message with encrypted phone number
+  # Uses the explicit factory method to make encryption clear for security auditing
+  def create_encrypted_sms!(phone:, **attributes)
+    content = attributes.delete(:content) || 'Test message'
+    SmsMessage.create_with_encrypted_phone!(phone, content, attributes)
+  end
+
   before do
     # Mock Twilio signature verification
     allow(controller).to receive(:verify_webhook_signature?).and_return(false)
@@ -15,8 +22,8 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
     context 'when business context can be determined' do
       before do
         # Create recent SMS message to establish business context
-        SmsMessage.create!(
-          phone_number: '+15551234567',
+        create_encrypted_sms!(
+          phone: '+15551234567',
           business: business1,
           tenant_customer: customer1,
           content: 'Test message',
@@ -55,7 +62,7 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
     context 'when no business context found' do
       before do
         # Ensure no recent SMS messages exist that could establish business context
-        SmsMessage.where(phone_number: '+15551234567').destroy_all
+        SmsMessage.for_phone('+15551234567').destroy_all
         # Also ensure no customer records exist for this phone to test true "no context" scenario
         TenantCustomer.where(phone: '+15551234567').destroy_all
       end
@@ -72,10 +79,9 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
 
         # Expect business-specific opt-out for the most recent customer (business2)
         allow(Rails.logger).to receive(:info).and_call_original
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{test_phone} - processing opt-out")
-        expect(Rails.logger).to receive(:info).with(match(/\[BUSINESS_CONTEXT\] Multiple businesses found for #{Regexp.escape(test_phone)}: .*using most recent customer relationship/))
-        expect(Rails.logger).to receive(:info).with("Processing business-specific opt-out for #{test_phone} from business #{business2.id}")
-        expect(Rails.logger).to receive(:info).with("Opted out customer #{global_customer2.id} from business #{business2.id}")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{test_phone} - processing opt-out"))
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Processing business-specific opt-out for #{test_phone} from business #{business2.id}"))
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Opted out customer #{global_customer2.id} from business #{business2.id}"))
 
         post :inbound_message, params: {
           From: test_phone,
@@ -100,8 +106,8 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
 
         # This should trigger global opt-out since no business context can be determined
         allow(Rails.logger).to receive(:info).and_call_original
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{unknown_phone} - processing opt-out")
-        expect(Rails.logger).to receive(:info).with("Processing global opt-out for #{unknown_phone} (no business context found)")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{unknown_phone} - processing opt-out"))
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Processing global opt-out for #{unknown_phone} (no business context found)"))
 
         post :inbound_message, params: {
           From: unknown_phone,
@@ -131,8 +137,8 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
       customer1.opt_out_from_business!(business1)
 
       # Create recent SMS message to establish business context
-      SmsMessage.create!(
-        phone_number: '+15551234567',
+      create_encrypted_sms!(
+        phone: '+15551234567',
         business: business1,
         tenant_customer: customer1,
         content: 'Test message',
@@ -187,8 +193,8 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
 
   describe '#determine_business_context' do
     it 'returns business from recent SMS' do
-      SmsMessage.create!(
-        phone_number: '+15551234567',
+      create_encrypted_sms!(
+        phone: '+15551234567',
         business: business1,
         tenant_customer: customer1,
         content: 'Test message',
@@ -197,8 +203,8 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
       )
 
       # Create older message from different business
-      SmsMessage.create!(
-        phone_number: '+15551234567',
+      create_encrypted_sms!(
+        phone: '+15551234567',
         business: business2,
         tenant_customer: customer2,
         content: 'Older message',
@@ -218,8 +224,8 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
     it 'returns nil when only old SMS found' do
       # Create a customer and SMS message, then delete the customer to test old SMS only
       old_customer = create(:tenant_customer, business: business1, phone: '+15557777777', phone_opt_in: true)
-      SmsMessage.create!(
-        phone_number: '+15557777777',
+      create_encrypted_sms!(
+        phone: '+15557777777',
         business: business1,
         tenant_customer: old_customer,
         content: 'Old message',

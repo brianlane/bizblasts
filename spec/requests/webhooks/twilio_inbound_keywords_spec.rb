@@ -43,8 +43,8 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     it 'logs HELP keyword received' do
       allow(Rails.logger).to receive(:info) # Allow other logs first
       expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
-      expect(Rails.logger).to receive(:info).with("Inbound SMS from #{customer.phone}: HELP")
-      expect(Rails.logger).to receive(:info).with("HELP keyword received from #{customer.phone}")
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from #{customer.phone}: HELP"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("HELP keyword received from #{customer.phone}"))
 
       post '/webhooks/twilio/inbound', params: help_params
     end
@@ -67,7 +67,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     it 'is case insensitive' do
       lowercase_params = help_params.merge(Body: 'help')
 
-      expect(Rails.logger).to receive(:info).with("HELP keyword received from #{customer.phone}")
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("HELP keyword received from #{customer.phone}"))
       allow(Rails.logger).to receive(:info)
 
       post '/webhooks/twilio/inbound', params: lowercase_params
@@ -88,7 +88,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       it 'processes opt-out' do
         customer.update!(phone_opt_in: true, phone_opt_in_at: Time.current)
 
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{customer.phone} - processing opt-out")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{customer.phone} - processing opt-out"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: stop_params
@@ -104,7 +104,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       it 'is case insensitive' do
         lowercase_params = stop_params.merge(Body: 'stop')
 
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{customer.phone} - processing opt-out")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{customer.phone} - processing opt-out"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: lowercase_params
@@ -116,7 +116,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       let(:cancel_params) { stop_params.merge(Body: 'CANCEL') }
 
       it 'treats CANCEL same as STOP' do
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{customer.phone} - processing opt-out")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{customer.phone} - processing opt-out"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: cancel_params
@@ -128,7 +128,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       let(:unsubscribe_params) { stop_params.merge(Body: 'UNSUBSCRIBE') }
 
       it 'treats UNSUBSCRIBE same as STOP' do
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from #{customer.phone} - processing opt-out")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{customer.phone} - processing opt-out"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: unsubscribe_params
@@ -158,7 +158,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
 
     context 'with START keyword' do
       it 'processes opt-in' do
-        expect(Rails.logger).to receive(:info).with("START keyword received from #{customer.phone} - processing opt-in")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("START keyword received from #{customer.phone} - processing opt-in"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: start_params
@@ -174,7 +174,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       it 'is case insensitive' do
         lowercase_params = start_params.merge(Body: 'start')
 
-        expect(Rails.logger).to receive(:info).with("START keyword received from #{customer.phone} - processing opt-in")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("START keyword received from #{customer.phone} - processing opt-in"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: lowercase_params
@@ -186,7 +186,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       let(:subscribe_params) { start_params.merge(Body: 'SUBSCRIBE') }
 
       it 'treats SUBSCRIBE same as START' do
-        expect(Rails.logger).to receive(:info).with("START keyword received from #{customer.phone} - processing opt-in")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("START keyword received from #{customer.phone} - processing opt-in"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: subscribe_params
@@ -198,7 +198,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       let(:yes_params) { start_params.merge(Body: 'YES') }
 
       it 'treats YES same as START' do
-        expect(Rails.logger).to receive(:info).with("START keyword received from #{customer.phone} - processing opt-in")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("START keyword received from #{customer.phone} - processing opt-in"))
         allow(Rails.logger).to receive(:info)
 
         post '/webhooks/twilio/inbound', params: yes_params
@@ -240,8 +240,8 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     it 'logs CONFIRM keyword received' do
       allow(Rails.logger).to receive(:info) # Allow other logs first
       expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
-      expect(Rails.logger).to receive(:info).with("Inbound SMS from #{customer.phone}: CONFIRM")
-      expect(Rails.logger).to receive(:info).with("CONFIRM keyword received from #{customer.phone}")
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from #{customer.phone}: CONFIRM"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CONFIRM keyword received from #{customer.phone}"))
 
       post '/webhooks/twilio/inbound', params: confirm_params
     end
@@ -255,7 +255,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     it 'is case insensitive' do
       lowercase_params = confirm_params.merge(Body: 'confirm')
 
-      expect(Rails.logger).to receive(:info).with("CONFIRM keyword received from #{customer.phone}")
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CONFIRM keyword received from #{customer.phone}"))
       allow(Rails.logger).to receive(:info)
 
       post '/webhooks/twilio/inbound', params: lowercase_params
@@ -275,8 +275,8 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     it 'logs unknown message' do
       allow(Rails.logger).to receive(:info) # Allow other logs first
       expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
-      expect(Rails.logger).to receive(:info).with("Inbound SMS from #{customer.phone}: Hello, I have a question about my appointment")
-      expect(Rails.logger).to receive(:info).with("Other inbound message from #{customer.phone}: Hello, I have a question about my appointment")
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from #{customer.phone}: Hello, I have a question about my appointment"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from #{customer.phone}: Hello, I have a question about my appointment"))
 
       post '/webhooks/twilio/inbound', params: unknown_params
     end

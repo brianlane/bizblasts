@@ -20,18 +20,18 @@ class EnforceUniquePhoneNumbers < ActiveRecord::Migration[8.0]
 
     # Only enforce uniqueness for linked users (where user_id IS NOT NULL)
     # Guests (user_id IS NULL) can share phone numbers with users
-    unless index_exists?(:tenant_customers, [:business_id, :phone_ciphertext, :user_id], name: :index_tenant_customers_on_business_phone_and_user_unique)
-      add_index :tenant_customers, [:business_id, :phone_ciphertext, :user_id],
+    unless index_exists?(:tenant_customers, [:business_id, :phone_ciphertext], name: :index_tenant_customers_on_business_phone_unique)
+      add_index :tenant_customers, [:business_id, :phone_ciphertext],
                 unique: true,
                 where: "user_id IS NOT NULL",
                 algorithm: :concurrently,
-                name: :index_tenant_customers_on_business_phone_and_user_unique
+                name: :index_tenant_customers_on_business_phone_unique
     end
   end
 
   def down
-    if index_exists?(:tenant_customers, [:business_id, :phone_ciphertext, :user_id], name: :index_tenant_customers_on_business_phone_and_user_unique)
-      remove_index :tenant_customers, name: :index_tenant_customers_on_business_phone_and_user_unique
+    if index_exists?(:tenant_customers, [:business_id, :phone_ciphertext], name: :index_tenant_customers_on_business_phone_unique)
+      remove_index :tenant_customers, name: :index_tenant_customers_on_business_phone_unique
     end
   end
 end

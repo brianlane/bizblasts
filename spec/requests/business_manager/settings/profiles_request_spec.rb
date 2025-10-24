@@ -125,7 +125,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
           manager_user.reload
           expect(manager_user.first_name).to eq("Updated")
           expect(manager_user.last_name).to eq("User")
-          expect(manager_user.phone).to eq("123-456-7890")
+          expect(manager_user.phone).to eq(PhoneNormalizer.normalize("123-456-7890"))
           expect(manager_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
         end
 
@@ -259,7 +259,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         staff_user.reload
         expect(staff_user.first_name).to eq("Updated")
         expect(staff_user.last_name).to eq("User")
-        expect(staff_user.phone).to eq("123-456-7890")
+        expect(staff_user.phone).to eq(PhoneNormalizer.normalize("123-456-7890"))
         expect(staff_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
       end
 
@@ -360,7 +360,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         manager_user.reload
         expect(manager_user.first_name).to eq('NewFirstName')
         expect(manager_user.last_name).to eq('NewLastName')
-        expect(manager_user.phone).to eq('987-654-3210')
+        expect(manager_user.phone).to eq(PhoneNormalizer.normalize('987-654-3210'))
         expect(manager_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
       end
 

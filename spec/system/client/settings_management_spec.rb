@@ -37,7 +37,7 @@ RSpec.describe "Client Settings Management", type: :system do
     client_user.reload
     expect(client_user.first_name).to eq("UpdatedFirst")
     expect(client_user.last_name).to eq("UpdatedLast")
-    expect(client_user.phone).to eq("0987654321")
+    expect(client_user.phone).to eq(PhoneNormalizer.normalize("0987654321"))
   end
 
   # Skip password tests that involve Sign Out and Sign In

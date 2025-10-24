@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_23_215426) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_24_221352) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1277,14 +1277,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_215426) do
     t.datetime "updated_at", null: false
     t.string "external_id"
     t.bigint "business_id", null: false
-    t.text "phone_number_ciphertext"
-    t.string "phone_number"
+    t.text "phone_number"
     t.index ["booking_id"], name: "index_sms_messages_on_booking_id"
     t.index ["business_id", "created_at"], name: "index_sms_messages_on_business_id_and_created_at"
     t.index ["business_id"], name: "index_sms_messages_on_business_id"
     t.index ["external_id"], name: "index_sms_messages_on_external_id"
     t.index ["marketing_campaign_id"], name: "index_sms_messages_on_marketing_campaign_id"
-    t.index ["phone_number_ciphertext"], name: "index_sms_messages_on_phone_number_ciphertext"
+    t.index ["phone_number"], name: "index_sms_messages_on_phone_number"
     t.index ["status"], name: "index_sms_messages_on_status"
     t.index ["tenant_customer_id", "created_at"], name: "index_sms_messages_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_sms_messages_on_tenant_customer_id"
@@ -1573,11 +1572,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_23_215426) do
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.jsonb "sms_opted_out_businesses", default: []
-    t.text "phone_ciphertext"
     t.string "phone"
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
-    t.index ["business_id", "phone_ciphertext"], name: "idx_tenant_cust_on_biz_and_phone_users_only", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["business_id", "phone"], name: "index_tenant_customers_on_business_phone_for_users", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
