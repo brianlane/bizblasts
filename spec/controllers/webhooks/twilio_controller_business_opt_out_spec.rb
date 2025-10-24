@@ -55,7 +55,7 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
     context 'when no business context found' do
       before do
         # Ensure no recent SMS messages exist that could establish business context
-        SmsMessage.where(phone_number: '+15551234567').destroy_all
+        SmsMessage.for_phone('+15551234567').destroy_all
         # Also ensure no customer records exist for this phone to test true "no context" scenario
         TenantCustomer.where(phone: '+15551234567').destroy_all
       end

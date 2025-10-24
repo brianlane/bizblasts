@@ -48,6 +48,7 @@ Rails.application.configure do
   config.active_record.encryption.primary_key = '0' * 32 unless ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY'].present?
   config.active_record.encryption.deterministic_key = '1' * 32 unless ENV['ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY'].present?
   config.active_record.encryption.key_derivation_salt = '2' * 32 unless ENV['ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT'].present?
+  config.active_record.encryption.support_unencrypted_data = false
 
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test

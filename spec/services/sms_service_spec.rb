@@ -52,7 +52,7 @@ RSpec.describe SmsService, type: :service do
           }.to change(SmsMessage, :count).by(1)
           
           sms = SmsMessage.last
-          expect(sms.phone_number).to eq(valid_phone)
+          expect(SmsMessage.for_phone(valid_phone).exists?).to be true
           expect(sms.content).to eq(message)
           expect(sms.tenant_customer).to eq(customer)
           expect(sms.status).to eq('sent')

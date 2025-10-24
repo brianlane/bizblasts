@@ -24,18 +24,19 @@ class SmsService
       return { success: false, error: "Invalid phone number format" }
     end
     
-    # Create an SMS message record
-    sms_message = create_sms_record(phone_number, message, options)
+    normalized_phone = PhoneNormalizer.normalize(phone_number)
+    return { success: false, error: "Invalid phone number format" } if normalized_phone.blank?
+    sms_message = create_sms_record(normalized_phone, message, options)
     
     # Send SMS via Twilio API with enhanced error monitoring
     start_time = Time.current
     begin
-      SecureLogger.debug "[SMS_SERVICE] Initiating Twilio API call to send SMS to #{phone_number}"
+      SecureLogger.debug "[SMS_SERVICE] Initiating Twilio API call to send SMS to #{normalized_phone}"
 
       client = Twilio::REST::Client.new(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
       message_resource = client.messages.create(
         messaging_service_sid: TWILIO_MESSAGING_SERVICE_SID,
-        to: phone_number,
+        to: normalized_phone,
         body: message
       )
 
@@ -53,7 +54,7 @@ class SmsService
       )
 
       duration = Time.current - start_time
-      SecureLogger.info "[SMS_SERVICE] SMS sent successfully to #{phone_number} with Twilio SID: #{external_id} (#{duration.round(3)}s)"
+      SecureLogger.info "[SMS_SERVICE] SMS sent successfully to #{normalized_phone} with Twilio SID: #{external_id} (#{duration.round(3)}s)"
       { success: true, sms_message: sms_message, external_id: external_id }
 
     rescue Twilio::REST::RestError => e
@@ -928,7 +929,7 @@ class SmsService
     phone.present? && phone.gsub(/\D/, '').length >= 10
   end
   
-  def self.create_sms_record(phone_number, content, options = {})
+  def self.create_sms_record(normalized_phone_number, content, options = {})
     # Derive business_id from options or related records
     business_id = options[:business_id] 
     business_id ||= TenantCustomer.find_by(id: options[:tenant_customer_id])&.business_id
@@ -939,16 +940,22 @@ class SmsService
       SecureLogger.error "[SMS_SERVICE] Could not determine business_id for SMS message"
       raise ArgumentError, "business_id is required for SMS messages"
     end
-    
-    SmsMessage.create!(
-      phone_number: phone_number,
+    phone_attribute_type = SmsMessage.attribute_types["phone_number"]
+    encrypted_phone = phone_attribute_type.serialize(normalized_phone_number) if phone_attribute_type.respond_to?(:serialize)
+
+    attributes = {
+      phone_number: normalized_phone_number,
       content: content,
       status: :pending,
       business_id: business_id,
       tenant_customer_id: options[:tenant_customer_id],
       booking_id: options[:booking_id],
       marketing_campaign_id: options[:marketing_campaign_id]
-    )
+    }
+
+    attributes[:phone_number_ciphertext] = encrypted_phone if encrypted_phone.present?
+
+    SmsMessage.create!(attributes)
   end
 
   # ===== SMS OPT-IN INVITATION METHODS =====

@@ -27,7 +27,11 @@ class SmsMessage < ApplicationRecord
     normalized = PhoneNormalizer.normalize(plain_phone)
     return none if normalized.blank?
 
-    where(phone_number: normalized)
+    type = attribute_types["phone_number"]
+    ciphertext = type.serialize(normalized) if type.respond_to?(:serialize)
+    return none if ciphertext.blank?
+
+    where(phone_number_ciphertext: ciphertext)
   }
   
   def deliver
@@ -43,11 +47,19 @@ class SmsMessage < ApplicationRecord
   end
   
   def mark_as_delivered!
-    update(status: :delivered, delivered_at: Time.current)
+    update_columns(
+      status: self.class.statuses[:delivered],
+      delivered_at: Time.current,
+      updated_at: Time.current
+    )
   end
   
   def mark_as_failed!(error_message)
-    update(status: :failed, error_message: error_message)
+    update_columns(
+      status: self.class.statuses[:failed],
+      error_message: error_message,
+      updated_at: Time.current
+    )
   end
   
   private
