@@ -10,7 +10,7 @@ module PhoneNormalizer
     return raw_phone if raw_phone.blank?
 
     cleaned = raw_phone.gsub(/\D/, '')
-    return raw_phone if cleaned.blank?
+    return "" if cleaned.blank?
 
     # Preserve legacy behavior for short extensions by simply prefixing "+"
     return "+#{cleaned}" if cleaned.length < MINIMUM_DIGITS

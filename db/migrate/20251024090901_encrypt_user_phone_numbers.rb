@@ -32,7 +32,7 @@ class EncryptUserPhoneNumbers < ActiveRecord::Migration[8.0]
           ciphertext = legacy_user[:phone_ciphertext]
           next if plaintext.blank? || ciphertext.present?
 
-          normalized = PhoneNormalizer.normalize(plaintext)
+          normalized = normalize_phone_for_migration(plaintext)
           updates = {
             phone: normalized,
             phone_ciphertext: normalized.present? ? encryptor.serialize(normalized) : nil
@@ -54,5 +54,24 @@ class EncryptUserPhoneNumbers < ActiveRecord::Migration[8.0]
 
     # Decryption happens automatically when models are loaded
     say "Phone numbers will be automatically decrypted when accessed"
+  end
+
+  private
+
+  def normalize_phone_for_migration(raw_phone)
+    return nil if raw_phone.nil?
+
+    phone_str = raw_phone.to_s
+    return phone_str if phone_str.blank?
+
+    digits = phone_str.gsub(/\D/, "")
+    return "" if digits.blank?
+
+    minimum_digits = 7
+    return "+#{digits}" if digits.length < minimum_digits
+
+    default_country_code = "1"
+    normalized_digits = digits.length == 10 ? "#{default_country_code}#{digits}" : digits
+    "+#{normalized_digits}"
   end
 end

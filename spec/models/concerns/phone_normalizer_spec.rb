@@ -19,6 +19,10 @@ RSpec.describe PhoneNormalizer do
     it "preserves short numbers by prefixing a plus sign" do
       expect(described_class.normalize("123")).to eq("+123")
     end
+
+    it "strips non-digit inputs down to a blank string" do
+      expect(described_class.normalize("--")).to eq("")
+    end
   end
 
   describe ".normalize_collection" do

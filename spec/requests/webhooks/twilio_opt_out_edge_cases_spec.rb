@@ -53,7 +53,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       it "recognizes '#{keyword.inspect}' as an opt-out keyword" do
         params = base_params.merge(Body: keyword)
         
-        expect(Rails.logger).to receive(:info).with("STOP keyword received from +15558675309 - processing opt-out")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from +15558675309 - processing opt-out"))
         allow(Rails.logger).to receive(:info) # Allow other logging calls
         
         post "/webhooks/twilio/inbound", params: params
@@ -86,7 +86,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         
         params = base_params.merge(Body: keyword)
         
-        expect(Rails.logger).to receive(:info).with("START keyword received from +15558675309 - processing opt-in")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("START keyword received from +15558675309 - processing opt-in"))
         allow(Rails.logger).to receive(:info) # Allow other logging calls
         
         post "/webhooks/twilio/inbound", params: params
@@ -114,7 +114,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         expect(Rails.logger).not_to receive(:info).with(/START keyword received/)
         
         # Should see "other inbound message" logging instead
-        expect(Rails.logger).to receive(:info).with("Other inbound message from +15558675309: #{non_keyword}")
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from +15558675309: #{non_keyword}"))
         allow(Rails.logger).to receive(:info) # Allow other logging calls
         
         post "/webhooks/twilio/inbound", params: params
@@ -176,10 +176,13 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         customer.destroy # Remove the customer, keep the user
         # Create a simple mock user to avoid Devise inspection issues
         mock_user = double("User", id: 123)
-        allow(mock_user).to receive(:respond_to?).with(:opt_out_of_sms!).and_return(true)
+        allow(mock_user).to receive(:respond_to?) do |method_name, _include_private = false|
+          method_name == :opt_out_of_sms!
+        end
         allow(mock_user).to receive(:opt_out_of_sms!)
         allow(mock_user).to receive(:business).and_return(nil)
         allow(User).to receive(:where).and_return([mock_user])
+        allow(User).to receive(:for_phone).and_return(User.none)
         @mock_user = mock_user
       end
 
@@ -358,7 +361,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       allow(SmsService).to receive(:send_message).and_raise(StandardError.new("SMS API error"))
       
       # Should log the error but not crash
-      expect(Rails.logger).to receive(:error).with("Failed to send auto-reply to +15558675309: SMS API error")
+      expect(Rails.logger).to receive(:error).with(SecureLogger.sanitize_message("Failed to send auto-reply to +15558675309: SMS API error"))
       expect(Rails.logger).to receive(:error).with(String) # Backtrace log
       allow(Rails.logger).to receive(:info) # Allow other logging
       
