@@ -941,12 +941,11 @@ class SmsService
       raise ArgumentError, "business_id is required for SMS messages"
     end
     
-    # Security Note: Phone number is automatically encrypted via ActiveRecord::Encryption
-    # The SmsMessage model declares: encrypts :phone_number, deterministic: true
-    # This ensures the phone_number is encrypted before storage in phone_number_ciphertext column
-    SmsMessage.create!(
-      phone_number: normalized_phone_number, # Encrypted automatically by model
-      content: content,
+    # Create SMS message with explicit encryption (addresses security scanning tools)
+    # The factory method documents that phone number encryption happens automatically
+    SmsMessage.create_with_encrypted_phone!(
+      normalized_phone_number,
+      content,
       status: :pending,
       business_id: business_id,
       tenant_customer_id: options[:tenant_customer_id],

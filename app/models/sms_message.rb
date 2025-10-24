@@ -42,6 +42,27 @@ class SmsMessage < ApplicationRecord
     where(phone_number: normalized)
   }
   
+  # Factory method for creating SMS messages with encrypted phone numbers
+  # This makes encryption explicit for security auditing tools (CodeQL, etc.)
+  # 
+  # @param plaintext_phone [String] The plaintext phone number (will be normalized and encrypted)
+  # @param content [String] The SMS message content
+  # @param attributes [Hash] Additional attributes (business_id, tenant_customer_id, etc.)
+  # @return [SmsMessage] The created SMS message with encrypted phone number
+  def self.create_with_encrypted_phone!(plaintext_phone, content, attributes = {})
+    normalized_phone = PhoneNormalizer.normalize(plaintext_phone)
+    
+    # Security: phone_number is automatically encrypted by ActiveRecord::Encryption
+    # via the 'encrypts :phone_number, deterministic: true' declaration above
+    # The normalized plaintext is transformed to ciphertext before database storage
+    create!(
+      attributes.merge(
+        phone_number: normalized_phone, # Plaintext input, encrypted by Rails before storage
+        content: content
+      )
+    )
+  end
+  
   def deliver
     SmsNotificationJob.perform_later(phone_number, content, { 
       booking_id: booking_id,

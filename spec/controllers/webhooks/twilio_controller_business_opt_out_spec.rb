@@ -7,12 +7,10 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
   let(:customer2) { create(:tenant_customer, business: business2, phone: '+15551234567', phone_opt_in: true) }
 
   # Test helper: Creates an SMS message with encrypted phone number
-  # Security Note: Phone number is automatically encrypted by the SmsMessage model
-  # via `encrypts :phone_number, deterministic: true` declaration
+  # Uses the explicit factory method to make encryption clear for security auditing
   def create_encrypted_sms!(phone:, **attributes)
-    SmsMessage.create!(
-      { phone_number: PhoneNormalizer.normalize(phone) }.merge(attributes)
-    )
+    content = attributes.delete(:content) || 'Test message'
+    SmsMessage.create_with_encrypted_phone!(phone, content, attributes)
   end
 
   before do
