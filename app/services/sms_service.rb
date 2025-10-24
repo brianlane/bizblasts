@@ -1,3 +1,6 @@
+require 'active_support'
+require 'active_support/message_encryptor'
+
 class SmsService
   # This service handles sending SMS messages using Twilio
 
@@ -940,8 +943,9 @@ class SmsService
       raise ArgumentError, "business_id is required for SMS messages"
     end
     
+    encrypted_phone_number = encrypt_phone_number(phone_number)
     SmsMessage.create!(
-      phone_number: phone_number,
+      phone_number: encrypted_phone_number,
       content: content,
       status: :pending,
       business_id: business_id,
@@ -949,6 +953,14 @@ class SmsService
       booking_id: options[:booking_id],
       marketing_campaign_id: options[:marketing_campaign_id]
     )
+  end
+  # Encrypts phone number using ActiveSupport::MessageEncryptor
+  def self.encrypt_phone_number(phone_number)
+    # You should set ENV['SMS_ENCRYPTION_KEY'] securely elsewhere.
+    secret = ENV['SMS_ENCRYPTION_KEY'] || Rails.application.credentials.sms_encryption_key
+    key = ActiveSupport::KeyGenerator.new(secret).generate_key('sms service', ActiveSupport::MessageEncryptor.key_len)
+    crypt = ActiveSupport::MessageEncryptor.new(key)
+    crypt.encrypt_and_sign(phone_number)
   end
 
   # ===== SMS OPT-IN INVITATION METHODS =====
