@@ -4,7 +4,7 @@ class SmsNotificationJob < ApplicationJob
   def perform(phone_number, message, options = {})
     # Early return if SMS is globally disabled
     unless Rails.application.config.sms_enabled
-      Rails.logger.info "[SMS_NOTIFICATION_JOB] SMS disabled globally, skipping job for #{phone_number}"
+      SecureLogger.info "[SMS_NOTIFICATION_JOB] SMS disabled globally, skipping job for #{phone_number}"
       return
     end
     
@@ -52,9 +52,9 @@ class SmsNotificationJob < ApplicationJob
     result = SmsService.send_message(phone, message, options)
     
     if result[:success]
-      Rails.logger.info "SMS sent successfully to #{phone} via SmsService"
+      SecureLogger.info "SMS sent successfully to #{phone} via SmsService"
     else
-      Rails.logger.error "SMS failed to send to #{phone}: #{result[:error]}"
+      SecureLogger.error "SMS failed to send to #{phone}: #{result[:error]}"
       
       # Re-raise error to trigger job retry if appropriate
       raise StandardError, result[:error] if should_retry?(result[:error])
@@ -68,12 +68,12 @@ class SmsNotificationJob < ApplicationJob
   
   def record_sms_in_database(phone, message, sid, options)
     # DEPRECATED: SmsService now handles database recording
-    Rails.logger.warn "record_sms_in_database is deprecated - SmsService handles this automatically"
+    SecureLogger.warn "record_sms_in_database is deprecated - SmsService handles this automatically"
   end
   
   def record_sms_failure(phone, message, error, options)
     # DEPRECATED: SmsService now handles database recording
-    Rails.logger.warn "record_sms_failure is deprecated - SmsService handles this automatically"
+    SecureLogger.warn "record_sms_failure is deprecated - SmsService handles this automatically"
   end
   
   def should_retry?(error_message)

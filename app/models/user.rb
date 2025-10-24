@@ -33,7 +33,11 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :confirmable, :trackable, :magic_link_authenticatable # Added :confirmable for email verification and :trackable for login tracking
 
+  # Encrypt phone numbers with deterministic encryption to allow querying
+  encrypts :phone, deterministic: true
+
   # Callbacks
+  before_validation :normalize_phone_number
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
   after_update :sync_email_to_tenant_customers, if: -> { client? && saved_change_to_email? && confirmed? }
@@ -71,6 +75,14 @@ class User < ApplicationRecord
   scope :clients, -> { where(role: :client) }
   scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
   scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
+
+  # Encrypted phone lookup scope
+  scope :for_phone, ->(plain_phone) {
+    normalized = PhoneNormalizer.normalize(plain_phone)
+    return none if normalized.blank?
+
+    where(phone: normalized)
+  }
 
   # Methods
   def active_for_authentication?
@@ -422,9 +434,9 @@ class User < ApplicationRecord
 
   # Session token methods for global logout
   def invalidate_all_sessions!
-    Rails.logger.info "[User#invalidate_all_sessions!] User #{id}: Invalidating all sessions"
+    SecureLogger.info "[User#invalidate_all_sessions!] User #{id}: Invalidating all sessions"
     update!(session_token: SecureRandom.hex(32))
-    Rails.logger.info "[User#invalidate_all_sessions!] User #{id}: Session token updated successfully"
+    SecureLogger.info "[User#invalidate_all_sessions!] User #{id}: Session token updated successfully"
   end
 
   def valid_session?(token)
@@ -481,9 +493,9 @@ class User < ApplicationRecord
     
     # Use update_attribute to ensure the change persists even in CI environments
     if update_attribute(:notification_preferences, default_preferences)
-      Rails.logger.info "[USER] Set default notification preferences for User ##{id} (#{email}) - consent: #{consent_given}"
+      SecureLogger.info "[USER] Set default notification preferences for User ##{id} (#{email}) - consent: #{consent_given}"
     else
-      Rails.logger.error "[USER] Failed to set default notification preferences for User ##{id} (#{email})"
+      SecureLogger.error "[USER] Failed to set default notification preferences for User ##{id} (#{email})"
     end
   end
 
@@ -658,9 +670,9 @@ class User < ApplicationRecord
   def send_domain_request_notification
     begin
       BusinessMailer.domain_request_notification(self).deliver_later(queue: 'mailers')
-      Rails.logger.info "[EMAIL] Sent domain request notification for User ##{id} - Business: #{business.name}"
+      SecureLogger.info "[EMAIL] Sent domain request notification for User ##{id} - Business: #{business.name}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send domain request notification for User ##{id}: #{e.message}"
+      SecureLogger.error "[EMAIL] Failed to send domain request notification for User ##{id}: #{e.message}"
     end
   end
 
@@ -717,7 +729,7 @@ class User < ApplicationRecord
     old_email = email_before_last_save
     new_email = email.downcase.strip
     
-    Rails.logger.info "[USER] Syncing email change from #{old_email} to #{new_email} for user #{id}"                                                           
+    SecureLogger.info "[USER] Syncing email change from #{old_email} to #{new_email} for user #{id}"                                                           
     
     # Use transaction to ensure atomicity and handle uniqueness conflicts
     ActiveRecord::Base.transaction do
@@ -730,7 +742,7 @@ class User < ApplicationRecord
 
       if conflicts.exists?
         conflict = conflicts.first
-        Rails.logger.error "[USER] Email sync conflict for user #{id} -> business #{conflict.business_id} existing user #{conflict.user_id}"
+        SecureLogger.error "[USER] Email sync conflict for user #{id} -> business #{conflict.business_id} existing user #{conflict.user_id}"
         raise EmailConflictError.new(
           "This email is already associated with another customer in one of your businesses.",
           email: new_email,
@@ -742,12 +754,12 @@ class User < ApplicationRecord
 
       # Update all linked tenant customers safely
       updated_count = linked.update_all(email: new_email)
-      Rails.logger.info "[USER] Updated #{updated_count} tenant customer records with new email"
+      SecureLogger.info "[USER] Updated #{updated_count} tenant customer records with new email"
 
       clear_tenant_customer_cache
     end
   rescue => e
-    Rails.logger.error "[USER] Failed to sync email to tenant customers: #{e.message}"
+    SecureLogger.error "[USER] Failed to sync email to tenant customers: #{e.message}"
     # Re-raise to ensure the error is handled by the caller
     raise e
   end
@@ -756,7 +768,7 @@ class User < ApplicationRecord
   def sync_phone_to_tenant_customers
     return unless client?
     
-    Rails.logger.info "[USER] Syncing phone number to tenant customers for user #{id}"                                                                         
+    SecureLogger.info "[USER] Syncing phone number to tenant customers for user #{id}"                                                                         
     
     # Use transaction to ensure atomicity
     ActiveRecord::Base.transaction do
@@ -779,14 +791,20 @@ class User < ApplicationRecord
         
         if updates.any?
           customer.update!(updates)
-          Rails.logger.info "[USER] Updated tenant customer #{customer.id} with phone data"                                                                      
+          SecureLogger.info "[USER] Updated tenant customer #{customer.id} with phone data"                                                                      
         end
       end
     end
   rescue => e
-    Rails.logger.error "[USER] Failed to sync phone to tenant customers: #{e.message}"
+    SecureLogger.error "[USER] Failed to sync phone to tenant customers: #{e.message}"
     # Re-raise to ensure the error is handled by the caller
     raise e
   end
 
+  private
+
+  # Normalize phone number before validation
+  def normalize_phone_number
+    self.phone = PhoneNormalizer.normalize(phone)
+  end
 end

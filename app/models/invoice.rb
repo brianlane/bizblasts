@@ -181,11 +181,11 @@ class Invoice < ApplicationRecord
       
       # Check if the mail is actually a NullMail (validation failed, ineligible customer, etc.)
       if mail&.message&.is_a?(ActionMailer::Base::NullMail)
-        Rails.logger.info "[ReviewRequest] Review request email skipped for Invoice ##{invoice_number} (validation failed or ineligible)"
+        SecureLogger.info "[ReviewRequest] Review request email skipped for Invoice ##{invoice_number} (validation failed or ineligible)"
         return
       elsif mail.present?
         mail.deliver_later(queue: 'mailers')
-        Rails.logger.info "[ReviewRequest] Review request email enqueued for Invoice ##{invoice_number} to #{tenant_customer.email}"
+        SecureLogger.info "[ReviewRequest] Review request email enqueued for Invoice ##{invoice_number} to #{tenant_customer.email}"
 
         # Send SMS review request if customer can receive SMS
         begin
@@ -205,19 +205,19 @@ class Invoice < ApplicationRecord
 
             # Send review request SMS
             SmsService.send_review_request(tenant_customer, business, service_name, review_url)
-            Rails.logger.info "[ReviewRequest] Review request SMS sent for Invoice ##{invoice_number} to #{tenant_customer.phone}"
+            SecureLogger.info "[ReviewRequest] Review request SMS sent for Invoice ##{invoice_number} to #{tenant_customer.phone}"
           end
         rescue => sms_error
-          Rails.logger.error "[ReviewRequest] Failed to send review request SMS for Invoice ##{invoice_number}: #{sms_error.message}"
+          SecureLogger.error "[ReviewRequest] Failed to send review request SMS for Invoice ##{invoice_number}: #{sms_error.message}"
           # Don't fail the whole review request process for SMS issues
         end
       else
         # This shouldn't happen with current mailer implementation, but kept for safety
-        Rails.logger.warn "[ReviewRequest] Mailer returned nil for Invoice ##{invoice_number}; email not enqueued"
+        SecureLogger.warn "[ReviewRequest] Mailer returned nil for Invoice ##{invoice_number}; email not enqueued"
         return
       end
     rescue => e
-      Rails.logger.error "[ReviewRequest] Failed to send review request email for Invoice ##{invoice_number}: #{e.message}"
+      SecureLogger.error "[ReviewRequest] Failed to send review request email for Invoice ##{invoice_number}: #{e.message}"
     end
   end
   
@@ -238,7 +238,7 @@ class Invoice < ApplicationRecord
     verifier = Rails.application.message_verifier('review_request_tracking')
     verifier.generate(token_data)
   rescue => e
-    Rails.logger.error "[ReviewRequest] Failed to generate tracking token for Invoice ##{invoice_number}: #{e.message}"
+    SecureLogger.error "[ReviewRequest] Failed to generate tracking token for Invoice ##{invoice_number}: #{e.message}"
     nil
   end
 
@@ -266,15 +266,15 @@ class Invoice < ApplicationRecord
     # Skip automatic email if this invoice belongs to an order
     # Order creation handles staggered email delivery to avoid rate limits
     if order.present?
-      Rails.logger.info "[EMAIL] Skipping automatic invoice email for Order-based Invoice ##{invoice_number} (handled by order)"
+      SecureLogger.info "[EMAIL] Skipping automatic invoice email for Order-based Invoice ##{invoice_number} (handled by order)"
       return
     end
     
     begin
       NotificationService.invoice_created(self)
-      Rails.logger.info "[NOTIFICATION] Sent invoice created notifications for Invoice ##{invoice_number}"
+      SecureLogger.info "[NOTIFICATION] Sent invoice created notifications for Invoice ##{invoice_number}"
     rescue => e
-      Rails.logger.error "[NOTIFICATION] Failed to send invoice created notifications for Invoice ##{invoice_number}: #{e.message}"
+      SecureLogger.error "[NOTIFICATION] Failed to send invoice created notifications for Invoice ##{invoice_number}: #{e.message}"
     end
   end
 end 

@@ -207,9 +207,9 @@ class NotificationService
         begin
           email.call
           results[:email] = true
-          Rails.logger.info "[NOTIFICATION] Email sent to #{recipient.email} for #{email_type}"
+          SecureLogger.info "[NOTIFICATION] Email sent to #{recipient.email} for #{email_type}"
         rescue => e
-          Rails.logger.error "[NOTIFICATION] Email failed to #{recipient.email}: #{e.message}"
+          SecureLogger.error "[NOTIFICATION] Email failed to #{recipient.email}: #{e.message}"
         end
       end
 
@@ -234,13 +234,13 @@ class NotificationService
 
           if sms_success
             results[:sms] = true
-            Rails.logger.info "[NOTIFICATION] SMS sent to #{recipient.phone} for #{sms_type}"
+            SecureLogger.info "[NOTIFICATION] SMS sent to #{recipient.phone} for #{sms_type}"
           else
             error_msg = sms_result.is_a?(Hash) ? sms_result[:error] : sms_result.to_s
-            Rails.logger.info "[NOTIFICATION] SMS not sent to #{recipient.phone} for #{sms_type}: #{error_msg || 'opt-in required or rate limited'}"
+            SecureLogger.info "[NOTIFICATION] SMS not sent to #{recipient.phone} for #{sms_type}: #{error_msg || 'opt-in required or rate limited'}"
           end
         rescue => e
-          Rails.logger.error "[NOTIFICATION] SMS failed to #{recipient.phone || 'phone'}: #{e.message}"
+          SecureLogger.error "[NOTIFICATION] SMS failed to #{recipient.phone || 'phone'}: #{e.message}"
         end
       end
 

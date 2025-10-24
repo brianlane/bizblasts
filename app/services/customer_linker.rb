@@ -71,7 +71,7 @@ class CustomerLinker
           updates[:phone] = phone_value if customer.phone != phone_value
         else
           # Invalid phone - clear it and log warning (Bug 11 fix)
-          Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer update (too short or invalid format), clearing phone field: #{phone_value}"
+          SecureLogger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer update (too short or invalid format), clearing phone field: #{phone_value}"
           updates[:phone] = nil if customer.phone.present? # Only clear if customer currently has a phone
         end
       end
@@ -132,7 +132,7 @@ class CustomerLinker
         # Bug 11 fix: If phone is invalid (normalization returned nil), don't store it
         # This prevents storing garbage data and prevents duplicate accounts with same invalid phone
         # Filter out invalid phone from customer data instead of mutating caller's hash
-        Rails.logger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer (too short or invalid format), clearing phone field: #{customer_attributes[:phone]}"
+        SecureLogger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer (too short or invalid format), clearing phone field: #{customer_attributes[:phone]}"
         # Create filtered attributes without the invalid phone
         filtered_attributes = customer_attributes.except(:phone)
       end
@@ -213,7 +213,7 @@ class CustomerLinker
     return duplicate_customers.first if duplicate_customers.count == 1
 
     # Multiple customers found - merge duplicates
-    Rails.logger.info "[CUSTOMER_LINKER] Found #{duplicate_customers.count} duplicate customers for phone #{phone_number}"
+    SecureLogger.info "[CUSTOMER_LINKER] Found #{duplicate_customers.count} duplicate customers for phone #{phone_number}"
     merge_duplicate_customers(duplicate_customers)
   end
 
@@ -249,12 +249,12 @@ class CustomerLinker
     phone_groups.each do |normalized_phone, customers|
       next if customers.count <= 1 # No duplicates
 
-      Rails.logger.info "[CUSTOMER_LINKER] Resolving #{customers.count} duplicates for phone #{normalized_phone}"
+      SecureLogger.info "[CUSTOMER_LINKER] Resolving #{customers.count} duplicates for phone #{normalized_phone}"
       canonical_customer = merge_duplicate_customers(customers)
       duplicates_resolved += customers.count - 1 if canonical_customer
     end
 
-    Rails.logger.info "[CUSTOMER_LINKER] Resolved #{duplicates_resolved} duplicate customers for business #{@business.safe_identifier_for_logging}"
+    SecureLogger.info "[CUSTOMER_LINKER] Resolved #{duplicates_resolved} duplicate customers for business #{@business.safe_identifier_for_logging}"
     duplicates_resolved
   end
 
@@ -301,7 +301,7 @@ class CustomerLinker
 
     # Log global lookups for security auditing
     if business.blank?
-      Rails.logger.info "[SECURITY] Global customer lookup performed for phone #{phone_number} - ensure this is intentional"
+      SecureLogger.info "[SECURITY] Global customer lookup performed for phone #{phone_number} - ensure this is intentional"
     end
 
     # Return Array for consistent type with instance method
@@ -311,7 +311,7 @@ class CustomerLinker
   # Safer alternative that requires explicit intent for global lookups
   # Use this when you specifically need to search across all businesses
   def self.find_customers_by_phone_across_all_businesses(phone_number)
-    Rails.logger.info "[SECURITY] Intentional global customer lookup for phone #{phone_number}"
+    SecureLogger.info "[SECURITY] Intentional global customer lookup for phone #{phone_number}"
     find_customers_by_phone_global(phone_number, nil)
   end
 
@@ -389,27 +389,27 @@ class CustomerLinker
     result = conflict_resolver.resolve_phone_conflicts_for_user(user, customer_finder: self)
 
     # Handle scenarios where merging and linking should happen
-    Rails.logger.info "[CUSTOMER_LINKER] Checking for duplicates to merge. Result keys: #{result.keys}"
+    SecureLogger.info "[CUSTOMER_LINKER] Checking for duplicates to merge. Result keys: #{result.keys}"
     if result[:duplicate_customers] && result[:canonical_customer]
       canonical = result[:canonical_customer]
       duplicates = result[:duplicate_customers]
 
-      Rails.logger.info "[CUSTOMER_LINKER] Found #{duplicates.count} duplicates for canonical customer #{canonical.id}"
+      SecureLogger.info "[CUSTOMER_LINKER] Found #{duplicates.count} duplicates for canonical customer #{canonical.id}"
 
       # IMPORTANT FIX: Merge duplicates first for data integrity, regardless of the linking outcome.
       # This addresses the failing test case where duplicates must be consolidated even if a
       # conflict prevents linking.
-      Rails.logger.info "[CUSTOMER_LINKER] Merging #{duplicates.count} duplicate customers for user #{user.id}"
+      SecureLogger.info "[CUSTOMER_LINKER] Merging #{duplicates.count} duplicate customers for user #{user.id}"
       begin
         merged_canonical = merge_duplicate_customers(duplicates)
-        Rails.logger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_canonical.phone}"
+        SecureLogger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_canonical.phone}"
       rescue => e
-        Rails.logger.error "[CUSTOMER_LINKER] Failed to merge duplicate customers: #{e.message}"
-        Rails.logger.error "[CUSTOMER_LINKER] Duplicate customer IDs: #{duplicates.map(&:id)}"
+        SecureLogger.error "[CUSTOMER_LINKER] Failed to merge duplicate customers: #{e.message}"
+        SecureLogger.error "[CUSTOMER_LINKER] Duplicate customer IDs: #{duplicates.map(&:id)}"
         raise e
       end
     else
-      Rails.logger.info "[CUSTOMER_LINKER] No duplicates to merge. duplicate_customers: #{result[:duplicate_customers]&.count}, canonical_customer: #{result[:canonical_customer]&.id}"
+      SecureLogger.info "[CUSTOMER_LINKER] No duplicates to merge. duplicate_customers: #{result[:duplicate_customers]&.count}, canonical_customer: #{result[:canonical_customer]&.id}"
     end
 
     # Handle linking logic if we have a canonical customer
@@ -433,7 +433,7 @@ class CustomerLinker
       else
         # Canonical already linked to different user. Merge happened above.
         # The merge is complete, but don't return customer to allow error to be raised later
-        Rails.logger.info "[CUSTOMER_LINKER] Phone conflict found: canonical customer #{canonical.id} linked to different user #{canonical.user_id}. Merge performed."
+        SecureLogger.info "[CUSTOMER_LINKER] Phone conflict found: canonical customer #{canonical.id} linked to different user #{canonical.user_id}. Merge performed."
       end
     end
 
@@ -450,7 +450,7 @@ class CustomerLinker
 
     # User should always be able to access their own existing customer account
     # Phone conflicts only prevent NEW linkages, not accessing existing ones
-    Rails.logger.info "[CUSTOMER_LINKER] User #{user.id} accessing existing linked customer #{existing_customer.id}"
+    SecureLogger.info "[CUSTOMER_LINKER] User #{user.id} accessing existing linked customer #{existing_customer.id}"
 
     # For idempotent calls, only sync basic info (not phone) to preserve data from duplicate resolution
     sync_user_data_to_customer(user, existing_customer, preserve_phone: true)
@@ -493,7 +493,7 @@ class CustomerLinker
     # Look for unlinked customer to reuse
     unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
     if unlinked_phone_customer
-      Rails.logger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user.phone} to user #{user.id}"
+      SecureLogger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user.phone} to user #{user.id}"
       # Link the existing customer to this user
       unlinked_phone_customer.update!(user_id: user.id)
       sync_user_data_to_customer(user, unlinked_phone_customer)
