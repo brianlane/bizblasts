@@ -440,7 +440,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       begin
         PolicyAcceptance.record_acceptance(user, policy_type, current_version.version, request)
-        Rails.logger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
+        SecureLogger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
       rescue => e
         Rails.logger.error "[REGISTRATION] Failed to record policy acceptance for #{policy_type}: #{e.message}"
       end

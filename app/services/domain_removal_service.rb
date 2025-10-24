@@ -191,7 +191,7 @@ class DomainRemovalService
     
     if owner
       # Would create DomainMailer.domain_removed email template
-      Rails.logger.info "[DomainRemovalService] Would send domain removal confirmation to #{owner.email}"
+      SecureLogger.info "[DomainRemovalService] Would send domain removal confirmation to #{owner.email}"
       # DomainMailer.domain_removed(@business, owner).deliver_now
     else
       Rails.logger.warn "[DomainRemovalService] No owner found for removal confirmation email"

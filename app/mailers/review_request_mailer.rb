@@ -65,7 +65,7 @@ class ReviewRequestMailer < ApplicationMailer
     )
     
   rescue => e
-    Rails.logger.error "[ReviewRequestMailer] Failed to send review request to #{@customer&.email}: #{e.message}"
+    SecureLogger.error "[ReviewRequestMailer] Failed to send review request to #{@customer&.email}: #{e.message}"
     Rails.logger.error "[ReviewRequestMailer] Error details: #{e.backtrace.first(5).join(', ')}"
     # Rails automatically returns proper ActionMailer object, don't return nil
     return

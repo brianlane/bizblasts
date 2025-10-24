@@ -90,7 +90,7 @@ class AvailabilityService
         daily_bookings = check_daily_booking_limit(staff_member, booking_date, exclude_booking_id)
         
         if daily_bookings >= policy.max_daily_bookings
-          Rails.logger.debug("FAILED: Max daily bookings (#{policy.max_daily_bookings}) reached for date #{booking_date}")
+          Rails.logger.debug("FAILED: Max daily bookings (#{policy.max_daily_bookings}) reached for requested date")
           return false
         end
       end
@@ -147,13 +147,13 @@ class AvailabilityService
         
         # Limit end_date to the max_advance_days
         if end_date > max_future_date
-          Rails.logger.debug("Limiting end date from #{end_date} to #{max_future_date} due to max_advance_days policy")
+          Rails.logger.debug("Limiting end date to maximum advance days policy (#{policy.max_advance_days} days)")
           end_date = max_future_date
         end
         
         # If start_date is already beyond max_advance_days, return empty hash
         if start_date > max_future_date
-          Rails.logger.debug("Start date #{start_date} exceeds maximum advance days (#{policy.max_advance_days})")
+          Rails.logger.debug("Start date exceeds maximum advance days policy (#{policy.max_advance_days} days)")
           return {}
         end
       end

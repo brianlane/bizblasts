@@ -431,7 +431,7 @@ module Public
       if current_user.present?
         # If user is logged in, ensure they have permission to view this booking
         unless user_can_view_booking?(@booking)
-          Rails.logger.warn "[SECURITY] Unauthorized booking access attempt: Booking=#{@booking.id}, User=#{current_user.email}, Customer=#{@booking.tenant_customer&.email}, IP=#{request.remote_ip}"
+          SecureLogger.warn "[SECURITY] Unauthorized booking access attempt: Booking=#{@booking.id}, User=#{current_user.email}, Customer=#{@booking.tenant_customer&.email}, IP=#{request.remote_ip}"
           flash[:alert] = "You are not authorized to view this booking."
           redirect_to tenant_root_path and return
         end

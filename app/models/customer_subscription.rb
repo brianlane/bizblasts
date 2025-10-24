@@ -337,7 +337,7 @@ class CustomerSubscription < ApplicationRecord
   def advance_billing_date!
     new_billing_date = calculate_next_billing_date
     update!(next_billing_date: new_billing_date)
-    SecureLogger.info "[SUBSCRIPTION] Advanced billing date for subscription #{id} to #{new_billing_date}"
+    SecureLogger.info "[SUBSCRIPTION] Advanced billing date for subscription #{id}"
     new_billing_date
   end
   

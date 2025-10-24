@@ -753,7 +753,7 @@ class Business < ApplicationRecord
 
       self.time_zone = tz if tz.present?
     rescue => e
-      Rails.logger.warn "[Business] Failed to look up timezone for #{full_address}: #{e.message}"
+      SecureLogger.warn "[Business] Failed to look up timezone for address: #{e.message}"
     end
   end
   

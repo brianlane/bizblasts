@@ -381,9 +381,9 @@ class TenantCustomer < ApplicationRecord
     # Explicitly set to false to ensure emails are enabled by default
     if email_marketing_opt_out.nil?
       if update_attribute(:email_marketing_opt_out, false)
-        Rails.logger.info "[TENANT_CUSTOMER] Set default email preferences for TenantCustomer ##{id} (#{email})"
+        SecureLogger.info "[TENANT_CUSTOMER] Set default email preferences for TenantCustomer ##{id} (#{email})"
       else
-        Rails.logger.error "[TENANT_CUSTOMER] Failed to set default email preferences for TenantCustomer ##{id} (#{email})"
+        SecureLogger.error "[TENANT_CUSTOMER] Failed to set default email preferences for TenantCustomer ##{id} (#{email})"
       end
     end
   end
@@ -404,9 +404,9 @@ class TenantCustomer < ApplicationRecord
           SmsService.send_business_new_customer(self, business_user)
         end
       end
-      Rails.logger.info "[NOTIFICATION] Scheduled business customer notification for Customer #{full_name} (#{email})"
+      SecureLogger.info "[NOTIFICATION] Scheduled business customer notification for Customer #{full_name} (#{email})"
     rescue => e
-      Rails.logger.error "[NOTIFICATION] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
+      SecureLogger.error "[NOTIFICATION] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
     end
   end
 end 

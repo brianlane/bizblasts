@@ -77,7 +77,7 @@ class CustomerConflictResolver
     email = user.email.downcase.strip
     existing_customer = @business.tenant_customers.find_by(email: email)
     if existing_customer&.user_id && existing_customer.user_id != user.id
-      Rails.logger.error "[CONFLICT_RESOLVER] Email conflict: #{email} already linked to different user #{existing_customer.user_id}"
+      SecureLogger.error "[CONFLICT_RESOLVER] Email conflict: #{email} already linked to different user #{existing_customer.user_id}"
 
       raise EmailConflictError.new(
         "Email #{email} is already associated with a different customer account in this business. Please contact support for assistance.",
@@ -107,7 +107,7 @@ class CustomerConflictResolver
   def check_phone_uniqueness(phone_customers, user)
     linked_to_different_user = phone_customers.find { |c| c.user_id.present? && c.user_id != user.id }
     if linked_to_different_user
-      Rails.logger.error "[CONFLICT_RESOLVER] Phone #{user.phone} already linked to different user #{linked_to_different_user.user_id}"
+      SecureLogger.error "[CONFLICT_RESOLVER] Phone #{user.phone} already linked to different user #{linked_to_different_user.user_id}"
       raise PhoneConflictError.new(
         "This phone number is already associated with another account. Please use a different phone number or contact support if this is your number.",
         phone: user.phone,
