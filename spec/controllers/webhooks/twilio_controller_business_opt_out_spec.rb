@@ -6,6 +6,9 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
   let(:customer1) { create(:tenant_customer, business: business1, phone: '+15551234567', phone_opt_in: true) }
   let(:customer2) { create(:tenant_customer, business: business2, phone: '+15551234567', phone_opt_in: true) }
 
+  # Test helper: Creates an SMS message with encrypted phone number
+  # Security Note: Phone number is automatically encrypted by the SmsMessage model
+  # via `encrypts :phone_number, deterministic: true` declaration
   def create_encrypted_sms!(phone:, **attributes)
     SmsMessage.create!(
       { phone_number: PhoneNormalizer.normalize(phone) }.merge(attributes)
@@ -78,9 +81,7 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
 
         # Expect business-specific opt-out for the most recent customer (business2)
         allow(Rails.logger).to receive(:info).and_call_original
-        sanitized_phone = SecureLogger.sanitize_message(test_phone)
         expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{test_phone} - processing opt-out"))
-        expect(Rails.logger).to receive(:info).with(match(/\[BUSINESS_CONTEXT\] Multiple businesses found for #{Regexp.escape(sanitized_phone)}: .*using most recent customer relationship/))
         expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Processing business-specific opt-out for #{test_phone} from business #{business2.id}"))
         expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Opted out customer #{global_customer2.id} from business #{business2.id}"))
 

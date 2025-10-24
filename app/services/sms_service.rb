@@ -940,8 +940,12 @@ class SmsService
       SecureLogger.error "[SMS_SERVICE] Could not determine business_id for SMS message"
       raise ArgumentError, "business_id is required for SMS messages"
     end
+    
+    # Security Note: Phone number is automatically encrypted via ActiveRecord::Encryption
+    # The SmsMessage model declares: encrypts :phone_number, deterministic: true
+    # This ensures the phone_number is encrypted before storage in phone_number_ciphertext column
     SmsMessage.create!(
-      phone_number: normalized_phone_number,
+      phone_number: normalized_phone_number, # Encrypted automatically by model
       content: content,
       status: :pending,
       business_id: business_id,

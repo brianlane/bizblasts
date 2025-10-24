@@ -4,11 +4,18 @@ class SmsMessage < ApplicationRecord
   belongs_to :tenant_customer
   belongs_to :booking, optional: true
 
-  # Map phone_number attribute to phone_number_ciphertext column for encryption
-  # The phone_number column was removed; we only have phone_number_ciphertext
+  # ===== PHONE NUMBER ENCRYPTION (Security) =====
+  # Phone numbers are PII and must be encrypted at rest for GDPR/CCPA compliance
+  # 
+  # Implementation:
+  # - The database has only 'phone_number_ciphertext' column (text type)
+  # - We use alias_attribute to map 'phone_number' to 'phone_number_ciphertext'
+  # - ActiveRecord::Encryption with deterministic: true handles encryption/decryption
+  # - Deterministic encryption allows for querying (e.g., for_phone scope)
+  # 
+  # Security: When you assign to phone_number, it's automatically encrypted
+  # before being stored in the phone_number_ciphertext column
   alias_attribute :phone_number, :phone_number_ciphertext
-  
-  # Encrypt phone numbers with deterministic encryption to allow querying
   encrypts :phone_number, deterministic: true
 
   validates :phone_number, presence: true

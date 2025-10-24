@@ -53,8 +53,8 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       it "recognizes '#{keyword.inspect}' as an opt-out keyword" do
         params = base_params.merge(Body: keyword)
         
+        allow(Rails.logger).to receive(:info).and_call_original
         expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from +15558675309 - processing opt-out"))
-        allow(Rails.logger).to receive(:info) # Allow other logging calls
         
         post "/webhooks/twilio/inbound", params: params
         
@@ -86,8 +86,8 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         
         params = base_params.merge(Body: keyword)
         
+        allow(Rails.logger).to receive(:info).and_call_original
         expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("START keyword received from +15558675309 - processing opt-in"))
-        allow(Rails.logger).to receive(:info) # Allow other logging calls
         
         post "/webhooks/twilio/inbound", params: params
         
@@ -110,12 +110,12 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         params = base_params.merge(Body: non_keyword)
         
         # Should NOT see opt-out/opt-in logging
+        allow(Rails.logger).to receive(:info).and_call_original
         expect(Rails.logger).not_to receive(:info).with(/STOP keyword received/)
         expect(Rails.logger).not_to receive(:info).with(/START keyword received/)
         
         # Should see "other inbound message" logging instead
         expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from +15558675309: #{non_keyword}"))
-        allow(Rails.logger).to receive(:info) # Allow other logging calls
         
         post "/webhooks/twilio/inbound", params: params
         
