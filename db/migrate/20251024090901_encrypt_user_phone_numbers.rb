@@ -13,22 +13,33 @@ class EncryptUserPhoneNumbers < ActiveRecord::Migration[8.0]
 
     # Encrypt existing phone numbers
     User.reset_column_information if User.respond_to?(:reset_column_information)
-    if User.column_names.include?("phone")
+
+    # Use a lightweight model to read legacy plaintext without invoking modern callbacks/encryption
+    legacy_user_class = Class.new(ActiveRecord::Base) do
+      self.table_name = "users"
+      self.inheritance_column = :_type_disabled
+    end
+
+    legacy_user_class.reset_column_information
+
+    if legacy_user_class.column_names.include?("phone")
+      encryptor = User.type_for_attribute("phone")
+      touch_updated_at = legacy_user_class.column_names.include?("updated_at")
+
       say_with_time "Encrypting phone numbers in users" do
-        User.where.not(phone: nil).find_each do |user|
-          # Read the raw plaintext value (skip decryption) and then write it back so
-          # Active Record encrypts it on save
-          plaintext = ActiveRecord::Encryption.without_encryption { user.read_attribute(:phone) }
+        legacy_user_class.where.not(phone: nil).find_each do |legacy_user|
+          plaintext = legacy_user[:phone]
+          ciphertext = legacy_user[:phone_ciphertext]
+          next if plaintext.blank? || ciphertext.present?
 
-          # Skip rows where ciphertext column is not available yet or already populated
-          unless user.has_attribute?(:phone_ciphertext)
-            Rails.logger&.debug("Skipping user ##{user.id} during phone encryption – ciphertext column missing")
-            next
-          end
+          normalized = PhoneNormalizer.normalize(plaintext)
+          updates = {
+            phone: normalized,
+            phone_ciphertext: normalized.present? ? encryptor.serialize(normalized) : nil
+          }
+          updates[:updated_at] = Time.current if touch_updated_at
 
-          next if user.read_attribute(:phone_ciphertext).present? || plaintext.blank?
-
-          user.update!(phone: plaintext)
+          legacy_user.update_columns(updates)
         end
       end
     end

@@ -7,10 +7,13 @@ module PhoneNormalizer
   module_function
 
   def normalize(raw_phone)
-    return if raw_phone.blank?
+    return raw_phone if raw_phone.blank?
 
     cleaned = raw_phone.gsub(/\D/, '')
-    return if cleaned.length < MINIMUM_DIGITS
+    return raw_phone if cleaned.blank?
+
+    # Preserve legacy behavior for short extensions by simply prefixing "+"
+    return "+#{cleaned}" if cleaned.length < MINIMUM_DIGITS
 
     normalized = cleaned.length == 10 ? DEFAULT_COUNTRY_CODE + cleaned : cleaned
     "+#{normalized}"
