@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_24_212327) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_24_221352) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -803,7 +803,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_24_212327) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1572,11 +1572,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_24_212327) do
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.jsonb "sms_opted_out_businesses", default: []
-    t.text "phone_ciphertext"
     t.string "phone"
     t.index "business_id, lower((email)::text)", name: "index_tenant_customers_on_business_id_and_lower_email", unique: true
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
-    t.index ["business_id", "phone_ciphertext"], name: "idx_tenant_cust_on_biz_and_phone_users_only", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["business_id", "phone"], name: "index_tenant_customers_on_business_phone_for_users", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
@@ -1675,13 +1674,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_24_212327) do
     t.datetime "phone_opt_in_at"
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.string "session_token"
-    t.text "phone_ciphertext"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["current_sign_in_at"], name: "index_users_on_current_sign_in_at"
     t.index ["email", "role"], name: "index_users_on_email_and_role"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["last_sign_in_at"], name: "index_users_on_last_sign_in_at"
-    t.index ["phone_ciphertext"], name: "index_users_on_phone_ciphertext"
     t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["session_token"], name: "index_users_on_session_token"

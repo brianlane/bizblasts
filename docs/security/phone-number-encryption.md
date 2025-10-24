@@ -10,7 +10,7 @@ Phone numbers are classified as Personally Identifiable Information (PII) and mu
 
 - **Column**: `phone_number` (text type)
 - **Important**: This column stores ONLY encrypted data, never plaintext
-- **Note**: The column name matches the attribute name, following Rails conventions
+- **Indexed**: Yes, for efficient querying with deterministic encryption
 
 ### Encryption Method
 
@@ -21,16 +21,21 @@ We use **Rails ActiveRecord::Encryption** with deterministic encryption:
 encrypts :phone_number, deterministic: true
 ```
 
-**That's it!** Rails automatically:
-- Encrypts data on write
-- Decrypts data on read  
+**Rails Convention**: When you use `encrypts :attribute_name`, Rails stores encrypted data in a column with the same name:
+- **Attribute**: `phone_number` (what you use in code)
+- **Column**: `phone_number` (where encrypted data is stored)
+- Simple and straightforward - no aliases or mappings needed!
+
+**Rails automatically:**
+- Encrypts data on write to `phone_number`
+- Decrypts data on read from `phone_number`  
 - Handles querying with deterministic encryption
 - Ensures plaintext NEVER touches the database
 
 ### How It Works
 
 1. **Assignment**: When you assign a value to `phone_number`, Rails automatically encrypts it
-2. **Storage**: The encrypted value is stored in the `phone_number` column in the database
+2. **Storage**: The encrypted value is stored in the `phone_number` column
 3. **Retrieval**: When you read `phone_number`, Rails automatically decrypts it
 4. **Querying**: Deterministic encryption allows querying by phone number using the `for_phone` scope
 
@@ -86,8 +91,8 @@ SmsMessage.for_phone("+15551234567")  # Uses encrypted comparison
 
 ### Model Declaration
 - **File**: `app/models/sms_message.rb`
-- **Lines**: 7-19 (encryption setup)
-- **Lines**: 31-38 (for_phone scope)
+- **Lines**: 7-21 (encryption setup with detailed comments)
+- **Lines**: 38-46 (for_phone scope)
 
 ### Service Usage
 - **File**: `app/services/sms_service.rb`
@@ -106,7 +111,7 @@ GitHub Advanced Security (CodeQL) may flag direct assignments to `phone_number` 
 
 1. Rails intercepts the assignment via the `encrypts` declaration
 2. Encryption happens **before** the value reaches the database
-3. The actual database column (`phone_number_ciphertext`) only contains encrypted data
+3. The actual database column (`phone_number`) only contains encrypted data
 
 ### Our Solution: Explicit Factory Method
 

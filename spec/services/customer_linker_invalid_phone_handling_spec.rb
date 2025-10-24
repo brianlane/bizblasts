@@ -256,8 +256,8 @@ RSpec.describe CustomerLinker, type: :service do
           phone: '' # Empty string
         )
 
-        # Empty string should not trigger validation or warning
-        expect(customer.phone).to eq('')
+        # Empty string normalized to nil by PhoneNormalizer
+        expect(customer.phone).to be_nil
       end
 
       it 'handles nil phone' do

@@ -65,7 +65,7 @@ class TenantCustomer < ApplicationRecord
     where(phone: normalized_set)
   }
   
-  scope :with_phone, -> { where.not(phone_ciphertext: nil) }
+  scope :with_phone, -> { where.not(phone: nil) }
   
   def full_name
     [first_name, last_name].compact.join(' ').presence || email
