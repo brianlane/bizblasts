@@ -107,12 +107,18 @@ RSpec.describe "CSRF Protection Configuration", type: :request do
     end
   end
 
-  describe "Public::OrdersController null_session pattern" do
-    it "uses null_session for promo code validation" do
+  describe "Public::OrdersController CSRF skip for JSON endpoint" do
+    it "skips CSRF only for JSON requests to validate_promo_code" do
       controller_file = File.read(Rails.root.join('app/controllers/public/orders_controller.rb'))
 
-      expect(controller_file).to include('null_session')
-      expect(controller_file).to include('validate_promo_code')
+      # Should use conditional skip_before_action with json_request? guard
+      expect(controller_file).to include('skip_before_action :verify_authenticity_token')
+      expect(controller_file).to include('only: [:validate_promo_code]')
+      expect(controller_file).to include('if: :json_request?')
+
+      # Should have the json_request? helper method
+      expect(controller_file).to include('def json_request?')
+      expect(controller_file).to include('request.format.json?')
     end
   end
 

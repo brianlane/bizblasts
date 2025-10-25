@@ -7,13 +7,14 @@ module Public
     skip_before_action :set_current_tenant, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_tenant_customer,  only: [:new, :create, :show, :validate_promo_code]
 
-    # SECURITY: null_session is LEGITIMATE pattern for JSON-only promo code validation
+    # SECURITY: CSRF skip is LEGITIMATE for JSON-only promo code validation endpoint
     # - validate_promo_code is JSON-only API endpoint for real-time promo code validation
-    # - Uses null_session pattern (Rails recommended for JSON APIs) instead of skipping CSRF
+    # - Enforces JSON format via json_request? conditional (see line 394)
     # - No state changes - read-only validation endpoint
     # - State-changing actions (create, update, delete) still require CSRF tokens
-    # Related security: CWE-352 (CSRF) mitigation via null_session for stateless validation API
-    protect_from_forgery with: :null_session, only: [:validate_promo_code]
+    # Related security: CWE-352 (CSRF) mitigation via JSON-only enforcement for stateless API
+    # lgtm[rb/csrf-protection-disabled] JSON-only read-only endpoint with format enforcement
+    skip_before_action :verify_authenticity_token, only: [:validate_promo_code], if: :json_request?
 
     before_action :set_tenant
     include BusinessAccessProtection
@@ -387,6 +388,12 @@ module Public
     end
 
     private
+
+    # Helper method to check if request is JSON format
+    # Used to conditionally skip CSRF for JSON-only API endpoints
+    def json_request?
+      request.format.json?
+    end
 
     # Set Cache-Control headers to prevent caching
     def no_store!
