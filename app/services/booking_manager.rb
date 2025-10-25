@@ -324,7 +324,7 @@ class BookingManager
       
       # Enhanced logging for audit trail
       if business_override
-        Rails.logger.info "[BookingManager] Manager override cancellation for Booking ##{booking.id} by User ##{current_user.id} (#{current_user.email})"
+        SecureLogger.info "[BookingManager] Manager override cancellation for Booking ##{booking.id} by User ##{current_user.id} (#{current_user.email})"
       else
         Rails.logger.info "[BookingManager] Normal cancellation for Booking ##{booking.id} by User ##{current_user&.id || 'system'}"
       end

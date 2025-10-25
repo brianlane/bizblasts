@@ -134,7 +134,7 @@ class ClientBookingsController < ApplicationController
   def set_booking
     # Security: Validate parameter before database query
     unless params[:id].present? && params[:id].to_i > 0
-      Rails.logger.warn "[SECURITY] Invalid booking ID parameter in client bookings: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
+      SecureLogger.warn "[SECURITY] Invalid booking ID parameter in client bookings: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
       redirect_to client_bookings_path, alert: "Invalid booking ID." and return
     end
 
@@ -146,7 +146,7 @@ class ClientBookingsController < ApplicationController
     
     unless @booking
       # Security: Log unauthorized access attempts
-      Rails.logger.warn "[SECURITY] Client attempted to access unauthorized booking: ID=#{params[:id]}, User=#{current_user.email}, IP=#{request.remote_ip}"
+      SecureLogger.warn "[SECURITY] Client attempted to access unauthorized booking: ID=#{params[:id]}, User=#{current_user.email}, IP=#{request.remote_ip}"
       redirect_to client_bookings_path, alert: "Booking not found." and return
     end
   end

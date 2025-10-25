@@ -9,7 +9,7 @@ class InvoiceMailer < ApplicationMailer
     # Add tier-specific features for premium businesses
     @include_analytics = @business.tier == 'premium'
     
-    Rails.logger.info "[EMAIL] InvoiceMailer.invoice_created preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
+    SecureLogger.info "[EMAIL] InvoiceMailer.invoice_created preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
     
     result = mail(
       to: @customer.email,
@@ -17,10 +17,10 @@ class InvoiceMailer < ApplicationMailer
       reply_to: @business.email
     )
     
-    Rails.logger.info "[EMAIL] InvoiceMailer.invoice_created mail object created successfully for: #{@customer.email}"
+    SecureLogger.info "[EMAIL] InvoiceMailer.invoice_created mail object created successfully for: #{@customer.email}"
     result
   rescue => e
-    Rails.logger.error "[EMAIL] InvoiceMailer.invoice_created failed for: #{@customer&.email} | Error: #{e.message}"
+    SecureLogger.error "[EMAIL] InvoiceMailer.invoice_created failed for: #{@customer&.email} | Error: #{e.message}"
     raise
   end
 
@@ -34,7 +34,7 @@ class InvoiceMailer < ApplicationMailer
     # Add tier-specific features for premium businesses
     @include_analytics = @business.tier == 'premium'
     
-    Rails.logger.info "[EMAIL] InvoiceMailer.payment_confirmation preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
+    SecureLogger.info "[EMAIL] InvoiceMailer.payment_confirmation preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
     
     mail(
       to: @customer.email,

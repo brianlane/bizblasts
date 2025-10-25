@@ -62,7 +62,7 @@ class CrossDomainLogoutJob < ApplicationJob
   # Log logout event for security monitoring
   def log_logout_event(user, ip_address)
     begin
-      Rails.logger.info "[LogoutEvent] User #{user.id} (#{user.email}) logged out from IP #{ip_address}"
+      SecureLogger.info "[LogoutEvent] User #{user.id} (#{user.email}) logged out from IP #{ip_address}"
 
       # Future: Could store logout events in a dedicated table for analytics
       # LogoutEvent.create!(user: user, ip_address: ip_address, logged_out_at: Time.current)

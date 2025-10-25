@@ -318,14 +318,14 @@ module Public
       # Security: Additional authorization check for logged-in users
       if current_user.present?
         unless user_can_view_order?(@order)
-          Rails.logger.warn "[SECURITY] Unauthorized order access attempt: Order=#{@order.id}, User=#{current_user.email}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
+          SecureLogger.warn "[SECURITY] Unauthorized order access attempt: Order=#{@order.id}, User=#{current_user.email}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
           flash[:alert] = "You are not authorized to view this order."
           redirect_to tenant_root_path and return
         end
       else
         # For guest users, we'll allow access but log it for monitoring
         # Consider adding guest_access_token similar to invoices for better security
-        Rails.logger.info "[ORDER] Guest access to order: Order=#{@order.id}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
+        SecureLogger.info "[ORDER] Guest access to order: Order=#{@order.id}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
       end
       
       # Renders public/orders/show which renders orders/show

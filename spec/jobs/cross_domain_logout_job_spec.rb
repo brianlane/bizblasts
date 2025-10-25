@@ -28,7 +28,9 @@ RSpec.describe CrossDomainLogoutJob, type: :job do
 
       it 'logs the start and completion of cleanup' do
         expect(Rails.logger).to receive(:info).with(/Starting cross-domain logout cleanup for user #{user.id}/).ordered
-        expect(Rails.logger).to receive(:info).with(/User #{user.id} \(#{user.email}\) logged out from IP #{ip_address}/).ordered
+        # SecureLogger.info is used for logout event (sanitizes email)
+        expect(SecureLogger).to receive(:sanitize_message).with(/User #{user.id} \(#{user.email}\) logged out from IP #{ip_address}/).and_call_original.ordered
+        allow(Rails.logger).to receive(:info).and_call_original
         expect(Rails.logger).to receive(:info).with(/Completed cleanup for user #{user.id} in \d+\.\d+s/).ordered
 
         perform_enqueued_jobs do
@@ -136,12 +138,16 @@ RSpec.describe CrossDomainLogoutJob, type: :job do
     let(:job) { CrossDomainLogoutJob.new }
 
     it 'logs the logout event with user and IP information' do
-      expect(Rails.logger).to receive(:info).with(/User #{user.id} \(#{user.email}\) logged out from IP #{ip_address}/)
+      # SecureLogger.info sanitizes the email before logging
+      expect(SecureLogger).to receive(:sanitize_message).with(/User #{user.id} \(#{user.email}\) logged out from IP #{ip_address}/).and_call_original
+      allow(Rails.logger).to receive(:info).and_call_original
       job.send(:log_logout_event, user, ip_address)
     end
 
     it 'handles nil IP address' do
-      expect(Rails.logger).to receive(:info).with(/User #{user.id} \(#{user.email}\) logged out from IP $/)
+      # SecureLogger.info sanitizes the email before logging
+      expect(SecureLogger).to receive(:sanitize_message).with(/User #{user.id} \(#{user.email}\) logged out from IP $/).and_call_original
+      allow(Rails.logger).to receive(:info).and_call_original
       job.send(:log_logout_event, user, nil)
     end
 
@@ -150,9 +156,8 @@ RSpec.describe CrossDomainLogoutJob, type: :job do
         # Create user without affecting factory creation
         test_user = build(:user, id: 999, email: 'test@example.com')
 
-        # Only mock the specific logging call that would fail
-        allow(Rails.logger).to receive(:info) # Allow other logging calls
-        allow(Rails.logger).to receive(:info).with(/User #{test_user.id}/).and_raise(StandardError.new("Logging error"))
+        # Mock SecureLogger.info to raise an error
+        allow(SecureLogger).to receive(:info).and_raise(StandardError.new("Logging error"))
 
         expect(Rails.logger).to receive(:error).with(/\[CrossDomainLogoutJob\] Failed to log logout event for user #{test_user.id}: Logging error/)
 

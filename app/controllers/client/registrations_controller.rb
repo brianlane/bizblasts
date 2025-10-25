@@ -60,9 +60,9 @@ class Client::RegistrationsController < Users::RegistrationsController
     result = ReferralService.process_referral_signup(referral_code, user, business)
     
     if result[:success]
-      Rails.logger.info "[REFERRAL] Processed referral signup: #{user.email} via #{referral_code}"
+      SecureLogger.info "[REFERRAL] Processed referral signup: #{user.email} via #{referral_code}"
     else
-      Rails.logger.warn "[REFERRAL] Failed to process referral signup: #{user.email} via #{referral_code} - #{result[:error]}"
+      SecureLogger.warn "[REFERRAL] Failed to process referral signup: #{user.email} via #{referral_code} - #{result[:error]}"
     end
   rescue => e
     Rails.logger.error "[REFERRAL] Error processing referral signup: #{e.message}"
@@ -80,7 +80,7 @@ class Client::RegistrationsController < Users::RegistrationsController
       
       begin
         PolicyAcceptance.record_acceptance(user, policy_type, current_version.version, request)
-        Rails.logger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
+        SecureLogger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
       rescue => e
         Rails.logger.error "[REGISTRATION] Failed to record policy acceptance for #{policy_type}: #{e.message}"
       end
