@@ -246,7 +246,7 @@ module BusinessManager
         google_maps_url = params[:input]&.strip
 
         if google_maps_url.blank?
-          return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_entity
+          return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_content
         end
 
         # SECURITY: Strict URL validation to prevent injection attacks
@@ -254,7 +254,7 @@ module BusinessManager
           return render json: {
             success: false,
             error: 'Invalid Google Maps URL. Must be from google.com or google.co domain.'
-          }, status: :unprocessable_entity
+          }, status: :unprocessable_content
         end
 
         # SECURITY: Rate limiting - check user-specific limit (5 per hour)

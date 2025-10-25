@@ -819,7 +819,7 @@ ActiveAdmin.register Business do
   member_action :stripe_diagnostics, method: :get do
     begin
       unless resource.stripe_account_id.present?
-        return render json: { error: 'No Stripe account connected' }, status: :unprocessable_entity
+        return render json: { error: 'No Stripe account connected' }, status: :unprocessable_content
       end
 
       StripeService.configure_stripe_api_key

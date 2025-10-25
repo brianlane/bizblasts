@@ -34,7 +34,7 @@ class Admin::SessionsController < ActiveAdmin::Devise::SessionsController
       flash.now[:error] = "Your session has expired. Please try logging in again."
 
       # Re-render the login form with the fresh token
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     else
       # For other actions, use default Rails behavior
       raise ActionController::InvalidAuthenticityToken

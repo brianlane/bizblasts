@@ -56,7 +56,7 @@ RSpec.describe "Admin::SessionsController CSRF Protection", type: :request do
         controller_file = File.read(Rails.root.join('app/controllers/admin/sessions_controller.rb'))
 
         expect(controller_file).to include('render :new')
-        expect(controller_file).to include('status: :unprocessable_entity')
+        expect(controller_file).to include('status: :unprocessable_content')
       end
     end
 
