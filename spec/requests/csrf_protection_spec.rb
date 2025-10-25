@@ -107,18 +107,16 @@ RSpec.describe "CSRF Protection Configuration", type: :request do
     end
   end
 
-  describe "Public::OrdersController CSRF skip for JSON endpoint" do
-    it "skips CSRF only for JSON requests to validate_promo_code" do
+  describe "Public::OrdersController CSRF protection" do
+    it "does not skip CSRF for validate_promo_code endpoint" do
       controller_file = File.read(Rails.root.join('app/controllers/public/orders_controller.rb'))
 
-      # Should use conditional skip_before_action with json_request? guard
-      expect(controller_file).to include('skip_before_action :verify_authenticity_token')
-      expect(controller_file).to include('only: [:validate_promo_code]')
-      expect(controller_file).to include('if: :json_request?')
+      # Should NOT skip CSRF for validate_promo_code
+      # AJAX requests automatically include CSRF token via X-CSRF-Token header
+      lines_with_skip = controller_file.lines.grep(/skip_before_action.*verify_authenticity_token.*validate_promo_code/)
 
-      # Should have the json_request? helper method
-      expect(controller_file).to include('def json_request?')
-      expect(controller_file).to include('request.format.json?')
+      expect(lines_with_skip).to be_empty,
+        "Public::OrdersController should not skip CSRF for validate_promo_code action"
     end
   end
 
@@ -132,8 +130,7 @@ RSpec.describe "CSRF Protection Configuration", type: :request do
         'app/controllers/health_controller.rb',
         'app/controllers/maintenance_controller.rb',
         'app/controllers/public/subdomains_controller.rb',
-        'app/controllers/users/sessions_controller.rb',
-        'app/controllers/public/orders_controller.rb'
+        'app/controllers/users/sessions_controller.rb'
       ]
 
       controllers_with_csrf_skips.each do |controller_path|
