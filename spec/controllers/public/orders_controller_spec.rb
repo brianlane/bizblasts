@@ -274,9 +274,15 @@ RSpec.describe Public::OrdersController, type: :controller do
   end
 
   describe 'POST #validate_promo_code' do
-    let!(:promo_code) { create(:promo_code, code: 'TESTCODE', business: business, discount_percentage: 10) }
-
     context 'with CSRF protection enabled' do
+      before do
+        # Mock the service to verify CSRF protection doesn't interfere
+        allow(PromoCodeService).to receive(:validate_code).and_return({ valid: true, type: 'percentage' })
+        allow(PromoCodeService).to receive(:transaction_has_discount_eligible_items?).and_return(true)
+        allow(PromoCodeService).to receive(:calculate_discount_eligible_amount).and_return(50.0)
+        allow(PromoCodeService).to receive(:calculate_discount).and_return(5.0)
+      end
+
       it 'requires CSRF token for POST requests' do
         # This test verifies CSRF protection is active
         # RSpec controller tests automatically include CSRF tokens, so we test the action works
@@ -290,8 +296,9 @@ RSpec.describe Public::OrdersController, type: :controller do
       before do
         allow(PromoCodeService).to receive(:validate_code).and_return({ valid: true, type: 'percentage' })
         allow(PromoCodeService).to receive(:calculate_discount).and_return(5.0)
-        allow(PromoCodeService).to receive(:send).with(:transaction_has_discount_eligible_items?, anything).and_return(true)
-        allow(PromoCodeService).to receive(:send).with(:calculate_discount_eligible_amount, anything).and_return(50.0)
+        # Stub private method calls that controller makes via .send()
+        allow(PromoCodeService).to receive(:transaction_has_discount_eligible_items?).and_return(true)
+        allow(PromoCodeService).to receive(:calculate_discount_eligible_amount).and_return(50.0)
       end
 
       it 'returns valid response with discount information' do
@@ -331,7 +338,8 @@ RSpec.describe Public::OrdersController, type: :controller do
     context 'with no discount-eligible items in cart' do
       before do
         allow(PromoCodeService).to receive(:validate_code).and_return({ valid: true, type: 'percentage' })
-        allow(PromoCodeService).to receive(:send).with(:transaction_has_discount_eligible_items?, anything).and_return(false)
+        # Stub private method that controller calls via .send()
+        allow(PromoCodeService).to receive(:transaction_has_discount_eligible_items?).and_return(false)
       end
 
       it 'returns error when no items are eligible' do
