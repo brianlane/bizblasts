@@ -136,9 +136,9 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
   # GET /manage/settings/business/check_domain_status
   def check_domain_status
     unless @business.host_type_custom_domain? && @business.hostname.present?
-      return render json: { 
-        error: 'Domain status checking is only available for custom domains' 
-      }, status: :unprocessable_entity
+      return render json: {
+        error: 'Domain status checking is only available for custom domains'
+      }, status: :unprocessable_content
     end
 
     begin
@@ -233,7 +233,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
   # Does not send emails and keeps GET semantics clean.
   def finalize_domain_activation
     unless @business.host_type_custom_domain? && @business.hostname.present?
-      return render json: { error: 'Activation only applies to custom domains' }, status: :unprocessable_entity
+      return render json: { error: 'Activation only applies to custom domains' }, status: :unprocessable_content
     end
 
     begin
@@ -266,7 +266,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         return render json: {
           activated: false,
           status_message: verification_result[:status_reason]
-        }, status: :unprocessable_entity
+        }, status: :unprocessable_content
       end
 
       # Persist activation idempotently (no emails here)

@@ -1,5 +1,9 @@
 class StripeWebhooksController < ApplicationController
-  # Skip CSRF and auth for webhooks
+  # SECURITY: CSRF skip is LEGITIMATE for external webhooks
+  # - This is called by Stripe servers, not user browsers (no session context)
+  # - Security is provided by Stripe signature verification (see line 12-13, 50)
+  # - Webhook endpoint secret validates authenticity of requests
+  # Related security: CWE-352 (CSRF) mitigation via alternative authentication
   skip_before_action :verify_authenticity_token
   skip_before_action :authenticate_user!
   # Skip tenant setting since we'll handle it manually from webhook data

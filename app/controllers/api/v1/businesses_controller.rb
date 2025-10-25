@@ -1,10 +1,15 @@
 require 'ostruct'
 
 class Api::V1::BusinessesController < ApplicationController
-  # Skip Rails authentication for all API endpoints - we use API key auth instead
+  # SECURITY: CSRF skip is LEGITIMATE for API endpoints
+  # - API uses API key authentication, not session-based auth (see authenticate_api_access on line 11)
+  # - API keys provided in X-API-Key header or api_key parameter (see lines 148-149)
+  # - CSRF protection is session-based and doesn't apply to stateless API requests
+  # - Rate limiting provides additional protection (see check_api_rate_limit on line 10)
+  # Related security: CWE-352 (CSRF) mitigation via API key authentication
   skip_before_action :authenticate_user!
   skip_before_action :verify_authenticity_token
-  
+
   # Add CORS headers for API access
   before_action :set_cors_headers
   before_action :check_api_rate_limit

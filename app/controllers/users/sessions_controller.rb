@@ -16,9 +16,13 @@ module Users
     
     # Skip tenant verification for sign out to allow proper cleanup
     # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
-    
-    # Skip CSRF verification for JSON requests during authentication
-    # This is needed for API-based authentication flows
+
+    # SECURITY: CSRF skip is LEGITIMATE for JSON API authentication
+    # - Only applies to JSON format requests (see if condition)
+    # - Used for API-based authentication flows (mobile apps, SPAs)
+    # - JSON API requests don't use session cookies, so CSRF doesn't apply
+    # - Regular web form logins still require CSRF tokens (HTML format)
+    # Related security: CWE-352 (CSRF) N/A for stateless JSON API authentication
     skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects

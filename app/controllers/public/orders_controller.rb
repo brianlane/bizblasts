@@ -6,7 +6,7 @@ module Public
     skip_before_action :authenticate_user!, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_current_tenant, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_tenant_customer,  only: [:new, :create, :show, :validate_promo_code]
-    skip_before_action :verify_authenticity_token, only: [:validate_promo_code]
+
     before_action :set_tenant
     include BusinessAccessProtection
     before_action :check_business_user_checkout_access, only: [:new, :create]

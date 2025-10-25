@@ -104,7 +104,7 @@ class AuthenticationBridgeController < ApplicationController
       canonical_host = business.canonical_domain.presence || business.hostname
       unless canonical_host.present?
         Rails.logger.warn "[AuthBridge] Business #{business_id} has no canonical host configured"
-        render json: { error: 'Business not configured for bridge' }, status: :unprocessable_entity
+        render json: { error: 'Business not configured for bridge' }, status: :unprocessable_content
         return
       end
 
