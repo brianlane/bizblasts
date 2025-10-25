@@ -7,7 +7,11 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   before_action :set_stripe_api_key, only: [:create_checkout_session, :customer_portal_session, :webhook]
   before_action :validate_premium_upgrade_requirements, only: [:create_checkout_session]
 
-  # Webhook specific skips - it authenticates via Stripe signature and operates outside user session context
+  # SECURITY: CSRF skip is LEGITIMATE for webhook endpoint only
+  # - Webhook is called by Stripe servers, not user browsers (no session context)
+  # - Security provided by Stripe signature verification (see lines 82-104)
+  # - endpoint_secret validates authenticity of webhook requests
+  # Related security: CWE-352 (CSRF) mitigation via Stripe webhook signature
   skip_before_action :verify_authenticity_token, only: [:webhook]
   skip_before_action :authenticate_user!, only: [:webhook]
   skip_before_action :set_tenant_for_business_manager, only: [:webhook]

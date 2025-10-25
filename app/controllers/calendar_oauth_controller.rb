@@ -1,8 +1,14 @@
 # frozen_string_literal: true
 
 class CalendarOauthController < ApplicationController
+  # SECURITY: CSRF skip is LEGITIMATE for OAuth callback
+  # - This follows standard OAuth 2.0 security flow
+  # - Security provided by OAuth state parameter validation (see lines 9, 19)
+  # - State parameter prevents CSRF attacks in OAuth flows
+  # - Callback is initiated by external OAuth provider (Google, Microsoft)
+  # Related security: CWE-352 (CSRF) mitigation via OAuth state parameter
   skip_before_action :verify_authenticity_token, only: [:callback]
-  
+
   def callback
     provider = params[:provider]
     code = params[:code]

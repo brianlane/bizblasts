@@ -4,8 +4,8 @@
 # Uses signed tracking tokens to identify and suppress future review requests
 class ReviewRequestUnsubscribesController < ApplicationController
   skip_before_action :authenticate_user! # Allow public access via signed token
-  skip_before_action :verify_authenticity_token # Skip CSRF for GET requests with tokens
-  
+  # CSRF Note: No skip needed - show action is GET-only and uses signed token verification
+
   # Handle unsubscribe request via GET with signed token
   def show
     @token = params[:token]

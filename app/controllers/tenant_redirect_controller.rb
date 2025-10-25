@@ -1,7 +1,7 @@
 class TenantRedirectController < ApplicationController
   skip_before_action :authenticate_user!
   skip_before_action :redirect_custom_domain_management_paths, raise: false
-  skip_before_action :verify_authenticity_token, raise: false
+  # CSRF Note: No skip needed - this controller only handles GET redirects (see routes.rb line 546)
 
   # Redirect /manage or /admin requests that arrive on a custom domain back to the canonical sub-domain.
   # Example:

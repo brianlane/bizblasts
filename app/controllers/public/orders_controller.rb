@@ -6,7 +6,15 @@ module Public
     skip_before_action :authenticate_user!, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_current_tenant, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_tenant_customer,  only: [:new, :create, :show, :validate_promo_code]
-    skip_before_action :verify_authenticity_token, only: [:validate_promo_code]
+
+    # SECURITY: null_session is LEGITIMATE pattern for JSON-only promo code validation
+    # - validate_promo_code is JSON-only API endpoint for real-time promo code validation
+    # - Uses null_session pattern (Rails recommended for JSON APIs) instead of skipping CSRF
+    # - No state changes - read-only validation endpoint
+    # - State-changing actions (create, update, delete) still require CSRF tokens
+    # Related security: CWE-352 (CSRF) mitigation via null_session for stateless validation API
+    protect_from_forgery with: :null_session, only: [:validate_promo_code]
+
     before_action :set_tenant
     include BusinessAccessProtection
     before_action :check_business_user_checkout_access, only: [:new, :create]

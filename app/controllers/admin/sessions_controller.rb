@@ -4,16 +4,15 @@
 # This controller addresses the 422 error that occurs when logging into admin
 # after logging out of a regular user account
 class Admin::SessionsController < ActiveAdmin::Devise::SessionsController
-  
+
   # Reset CSRF token before showing login form to prevent stale tokens
   before_action :reset_csrf_token, only: [:new]
-  
-  # Skip CSRF verification for create action if coming from a cross-session scenario
-  skip_before_action :verify_authenticity_token, only: [:create], 
-    if: -> { cross_session_login_attempt? }
-  
+
+  # Handle CSRF verification failures gracefully by regenerating token and re-rendering form
+  rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_token
+
   private
-  
+
   # Reset the CSRF token to ensure fresh token for login form
   def reset_csrf_token
     # Force a new CSRF token to be generated
@@ -21,12 +20,24 @@ class Admin::SessionsController < ActiveAdmin::Devise::SessionsController
     form_authenticity_token
     Rails.logger.debug "[Admin::Sessions] CSRF token reset for login form"
   end
-  
-  # Detect if this is a login attempt coming from a different session type
-  def cross_session_login_attempt?
-    # Check if we're in a POST request with admin_user params but no valid CSRF token
-    request.post? && 
-    params[:admin_user].present? && 
-    !verified_request?
+
+  # Handle invalid CSRF tokens by regenerating and showing error
+  def handle_invalid_token
+    # Only handle this for login attempts, not for other potential actions
+    if request.post? && action_name == 'create'
+      Rails.logger.warn "[Admin::Sessions] Invalid CSRF token detected for login attempt from IP: #{request.remote_ip}"
+
+      # Regenerate the CSRF token for a fresh attempt
+      reset_csrf_token
+
+      # Set an error message
+      flash.now[:error] = "Your session has expired. Please try logging in again."
+
+      # Re-render the login form with the fresh token
+      render :new, status: :unprocessable_entity
+    else
+      # For other actions, use default Rails behavior
+      raise ActionController::InvalidAuthenticityToken
+    end
   end
 end 

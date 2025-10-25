@@ -185,9 +185,11 @@ RSpec.describe ReviewRequestUnsubscribesController, type: :controller do
         get :show, params: { token: valid_token }
       end
 
-      it 'skips CSRF verification' do
-        expect(controller).not_to receive(:verify_authenticity_token)
+      it 'does not require CSRF verification for GET requests' do
+        # GET requests don't trigger CSRF verification by design
+        # Security is provided by signed token verification instead
         get :show, params: { token: valid_token }
+        expect(response).to have_http_status(:success)
       end
 
       it 'renders the show view (layout not asserted)' do

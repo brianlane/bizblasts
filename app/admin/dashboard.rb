@@ -3,8 +3,6 @@ ActiveAdmin.register_page "Dashboard" do
   menu priority: 1, label: proc { I18n.t("active_admin.dashboard") }
 
   controller do
-    skip_before_action :verify_authenticity_token, only: [:index]
-    
     def index
       # Debug: Output the current tenant to server logs
       Rails.logger.info "DASHBOARD CONTROLLER - Current Tenant: #{ActsAsTenant.current_tenant&.name || 'nil'}"
