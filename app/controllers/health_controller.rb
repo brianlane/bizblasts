@@ -1,19 +1,13 @@
 # frozen_string_literal: true
 
-# HealthController provides endpoints for monitoring the application status
-# It includes basic health checks and database connectivity verification
-class HealthController < ApplicationController
-  # SECURITY: CSRF skip is LEGITIMATE for monitoring endpoints
-  # - Health checks are GET requests that don't modify state (read-only)
-  # - Used by monitoring services (Render.com, uptime monitors) that don't have sessions
-  # - JSON-only responses, no HTML forms or state changes
-  # - db_check requires authentication token in production (see line 26)
-  # Related security: CWE-352 (CSRF) N/A for read-only monitoring endpoints
-  # codeql[rb-csrf-protection-disabled]
-  skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
-  skip_before_action :authenticate_user!
-  skip_before_action :set_tenant  # Health checks should not depend on tenant context
-  skip_before_action :check_database_connection, only: %i[check db_check]
+# HealthController provides JSON endpoints for monitoring application status
+# Inherits from ApiController (ActionController::API) which has no CSRF protection
+# This eliminates CodeQL alerts while maintaining security for monitoring endpoints
+# Related: CWE-352 CSRF protection restructuring
+class HealthController < ApiController
+  # CSRF protection not needed: ApiController doesn't include RequestForgeryProtection module
+  # JSON format enforcement handled by ApiController base class
+  # No sessions, no state changes - pure monitoring endpoints
 
   # Simple health check endpoint
   def check
