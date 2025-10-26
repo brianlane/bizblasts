@@ -4,7 +4,7 @@ class StripeWebhooksController < ApplicationController
   # - Security is provided by Stripe signature verification (see line 12-13, 50)
   # - Webhook endpoint secret validates authenticity of requests
   # Related security: CWE-352 (CSRF) mitigation via alternative authentication
-  # lgtm[rb/csrf-protection-disabled]
+  # codeql[rb/csrf-protection-disabled]
   skip_before_action :verify_authenticity_token
   skip_before_action :authenticate_user!
   # Skip tenant setting since we'll handle it manually from webhook data
