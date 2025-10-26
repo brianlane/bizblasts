@@ -197,15 +197,16 @@ This section documents the comprehensive fixes for all 13 CodeQL security alerts
 
 **Suppression Comment Format**:
 ```ruby
-# codeql[rb/csrf-protection-disabled]
+# codeql[rb-csrf-protection-disabled]
 skip_before_action :verify_authenticity_token
 ```
 
 **Technical Details**:
 - CodeQL requires suppression comments on a separate line before the alert
 - Modern syntax `# codeql[query-id]` is recommended over legacy `# lgtm[query-id]`
-- Query ID for CSRF protection is `rb/csrf-protection-disabled`
+- Query ID for CSRF protection uses **dashes** not slashes: `rb-csrf-protection-disabled`
 - Comments must be placed on a blank line immediately before the problematic code
+- **Important**: The query ID syntax uses dashes (`rb-csrf-protection-disabled`) not slashes (`rb/csrf-protection-disabled`)
 
 ### 5. Created Frontend CSRF Documentation ✅
 **Issue**: No documentation existed explaining how CSRF tokens work with AJAX requests.
