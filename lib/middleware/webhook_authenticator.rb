@@ -3,12 +3,11 @@
 module Middleware
   # Webhook signature verification middleware
   #
-  # This middleware verifies webhook signatures BEFORE requests reach controllers,
+  # This middleware verifies Stripe webhook signatures BEFORE requests reach controllers,
   # providing defense-in-depth security for external webhook endpoints.
   #
   # Supports:
   # - Stripe webhook signature verification (HMAC-SHA256)
-  # - Twilio webhook signature verification (X-Twilio-Signature)
   #
   # Security benefits:
   # - Controllers can enable full CSRF protection (no skips needed)
@@ -16,16 +15,14 @@ module Middleware
   # - Tenant context is not modified (maintains isolation)
   # - Failed verification returns 401 before controller processing
   #
+  # Note: Other webhook providers (e.g., Twilio) use ActionController::API
+  # and verify signatures in their controllers directly.
+  #
   # Related: CWE-352 CSRF protection restructuring
   class WebhookAuthenticator
     STRIPE_PATHS = %r{
       ^/webhooks/stripe$ |
       ^/manage/settings/subscriptions/webhook$
-    }x
-
-    TWILIO_PATHS = %r{
-      ^/webhooks/twilio$ |
-      ^/webhooks/plivo$
     }x
 
     def initialize(app)
@@ -52,14 +49,12 @@ module Middleware
     private
 
     def webhook_path?(path)
-      STRIPE_PATHS.match?(path) || TWILIO_PATHS.match?(path)
+      STRIPE_PATHS.match?(path)
     end
 
     def verify_signature(request)
       if STRIPE_PATHS.match?(request.path)
         verify_stripe_signature(request)
-      elsif TWILIO_PATHS.match?(request.path)
-        verify_twilio_signature(request)
       else
         false
       end
@@ -85,37 +80,6 @@ module Middleware
         false
       rescue Stripe::SignatureVerificationError => e
         Rails.logger.warn "[WebhookAuth] Stripe signature verification failed: #{e.message}"
-        false
-      end
-    end
-
-    def verify_twilio_signature(request)
-      auth_token = ENV['TWILIO_AUTH_TOKEN']
-      return false if auth_token.blank?
-
-      begin
-        validator = Twilio::Security::RequestValidator.new(auth_token)
-
-        # Construct full URL including query string
-        url = "#{request.scheme}://#{request.host_with_port}#{request.fullpath}"
-
-        # Get POST parameters
-        params = request.request_parameters
-
-        # Get signature from header
-        signature = request.env['HTTP_X_TWILIO_SIGNATURE']
-        return false if signature.blank?
-
-        # Validate signature
-        valid = validator.validate(url, params, signature)
-
-        unless valid
-          Rails.logger.warn "[WebhookAuth] Twilio signature validation failed for URL: #{url}"
-        end
-
-        valid
-      rescue => e
-        Rails.logger.error "[WebhookAuth] Twilio signature verification error: #{e.class.name} - #{e.message}"
         false
       end
     end

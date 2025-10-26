@@ -31,18 +31,6 @@ RSpec.describe Middleware::WebhookAuthenticator do
       expect(response[0]).to eq(401)
     end
 
-    it 'recognizes Twilio webhook path' do
-      response = make_request(path: '/webhooks/twilio')
-      # Should return 401 because signature is missing/invalid
-      expect(response[0]).to eq(401)
-    end
-
-    it 'recognizes Plivo webhook path (Twilio-compatible)' do
-      response = make_request(path: '/webhooks/plivo')
-      # Should return 401 because signature is missing/invalid
-      expect(response[0]).to eq(401)
-    end
-
     it 'allows non-webhook paths through without verification' do
       response = make_request(path: '/api/businesses')
       # Should pass through to app without verification
@@ -149,75 +137,6 @@ RSpec.describe Middleware::WebhookAuthenticator do
       )
 
       expect(response[0]).to eq(200)
-    end
-  end
-
-  describe 'Twilio signature verification' do
-    let(:auth_token) { 'test_twilio_auth_token' }
-    let(:url) { 'http://localhost/webhooks/twilio' }
-    let(:params) { { 'From' => '+15555555555', 'Body' => 'Test message' } }
-    let(:valid_signature) { 'valid_twilio_signature' }
-
-    before do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('TWILIO_AUTH_TOKEN').and_return(auth_token)
-    end
-
-    def make_twilio_request(signature: nil)
-      # Need to create a proper Rack env with parsed params
-      env = Rack::MockRequest.env_for(
-        'http://localhost/webhooks/twilio',
-        method: 'POST',
-        'CONTENT_TYPE' => 'application/x-www-form-urlencoded',
-        input: StringIO.new('From=%2B15555555555&Body=Test')
-      )
-      env['HTTP_X_TWILIO_SIGNATURE'] = signature if signature
-      # Manually set the parsed params as Rack would
-      env['action_dispatch.request.request_parameters'] = { 'From' => '+15555555555', 'Body' => 'Test' }
-      middleware.call(env)
-    end
-
-    it 'rejects requests without signature header' do
-      response = make_twilio_request
-      expect(response[0]).to eq(401)
-    end
-
-    it 'rejects requests with invalid signature' do
-      validator = instance_double(Twilio::Security::RequestValidator)
-      allow(Twilio::Security::RequestValidator).to receive(:new).with(auth_token).and_return(validator)
-      allow(validator).to receive(:validate).and_return(false)
-
-      response = make_twilio_request(signature: 'invalid_signature')
-      expect(response[0]).to eq(401)
-    end
-
-    it 'accepts requests with valid Twilio signature' do
-      validator = instance_double(Twilio::Security::RequestValidator)
-      allow(Twilio::Security::RequestValidator).to receive(:new).with(auth_token).and_return(validator)
-      allow(validator).to receive(:validate).and_return(true)
-
-      response = make_twilio_request(signature: valid_signature)
-      expect(response[0]).to eq(200)
-    end
-
-    it 'constructs correct URL for signature validation' do
-      validator = instance_double(Twilio::Security::RequestValidator)
-      allow(Twilio::Security::RequestValidator).to receive(:new).and_return(validator)
-
-      expect(validator).to receive(:validate).with(
-        'http://localhost/webhooks/twilio',
-        anything,
-        valid_signature
-      ).and_return(true)
-
-      make_twilio_request(signature: valid_signature)
-    end
-
-    it 'handles validator errors gracefully' do
-      allow(Twilio::Security::RequestValidator).to receive(:new).and_raise(StandardError.new('Validator error'))
-
-      response = make_twilio_request(signature: valid_signature)
-      expect(response[0]).to eq(401)
     end
   end
 

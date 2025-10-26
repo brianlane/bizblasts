@@ -378,7 +378,8 @@ Instead of using suppression comments to silence CodeQL alerts, we restructured 
 
 **Supported Webhooks**:
 - Stripe webhooks (`/webhooks/stripe`, `/manage/settings/subscriptions/webhook`)
-- Twilio webhooks (`/webhooks/twilio`, `/webhooks/plivo`)
+
+**Note**: Other webhook providers (e.g., Twilio) use ActionController::API and verify signatures in their controllers directly.
 
 **Security Benefits**:
 - Defense-in-depth: middleware + controller CSRF protection
@@ -387,17 +388,17 @@ Instead of using suppression comments to silence CodeQL alerts, we restructured 
 - Request body automatically rewound for controller access
 
 **Verification Process**:
-1. Middleware intercepts webhook requests
-2. Verifies cryptographic signatures (Stripe HMAC, Twilio validation)
+1. Middleware intercepts Stripe webhook requests
+2. Verifies cryptographic signatures (Stripe HMAC-SHA256)
 3. Returns 401 Unauthorized if signature invalid
 4. Passes verified requests to controllers
 
-**Test Coverage**: 28 passing tests
+**Test Coverage**: 21 passing tests
 - Stripe signature verification
-- Twilio signature verification
 - Tenant isolation
 - Error handling
 - Logging
+- Integration with application
 
 **Files Created**:
 - `lib/middleware/webhook_authenticator.rb` (middleware implementation)
@@ -536,9 +537,9 @@ Instead of using suppression comments to silence CodeQL alerts, we restructured 
   - 1 Session controller (enhanced documentation)
 
 ### Test Coverage
-- **New Tests Created**: 44
+- **New Tests Created**: 37
   - 16 ApiController tests
-  - 28 Webhook middleware tests
+  - 21 Webhook middleware tests (Stripe-only)
 
 - **Existing Tests Verified**: 73
   - 8 Subdomain API tests
@@ -547,7 +548,7 @@ Instead of using suppression comments to silence CodeQL alerts, we restructured 
   - 8 OAuth URL tests
   - 27 Session tests
 
-- **Total Tests**: 117 passing
+- **Total Tests**: 110 passing
 
 ### Files Created (4)
 1. `app/controllers/api_controller.rb` - Base class for stateless APIs
@@ -631,7 +632,7 @@ All changes committed atomically to `fix-vulns` branch:
 - ✅ Atomic commits for easy rollback if needed
 
 ### Testing
-- ✅ Comprehensive test coverage (117 tests)
+- ✅ Comprehensive test coverage (110 tests)
 - ✅ No test failures or regressions
 - ✅ All existing functionality preserved
 - ✅ Multi-tenant session flows verified
