@@ -5,8 +5,11 @@ require 'ostruct'
 # This eliminates CodeQL alerts while maintaining security through API key authentication
 # Related: CWE-352 CSRF protection restructuring
 class Api::V1::BusinessesController < ApiController
-  # CSRF protection not needed: ApiController doesn't include RequestForgeryProtection module
-  # Security provided by API key authentication (see authenticate_api_access)
+  # SECURITY: CSRF protection not needed for stateless JSON API
+  # - ApiController doesn't include RequestForgeryProtection module
+  # - Security provided by API key authentication (see authenticate_api_access)
+  # - No session cookies or browser-based authentication
+  # Related: CWE-352 CSRF protection restructuring
 
   # Add CORS headers for API access
   before_action :set_cors_headers

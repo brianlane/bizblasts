@@ -7,15 +7,18 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   before_action :set_stripe_api_key, only: [:create_checkout_session, :customer_portal_session, :webhook]
   before_action :validate_premium_upgrade_requirements, only: [:create_checkout_session]
 
-  # SECURITY: Signature verification handled by WebhookAuthenticator middleware
-  # - Middleware verifies Stripe signature before request reaches controller
-  # - Controller can now use full CSRF protection (no skip needed)
-  # - Defense-in-depth: middleware + ApplicationController CSRF protection
+  # SECURITY: Defense-in-depth webhook protection
+  # 1. WebhookAuthenticator middleware verifies Stripe signatures (HMAC-SHA256)
+  # 2. CSRF protection is skipped because webhooks don't have CSRF tokens
+  # 3. Signature verification provides authentication for external callbacks
+  # This approach is standard for webhooks per Stripe documentation:
+  # https://stripe.com/docs/webhooks/signatures
   # Related: CWE-352 CSRF protection restructuring
 
   skip_before_action :authenticate_user!, only: [:webhook]  # External webhook, no user session
   skip_before_action :set_tenant_for_business_manager, only: [:webhook]  # Tenant extracted from webhook
   skip_before_action :authorize_access_to_business_manager, only: [:webhook]  # External webhook
+  skip_before_action :verify_authenticity_token, only: [:webhook]  # External webhook, uses signature auth
   # set_stripe_api_key is already covered by only/except. set_business is now covered by except.
 
   def show

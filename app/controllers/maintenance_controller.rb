@@ -3,9 +3,10 @@
 # Controller for displaying maintenance pages
 # Used during scheduled maintenance and for handling error states
 class MaintenanceController < ApplicationController
-  # SECURITY: No CSRF skip needed
+  # SECURITY: No CSRF skip needed for maintenance/error pages
   # - HTML responses use full CSRF protection
   # - GET-only endpoint that doesn't modify state
+  # - Public maintenance/error pages don't require authentication
   # Related: CWE-352 CSRF protection restructuring
 
   skip_before_action :authenticate_user!  # Public maintenance page

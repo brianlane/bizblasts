@@ -1,12 +1,15 @@
 class StripeWebhooksController < ApplicationController
-  # SECURITY: Signature verification handled by WebhookAuthenticator middleware
-  # - Middleware verifies Stripe signature before request reaches controller
-  # - Controller can now use full CSRF protection (no skip needed)
-  # - Defense-in-depth: middleware + ApplicationController CSRF protection
+  # SECURITY: Defense-in-depth webhook protection
+  # 1. WebhookAuthenticator middleware verifies Stripe signatures (HMAC-SHA256)
+  # 2. CSRF protection is skipped because webhooks don't have CSRF tokens
+  # 3. Signature verification provides authentication for external callbacks
+  # This approach is standard for webhooks per Stripe documentation:
+  # https://stripe.com/docs/webhooks/signatures
   # Related: CWE-352 CSRF protection restructuring
 
   skip_before_action :authenticate_user!  # External webhook, no user session
   skip_before_action :set_tenant  # Tenant extracted from webhook payload
+  skip_before_action :verify_authenticity_token  # External webhook, uses signature auth
 
   # POST /webhooks/stripe
   def create

@@ -5,9 +5,11 @@
 # This eliminates CodeQL alerts while maintaining security for monitoring endpoints
 # Related: CWE-352 CSRF protection restructuring
 class HealthController < ApiController
-  # CSRF protection not needed: ApiController doesn't include RequestForgeryProtection module
-  # JSON format enforcement handled by ApiController base class
-  # No sessions, no state changes - pure monitoring endpoints
+  # SECURITY: CSRF protection not needed for monitoring endpoints
+  # - ApiController doesn't include RequestForgeryProtection module
+  # - JSON format enforcement handled by ApiController base class
+  # - No sessions, no state changes - pure monitoring endpoints
+  # Related: CWE-352 CSRF protection restructuring
 
   # Simple health check endpoint
   def check

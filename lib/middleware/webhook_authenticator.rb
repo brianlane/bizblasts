@@ -9,11 +9,17 @@ module Middleware
   # Supports:
   # - Stripe webhook signature verification (HMAC-SHA256)
   #
-  # Security benefits:
-  # - Controllers can enable full CSRF protection (no skips needed)
+  # Security benefits (Defense-in-Depth):
   # - Signature verification happens at middleware layer (earlier in request cycle)
+  # - Controllers still require CSRF skip (webhooks don't have CSRF tokens)
+  # - Middleware + controller CSRF skip = defense-in-depth
   # - Tenant context is not modified (maintains isolation)
   # - Failed verification returns 401 before controller processing
+  #
+  # Architecture:
+  # Layer 1 (Middleware): Verifies cryptographic signatures
+  # Layer 2 (Controller): Skips CSRF check (not applicable to webhooks)
+  # Together: Provides authentication without false token requirements
   #
   # Note: Other webhook providers (e.g., Twilio) use ActionController::API
   # and verify signatures in their controllers directly.
@@ -65,12 +71,18 @@ module Middleware
       request.body.rewind # Important: rewind so controller can read again
       sig_header = request.env['HTTP_STRIPE_SIGNATURE']
 
-      return false if sig_header.blank?
+      if sig_header.blank?
+        Rails.logger.error "[WebhookAuth] Stripe signature header missing - webhook request rejected"
+        return false
+      end
 
       endpoint_secret = Rails.application.credentials.dig(:stripe, :webhook_secret) ||
                        ENV['STRIPE_WEBHOOK_SECRET']
 
-      return false if endpoint_secret.blank?
+      if endpoint_secret.blank?
+        Rails.logger.error "[WebhookAuth] CRITICAL: Stripe webhook secret not configured! Check Rails credentials or STRIPE_WEBHOOK_SECRET env var"
+        return false
+      end
 
       begin
         Stripe::Webhook.construct_event(payload, sig_header, endpoint_secret)
