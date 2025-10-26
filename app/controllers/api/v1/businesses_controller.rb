@@ -8,7 +8,7 @@ class Api::V1::BusinessesController < ApplicationController
   # - Rate limiting provides additional protection (see check_api_rate_limit on line 10)
   # Related security: CWE-352 (CSRF) mitigation via API key authentication
   skip_before_action :authenticate_user!
-  # codeql[rb/csrf-protection-disabled]
+  # codeql[rb-csrf-protection-disabled]
   skip_before_action :verify_authenticity_token
 
   # Add CORS headers for API access

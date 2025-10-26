@@ -23,7 +23,7 @@ module Users
     # - JSON API requests don't use session cookies, so CSRF doesn't apply
     # - Regular web form logins still require CSRF tokens (HTML format)
     # Related security: CWE-352 (CSRF) N/A for stateless JSON API authentication
-    # codeql[rb/csrf-protection-disabled]
+    # codeql[rb-csrf-protection-disabled]
     skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects
