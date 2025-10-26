@@ -3,6 +3,26 @@
 # GoogleBusinessOauthController handles OAuth callbacks for Google Business Profile API
 # This controller operates outside tenant constraints for security (similar to CalendarOauthController)
 class GoogleBusinessOauthController < ApplicationController
+  # SECURITY: No CSRF skip needed - session-based OAuth state validation
+  #
+  # OAuth security model (session-based):
+  # - State parameter stored in user's session (lines 16-18)
+  # - External provider callback includes state parameter
+  # - State verified against session value (lines 27-31)
+  # - Session cookies provide CSRF protection
+  #
+  # Difference from CalendarOauthController:
+  # - CalendarOauthController uses stateless signed state (message_verifier)
+  # - This controller uses session-based state (more secure with sessions)
+  # - Full CSRF protection maintained via session cookies
+  #
+  # Defense-in-depth:
+  # - Session CSRF token validates the callback request
+  # - OAuth state parameter prevents authorization code interception
+  # - Business/user IDs stored in session prevent tenant confusion
+  #
+  # Related: CWE-352 CSRF protection, OAuth 2.0 RFC 6749 Section 10.12
+
   skip_before_action :authenticate_user!
   skip_before_action :set_tenant
   
