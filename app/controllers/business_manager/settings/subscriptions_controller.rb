@@ -7,16 +7,15 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   before_action :set_stripe_api_key, only: [:create_checkout_session, :customer_portal_session, :webhook]
   before_action :validate_premium_upgrade_requirements, only: [:create_checkout_session]
 
-  # SECURITY: CSRF skip is LEGITIMATE for webhook endpoint only
-  # - Webhook is called by Stripe servers, not user browsers (no session context)
-  # - Security provided by Stripe signature verification (see lines 82-104)
-  # - endpoint_secret validates authenticity of webhook requests
-  # Related security: CWE-352 (CSRF) mitigation via Stripe webhook signature
-  # codeql[rb-csrf-protection-disabled]
-  skip_before_action :verify_authenticity_token, only: [:webhook]
-  skip_before_action :authenticate_user!, only: [:webhook]
-  skip_before_action :set_tenant_for_business_manager, only: [:webhook]
-  skip_before_action :authorize_access_to_business_manager, only: [:webhook]
+  # SECURITY: Signature verification handled by WebhookAuthenticator middleware
+  # - Middleware verifies Stripe signature before request reaches controller
+  # - Controller can now use full CSRF protection (no skip needed)
+  # - Defense-in-depth: middleware + ApplicationController CSRF protection
+  # Related: CWE-352 CSRF protection restructuring
+
+  skip_before_action :authenticate_user!, only: [:webhook]  # External webhook, no user session
+  skip_before_action :set_tenant_for_business_manager, only: [:webhook]  # Tenant extracted from webhook
+  skip_before_action :authorize_access_to_business_manager, only: [:webhook]  # External webhook
   # set_stripe_api_key is already covered by only/except. set_business is now covered by except.
 
   def show
@@ -80,31 +79,33 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   end
 
   # Handles Stripe webhook events
+  # NOTE: Signature verification handled by WebhookAuthenticator middleware
   def webhook
     # Ensure the Stripe API key is set - do this first to avoid any issues
     set_stripe_api_key
-    
+
     payload = request.body.read
     sig_header = request.env['HTTP_STRIPE_SIGNATURE']
-    
+
     # Corrected access to credentials using hash access and providing a default empty hash for stripe credentials
     stripe_credentials = Rails.application.credentials.stripe || {}
     endpoint_secret = stripe_credentials[:webhook_secret] || ENV['STRIPE_WEBHOOK_SECRET']
-    
+
     Rails.logger.info("Processing webhook: payload length=#{payload.length}, signature=#{sig_header}")
 
     begin
+      # Parse the webhook event (signature already verified by middleware)
       event = Stripe::Webhook.construct_event(
         payload, sig_header, endpoint_secret
       )
     rescue JSON::ParserError => e
-      # Invalid payload
+      # Invalid JSON payload
       Rails.logger.error("Webhook JSON parse error: #{e.message}")
       render json: { error: 'Invalid payload' }, status: :bad_request
       return
     rescue Stripe::SignatureVerificationError => e
-      # Invalid signature
-      Rails.logger.error("Webhook signature verification error: #{e.message}")
+      # Should never happen since middleware verified, but handle gracefully
+      Rails.logger.error("Unexpected signature error (middleware should have caught): #{e.message}")
       render json: { error: 'Signature verification failed' }, status: :bad_request
       return
     end

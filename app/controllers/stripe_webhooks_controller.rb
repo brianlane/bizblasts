@@ -1,14 +1,12 @@
 class StripeWebhooksController < ApplicationController
-  # SECURITY: CSRF skip is LEGITIMATE for external webhooks
-  # - This is called by Stripe servers, not user browsers (no session context)
-  # - Security is provided by Stripe signature verification (see line 12-13, 50)
-  # - Webhook endpoint secret validates authenticity of requests
-  # Related security: CWE-352 (CSRF) mitigation via alternative authentication
-  # codeql[rb-csrf-protection-disabled]
-  skip_before_action :verify_authenticity_token
-  skip_before_action :authenticate_user!
-  # Skip tenant setting since we'll handle it manually from webhook data
-  skip_before_action :set_tenant
+  # SECURITY: Signature verification handled by WebhookAuthenticator middleware
+  # - Middleware verifies Stripe signature before request reaches controller
+  # - Controller can now use full CSRF protection (no skip needed)
+  # - Defense-in-depth: middleware + ApplicationController CSRF protection
+  # Related: CWE-352 CSRF protection restructuring
+
+  skip_before_action :authenticate_user!  # External webhook, no user session
+  skip_before_action :set_tenant  # Tenant extracted from webhook payload
 
   # POST /webhooks/stripe
   def create
@@ -48,15 +46,18 @@ class StripeWebhooksController < ApplicationController
 
   def extract_tenant_context_from_webhook(payload, sig_header)
     # Parse the webhook event to extract tenant information
+    # NOTE: Signature already verified by WebhookAuthenticator middleware
+    # We can safely parse the event without re-verification
     stripe_credentials = Rails.application.credentials.stripe || {}
     endpoint_secret = stripe_credentials[:webhook_secret] || ENV['STRIPE_WEBHOOK_SECRET']
-    
+
     begin
+      # Construct event (middleware already verified signature, but we need the parsed event)
       event = Stripe::Webhook.construct_event(payload, sig_header, endpoint_secret)
-      
+
       # Extract business_id from various webhook event types
       business_id = find_business_id_from_event(event)
-      
+
       if business_id
         business = Business.find_by(id: business_id)
         if business
@@ -64,7 +65,7 @@ class StripeWebhooksController < ApplicationController
           return business
         end
       end
-      
+
       # Fallback: try to find business from connected account
       if event.account
         business = Business.find_by(stripe_account_id: event.account)
@@ -73,11 +74,16 @@ class StripeWebhooksController < ApplicationController
           return business
         end
       end
-      
+
       Rails.logger.warn "[WEBHOOK] Could not extract tenant context from webhook event: #{event.type}"
       nil
-    rescue JSON::ParserError, Stripe::SignatureVerificationError => e
-      Rails.logger.error "[WEBHOOK] Error parsing webhook for tenant context: #{e.message}"
+    rescue JSON::ParserError => e
+      # Signature errors caught by middleware, only JSON parsing can fail here
+      Rails.logger.error "[WEBHOOK] Error parsing webhook JSON for tenant context: #{e.message}"
+      nil
+    rescue Stripe::SignatureVerificationError => e
+      # Should never happen since middleware verified, but handle gracefully
+      Rails.logger.error "[WEBHOOK] Unexpected signature error (middleware should have caught): #{e.message}"
       nil
     end
   end
