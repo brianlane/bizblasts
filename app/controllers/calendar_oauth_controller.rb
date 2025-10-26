@@ -7,6 +7,7 @@ class CalendarOauthController < ApplicationController
   # - State parameter prevents CSRF attacks in OAuth flows
   # - Callback is initiated by external OAuth provider (Google, Microsoft)
   # Related security: CWE-352 (CSRF) mitigation via OAuth state parameter
+  # lgtm[rb/csrf-protection-disabled]
   skip_before_action :verify_authenticity_token, only: [:callback]
 
   def callback
