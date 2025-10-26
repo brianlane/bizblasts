@@ -1,15 +1,12 @@
 require 'ostruct'
 
-class Api::V1::BusinessesController < ApplicationController
-  # SECURITY: CSRF skip is LEGITIMATE for API endpoints
-  # - API uses API key authentication, not session-based auth (see authenticate_api_access on line 11)
-  # - API keys provided in X-API-Key header or api_key parameter (see lines 148-149)
-  # - CSRF protection is session-based and doesn't apply to stateless API requests
-  # - Rate limiting provides additional protection (see check_api_rate_limit on line 10)
-  # Related security: CWE-352 (CSRF) mitigation via API key authentication
-  skip_before_action :authenticate_user!
-  # codeql[rb-csrf-protection-disabled]
-  skip_before_action :verify_authenticity_token
+# API endpoints for business information
+# Inherits from ApiController (ActionController::API) which has no CSRF protection
+# This eliminates CodeQL alerts while maintaining security through API key authentication
+# Related: CWE-352 CSRF protection restructuring
+class Api::V1::BusinessesController < ApiController
+  # CSRF protection not needed: ApiController doesn't include RequestForgeryProtection module
+  # Security provided by API key authentication (see authenticate_api_access)
 
   # Add CORS headers for API access
   before_action :set_cors_headers
