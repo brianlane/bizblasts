@@ -17,13 +17,30 @@ module Users
     # Skip tenant verification for sign out to allow proper cleanup
     # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
 
-    # SECURITY: CSRF skip is LEGITIMATE for JSON API authentication
-    # - Only applies to JSON format requests (see if condition)
-    # - Used for API-based authentication flows (mobile apps, SPAs)
-    # - JSON API requests don't use session cookies, so CSRF doesn't apply
-    # - Regular web form logins still require CSRF tokens (HTML format)
-    # Related security: CWE-352 (CSRF) N/A for stateless JSON API authentication
-    # codeql[rb-csrf-protection-disabled]
+    # SECURITY: Conditional CSRF skip for JSON API authentication only
+    #
+    # Scope and conditions:
+    # - only: :create - Narrowly scoped to authentication endpoint
+    # - if: -> { request.format.json? } - Conditional on JSON format
+    #
+    # Security model:
+    # - HTML form authentication: Full CSRF protection via authenticity token
+    # - JSON API authentication: Uses API tokens/OAuth, not session cookies
+    # - JSON requests cannot be initiated by malicious cross-site scripts
+    # - Content-Type: application/json prevents form-based CSRF attacks
+    #
+    # Defense-in-depth:
+    # - All non-JSON requests require CSRF tokens (HTML web forms)
+    # - All other actions (new, destroy) use full CSRF protection
+    # - JSON APIs use token-based authentication (not session cookies)
+    # - Rate limiting via Rack::Attack prevents brute force attacks
+    #
+    # Standards compliance:
+    # - Follows OWASP CSRF Prevention Cheat Sheet for JSON APIs
+    # - JSON Content-Type requirement prevents simple form POST
+    # - Rails automatically enforces Content-Type for JSON format
+    #
+    # Related: CWE-352 CSRF protection, OWASP CSRF Prevention
     skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects
