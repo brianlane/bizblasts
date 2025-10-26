@@ -9,7 +9,7 @@ class MaintenanceController < ApplicationController
   # - No user interactions or state changes possible
   # - JSON format is for monitoring systems to check maintenance status
   # Related security: CWE-352 (CSRF) N/A for static error pages
-  # lgtm[rb/csrf-protection-disabled]
+  # codeql[rb/csrf-protection-disabled]
   skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
   skip_before_action :authenticate_user!
   skip_before_action :check_database_connection

@@ -12,7 +12,7 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   # - Security provided by Stripe signature verification (see lines 82-104)
   # - endpoint_secret validates authenticity of webhook requests
   # Related security: CWE-352 (CSRF) mitigation via Stripe webhook signature
-  # lgtm[rb/csrf-protection-disabled]
+  # codeql[rb/csrf-protection-disabled]
   skip_before_action :verify_authenticity_token, only: [:webhook]
   skip_before_action :authenticate_user!, only: [:webhook]
   skip_before_action :set_tenant_for_business_manager, only: [:webhook]

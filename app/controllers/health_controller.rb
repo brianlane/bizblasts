@@ -9,7 +9,7 @@ class HealthController < ApplicationController
   # - JSON-only responses, no HTML forms or state changes
   # - db_check requires authentication token in production (see line 26)
   # Related security: CWE-352 (CSRF) N/A for read-only monitoring endpoints
-  # lgtm[rb/csrf-protection-disabled]
+  # codeql[rb/csrf-protection-disabled]
   skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
   skip_before_action :authenticate_user!
   skip_before_action :set_tenant  # Health checks should not depend on tenant context

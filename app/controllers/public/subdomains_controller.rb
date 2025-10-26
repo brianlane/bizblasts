@@ -8,7 +8,7 @@ module Public
     # - No state changes - read-only validation (see line 11)
     # - ensure_json_request enforces JSON format (see line 20)
     # Related security: CWE-352 (CSRF) mitigation via null_session for stateless API
-    # lgtm[rb/csrf-protection-disabled]
+    # codeql[rb/csrf-protection-disabled]
     protect_from_forgery with: :null_session
     skip_before_action :authenticate_user!, only: :check
     before_action :ensure_json_request

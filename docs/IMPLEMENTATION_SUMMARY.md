@@ -180,7 +180,10 @@ This section documents the comprehensive fixes for all 13 CodeQL security alerts
 ### 5. Added CodeQL Suppression Comments ✅
 **Issue**: CodeQL still flagging the 8 controllers with legitimate CSRF skips despite comprehensive security documentation.
 
-**Fix**: Added `# lgtm[rb/csrf-protection-disabled]` suppression comments to all legitimate CSRF skips
+**Fix**: Added `# codeql[rb/csrf-protection-disabled]` suppression comments to all legitimate CSRF skips
+- Initially used legacy `# lgtm[...]` syntax which was not recognized
+- Updated to modern `# codeql[...]` syntax based on CodeQL 2.12.0+ requirements
+- Comments placed on separate line immediately before `skip_before_action` statements
 
 **Files Changed**:
 - `app/controllers/users/sessions_controller.rb`
@@ -191,6 +194,18 @@ This section documents the comprehensive fixes for all 13 CodeQL security alerts
 - `app/controllers/calendar_oauth_controller.rb`
 - `app/controllers/business_manager/settings/subscriptions_controller.rb`
 - `app/controllers/api/v1/businesses_controller.rb`
+
+**Suppression Comment Format**:
+```ruby
+# codeql[rb/csrf-protection-disabled]
+skip_before_action :verify_authenticity_token
+```
+
+**Technical Details**:
+- CodeQL requires suppression comments on a separate line before the alert
+- Modern syntax `# codeql[query-id]` is recommended over legacy `# lgtm[query-id]`
+- Query ID for CSRF protection is `rb/csrf-protection-disabled`
+- Comments must be placed on a blank line immediately before the problematic code
 
 ### 5. Created Frontend CSRF Documentation ✅
 **Issue**: No documentation existed explaining how CSRF tokens work with AJAX requests.
