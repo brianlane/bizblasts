@@ -9,6 +9,10 @@ class StripeWebhooksController < ApplicationController
 
   skip_before_action :authenticate_user!  # External webhook, no user session
   skip_before_action :set_tenant  # Tenant extracted from webhook payload
+
+  # codeql[rb/csrf-protection-disabled] Legitimate: External webhook authenticated via cryptographic signatures (HMAC-SHA256)
+  # Webhooks are server-to-server requests that don't use browser cookies or CSRF tokens
+  # Defense-in-depth: WebhookAuthenticator middleware verifies signatures before controller
   skip_before_action :verify_authenticity_token  # External webhook, uses signature auth
 
   # POST /webhooks/stripe

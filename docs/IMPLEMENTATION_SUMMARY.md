@@ -843,6 +843,50 @@ skip_before_action :verify_authenticity_token, only: [:webhook]  # External webh
 - Narrowly scoped to `only: [:webhook]` action
 - Other actions maintain full CSRF protection
 
+### CodeQL Suppressions Added
+
+Both webhook controllers now include CodeQL suppression comments to prevent false positive security alerts:
+
+#### Format
+```ruby
+# codeql[rb/csrf-protection-disabled] Legitimate: External webhook authenticated via cryptographic signatures (HMAC-SHA256)
+# Webhooks are server-to-server requests that don't use browser cookies or CSRF tokens
+# Defense-in-depth: WebhookAuthenticator middleware verifies signatures before controller
+skip_before_action :verify_authenticity_token
+```
+
+#### Why Suppressions Are Needed
+- **CodeQL Detection**: CodeQL flags all `skip_before_action :verify_authenticity_token` as potential vulnerabilities
+- **Legitimate Skip**: Webhooks are external requests that cannot include CSRF tokens
+- **Alternative Authentication**: Cryptographic signatures (HMAC-SHA256) provide stronger authentication
+- **Standards Compliance**: This pattern is recommended by Stripe, GitHub, Twilio, and OWASP
+
+#### Suppression Details
+**Query ID**: `rb/csrf-protection-disabled`
+- Modern CodeQL syntax (not legacy `lgtm`)
+- Uses forward slashes (not dashes) in inline comments
+- Must appear on line immediately before the skip
+- Includes comprehensive justification in comment
+
+#### Controllers with Suppressions (2)
+1. **StripeWebhooksController** (line 13)
+   - Global CSRF skip (applies to all actions)
+   - Justification: External Stripe webhooks with signature verification
+
+2. **BusinessManager::Settings::SubscriptionsController** (line 22)
+   - Scoped CSRF skip (`only: [:webhook]`)
+   - Justification: External Stripe webhooks with signature verification
+
+#### Security Audit Trail
+These suppressions are **not** a security weakness because:
+1. ✅ Webhooks authenticated via cryptographic signatures (HMAC-SHA256)
+2. ✅ Middleware verifies signatures before controller (defense-in-depth)
+3. ✅ External server-to-server requests (not browser-based)
+4. ✅ No session cookies or browser authentication used
+5. ✅ Industry standard pattern for webhook security
+6. ✅ Recommended by Stripe official documentation
+7. ✅ Compliant with OWASP CSRF prevention guidelines
+
 ### Documentation Updates
 
 #### IMPLEMENTATION_SUMMARY.md
@@ -965,6 +1009,7 @@ stripe trigger customer.subscription.updated
 ### Rollout Checklist
 - [x] Fix implemented in both webhook controllers
 - [x] Security documentation updated
+- [x] CodeQL suppressions added
 - [x] IMPLEMENTATION_SUMMARY.md corrected
 - [ ] Test in staging with Stripe CLI
 - [ ] Verify webhook delivery in Stripe dashboard
@@ -1031,9 +1076,11 @@ Can't verify CSRF token authenticity
 
 **Problem**: Middleware signature verification was incorrectly believed to replace CSRF skips, breaking all Stripe webhooks.
 
-**Solution**: Added `skip_before_action :verify_authenticity_token` back to webhook controllers with comprehensive security documentation.
+**Solution**: Added `skip_before_action :verify_authenticity_token` back to webhook controllers with comprehensive security documentation and CodeQL suppressions.
 
 **Architecture**: Defense-in-depth approach using BOTH middleware signature verification AND controller-level CSRF skips.
 
-**Status**: ✅ Fixed and documented. Ready for testing and deployment.
+**CodeQL Suppressions**: Added to both webhook controllers to prevent false positive security alerts while maintaining proper security audit trail.
+
+**Status**: ✅ Fixed, documented, and suppressed. Ready for testing and deployment.
 

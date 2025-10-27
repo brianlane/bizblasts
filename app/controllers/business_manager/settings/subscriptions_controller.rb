@@ -18,7 +18,12 @@ class BusinessManager::Settings::SubscriptionsController < BusinessManager::Base
   skip_before_action :authenticate_user!, only: [:webhook]  # External webhook, no user session
   skip_before_action :set_tenant_for_business_manager, only: [:webhook]  # Tenant extracted from webhook
   skip_before_action :authorize_access_to_business_manager, only: [:webhook]  # External webhook
+
+  # codeql[rb/csrf-protection-disabled] Legitimate: External webhook authenticated via cryptographic signatures (HMAC-SHA256)
+  # Webhooks are server-to-server requests that don't use browser cookies or CSRF tokens
+  # Defense-in-depth: WebhookAuthenticator middleware verifies signatures before controller
   skip_before_action :verify_authenticity_token, only: [:webhook]  # External webhook, uses signature auth
+
   # set_stripe_api_key is already covered by only/except. set_business is now covered by except.
 
   def show
