@@ -14,8 +14,8 @@ RSpec.describe "Stripe Webhook Integration", type: :request do
     # Mock the webhook job since the controller just enqueues it
     allow(StripeWebhookJob).to receive(:perform_later).and_return(true)
 
-    # Set up Rails credentials mock
-    allow(Rails.application.credentials).to receive(:stripe).and_return({ webhook_secret: webhook_secret })
+    # Set up Rails credentials mock (middleware uses .dig)
+    allow(Rails.application.credentials).to receive(:dig).with(:stripe, :webhook_secret).and_return(webhook_secret)
 
     # Mock Stripe signature verification (middleware layer)
     allow(Stripe::Webhook).to receive(:construct_event).and_return(

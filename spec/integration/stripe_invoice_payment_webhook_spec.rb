@@ -11,6 +11,11 @@ RSpec.describe 'Stripe invoice payment webhooks', type: :request do
   let!(:payment)  { create(:payment, business: business, invoice: invoice, tenant_customer: customer, status: :pending, stripe_payment_intent_id: 'pi_test123') }
   let(:signature) { 'test_sig' }
 
+  before do
+    # Mock Rails credentials for webhook secret (required by middleware)
+    allow(Rails.application.credentials).to receive(:dig).with(:stripe, :webhook_secret).and_return('whsec_test_secret')
+  end
+
   def send_webhook!(event_type)
     payload = {
       id: 'evt_test',
