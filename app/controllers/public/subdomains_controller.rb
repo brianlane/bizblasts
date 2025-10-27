@@ -8,7 +8,6 @@ module Public
   class SubdomainsController < ApiController
     # SECURITY: CSRF protection not needed (ApiController uses null_session pattern)
     # - ApiController doesn't include RequestForgeryProtection module
-    # - JSON format enforcement handled by ApiController base class
     # - Stateless API with no session cookies
     # Related: CWE-352 CSRF protection restructuring
 

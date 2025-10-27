@@ -121,7 +121,7 @@
           </div>
 
           <!-- Subscription Form -->
-          <%= form_tag subscriptions_path, method: :post, class: "subscription-form" do %>
+          <%= form_with url: new_subscription_path, method: :get, local: true, html: { class: "subscription-form" } do %>
             <%= hidden_field_tag :product_id, @product.id %>
             <%= hidden_field_tag :subscription_type, 'product_subscription' %>
             

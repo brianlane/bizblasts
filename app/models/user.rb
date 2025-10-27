@@ -37,7 +37,7 @@ class User < ApplicationRecord
   encrypts :phone, deterministic: true
 
   # Callbacks
-  before_validation :normalize_phone_number
+  before_validation :normalize_phone_number, if: :will_save_change_to_phone?
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
   after_update :sync_email_to_tenant_customers, if: -> { client? && saved_change_to_email? && confirmed? }

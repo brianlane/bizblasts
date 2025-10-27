@@ -7,7 +7,6 @@
 class HealthController < ApiController
   # SECURITY: CSRF protection not needed for monitoring endpoints
   # - ApiController doesn't include RequestForgeryProtection module
-  # - JSON format enforcement handled by ApiController base class
   # - No sessions, no state changes - pure monitoring endpoints
   # Related: CWE-352 CSRF protection restructuring
 

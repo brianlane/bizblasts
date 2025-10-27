@@ -50,7 +50,9 @@ class CustomerLinker
   # @param customer_attributes [Hash] Additional attributes (first_name, last_name, phone, phone_opt_in)
   # @return [TenantCustomer] The guest customer record
   def find_or_create_guest_customer(email, customer_attributes = {})
-    email = email.downcase.strip
+    email = email.to_s.strip
+    return nil if email.blank?
+    email = email.downcase
     
     customer = @business.tenant_customers.find_by(email: email, user_id: nil)
     if customer
