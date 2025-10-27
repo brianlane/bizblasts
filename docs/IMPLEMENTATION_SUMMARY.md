@@ -377,7 +377,7 @@ Instead of using suppression comments to silence CodeQL alerts, we restructured 
 **Purpose**: Verify webhook signatures at middleware layer BEFORE requests reach controllers.
 
 **Supported Webhooks**:
-- Stripe webhooks (`/webhooks/stripe`, `/manage/settings/subscriptions/webhook`)
+- Stripe webhooks (`/webhooks/stripe`, `/manage/settings/stripe_events`)
 
 **Note**: Other webhook providers (e.g., Twilio) use ActionController::API and verify signatures in their controllers directly.
 

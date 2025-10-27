@@ -26,7 +26,7 @@ RSpec.describe Middleware::WebhookAuthenticator do
     end
 
     it 'recognizes subscription webhook path' do
-      response = make_request(path: '/manage/settings/subscriptions/webhook')
+      response = make_request(path: '/manage/settings/stripe_events')
       # Should return 401 because signature is missing/invalid
       expect(response[0]).to eq(401)
     end
@@ -40,6 +40,29 @@ RSpec.describe Middleware::WebhookAuthenticator do
     it 'allows root path through without verification' do
       response = make_request(path: '/')
       expect(response[0]).to eq(200)
+    end
+
+    it 'middleware paths match actual Rails routes' do
+      # Get actual Stripe webhook routes from Rails
+      stripe_webhook_routes = Rails.application.routes.routes.select do |route|
+        route.defaults[:controller]&.match?(/stripe_webhooks|subscriptions/) &&
+        route.defaults[:action] == 'webhook' || route.defaults[:action] == 'create' && route.path.spec.to_s.include?('webhooks/stripe')
+      end
+
+      # Extract paths without format extension
+      actual_paths = stripe_webhook_routes.map do |route|
+        route.path.spec.to_s.gsub('(.:format)', '')
+      end
+
+      # Verify each actual path matches the middleware regex
+      actual_paths.each do |path|
+        expect(described_class::STRIPE_PATHS).to match(path),
+          "Middleware STRIPE_PATHS regex should match route: #{path}"
+      end
+
+      # Verify we found the expected routes
+      expect(actual_paths).to include('/webhooks/stripe')
+      expect(actual_paths).to include('/manage/settings/stripe_events')
     end
   end
 

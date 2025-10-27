@@ -28,7 +28,7 @@ module Middleware
   class WebhookAuthenticator
     STRIPE_PATHS = %r{
       ^/webhooks/stripe$ |
-      ^/manage/settings/subscriptions/webhook$
+      ^/manage/settings/stripe_events$
     }x
 
     def initialize(app)
