@@ -10,12 +10,21 @@ RSpec.describe "Stripe Webhook Integration", type: :request do
 
   before do
     ActsAsTenant.current_tenant = business
-    
+
     # Mock the webhook job since the controller just enqueues it
     allow(StripeWebhookJob).to receive(:perform_later).and_return(true)
-    
-    # Set up Rails credentials mock
-    allow(Rails.application.credentials).to receive(:stripe).and_return({ webhook_secret: webhook_secret })
+
+    # Set up Rails credentials mock (middleware uses .dig)
+    allow(Rails.application.credentials).to receive(:dig).with(:stripe, :webhook_secret).and_return(webhook_secret)
+
+    # Mock Stripe signature verification (middleware layer)
+    allow(Stripe::Webhook).to receive(:construct_event).and_return(
+      double('Stripe::Event',
+        type: 'test.event',
+        account: nil,
+        data: double(object: double(metadata: {}))
+      )
+    )
   end
 
   describe "POST /webhooks/stripe" do
@@ -77,30 +86,35 @@ RSpec.describe "Stripe Webhook Integration", type: :request do
     context "error handling" do
       it "handles malformed JSON gracefully" do
         invalid_payload = "invalid json"
-        
-        # Mock the request body to return malformed JSON
-        allow_any_instance_of(ActionDispatch::Request).to receive(:body).and_return(
-          StringIO.new(invalid_payload)
-        )
-        
-        post '/webhooks/stripe', 
-             headers: webhook_headers
 
-        expect(response).to have_http_status(:ok)
+        # Mock Stripe to raise JSON parse error
+        allow(Stripe::Webhook).to receive(:construct_event).and_raise(
+          JSON::ParserError.new('Invalid JSON')
+        )
+
+        post '/webhooks/stripe',
+             params: invalid_payload,
+             headers: webhook_headers.merge('CONTENT_TYPE' => 'application/json')
+
+        # Middleware rejects with 401 when signature verification fails
+        expect(response).to have_http_status(:unauthorized)
       end
 
       it "handles missing headers" do
-        post '/webhooks/stripe', 
-             params: webhook_payload
+        post '/webhooks/stripe',
+             params: webhook_payload,
+             headers: { 'CONTENT_TYPE' => 'application/json' }
 
-        expect(response).to have_http_status(:ok)
+        # Middleware rejects with 401 when signature header is missing
+        expect(response).to have_http_status(:unauthorized)
       end
 
       it "handles empty payload" do
-        post '/webhooks/stripe', 
+        post '/webhooks/stripe',
              params: "",
              headers: webhook_headers.merge('CONTENT_TYPE' => 'application/json')
 
+        # Empty payload is accepted by middleware but controller returns OK
         expect(response).to have_http_status(:ok)
       end
     end

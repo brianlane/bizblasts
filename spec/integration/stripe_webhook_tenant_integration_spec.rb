@@ -42,8 +42,8 @@ RSpec.describe "Stripe Webhook Tenant Integration", type: :request do
   end
 
   before do
-    # Set up Rails credentials mock
-    allow(Rails.application.credentials).to receive(:stripe).and_return({ webhook_secret: webhook_secret })
+    # Set up Rails credentials mock (middleware uses .dig)
+    allow(Rails.application.credentials).to receive(:dig).with(:stripe, :webhook_secret).and_return(webhook_secret)
   end
 
   describe "POST /webhooks/stripe" do

@@ -114,8 +114,8 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
     context 'with product subscription for guest customer' do
       let(:guest_params) do
         {
-          product_id: product.id,
           customer_subscription: {
+            product_id: product.id,
             subscription_type: 'product_subscription',
             quantity: 2,
             frequency: 'monthly',
@@ -150,8 +150,8 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
 
       let(:existing_customer_params) do
         {
-          service_id: service.id,
           customer_subscription: {
+            service_id: service.id,
             subscription_type: 'service_subscription',
             quantity: 1,
             frequency: 'weekly'
@@ -171,8 +171,8 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
     context 'with invalid tenant customer params' do
               let(:invalid_params) do
           {
-            product_id: product.id,
             customer_subscription: {
+              product_id: product.id,
               subscription_type: 'product_subscription',
               quantity: 1,
               frequency: 'monthly',
@@ -203,8 +203,8 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
 
         let(:valid_params) do
           {
-            product_id: product.id,
             customer_subscription: {
+              product_id: product.id,
               subscription_type: 'product_subscription',
               quantity: 1,
               frequency: 'monthly',
@@ -236,8 +236,8 @@ RSpec.describe Public::SubscriptionsController, type: :controller do
 
         let(:valid_params) do
           {
-            product_id: product.id,
             customer_subscription: {
+              product_id: product.id,
               subscription_type: 'product_subscription',
               quantity: 1,
               frequency: 'monthly',

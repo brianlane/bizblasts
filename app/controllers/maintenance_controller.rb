@@ -3,19 +3,20 @@
 # Controller for displaying maintenance pages
 # Used during scheduled maintenance and for handling error states
 class MaintenanceController < ApplicationController
-  # SECURITY: CSRF skip is LEGITIMATE for maintenance/error pages
-  # - Maintenance page is informational only, doesn't modify state
-  # - Displayed when system is unavailable or in maintenance mode
-  # - No user interactions or state changes possible
-  # - JSON format is for monitoring systems to check maintenance status
-  # Related security: CWE-352 (CSRF) N/A for static error pages
-  # codeql[rb-csrf-protection-disabled]
-  skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
-  skip_before_action :authenticate_user!
-  skip_before_action :check_database_connection
+  # SECURITY: No CSRF skip needed for maintenance/error pages
+  # - HTML responses use full CSRF protection
+  # - GET-only endpoint that doesn't modify state
+  # - Public maintenance/error pages don't require authentication
+  # Related: CWE-352 CSRF protection restructuring
+
+  skip_before_action :authenticate_user!  # Public maintenance page
+  skip_before_action :check_database_connection  # May be called during DB issues
 
   # Display maintenance page
   def index
-    render "errors/maintenance", status: :service_unavailable
+    respond_to do |format|
+      format.html { render "errors/maintenance", status: :service_unavailable }
+      format.json { render json: { status: 'maintenance', message: 'System is under maintenance' }, status: :service_unavailable }
+    end
   end
 end

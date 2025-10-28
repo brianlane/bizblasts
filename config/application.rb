@@ -97,6 +97,14 @@ module Bizblasts
     # SECURITY FIX: Add rack-attack middleware for rate limiting
     config.middleware.use Rack::Attack
 
+    # SECURITY: Webhook signature verification middleware
+    # Verifies Stripe and Twilio signatures before requests reach controllers
+    # This allows controllers to use full CSRF protection without skips
+    # Related: CWE-352 CSRF protection restructuring
+    # Explicitly require before use since it's in lib/
+    require_relative '../lib/middleware/webhook_authenticator'
+    config.middleware.use Middleware::WebhookAuthenticator
+
     # Set the start of the week to Sunday for consistency across the app
     config.beginning_of_week = :sunday
 

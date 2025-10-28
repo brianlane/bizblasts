@@ -344,7 +344,7 @@
             </ul>
             
             <!-- Subscription Form -->
-            <%= form_tag subscriptions_path, method: :post, class: "subscription-form" do %>
+            <%= form_with url: new_subscription_path, method: :get, local: true, html: { class: "subscription-form" } do %>
               <%= hidden_field_tag :service_id, @service.id %>
               <%= hidden_field_tag :subscription_type, 'service_subscription' %>
               <!--subscription monthly appointments is stored in the subscription model from the service view, not the services view (duplicate)-->
