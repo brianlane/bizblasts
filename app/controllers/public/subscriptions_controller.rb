@@ -49,10 +49,7 @@ class Public::SubscriptionsController < Public::BaseController
     unless @tenant_customer
       flash.now[:alert] = 'Please provide valid customer information.'
       @customer_subscription = current_business.customer_subscriptions.build
-      if params[:customer_subscription].present?
-        assignable_attributes = subscription_params.to_h.except(:tenant_customer_attributes)
-        @customer_subscription.assign_attributes(assignable_attributes)
-      end
+      prefill_subscription_from_params(@customer_subscription)
       initialize_pricing_variables
       populate_form_data
       render :new, status: :unprocessable_content
@@ -96,10 +93,7 @@ class Public::SubscriptionsController < Public::BaseController
         # Initialize pricing variables for the view
         @tenant_customer = find_or_initialize_tenant_customer
         @customer_subscription = current_business.customer_subscriptions.build
-        if params[:customer_subscription].present?
-          assignable_attributes = subscription_params.to_h.except(:tenant_customer_attributes)
-          @customer_subscription.assign_attributes(assignable_attributes)
-        end
+        prefill_subscription_from_params(@customer_subscription)
         initialize_pricing_variables
         
         populate_form_data
@@ -113,10 +107,7 @@ class Public::SubscriptionsController < Public::BaseController
       # Initialize pricing variables for the view
       @tenant_customer = find_or_initialize_tenant_customer
       @customer_subscription = current_business.customer_subscriptions.build
-      if params[:customer_subscription].present?
-        assignable_attributes = subscription_params.to_h.except(:tenant_customer_attributes)
-        @customer_subscription.assign_attributes(assignable_attributes)
-      end
+      prefill_subscription_from_params(@customer_subscription)
       initialize_pricing_variables
       
       populate_form_data
@@ -362,7 +353,12 @@ class Public::SubscriptionsController < Public::BaseController
   def prefill_subscription_from_params(subscription)
     return unless subscription
 
-    permitted = params.permit(
+    attributes = subscription_form_attributes
+    subscription.assign_attributes(attributes) if attributes.any?
+  end
+
+  def subscription_form_attributes
+    permitted_keys = [
       :service_id,
       :product_id,
       :product_variant_id,
@@ -372,15 +368,26 @@ class Public::SubscriptionsController < Public::BaseController
       :preferred_time_slot,
       :preferred_staff_member_id,
       :out_of_stock_action,
-      :customer_rebooking_preference
-    )
+      :customer_rebooking_preference,
+      :notes
+    ]
 
-    attributes = permitted.to_h.reject { |_, value| value.blank? }
+    attributes = {}
+
+    if params[:customer_subscription].present?
+      nested_attrs = params.require(:customer_subscription).permit(permitted_keys)
+      attributes.merge!(nested_attrs.to_h)
+    end
+
+    top_level_attrs = params.permit(permitted_keys)
+    attributes.merge!(top_level_attrs.to_h)
+
+    attributes.delete_if { |_, value| value.blank? }
 
     %w[service_id product_id product_variant_id preferred_staff_member_id quantity billing_day_of_month].each do |numeric_key|
       attributes[numeric_key] = attributes[numeric_key].to_i if attributes[numeric_key].present?
     end
 
-    subscription.assign_attributes(attributes)
+    attributes
   end
 end
