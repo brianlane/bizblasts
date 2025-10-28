@@ -886,7 +886,7 @@ jobs:
             echo "No system tests found for group 1"
           fi
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: system-test-1-screenshots
@@ -978,7 +978,7 @@ jobs:
             echo "No system tests found for group 2"
           fi
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: system-test-2-screenshots
@@ -1070,7 +1070,7 @@ jobs:
             echo "No system tests found for group 3"
           fi
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: system-test-3-screenshots
@@ -1162,7 +1162,7 @@ jobs:
             echo "No system tests found for group 4"
           fi
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: system-test-4-screenshots
@@ -1254,7 +1254,7 @@ jobs:
             echo "No system tests found for group 5"
           fi
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: system-test-5-screenshots
