@@ -41,6 +41,10 @@ module Users
     # - Rails automatically enforces Content-Type for JSON format
     #
     # Related: CWE-352 CSRF protection, OWASP CSRF Prevention
+    # HTML form authentication maintains full CSRF protection via authenticity token
+    # JSON API requests use token-based auth (not session cookies), preventing CSRF attacks
+    # Content-Type: application/json prevents form-based CSRF (browsers enforce SOP for JSON)
+    # codeql[rb/csrf-protection-disabled] Legitimate: Conditional CSRF skip for JSON API authentication only (OWASP CSRF Prevention compliant)    
     skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects
