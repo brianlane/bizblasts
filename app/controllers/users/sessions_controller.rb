@@ -17,34 +17,52 @@ module Users
     # Skip tenant verification for sign out to allow proper cleanup
     # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
 
-    # codeql[rb/csrf-protection-disabled] Legitimate: Conditional CSRF skip for JSON API authentication only (OWASP CSRF Prevention compliant)
-    # SECURITY: Conditional CSRF skip for JSON API authentication only
+    # SECURITY: Conditional CSRF skip for JSON API authentication that needs sessions
+    #
+    # Context: This controller's create action MUST establish sessions for both HTML and JSON:
+    # - Sets session[:session_token] for authentication tracking
+    # - Sets session[:business_id] for multi-tenant context
+    # - Generates AuthToken for cross-domain session transfer
+    # - Session establishment is REQUIRED for the entire authentication flow
+    #
+    # Problem with protect_from_forgery strategies:
+    # - :exception strategy: Blocks JSON requests without CSRF token (breaks API auth)
+    # - :null_session strategy: Empties session, preventing session establishment (breaks auth flow)
+    # - Result: JSON authentication would appear to succeed but NO session created
+    #
+    # Why skip_before_action is necessary here:
+    # - JSON authentication MUST create a persistent session (not an empty/null session)
+    # - Content-Type: application/json already prevents simple form POST attacks (browser SOP)
+    # - JSON requests typically from mobile apps or SPA (not cross-site attackers)
+    # - The create action validates credentials before session creation (mitigates risk)
+    # - Alternative protections: Rate limiting, account lockout, 2FA
     #
     # Scope and conditions:
-    # - only: :create - Narrowly scoped to authentication endpoint
-    # - if: -> { request.format.json? } - Conditional on JSON format
-    #
-    # Security model:
-    # - HTML form authentication: Full CSRF protection via authenticity token
-    # - JSON API authentication: Uses API tokens/OAuth, not session cookies
-    # - JSON requests cannot be initiated by malicious cross-site scripts
-    # - Content-Type: application/json prevents form-based CSRF attacks
+    # - only: :create - Narrowly scoped to authentication endpoint only
+    # - if: -> { request.format.json? } - Only affects JSON requests
+    # - HTML forms maintain full CSRF protection (default :exception strategy)
+    # - Other actions (new, destroy) keep full CSRF protection
     #
     # Defense-in-depth:
-    # - All non-JSON requests require CSRF tokens (HTML web forms)
-    # - All other actions (new, destroy) use full CSRF protection
-    # - JSON APIs use token-based authentication (not session cookies)
-    # - Rate limiting via Rack::Attack prevents brute force attacks
+    # - Credential validation required (username + password)
+    # - Rate limiting via Rack::Attack prevents brute force
+    # - Account lockout after failed attempts (Devise)
+    # - Session tokens rotated on each authentication
+    # - IP address tracking via AuthenticationTracker
+    # - Content-Type: application/json prevents browser form submissions
+    #
+    # Trade-off analysis:
+    # - Risk: JSON login CSRF (attacker tricks user into logging in as attacker's account)
+    # - Mitigation: Low risk - attacker gains nothing, Content-Type protection
+    # - Benefit: JSON authentication works correctly with session establishment
+    # - Alternative considered: :null_session - REJECTED (breaks session creation)
     #
     # Standards compliance:
-    # - Follows OWASP CSRF Prevention Cheat Sheet for JSON APIs
-    # - JSON Content-Type requirement prevents simple form POST
-    # - Rails automatically enforces Content-Type for JSON format
+    # - OWASP CSRF Prevention: Acceptable for login endpoints with alternative protections
+    # - Content-Type enforcement provides CSRF protection for JSON (browser SOP)
+    # - Rails Security Guide: Acknowledges JSON API needs different handling
     #
-    # Related: CWE-352 CSRF protection, OWASP CSRF Prevention
-    # HTML form authentication maintains full CSRF protection via authenticity token
-    # JSON API requests use token-based auth (not session cookies), preventing CSRF attacks
-    # Content-Type: application/json prevents form-based CSRF (browsers enforce SOP for JSON)
+    # Related: CWE-352 CSRF protection, OWASP API Security, Rails Security Guide
     skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects
