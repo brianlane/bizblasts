@@ -15,9 +15,11 @@ class ApiController < ActionController::API
   def enforce_json_format
     return if request.format.json?
 
-    accept_header = request.headers['Accept']
+    accept_header = request.headers['Accept'].to_s
 
-    if params[:format].blank? && (accept_header.blank? || accept_header == '*/*' || accept_header.to_s.include?('text/html'))
+    return if accept_header.present? && accept_header.include?('application/json')
+
+    if params[:format].blank? && (accept_header.blank? || accept_header == '*/*')
       request.format = :json
       return
     end

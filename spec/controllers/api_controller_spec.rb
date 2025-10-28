@@ -66,6 +66,19 @@ RSpec.describe ApiController, type: :controller do
       expect(request.format.json?).to be true
     end
 
+    it 'rejects requests with HTML Accept header' do
+      request.headers['Accept'] = 'text/html'
+      get :index
+      expect(response).to have_http_status(:not_acceptable)
+    end
+
+    it 'accepts requests when Accept header includes application/json' do
+      request.headers['Accept'] = 'application/json, text/plain'
+      get :index
+      expect(response).to have_http_status(:ok)
+      expect(response.content_type).to include('application/json')
+    end
+
     it 'accepts requests with explicit JSON format' do
       get :index, format: :json
       expect(request.format.json?).to be true
