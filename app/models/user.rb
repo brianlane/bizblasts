@@ -37,7 +37,7 @@ class User < ApplicationRecord
   encrypts :phone, deterministic: true
 
   # Callbacks
-  before_validation :normalize_phone_number, if: :will_save_change_to_phone?
+  before_validation :normalize_phone_number, if: :phone_needs_normalization?
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
   after_update :sync_email_to_tenant_customers, if: -> { client? && saved_change_to_email? && confirmed? }
@@ -805,6 +805,28 @@ class User < ApplicationRecord
 
   # Normalize phone number before validation
   def normalize_phone_number
-    self.phone = PhoneNormalizer.normalize(phone)
+    raw_phone =
+      begin
+        phone
+      rescue ActiveRecord::Encryption::Errors::Decryption,
+             ActiveRecord::Encryption::Errors::Encoding,
+             JSON::ParserError
+        return
+      end
+
+    normalized = PhoneNormalizer.normalize(raw_phone)
+    self.phone = normalized
+  end
+
+  def phone_needs_normalization?
+    if new_record?
+      phone.present?
+    else
+      will_save_change_to_phone?
+    end
+  rescue ActiveRecord::Encryption::Errors::Decryption,
+         ActiveRecord::Encryption::Errors::Encoding,
+         JSON::ParserError
+    false
   end
 end
