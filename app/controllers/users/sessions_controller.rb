@@ -17,35 +17,38 @@ module Users
     # Skip tenant verification for sign out to allow proper cleanup
     # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
 
-    # codeql[rb/csrf-protection-disabled] Legitimate: Conditional CSRF skip for JSON API authentication only (OWASP CSRF Prevention compliant)
-    # SECURITY: Conditional CSRF skip for JSON API authentication only
+    # SECURITY: Proper CSRF protection with null_session strategy for JSON API requests
     #
-    # Scope and conditions:
-    # - only: :create - Narrowly scoped to authentication endpoint
-    # - if: -> { request.format.json? } - Conditional on JSON format
+    # Rails-recommended pattern for API authentication (Rails Security Guide):
+    # - protect_from_forgery with: :null_session creates an empty session for unverified requests
+    # - More secure than skip_before_action as it prevents session-based attacks
+    # - Only applied to JSON requests via conditional: if: -> { request.format.json? }
     #
     # Security model:
-    # - HTML form authentication: Full CSRF protection via authenticity token
-    # - JSON API authentication: Uses API tokens/OAuth, not session cookies
-    # - JSON requests cannot be initiated by malicious cross-site scripts
-    # - Content-Type: application/json prevents form-based CSRF attacks
+    # - HTML form authentication: Full CSRF protection via authenticity token (:exception strategy)
+    # - JSON API authentication: null_session strategy (resets session for unverified requests)
+    # - null_session prevents session fixation and session-based CSRF attacks
+    # - JSON requests use token-based auth (not session cookies), so empty session is safe
+    #
+    # Why null_session instead of skip_before_action:
+    # - skip_before_action: Completely bypasses CSRF checks (less secure)
+    # - null_session: Resets session to empty state for unverified requests (more secure)
+    # - null_session prevents attackers from hijacking existing sessions
+    # - Follows Rails Security Guide and OWASP best practices
     #
     # Defense-in-depth:
-    # - All non-JSON requests require CSRF tokens (HTML web forms)
-    # - All other actions (new, destroy) use full CSRF protection
-    # - JSON APIs use token-based authentication (not session cookies)
-    # - Rate limiting via Rack::Attack prevents brute force attacks
+    # - HTML requests require valid CSRF tokens (exception raised if missing)
+    # - JSON requests get empty session if CSRF token missing (prevents session attacks)
+    # - Content-Type: application/json prevents simple form POST attacks
+    # - Rate limiting via Rack::Attack prevents brute force attempts
     #
     # Standards compliance:
-    # - Follows OWASP CSRF Prevention Cheat Sheet for JSON APIs
-    # - JSON Content-Type requirement prevents simple form POST
-    # - Rails automatically enforces Content-Type for JSON format
+    # - Rails Security Guide: Recommended pattern for API endpoints
+    # - OWASP CSRF Prevention Cheat Sheet: Token-based API authentication
+    # - CWE-352 CSRF Protection: Defense-in-depth with multiple layers
     #
-    # Related: CWE-352 CSRF protection, OWASP CSRF Prevention
-    # HTML form authentication maintains full CSRF protection via authenticity token
-    # JSON API requests use token-based auth (not session cookies), preventing CSRF attacks
-    # Content-Type: application/json prevents form-based CSRF (browsers enforce SOP for JSON)
-    skip_before_action :verify_authenticity_token, only: :create, if: -> { request.format.json? }
+    # Related: CWE-352 CSRF protection, OWASP API Security, Rails Security Guide
+    protect_from_forgery with: :null_session, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects
     # This prevents UnsafeRedirectError when users are already logged in and Devise tries to
