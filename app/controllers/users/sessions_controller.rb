@@ -17,38 +17,49 @@ module Users
     # Skip tenant verification for sign out to allow proper cleanup
     # skip_before_action :set_tenant, only: :destroy # REMOVED: Global filter was removed
 
-    # SECURITY: Proper CSRF protection with null_session strategy for JSON API requests
+    # SECURITY: Dual CSRF protection strategy for HTML forms and JSON API
     #
-    # Rails-recommended pattern for API authentication (Rails Security Guide):
-    # - protect_from_forgery with: :null_session creates an empty session for unverified requests
-    # - More secure than skip_before_action as it prevents session-based attacks
-    # - Only applied to JSON requests via conditional: if: -> { request.format.json? }
+    # Critical fix: Using TWO protect_from_forgery declarations with opposite conditions
+    # This ensures HTML forms get strong :exception strategy while JSON gets :null_session
     #
+    # Why dual declarations are needed:
+    # - Single declaration with `if:` condition sets strategy globally for entire controller
+    # - The `if:` only controls when the filter runs, NOT which strategy is active
+    # - Result: Both HTML and JSON would get the same strategy (security vulnerability)
+    # - Solution: Two declarations with opposite conditions provide proper separation
+    #
+    # Strategy 1: Exception for HTML requests (strong CSRF protection)
+    # - Raises ActionController::InvalidAuthenticityToken if CSRF token missing
+    # - Protects HTML form-based authentication (login, logout)
+    # - Prevents CSRF attacks on session management
+    # - Applied to all non-JSON requests
+    protect_from_forgery with: :exception, unless: -> { request.format.json? }
+
+    # Strategy 2: Null session for JSON API requests (API-appropriate protection)
+    # - Creates empty session for requests without valid CSRF token
+    # - More secure than skip_before_action (prevents session fixation)
+    # - Appropriate for token-based API authentication
+    # - Only applied to JSON requests
+    protect_from_forgery with: :null_session, if: -> { request.format.json? }
+
     # Security model:
-    # - HTML form authentication: Full CSRF protection via authenticity token (:exception strategy)
-    # - JSON API authentication: null_session strategy (resets session for unverified requests)
-    # - null_session prevents session fixation and session-based CSRF attacks
+    # - HTML form authentication: Full CSRF protection via authenticity token (:exception)
+    # - JSON API authentication: Null session strategy (empty session for unverified requests)
+    # - Content-Type: application/json prevents simple form POST attacks
     # - JSON requests use token-based auth (not session cookies), so empty session is safe
     #
-    # Why null_session instead of skip_before_action:
-    # - skip_before_action: Completely bypasses CSRF checks (less secure)
-    # - null_session: Resets session to empty state for unverified requests (more secure)
-    # - null_session prevents attackers from hijacking existing sessions
-    # - Follows Rails Security Guide and OWASP best practices
-    #
     # Defense-in-depth:
-    # - HTML requests require valid CSRF tokens (exception raised if missing)
+    # - HTML requests MUST have valid CSRF tokens (exception raised if missing)
     # - JSON requests get empty session if CSRF token missing (prevents session attacks)
-    # - Content-Type: application/json prevents simple form POST attacks
     # - Rate limiting via Rack::Attack prevents brute force attempts
+    # - Proper separation of concerns between web forms and API
     #
     # Standards compliance:
-    # - Rails Security Guide: Recommended pattern for API endpoints
+    # - Rails Security Guide: Multiple protect_from_forgery calls supported
     # - OWASP CSRF Prevention Cheat Sheet: Token-based API authentication
     # - CWE-352 CSRF Protection: Defense-in-depth with multiple layers
     #
     # Related: CWE-352 CSRF protection, OWASP API Security, Rails Security Guide
-    protect_from_forgery with: :null_session, if: -> { request.format.json? }
 
     # Override Devise's new method to handle already-signed-in users with cross-domain redirects
     # This prevents UnsafeRedirectError when users are already logged in and Devise tries to

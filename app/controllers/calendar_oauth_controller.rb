@@ -77,7 +77,7 @@ class CalendarOauthController < ApplicationController
   def validate_oauth_state
     unless params[:state].present? && valid_oauth_state?(params[:state])
       Rails.logger.warn("[CalendarOauth] Invalid or expired OAuth state parameter")
-      redirect_to root_path, alert: "Invalid or expired calendar connection request. Please try again."
+      redirect_to root_path, alert: "Invalid or expired calendar connection request. Please try again." and return
     end
   end
 
