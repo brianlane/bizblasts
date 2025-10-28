@@ -21,6 +21,10 @@ class CalendarOauthController < ApplicationController
   # - All other actions use full CSRF protection
   #
   # Related: CWE-352 CSRF protection, OAuth 2.0 RFC 6749 Section 10.12
+  # External OAuth providers (Google, Microsoft) cannot include Rails CSRF tokens in callbacks
+  # Security provided by cryptographically signed state parameter (Rails.application.message_verifier)
+  # State validation in handle_callback (line 56) and redirect_to_error (line 125)
+  # codeql[rb/csrf-protection-disabled] Legitimate: OAuth callback uses state parameter for CSRF protection (OAuth 2.0 RFC 6749 Section 10.12)
   skip_before_action :verify_authenticity_token, only: [:callback]
 
   def callback
