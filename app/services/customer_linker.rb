@@ -13,7 +13,21 @@ class CustomerLinker
     raise ArgumentError, "User must be a client" unless user.client?
 
     # Step 1: Resolve phone conflicts and duplicates
-    phone_conflict_result = resolve_phone_conflicts_for_user(user)
+    # HOTFIX: Wrap in decryption error handling to gracefully handle encrypted data issues
+    phone_conflict_result = begin
+      resolve_phone_conflicts_for_user(user)
+    rescue ActiveRecord::Encryption::Errors::Decryption => e
+      # User's phone data cannot be decrypted - log and continue without phone-based resolution
+      SecureLogger.error "[CUSTOMER_LINKER] Decryption error accessing user #{user.id} phone during conflict resolution: #{e.message}"
+      SecureLogger.error "[CUSTOMER_LINKER] Continuing without phone-based customer linking. User email: #{user.email}"
+
+      # Return empty result to skip phone-based conflict resolution
+      {
+        phone_duplicates_found: false,
+        phone_duplicate_resolution_skipped: false,
+        conflicting_user_id: nil
+      }
+    end
     return phone_conflict_result[:customer] if phone_conflict_result[:customer]
 
     # Step 2: Handle existing linked customer
@@ -70,11 +84,13 @@ class CustomerLinker
 
         if normalized_phone.present?
           # Valid phone - update if different
-          updates[:phone] = phone_value if customer.phone != phone_value
+          current_phone = safe_phone_access(customer)
+          updates[:phone] = phone_value if current_phone != phone_value
         else
           # Invalid phone - clear it and log warning (Bug 11 fix)
           SecureLogger.warn "[CUSTOMER_LINKER] Invalid phone number provided for guest customer update (too short or invalid format), clearing phone field: #{phone_value}"
-          updates[:phone] = nil if customer.phone.present? # Only clear if customer currently has a phone
+          current_phone = safe_phone_access(customer)
+          updates[:phone] = nil if current_phone.present? # Only clear if customer currently has a phone
         end
       end
 
@@ -173,8 +189,11 @@ class CustomerLinker
     updates[:last_name] = user.last_name if customer.last_name.blank? && user.last_name.present?
 
     # Sync phone from user to customer - but only if not preserving phone data
-    if !preserve_phone && user.phone.present? && customer.phone != user.phone
-      updates[:phone] = user.phone
+    # HOTFIX: Use safe_phone_access for both customer AND user to prevent decryption errors
+    current_phone = safe_phone_access(customer)
+    user_phone = safe_phone_access(user)
+    if !preserve_phone && user_phone.present? && current_phone != user_phone
+      updates[:phone] = user_phone
       # IMPORTANT: When phone number changes, sync SMS opt-in status from user for compliance
       # Only update if user has explicit opt-in preferences to avoid overwriting customer's existing consent
       if user.respond_to?(:phone_opt_in?)
@@ -237,7 +256,8 @@ class CustomerLinker
       # Group this batch by normalized phone
       # Since all phones are normalized before encryption, phones with same value have same ciphertext
       batch_groups = batch.group_by { |customer|
-        normalized = normalize_phone(customer.phone)
+        phone = safe_phone_access(customer)
+        normalized = normalize_phone(phone)
         normalized.presence # Skip customers where normalization fails (nil for invalid phones)
       }.reject { |normalized_phone, customers| normalized_phone.nil? }
 
@@ -380,6 +400,28 @@ class CustomerLinker
     "+#{cleaned}"
   end
 
+  # HOTFIX: Safe phone accessor that handles decryption errors for both User and TenantCustomer
+  # Returns nil if phone cannot be decrypted (encryption key mismatch)
+  # Logs the error for investigation without blocking the booking flow
+  def safe_phone_access(record)
+    return nil if record.nil?
+
+    begin
+      record.phone
+    rescue ActiveRecord::Encryption::Errors::Decryption => e
+      # Log decryption error with record details for investigation
+      record_type = record.class.name
+      record_id = record.id
+
+      SecureLogger.error "[CUSTOMER_LINKER] Decryption error for #{record_type} #{record_id} (business #{@business&.id}): #{e.message}"
+      SecureLogger.error "[CUSTOMER_LINKER] This #{record_type}'s phone data was encrypted with different keys. Manual data fix required."
+      SecureLogger.error "[CUSTOMER_LINKER] To fix: Update encryption keys in credentials or re-encrypt this record's phone field"
+
+      # Return nil to allow the flow to continue without the phone data
+      nil
+    end
+  end
+
   private
 
   # Extracted methods from link_user_to_customer refactor
@@ -389,6 +431,9 @@ class CustomerLinker
   def resolve_phone_conflicts_for_user(user)
     conflict_resolver = CustomerConflictResolver.new(@business)
     result = conflict_resolver.resolve_phone_conflicts_for_user(user, customer_finder: self)
+
+    # Initialize merged_canonical to nil to avoid NameError in code paths where merging doesn't occur
+    merged_canonical = nil
 
     # Handle scenarios where merging and linking should happen
     SecureLogger.info "[CUSTOMER_LINKER] Checking for duplicates to merge. Result keys: #{result.keys}"
@@ -404,7 +449,9 @@ class CustomerLinker
       SecureLogger.info "[CUSTOMER_LINKER] Merging #{duplicates.count} duplicate customers for user #{user.id}"
       begin
         merged_canonical = merge_duplicate_customers(duplicates)
-        SecureLogger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_canonical.phone}"
+        # Use safe_phone_access to avoid decryption errors in log statement
+        merged_phone = safe_phone_access(merged_canonical)
+        SecureLogger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_phone || 'N/A'}"
       rescue => e
         SecureLogger.error "[CUSTOMER_LINKER] Failed to merge duplicate customers: #{e.message}"
         SecureLogger.error "[CUSTOMER_LINKER] Duplicate customer IDs: #{duplicates.map(&:id)}"
@@ -483,9 +530,11 @@ class CustomerLinker
   # Step 4: Handle customers with same phone number (single customer case)
   def handle_unlinked_customer_by_phone(user, phone_conflict_result)
     # IMPORTANT: Skip this if we found phone duplicates to prevent data integrity issues
-    return nil unless user.phone.present? && !phone_conflict_result[:phone_duplicates_found]
+    # HOTFIX: Safely access user phone (might have decryption error)
+    user_phone = safe_phone_access(user)
+    return nil unless user_phone.present? && !phone_conflict_result[:phone_duplicates_found]
 
-    phone_customers = find_customers_by_phone(user.phone)
+    phone_customers = find_customers_by_phone(user_phone)
 
     # Check if any customer with this phone is linked to a different user (phone uniqueness enforcement)
     # Uses CustomerConflictResolver for consistent error handling
@@ -495,7 +544,8 @@ class CustomerLinker
     # Look for unlinked customer to reuse
     unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
     if unlinked_phone_customer
-      SecureLogger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user.phone} to user #{user.id}"
+      # Use already-obtained user_phone to avoid decryption errors in log statement
+      SecureLogger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user_phone} to user #{user.id}"
       # Link the existing customer to this user
       unlinked_phone_customer.update!(user_id: user.id)
       sync_user_data_to_customer(user, unlinked_phone_customer)
@@ -520,12 +570,16 @@ class CustomerLinker
   # Step 7: Create new customer
   def create_new_customer_for_user(user, customer_attributes)
     email = user.email.downcase.strip
+
+    # HOTFIX: Safely access user phone (might have decryption error)
+    user_phone = safe_phone_access(user)
+
     customer_data = {
       email: email,
       user_id: user.id,
       first_name: user.first_name,
       last_name: user.last_name,
-      phone: user.phone,
+      phone: user_phone,
       phone_opt_in: user.respond_to?(:phone_opt_in?) ? user.phone_opt_in? : false,
       phone_opt_in_at: user.respond_to?(:phone_opt_in_at) ? user.phone_opt_in_at : nil
     }.merge(customer_attributes)
