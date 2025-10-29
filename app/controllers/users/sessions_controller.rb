@@ -316,13 +316,34 @@ module Users
     # - Sessions must be established (session[:session_token], session[:business_id])
     # - Alternative protections: Rate limiting, account lockout, IP tracking
     #
-    # Security considerations:
-    # - Risk: JSON login CSRF (attacker tricks user into logging in as attacker's account)
-    # - Mitigation: Low risk - attacker gains nothing from this attack vector
-    # - Content-Type: application/json prevents simple form POST attacks
-    # - Credential validation ensures only legitimate authentication succeeds
+    # SECURITY: Validate actual Content-Type header, not Rails format detection
+    #
+    # Why Content-Type validation is critical:
+    # - request.format.json? can be manipulated via URL path extensions (.json)
+    # - Attackers can submit HTML forms to /users/sign_in.json
+    # - Rails sees .json and sets format to JSON, but form Content-Type is application/x-www-form-urlencoded
+    # - This would bypass CSRF protection if we only checked request.format.json?
+    #
+    # Defense strategy:
+    # - Check actual Content-Type header from the HTTP request
+    # - Only accept application/json (genuine JSON API requests)
+    # - Reject form data (application/x-www-form-urlencoded, multipart/form-data)
+    # - Browsers enforce Content-Type via Same-Origin Policy
+    # - Malicious HTML forms cannot forge Content-Type to application/json
+    #
+    # Attack scenario prevented:
+    # <form method="POST" action="https://bizblasts.com/users/sign_in.json">
+    #   <!-- Form submits with Content-Type: application/x-www-form-urlencoded -->
+    #   <!-- This check returns false because Content-Type is not application/json -->
+    #   <!-- CSRF protection applies, InvalidAuthenticityToken raised -->
+    #   <!-- Attack blocked! -->
+    # </form>
     def json_authentication_request?
-      action_name == 'create' && request.format.json?
+      return false unless action_name == 'create'
+
+      # Validate actual Content-Type header (not Rails format detection)
+      content_type = request.content_type
+      content_type.present? && content_type.start_with?('application/json')
     end
 
     # -----------------------------------------------------------------------
