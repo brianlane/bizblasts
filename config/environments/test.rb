@@ -43,12 +43,12 @@ Rails.application.configure do
   # where secrets are not exposed) configure deterministic dummy keys so
   # that encryption features can still initialize.
   # -----------------------------------------------------------------
-  # Ensure all Active Record Encryption keys are present; if any are missing
-  # provide deterministic dummy values so that encryption can initialize in CI
-  config.active_record.encryption.primary_key = '0' * 32 unless ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY'].present?
-  config.active_record.encryption.deterministic_key = '1' * 32 unless ENV['ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY'].present?
-  config.active_record.encryption.key_derivation_salt = '2' * 32 unless ENV['ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT'].present?
-  config.active_record.encryption.support_unencrypted_data = false
+  # Always set fallback values first, then override with ENV if present
+  # This ensures encryption is always configured in test environment
+  config.active_record.encryption.primary_key = ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY'].presence || ('0' * 32)
+  config.active_record.encryption.deterministic_key = ENV['ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY'].presence || ('1' * 32)
+  config.active_record.encryption.key_derivation_salt = ENV['ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT'].presence || ('2' * 32)
+  config.active_record.encryption.support_unencrypted_data = ENV.fetch('ACTIVE_RECORD_ENCRYPTION_SUPPORT_UNENCRYPTED', 'false') == 'true'
 
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
