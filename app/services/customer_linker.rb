@@ -447,7 +447,9 @@ class CustomerLinker
       SecureLogger.info "[CUSTOMER_LINKER] Merging #{duplicates.count} duplicate customers for user #{user.id}"
       begin
         merged_canonical = merge_duplicate_customers(duplicates)
-        SecureLogger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_canonical.phone}"
+        # Use safe_phone_access to avoid decryption errors in log statement
+        merged_phone = safe_phone_access(merged_canonical)
+        SecureLogger.info "[CUSTOMER_LINKER] Successfully merged duplicates. Canonical customer: #{merged_canonical.id}, phone: #{merged_phone || 'N/A'}"
       rescue => e
         SecureLogger.error "[CUSTOMER_LINKER] Failed to merge duplicate customers: #{e.message}"
         SecureLogger.error "[CUSTOMER_LINKER] Duplicate customer IDs: #{duplicates.map(&:id)}"
@@ -540,7 +542,8 @@ class CustomerLinker
     # Look for unlinked customer to reuse
     unlinked_phone_customer = phone_customers.find { |c| c.user_id.nil? }
     if unlinked_phone_customer
-      SecureLogger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user.phone} to user #{user.id}"
+      # Use already-obtained user_phone to avoid decryption errors in log statement
+      SecureLogger.info "[CUSTOMER_LINKER] Linking unlinked customer #{unlinked_phone_customer.id} with matching phone #{user_phone} to user #{user.id}"
       # Link the existing customer to this user
       unlinked_phone_customer.update!(user_id: user.id)
       sync_user_data_to_customer(user, unlinked_phone_customer)
