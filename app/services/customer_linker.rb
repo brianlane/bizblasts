@@ -189,9 +189,11 @@ class CustomerLinker
     updates[:last_name] = user.last_name if customer.last_name.blank? && user.last_name.present?
 
     # Sync phone from user to customer - but only if not preserving phone data
+    # HOTFIX: Use safe_phone_access for both customer AND user to prevent decryption errors
     current_phone = safe_phone_access(customer)
-    if !preserve_phone && user.phone.present? && current_phone != user.phone
-      updates[:phone] = user.phone
+    user_phone = safe_phone_access(user)
+    if !preserve_phone && user_phone.present? && current_phone != user_phone
+      updates[:phone] = user_phone
       # IMPORTANT: When phone number changes, sync SMS opt-in status from user for compliance
       # Only update if user has explicit opt-in preferences to avoid overwriting customer's existing consent
       if user.respond_to?(:phone_opt_in?)
