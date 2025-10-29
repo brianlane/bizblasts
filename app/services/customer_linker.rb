@@ -430,6 +430,9 @@ class CustomerLinker
     conflict_resolver = CustomerConflictResolver.new(@business)
     result = conflict_resolver.resolve_phone_conflicts_for_user(user, customer_finder: self)
 
+    # Initialize merged_canonical to nil to avoid NameError in code paths where merging doesn't occur
+    merged_canonical = nil
+
     # Handle scenarios where merging and linking should happen
     SecureLogger.info "[CUSTOMER_LINKER] Checking for duplicates to merge. Result keys: #{result.keys}"
     if result[:duplicate_customers] && result[:canonical_customer]
