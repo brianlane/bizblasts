@@ -30,7 +30,8 @@ ActiveAdmin.setup do |config|
       Rails.logger.error("Delete fix JS file is suspiciously large: #{file_content.bytesize} bytes")
       ""
     else
-      file_content
+      # Escape any closing </script> tags to prevent breaking out of the script block
+      file_content.gsub(/<\/script>/i, '<\/scr"+"ipt>')
     end
   else
     Rails.logger.error("Delete fix JS file not found: #{delete_fix_js_path}")

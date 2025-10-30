@@ -347,10 +347,10 @@ RSpec.describe ApplicationHelper, type: :helper do
       expect(helper.sanitize_css_property_name(nil)).to eq('')
     end
 
-    it 'preserves valid property names' do
+    it 'preserves valid property names and converts underscores to hyphens' do
       expect(helper.sanitize_css_property_name('color')).to eq('color')
       expect(helper.sanitize_css_property_name('background-color')).to eq('background-color')
-      expect(helper.sanitize_css_property_name('font_size')).to eq('font_size')
+      expect(helper.sanitize_css_property_name('font_size')).to eq('font-size')
     end
 
     it 'removes dangerous characters' do

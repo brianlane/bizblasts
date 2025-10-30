@@ -244,14 +244,25 @@ module ApplicationHelper
       value = value.gsub(char, '')
     end
 
-    # Remove dangerous CSS patterns
-    value = value.gsub(/javascript:/i, '')
-    value = value.gsub(/expression\s*\(/i, '')
-    value = value.gsub(/behavior\s*:/i, '')
-    value = value.gsub(/vbscript:/i, '')
-    value = value.gsub(/@import/i, '')
-    value = value.gsub(/onload/i, '')
-    value = value.gsub(/onerror/i, '')
+    # Remove dangerous CSS patterns completely (repeat until stable)
+    # This handles overlapping patterns like "ononerrorerror" or "expresexpression(sion("
+    dangerous_patterns = [
+      /javascript:/i,
+      /expression\s*\(/i,
+      /behavior\s*:/i,
+      /vbscript:/i,
+      /@import/i,
+      /onload/i,
+      /onerror/i
+    ]
+
+    dangerous_patterns.each do |pattern|
+      loop do
+        before = value
+        value = value.gsub(pattern, '')
+        break if before == value
+      end
+    end
 
     # Limit length to prevent DOS (return first 500 characters)
     value[0, 500]
@@ -262,7 +273,8 @@ module ApplicationHelper
     return '' if name.blank?
 
     # Only allow alphanumeric, hyphens, and underscores
-    name.to_s.gsub(/[^a-zA-Z0-9\-_]/, '')
+    # Convert underscores to hyphens for CSS convention (consistent with WebsiteTemplateService)
+    name.to_s.gsub(/[^a-zA-Z0-9\-_]/, '').gsub('_', '-')
   end
 
   # Safely construct a URL to a business's domain
