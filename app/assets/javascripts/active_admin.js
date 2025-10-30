@@ -135,6 +135,46 @@ class MarkdownEditor {
     return div.innerHTML;
   }
 
+  /**
+   * SECURITY: Sanitize URL to prevent javascript: and data: URI attacks
+   * Only allows http:, https:, mailto:, and relative URLs
+   * @param {string} url - URL to sanitize
+   * @returns {string} - Sanitized URL or '#' if dangerous
+   */
+  sanitizeUrl(url) {
+    if (!url) return '#';
+
+    // Trim whitespace
+    url = url.trim();
+
+    // Decode HTML entities that might have been escaped
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = url;
+    const decoded = textarea.value;
+
+    // Check for dangerous protocols (case-insensitive)
+    const dangerous = /^[\s]*(javascript|data|vbscript|file|about):/i;
+    if (dangerous.test(decoded)) {
+      console.warn('Blocked dangerous URL protocol:', decoded);
+      return '#';
+    }
+
+    // Allow http:, https:, mailto:, tel:, sms:, and relative URLs
+    const safe = /^(https?:|mailto:|tel:|sms:|\/|\.\/|\.\.\/|#)/i;
+    if (safe.test(decoded)) {
+      return url; // Return original (possibly entity-encoded) URL
+    }
+
+    // If no protocol specified, treat as relative (safe)
+    if (!/^[\w]+:/.test(decoded)) {
+      return url;
+    }
+
+    // Block everything else
+    console.warn('Blocked unsafe URL:', decoded);
+    return '#';
+  }
+
   togglePreview() {
     const previewBtn = this.toolbar.querySelector('.preview-btn');
 
@@ -158,14 +198,18 @@ class MarkdownEditor {
    * SECURITY FIX (Alert #23 - CWE-79): DOM text reinterpreted as HTML vulnerability
    *
    * BEFORE: User input was processed with regex and directly set via innerHTML
-   * AFTER: User input is HTML-escaped FIRST, then markdown transformations applied
+   * AFTER:
+   *   1. User input is HTML-escaped FIRST
+   *   2. Markdown transformations applied
+   *   3. URLs sanitized to prevent javascript:/data: URIs
    *
    * This prevents XSS attacks like:
    * - <script>alert('XSS')</script>
    * - <img src=x onerror="alert('XSS')">
    * - [link](javascript:alert('XSS'))
+   * - ![img](javascript:alert('XSS'))
    *
-   * The fix ensures only safe, markdown-generated HTML is rendered.
+   * The fix ensures only safe, markdown-generated HTML with safe URLs is rendered.
    */
   updatePreview() {
     if (!this.preview) return;
@@ -182,8 +226,16 @@ class MarkdownEditor {
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code style="background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #0066cc;">$1</a>')
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 4px;">')
+      // SECURITY: Sanitize URLs in links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+        const safeUrl = this.sanitizeUrl(url);
+        return `<a href="${safeUrl}" target="_blank" style="color: #0066cc;">${text}</a>`;
+      })
+      // SECURITY: Sanitize URLs in images
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+        const safeUrl = this.sanitizeUrl(url);
+        return `<img src="${safeUrl}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: 4px;">`;
+      })
       .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre style="background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>$2</code></pre>')
       .replace(/^> (.*$)/gim, '<blockquote style="border-left: 4px solid #ddd; margin: 0; padding-left: 16px; color: #666;">$1</blockquote>')
       .replace(/^\- (.*$)/gim, '<li>$1</li>')
@@ -194,7 +246,7 @@ class MarkdownEditor {
     html = html.replace(/(<li>.*?<\/li>(?:<br><li>.*?<\/li>)*)/g, '<ul style="margin: 10px 0; padding-left: 20px;">$1</ul>');
     html = html.replace(/<br><li>/g, '<li>').replace(/<\/li><br>/g, '</li>');
 
-    // Safe to set innerHTML now - all user input has been escaped
+    // Safe to set innerHTML now - all user input escaped and URLs sanitized
     this.preview.innerHTML = html || '<em style="color: #999;">Preview will appear here...</em>';
   }
   
