@@ -71,7 +71,7 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 17.0"
+gem "stripe", "~> 17.1"
 
 # QR Code generation for in-person payments
 gem "rqrcode", "~> 3.1"
