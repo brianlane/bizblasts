@@ -81,13 +81,17 @@ RSpec.describe "Admin Dashboard", type: :request, admin: true do
       expect(body).to include(user1.email)
     end
     
-    it "shows booking status summary (scoped to current tenant)", :tenant_context do 
+    it "shows booking status summary (scoped to current tenant)", :tenant_context do
       # Create bookings with different statuses for the current tenant
       create(:booking, status: :confirmed, business: business1)
       create(:booking, status: :pending, business: business1)
+
       # Create a booking for a different tenant (should not be counted)
-      create(:booking, status: :confirmed, business: business2)
-      
+      # IMPORTANT: Must create outside tenant context to avoid Rails 8.1 tenant enforcement
+      ActsAsTenant.without_tenant do
+        create(:booking, status: :confirmed, business: business2)
+      end
+
       # Use the force_tenant parameter to ensure the tenant is set in the dashboard controller
       get admin_root_path(force_tenant: business1.id)
       expect(response).to be_successful

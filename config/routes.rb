@@ -153,6 +153,13 @@ Rails.application.routes.draw do
     sessions: 'admin/sessions'
   })
   ActiveAdmin.routes(self)
+
+  # Custom routes for SolidQueue job actions (Rails 8.1 compatible - avoids page_action deprecation)
+  namespace :admin do
+    post 'solidqueue_jobs/retry_all_failed_jobs', to: 'solidqueue_jobs#retry_all_failed_jobs', as: :solidqueue_jobs_retry_all_failed_jobs
+    post 'solidqueue_jobs/retry_failed_job', to: 'solidqueue_jobs#retry_failed_job', as: :solidqueue_jobs_retry_failed_job
+    post 'solidqueue_jobs/cleanup_orphaned_jobs', to: 'solidqueue_jobs#cleanup_orphaned_jobs', as: :solidqueue_jobs_cleanup_orphaned_jobs
+  end
   
   devise_for :users, skip: [:registrations], controllers: {
     sessions: 'users/sessions',
