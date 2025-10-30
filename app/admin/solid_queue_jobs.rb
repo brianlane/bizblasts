@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-ActiveAdmin.register_page "SolidQueue Jobs" do
+ActiveAdmin.register_page "Solid Queue Jobs" do
   menu parent: "System", label: "Background Jobs", priority: 2
 
   content title: "Background Job Monitoring" do
@@ -65,19 +65,19 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
         h3 "Failed Jobs", style: "color: #721c24;"
         
         div style: "margin-bottom: 15px;" do
-          form_tag admin_solidqueue_jobs_retry_all_failed_jobs_path, method: :post, 
-                   onsubmit: "return confirm('Are you sure you want to retry all failed jobs?')", 
+          form_tag admin_solid_queue_jobs_retry_all_failed_jobs_path, method: :post,
+                   onsubmit: "return confirm('Are you sure you want to retry all failed jobs?')",
                    style: "display: inline-block; margin-right: 10px;" do
-            submit_tag "Retry All Failed Jobs", 
-                       class: "button", 
+            submit_tag "Retry All Failed Jobs",
+                       class: "button",
                        style: "background-color: #dc3545; color: white; border: none; padding: 8px 16px; cursor: pointer;"
           end
-          
-          form_tag admin_solidqueue_jobs_cleanup_orphaned_jobs_path, method: :post,
+
+          form_tag admin_solid_queue_jobs_cleanup_orphaned_jobs_path, method: :post,
                    onsubmit: "return confirm('This will permanently discard failed jobs that reference deleted businesses. Continue?')",
                    style: "display: inline-block;" do
-            submit_tag "Clean Up Orphaned Jobs", 
-                       class: "button", 
+            submit_tag "Clean Up Orphaned Jobs",
+                       class: "button",
                        style: "background-color: #6c757d; color: white; border: none; padding: 8px 16px; cursor: pointer;"
           end
         end
@@ -94,10 +94,10 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
           end
           column "Actions" do |failed_execution|
             raw <<~HTML
-              <form style="display: inline;" action="#{admin_solidqueue_jobs_retry_failed_job_path}" method="post">
+              <form style="display: inline;" action="#{admin_solid_queue_jobs_retry_failed_job_path}" method="post">
                 <input type="hidden" name="authenticity_token" value="#{form_authenticity_token}">
                 <input type="hidden" name="id" value="#{failed_execution.id}">
-                <input type="submit" name="commit" value="Retry" class="button" 
+                <input type="submit" name="commit" value="Retry" class="button"
                        style="background-color: #28a745; color: white; font-size: 12px; padding: 5px 10px; border: none; cursor: pointer;">
               </form>
             HTML
@@ -172,27 +172,27 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
       end
 
       if failed_count > 0
-        redirect_to admin_solidqueue_jobs_path, notice: "Retried #{retried_count} jobs successfully. #{failed_count} jobs could not be retried (check logs for details)."
+        redirect_to admin_solid_queue_jobs_path, notice: "Retried #{retried_count} jobs successfully. #{failed_count} jobs could not be retried (check logs for details)."
       else
-        redirect_to admin_solidqueue_jobs_path, notice: "Retried #{retried_count} failed jobs."
+        redirect_to admin_solid_queue_jobs_path, notice: "Retried #{retried_count} failed jobs."
       end
     end
 
     def retry_failed_job
       if params[:id].blank?
-        redirect_to admin_solidqueue_jobs_path, alert: "No job ID provided for retry."
+        redirect_to admin_solid_queue_jobs_path, alert: "No job ID provided for retry."
         return
       end
 
       begin
         failed_execution = SolidQueue::FailedExecution.find(params[:id])
         failed_execution.retry
-        redirect_to admin_solidqueue_jobs_path, notice: "Retried failed job successfully."
+        redirect_to admin_solid_queue_jobs_path, notice: "Retried failed job successfully."
       rescue ActiveRecord::RecordNotFound
-        redirect_to admin_solidqueue_jobs_path, alert: "Failed job not found (may have already been processed)."
+        redirect_to admin_solid_queue_jobs_path, alert: "Failed job not found (may have already been processed)."
       rescue => e
         Rails.logger.error "[SolidQueue] Failed to retry job #{params[:id]}: #{e.message}"
-        redirect_to admin_solidqueue_jobs_path, alert: "Failed to retry job: #{e.message}"
+        redirect_to admin_solid_queue_jobs_path, alert: "Failed to retry job: #{e.message}"
       end
     end
 
@@ -291,7 +291,7 @@ ActiveAdmin.register_page "SolidQueue Jobs" do
         end
       end
 
-      redirect_to admin_solidqueue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
+      redirect_to admin_solid_queue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
     end
   end
 end 

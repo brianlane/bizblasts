@@ -26,9 +26,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(3)
 
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         expect(flash[:notice]).to be_present
         expect(flash[:notice]).to include("Cleaned up")
         
@@ -41,9 +41,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(3)
 
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         # Verify actual cleanup occurred by checking specific job removal
         remaining_failed_count = SolidQueue::FailedExecution.count
@@ -60,9 +60,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(1)
 
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         # Should not clean up valid jobs
         remaining_failed_count = SolidQueue::FailedExecution.count
@@ -79,9 +79,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(1)
 
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         # Should not touch non-BusinessMailer jobs
         remaining_failed_count = SolidQueue::FailedExecution.count
@@ -99,9 +99,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(1)
 
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         expect(flash[:notice]).to be_present
         
         # Should still have the malformed job since it couldn't be processed
@@ -123,9 +123,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(4)
 
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         remaining_failed_count = SolidQueue::FailedExecution.count
         # Should clean up some but not all jobs
@@ -145,9 +145,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
       initial_failed_count = SolidQueue::FailedExecution.count
       expect(initial_failed_count).to eq(2)
 
-      post "/admin/solidqueue_jobs/retry_all_failed_jobs"
+      post "/admin/solid_queue_jobs/retry_all_failed_jobs"
 
-      expect(response).to redirect_to(admin_solidqueue_jobs_path)
+      expect(response).to redirect_to(admin_solid_queue_jobs_path)
       expect(flash[:notice]).to be_present
       expect(flash[:notice]).to include("Retried")
     end
@@ -157,9 +157,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
     let!(:failed_execution) { create_failed_business_mailer_job_for_existing_business }
 
     it "retries a specific failed job" do
-      post "/admin/solidqueue_jobs/retry_failed_job", params: { id: failed_execution.id }
+      post "/admin/solid_queue_jobs/retry_failed_job", params: { id: failed_execution.id }
 
-      expect(response).to redirect_to(admin_solidqueue_jobs_path)
+      expect(response).to redirect_to(admin_solid_queue_jobs_path)
       
       # The retry might fail if referenced objects don't exist (realistic scenario)
       if flash[:notice].present? && !flash[:notice].include?("Signed in")
@@ -171,17 +171,17 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
     end
 
     it "handles missing job ID" do
-      post "/admin/solidqueue_jobs/retry_failed_job"
+      post "/admin/solid_queue_jobs/retry_failed_job"
 
-      expect(response).to redirect_to(admin_solidqueue_jobs_path)
+      expect(response).to redirect_to(admin_solid_queue_jobs_path)
       expect(flash[:alert]).to be_present
       expect(flash[:alert]).to include("No job ID")
     end
 
     it "handles non-existent job" do
-      post "/admin/solidqueue_jobs/retry_failed_job", params: { id: 99999 }
+      post "/admin/solid_queue_jobs/retry_failed_job", params: { id: 99999 }
 
-      expect(response).to redirect_to(admin_solidqueue_jobs_path)
+      expect(response).to redirect_to(admin_solid_queue_jobs_path)
       expect(flash[:alert]).to be_present
       expect(flash[:alert]).to include("not found")
     end
@@ -197,9 +197,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         # Current production request: Parameters: {"authenticity_token" => "[FILTERED]", "commit" => "Retry"}
         # Expected: Parameters should include "id" => job_id
         
-        post "/admin/solidqueue_jobs/retry_failed_job", params: { id: failed_execution.id }
+        post "/admin/solid_queue_jobs/retry_failed_job", params: { id: failed_execution.id }
 
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         # Should successfully retry the job and show success message
         if flash[:notice].present? && !flash[:notice].include?("Signed in")
@@ -213,7 +213,7 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
 
       it 'should properly generate retry forms with job IDs (currently broken in prod)' do
         # This tests that the admin interface properly includes job IDs in retry forms
-        get "/admin/solidqueue_jobs"
+        get "/admin/solid_queue_jobs"
         
         expect(response).to be_successful
         # The HTML should contain forms with hidden job ID fields
@@ -229,9 +229,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_count = SolidQueue::FailedExecution.count
         expect(initial_count).to be > 0
         
-        post "/admin/solidqueue_jobs/retry_all_failed_jobs"
-        
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        post "/admin/solid_queue_jobs/retry_all_failed_jobs"
+
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         expect(flash[:notice]).to be_present
         expect(flash[:notice]).to include("Retried")
       end
@@ -248,9 +248,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_count = SolidQueue::FailedExecution.count
         expect(initial_count).to eq(2)
         
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
         
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         # Should actually clean up the orphaned jobs
         remaining_count = SolidQueue::FailedExecution.count
@@ -269,9 +269,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_count = SolidQueue::FailedExecution.count
         expect(initial_count).to eq(2)
         
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
         
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         
         # Verify jobs were actually cleaned up
         remaining_count = SolidQueue::FailedExecution.count
@@ -288,8 +288,8 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         initial_count = SolidQueue::FailedExecution.count
         expect(initial_count).to eq(3)  # 2 orphaned + 1 valid
         
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
-        
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
+
         remaining_count = SolidQueue::FailedExecution.count
         
         # Should clean up orphaned jobs but keep valid ones
@@ -303,13 +303,13 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         # Test without authentication should redirect to login
         delete destroy_admin_user_session_path  # Sign out
         
-        post "/admin/solidqueue_jobs/retry_failed_job", params: { id: 1 }
+        post "/admin/solid_queue_jobs/retry_failed_job", params: { id: 1 }
         expect(response).to redirect_to("/admin/login")
         
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
         expect(response).to redirect_to("/admin/login")
         
-        post "/admin/solidqueue_jobs/retry_all_failed_jobs"
+        post "/admin/solid_queue_jobs/retry_all_failed_jobs"
         expect(response).to redirect_to("/admin/login")
       end
     end
@@ -318,9 +318,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
       it 'should handle malformed job data gracefully' do
         create_malformed_failed_job
         
-        post "/admin/solidqueue_jobs/cleanup_orphaned_jobs"
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
         
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         # Should not crash and should show some kind of result
         expect(flash[:notice]).to be_present
       end
@@ -331,9 +331,9 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         # Simulate job being processed/deleted by another worker
         SolidQueue::FailedExecution.find(failed_job.id).delete
         
-        post "/admin/solidqueue_jobs/retry_failed_job", params: { id: failed_job.id }
-        
-        expect(response).to redirect_to(admin_solidqueue_jobs_path)
+        post "/admin/solid_queue_jobs/retry_failed_job", params: { id: failed_job.id }
+
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
         expect(flash[:alert]).to be_present
         expect(flash[:alert]).to include("not found")
       end
