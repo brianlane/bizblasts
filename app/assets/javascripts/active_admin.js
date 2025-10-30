@@ -120,9 +120,24 @@ class MarkdownEditor {
     });
   }
   
+  /**
+   * SECURITY FIX (Alert #23 - CWE-79): Escape HTML before markdown processing
+   * This function escapes all HTML special characters to prevent XSS attacks.
+   * By escaping BEFORE applying markdown transformations, we ensure that:
+   * 1. Raw HTML/script tags cannot be injected
+   * 2. Event handlers (onerror, onclick, etc.) are neutralized
+   * 3. Only safe markdown-generated HTML is rendered
+   */
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   togglePreview() {
     const previewBtn = this.toolbar.querySelector('.preview-btn');
-    
+
     if (this.isPreviewMode) {
       this.preview.style.display = 'none';
       this.editor.style.display = 'block';
@@ -138,9 +153,29 @@ class MarkdownEditor {
       this.updatePreview();
     }
   }
-  
+
+  /**
+   * SECURITY FIX (Alert #23 - CWE-79): DOM text reinterpreted as HTML vulnerability
+   *
+   * BEFORE: User input was processed with regex and directly set via innerHTML
+   * AFTER: User input is HTML-escaped FIRST, then markdown transformations applied
+   *
+   * This prevents XSS attacks like:
+   * - <script>alert('XSS')</script>
+   * - <img src=x onerror="alert('XSS')">
+   * - [link](javascript:alert('XSS'))
+   *
+   * The fix ensures only safe, markdown-generated HTML is rendered.
+   */
   updatePreview() {
-    let html = this.editor.value
+    if (!this.preview) return;
+
+    // SECURITY: Escape ALL HTML special characters first
+    let escaped = this.escapeHtml(this.editor.value);
+
+    // Now apply markdown transformations on the ESCAPED content
+    // This ensures only safe, markdown-generated HTML is created
+    let html = escaped
       .replace(/^### (.*$)/gim, '<h3>$1</h3>')
       .replace(/^## (.*$)/gim, '<h2>$1</h2>')
       .replace(/^# (.*$)/gim, '<h1>$1</h1>')
@@ -154,10 +189,12 @@ class MarkdownEditor {
       .replace(/^\- (.*$)/gim, '<li>$1</li>')
       .replace(/^1\. (.*$)/gim, '<li>$1</li>')
       .replace(/\n/g, '<br>');
-    
+
+    // Wrap list items in ul tags
     html = html.replace(/(<li>.*?<\/li>(?:<br><li>.*?<\/li>)*)/g, '<ul style="margin: 10px 0; padding-left: 20px;">$1</ul>');
     html = html.replace(/<br><li>/g, '<li>').replace(/<\/li><br>/g, '</li>');
-    
+
+    // Safe to set innerHTML now - all user input has been escaped
     this.preview.innerHTML = html || '<em style="color: #999;">Preview will appear here...</em>';
   }
   
