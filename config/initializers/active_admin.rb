@@ -15,28 +15,9 @@ ActiveAdmin.setup do |config|
   # This is the recommended way to add JavaScript to ActiveAdmin in Rails 8
   config.authentication_method = :authenticate_admin_user!
 
-  # Manually add our JavaScript
-  # Security Note: This file is read from the application's asset directory
-  # If an attacker gains write access to the filesystem, they could modify this file
-  # In production, ensure proper file permissions and filesystem access controls
-  delete_fix_js_path = Rails.root.join('app/assets/javascripts/delete_fix.js')
-
-  # Validate file exists before reading to prevent errors
-  delete_fix_js = if File.exist?(delete_fix_js_path)
-    file_content = File.read(delete_fix_js_path)
-
-    # Basic validation: ensure file is not suspiciously large (DOS protection)
-    if file_content.bytesize > 50_000 # 50KB limit
-      Rails.logger.error("Delete fix JS file is suspiciously large: #{file_content.bytesize} bytes")
-      ""
-    else
-      # Escape any closing </script> tags to prevent breaking out of the script block
-      file_content.gsub(/<\/script>/i, '<\/scr"+"ipt>')
-    end
-  else
-    Rails.logger.error("Delete fix JS file not found: #{delete_fix_js_path}")
-    ""
-  end
+  # ActiveAdmin-specific JavaScript lives in app/assets/javascripts.
+  # Files like delete_fix.js are bundled via Sprockets (see active_admin.js),
+  # which avoids runtime file reads and keeps static analysis happy.
 
   # Add timezone handling JavaScript
   # This is a static script defined in this initializer file
@@ -120,16 +101,11 @@ ActiveAdmin.setup do |config|
     });
   JAVASCRIPT
 
-  # Escape and safely inject JavaScript into the head
-  # Note: delete_fix_js and timezone_js are validated/controlled content
-  # delete_fix_js: read from application asset file with size validation
-  # timezone_js: static heredoc defined in this file
-  # Both are marked html_safe after validation to allow proper script execution
-  js_content = []
-  js_content << "<script>#{delete_fix_js}</script>" if delete_fix_js.present?
-  js_content << "<script>#{timezone_js}</script>" if timezone_js.present?
+  # Inject inline JavaScript that cannot easily live in a separate asset
+  inline_scripts = []
+  inline_scripts << "<script>#{timezone_js}</script>" if timezone_js.present?
 
-  config.head = js_content.join.html_safe
+  config.head = inline_scripts.join.html_safe if inline_scripts.any?
 
   # Add custom CSS for better login styling
   custom_css = <<~CSS

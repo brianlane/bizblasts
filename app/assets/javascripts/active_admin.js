@@ -1,4 +1,5 @@
 //= require active_admin/base
+//= require delete_fix
 
 // Markdown Editor Class for ActiveAdmin
 class MarkdownEditor {
