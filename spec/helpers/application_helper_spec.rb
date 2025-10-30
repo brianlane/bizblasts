@@ -247,126 +247,9 @@ RSpec.describe ApplicationHelper, type: :helper do
     end
   end
 
-  describe '#sanitize_css_value' do
-    context 'basic functionality' do
-      it 'returns empty string for blank input' do
-        expect(helper.sanitize_css_value('')).to eq('')
-        expect(helper.sanitize_css_value(nil)).to eq('')
-        expect(helper.sanitize_css_value('   ')).to eq('')
-      end
-
-      it 'preserves valid CSS color values' do
-        expect(helper.sanitize_css_value('#ff0000')).to eq('#ff0000')
-        expect(helper.sanitize_css_value('rgb(255, 0, 0)')).to eq('rgb(255, 0, 0)')
-        expect(helper.sanitize_css_value('blue')).to eq('blue')
-      end
-
-      it 'preserves valid CSS size values' do
-        expect(helper.sanitize_css_value('10px')).to eq('10px')
-        expect(helper.sanitize_css_value('1.5em')).to eq('1.5em')
-        expect(helper.sanitize_css_value('100%')).to eq('100%')
-      end
-    end
-
-    context 'XSS protection' do
-      it 'removes angle brackets to prevent tag injection' do
-        result = helper.sanitize_css_value('red; </style><script>alert(1)</script><style>')
-        expect(result).not_to include('<')
-        expect(result).not_to include('>')
-        # Note: the word 'script' remains but without angle brackets it's harmless
-        expect(result).to include('script') # Text content remains
-      end
-
-      it 'removes curly braces to prevent CSS escape' do
-        result = helper.sanitize_css_value('red; } body { display: none; } .x {')
-        expect(result).not_to include('{')
-        expect(result).not_to include('}')
-      end
-
-      it 'removes quotes to prevent attribute injection' do
-        result = helper.sanitize_css_value('red" onclick="alert(1)"')
-        expect(result).not_to include('"')
-        expect(result).not_to include("'")
-      end
-
-      it 'removes backslashes to prevent escape sequences' do
-        result = helper.sanitize_css_value('red\\ </style>')
-        expect(result).not_to include('\\')
-      end
-    end
-
-    context 'dangerous pattern removal' do
-      it 'removes javascript: URLs' do
-        result = helper.sanitize_css_value('javascript:alert(1)')
-        expect(result).not_to include('javascript:')
-      end
-
-      it 'removes CSS expressions' do
-        result = helper.sanitize_css_value('expression(alert(1))')
-        expect(result).not_to include('expression(')
-      end
-
-      it 'removes behavior property' do
-        result = helper.sanitize_css_value('behavior: url(xss.htc)')
-        expect(result).not_to include('behavior:')
-      end
-
-      it 'removes vbscript: URLs' do
-        result = helper.sanitize_css_value('vbscript:msgbox(1)')
-        expect(result).not_to include('vbscript:')
-      end
-
-      it 'removes @import' do
-        result = helper.sanitize_css_value('@import url(evil.css)')
-        expect(result).not_to include('@import')
-      end
-
-      it 'removes onload event' do
-        result = helper.sanitize_css_value('onload')
-        expect(result).not_to include('onload')
-      end
-
-      it 'removes onerror event' do
-        result = helper.sanitize_css_value('onerror')
-        expect(result).not_to include('onerror')
-      end
-    end
-
-    context 'length limitation' do
-      it 'limits value to 500 characters' do
-        long_value = 'a' * 1000
-        result = helper.sanitize_css_value(long_value)
-        expect(result.length).to eq(500)
-      end
-    end
-  end
-
-  describe '#sanitize_css_property_name' do
-    it 'returns empty string for blank input' do
-      expect(helper.sanitize_css_property_name('')).to eq('')
-      expect(helper.sanitize_css_property_name(nil)).to eq('')
-    end
-
-    it 'preserves valid property names and converts underscores to hyphens' do
-      expect(helper.sanitize_css_property_name('color')).to eq('color')
-      expect(helper.sanitize_css_property_name('background-color')).to eq('background-color')
-      expect(helper.sanitize_css_property_name('font_size')).to eq('font-size')
-    end
-
-    it 'removes dangerous characters' do
-      result = helper.sanitize_css_property_name('color;}<script>alert(1)</script>')
-      expect(result).not_to include(';')
-      expect(result).not_to include('}')
-      expect(result).not_to include('<')
-      expect(result).not_to include('>')
-      expect(result).to eq('colorscriptalert1script')
-    end
-
-    it 'only allows alphanumeric, hyphens, and underscores' do
-      result = helper.sanitize_css_property_name('prop@name!test$value')
-      expect(result).to eq('propnametestvalue')
-    end
-  end
+  # Note: Tests for sanitize_css_value and sanitize_css_property_name have been
+  # moved to spec/concerns/css_sanitizer_spec.rb since these methods are now
+  # provided by the CssSanitizer module
 
   describe '#safe_business_url' do
     let(:business) { create(:business, hostname: 'testbiz', host_type: :subdomain) }
@@ -405,12 +288,12 @@ RSpec.describe ApplicationHelper, type: :helper do
 
     context 'parameter encoding' do
       it 'properly encodes query parameters' do
-        result = helper.safe_business_url(business, '/payments/new', invoice_id: 123)
+        result = helper.safe_business_url(business, '/payments/new', { invoice_id: 123 })
         expect(result).to include('invoice_id=123')
       end
 
       it 'encodes special characters in parameters' do
-        result = helper.safe_business_url(business, '/test', name: 'test & value')
+        result = helper.safe_business_url(business, '/test', { name: 'test & value' })
         # ERB::Util.url_encode encodes spaces as %20, not +
         expect(result).to match(/name=test(%20|\+)%26(%20|\+)value/)
       end
@@ -477,6 +360,57 @@ RSpec.describe ApplicationHelper, type: :helper do
       it 'uses http for non-SSL requests' do
         result = helper.safe_business_url(business)
         expect(result).to start_with('http://')
+      end
+    end
+
+    context 'fragment handling' do
+      it 'adds fragment when provided' do
+        result = helper.safe_business_url(business, '/products', {}, fragment: 'featured')
+        expect(result).to end_with('#featured')
+      end
+
+      it 'works with both params and fragment' do
+        result = helper.safe_business_url(business, '/products', { cat: 'shoes' }, fragment: 'top')
+        expect(result).to include('?cat=shoes')
+        expect(result).to end_with('#top')
+      end
+
+      it 'sanitizes malicious fragment values' do
+        # Attempt to inject script via fragment
+        result = helper.safe_business_url(business, '/', {}, fragment: '<script>alert(1)</script>')
+        expect(result).not_to include('<script>')
+        expect(result).not_to include('</script>')
+        # Only alphanumeric and hyphens/underscores should remain
+        expect(result).to end_with('#scriptalert1script')
+      end
+
+      it 'removes special characters from fragments' do
+        result = helper.safe_business_url(business, '/', {}, fragment: 'section@one!test$value')
+        # Only valid characters should remain
+        expect(result).to end_with('#sectiononetestvalue')
+      end
+
+      it 'preserves hyphens and underscores in fragments' do
+        result = helper.safe_business_url(business, '/', {}, fragment: 'section-one_two')
+        expect(result).to end_with('#section-one_two')
+      end
+
+      it 'handles blank fragment gracefully' do
+        result = helper.safe_business_url(business, '/', {}, fragment: '')
+        expect(result).not_to include('#')
+      end
+
+      it 'handles nil fragment gracefully' do
+        result = helper.safe_business_url(business, '/', {}, fragment: nil)
+        expect(result).not_to include('#')
+      end
+
+      it 'works without fragment parameter (backward compatibility)' do
+        # Old usage without fragment parameter should still work
+        result = helper.safe_business_url(business, '/test', { id: 123 })
+        expect(result).to include('/test')
+        expect(result).to include('?id=123')
+        expect(result).not_to include('#')
       end
     end
   end

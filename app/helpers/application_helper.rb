@@ -3,6 +3,9 @@
 # Global view helpers available throughout the application
 # Contains commonly used formatting and presentation logic
 module ApplicationHelper
+  # Include CSS sanitization methods for XSS protection
+  include CssSanitizer
+
   # Include route helpers from engines/namespaces needed globally or in test contexts
   include BusinessManager::Engine.routes.url_helpers if defined?(BusinessManager::Engine)
   # Or if it's just a namespace, not a full engine:
@@ -229,58 +232,20 @@ module ApplicationHelper
     strip_tags(css_content)
   end
 
-  # Sanitize CSS property values to prevent injection attacks
-  # This is more permissive than sanitize_css as it's for individual values, not full CSS content
-  def sanitize_css_value(value)
-    return '' if value.blank?
-
-    # Convert to string and strip
-    value = value.to_s.strip
-
-    # Remove any characters that could break out of CSS context
-    # This prevents: }; </style><script> type attacks
-    dangerous_chars = ['<', '>', '{', '}', '\\', '"', "'"]
-    dangerous_chars.each do |char|
-      value = value.gsub(char, '')
-    end
-
-    # Remove dangerous CSS patterns completely (repeat until stable)
-    # This handles overlapping patterns like "ononerrorerror" or "expresexpression(sion("
-    dangerous_patterns = [
-      /javascript:/i,
-      /expression\s*\(/i,
-      /behavior\s*:/i,
-      /vbscript:/i,
-      /@import/i,
-      /onload/i,
-      /onerror/i
-    ]
-
-    dangerous_patterns.each do |pattern|
-      loop do
-        before = value
-        value = value.gsub(pattern, '')
-        break if before == value
-      end
-    end
-
-    # Limit length to prevent DOS (return first 500 characters)
-    value[0, 500]
-  end
-
-  # Sanitize CSS property names to prevent injection
-  def sanitize_css_property_name(name)
-    return '' if name.blank?
-
-    # Only allow alphanumeric, hyphens, and underscores
-    # Convert underscores to hyphens for CSS convention (consistent with WebsiteTemplateService)
-    name.to_s.gsub(/[^a-zA-Z0-9\-_]/, '').gsub('_', '-')
-  end
-
   # Safely construct a URL to a business's domain
   # This method sanitizes the hostname and constructs a proper URL
   # to prevent XSS attacks via hostname manipulation
-  def safe_business_url(business, path = '/', params = {})
+  #
+  # @param business [Business] The business object
+  # @param path [String] The path for the URL (default: '/')
+  # @param params [Hash] Query parameters (default: {})
+  # @param fragment [String] URL fragment/anchor (optional, e.g., 'section-1')
+  # @return [String, nil] The constructed URL or nil if invalid
+  #
+  # @example
+  #   safe_business_url(business, '/products', { category: 'shoes' }, 'featured')
+  #   #=> "https://business.example.com/products?category=shoes#featured"
+  def safe_business_url(business, path = '/', params = {}, fragment: nil)
     return nil unless business&.hostname.present?
 
     # Validate that hostname matches expected format
@@ -315,6 +280,14 @@ module ApplicationHelper
     if params.present?
       query_string = params.map { |k, v| "#{ERB::Util.url_encode(k.to_s)}=#{ERB::Util.url_encode(v.to_s)}" }.join('&')
       url += "?#{query_string}"
+    end
+
+    # Add fragment if provided (sanitized to prevent XSS)
+    if fragment.present?
+      # Sanitize fragment: only allow alphanumeric, hyphens, underscores
+      # This prevents XSS attempts via fragment identifiers
+      sanitized_fragment = fragment.to_s.gsub(/[^a-zA-Z0-9\-_]/, '')
+      url += "##{sanitized_fragment}" if sanitized_fragment.present?
     end
 
     url
