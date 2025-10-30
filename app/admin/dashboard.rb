@@ -151,7 +151,7 @@ ActiveAdmin.register_page "Dashboard" do
           link_to("Tenant Debug Information", admin_debug_path)
         end
         li do
-          link_to("Background Jobs Monitor", admin_solidqueue_jobs_path)
+          link_to("Background Jobs Monitor", admin_solid_queue_jobs_path)
         end
       end
     end

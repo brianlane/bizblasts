@@ -3,7 +3,8 @@
 # Service for tracking authentication events across the system
 # Provides monitoring and analytics for auth flows
 class AuthenticationTracker
-  include ActiveSupport::Configurable
+  # Note: Removed ActiveSupport::Configurable (deprecated in Rails 8.2)
+  # This class doesn't use configuration attributes, so it wasn't needed
 
   # Event types for tracking
   AUTH_EVENTS = {
