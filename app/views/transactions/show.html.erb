@@ -61,10 +61,12 @@
               <p class="mb-2"><span class="font-semibold">Industry:</span> <%= @order.business.industry %></p>
             <% end %>
             <% if @order.business.hostname.present? %>
-              <p class="mb-2">
-                <%= link_to "Visit Business Website", "http://#{@order.business.hostname}.#{request.domain}:#{request.port}", 
-                    class: "text-blue-600 hover:underline", target: "_blank" %>
-              </p>
+              <% if (business_url = safe_business_url(@order.business, '/')).present? %>
+                <p class="mb-2">
+                  <%= link_to "Visit Business Website", business_url,
+                      class: "text-blue-600 hover:underline", target: "_blank", rel: "noopener" %>
+                </p>
+              <% end %>
             <% end %>
           </div>
         <% end %>
@@ -203,10 +205,12 @@
               <p class="mb-2"><span class="font-semibold">Industry:</span> <%= @invoice.business.industry %></p>
             <% end %>
             <% if @invoice.business.hostname.present? %>
-              <p class="mb-2">
-                <%= link_to "Visit Business Website", "http://#{@invoice.business.hostname}.#{request.domain}:#{request.port}", 
-                    class: "text-blue-600 hover:underline", target: "_blank" %>
-              </p>
+              <% if (business_url = safe_business_url(@invoice.business, '/')).present? %>
+                <p class="mb-2">
+                  <%= link_to "Visit Business Website", business_url,
+                      class: "text-blue-600 hover:underline", target: "_blank", rel: "noopener" %>
+                </p>
+              <% end %>
             <% end %>
           </div>
         <% end %>
