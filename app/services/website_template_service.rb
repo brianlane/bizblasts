@@ -156,21 +156,61 @@ class WebsiteTemplateService
   
   def self.generate_theme_css(theme_data)
     return '' unless theme_data
-    
+
     variables = []
-    
+
     if theme_data['color_scheme']
       theme_data['color_scheme'].each do |key, value|
-        variables << "--color-#{key.to_s.gsub('_', '-')}: #{value};"
+        sanitized_key = sanitize_css_property_name(key)
+        sanitized_value = sanitize_css_value(value)
+        variables << "--color-#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
       end
     end
-    
+
     if theme_data['typography']
       theme_data['typography'].each do |key, value|
-        variables << "--#{key.to_s.gsub('_', '-')}: #{value};"
+        sanitized_key = sanitize_css_property_name(key)
+        sanitized_value = sanitize_css_value(value)
+        variables << "--#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
       end
     end
-    
+
     ":root { #{variables.join(' ')} }"
+  end
+
+  # Sanitize CSS property values to prevent XSS injection attacks
+  def self.sanitize_css_value(value)
+    return '' if value.blank?
+
+    # Convert to string and strip
+    value = value.to_s.strip
+
+    # Remove any characters that could break out of CSS context
+    # This prevents: }; </style><script> type attacks
+    dangerous_chars = ['<', '>', '{', '}', '\\', '"', "'"]
+    dangerous_chars.each do |char|
+      value = value.gsub(char, '')
+    end
+
+    # Remove dangerous CSS patterns
+    value = value.gsub(/javascript:/i, '')
+    value = value.gsub(/expression\s*\(/i, '')
+    value = value.gsub(/behavior\s*:/i, '')
+    value = value.gsub(/vbscript:/i, '')
+    value = value.gsub(/@import/i, '')
+    value = value.gsub(/onload/i, '')
+    value = value.gsub(/onerror/i, '')
+
+    # Limit length to prevent DOS (return first 500 characters)
+    value[0, 500]
+  end
+
+  # Sanitize CSS property names to prevent injection
+  def self.sanitize_css_property_name(name)
+    return '' if name.blank?
+
+    # Only allow alphanumeric, hyphens, and underscores
+    # Convert underscores to hyphens for CSS convention
+    name.to_s.gsub(/[^a-zA-Z0-9\-_]/, '').gsub('_', '-')
   end
 end 

@@ -16,9 +16,29 @@ ActiveAdmin.setup do |config|
   config.authentication_method = :authenticate_admin_user!
 
   # Manually add our JavaScript
-  delete_fix_js = File.read(Rails.root.join('app/assets/javascripts/delete_fix.js'))
-  
+  # Security Note: This file is read from the application's asset directory
+  # If an attacker gains write access to the filesystem, they could modify this file
+  # In production, ensure proper file permissions and filesystem access controls
+  delete_fix_js_path = Rails.root.join('app/assets/javascripts/delete_fix.js')
+
+  # Validate file exists before reading to prevent errors
+  delete_fix_js = if File.exist?(delete_fix_js_path)
+    file_content = File.read(delete_fix_js_path)
+
+    # Basic validation: ensure file is not suspiciously large (DOS protection)
+    if file_content.bytesize > 50_000 # 50KB limit
+      Rails.logger.error("Delete fix JS file is suspiciously large: #{file_content.bytesize} bytes")
+      ""
+    else
+      file_content
+    end
+  else
+    Rails.logger.error("Delete fix JS file not found: #{delete_fix_js_path}")
+    ""
+  end
+
   # Add timezone handling JavaScript
+  # This is a static script defined in this initializer file
   timezone_js = <<~JAVASCRIPT
     // Client-side timezone detection and conversion for ActiveAdmin
     document.addEventListener('DOMContentLoaded', function() {
@@ -98,8 +118,17 @@ ActiveAdmin.setup do |config|
       });
     });
   JAVASCRIPT
-  
-  config.head = "<script>#{delete_fix_js}</script><script>#{timezone_js}</script>".html_safe
+
+  # Escape and safely inject JavaScript into the head
+  # Note: delete_fix_js and timezone_js are validated/controlled content
+  # delete_fix_js: read from application asset file with size validation
+  # timezone_js: static heredoc defined in this file
+  # Both are marked html_safe after validation to allow proper script execution
+  js_content = []
+  js_content << "<script>#{delete_fix_js}</script>" if delete_fix_js.present?
+  js_content << "<script>#{timezone_js}</script>" if timezone_js.present?
+
+  config.head = js_content.join.html_safe
 
   # Add custom CSS for better login styling
   custom_css = <<~CSS
@@ -182,8 +211,13 @@ ActiveAdmin.setup do |config|
       }
     </style>
   CSS
-  
-  config.head = "#{config.head}#{custom_css}".html_safe
+
+  # Append custom CSS to existing head content
+  # Note: custom_css is a static heredoc defined in this initializer file
+  # It's safe to mark as html_safe since it's controlled content from the application code
+  if custom_css.present?
+    config.head = [config.head, custom_css].compact.join.html_safe
+  end
 
   # Register Active Admin JavaScript to ensure batch actions work
   config.register_javascript 'active_admin.js'

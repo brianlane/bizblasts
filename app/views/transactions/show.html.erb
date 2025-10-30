@@ -427,9 +427,10 @@
           <% end %>
         <% else %>
           <!-- For main domain, we need to redirect to the business subdomain for payment -->
-          <% if @invoice.business.hostname.present? %>
-            <%= link_to "Pay #{number_to_currency(@invoice.balance_due)}", 
-                  "http://#{@invoice.business.hostname}.#{request.domain}:#{request.port}/payments/new?invoice_id=#{@invoice.id}", 
+          <% payment_url = safe_business_url(@invoice.business, '/payments/new', { invoice_id: @invoice.id }) %>
+          <% if payment_url.present? %>
+            <%= link_to "Pay #{number_to_currency(@invoice.balance_due)}",
+                  payment_url,
                   class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200" %>
           <% else %>
             <p class="text-gray-600 italic">Payment processing is not available for this business.</p>

@@ -246,4 +246,238 @@ RSpec.describe ApplicationHelper, type: :helper do
       end
     end
   end
+
+  describe '#sanitize_css_value' do
+    context 'basic functionality' do
+      it 'returns empty string for blank input' do
+        expect(helper.sanitize_css_value('')).to eq('')
+        expect(helper.sanitize_css_value(nil)).to eq('')
+        expect(helper.sanitize_css_value('   ')).to eq('')
+      end
+
+      it 'preserves valid CSS color values' do
+        expect(helper.sanitize_css_value('#ff0000')).to eq('#ff0000')
+        expect(helper.sanitize_css_value('rgb(255, 0, 0)')).to eq('rgb(255, 0, 0)')
+        expect(helper.sanitize_css_value('blue')).to eq('blue')
+      end
+
+      it 'preserves valid CSS size values' do
+        expect(helper.sanitize_css_value('10px')).to eq('10px')
+        expect(helper.sanitize_css_value('1.5em')).to eq('1.5em')
+        expect(helper.sanitize_css_value('100%')).to eq('100%')
+      end
+    end
+
+    context 'XSS protection' do
+      it 'removes angle brackets to prevent tag injection' do
+        result = helper.sanitize_css_value('red; </style><script>alert(1)</script><style>')
+        expect(result).not_to include('<')
+        expect(result).not_to include('>')
+        # Note: the word 'script' remains but without angle brackets it's harmless
+        expect(result).to include('script') # Text content remains
+      end
+
+      it 'removes curly braces to prevent CSS escape' do
+        result = helper.sanitize_css_value('red; } body { display: none; } .x {')
+        expect(result).not_to include('{')
+        expect(result).not_to include('}')
+      end
+
+      it 'removes quotes to prevent attribute injection' do
+        result = helper.sanitize_css_value('red" onclick="alert(1)"')
+        expect(result).not_to include('"')
+        expect(result).not_to include("'")
+      end
+
+      it 'removes backslashes to prevent escape sequences' do
+        result = helper.sanitize_css_value('red\\ </style>')
+        expect(result).not_to include('\\')
+      end
+    end
+
+    context 'dangerous pattern removal' do
+      it 'removes javascript: URLs' do
+        result = helper.sanitize_css_value('javascript:alert(1)')
+        expect(result).not_to include('javascript:')
+      end
+
+      it 'removes CSS expressions' do
+        result = helper.sanitize_css_value('expression(alert(1))')
+        expect(result).not_to include('expression(')
+      end
+
+      it 'removes behavior property' do
+        result = helper.sanitize_css_value('behavior: url(xss.htc)')
+        expect(result).not_to include('behavior:')
+      end
+
+      it 'removes vbscript: URLs' do
+        result = helper.sanitize_css_value('vbscript:msgbox(1)')
+        expect(result).not_to include('vbscript:')
+      end
+
+      it 'removes @import' do
+        result = helper.sanitize_css_value('@import url(evil.css)')
+        expect(result).not_to include('@import')
+      end
+
+      it 'removes onload event' do
+        result = helper.sanitize_css_value('onload')
+        expect(result).not_to include('onload')
+      end
+
+      it 'removes onerror event' do
+        result = helper.sanitize_css_value('onerror')
+        expect(result).not_to include('onerror')
+      end
+    end
+
+    context 'length limitation' do
+      it 'limits value to 500 characters' do
+        long_value = 'a' * 1000
+        result = helper.sanitize_css_value(long_value)
+        expect(result.length).to eq(500)
+      end
+    end
+  end
+
+  describe '#sanitize_css_property_name' do
+    it 'returns empty string for blank input' do
+      expect(helper.sanitize_css_property_name('')).to eq('')
+      expect(helper.sanitize_css_property_name(nil)).to eq('')
+    end
+
+    it 'preserves valid property names' do
+      expect(helper.sanitize_css_property_name('color')).to eq('color')
+      expect(helper.sanitize_css_property_name('background-color')).to eq('background-color')
+      expect(helper.sanitize_css_property_name('font_size')).to eq('font_size')
+    end
+
+    it 'removes dangerous characters' do
+      result = helper.sanitize_css_property_name('color;}<script>alert(1)</script>')
+      expect(result).not_to include(';')
+      expect(result).not_to include('}')
+      expect(result).not_to include('<')
+      expect(result).not_to include('>')
+      expect(result).to eq('colorscriptalert1script')
+    end
+
+    it 'only allows alphanumeric, hyphens, and underscores' do
+      result = helper.sanitize_css_property_name('prop@name!test$value')
+      expect(result).to eq('propnametestvalue')
+    end
+  end
+
+  describe '#safe_business_url' do
+    let(:business) { create(:business, hostname: 'testbiz', host_type: :subdomain) }
+    let(:custom_business) { create(:business, hostname: 'example.com', host_type: :custom_domain) }
+
+    before do
+      allow(helper).to receive(:request).and_return(
+        double(
+          domain: 'bizblasts.com',
+          port: 3000,
+          ssl?: false
+        )
+      )
+    end
+
+    context 'basic functionality' do
+      it 'returns nil for nil business' do
+        expect(helper.safe_business_url(nil)).to be_nil
+      end
+
+      it 'returns nil for business without hostname' do
+        business.hostname = nil
+        expect(helper.safe_business_url(business)).to be_nil
+      end
+
+      it 'constructs URL for subdomain business' do
+        result = helper.safe_business_url(business, '/test')
+        expect(result).to eq('http://testbiz.bizblasts.com:3000/test')
+      end
+
+      it 'constructs URL for custom domain business' do
+        result = helper.safe_business_url(custom_business, '/test')
+        expect(result).to eq('http://example.com:3000/test')
+      end
+    end
+
+    context 'parameter encoding' do
+      it 'properly encodes query parameters' do
+        result = helper.safe_business_url(business, '/payments/new', invoice_id: 123)
+        expect(result).to include('invoice_id=123')
+      end
+
+      it 'encodes special characters in parameters' do
+        result = helper.safe_business_url(business, '/test', name: 'test & value')
+        # ERB::Util.url_encode encodes spaces as %20, not +
+        expect(result).to match(/name=test(%20|\+)%26(%20|\+)value/)
+      end
+    end
+
+    context 'XSS protection' do
+      it 'rejects invalid subdomain hostnames' do
+        business.hostname = 'test<script>alert(1)</script>'
+        result = helper.safe_business_url(business)
+        expect(result).to be_nil
+      end
+
+      it 'rejects invalid custom domain hostnames' do
+        custom_business.hostname = 'evil.com<script>alert(1)</script>'
+        result = helper.safe_business_url(custom_business)
+        expect(result).to be_nil
+      end
+
+      it 'validates subdomain format' do
+        business.hostname = 'test;rm -rf /'
+        result = helper.safe_business_url(business)
+        expect(result).to be_nil
+      end
+
+      it 'validates custom domain format' do
+        custom_business.hostname = 'not a valid domain'
+        result = helper.safe_business_url(custom_business)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'port handling' do
+      it 'omits port for standard HTTP port 80' do
+        allow(helper).to receive(:request).and_return(
+          double(domain: 'bizblasts.com', port: 80, ssl?: false)
+        )
+        result = helper.safe_business_url(business)
+        expect(result).not_to include(':80')
+      end
+
+      it 'omits port for standard HTTPS port 443' do
+        allow(helper).to receive(:request).and_return(
+          double(domain: 'bizblasts.com', port: 443, ssl?: true)
+        )
+        result = helper.safe_business_url(business)
+        expect(result).not_to include(':443')
+      end
+
+      it 'includes non-standard ports' do
+        result = helper.safe_business_url(business)
+        expect(result).to include(':3000')
+      end
+    end
+
+    context 'protocol handling' do
+      it 'uses https for SSL requests' do
+        allow(helper).to receive(:request).and_return(
+          double(domain: 'bizblasts.com', port: 443, ssl?: true)
+        )
+        result = helper.safe_business_url(business)
+        expect(result).to start_with('https://')
+      end
+
+      it 'uses http for non-SSL requests' do
+        result = helper.safe_business_url(business)
+        expect(result).to start_with('http://')
+      end
+    end
+  end
 end
