@@ -246,4 +246,172 @@ RSpec.describe ApplicationHelper, type: :helper do
       end
     end
   end
+
+  # Note: Tests for sanitize_css_value and sanitize_css_property_name have been
+  # moved to spec/concerns/css_sanitizer_spec.rb since these methods are now
+  # provided by the CssSanitizer module
+
+  describe '#safe_business_url' do
+    let(:business) { create(:business, hostname: 'testbiz', host_type: :subdomain) }
+    let(:custom_business) { create(:business, hostname: 'example.com', host_type: :custom_domain) }
+
+    before do
+      allow(helper).to receive(:request).and_return(
+        double(
+          domain: 'bizblasts.com',
+          port: 3000,
+          ssl?: false
+        )
+      )
+    end
+
+    context 'basic functionality' do
+      it 'returns nil for nil business' do
+        expect(helper.safe_business_url(nil)).to be_nil
+      end
+
+      it 'returns nil for business without hostname' do
+        business.hostname = nil
+        expect(helper.safe_business_url(business)).to be_nil
+      end
+
+      it 'constructs URL for subdomain business' do
+        result = helper.safe_business_url(business, '/test')
+        expect(result).to eq('http://testbiz.bizblasts.com:3000/test')
+      end
+
+      it 'constructs URL for custom domain business' do
+        result = helper.safe_business_url(custom_business, '/test')
+        expect(result).to eq('http://example.com:3000/test')
+      end
+    end
+
+    context 'parameter encoding' do
+      it 'properly encodes query parameters' do
+        result = helper.safe_business_url(business, '/payments/new', { invoice_id: 123 })
+        expect(result).to include('invoice_id=123')
+      end
+
+      it 'encodes special characters in parameters' do
+        result = helper.safe_business_url(business, '/test', { name: 'test & value' })
+        # ERB::Util.url_encode encodes spaces as %20, not +
+        expect(result).to match(/name=test(%20|\+)%26(%20|\+)value/)
+      end
+    end
+
+    context 'XSS protection' do
+      it 'rejects invalid subdomain hostnames' do
+        business.hostname = 'test<script>alert(1)</script>'
+        result = helper.safe_business_url(business)
+        expect(result).to be_nil
+      end
+
+      it 'rejects invalid custom domain hostnames' do
+        custom_business.hostname = 'evil.com<script>alert(1)</script>'
+        result = helper.safe_business_url(custom_business)
+        expect(result).to be_nil
+      end
+
+      it 'validates subdomain format' do
+        business.hostname = 'test;rm -rf /'
+        result = helper.safe_business_url(business)
+        expect(result).to be_nil
+      end
+
+      it 'validates custom domain format' do
+        custom_business.hostname = 'not a valid domain'
+        result = helper.safe_business_url(custom_business)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'port handling' do
+      it 'omits port for standard HTTP port 80' do
+        allow(helper).to receive(:request).and_return(
+          double(domain: 'bizblasts.com', port: 80, ssl?: false)
+        )
+        result = helper.safe_business_url(business)
+        expect(result).not_to include(':80')
+      end
+
+      it 'omits port for standard HTTPS port 443' do
+        allow(helper).to receive(:request).and_return(
+          double(domain: 'bizblasts.com', port: 443, ssl?: true)
+        )
+        result = helper.safe_business_url(business)
+        expect(result).not_to include(':443')
+      end
+
+      it 'includes non-standard ports' do
+        result = helper.safe_business_url(business)
+        expect(result).to include(':3000')
+      end
+    end
+
+    context 'protocol handling' do
+      it 'uses https for SSL requests' do
+        allow(helper).to receive(:request).and_return(
+          double(domain: 'bizblasts.com', port: 443, ssl?: true)
+        )
+        result = helper.safe_business_url(business)
+        expect(result).to start_with('https://')
+      end
+
+      it 'uses http for non-SSL requests' do
+        result = helper.safe_business_url(business)
+        expect(result).to start_with('http://')
+      end
+    end
+
+    context 'fragment handling' do
+      it 'adds fragment when provided' do
+        result = helper.safe_business_url(business, '/products', {}, fragment: 'featured')
+        expect(result).to end_with('#featured')
+      end
+
+      it 'works with both params and fragment' do
+        result = helper.safe_business_url(business, '/products', { cat: 'shoes' }, fragment: 'top')
+        expect(result).to include('?cat=shoes')
+        expect(result).to end_with('#top')
+      end
+
+      it 'sanitizes malicious fragment values' do
+        # Attempt to inject script via fragment
+        result = helper.safe_business_url(business, '/', {}, fragment: '<script>alert(1)</script>')
+        expect(result).not_to include('<script>')
+        expect(result).not_to include('</script>')
+        # Only alphanumeric and hyphens/underscores should remain
+        expect(result).to end_with('#scriptalert1script')
+      end
+
+      it 'removes special characters from fragments' do
+        result = helper.safe_business_url(business, '/', {}, fragment: 'section@one!test$value')
+        # Only valid characters should remain
+        expect(result).to end_with('#sectiononetestvalue')
+      end
+
+      it 'preserves hyphens and underscores in fragments' do
+        result = helper.safe_business_url(business, '/', {}, fragment: 'section-one_two')
+        expect(result).to end_with('#section-one_two')
+      end
+
+      it 'handles blank fragment gracefully' do
+        result = helper.safe_business_url(business, '/', {}, fragment: '')
+        expect(result).not_to include('#')
+      end
+
+      it 'handles nil fragment gracefully' do
+        result = helper.safe_business_url(business, '/', {}, fragment: nil)
+        expect(result).not_to include('#')
+      end
+
+      it 'works without fragment parameter (backward compatibility)' do
+        # Old usage without fragment parameter should still work
+        result = helper.safe_business_url(business, '/test', { id: 123 })
+        expect(result).to include('/test')
+        expect(result).to include('?id=123')
+        expect(result).not_to include('#')
+      end
+    end
+  end
 end

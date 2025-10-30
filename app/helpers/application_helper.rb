@@ -3,6 +3,9 @@
 # Global view helpers available throughout the application
 # Contains commonly used formatting and presentation logic
 module ApplicationHelper
+  # Include CSS sanitization methods for XSS protection
+  include CssSanitizer
+
   # Include route helpers from engines/namespaces needed globally or in test contexts
   include BusinessManager::Engine.routes.url_helpers if defined?(BusinessManager::Engine)
   # Or if it's just a namespace, not a full engine:
@@ -227,6 +230,67 @@ module ApplicationHelper
 
     # Strip HTML tags while preserving CSS
     strip_tags(css_content)
+  end
+
+  # Safely construct a URL to a business's domain
+  # This method sanitizes the hostname and constructs a proper URL
+  # to prevent XSS attacks via hostname manipulation
+  #
+  # @param business [Business] The business object
+  # @param path [String] The path for the URL (default: '/')
+  # @param params [Hash] Query parameters (default: {})
+  # @param fragment [String] URL fragment/anchor (optional, e.g., 'section-1')
+  # @return [String, nil] The constructed URL or nil if invalid
+  #
+  # @example
+  #   safe_business_url(business, '/products', { category: 'shoes' }, 'featured')
+  #   #=> "https://business.example.com/products?category=shoes#featured"
+  def safe_business_url(business, path = '/', params = {}, fragment: nil)
+    return nil unless business&.hostname.present?
+
+    # Validate that hostname matches expected format
+    # This provides defense-in-depth even though Business model has validations
+    hostname = business.hostname.to_s.strip.downcase
+
+    # For custom domains, ensure it's a valid domain format
+    if business.host_type_custom_domain?
+      unless hostname.match?(/\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\z/)
+        Rails.logger.warn("Invalid custom domain hostname: #{hostname}")
+        return nil
+      end
+      host = hostname
+    else
+      # For subdomains, ensure it matches subdomain format
+      unless hostname.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
+        Rails.logger.warn("Invalid subdomain hostname: #{hostname}")
+        return nil
+      end
+      # Construct subdomain URL
+      host = "#{hostname}.#{request.domain}"
+    end
+
+    # Add port if not standard
+    port_part = (request.port.present? && ![80, 443].include?(request.port.to_i)) ? ":#{request.port}" : ""
+
+    # Construct URL with proper encoding
+    protocol = request.ssl? ? "https" : "http"
+    url = "#{protocol}://#{host}#{port_part}#{path}"
+
+    # Add query parameters if provided
+    if params.present?
+      query_string = params.map { |k, v| "#{ERB::Util.url_encode(k.to_s)}=#{ERB::Util.url_encode(v.to_s)}" }.join('&')
+      url += "?#{query_string}"
+    end
+
+    # Add fragment if provided (sanitized to prevent XSS)
+    if fragment.present?
+      # Sanitize fragment: only allow alphanumeric, hyphens, underscores
+      # This prevents XSS attempts via fragment identifiers
+      sanitized_fragment = fragment.to_s.gsub(/[^a-zA-Z0-9\-_]/, '')
+      url += "##{sanitized_fragment}" if sanitized_fragment.present?
+    end
+
+    url
   end
 
   # Safe method to render theme CSS variables

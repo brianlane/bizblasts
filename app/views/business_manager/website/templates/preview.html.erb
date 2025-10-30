@@ -53,12 +53,13 @@
 <style>
   <% if @theme_css.present? %>
     /* Template Theme CSS */
-    <%= @theme_css.html_safe %>
+    /* Note: CSS is sanitized by WebsiteTemplateService.generate_theme_css before output */
+    <%= sanitize_css(@theme_css).html_safe %>
   <% else %>
     /* No theme CSS found - using fallback */
     :root {
       --color-primary: #dc2626;
-      --color-secondary: #7c3aed; 
+      --color-secondary: #7c3aed;
       --color-accent: #f59e0b;
       --color-dark: #333333;
       --color-light: #F8F9FA;
