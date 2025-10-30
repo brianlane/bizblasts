@@ -440,6 +440,113 @@ RSpec.describe BusinessManager::Settings::IntegrationsController, type: :control
     end
   end
 
+  describe 'GET #index - OAuth Flash Security (CWE-598)' do
+    context 'when OAuth success notice is in session' do
+      before do
+        session[:oauth_flash_notice] = 'Connected to Google! Please select your business account below.'
+      end
+
+      it 'displays notice from session and clears it' do
+        get :index
+
+        expect(response).to have_http_status(:success)
+        expect(flash.now[:notice]).to eq('Connected to Google! Please select your business account below.')
+
+        # Verify session is cleared after reading
+        expect(session[:oauth_flash_notice]).to be_nil
+      end
+
+      it 'does not read flash from URL parameters (security fix)' do
+        # Try to pass flash via URL parameters (old vulnerable behavior)
+        get :index, params: { oauth_notice: 'This should be ignored' }
+
+        # Should only use session, not params
+        expect(flash.now[:notice]).to eq('Connected to Google! Please select your business account below.')
+        expect(flash.now[:notice]).not_to eq('This should be ignored')
+      end
+    end
+
+    context 'when OAuth error alert is in session' do
+      before do
+        session[:oauth_flash_alert] = 'Failed to connect to Google Business Profile.'
+      end
+
+      it 'displays alert from session and clears it' do
+        get :index
+
+        expect(response).to have_http_status(:success)
+        expect(flash.now[:alert]).to eq('Failed to connect to Google Business Profile.')
+
+        # Verify session is cleared after reading
+        expect(session[:oauth_flash_alert]).to be_nil
+      end
+
+      it 'does not read flash from URL parameters (security fix)' do
+        # Try to pass flash via URL parameters (old vulnerable behavior)
+        get :index, params: { oauth_alert: 'This should be ignored' }
+
+        # Should only use session, not params
+        expect(flash.now[:alert]).to eq('Failed to connect to Google Business Profile.')
+        expect(flash.now[:alert]).not_to eq('This should be ignored')
+      end
+    end
+
+    context 'when no OAuth flash messages exist' do
+      it 'does not set any flash messages' do
+        get :index
+
+        expect(flash.now[:notice]).to be_nil
+        expect(flash.now[:alert]).to be_nil
+      end
+
+      it 'ignores any URL parameters for oauth_notice or oauth_alert' do
+        # Attempt to inject flash via URL (should be ignored)
+        get :index, params: {
+          oauth_notice: 'Malicious notice',
+          oauth_alert: 'Malicious alert'
+        }
+
+        # Verify URL parameters are completely ignored
+        expect(flash.now[:notice]).to be_nil
+        expect(flash.now[:alert]).to be_nil
+      end
+    end
+
+    context 'session cleanup behavior' do
+      it 'clears notice after displaying' do
+        session[:oauth_flash_notice] = 'Test notice'
+
+        get :index
+
+        expect(flash.now[:notice]).to eq('Test notice')
+        expect(session[:oauth_flash_notice]).to be_nil
+      end
+
+      it 'clears alert after displaying' do
+        session[:oauth_flash_alert] = 'Test alert'
+
+        get :index
+
+        expect(flash.now[:alert]).to eq('Test alert')
+        expect(session[:oauth_flash_alert]).to be_nil
+      end
+
+      it 'prioritizes notice over alert when both exist (edge case)' do
+        # This shouldn't happen in practice because GoogleBusinessOauthController
+        # clears the opposite type when setting one, but test the behavior
+        session[:oauth_flash_notice] = 'Test notice'
+        session[:oauth_flash_alert] = 'Test alert'
+
+        get :index
+
+        # Notice takes priority (elsif means alert only shows if no notice)
+        expect(flash.now[:notice]).to eq('Test notice')
+        expect(flash.now[:alert]).to be_nil
+        expect(session[:oauth_flash_notice]).to be_nil
+      end
+    end
+  end
+
   describe '#google_business_oauth_callback_url (private method)' do
     let(:integrations_controller) { described_class.new }
 
