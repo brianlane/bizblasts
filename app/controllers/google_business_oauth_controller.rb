@@ -145,17 +145,23 @@ class GoogleBusinessOauthController < ApplicationController
     query_params[:show_google_accounts] = true if options[:show_google_accounts]
     query_string = query_params.any? ? "?#{query_params.to_query}" : ""
     
-    integrations_url = "#{base_url}/manage/settings/integrations#{query_string}"
-    
-    # For notices/alerts, we'll need to pass them via flash
-    # Since this is a cross-domain redirect, we can't use normal flash
-    # Instead, we'll add them as URL parameters
+    # SECURITY FIX (CWE-598): Store flash messages in session instead of URL parameters
+    # This prevents sensitive data from being exposed in browser history, server logs,
+    # referrer headers, and proxy caches.
+    #
+    # Session-based approach is secure because:
+    # - Session data is stored server-side, not in URLs
+    # - Session cookies persist across OAuth callback redirect
+    # - Messages are cleared after display (see IntegrationsController)
+    # - Consistent with existing OAuth state management pattern (lines 36-38)
     if options[:notice]
-      query_params[:oauth_notice] = options[:notice]
+      session[:oauth_flash_notice] = options[:notice]
+      session.delete(:oauth_flash_alert) # Clear any previous alert
     elsif options[:alert]
-      query_params[:oauth_alert] = options[:alert]
+      session[:oauth_flash_alert] = options[:alert]
+      session.delete(:oauth_flash_notice) # Clear any previous notice
     end
-    
+
     final_query_string = query_params.any? ? "?#{query_params.to_query}" : ""
     final_url = "#{base_url}/manage/settings/integrations#{final_query_string}"
     

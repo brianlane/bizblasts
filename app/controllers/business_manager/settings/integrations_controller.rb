@@ -14,11 +14,19 @@ module BusinessManager
         @sync_statistics = calculate_sync_statistics
         @providers = available_providers
         
-        # Handle OAuth callback flash messages passed as URL parameters
-        if params[:oauth_notice]
-          flash.now[:notice] = params[:oauth_notice]
-        elsif params[:oauth_alert] 
-          flash.now[:alert] = params[:oauth_alert]
+        # SECURITY FIX (CWE-598): Read OAuth flash messages from session instead of URL parameters
+        # This prevents sensitive data from being exposed in browser history, server logs,
+        # referrer headers, and proxy caches.
+        #
+        # Session-based approach is secure because:
+        # - Session data is stored server-side, not in URLs
+        # - Messages are immediately cleared after display
+        # - Consistent with OAuth state management pattern
+        # - Aligns with secure CalendarOauthController pattern
+        if session[:oauth_flash_notice]
+          flash.now[:notice] = session.delete(:oauth_flash_notice)
+        elsif session[:oauth_flash_alert]
+          flash.now[:alert] = session.delete(:oauth_flash_alert)
         end
         
         # Handle Google Business Profile account selection
