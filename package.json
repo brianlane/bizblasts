@@ -5,7 +5,7 @@
     "build:css:application": "sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
     "build:css:active_admin": "./bin/sass-build-activeadmin.sh",
     "build:css": "yarn run build:css:application && yarn run build:css:active_admin",
-    "build:js": "bun build ./app/javascript/application.js --outdir ./app/assets/builds",
+    "build:js": "bun build ./app/javascript/application.js ./app/javascript/active_admin.js --outdir ./app/assets/builds",
     "test": "jest",
     "test:watch": "jest --watch"
   },

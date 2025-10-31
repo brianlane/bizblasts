@@ -187,7 +187,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -279,7 +280,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -382,7 +384,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -482,7 +485,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -582,7 +586,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -773,7 +778,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -1326,7 +1332,8 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           mkdir -p app/assets/builds
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
@@ -1435,7 +1442,8 @@ jobs:
             --load-path="$AA_PATH/app/assets/stylesheets"
           mkdir -p public/assets
           cp ./app/assets/builds/active_admin.css ./public/assets/
-          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/javascripts/application.js
+          npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
