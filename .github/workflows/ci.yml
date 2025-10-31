@@ -8,6 +8,9 @@ on:
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - name: Checkout code
@@ -61,6 +64,9 @@ jobs:
 
   scan_js:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - name: Checkout code
@@ -93,6 +99,9 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -126,6 +135,9 @@ jobs:
   # Model tests - typically fast and don't need browser
   test_models:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -219,7 +231,10 @@ jobs:
   # Request tests - API and controller tests
   test_requests_1:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_requests
@@ -323,7 +338,10 @@ jobs:
   # Request tests group 2
   test_requests_2:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_requests
@@ -424,7 +442,10 @@ jobs:
   # Service and business logic tests - Group 1
   test_services_1:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services_1
@@ -525,7 +546,10 @@ jobs:
   # Service and business logic tests - Group 2
   test_services_2:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services_2
@@ -626,7 +650,10 @@ jobs:
   # Service tests part 3 (jobs, services, policies)
   test_services_3:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services_3
@@ -719,7 +746,10 @@ jobs:
   # Integration tests
   test_integration:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_integration
@@ -812,7 +842,10 @@ jobs:
   # System tests part 1
   test_system_1:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_1
@@ -906,7 +939,10 @@ jobs:
   # System tests part 2
   test_system_2:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_2
@@ -1000,7 +1036,10 @@ jobs:
   # System tests part 3
   test_system_3:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_3
@@ -1094,6 +1133,9 @@ jobs:
   # System tests part 4
   test_system_4:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -1188,6 +1230,9 @@ jobs:
   # System tests part 5
   test_system_5:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -1283,7 +1328,10 @@ jobs:
   # Other tests (helpers, lib, etc.)
   test_other:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_other
@@ -1397,7 +1445,10 @@ jobs:
   # Performance test - separate job
   performance_test:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      actions: write
+
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_performance
@@ -1505,7 +1556,9 @@ jobs:
     needs: [scan_ruby, scan_js, lint, test_models, test_requests_1, test_requests_2, test_services_1, test_services_2, test_services_3, test_integration, test_system_1, test_system_2, test_system_3, test_system_4, test_system_5, test_other, performance_test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

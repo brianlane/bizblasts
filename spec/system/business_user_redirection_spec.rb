@@ -20,14 +20,14 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     host_type: 'subdomain'
   ) }
 
-  let!(:user) { 
+  let!(:user) {
     user = User.create!(
-      first_name: 'Test', 
-      last_name: 'Business', 
-      email: 'business@test.com', 
-      password: 'password', 
+      first_name: 'Test',
+      last_name: 'Business',
+      email: "business-#{SecureRandom.hex(4)}@test.com",
+      password: 'password',
       password_confirmation: 'password',
-      business: business, 
+      business: business,
       role: 'manager'
     )
     user.confirm # Confirm the user's email so they can sign in

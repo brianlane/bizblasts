@@ -21,8 +21,8 @@ Capybara.register_driver(:cuprite) do |app|
   # CI-specific settings for better stability
   if ENV['CI'] == 'true'
     options.merge!({
-      process_timeout: 30,     # Increased timeout for CI
-      timeout: 30,             # Increased timeout for CI
+      process_timeout: 45,     # Increased timeout for CI browser initialization
+      timeout: 45,             # Increased timeout for CI operations
       slowmo: 0.1,             # Add slight delay between commands
       browser_options: options[:browser_options].merge({
         'single-process' => nil,
