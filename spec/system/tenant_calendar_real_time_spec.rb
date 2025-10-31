@@ -33,8 +33,8 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
   end
 
   it "displays the correct slot count for days with late-night availability as time passes", js: true do
-    # Find the next Wednesday
-    wednesday = Date.current.next_occurring(:wednesday)
+    # Find the next Wednesday in business timezone
+    wednesday = Date.current.in_time_zone(business.time_zone).to_date.next_occurring(:wednesday)
 
     # Travel to Wednesday morning to check the initial state
     travel_to wednesday.in_time_zone(business.time_zone).change(hour: 10) do

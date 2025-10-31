@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     steps:
       - name: Checkout code
@@ -65,6 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     steps:
       - name: Checkout code
@@ -99,6 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -134,6 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -229,6 +233,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -335,6 +340,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -438,6 +444,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -541,6 +548,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -644,6 +652,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -739,6 +748,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -1320,6 +1330,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test
@@ -1436,6 +1447,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     env:
       RAILS_ENV: test

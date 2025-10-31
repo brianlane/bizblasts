@@ -217,8 +217,8 @@
       <div class="hidden sm:block p-4 sm:p-6">
         <div class="calendar-container">
           <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @calendar_base_date || @date) do |date| %>
-            <% is_past_date = date < Date.current %>
-            <div class="calendar-day <%= 'past-date' if is_past_date %>" 
+            <% is_past_date = date < Date.current.in_time_zone(@business.time_zone).to_date %>
+            <div class="calendar-day <%= 'past-date' if is_past_date %>"
                  data-date="<%= date.to_s %>"
                  <% if is_past_date %>style="pointer-events: none; cursor: not-allowed;"<% end %>>
               <div class="calendar-date"><%= date.day %></div>
