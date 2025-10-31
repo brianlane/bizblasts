@@ -81,12 +81,16 @@ RSpec.configure do |config|
   config.include Module.new {
     def switch_to_subdomain(subdomain)
       port_suffix = Capybara.server_port ? ":#{Capybara.server_port}" : ""
-      Capybara.app_host = "http://#{subdomain}.lvh.me#{port_suffix}"
+      host = "http://#{subdomain}.lvh.me#{port_suffix}"
+      Capybara.app_host = host
+      Capybara.default_host = host
     end
 
     def switch_to_main_domain
       port_suffix = Capybara.server_port ? ":#{Capybara.server_port}" : ""
-      Capybara.app_host = "http://lvh.me#{port_suffix}"
+      host = "http://lvh.me#{port_suffix}"
+      Capybara.app_host = host
+      Capybara.default_host = host
     end
   }, type: :system
 

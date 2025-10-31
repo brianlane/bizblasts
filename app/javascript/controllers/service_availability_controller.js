@@ -7,7 +7,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "form",
-    "submitButton", 
+    "submitButton",
     "errorsList",
     "dayContent",
     "slotsContainer",
@@ -17,9 +17,21 @@ export default class extends Controller {
     "calendarPreview",
     "availabilityContainer"
   ]
-  
+
   static values = {
     serviceName: String
+  }
+
+  /**
+   * SECURITY: Escape HTML to prevent XSS attacks
+   * @param {string} text - Text to escape
+   * @returns {string} - HTML-escaped text
+   */
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   connect() {
@@ -338,15 +350,16 @@ export default class extends Controller {
   }
 
   // Update error display
+  // SECURITY FIX: Escape HTML in error messages to prevent XSS
   updateErrorDisplay(errors) {
     if (!this.hasErrorsListTarget) return
     const errorsContainer = this.element.querySelector('#availability-errors')
     const errorsList = this.errorsListTarget
-    
+
     if (errors.length > 0) {
-      // Show errors
+      // Show errors - SECURITY: Escape each error message
       errorsContainer.classList.remove('hidden')
-      errorsList.innerHTML = errors.map(error => `<li>${error}</li>`).join('')
+      errorsList.innerHTML = errors.map(error => `<li>${this.escapeHtml(error)}</li>`).join('')
     } else {
       // Hide errors
       errorsContainer.classList.add('hidden')
@@ -401,18 +414,21 @@ export default class extends Controller {
   }
 
   // Show validation message
+  // SECURITY FIX: Escape HTML in validation messages to prevent XSS
   showValidationMessage(message) {
     // Create temporary alert if doesn't exist
     let alert = this.element.querySelector('.validation-alert')
     if (!alert) {
       alert = document.createElement('div')
       alert.className = 'validation-alert fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50'
+      // SECURITY: Escape message content
+      const escapedMessage = this.escapeHtml(message);
       alert.innerHTML = `
         <div class="flex items-center">
           <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
           </svg>
-          <span>${message}</span>
+          <span>${escapedMessage}</span>
         </div>
       `
       document.body.appendChild(alert)

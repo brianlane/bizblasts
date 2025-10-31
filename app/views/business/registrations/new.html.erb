@@ -635,13 +635,17 @@
       if (existingMessage) {
         existingMessage.remove();
       }
-      
+
       if (!message) return;
-      
+
       const messageDiv = document.createElement('div');
       messageDiv.className = `subdomain-validation text-xs mt-1 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : 'text-red-600'}`;
-      messageDiv.innerHTML = message;
-      
+
+      // SECURITY FIX (Alert #25 - CWE-79): Use textContent instead of innerHTML
+      // This prevents XSS attacks by treating the message as plain text only.
+      // Validation messages don't need HTML rendering - they're all plain text.
+      messageDiv.textContent = message;
+
       input.parentNode.appendChild(messageDiv);
     }
     

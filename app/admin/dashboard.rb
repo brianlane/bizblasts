@@ -180,7 +180,7 @@ ActiveAdmin.register_page "Dashboard" do
       
       if SolidQueue::FailedExecution.count > 0
         div style: "margin-top: 15px;" do
-          link_to "View Failed Jobs →", admin_solidqueue_jobs_path, class: "button", style: "background-color: #dc3545; color: white;"
+          link_to "View Failed Jobs →", admin_solid_queue_jobs_path, class: "button", style: "background-color: #dc3545; color: white;"
         end
       end
     end
