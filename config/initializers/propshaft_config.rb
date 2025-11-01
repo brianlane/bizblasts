@@ -4,7 +4,15 @@
 Rails.application.configure do
   # Exclude ActiveAdmin's gem assets to prevent circular dependencies
   # Only process our built assets, not the raw gem assets
-  config.assets.paths = [Rails.root.join('app', 'assets', 'builds')]
+  # Restrict Propshaft to our compiled bundles plus explicit static asset directories
+  asset_search_paths = [
+    Rails.root.join('app', 'assets', 'builds'),
+    Rails.root.join('app', 'assets', 'images'),
+    Rails.root.join('app', 'assets', 'javascripts'),
+    Rails.root.join('app', 'assets', 'stylesheets')
+  ].select { |path| Dir.exist?(path) }
+
+  config.assets.paths = asset_search_paths.map(&:to_s)
   
   # Let Propshaft handle fingerprinting normally
   config.assets.digest = true
