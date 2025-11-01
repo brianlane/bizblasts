@@ -10,9 +10,22 @@
   <meta name="turbo-prefetch" content="false">
 
   <%# Tailwind and application CSS bundles %>
-  <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
-  <%= stylesheet_link_tag "custom", data: { "turbo-track" => "reload" } %>
-  <%= javascript_include_tag "application", defer: true %>
+  <% allowed_asset_errors = ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled'] %>
+  <% begin %>
+    <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
+  <% rescue => e %>
+    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+  <% end %>
+  <% begin %>
+    <%= stylesheet_link_tag "custom", data: { "turbo-track" => "reload" } %>
+  <% rescue => e %>
+    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+  <% end %>
+  <% begin %>
+    <%= javascript_include_tag "application", defer: true %>
+  <% rescue => e %>
+    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+  <% end %>
   
   <!-- Favicons and Apple Touch Icons -->
   <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
