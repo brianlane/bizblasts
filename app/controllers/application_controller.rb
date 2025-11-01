@@ -103,10 +103,21 @@ class ApplicationController < ActionController::Base
 
   # Expose current tenant to controllers and views
   helper_method :current_tenant
+  helper_method :allowed_asset_errors
 
   # Return the current ActsAsTenant tenant
   def current_tenant
     ActsAsTenant.current_tenant
+  end
+
+  # Allow certain asset errors to fail gracefully in test/development environments
+  # This prevents tests from failing when assets aren't precompiled
+  def allowed_asset_errors
+    if Rails.env.test? || Rails.env.development?
+      ['Sprockets::Rails::Helper::AssetNotFound']
+    else
+      []
+    end
   end
 
   # Override Devise's current_user to validate session tokens
