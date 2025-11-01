@@ -741,7 +741,6 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_service_tests.rb script/test_tailwind_build.rb
@@ -943,7 +942,6 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
       - name: Make scripts executable
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
@@ -1047,7 +1045,6 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
       - name: Make scripts executable
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
@@ -1151,7 +1148,6 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
       - name: Make scripts executable
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
@@ -1255,7 +1251,6 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
       - name: Make scripts executable
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
@@ -1359,7 +1354,6 @@ jobs:
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
       - name: Make scripts executable
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
@@ -1588,7 +1582,6 @@ jobs:
           mkdir -p public/assets
           cp ./app/assets/builds/active_admin.css ./public/assets/
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
 
       - name: Make scripts executable
         run: |
