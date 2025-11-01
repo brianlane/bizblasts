@@ -196,7 +196,8 @@ ActiveAdmin.setup do |config|
     config.head = [config.head, custom_css].compact.join.html_safe
   end
 
-  # Register Active Admin JavaScript to ensure batch actions work
+  # Register ActiveAdmin JavaScript (Sprockets-based)
+  # This uses the traditional asset pipeline for full compatibility
   config.register_javascript 'active_admin.js'
 
   # Set an optional image to be displayed for the header

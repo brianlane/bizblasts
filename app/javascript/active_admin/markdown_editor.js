@@ -150,28 +150,59 @@ class MarkdownEditor {
     const textarea = document.createElement('textarea');
     textarea.innerHTML = url;
     const decoded = textarea.value;
+    const normalized = decoded.trim();
 
     // Check for dangerous protocols (case-insensitive, allow whitespace before colon)
     const dangerous = /^[\s]*(javascript|data|vbscript|file|about)\s*:/i;
-    if (dangerous.test(decoded)) {
-      console.warn('Blocked dangerous URL protocol:', decoded);
+    if (dangerous.test(normalized)) {
+      console.warn('Blocked dangerous URL protocol:', normalized);
       return '#';
     }
 
     // Allow http:, https:, mailto:, tel:, sms:, and relative URLs (allow whitespace before colon)
     const safe = /^[\s]*(https?\s*:|mailto\s*:|tel\s*:|sms\s*:|\/|\.\/|\.\.\/|#)/i;
-    if (safe.test(decoded)) {
-      return url; // Return original (possibly entity-encoded) URL
+    if (safe.test(normalized)) {
+      return normalized;
     }
 
     // If no protocol specified, treat as relative (safe, allow whitespace)
-    if (!/^[\s]*[\w]+\s*:/.test(decoded)) {
-      return url;
+    if (!/^[\s]*[\w]+\s*:/.test(normalized)) {
+      return normalized;
     }
 
     // Block everything else
-    console.warn('Blocked unsafe URL:', decoded);
+    console.warn('Blocked unsafe URL:', normalized);
     return '#';
+  }
+
+  /**
+   * Escape characters that can break HTML attribute contexts.
+   * @param {string} value
+   * @returns {string}
+   */
+  escapeAttribute(value) {
+    if (value === undefined || value === null) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\r/g, '&#13;')
+      .replace(/\n/g, '&#10;');
+  }
+
+  /**
+   * Decode HTML entities back to their literal form.
+   * Useful before re-escaping for attribute contexts.
+   * @param {string} text
+   * @returns {string}
+   */
+  decodeHtmlEntities(text) {
+    if (!text) return '';
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
   }
 
   togglePreview() {
@@ -227,13 +258,14 @@ class MarkdownEditor {
       .replace(/`(.*?)`/g, '<code style="background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>')
       // SECURITY: Sanitize URLs in links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
-        const safeUrl = this.sanitizeUrl(url);
-        return `<a href="${safeUrl}" target="_blank" style="color: #0066cc;">${text}</a>`;
+        const safeUrl = this.escapeAttribute(this.sanitizeUrl(url));
+        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color: #0066cc;">${text}</a>`;
       })
       // SECURITY: Sanitize URLs in images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
-        const safeUrl = this.sanitizeUrl(url);
-        return `<img src="${safeUrl}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: 4px;">`;
+        const safeUrl = this.escapeAttribute(this.sanitizeUrl(url));
+        const safeAlt = this.escapeAttribute(this.decodeHtmlEntities(alt));
+        return `<img src="${safeUrl}" alt="${safeAlt}" style="max-width: 100%; height: auto; border-radius: 4px;">`;
       })
       .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre style="background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>$2</code></pre>')
       .replace(/^> (.*$)/gim, '<blockquote style="border-left: 4px solid #ddd; margin: 0; padding-left: 16px; color: #666;">$1</blockquote>')

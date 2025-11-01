@@ -10,8 +10,17 @@
     <%= csp_meta_tag %>
     
     <%# Load the same stylesheets as the main application layout %>
-    <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
-    <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
+    <% allowed_asset_errors = ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled'] %>
+    <% begin %>
+      <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
+    <% rescue => e %>
+      <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% end %>
+    <% begin %>
+      <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
+    <% rescue => e %>
+      <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% end %>
     
     <% if defined?(@page_theme) && @page_theme %>
       <style>
