@@ -28,9 +28,24 @@
   <% end %>
   
   <!-- Favicons and Apple Touch Icons -->
-  <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
-  <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
-  <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
+  <% begin %>
+    <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
+  <% rescue => e %>
+    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <% end %>
+  <% begin %>
+    <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
+  <% rescue => e %>
+    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon.png">
+  <% end %>
+  <% begin %>
+    <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
+  <% rescue => e %>
+    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
+  <% end %>
   <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#1A5F7A">
   
