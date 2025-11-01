@@ -230,11 +230,16 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-        run: bundle exec rails assets:precompile
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Run model tests
         run: bundle exec rspec spec/models
@@ -337,6 +342,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Split and run request spec group 1
         run: |
@@ -450,6 +466,17 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
 
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
+
       - name: Split and run request spec group 2
         run: |
           TESTS=$(./bin/split_request_tests.rb 2)
@@ -558,6 +585,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Split and run service spec group 1
         run: |
@@ -668,6 +706,17 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
 
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
+
       - name: Split and run service spec group 2
         run: |
           TESTS=$(./bin/split_service_tests.rb 2)
@@ -768,6 +817,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Split and run service spec group 3
         run: |
@@ -877,6 +937,17 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
 
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
+
       - name: Run integration tests
         run: bundle exec rspec spec/integration spec/features spec/mailers
 
@@ -965,6 +1036,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Run system tests 1
         run: |
@@ -1069,6 +1151,17 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
 
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
+
       - name: Run system tests 2
         run: |
           TESTS=$(./bin/split_system_tests.rb 2)
@@ -1171,6 +1264,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Run system tests 3
         run: |
@@ -1275,6 +1379,17 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
 
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
+
       - name: Run system tests 4
         run: |
           TESTS=$(./bin/split_system_tests.rb 4)
@@ -1377,6 +1492,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Run system tests 5
         run: |
@@ -1493,6 +1619,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Run other tests
         run: |
@@ -1612,6 +1749,17 @@ jobs:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
         run: bundle exec rails assets:precompile
+
+      - name: Verify assets were precompiled
+        run: |
+          echo "Checking for manifest and key assets..."
+          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
+          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
+          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
+          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
+            echo "FATAL: Asset precompilation failed!"
+            exit 1
+          fi
 
       - name: Start Rails server
         run: |
