@@ -1,40 +1,20 @@
 // ActiveAdmin JavaScript Entry Point
-// This file bundles all ActiveAdmin JavaScript dependencies and custom modules
+// NOTE: jQuery and jQuery UI are loaded from CDN (see layout)
+// This file only contains Rails UJS, ActiveAdmin base, and our custom enhancements
 
-// Import jQuery and expose it globally before loading additional dependencies
-import $ from 'jquery';
+// Import Rails UJS
+import Rails from '@rails/ujs';
 
-window.$ = window.jQuery = $;
+// Import ActiveAdmin base (depends on jQuery being on window)
+import '@activeadmin/activeadmin';
 
-async function bootActiveAdmin() {
-  try {
-    // Load jQuery UI widgets after jQuery is available globally
-    await Promise.all([
-      import('jquery-ui/ui/widgets/datepicker'),
-      import('jquery-ui/ui/widgets/dialog'),
-      import('jquery-ui/ui/widgets/sortable'),
-      import('jquery-ui/ui/widgets/tabs')
-    ]);
+// Import custom enhancements (these execute their initialization code)
+import './active_admin/delete_fix';
+import './active_admin/markdown_editor';
+import './active_admin/batch_actions_fix';
+import './active_admin/confirm_post_links';
 
-    // Load the ActiveAdmin base bundle
-    await import('@activeadmin/activeadmin');
+// Start Rails UJS after all modules are loaded
+Rails.start();
 
-    // Load custom enhancements (side-effect modules)
-    await Promise.all([
-      import('./active_admin/delete_fix'),
-      import('./active_admin/markdown_editor'),
-      import('./active_admin/batch_actions_fix'),
-      import('./active_admin/confirm_post_links')
-    ]);
-
-    console.log('ActiveAdmin JavaScript loaded successfully');
-  } catch (error) {
-    window.__ACTIVE_ADMIN_LOAD_ERROR__ = {
-      message: error?.message,
-      stack: error?.stack
-    };
-    console.error('ActiveAdmin JavaScript failed to load', error);
-  }
-}
-
-bootActiveAdmin();
+console.log('ActiveAdmin JavaScript loaded successfully');
