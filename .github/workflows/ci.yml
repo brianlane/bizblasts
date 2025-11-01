@@ -225,6 +225,18 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run model tests
         run: bundle exec rspec spec/models
 
@@ -321,6 +333,12 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
 
       - name: Split and run request spec group 1
         run: |
@@ -429,6 +447,12 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Split and run request spec group 2
         run: |
           TESTS=$(./bin/split_request_tests.rb 2)
@@ -532,6 +556,12 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
 
       - name: Split and run service spec group 1
         run: |
@@ -637,6 +667,12 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Split and run service spec group 2
         run: |
           TESTS=$(./bin/split_service_tests.rb 2)
@@ -732,6 +768,12 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
 
       - name: Split and run service spec group 3
         run: |
@@ -836,6 +878,12 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run integration tests
         run: bundle exec rspec spec/integration spec/features spec/mailers
 
@@ -919,6 +967,13 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run system tests 1
         run: |
           TESTS=$(./bin/split_system_tests.rb 1)
@@ -1016,6 +1071,13 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run system tests 2
         run: |
           TESTS=$(./bin/split_system_tests.rb 2)
@@ -1113,6 +1175,13 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run system tests 3
         run: |
           TESTS=$(./bin/split_system_tests.rb 3)
@@ -1210,6 +1279,13 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run system tests 4
         run: |
           TESTS=$(./bin/split_system_tests.rb 4)
@@ -1307,6 +1383,13 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
+
       - name: Run system tests 5
         run: |
           TESTS=$(./bin/split_system_tests.rb 5)
@@ -1417,6 +1500,12 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
 
       - name: Run other tests
         run: |
@@ -1531,6 +1620,12 @@ jobs:
         env:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
+
+      - name: Precompile assets for test environment
+        env:
+          RAILS_ENV: test
+          SKIP_SOLID_QUEUE_SETUP: true
+        run: bundle exec rails assets:precompile
 
       - name: Start Rails server
         run: |
