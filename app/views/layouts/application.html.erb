@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <% allowed_asset_errors = ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled'] %>
     <% unless Rails.env.test? %>
       <script src="https://app.termly.io/resource-blocker/a04fa7ee-1569-4641-a484-951b2d9c587e?autoBlock=on"></script>
     <% end %>
@@ -146,7 +147,6 @@
     <meta name="theme-color" content="#1A5F7A">
 
     <%# Stylesheet: Tailwind output then custom application styles %>
-    <% allowed_asset_errors = ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled'] %>
     <% begin %>
       <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
     <% rescue => e %>
