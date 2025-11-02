@@ -290,8 +290,7 @@ class MarkdownEditor {
             break;
           case 'l': {
             e.preventDefault();
-            const url = prompt('Enter URL:');
-            if (url) this.wrapText('[', `](${url})`, 'link text');
+            this.insertLink();
             break;
           }
         }
@@ -352,6 +351,16 @@ class MarkdownEditor {
 
     // Initial resize without debouncing
     autoResize();
+  }
+
+  async insertLink() {
+    // Use modern modal dialog instead of browser prompt()
+    const dialog = new ModalDialog();
+    const url = await dialog.prompt('Enter URL:', 'https://');
+
+    if (url) {
+      this.wrapText('[', `](${url})`, 'link text');
+    }
   }
 }
 

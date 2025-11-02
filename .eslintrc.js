@@ -5,6 +5,9 @@ module.exports = {
     jest: true,
     node: true
   },
+  globals: {
+    ModalDialog: 'readonly' // Global class from modal_dialog.js
+  },
   extends: [
     'eslint:recommended'
   ],
