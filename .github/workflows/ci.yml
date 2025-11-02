@@ -228,6 +228,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -341,6 +342,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -464,6 +466,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -584,6 +587,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -704,6 +708,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -816,6 +821,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -935,6 +941,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1035,6 +1042,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1149,6 +1157,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1263,6 +1272,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1377,6 +1387,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1491,6 +1502,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1618,6 +1630,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
@@ -1748,6 +1761,7 @@ jobs:
         env:
           RAILS_ENV: test
           SKIP_SOLID_QUEUE_SETUP: true
+          RAILS_DISABLE_ASSET_COMPILATION: false
         run: bundle exec rails assets:precompile
 
       - name: Verify assets were precompiled
