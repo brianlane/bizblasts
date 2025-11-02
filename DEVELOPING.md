@@ -536,7 +536,7 @@ All tests run in parallel across 7 jobs:
   run: |
     mkdir -p app/assets/builds
     npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-    npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
+    # ActiveAdmin JavaScript is compiled via Sprockets; no separate bun/esbuild build step
 ```
 
 ### Running CI Locally
