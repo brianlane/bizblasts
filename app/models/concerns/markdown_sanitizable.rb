@@ -36,12 +36,14 @@ module MarkdownSanitizable
   private
 
   # Sanitize all declared markdown fields before validation
+  # Uses Rails 7+ public Dirty API for Rails 8 compatibility
   def sanitize_markdown_fields
     return if self.class._markdown_fields.blank?
 
     self.class._markdown_fields.each do |field|
       next unless respond_to?(field)
-      next unless send("#{field}_changed?")
+      # Rails 8 compatible: use attribute_changed? instead of #{field}_changed?
+      next unless attribute_changed?(field.to_sym)
 
       value = send(field)
       next if value.blank?
