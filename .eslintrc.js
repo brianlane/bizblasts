@@ -6,7 +6,8 @@ module.exports = {
     node: true
   },
   globals: {
-    ModalDialog: 'readonly' // Global class from modal_dialog.js
+    ModalDialog: 'readonly', // Global class from modal_dialog.js
+    DOMPurify: 'readonly' // Global library from DOMPurify (optional dependency)
   },
   extends: [
     'eslint:recommended'

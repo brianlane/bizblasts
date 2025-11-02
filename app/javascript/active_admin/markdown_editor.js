@@ -1,5 +1,14 @@
 // Markdown Editor Class for ActiveAdmin
-// Provides markdown editing with real-time preview and XSS protection
+// Provides markdown editing with real-time preview and multi-layer XSS protection
+
+// Try to import DOMPurify for additional sanitization layer
+let DOMPurify;
+try {
+  DOMPurify = require('dompurify');
+} catch (e) {
+  // DOMPurify not available (Sprockets build), will use fallback sanitization
+  console.info('[MarkdownEditor] DOMPurify not available, using built-in sanitization');
+}
 
 class MarkdownEditor {
   constructor() {
@@ -277,7 +286,22 @@ class MarkdownEditor {
     html = html.replace(/(<li>.*?<\/li>(?:<br><li>.*?<\/li>)*)/g, '<ul style="margin: 10px 0; padding-left: 20px;">$1</ul>');
     html = html.replace(/<br><li>/g, '<li>').replace(/<\/li><br>/g, '</li>');
 
-    // Safe to set innerHTML now - all user input escaped and URLs sanitized
+    // SECURITY LAYER 3: Use DOMPurify for additional sanitization if available
+    // This provides defense-in-depth even though we already escaped user input
+    if (DOMPurify && DOMPurify.sanitize) {
+      html = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'style', 'class'],
+        ALLOW_DATA_ATTR: false,
+        KEEP_CONTENT: true
+      });
+    }
+
+    // Safe to set innerHTML - protected by 3 layers:
+    // 1. Client-side escaping (textContent)
+    // 2. URL sanitization
+    // 3. DOMPurify (if available)
+    // Plus server-side sanitization before database storage
     this.preview.innerHTML = html || '<em style="color: #999;">Preview will appear here...</em>';
   }
 
