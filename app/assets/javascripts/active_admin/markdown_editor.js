@@ -14,8 +14,31 @@ class MarkdownEditor {
       this.setupEditor();
     }
 
-    // Check periodically for dynamically loaded content (ActiveAdmin navigation)
-    setInterval(() => this.setupEditor(), 2000);
+    // Watch for dynamically loaded content (ActiveAdmin navigation) using MutationObserver
+    // This is more efficient than polling with setInterval
+    this.observer = new MutationObserver(() => {
+      // Only attempt setup if there's an uninitialized markdown editor
+      if (document.querySelector('.markdown-editor:not([data-editor-initialized])')) {
+        this.setupEditor();
+      }
+    });
+
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Cleanup observer on Turbo navigation to prevent memory leaks
+    document.addEventListener('turbo:before-cache', () => {
+      this.cleanup();
+    });
+  }
+
+  cleanup() {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
   }
 
   setupEditor() {

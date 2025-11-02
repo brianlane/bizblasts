@@ -13,36 +13,36 @@
   <% begin %>
     <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
   <% rescue => e %>
-    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% raise e unless asset_error_allowed?(e) %>
   <% end %>
   <% begin %>
     <%= stylesheet_link_tag "custom", data: { "turbo-track" => "reload" } %>
   <% rescue => e %>
-    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% raise e unless asset_error_allowed?(e) %>
   <% end %>
   <% begin %>
     <%= javascript_include_tag "application", defer: true %>
   <% rescue => e %>
-    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% raise e unless asset_error_allowed?(e) %>
   <% end %>
   
   <!-- Favicons and Apple Touch Icons -->
   <% begin %>
     <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
   <% rescue => e %>
-    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% raise e unless asset_error_allowed?(e) %>
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <% end %>
   <% begin %>
     <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
   <% rescue => e %>
-    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% raise e unless asset_error_allowed?(e) %>
     <link rel="icon" type="image/png" sizes="32x32" href="/icon.png">
   <% end %>
   <% begin %>
     <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
   <% rescue => e %>
-    <% raise e unless allowed_asset_errors.include?(e.class.name) %>
+    <% raise e unless asset_error_allowed?(e) %>
     <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
   <% end %>
   <link rel="manifest" href="/site.webmanifest">

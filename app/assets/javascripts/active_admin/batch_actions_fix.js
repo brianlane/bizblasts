@@ -39,6 +39,13 @@
  * - Enhanced positioning and z-index management
  */
 
+// Debounce delay constants for performance tuning
+const DEBOUNCE_DELAYS = {
+  CHECKBOX_UPDATE: 100,    // Delay after checkbox state change
+  AJAX_COMPLETE: 500,      // Delay after AJAX request completes
+  INITIAL_LOAD: 1000       // Initial page load delay (consider removing)
+};
+
 function initializeActiveAdminEnhancements() {
   let isUpdating = false; // Prevent infinite loops
 
@@ -101,6 +108,64 @@ function initializeActiveAdminEnhancements() {
   }
 
   // Function to setup batch action links
+  // Helper: Validate that at least one item is selected
+  function validateSelection(selectedIds) {
+    if (selectedIds.length === 0) {
+      alert('Please select at least one item.');
+      return false;
+    }
+    return true;
+  }
+
+  // Helper: Show confirmation dialog if required
+  function confirmAction(confirmMessage) {
+    if (confirmMessage && !confirm(confirmMessage)) {
+      return false;
+    }
+    return true;
+  }
+
+  // Helper: Build form for batch action submission
+  function buildBatchForm(action, selectedIds) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = window.location.pathname + '/batch_action';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    // Add batch action
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'batch_action';
+    actionInput.value = action;
+    form.appendChild(actionInput);
+
+    // Add selected IDs
+    selectedIds.forEach(id => {
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'collection_selection[]';
+      idInput.value = id;
+      form.appendChild(idInput);
+    });
+
+    return form;
+  }
+
+  // Helper: Submit batch action form
+  function submitBatchForm(form) {
+    document.body.appendChild(form);
+    form.submit();
+  }
+
   function setupBatchActionLinks() {
     const batchActionLinks = document.querySelectorAll('a.batch_action');
 
@@ -110,13 +175,14 @@ function initializeActiveAdminEnhancements() {
       link.parentNode.replaceChild(newLink, link);
 
       newLink.addEventListener('click', function(e) {
+        e.preventDefault();
+
         // Get selected checkboxes
         const selectedCheckboxes = document.querySelectorAll('input[type="checkbox"][name="collection_selection[]"]:checked');
         const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
 
-        if (selectedIds.length === 0) {
-          alert('Please select at least one item.');
-          e.preventDefault();
+        // Validate selection
+        if (!validateSelection(selectedIds)) {
           return false;
         }
 
@@ -124,48 +190,15 @@ function initializeActiveAdminEnhancements() {
         const action = newLink.getAttribute('data-action');
         const confirmMessage = newLink.getAttribute('data-confirm');
 
-        // Show confirmation if required
-        if (confirmMessage && !confirm(confirmMessage)) {
-          e.preventDefault();
+        // Confirm action if required
+        if (!confirmAction(confirmMessage)) {
           return false;
         }
 
-        // Create and submit form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = window.location.pathname + '/batch_action';
+        // Build and submit form
+        const form = buildBatchForm(action, selectedIds);
+        submitBatchForm(form);
 
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]');
-        if (csrfToken) {
-          const csrfInput = document.createElement('input');
-          csrfInput.type = 'hidden';
-          csrfInput.name = 'authenticity_token';
-          csrfInput.value = csrfToken.getAttribute('content');
-          form.appendChild(csrfInput);
-        }
-
-        // Add batch action
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'batch_action';
-        actionInput.value = action;
-        form.appendChild(actionInput);
-
-        // Add selected IDs
-        selectedIds.forEach(id => {
-          const idInput = document.createElement('input');
-          idInput.type = 'hidden';
-          idInput.name = 'collection_selection[]';
-          idInput.value = id;
-          form.appendChild(idInput);
-        });
-
-        // Submit form
-        document.body.appendChild(form);
-        form.submit();
-
-        e.preventDefault();
         return false;
       });
     });
@@ -362,13 +395,18 @@ function initializeActiveAdminEnhancements() {
   let ajaxTimeout;
   document.addEventListener('ajax:complete', function() {
     clearTimeout(ajaxTimeout);
-    ajaxTimeout = setTimeout(initializeBatchActions, 500);
+    ajaxTimeout = setTimeout(initializeBatchActions, DEBOUNCE_DELAYS.AJAX_COMPLETE);
   });
 
-  // Delayed initialization
-  setTimeout(initializeBatchActions, 1000);
+  // Delayed initialization - consider using requestAnimationFrame for better performance
+  setTimeout(initializeBatchActions, DEBOUNCE_DELAYS.INITIAL_LOAD);
 
   // Mutation observer for checkbox changes
+  // Clean up any existing observer to prevent memory leaks
+  if (window._batchActionsObserver) {
+    window._batchActionsObserver.disconnect();
+  }
+
   if (window.MutationObserver) {
     let mutationTimeout;
     const observer = new MutationObserver(function(mutations) {
@@ -385,7 +423,7 @@ function initializeActiveAdminEnhancements() {
 
       if (shouldUpdate) {
         clearTimeout(mutationTimeout);
-        mutationTimeout = setTimeout(updateBatchActions, 100);
+        mutationTimeout = setTimeout(updateBatchActions, DEBOUNCE_DELAYS.CHECKBOX_UPDATE);
       }
     });
 
@@ -394,6 +432,9 @@ function initializeActiveAdminEnhancements() {
       attributeFilter: ['checked'],
       subtree: true
     });
+
+    // Store observer reference for cleanup
+    window._batchActionsObserver = observer;
   }
 
   // Close dropdowns when clicking outside
@@ -403,6 +444,14 @@ function initializeActiveAdminEnhancements() {
       openDropdowns.forEach(dropdown => {
         dropdown.style.display = 'none';
       });
+    }
+  });
+
+  // Cleanup observer on Turbo navigation to prevent memory leaks
+  document.addEventListener('turbo:before-cache', function() {
+    if (window._batchActionsObserver) {
+      window._batchActionsObserver.disconnect();
+      window._batchActionsObserver = null;
     }
   });
 }
