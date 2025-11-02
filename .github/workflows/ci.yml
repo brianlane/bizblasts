@@ -143,7 +143,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_models
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -208,7 +207,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -224,23 +222,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run model tests
         run: bundle exec rspec spec/models
@@ -256,7 +237,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_requests
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -322,7 +302,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -338,23 +317,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Split and run request spec group 1
         run: |
@@ -380,7 +342,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_requests
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -446,7 +407,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -462,23 +422,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Split and run request spec group 2
         run: |
@@ -501,7 +444,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services_1
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -567,7 +509,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -583,23 +524,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Split and run service spec group 1
         run: |
@@ -622,7 +546,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services_2
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -688,7 +611,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -704,23 +626,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Split and run service spec group 2
         run: |
@@ -743,7 +648,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_services_3
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -801,7 +705,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -817,23 +720,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Split and run service spec group 3
         run: |
@@ -856,7 +742,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_integration
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -921,7 +806,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -937,23 +821,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run integration tests
         run: bundle exec rspec spec/integration spec/features spec/mailers
@@ -969,7 +836,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_1
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -1024,7 +890,6 @@ jobs:
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1038,23 +903,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run system tests 1
         run: |
@@ -1084,7 +932,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_2
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -1139,7 +986,6 @@ jobs:
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1153,23 +999,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run system tests 2
         run: |
@@ -1199,7 +1028,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_3
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -1254,7 +1082,6 @@ jobs:
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1268,23 +1095,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run system tests 3
         run: |
@@ -1314,7 +1124,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_4
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -1369,7 +1178,6 @@ jobs:
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1383,23 +1191,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run system tests 4
         run: |
@@ -1429,7 +1220,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_system_5
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -1484,7 +1274,6 @@ jobs:
         run: chmod +x bin/build-tailwind-standalone.sh bin/split_system_tests.rb script/test_tailwind_build.rb
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1498,23 +1287,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run system tests 5
         run: |
@@ -1545,7 +1317,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_other
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -1610,7 +1381,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1626,23 +1396,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Run other tests
         run: |
@@ -1679,7 +1432,6 @@ jobs:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test_performance
       DISABLE_PROPSHAFT: true
-      RAILS_DISABLE_ASSET_COMPILATION: true
       DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
@@ -1741,7 +1493,6 @@ jobs:
 
       - name: Test Tailwind build
         env:
-          RAILS_DISABLE_ASSET_COMPILATION: true
           SKIP_SOLID_QUEUE_SETUP: true
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
         run: ./script/test_tailwind_build.rb
@@ -1757,23 +1508,6 @@ jobs:
           SKIP_SOLID_QUEUE_SETUP: true
         run: ./bin/build-tailwind-standalone.sh
 
-      - name: Precompile assets for test environment
-        env:
-          RAILS_ENV: test
-          SKIP_SOLID_QUEUE_SETUP: true
-          RAILS_DISABLE_ASSET_COMPILATION: false
-        run: bundle exec rails assets:precompile
-
-      - name: Verify assets were precompiled
-        run: |
-          echo "Checking for manifest and key assets..."
-          ls -la public/assets/.sprockets-manifest*.json || echo "ERROR: No manifest found!"
-          ls -la public/assets/icon*.svg || echo "ERROR: No icon.svg found!"
-          ls -la public/assets/active_admin*.css || echo "ERROR: No active_admin.css found!"
-          if [ ! -f public/assets/.sprockets-manifest*.json ]; then
-            echo "FATAL: Asset precompilation failed!"
-            exit 1
-          fi
 
       - name: Start Rails server
         run: |

@@ -76,9 +76,9 @@ Rails.application.configure do
     config.assets.digest = false
     config.assets.prefix = '/null-assets'
   else
-    # Allow minimal asset handling for builds
+    # Allow on-demand asset compilation for tests
     config.assets.enabled = true
-    config.assets.compile = false
+    config.assets.compile = true  # Enable on-the-fly compilation for tests
     config.assets.debug = false
     config.assets.digest = false
   end
