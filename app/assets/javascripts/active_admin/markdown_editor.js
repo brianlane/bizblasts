@@ -9,10 +9,24 @@ class MarkdownEditor {
   init() {
     // Setup immediately if DOM is ready, otherwise wait
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.setupEditor());
+      document.addEventListener('DOMContentLoaded', () => {
+        this.setupEditor();
+        this.setupObserver();
+      });
     } else {
       this.setupEditor();
+      this.setupObserver();
     }
+
+    // Cleanup observer on Turbo navigation to prevent memory leaks
+    document.addEventListener('turbo:before-cache', () => {
+      this.cleanup();
+    });
+  }
+
+  setupObserver() {
+    // Only set up observer if document.body exists
+    if (!document.body) return;
 
     // Watch for dynamically loaded content (ActiveAdmin navigation) using MutationObserver
     // This is more efficient than polling with setInterval
@@ -26,11 +40,6 @@ class MarkdownEditor {
     this.observer.observe(document.body, {
       childList: true,
       subtree: true
-    });
-
-    // Cleanup observer on Turbo navigation to prevent memory leaks
-    document.addEventListener('turbo:before-cache', () => {
-      this.cleanup();
     });
   }
 
