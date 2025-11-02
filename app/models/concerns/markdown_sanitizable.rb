@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Markdown Sanitization Concern
-# 
+#
 # This concern provides server-side HTML sanitization for markdown fields.
 # It works in conjunction with client-side XSS protection in the markdown editor.
 #
@@ -12,10 +12,12 @@
 #   end
 #
 # Configuration:
-#   - Uses Sanitize gem with RELAXED configuration
-#   - Allows safe HTML tags: p, br, strong, em, a, ul, ol, li, etc.
+#   - Uses custom Sanitize::Config::MARKDOWN configuration
+#   - Configuration defined in: config/initializers/sanitize.rb
+#   - Allows safe HTML tags: p, br, strong, em, a, ul, ol, li, tables, etc.
 #   - Blocks script tags, event handlers, and dangerous protocols
 #   - Sanitizes before validation to ensure clean data in database
+#   - Automatically adds rel="noopener noreferrer" to external links
 #
 module MarkdownSanitizable
   extend ActiveSupport::Concern
@@ -48,10 +50,11 @@ module MarkdownSanitizable
       value = send(field)
       next if value.blank?
 
-      # Sanitize the markdown content
+      # Sanitize the markdown content using our custom config
+      # Configuration defined in config/initializers/sanitize.rb
       sanitized = Sanitize.fragment(
         value,
-        Sanitize::Config::RELAXED
+        Sanitize::Config::MARKDOWN
       )
 
       # Update the field with sanitized content

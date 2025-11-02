@@ -70,11 +70,14 @@ RSpec.describe MarkdownSanitizable, type: :model do
       expect(instance.content).to include('<p>')
     end
 
-    it 'allows safe links' do
+    it 'allows safe links and adds security attributes to external links' do
       instance.content = '<a href="https://example.com">Link</a>'
       instance.valid?
-      
-      expect(instance.content).to include('<a href="https://example.com">')
+
+      # Our custom config adds rel="noopener noreferrer" and target="_blank" to external links
+      expect(instance.content).to include('<a href="https://example.com"')
+      expect(instance.content).to include('rel="noopener noreferrer"')
+      expect(instance.content).to include('target="_blank"')
       expect(instance.content).to include('Link')
     end
 
