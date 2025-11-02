@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <% allowed_asset_errors = ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled'] %>
     <% unless Rails.env.test? %>
       <script src="https://app.termly.io/resource-blocker/a04fa7ee-1569-4641-a484-951b2d9c587e?autoBlock=on"></script>
     <% end %>
@@ -36,7 +35,7 @@
     <meta name="twitter:site" content="@BizBlasts">
     <meta name="twitter:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems') %>">
     <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
-    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg'}") %>">
+    <meta name="twitter:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg'}") %>">
     <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
 
     <!-- Business-specific meta tags when in tenant context -->

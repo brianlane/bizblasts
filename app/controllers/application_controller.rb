@@ -115,7 +115,7 @@ class ApplicationController < ActionController::Base
   # This prevents tests from failing when assets aren't precompiled
   def allowed_asset_errors
     if Rails.env.test? || Rails.env.development?
-      ['Sprockets::Rails::Helper::AssetNotFound']
+      ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled']
     else
       []
     end

@@ -228,7 +228,7 @@ class MarkdownEditor {
       // SECURITY: Sanitize URLs in links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
         const safeUrl = this.sanitizeUrl(url);
-        return `<a href="${safeUrl}" target="_blank" style="color: #0066cc;">${text}</a>`;
+        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color: #0066cc;">${text}</a>`;
       })
       // SECURITY: Sanitize URLs in images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {

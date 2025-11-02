@@ -10,7 +10,6 @@
   <meta name="turbo-prefetch" content="false">
 
   <%# Tailwind and application CSS bundles %>
-  <% allowed_asset_errors = ['Sprockets::Rails::Helper::AssetNotFound', 'Sprockets::Rails::Helper::AssetNotPrecompiled'] %>
   <% begin %>
     <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
   <% rescue => e %>

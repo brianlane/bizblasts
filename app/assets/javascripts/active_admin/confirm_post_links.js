@@ -46,8 +46,7 @@ function initializeAAConfirmPostLinks() {
   // Initial wire
   wire(document);
 
-  // Re-wire on Turbo loads and DOM changes
-  document.addEventListener('turbo:load', () => wire(document));
+  // Re-wire on DOM changes
   document.addEventListener('DOMContentLoaded', () => wire(document));
 }
 
