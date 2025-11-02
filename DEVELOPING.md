@@ -45,6 +45,13 @@ This provides:
 ✅ No conflicts between jQuery and modern JS
 ✅ Clear separation of concerns
 
+**⚠️ CRITICAL**: Do NOT build `active_admin.js` with Bun/esbuild in CI or production. This causes:
+```
+Sprockets::DoubleLinkError: Multiple files with the same output path
+cannot be linked ("active_admin.js")
+```
+Sprockets must be the **ONLY** processor for ActiveAdmin JavaScript.
+
 ---
 
 ## Development Setup

@@ -335,17 +335,23 @@ This runs:
 
 ### **Production Build Process**
 
-The `bin/render-build.sh` script builds both asset bundles:
+The `bin/render-build.sh` script builds assets:
 
 ```bash
-# Build main application JS
-npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
+# Build main application JS (Bun)
+bun build ./app/javascript/application.js --outdir ./app/assets/builds
 
-# Build ActiveAdmin JS
-npx esbuild app/javascript/active_admin.js --bundle --outfile=app/assets/builds/active_admin.js
+# ActiveAdmin JS is NOT built by Bun - Sprockets handles it directly
+# from app/assets/javascripts/active_admin.js
 
-# Precompile all assets (Sprockets serves ActiveAdmin assets)
+# Precompile all assets (Sprockets processes ActiveAdmin)
 bundle exec rails assets:precompile
+```
+
+**⚠️ Important**: Do NOT build `active_admin.js` with Bun/esbuild. It will cause a conflict:
+```
+Sprockets::DoubleLinkError: Multiple files with the same output path
+cannot be linked ("active_admin.js")
 ```
 
 ### **⚠️ Important: Rails UJS**
