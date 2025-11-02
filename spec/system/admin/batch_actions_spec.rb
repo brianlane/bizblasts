@@ -88,12 +88,10 @@ RSpec.describe "Admin Batch Actions", type: :system, admin: true do
       end
 
       # Submit the form (this should trigger confirmation)
-      click_button "Go"
-
       # Wait for and accept the confirmation dialog
       # Note: In Cuprite, accept_confirm works with Rails UJS confirmations
       page.accept_confirm do
-        # The confirmation should appear
+        click_button "Go"
       end
 
       # After accepting, the post should be deleted
