@@ -23,6 +23,9 @@ export default class extends Controller {
     if (this.vueApp) {
       this.vueApp.unmount()
     }
+    if (this.messageHandler) {
+      window.removeEventListener('message', this.messageHandler)
+    }
   }
 
   mountVueApp() {
@@ -485,10 +488,11 @@ export default class extends Controller {
         return true
       case 'universal':
         return industry === 'universal' || type === 'universal_template'
-      case 'industry':
+      case 'industry': {
         // Get business industry from the page context
         const businessIndustry = this.getBusinessIndustry()
         return industry === businessIndustry
+      }
       case 'premium':
         return isPremium
       default:
@@ -665,15 +669,6 @@ export default class extends Controller {
       }
     }
     window.addEventListener('message', this.messageHandler)
-  }
-
-  disconnect() {
-    if (this.vueApp) {
-      this.vueApp.unmount()
-    }
-    if (this.messageHandler) {
-      window.removeEventListener('message', this.messageHandler)
-    }
   }
 
   hideNavigationElements() {

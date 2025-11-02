@@ -20,6 +20,8 @@ export default class AvailabilityManager {
   // Log method for debug statements
   log(...args) {
     if (this.debug) {
+      // Debug logging disabled
+      // console.log('[AvailabilityManager]', ...args);
     }
   }
   
