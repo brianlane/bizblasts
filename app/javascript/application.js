@@ -1,18 +1,18 @@
 // Application JavaScript
 // Your custom JavaScript can be added here
-import "@hotwired/turbo-rails"
+import '@hotwired/turbo-rails';
 
 // Configure Stimulus with auto-discovery and manual registration
-import { Application } from "@hotwired/stimulus"
+import { Application } from '@hotwired/stimulus';
 
-const application = Application.start()
+const application = Application.start();
 
 // Configure Turbo strategically for multi-domain app
-import { Turbo } from "@hotwired/turbo-rails"
-Turbo.session.drive = true
+import { Turbo } from '@hotwired/turbo-rails';
+Turbo.session.drive = true;
 
 // Import tenant-aware utilities
-import TurboTenantHelpers from "./modules/turbo_tenant_helpers"
+import TurboTenantHelpers from './modules/turbo_tenant_helpers';
 
 // Enhanced Turbo configuration for multi-tenant architecture
 function initializeTurboConfiguration() {
@@ -26,7 +26,7 @@ function initializeTurboConfiguration() {
 // Tenant-specific Turbo configuration and navigation handling
 function setupTenantSpecificTurboHandlers() {
   // Before visit handler for tenant-specific logic
-  document.addEventListener("turbo:before-visit", (event) => {
+  document.addEventListener('turbo:before-visit', (event) => {
     const url = new URL(event.detail.url);
     const currentHost = window.location.host;
     const targetHost = url.host;
@@ -53,19 +53,19 @@ function setupTenantSpecificTurboHandlers() {
   });
   
   // Before cache handler for tenant-specific cache management
-  document.addEventListener("turbo:before-cache", (event) => {
+  document.addEventListener('turbo:before-cache', (event) => {
     // Use tenant helpers to properly manage sensitive data
     TurboTenantHelpers.clearTenantSensitiveData();
   });
   
   // After visit handler for tenant context restoration
-  document.addEventListener("turbo:visit", (event) => {
+  document.addEventListener('turbo:visit', (event) => {
     // Use tenant helpers to restore sensitive data
     TurboTenantHelpers.restoreTenantSensitiveData();
   });
   
   // Handle form submissions with tenant context
-  document.addEventListener("turbo:submit-start", (event) => {
+  document.addEventListener('turbo:submit-start', (event) => {
     const form = event.target;
     
     // Use tenant helpers to add appropriate context
@@ -73,7 +73,7 @@ function setupTenantSpecificTurboHandlers() {
   });
   
   // Enhanced error handling for tenant-specific errors
-  document.addEventListener("turbo:fetch-request-error", (event) => {
+  document.addEventListener('turbo:fetch-request-error', (event) => {
     const { fetchOptions, url, request } = event.detail;
     
     // Handle tenant-specific errors (e.g., subdomain not found)
@@ -94,54 +94,54 @@ function disableWheelOnNumberInputs() {
 }
 
 // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener('DOMContentLoaded', function() {
   initializeTurboConfiguration();
   disableWheelOnNumberInputs();
 });
-document.addEventListener("turbo:load", function() {
+document.addEventListener('turbo:load', function() {
   initializeTurboConfiguration();
   disableWheelOnNumberInputs();
 });
 
 // Initialize tenant-specific handlers once
-document.addEventListener("DOMContentLoaded", setupTenantSpecificTurboHandlers);
+document.addEventListener('DOMContentLoaded', setupTenantSpecificTurboHandlers);
 
 // Import and register all controllers manually
-import PageEditorController from "./controllers/page_editor_controller"
-import ThemeEditorController from "./controllers/theme_editor_controller" 
-import TemplateBrowserController from "./controllers/template_browser_controller"
-import EditSectionController from "./controllers/edit_section_controller"
-import NavbarController from "./controllers/navbar_controller"
-import DropdownController from "./controllers/dropdown_controller"
-import CustomerDropdownController from "./controllers/customer_dropdown_controller"
-import ProductVariantsController from "./controllers/product_variants_controller"
-import ServiceFormController from "./controllers/service_form_controller"
-import SortableController from "./controllers/sortable_controller"
-import HelloController from "./controllers/hello_controller"
-import ServiceVariantsController from "./controllers/service_variants_controller"
-import DropdownUpdaterController from "./controllers/dropdown_updater_controller"
-import ServiceAvailabilityController from "./controllers/service_availability_controller"
-import GoogleBusinessSearchController from "./controllers/google_business_search_controller"
-import QrPaymentController from "./controllers/qr_payment_controller"
-import PlaceIdLookupController from "./controllers/place_id_lookup_controller"
+import PageEditorController from './controllers/page_editor_controller';
+import ThemeEditorController from './controllers/theme_editor_controller'; 
+import TemplateBrowserController from './controllers/template_browser_controller';
+import EditSectionController from './controllers/edit_section_controller';
+import NavbarController from './controllers/navbar_controller';
+import DropdownController from './controllers/dropdown_controller';
+import CustomerDropdownController from './controllers/customer_dropdown_controller';
+import ProductVariantsController from './controllers/product_variants_controller';
+import ServiceFormController from './controllers/service_form_controller';
+import SortableController from './controllers/sortable_controller';
+import HelloController from './controllers/hello_controller';
+import ServiceVariantsController from './controllers/service_variants_controller';
+import DropdownUpdaterController from './controllers/dropdown_updater_controller';
+import ServiceAvailabilityController from './controllers/service_availability_controller';
+import GoogleBusinessSearchController from './controllers/google_business_search_controller';
+import QrPaymentController from './controllers/qr_payment_controller';
+import PlaceIdLookupController from './controllers/place_id_lookup_controller';
 
-application.register("page-editor", PageEditorController)
-application.register("theme-editor", ThemeEditorController)
-application.register("template-browser", TemplateBrowserController)
-application.register("edit-section", EditSectionController)
-application.register("navbar", NavbarController)
-application.register("dropdown", DropdownController)
-application.register("customer-dropdown", CustomerDropdownController)
-application.register("product-variants", ProductVariantsController)
-application.register("service-form", ServiceFormController)
-application.register("sortable", SortableController)
-application.register("hello", HelloController)
-application.register("service-variants", ServiceVariantsController)
-application.register("dropdown-updater", DropdownUpdaterController)
-application.register("service-availability", ServiceAvailabilityController)
-application.register("google-business-search", GoogleBusinessSearchController)
-application.register("qr-payment", QrPaymentController)
-application.register("place-id-lookup", PlaceIdLookupController)
+application.register('page-editor', PageEditorController);
+application.register('theme-editor', ThemeEditorController);
+application.register('template-browser', TemplateBrowserController);
+application.register('edit-section', EditSectionController);
+application.register('navbar', NavbarController);
+application.register('dropdown', DropdownController);
+application.register('customer-dropdown', CustomerDropdownController);
+application.register('product-variants', ProductVariantsController);
+application.register('service-form', ServiceFormController);
+application.register('sortable', SortableController);
+application.register('hello', HelloController);
+application.register('service-variants', ServiceVariantsController);
+application.register('dropdown-updater', DropdownUpdaterController);
+application.register('service-availability', ServiceAvailabilityController);
+application.register('google-business-search', GoogleBusinessSearchController);
+application.register('qr-payment', QrPaymentController);
+application.register('place-id-lookup', PlaceIdLookupController);
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -213,20 +213,20 @@ if (typeof window !== 'undefined') {
 }
 
 // Rails UJS functionality for method: delete, etc.
-import Rails from "@rails/ujs"
-Rails.start()
+import Rails from '@rails/ujs';
+Rails.start();
 
 // Application JavaScript
-import "./modules/availability_manager";
-import "./modules/booking_form_helper";
-import "./modules/customer_form_helper";
-import "./modules/customer_form_validation";
-import "./modules/policy_acceptance";
-import "./modules/category_showcase";
-import "./modules/copy_link";
-import "./modules/website_hover";
-import "./modules/promo_code_handler";
-import "./domain_status_checker";
-import "./cart";
-import "trix"
-import "@rails/actiontext"
+import './modules/availability_manager';
+import './modules/booking_form_helper';
+import './modules/customer_form_helper';
+import './modules/customer_form_validation';
+import './modules/policy_acceptance';
+import './modules/category_showcase';
+import './modules/copy_link';
+import './modules/website_hover';
+import './modules/promo_code_handler';
+import './domain_status_checker';
+import './cart';
+import 'trix';
+import '@rails/actiontext';

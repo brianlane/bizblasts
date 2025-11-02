@@ -110,7 +110,7 @@ class MarkdownEditor {
       'h3-btn': () => this.insertAtLineStart('### '),
       'link-btn': () => {
         const url = prompt('Enter URL:');
-        if (url) this.wrapText(`[`, `](${url})`, 'link text');
+        if (url) this.wrapText('[', `](${url})`, 'link text');
       },
       'image-btn': () => {
         const url = prompt('Enter image URL:');
@@ -125,7 +125,7 @@ class MarkdownEditor {
       'ul-btn': () => this.insertAtLineStart('- '),
       'ol-btn': () => this.insertAtLineStart('1. '),
       'table-btn': () => {
-        const table = `| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |`;
+        const table = '| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |';
         this.wrapText('', '', table);
       },
       'preview-btn': () => this.togglePreview()
@@ -237,7 +237,7 @@ class MarkdownEditor {
     if (!this.preview) return;
 
     // SECURITY: Escape ALL HTML special characters first
-    let escaped = this.escapeHtml(this.editor.value);
+    const escaped = this.escapeHtml(this.editor.value);
 
     // Now apply markdown transformations on the ESCAPED content
     // This ensures only safe, markdown-generated HTML is created
@@ -260,7 +260,7 @@ class MarkdownEditor {
       })
       .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre style="background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>$2</code></pre>')
       .replace(/^> (.*$)/gim, '<blockquote style="border-left: 4px solid #ddd; margin: 0; padding-left: 16px; color: #666;">$1</blockquote>')
-      .replace(/^\- (.*$)/gim, '<li>$1</li>')
+      .replace(/^- (.*$)/gim, '<li>$1</li>')
       .replace(/^1\. (.*$)/gim, '<li>$1</li>')
       .replace(/\n/g, '<br>');
 
@@ -288,11 +288,12 @@ class MarkdownEditor {
             e.preventDefault();
             this.wrapText('`', '`', 'code');
             break;
-          case 'l':
+          case 'l': {
             e.preventDefault();
             const url = prompt('Enter URL:');
-            if (url) this.wrapText(`[`, `](${url})`, 'link text');
+            if (url) this.wrapText('[', `](${url})`, 'link text');
             break;
+          }
         }
       }
     });

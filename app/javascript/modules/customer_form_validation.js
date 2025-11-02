@@ -11,13 +11,13 @@ const CustomerFormValidation = {
     first_name: {
       required: true,
       minLength: 2,
-      pattern: /^[a-zA-Z\s\-'\.]+$/,
+      pattern: /^[a-zA-Z\s'.]+$/,
       message: 'First name must be at least 2 characters and contain only letters'
     },
     last_name: {
       required: true,
       minLength: 2,
-      pattern: /^[a-zA-Z\s\-'\.]+$/,
+      pattern: /^[a-zA-Z\s'.]+$/,
       message: 'Last name must be at least 2 characters and contain only letters'
     },
     email: {
@@ -109,7 +109,7 @@ const CustomerFormValidation = {
         }
         
         // Check if the format contains only allowed characters
-        const allowedCharsPattern = /^[\+]?[\d\s\-\(\)\.]+$/;
+        const allowedCharsPattern = /^[+]?[\d\s().-]+$/;
         if (!allowedCharsPattern.test(phoneValue)) {
           return {
             isValid: false,
