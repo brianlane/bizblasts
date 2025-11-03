@@ -25,7 +25,7 @@
     <meta property="og:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.') %>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="<%= html_escape(request.original_url) %>">
-    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg'}") %>">
+    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
     <meta property="og:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -35,7 +35,7 @@
     <meta name="twitter:site" content="@BizBlasts">
     <meta name="twitter:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems') %>">
     <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
-    <meta name="twitter:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg'}") %>">
+    <meta name="twitter:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
     <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
 
     <!-- Business-specific meta tags when in tenant context -->
@@ -68,7 +68,7 @@
       "name": "BizBlasts",
       "alternateName": ["Biz Blasts", "BizBlast", "Biz Blast"],
       "url": "<%= safe_base_url %>",
-      "logo": "<%= safe_base_url %><%= (asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg') %>",
+      "logo": "<%= safe_base_url %><%= asset_path('bizblasts-logo.svg') %>",
       "description": "Professional websites, booking systems, and business management tools for businesses",
       "sameAs": [
         "https://www.facebook.com/bizblasts",
@@ -124,45 +124,17 @@
     <%= yield :head %>
 
     <!-- Favicons and Apple Touch Icons -->
-    <% begin %>
-      <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
-    <% rescue => e %>
-      <% raise e unless asset_error_allowed?(e) %>
-      <link rel="icon" type="image/svg+xml" href="/icon.svg">
-    <% end %>
-    <% begin %>
-      <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
-    <% rescue => e %>
-      <% raise e unless asset_error_allowed?(e) %>
-      <link rel="icon" type="image/png" sizes="32x32" href="/icon.png">
-    <% end %>
-    <% begin %>
-      <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
-    <% rescue => e %>
-      <% raise e unless asset_error_allowed?(e) %>
-      <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
-    <% end %>
+    <%= favicon_link_tag "icon.svg", rel: "icon", type: "image/svg+xml" %>
+    <%= favicon_link_tag "icon.png", rel: "icon", type: "image/png", sizes: "32x32" %>
+    <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", sizes: "180x180" %>
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#1A5F7A">
 
     <%# Stylesheet: Tailwind output then custom application styles %>
-    <% begin %>
-      <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
-    <% rescue => e %>
-      <% raise e unless asset_error_allowed?(e) %>
-    <% end %>
-    <% begin %>
-      <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
-    <% rescue => e %>
-      <% raise e unless asset_error_allowed?(e) %>
-    <% end %>
-    
-    <% begin %>
-      <%= javascript_include_tag "application", defer: true %>
-    <% rescue => e %>
-      <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
-      <script src="/assets/application.js" defer></script>
-    <% end %>
+    <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
+    <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
+
+    <%= javascript_include_tag "application", defer: true %>
   </head>
 
   <body>
@@ -176,12 +148,7 @@
             <% if ActsAsTenant.current_tenant %>
               <!-- BizBlasts Logo - links to main domain -->
               <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
-                <% begin %>
-                  <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
-                <% rescue => e %>
-                  <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>"
-                       alt="BizBlasts - Professional Business Websites and Booking Systems" class="h-10 w-auto" />
-                <% end %>
+                <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
               <% end %>
 
               <!-- Business Logo (when not on homepage) -->

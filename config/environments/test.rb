@@ -62,26 +62,16 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
-  
+
   # Performance optimizations for testing
   config.active_record.verbose_query_logs = false
   config.allow_concurrency = false
-  
-  # Conditionally disable asset handling in test environment
-  # Allow asset compilation when explicitly building assets
-  if ENV['RAILS_DISABLE_ASSET_COMPILATION'] == 'true'
-    config.assets.enabled = false
-    config.assets.compile = false
-    config.assets.debug = false
-    config.assets.digest = false
-    config.assets.prefix = '/null-assets'
-  else
-    # Allow on-demand asset compilation for tests
-    config.assets.enabled = true
-    config.assets.compile = true  # Enable on-the-fly compilation for tests
-    config.assets.debug = false
-    config.assets.digest = false
-  end
+
+  # Enable on-demand asset compilation for tests
+  config.assets.enabled = true
+  config.assets.compile = true  # Enable on-the-fly compilation for tests
+  config.assets.debug = false
+  config.assets.digest = false
   
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false
