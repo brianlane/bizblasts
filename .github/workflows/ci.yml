@@ -191,8 +191,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -284,8 +282,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -388,8 +384,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -489,8 +483,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -590,8 +582,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -688,7 +678,6 @@ jobs:
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -784,8 +773,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -874,7 +861,6 @@ jobs:
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
@@ -969,7 +955,6 @@ jobs:
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
@@ -1064,7 +1049,6 @@ jobs:
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
@@ -1159,7 +1143,6 @@ jobs:
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
@@ -1254,7 +1237,6 @@ jobs:
           mkdir -p app/assets/builds
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets && cp ./app/assets/builds/active_admin.css ./public/assets/
       - name: Build JavaScript Assets
         run: |
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
@@ -1353,8 +1335,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
 
       - name: Build JavaScript Assets
         run: |
@@ -1467,8 +1447,6 @@ jobs:
             --no-source-map \
             --load-path=node_modules \
             --load-path="$AA_PATH/app/assets/stylesheets"
-          mkdir -p public/assets
-          cp ./app/assets/builds/active_admin.css ./public/assets/
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
 
       - name: Make scripts executable
