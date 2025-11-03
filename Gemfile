@@ -53,7 +53,7 @@ gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
 gem 'active_storage_validations'
 
 # HTML sanitization for user-generated content
-gem 'sanitize', '~> 6.0' # Server-side HTML/markdown sanitization
+gem 'sanitize', '~> 7.0' # Server-side HTML/markdown sanitization
 
 # Multitenancy
 gem "acts_as_tenant"
