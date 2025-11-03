@@ -16,7 +16,7 @@ const createControllerDom = ({ nested = true } = {}) => {
   const element = document.getElementById('controller');
   const slotsContainer = document.getElementById('monday-slots');
   return { element, slotsContainer };
-}
+};
 
 // Suppress console logs from the controller during tests
 beforeEach(() => {

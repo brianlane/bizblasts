@@ -35,7 +35,7 @@
     <meta name="twitter:site" content="@BizBlasts">
     <meta name="twitter:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems') %>">
     <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
-    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
+    <meta name="twitter:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
     <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
 
     <!-- Business-specific meta tags when in tenant context -->
@@ -133,13 +133,8 @@
     <%# Stylesheet: Tailwind output then custom application styles %>
     <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
     <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
-    
-    <% begin %>
-      <%= javascript_include_tag "application", defer: true %>
-    <% rescue => e %>
-      <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
-      <script src="/assets/application.js" defer></script>
-    <% end %>
+
+    <%= javascript_include_tag "application", defer: true %>
   </head>
 
   <body>
@@ -153,12 +148,7 @@
             <% if ActsAsTenant.current_tenant %>
               <!-- BizBlasts Logo - links to main domain -->
               <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
-                <% begin %>
-                  <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
-                <% rescue => e %>
-                  <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>"
-                       alt="BizBlasts - Professional Business Websites and Booking Systems" class="h-10 w-auto" />
-                <% end %>
+                <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
               <% end %>
 
               <!-- Business Logo (when not on homepage) -->

@@ -19,55 +19,55 @@ const BookingFormHelper = {
    * @param {Object} fields - Object with form field references
    */
   populateFormFields(formData, fields) {
-    const { date, time, staffId, serviceId, customerId, customerName, customerEmail, customerPhone, notes } = formData
+    const { date, time, staffId, serviceId, customerId, customerName, customerEmail, customerPhone, notes } = formData;
     
     // Set date field
     if (fields.dateField && date) {
-      fields.dateField.value = date
+      fields.dateField.value = date;
     }
     
     // Set time field
     if (fields.timeField && time) {
       // Format time if it's a Date object
       if (time instanceof Date) {
-        const hours = String(time.getHours()).padStart(2, '0')
-        const minutes = String(time.getMinutes()).padStart(2, '0')
-        fields.timeField.value = `${hours}:${minutes}`
+        const hours = String(time.getHours()).padStart(2, '0');
+        const minutes = String(time.getMinutes()).padStart(2, '0');
+        fields.timeField.value = `${hours}:${minutes}`;
       } else {
-        fields.timeField.value = time
+        fields.timeField.value = time;
       }
     }
     
     // Set staff field
     if (fields.staffField && staffId) {
-      fields.staffField.value = staffId
+      fields.staffField.value = staffId;
     }
     
     // Set service field
     if (fields.serviceField && serviceId) {
-      fields.serviceField.value = serviceId
+      fields.serviceField.value = serviceId;
     }
     
     // Set customer fields
     if (fields.customerIdField && customerId) {
-      fields.customerIdField.value = customerId
+      fields.customerIdField.value = customerId;
     }
     
     if (fields.customerNameField && customerName) {
-      fields.customerNameField.value = customerName
+      fields.customerNameField.value = customerName;
     }
     
     if (fields.customerEmailField && customerEmail) {
-      fields.customerEmailField.value = customerEmail
+      fields.customerEmailField.value = customerEmail;
     }
     
     if (fields.customerPhoneField && customerPhone) {
-      fields.customerPhoneField.value = customerPhone
+      fields.customerPhoneField.value = customerPhone;
     }
     
     // Set notes field
     if (fields.notesField && notes) {
-      fields.notesField.value = notes
+      fields.notesField.value = notes;
     }
   },
   
@@ -77,10 +77,10 @@ const BookingFormHelper = {
    * @returns {string} Formatted date string
    */
   formatDate(date) {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   },
   
   /**
@@ -89,9 +89,9 @@ const BookingFormHelper = {
    * @returns {string} Formatted time string
    */
   formatTime(time) {
-    const hours = String(time.getHours()).padStart(2, '0')
-    const minutes = String(time.getMinutes()).padStart(2, '0')
-    return `${hours}:${minutes}`
+    const hours = String(time.getHours()).padStart(2, '0');
+    const minutes = String(time.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
   },
   
   /**
@@ -101,9 +101,9 @@ const BookingFormHelper = {
    * @param {HTMLElement} errorContainer - Container for error messages
    */
   handleSubmitError(errors, errorContainer) {
-    if (!errorContainer) return
+    if (!errorContainer) return;
 
-    let errorHtml = '<ul class="error-list">'
+    let errorHtml = '<ul class="error-list">';
 
     if (errors.messages) {
       Object.entries(errors.messages).forEach(([field, messages]) => {
@@ -111,21 +111,21 @@ const BookingFormHelper = {
           // SECURITY: Escape field name and message
           const escapedField = this.escapeHtml(field);
           const escapedMessage = this.escapeHtml(message);
-          errorHtml += `<li>${escapedField} ${escapedMessage}</li>`
-        })
-      })
+          errorHtml += `<li>${escapedField} ${escapedMessage}</li>`;
+        });
+      });
     } else if (errors.message) {
       // SECURITY: Escape error message
       const escapedMessage = this.escapeHtml(errors.message);
-      errorHtml += `<li>${escapedMessage}</li>`
+      errorHtml += `<li>${escapedMessage}</li>`;
     } else {
-      errorHtml += '<li>An error occurred while processing your booking. Please try again.</li>'
+      errorHtml += '<li>An error occurred while processing your booking. Please try again.</li>';
     }
 
-    errorHtml += '</ul>'
+    errorHtml += '</ul>';
 
-    errorContainer.innerHTML = errorHtml
-    errorContainer.classList.remove('hidden')
+    errorContainer.innerHTML = errorHtml;
+    errorContainer.classList.remove('hidden');
   },
   
   /**
@@ -135,10 +135,10 @@ const BookingFormHelper = {
    * @param {HTMLElement} confirmationContainer - Container for confirmation message
    */
   createConfirmationMessage(data, confirmationContainer) {
-    if (!confirmationContainer || !data.booking) return
+    if (!confirmationContainer || !data.booking) return;
 
-    const booking = data.booking
-    const startTime = new Date(booking.start_time)
+    const booking = data.booking;
+    const startTime = new Date(booking.start_time);
 
     // SECURITY: Escape booking ID (defense in depth)
     const escapedBookingId = this.escapeHtml(String(booking.id));
@@ -152,8 +152,8 @@ const BookingFormHelper = {
         <p class="mb-1">Time: ${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
         <button onclick="BookingFormHelper.hideForm()" class="mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Close</button>
       </div>
-    `
-    confirmationContainer.classList.remove('hidden')
+    `;
+    confirmationContainer.classList.remove('hidden');
   },
   
   /**
@@ -162,12 +162,12 @@ const BookingFormHelper = {
    * @param {boolean} show - Whether to show or hide the overlay
    */
   toggleFormOverlay(overlay, show) {
-    if (!overlay) return
+    if (!overlay) return;
     
     if (show) {
-      overlay.classList.remove('hidden')
+      overlay.classList.remove('hidden');
     } else {
-      overlay.classList.add('hidden')
+      overlay.classList.add('hidden');
     }
   },
   
@@ -180,6 +180,6 @@ const BookingFormHelper = {
       overlay.classList.add('hidden');
     }
   }
-}
+};
 
-export default BookingFormHelper 
+export default BookingFormHelper; 

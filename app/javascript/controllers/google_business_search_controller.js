@@ -771,7 +771,7 @@ export default class extends Controller {
         const longitude = parseFloat(coordMatch[2])
         
         // Extract business name from URL
-        const nameMatch = value.match(/place\/([^@\/]+)/)
+        const nameMatch = value.match(/place\/([^@/]+)/)
         let businessName = ''
         if (nameMatch) {
           businessName = decodeURIComponent(nameMatch[1]).replace(/\+/g, ' ')
@@ -787,8 +787,8 @@ We'll try to find your business using coordinate-based search...`)
       
       // If no coordinates, try Place ID extraction patterns
       const patterns = [
-        /\/place\/[^\/]+\/([A-Za-z0-9_-]+)/,  // New format
-        /place\/([^\/\?#]+)/,                  // Basic format
+        /\/place\/[^/]+\/([A-Za-z0-9_-]+)/,  // New format
+        /place\/([^/?#]+)/,                  // Basic format
         /\/([A-Za-z0-9_-]{27,})/,              // Long ID format
         /1s([A-Za-z0-9_-]+)/,                  // 1s parameter
         /16s%2Fg%2F([a-zA-Z0-9_-]+)/,          // Encoded ftid

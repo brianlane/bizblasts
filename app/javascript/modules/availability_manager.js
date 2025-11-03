@@ -20,6 +20,7 @@ export default class AvailabilityManager {
   // Log method for debug statements
   log(...args) {
     if (this.debug) {
+      console.log('[AvailabilityManager]', ...args);
     }
   }
   
@@ -44,16 +45,16 @@ export default class AvailabilityManager {
         'Accept': 'application/json'
       }
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      return response.json();
-    })
-    .catch(error => {
-      console.error('Error fetching date range:', error);
-      throw error;
-    });
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('Error fetching date range:', error);
+        throw error;
+      });
   }
   
   // Fetch available slots for a specific date
@@ -76,16 +77,16 @@ export default class AvailabilityManager {
         'Accept': 'application/json'
       }
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      return response.json();
-    })
-    .catch(error => {
-      console.error('Error fetching date:', error);
-      throw error;
-    });
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('Error fetching date:', error);
+        throw error;
+      });
   }
   
   // Fetch staff availability for a service on a date
@@ -109,16 +110,16 @@ export default class AvailabilityManager {
         'Accept': 'application/json'
       }
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      return response.json();
-    })
-    .catch(error => {
-      console.error('Error fetching staff availability:', error);
-      throw error;
-    });
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('Error fetching staff availability:', error);
+        throw error;
+      });
   }
   
   // Format a date string for display

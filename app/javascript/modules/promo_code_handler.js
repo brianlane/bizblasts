@@ -71,19 +71,19 @@ class PromoCodeHandler {
         order_total: orderTotal
       })
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.valid) {
-        this.showSuccess(resultDiv, data.message);
-        this.updateOrderSummary(data.discount_amount, data.formatted_discount);
-      } else {
-        this.showError(resultDiv, data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error validating promo code:', error);
-      this.showError(resultDiv, 'Error validating promo code. Please try again.');
-    });
+      .then(response => response.json())
+      .then(data => {
+        if (data.valid) {
+          this.showSuccess(resultDiv, data.message);
+          this.updateOrderSummary(data.discount_amount, data.formatted_discount);
+        } else {
+          this.showError(resultDiv, data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error validating promo code:', error);
+        this.showError(resultDiv, 'Error validating promo code. Please try again.');
+      });
   }
 
   validateBookingPromoCode(promoField, resultDiv) {

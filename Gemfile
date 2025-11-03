@@ -5,7 +5,9 @@ source "https://rubygems.org"
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
-gem "propshaft"
+# gem "propshaft" # DISABLED: Using Sprockets for ActiveAdmin compatibility
+# Traditional asset pipeline for ActiveAdmin compatibility
+gem "sprockets-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.6"
 # Use the Puma web server [https://github.com/puma/puma]
@@ -43,11 +45,15 @@ gem "pundit"
 gem "rack-attack"
 
 # Admin interface
-gem "activeadmin"
-# gem "sassc-rails" # REMOVED - Conflicts with Propshaft
+gem "activeadmin", "~> 3.3.0"
+gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
+# NOTE: We use Bun/SASS for CSS compilation, not a Ruby gem
 
 # ActiveStorage Validations
 gem 'active_storage_validations'
+
+# HTML sanitization for user-generated content
+gem 'sanitize', '~> 6.0' # Server-side HTML/markdown sanitization
 
 # Multitenancy
 gem "acts_as_tenant"

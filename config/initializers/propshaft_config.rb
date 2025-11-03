@@ -2,13 +2,15 @@
 
 # Simple Propshaft configuration to prevent asset conflicts with ActiveAdmin
 Rails.application.configure do
-  # Exclude ActiveAdmin's gem assets to prevent circular dependencies
-  # Only process our built assets, not the raw gem assets
-  config.assets.paths = [Rails.root.join('app', 'assets', 'builds')]
-  
-  # Let Propshaft handle fingerprinting normally
-  config.assets.digest = true
-  config.assets.compile = false
+  if defined?(Propshaft)
+    # Exclude ActiveAdmin's gem assets to prevent circular dependencies
+    # Only process our compiled builds when Propshaft is active
+    config.assets.paths = [Rails.root.join('app', 'assets', 'builds')]
+    
+    # Let Propshaft handle fingerprinting normally
+    config.assets.digest = true
+    config.assets.compile = false
+  end
 
 # # This initializer configures Propshaft to properly handle ActiveAdmin assets
 # # and ensures assets are served correctly in production

@@ -289,6 +289,92 @@ rails server
 
 ---
 
+## 📦 **Asset Pipeline Architecture**
+
+### **Dual Asset Pipeline Setup**
+
+BizBlasts uses a **dual asset pipeline** approach to support both modern JavaScript and legacy ActiveAdmin compatibility:
+
+#### **Main Application (Modern JS)**
+- **Bundler**: Bun (fast JavaScript bundler)
+- **Entry Point**: `app/javascript/application.js`
+- **Output**: `app/assets/builds/application.js`
+- **Rails UJS**: `@rails/ujs` (modern)
+- **Styles**: Tailwind CSS + Sass
+
+#### **ActiveAdmin (Legacy Compatibility)**
+- **Bundler**: Sprockets (Rails asset pipeline)
+- **Entry Point**: `app/assets/javascripts/active_admin.js`
+- **Output**: Served directly by Sprockets with fingerprinting
+- **Rails UJS**: `jquery_ujs` (jQuery-based)
+- **Styles**: Sass with ActiveAdmin theming
+
+### **Why This Architecture?**
+
+**ActiveAdmin 3.3** requires jQuery and is not yet compatible with modern JS bundlers for all features. We use:
+- **Sprockets** for ActiveAdmin to maintain full compatibility
+- **Bun** for the main application to use modern JavaScript features
+
+This provides:
+- ✅ Full ActiveAdmin functionality
+- ✅ Modern JavaScript for the main app
+- ✅ No conflicts between jQuery and modern JS
+- ✅ Clear separation of concerns
+
+### **Development Workflow**
+
+```bash
+# Start development server with asset watchers
+bin/dev
+```
+
+This runs:
+- Rails server on port 3000
+- CSS watchers (Tailwind + Sass)
+- JavaScript builders (Bun watches app JS, Sprockets compiles AA automatically)
+
+### **Production Build Process**
+
+The `bin/render-build.sh` script builds assets:
+
+```bash
+# Build main application JS (Bun)
+bun build ./app/javascript/application.js --outdir ./app/assets/builds
+
+# ActiveAdmin JS is NOT built by Bun - Sprockets handles it directly
+# from app/assets/javascripts/active_admin.js
+
+# Precompile all assets (Sprockets processes ActiveAdmin)
+bundle exec rails assets:precompile
+```
+
+**⚠️ Important**: Do NOT build `active_admin.js` with Bun/esbuild. It will cause a conflict:
+```
+Sprockets::DoubleLinkError: Multiple files with the same output path
+cannot be linked ("active_admin.js")
+```
+
+### **⚠️ Important: Rails UJS**
+
+**DO NOT** call `Rails.start()` in ActiveAdmin JavaScript files:
+- Main app uses `@rails/ujs` (started in `application.js`)
+- ActiveAdmin uses `jquery_ujs` (loaded via Sprockets)
+- Starting Rails UJS twice causes double-binding issues (duplicate form submissions, AJAX requests, confirmations)
+
+### **📖 Complete Development Guide**
+
+For detailed information about:
+- Adding new JavaScript (app vs ActiveAdmin)
+- Adding new styles (Tailwind vs Sass)
+- Content Security Policy (CSP)
+- Multi-tenancy development
+- Testing strategies
+- Troubleshooting
+
+See **[DEVELOPING.md](DEVELOPING.md)** - Comprehensive developer guide
+
+---
+
 ## 🚀 **Enhanced Hotwire Architecture**
 
 ### **Modern JavaScript Stack**
