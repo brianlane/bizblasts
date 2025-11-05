@@ -40,8 +40,12 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
     travel_to wednesday.in_time_zone(business.time_zone).change(hour: 10) do
       with_subdomain(business.subdomain) do
         visit tenant_calendar_path(service_id: service.id, service_variant_id: service_variant.id)
+
+        # Wait for calendar to fully render before finding elements
+        expect(page).to have_css('.calendar-day', minimum: 1, wait: 10)
+
         # Initially, on Wednesday morning, the slot count for Wednesday should be greater than 0
-        wednesday_cell = find(".calendar-day[data-date='#{wednesday.to_s}']")
+        wednesday_cell = find(".calendar-day[data-date='#{wednesday.to_s}']", wait: 5)
         initial_count_span = wednesday_cell.find('.available-slots-count span')
         expect(initial_count_span.text.to_i).to be > 0
       end
@@ -52,15 +56,18 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
       with_subdomain(business.subdomain) do
         visit tenant_calendar_path(service_id: service.id, service_variant_id: service_variant.id)
 
+        # Wait for calendar to fully render before finding elements
+        expect(page).to have_css('.calendar-day', minimum: 1, wait: 10)
+
         # The page's JS will run a function to update the count.
         # We need to wait for it to potentially change.
         # With the fix, the count should remain greater than 0.
-        wednesday_cell = find(".calendar-day[data-date='#{wednesday.to_s}']")
+        wednesday_cell = find(".calendar-day[data-date='#{wednesday.to_s}']", wait: 5)
         late_night_count_span = wednesday_cell.find('.available-slots-count span')
         expect(late_night_count_span.text.to_i).to be > 0
-        
+
         # For good measure, let's verify we can still click and see slots
-        find(".calendar-day[data-date='#{wednesday.to_s}']").click
+        find(".calendar-day[data-date='#{wednesday.to_s}']", wait: 5).click
         expect(page).to have_selector('.slot-detail-overlay', visible: true)
         # At 10:30 PM, the 10:00 slot is gone, but 11:00 should be visible.
         expect(page).to have_content('11:00 PM')

@@ -26,6 +26,75 @@ fi
 echo "Installing dependencies..."
 bundle install
 
+# Install headless Chrome for Cuprite/Ferrum automation
+echo "Fetching headless Chrome (chrome-for-testing)..."
+
+# Use pinned Chrome version for reproducible builds (update periodically)
+CHROME_VERSION=${CHROME_VERSION:-"132.0.6834.83"}
+CHROME_DOWNLOAD_URL="https://storage.googleapis.com/chrome-for-testing/${CHROME_VERSION}/linux64/chrome-linux64.tar.xz"
+CHROME_INSTALL_DIR="$PWD/vendor/chrome"
+
+# Expected SHA256 checksum for this version (verify manually when updating)
+# To get checksum: curl -sL <URL> | sha256sum
+CHROME_EXPECTED_SHA256=${CHROME_EXPECTED_SHA256:-""}
+
+echo "Chrome version: ${CHROME_VERSION}"
+echo "Download URL: ${CHROME_DOWNLOAD_URL}"
+
+rm -rf "$CHROME_INSTALL_DIR"
+mkdir -p "$CHROME_INSTALL_DIR"
+
+# Download Chrome archive
+echo "Downloading Chrome..."
+if ! curl -fsSL "$CHROME_DOWNLOAD_URL" -o /tmp/chrome-linux64.tar.xz; then
+  echo "ERROR: Failed to download Chrome from ${CHROME_DOWNLOAD_URL}"
+  echo "FALLBACK: Attempting to continue without Chrome (manual method will be required)"
+  # Don't exit - allow build to continue for manual Place ID entry
+else
+  # Verify checksum if provided (recommended for production)
+  if [ -n "$CHROME_EXPECTED_SHA256" ]; then
+    echo "Verifying Chrome checksum..."
+    ACTUAL_SHA256=$(sha256sum /tmp/chrome-linux64.tar.xz | awk '{print $1}')
+    if [ "$ACTUAL_SHA256" != "$CHROME_EXPECTED_SHA256" ]; then
+      echo "ERROR: Chrome checksum mismatch!"
+      echo "  Expected: ${CHROME_EXPECTED_SHA256}"
+      echo "  Actual:   ${ACTUAL_SHA256}"
+      echo "SECURITY WARNING: Checksum verification failed. Not installing Chrome."
+      rm -f /tmp/chrome-linux64.tar.xz
+      echo "FALLBACK: Continuing without Chrome (manual method will be required)"
+    else
+      echo "Chrome checksum verified ✓"
+    fi
+  else
+    echo "WARNING: No checksum provided - skipping verification (set CHROME_EXPECTED_SHA256)"
+  fi
+
+  # Install Chrome if download was successful and checksum passed (or skipped)
+  if [ -f /tmp/chrome-linux64.tar.xz ]; then
+    echo "Extracting Chrome..."
+    mkdir -p /tmp/chrome-download
+    tar -xf /tmp/chrome-linux64.tar.xz -C /tmp/chrome-download
+    mv /tmp/chrome-download/chrome-linux64 "$CHROME_INSTALL_DIR"
+    chmod +x "$CHROME_INSTALL_DIR/chrome-linux64/chrome"
+    rm -rf /tmp/chrome-download /tmp/chrome-linux64.tar.xz
+
+    # Verify Chrome installation
+    echo "Verifying Chrome installation..."
+    if [ -f "$CHROME_INSTALL_DIR/chrome-linux64/chrome" ]; then
+      CHROME_VERSION_OUTPUT=$("$CHROME_INSTALL_DIR/chrome-linux64/chrome" --version 2>&1 || echo "failed")
+      if echo "$CHROME_VERSION_OUTPUT" | grep -q "Chrome"; then
+        echo "Chrome installation verified ✓"
+        echo "Chrome version: $CHROME_VERSION_OUTPUT"
+      else
+        echo "WARNING: Chrome may not work correctly"
+        echo "Chrome version check output: $CHROME_VERSION_OUTPUT"
+      fi
+    else
+      echo "ERROR: Chrome executable not found after installation"
+    fi
+  fi
+fi
+
 # Install Bun for JavaScript bundling
 echo "Installing Bun..."
 curl -fsSL https://bun.sh/install | bash
