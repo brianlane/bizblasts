@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'open3'
+
 # BrowserHealthCheckJob periodically verifies that Chrome/Chromium is available
 # This helps detect browser availability issues before they impact users
 # Schedule this job to run hourly for proactive monitoring
@@ -80,11 +82,11 @@ class BrowserHealthCheckJob < ApplicationJob
 
   def check_browser_version(browser_path)
     # Quick version check with timeout
-    version_cmd = "#{browser_path} --version 2>&1"
-    output = `#{version_cmd}`
+    # Use Open3.capture2e with array syntax to prevent command injection
+    output, status = Open3.capture2e(browser_path, '--version')
 
     # Return version if command succeeded and output looks valid
-    return output.strip if $?.success? && output.match?(/Chrome|Chromium/i)
+    return output.strip if status.success? && output.match?(/Chrome|Chromium/i)
 
     nil
   rescue StandardError => e
