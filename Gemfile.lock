@@ -53,7 +53,7 @@ GEM
       activestorage (>= 6.1.4)
       activesupport (>= 6.1.4)
       marcel (>= 1.0.3)
-    activeadmin (3.3.0)
+    activeadmin (3.4.0)
       arbre (~> 1.2, >= 1.2.1)
       csv
       formtastic (>= 3.1)
@@ -263,9 +263,9 @@ GEM
       signet (>= 0.16, < 2.a)
     groupdate (6.7.0)
       activesupport (>= 7.1)
-    has_scope (0.8.2)
-      actionpack (>= 5.2)
-      activesupport (>= 5.2)
+    has_scope (0.9.0)
+      actionpack (>= 7.0)
+      activesupport (>= 7.0)
     hashie (5.0.0)
     httparty (0.23.2)
       csv
@@ -288,7 +288,7 @@ GEM
       railties (>= 6.0)
       responders (>= 2)
     io-console (0.8.1)
-    irb (1.15.2)
+    irb (1.15.3)
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
@@ -426,7 +426,7 @@ GEM
       activesupport (>= 3.0.0)
     raabro (1.4.0)
     racc (1.8.1)
-    rack (3.2.3)
+    rack (3.2.4)
     rack-attack (6.8.0)
       rack (>= 1.0, < 4)
     rack-session (2.1.1)
@@ -472,11 +472,11 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.3.1)
-    ransack (4.4.0)
-      activerecord (>= 7.1)
-      activesupport (>= 7.1)
+    ransack (4.4.1)
+      activerecord (>= 7.2)
+      activesupport (>= 7.2)
       i18n
-    rdoc (6.15.0)
+    rdoc (6.15.1)
       erb
       psych (>= 4.0.0)
       tsort
@@ -490,9 +490,9 @@ GEM
       uber (< 0.2.0)
     resend (0.27.0)
       httparty (>= 0.21.0)
-    responders (3.1.1)
-      actionpack (>= 5.2)
-      railties (>= 5.2)
+    responders (3.2.0)
+      actionpack (>= 7.0)
+      railties (>= 7.0)
     retriable (3.1.2)
     rexml (3.4.4)
     rouge (4.6.1)
@@ -674,7 +674,7 @@ PLATFORMS
 
 DEPENDENCIES
   active_storage_validations
-  activeadmin (~> 3.3.0)
+  activeadmin (~> 3.4.0)
   acts_as_tenant
   annotate
   aws-sdk-s3
