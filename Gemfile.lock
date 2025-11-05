@@ -561,8 +561,8 @@ GEM
       childprocess (>= 0.5, < 5.0)
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2)
-    shoulda-matchers (6.5.0)
-      activesupport (>= 5.2.0)
+    shoulda-matchers (7.0.1)
+      activesupport (>= 7.1)
     signet (0.21.0)
       addressable (~> 2.8)
       faraday (>= 0.17.5, < 3.a)
@@ -722,7 +722,7 @@ DEPENDENCIES
   rspec-retry (~> 0.6.2)
   rubocop-rails-omakase
   sanitize (~> 7.0)
-  shoulda-matchers (~> 6.5)
+  shoulda-matchers (~> 7.0)
   simple_calendar
   simplecov
   solid_cache
