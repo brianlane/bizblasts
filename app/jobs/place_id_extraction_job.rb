@@ -306,8 +306,8 @@ class PlaceIdExtractionJob < ApplicationJob
     begin
       # Count PlaceIdExtractionJob instances that haven't finished yet
       # Filter by class_name instead of queue_name to work regardless of queue
-      if defined?(Solid::Queue::Job)
-        Solid::Queue::Job.where(
+      if defined?(SolidQueue::Job)
+        SolidQueue::Job.where(
           class_name: 'PlaceIdExtractionJob',
           finished_at: nil
         ).count
@@ -374,8 +374,8 @@ class PlaceIdExtractionJob < ApplicationJob
     # Use a small retry loop to handle race conditions
     if new_failures.nil?
       3.times do
-        # Try to initialize the key
-        Rails.cache.write(cache_key, 1, expires_in: 1.hour, unless_exist: true)
+        # Try to initialize the key to 0 (so the next increment makes it 1)
+        Rails.cache.write(cache_key, 0, expires_in: 1.hour, unless_exist: true)
 
         # Try incrementing again
         new_failures = Rails.cache.increment(cache_key, 1, expires_in: 1.hour)

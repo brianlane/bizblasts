@@ -26,7 +26,7 @@ RSpec.describe PlaceIdExtraction::BrowserPathResolver do
         stub_const('PlaceIdExtraction::BrowserPathResolver::MAC_PATHS', [])
         stub_const('PlaceIdExtraction::BrowserPathResolver::LINUX_PATHS', [])
         stub_const('PlaceIdExtraction::BrowserPathResolver::WINDOWS_PATHS', [])
-        stub_const('PlaceIdExtraction::BrowserPathResolver::PATH_EXECUTABLES', [])
+        stub_const('PlaceIdExtraction::BrowserPathResolver::CHROME_BASENAMES', [])
       end
     end
 
@@ -101,8 +101,8 @@ RSpec.describe PlaceIdExtraction::BrowserPathResolver do
         FileUtils.chmod(0755, chrome_path)
 
         ENV['PATH'] = dir
-        # Stub PATH_EXECUTABLES to include the test browser name
-        stub_const('PlaceIdExtraction::BrowserPathResolver::PATH_EXECUTABLES', ['google-chrome'])
+        # Stub CHROME_BASENAMES to include the test browser name
+        stub_const('PlaceIdExtraction::BrowserPathResolver::CHROME_BASENAMES', ['google-chrome'])
 
         expect(described_class.resolve).to eq(chrome_path)
       end
@@ -157,8 +157,8 @@ RSpec.describe PlaceIdExtraction::BrowserPathResolver do
 
           # Add empty entries in PATH (::)
           ENV['PATH'] = "#{File::PATH_SEPARATOR}#{File::PATH_SEPARATOR}#{dir}#{File::PATH_SEPARATOR}"
-          # Stub PATH_EXECUTABLES to include the test browser name
-          stub_const('PlaceIdExtraction::BrowserPathResolver::PATH_EXECUTABLES', ['chromium'])
+          # Stub CHROME_BASENAMES to include the test browser name
+          stub_const('PlaceIdExtraction::BrowserPathResolver::CHROME_BASENAMES', ['chromium'])
 
           expect(described_class.resolve).to eq(chrome_path)
         end

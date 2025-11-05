@@ -79,12 +79,13 @@ class BrowserHealthCheckJob < ApplicationJob
   private
 
   def check_browser_version(browser_path)
-    # Quick version check with timeout
-    version_cmd = "#{browser_path} --version 2>&1"
-    output = `#{version_cmd}`
+    require 'open3'
+
+    # Quick version check with timeout - use Open3 to avoid shell injection
+    output, status = Open3.capture2e(browser_path, '--version')
 
     # Return version if command succeeded and output looks valid
-    return output.strip if $?.success? && output.match?(/Chrome|Chromium/i)
+    return output.strip if status.success? && output.match?(/Chrome|Chromium/i)
 
     nil
   rescue StandardError => e
