@@ -55,9 +55,7 @@ class PlaceIdExtractionJob < ApplicationJob
       Rails.logger.info "[PlaceIdExtractionJob] Successfully extracted Place ID: #{place_id}"
       store_status(job_id, status: 'completed', place_id: place_id, message: "Place ID found: #{place_id}")
     else
-      # SECURITY: Increment failure counter (atomic operation)
-      new_failures = Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour) || 1
-      Rails.cache.write('place_id_extraction:recent_failures', 1, expires_in: 1.hour) if new_failures == 1
+      increment_recent_failure_counter
 
       # Track failure metric
       track_extraction_metric('not_found')
@@ -66,16 +64,7 @@ class PlaceIdExtractionJob < ApplicationJob
       store_status(job_id, status: 'failed', error: 'Could not find Place ID. Please use manual method.')
     end
   rescue StandardError => e
-    # SECURITY: Increment failure counter on exception (atomic operation)
-    new_failures = Rails.cache.increment('place_id_extraction:recent_failures', 1, expires_in: 1.hour) || 1
-    Rails.cache.write('place_id_extraction:recent_failures', 1, expires_in: 1.hour) if new_failures == 1
-
-    # Track error metric
-    track_extraction_metric('error')
-
-    Rails.logger.error "[PlaceIdExtractionJob] Error: #{e.message}"
-    Rails.logger.error "[PlaceIdExtractionJob] Backtrace: #{e.backtrace.first(5).join(', ')}"
-    store_status(job_id, status: 'failed', error: 'An error occurred during extraction. Please try again or use manual method.')
+    handle_extraction_exception(job_id, e)
   end
 
   private
@@ -88,26 +77,15 @@ class PlaceIdExtractionJob < ApplicationJob
 
     begin
       # SECURITY: Configure Cuprite with resource limits
-      browser = Capybara::Cuprite::Browser.new(
-        headless: true,
-        window_size: [1920, 1080],
-        browser_options: {
-          'no-sandbox': nil,
-          'disable-dev-shm-usage': nil,   # Prevent /dev/shm issues
-          'disable-gpu': nil,              # Reduce GPU usage
-          'disable-extensions': nil,       # Disable extensions for security
-          'disable-popup-blocking': nil,   # For clicking review button
-          # SECURITY: Limit memory usage
-          'js-flags': '--max-old-space-size=512'  # 512MB max
-        },
-        timeout: EXTRACTION_TIMEOUT,
-        # SECURITY: Process timeout slightly longer than job timeout
-        process_timeout: EXTRACTION_TIMEOUT + 5.seconds
-      )
+      browser = Capybara::Cuprite::Browser.new(**build_browser_options)
 
       # SECURITY: Track browser process ID for force kill if needed
-      browser_pid = browser.process&.pid if browser.respond_to?(:process)
-      Rails.logger.debug "[PlaceIdExtractionJob] Browser PID: #{browser_pid}"
+      if browser.respond_to?(:process) && browser.process.respond_to?(:pid)
+        browser_pid = browser.process.pid
+        Rails.logger.debug "[PlaceIdExtractionJob] Browser PID: #{browser_pid}"
+      else
+        Rails.logger.warn "[PlaceIdExtractionJob] Unable to capture browser PID for force kill"
+      end
 
       # Navigate to Google Maps URL
       browser.visit(url)
@@ -175,6 +153,37 @@ class PlaceIdExtractionJob < ApplicationJob
         end
       end
     end
+  end
+
+  def build_browser_options
+    options = {
+      headless: true,
+      window_size: [1920, 1080],
+      browser_options: {
+        'no-sandbox': nil,
+        'disable-dev-shm-usage': nil,   # Prevent /dev/shm issues
+        'disable-gpu': nil,              # Reduce GPU usage
+        'disable-extensions': nil,       # Disable extensions for security
+        'disable-popup-blocking': nil,   # For clicking review button
+        # SECURITY: Limit memory usage
+        'js-flags': '--max-old-space-size=512'  # 512MB max
+      },
+      timeout: EXTRACTION_TIMEOUT,
+      # SECURITY: Process timeout slightly longer than job timeout
+      process_timeout: EXTRACTION_TIMEOUT + 5.seconds
+    }
+
+    browser_path = PlaceIdExtraction::BrowserPathResolver.resolve
+    if browser_path
+      options[:browser_path] = browser_path
+      Rails.logger.info "[PlaceIdExtractionJob] Using browser executable at: #{browser_path}"
+      track_extraction_metric('browser_path_resolved')
+    else
+      Rails.logger.warn '[PlaceIdExtractionJob] Browser executable path not resolved; relying on system defaults'
+      track_extraction_metric('browser_path_not_resolved')
+    end
+
+    options
   end
 
   def extract_place_id_from_html(html)
@@ -327,5 +336,62 @@ class PlaceIdExtractionJob < ApplicationJob
       Rails.logger.error "[PlaceIdExtractionJob] Error tracking metric: #{e.message}"
       # Don't fail job if metrics fail
     end
+  end
+
+  def handle_extraction_exception(job_id, error)
+    increment_recent_failure_counter
+    track_extraction_metric('error')
+
+    if browser_not_found_error?(error)
+      Rails.logger.error '[PlaceIdExtractionJob] Browser executable missing for Cuprite'
+      Rails.logger.error "[PlaceIdExtractionJob] Error: #{error.message}"
+      store_status(job_id, status: 'failed', error: missing_browser_error_message)
+      return
+    end
+
+    Rails.logger.error "[PlaceIdExtractionJob] Error: #{error.message}"
+    Rails.logger.error "[PlaceIdExtractionJob] Backtrace: #{error.backtrace.first(5).join(', ')}"
+    store_status(job_id, status: 'failed', error: 'An error occurred during extraction. Please try again or use manual method.')
+  end
+
+  def browser_not_found_error?(error)
+    error.message.to_s.include?('Could not find an executable for the browser')
+  end
+
+  def missing_browser_error_message
+    'Automatic extraction is unavailable because the headless Chrome executable is missing. '
+      'Please contact support so we can install Chrome/Chromium and set the CUPRITE_BROWSER_PATH environment variable.'
+  end
+
+  def increment_recent_failure_counter
+    # Use fetch with block for atomic initialization and increment
+    cache_key = 'place_id_extraction:recent_failures'
+
+    # Try increment first (most common case - key exists)
+    new_failures = Rails.cache.increment(cache_key, 1, expires_in: 1.hour)
+
+    # If increment returns nil (key doesn't exist), initialize it
+    # Use a small retry loop to handle race conditions
+    if new_failures.nil?
+      3.times do
+        # Try to initialize the key
+        Rails.cache.write(cache_key, 1, expires_in: 1.hour, unless_exist: true)
+
+        # Try incrementing again
+        new_failures = Rails.cache.increment(cache_key, 1, expires_in: 1.hour)
+        break if new_failures # Success!
+
+        # Brief sleep before retry to reduce contention
+        sleep 0.01
+      end
+
+      # If still nil after retries, force write (accept potential race condition)
+      Rails.cache.write(cache_key, 1, expires_in: 1.hour) if new_failures.nil?
+    end
+
+    Rails.logger.debug "[PlaceIdExtractionJob] Failure counter incremented to: #{new_failures || 1}"
+  rescue => e
+    Rails.logger.error "[PlaceIdExtractionJob] Failed to increment failure counter: #{e.message}"
+    # Don't raise - failure counter is a safety feature, not critical
   end
 end

@@ -53,6 +53,25 @@ RSpec.describe PlaceIdExtractionJob, type: :job do
         expect(cached_data[:error]).to include('error occurred')
       end
     end
+
+    context 'when browser executable is missing' do
+      let(:missing_browser_message) do
+        'Could not find an executable for the browser. Try to make it available on the PATH or set environment variable for example BROWSER_PATH="/usr/bin/chrome"'
+      end
+
+      before do
+        allow_any_instance_of(PlaceIdExtractionJob).to receive(:extract_place_id_from_maps).and_raise(StandardError, missing_browser_message)
+      end
+
+      it 'stores guidance about installing headless chrome' do
+        described_class.new.perform(job_id, google_maps_url)
+
+        cached_data = Rails.cache.read("place_id_extraction:#{job_id}")
+        expect(cached_data[:status]).to eq('failed')
+        expect(cached_data[:error]).to include('Chrome/Chromium')
+        expect(cached_data[:error]).to include('CUPRITE_BROWSER_PATH')
+      end
+    end
   end
 
   describe 'private methods' do
@@ -159,6 +178,18 @@ RSpec.describe PlaceIdExtractionJob, type: :job do
       # Mock Capybara::Cuprite::Browser.new to return our mock browser
       allow(Capybara::Cuprite::Browser).to receive(:new).and_return(mock_browser)
       allow(mock_browser).to receive(:quit)
+      allow(PlaceIdExtraction::BrowserPathResolver).to receive(:resolve).and_return(nil)
+    end
+
+    it 'passes resolved browser path to Cuprite when available' do
+      allow(PlaceIdExtraction::BrowserPathResolver).to receive(:resolve).and_return('/tmp/chrome')
+      allow(mock_browser).to receive(:visit).with(google_maps_url)
+      allow(mock_browser).to receive(:evaluate).and_return(true)
+      allow(mock_browser).to receive(:body).and_return(%(<div data-place="#{place_id}"></div>))
+
+      job.send(:extract_place_id_from_maps, google_maps_url, job_id)
+
+      expect(Capybara::Cuprite::Browser).to have_received(:new).with(hash_including(browser_path: '/tmp/chrome'))
     end
 
     context 'when Place ID is found in page HTML after JavaScript loads' do
@@ -419,6 +450,149 @@ RSpec.describe PlaceIdExtractionJob, type: :job do
       result = job.send(:extract_from_metadata, mock_browser)
 
       expect(result).to be_nil
+    end
+  end
+
+  describe '#build_browser_options' do
+    let(:job) { described_class.new }
+
+    before do
+      Rails.cache.clear
+    end
+
+    context 'when browser path is resolved' do
+      it 'includes browser_path in options and tracks metric' do
+        allow(PlaceIdExtraction::BrowserPathResolver).to receive(:resolve).and_return('/usr/bin/chrome')
+
+        options = job.send(:build_browser_options)
+
+        expect(options[:browser_path]).to eq('/usr/bin/chrome')
+
+        # Verify metric was tracked
+        metric_key = "place_id_extraction:metrics:browser_path_resolved:#{Date.current}"
+        expect(Rails.cache.read(metric_key)).to eq(1)
+      end
+    end
+
+    context 'when browser path is not resolved' do
+      it 'does not include browser_path and tracks metric' do
+        allow(PlaceIdExtraction::BrowserPathResolver).to receive(:resolve).and_return(nil)
+
+        options = job.send(:build_browser_options)
+
+        expect(options[:browser_path]).to be_nil
+
+        # Verify metric was tracked
+        metric_key = "place_id_extraction:metrics:browser_path_not_resolved:#{Date.current}"
+        expect(Rails.cache.read(metric_key)).to eq(1)
+      end
+    end
+
+    it 'includes security-focused browser options' do
+      allow(PlaceIdExtraction::BrowserPathResolver).to receive(:resolve).and_return(nil)
+
+      options = job.send(:build_browser_options)
+
+      expect(options[:headless]).to be true
+      expect(options[:browser_options]).to include('no-sandbox': nil)
+      expect(options[:browser_options]).to include('disable-gpu': nil)
+      expect(options[:browser_options]).to include('js-flags': '--max-old-space-size=512')
+    end
+  end
+
+  describe 'browser PID capture' do
+    let(:job) { described_class.new }
+    let(:mock_browser) { double('Browser') }
+    let(:mock_process) { double('Process', pid: 12345) }
+
+    context 'when browser process and pid are available' do
+      it 'captures the PID' do
+        allow(Capybara::Cuprite::Browser).to receive(:new).and_return(mock_browser)
+        allow(mock_browser).to receive(:respond_to?).with(:process).and_return(true)
+        allow(mock_browser).to receive(:process).and_return(mock_process)
+        allow(mock_process).to receive(:respond_to?).with(:pid).and_return(true)
+        allow(mock_browser).to receive(:visit)
+        allow(mock_browser).to receive(:evaluate).and_return(false)
+        allow(mock_browser).to receive(:body).and_return('<html></html>')
+        allow(mock_browser).to receive(:quit)
+
+        # Allow all logger calls but verify the PID is logged
+        allow(Rails.logger).to receive(:debug).and_call_original
+        expect(Rails.logger).to receive(:debug).with(/Browser PID: 12345/).and_call_original.at_least(:once)
+
+        job.send(:extract_place_id_from_maps, 'https://test.com', 'test-job-id')
+      end
+    end
+
+    context 'when browser process is not available' do
+      it 'logs warning and continues' do
+        allow(Capybara::Cuprite::Browser).to receive(:new).and_return(mock_browser)
+        allow(mock_browser).to receive(:respond_to?).with(:process).and_return(false)
+        allow(mock_browser).to receive(:visit)
+        allow(mock_browser).to receive(:evaluate).and_return(false)
+        allow(mock_browser).to receive(:body).and_return('<html></html>')
+        allow(mock_browser).to receive(:quit)
+
+        # Allow all logger calls but verify the warning is logged
+        allow(Rails.logger).to receive(:warn).and_call_original
+        expect(Rails.logger).to receive(:warn).with(/Unable to capture browser PID/).and_call_original.at_least(:once)
+
+        job.send(:extract_place_id_from_maps, 'https://test.com', 'test-job-id')
+      end
+    end
+  end
+
+  describe '#increment_recent_failure_counter' do
+    let(:job) { described_class.new }
+    let(:cache_key) { 'place_id_extraction:recent_failures' }
+
+    before do
+      Rails.cache.clear
+    end
+
+    context 'when counter exists' do
+      it 'increments the counter' do
+        Rails.cache.write(cache_key, 5, expires_in: 1.hour)
+
+        job.send(:increment_recent_failure_counter)
+
+        expect(Rails.cache.read(cache_key)).to eq(6)
+      end
+    end
+
+    context 'when counter does not exist' do
+      it 'initializes the counter to 1' do
+        job.send(:increment_recent_failure_counter)
+
+        counter = Rails.cache.read(cache_key)
+        expect(counter).to be_present
+        expect(counter).to be >= 1
+      end
+    end
+
+    context 'when increment raises an error' do
+      it 'logs error and does not raise' do
+        allow(Rails.cache).to receive(:increment).and_raise(StandardError, 'Cache error')
+
+        expect(Rails.logger).to receive(:error).with(/Failed to increment failure counter/)
+
+        expect {
+          job.send(:increment_recent_failure_counter)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  describe 'error message content' do
+    let(:job) { described_class.new }
+
+    describe '#missing_browser_error_message' do
+      it 'references CUPRITE_BROWSER_PATH environment variable' do
+        message = job.send(:missing_browser_error_message)
+
+        expect(message).to include('CUPRITE_BROWSER_PATH')
+        expect(message).not_to include('CU_PRITE_BROWSER_PATH')
+      end
     end
   end
 end
