@@ -21,6 +21,16 @@ class PlaceIdExtractionJob < ApplicationJob
     Rails.logger.info "[PlaceIdExtractionJob] Starting extraction for job_id: #{job_id}"
     Rails.logger.info "[PlaceIdExtractionJob] URL (truncated): #{sanitized_url}"
 
+    # Pre-flight check: Verify Chrome is available before proceeding
+    browser_check_result = check_browser_availability
+    unless browser_check_result[:available]
+      Rails.logger.error "[PlaceIdExtractionJob] Pre-flight check failed: #{browser_check_result[:error]}"
+      store_status(job_id, status: 'failed', error: browser_check_result[:error])
+      increment_recent_failure_counter
+      return
+    end
+    Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check passed: #{browser_check_result[:browser_path]}"
+
     # SECURITY: Circuit breaker - check recent failure rate
     recent_failures = Rails.cache.read('place_id_extraction:recent_failures') || 0
     if recent_failures >= CIRCUIT_BREAKER_THRESHOLD
@@ -393,5 +403,66 @@ class PlaceIdExtractionJob < ApplicationJob
   rescue => e
     Rails.logger.error "[PlaceIdExtractionJob] Failed to increment failure counter: #{e.message}"
     # Don't raise - failure counter is a safety feature, not critical
+  end
+
+  # Pre-flight check to verify Chrome is available and can execute
+  def check_browser_availability
+    # Try to resolve browser path
+    browser_path = PlaceIdExtraction::BrowserPathResolver.resolve
+
+    if browser_path.nil?
+      return {
+        available: false,
+        error: 'Chrome/Chromium executable not found. Please check CUPRITE_BROWSER_PATH environment variable or install Chrome.',
+        browser_path: nil
+      }
+    end
+
+    # Verify the file exists (double-check)
+    unless File.exist?(browser_path)
+      return {
+        available: false,
+        error: "Chrome path resolved to '#{browser_path}' but file does not exist.",
+        browser_path: browser_path
+      }
+    end
+
+    # Verify the file is executable
+    unless File.executable?(browser_path)
+      return {
+        available: false,
+        error: "Chrome binary at '#{browser_path}' is not executable. Check file permissions.",
+        browser_path: browser_path
+      }
+    end
+
+    # Try to execute Chrome --version to verify it can start
+    begin
+      version_output = `"#{browser_path}" --version 2>&1`
+      exit_status = $?.exitstatus
+
+      if exit_status != 0
+        # Chrome failed to execute - likely missing dependencies
+        error_lines = version_output.lines.first(3).join(' ').strip
+        return {
+          available: false,
+          error: "Chrome cannot execute (exit code #{exit_status}). Missing system dependencies? Error: #{error_lines}",
+          browser_path: browser_path
+        }
+      end
+
+      # Chrome executed successfully
+      return {
+        available: true,
+        browser_path: browser_path,
+        version: version_output.strip
+      }
+    rescue => e
+      return {
+        available: false,
+        error: "Failed to check Chrome version: #{e.message}",
+        browser_path: browser_path
+      }
+    end
   end
 end
