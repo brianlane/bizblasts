@@ -235,7 +235,18 @@ namespace :chrome do
     puts "Manually downloading and installing Chrome..."
 
     chrome_version = ENV['CHROME_VERSION'] || '131.0.6778.204'
-    download_url = "https://storage.googleapis.com/chrome-for-testing-public/#{chrome_version}/linux64/chrome-linux64.tar.gz"
+
+    # SECURITY: Validate Chrome version format to prevent injection
+    # Only allow numbers and dots (e.g., "131.0.6778.204")
+    unless chrome_version.match?(/\A\d+\.\d+\.\d+\.\d+\z/)
+      puts "ERROR: Invalid CHROME_VERSION format: #{chrome_version}"
+      puts "Expected format: X.Y.Z.W (e.g., 131.0.6778.204)"
+      puts "Using default version: 131.0.6778.204"
+      chrome_version = '131.0.6778.204'
+    end
+
+    # Chrome for Testing publishes Linux builds as .zip files
+    download_url = "https://storage.googleapis.com/chrome-for-testing-public/#{chrome_version}/linux64/chrome-linux64.zip"
     install_dir = Rails.root.join('vendor', 'chrome')
 
     puts "Chrome version: #{chrome_version}"
@@ -253,13 +264,14 @@ namespace :chrome do
 
     # Download
     puts "Downloading Chrome..."
-    download_path = '/tmp/chrome-linux64.tar.gz'
+    download_path = '/tmp/chrome-linux64.zip'
 
     # Try to download with retries
+    # SECURITY: Use array form of system() to prevent shell injection
     download_success = false
     3.times do |attempt|
       puts "Download attempt #{attempt + 1}/3..."
-      if system("curl -fsSL --retry 2 --retry-delay 5 --connect-timeout 30 --max-time 300 #{download_url} -o #{download_path}")
+      if system('curl', '-fsSL', '--retry', '2', '--retry-delay', '5', '--connect-timeout', '30', '--max-time', '300', download_url, '-o', download_path)
         download_success = true
         break
       end
@@ -273,7 +285,9 @@ namespace :chrome do
     puts "Extracting Chrome..."
     temp_dir = '/tmp/chrome-download'
     FileUtils.mkdir_p(temp_dir)
-    system("tar -xzf #{download_path} -C #{temp_dir}") || abort("Failed to extract Chrome")
+    # SECURITY: Use array form of system() to prevent shell injection
+    # Chrome for Testing publishes as .zip, so use unzip instead of tar
+    system('unzip', '-q', download_path, '-d', temp_dir) || abort("Failed to extract Chrome (is unzip installed?)")
 
     # Move to vendor directory
     FileUtils.mv("#{temp_dir}/chrome-linux64", install_dir.to_s)

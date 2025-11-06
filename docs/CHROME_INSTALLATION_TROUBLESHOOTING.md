@@ -97,10 +97,13 @@ https://storage.googleapis.com/chrome-for-testing/132.0.6834.83/linux64/chrome-l
 
 **New URL (working):**
 ```bash
-https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.204/linux64/chrome-linux64.tar.gz
+https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.204/linux64/chrome-linux64.zip
 ```
 
-The old URL used the wrong bucket path and an outdated version.
+The old URL used:
+- Wrong bucket path (`chrome-for-testing` instead of `chrome-for-testing-public`)
+- Wrong file format (`.tar.xz` instead of `.zip`)
+- Outdated version that doesn't exist
 
 ### 2. Improved Download Reliability
 

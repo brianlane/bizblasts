@@ -20,6 +20,7 @@ services:
       - libpango-1.0-0
       - libcairo2
       - fonts-liberation
+      - unzip
     buildCommand: "./bin/render-build.sh"
     startCommand: "bundle exec puma -C config/puma.rb"
     healthCheckPath: /healthcheck

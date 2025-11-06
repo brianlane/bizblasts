@@ -86,7 +86,18 @@ echo "Fetching headless Chrome (chrome-for-testing)..."
 # Use stable Chrome version for reproducible builds
 # Update this periodically by checking: https://googlechromelabs.github.io/chrome-for-testing/
 CHROME_VERSION=${CHROME_VERSION:-"131.0.6778.204"}
-CHROME_DOWNLOAD_URL="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.tar.gz"
+
+# SECURITY: Validate Chrome version format to prevent injection
+# Only allow numbers and dots (e.g., "131.0.6778.204")
+if ! [[ "$CHROME_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "ERROR: Invalid CHROME_VERSION format: $CHROME_VERSION"
+  echo "Expected format: X.Y.Z.W (e.g., 131.0.6778.204)"
+  echo "Using default version instead: 131.0.6778.204"
+  CHROME_VERSION="131.0.6778.204"
+fi
+
+# Chrome for Testing publishes Linux builds as .zip files
+CHROME_DOWNLOAD_URL="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip"
 CHROME_INSTALL_DIR="$PWD/vendor/chrome"
 
 # Expected SHA256 checksum for this version (verify manually when updating)
@@ -116,7 +127,7 @@ while [ $DOWNLOAD_ATTEMPTS -lt $MAX_DOWNLOAD_ATTEMPTS ] && [ "$DOWNLOAD_SUCCESS"
   echo "Download attempt ${DOWNLOAD_ATTEMPTS}/${MAX_DOWNLOAD_ATTEMPTS}..."
 
   if curl -fsSL --retry 2 --retry-delay 5 --connect-timeout 30 --max-time 300 \
-     "$CHROME_DOWNLOAD_URL" -o /tmp/chrome-linux64.tar.gz; then
+     "$CHROME_DOWNLOAD_URL" -o /tmp/chrome-linux64.zip; then
     DOWNLOAD_SUCCESS=true
     echo "✓ Chrome downloaded successfully"
   else
@@ -138,13 +149,13 @@ else
   # Verify checksum if provided (recommended for production)
   if [ -n "$CHROME_EXPECTED_SHA256" ]; then
     echo "Verifying Chrome checksum..."
-    ACTUAL_SHA256=$(sha256sum /tmp/chrome-linux64.tar.gz | awk '{print $1}')
+    ACTUAL_SHA256=$(sha256sum /tmp/chrome-linux64.zip | awk '{print $1}')
     if [ "$ACTUAL_SHA256" != "$CHROME_EXPECTED_SHA256" ]; then
       echo "ERROR: Chrome checksum mismatch!"
       echo "  Expected: ${CHROME_EXPECTED_SHA256}"
       echo "  Actual:   ${ACTUAL_SHA256}"
       echo "SECURITY WARNING: Checksum verification failed. Not installing Chrome."
-      rm -f /tmp/chrome-linux64.tar.gz
+      rm -f /tmp/chrome-linux64.zip
       echo "FALLBACK: Continuing without Chrome (manual method will be required)"
     else
       echo "Chrome checksum verified ✓"
@@ -154,12 +165,23 @@ else
   fi
 
   # Install Chrome if download was successful and checksum passed (or skipped)
-  if [ -f /tmp/chrome-linux64.tar.gz ]; then
+  if [ -f /tmp/chrome-linux64.zip ]; then
     echo "Extracting Chrome..."
-    echo "Archive size: $(du -h /tmp/chrome-linux64.tar.gz | cut -f1)"
+    echo "Archive size: $(du -h /tmp/chrome-linux64.zip | cut -f1)"
+
+    # Check if unzip is available
+    if ! command -v unzip &> /dev/null; then
+      echo "✗ ERROR: unzip command not found. Installing unzip..."
+      # Try to install unzip if possible
+      if command -v apt-get &> /dev/null; then
+        apt-get update -qq && apt-get install -y unzip || echo "Failed to install unzip"
+      else
+        echo "Cannot install unzip automatically. Chrome installation will fail."
+      fi
+    fi
 
     mkdir -p /tmp/chrome-download
-    if tar -xzf /tmp/chrome-linux64.tar.gz -C /tmp/chrome-download 2>&1; then
+    if unzip -q /tmp/chrome-linux64.zip -d /tmp/chrome-download 2>&1; then
       echo "✓ Chrome archive extracted successfully"
 
       # Check what was extracted
@@ -178,9 +200,10 @@ else
       fi
     else
       echo "✗ ERROR: Failed to extract Chrome archive"
+      echo "Make sure unzip is installed and the archive is valid"
     fi
 
-    rm -rf /tmp/chrome-download /tmp/chrome-linux64.tar.gz
+    rm -rf /tmp/chrome-download /tmp/chrome-linux64.zip
 
     # Verify Chrome installation
     echo "Verifying Chrome installation..."
@@ -243,7 +266,7 @@ else
       fi
     fi
   else
-    echo "✗ ERROR: Chrome archive file not found at /tmp/chrome-linux64.tar.gz"
+    echo "✗ ERROR: Chrome archive file not found at /tmp/chrome-linux64.zip"
     echo "This indicates the download failed but was not caught by error handling"
   fi
 fi
