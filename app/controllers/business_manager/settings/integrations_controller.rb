@@ -252,13 +252,14 @@ module BusinessManager
       # Initiates async extraction of Place ID from Google Maps URL
       def lookup_place_id
         google_maps_url = params[:input]&.strip
+        normalized_url = normalize_google_maps_url(google_maps_url)
 
-        if google_maps_url.blank?
+        if normalized_url.blank?
           return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_content
         end
 
         # SECURITY: Strict URL validation to prevent injection attacks
-        unless valid_google_maps_url?(google_maps_url)
+        unless valid_google_maps_url?(normalized_url)
           return render json: {
             success: false,
             error: 'Invalid Google Maps URL. Must be from google.com or google.co domain.'
@@ -284,7 +285,7 @@ module BusinessManager
         job_id = SecureRandom.uuid
 
         # Start background job to extract Place ID
-        PlaceIdExtractionJob.perform_later(job_id, google_maps_url)
+        PlaceIdExtractionJob.perform_later(job_id, normalized_url)
 
         Rails.logger.info "[IntegrationsController] Started Place ID extraction job: #{job_id} for user: #{current_user.id}"
 
@@ -656,8 +657,23 @@ module BusinessManager
 
           true
         rescue URI::InvalidURIError => e
-          Rails.logger.warn "[IntegrationsController] Invalid URI for Place ID extraction: #{e.message}"
+          Rails.logger.warn "[IntegrationsController] Invalid URI for Place ID extraction after normalization: #{e.message}"
           false
+        end
+      end
+
+      # Percent-encode non-ASCII characters so Ruby's URI parser can handle mobile-smart quotes, emojis, etc.
+      def normalize_google_maps_url(url)
+        return url if url.blank? || url.ascii_only?
+
+        begin
+          encoded = url.each_char.map do |char|
+            char.ascii_only? ? char : CGI.escape(char)
+          end.join
+          encoded
+        rescue Encoding::UndefinedConversionError => e
+          Rails.logger.warn "[IntegrationsController] Failed to normalize Google Maps URL: #{e.message}"
+          nil
         end
       end
     end
