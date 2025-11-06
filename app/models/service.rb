@@ -42,7 +42,7 @@ class Service < ApplicationRecord
   # Define service types
   enum :service_type, { standard: 0, experience: 1, event: 2 }
   # Service-specific availability configuration
-  before_validation :assign_event_schedule, if: :event?
+  before_validation :assign_event_schedule, if: :should_assign_event_schedule?
   before_validation :process_service_availability
 
   def experience?
@@ -465,6 +465,16 @@ class Service < ApplicationRecord
   end
 
   private
+
+  # Only regenerate event schedule when creating or when event timing changes
+  # This prevents overwriting user-modified availability on unrelated updates
+  def should_assign_event_schedule?
+    return false unless event?
+    return true if new_record?
+
+    # Only regenerate if event_starts_at or duration changed
+    event_starts_at_changed? || duration_changed?
+  end
 
   def assign_event_schedule
     return if event_starts_at.blank?
