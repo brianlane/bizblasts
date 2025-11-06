@@ -140,15 +140,20 @@ ActiveAdmin.register_page "Dashboard" do
       column do
         panel "Upcoming Events" do
           # Show upcoming event services
-          upcoming_events = if ActsAsTenant.current_tenant
-            Service.upcoming_events.active.limit(10)
-          else
-            ActsAsTenant.unscoped do
+          upcoming_events = begin
+            if ActsAsTenant.current_tenant
               Service.upcoming_events.active.limit(10)
+            else
+              ActsAsTenant.unscoped do
+                Service.upcoming_events.active.limit(10)
+              end
             end
+          rescue => e
+            Rails.logger.error "Error fetching upcoming events: #{e.message}"
+            Service.none
           end
 
-          if upcoming_events.any?
+          if upcoming_events&.any?
             table_for upcoming_events do
               column("Service Name") do |service|
                 link_to(service.name, admin_service_path(service.id))
