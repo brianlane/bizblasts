@@ -21,7 +21,31 @@ class PlaceIdExtractionJob < ApplicationJob
     Rails.logger.info "[PlaceIdExtractionJob] Starting extraction for job_id: #{job_id}"
     Rails.logger.info "[PlaceIdExtractionJob] URL (truncated): #{sanitized_url}"
 
+    # SECURITY: Circuit breaker - check recent failure rate FIRST
+    # This prevents runaway failures from overwhelming the system
+    recent_failures = Rails.cache.read('place_id_extraction:recent_failures') || 0
+    if recent_failures >= CIRCUIT_BREAKER_THRESHOLD
+      # Circuit breaker triggered - but check if Chrome is now available
+      # This allows recovery when Chrome becomes available after repeated failures
+      Rails.logger.warn "[PlaceIdExtractionJob] Circuit breaker triggered: #{recent_failures} recent failures"
+      Rails.logger.info "[PlaceIdExtractionJob] Checking if Chrome is now available to reset circuit breaker..."
+
+      browser_check_for_recovery = check_browser_availability
+      if browser_check_for_recovery[:available]
+        # Chrome is now available! Reset counter and allow job to proceed
+        Rails.cache.write('place_id_extraction:recent_failures', 0, expires_in: 1.hour)
+        Rails.logger.info "[PlaceIdExtractionJob] Chrome is available - resetting circuit breaker and proceeding"
+      else
+        # Chrome still unavailable - circuit breaker remains active
+        error_msg = 'Automatic extraction is temporarily unavailable due to repeated failures. Please use manual method.'
+        Rails.logger.warn "[PlaceIdExtractionJob] Chrome still unavailable - circuit breaker remains active"
+        store_status(job_id, status: 'failed', error: error_msg)
+        return
+      end
+    end
+
     # Pre-flight check: Verify Chrome is available before proceeding
+    # This runs AFTER circuit breaker check (or after circuit breaker recovery)
     browser_check_result = check_browser_availability
     unless browser_check_result[:available]
       Rails.logger.error "[PlaceIdExtractionJob] Pre-flight check failed: #{browser_check_result[:error]}"
@@ -29,16 +53,9 @@ class PlaceIdExtractionJob < ApplicationJob
       increment_recent_failure_counter
       return
     end
-    Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check passed: #{browser_check_result[:browser_path]}"
 
-    # SECURITY: Circuit breaker - check recent failure rate
-    recent_failures = Rails.cache.read('place_id_extraction:recent_failures') || 0
-    if recent_failures >= CIRCUIT_BREAKER_THRESHOLD
-      error_msg = 'Automatic extraction is temporarily unavailable due to repeated failures. Please use manual method.'
-      Rails.logger.warn "[PlaceIdExtractionJob] Circuit breaker triggered: #{recent_failures} recent failures"
-      store_status(job_id, status: 'failed', error: error_msg)
-      return
-    end
+    # Pre-flight passed - Chrome is available
+    Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check passed: #{browser_check_result[:browser_path]}"
 
     # SECURITY: Check concurrent job limit to prevent resource exhaustion
     concurrent_jobs_count = count_concurrent_jobs
@@ -437,16 +454,17 @@ class PlaceIdExtractionJob < ApplicationJob
     end
 
     # Try to execute Chrome --version to verify it can start
+    # SECURITY: Use Open3.capture2e instead of backticks to avoid shell injection
     begin
-      version_output = `"#{browser_path}" --version 2>&1`
-      exit_status = $?.exitstatus
+      require 'open3'
+      version_output, status = Open3.capture2e(browser_path, '--version')
 
-      if exit_status != 0
+      if !status.success?
         # Chrome failed to execute - likely missing dependencies
         error_lines = version_output.lines.first(3).join(' ').strip
         return {
           available: false,
-          error: "Chrome cannot execute (exit code #{exit_status}). Missing system dependencies? Error: #{error_lines}",
+          error: "Chrome cannot execute (exit code #{status.exitstatus}). Missing system dependencies? Error: #{error_lines}",
           browser_path: browser_path
         }
       end
