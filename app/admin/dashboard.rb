@@ -138,6 +138,40 @@ ActiveAdmin.register_page "Dashboard" do
     
     columns do
       column do
+        panel "Upcoming Events" do
+          # Show upcoming event services
+          upcoming_events = if ActsAsTenant.current_tenant
+            Service.upcoming_events.active.limit(10)
+          else
+            ActsAsTenant.unscoped do
+              Service.upcoming_events.active.limit(10)
+            end
+          end
+
+          if upcoming_events.any?
+            table_for upcoming_events do
+              column("Service Name") do |service|
+                link_to(service.name, admin_service_path(service.id))
+              end
+              column("Business") do |service|
+                link_to(service.business.name, admin_business_path(service.business.id))
+              end
+              column("Event Date") do |service|
+                tz = service.business&.time_zone.presence || 'UTC'
+                event_start = service.event_starts_at.in_time_zone(tz)
+                "#{event_start.strftime('%b %d, %Y at %l:%M %p').strip} (#{tz})"
+              end
+              column("Capacity") do |service|
+                "#{service.spots} spots"
+              end
+            end
+          else
+            para "No upcoming events scheduled"
+          end
+        end
+      end
+
+      column do
         panel "Performance Metrics" do
           para "Business analytics would be displayed here, integrating with analytics APIs."
           para "This would include metrics like bookings, revenue, and customer engagement rates."

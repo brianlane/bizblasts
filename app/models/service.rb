@@ -222,7 +222,20 @@ class Service < ApplicationRecord
   
   scope :active, -> { where(active: true) }
   scope :featured, -> { where(featured: true) }
-  
+
+  # Event-specific scopes
+  scope :events, -> { where(service_type: :event) }
+  scope :upcoming_events, -> {
+    where(service_type: :event)
+      .where('event_starts_at > ?', Time.current)
+      .order(:event_starts_at)
+  }
+  scope :past_events, -> {
+    where(service_type: :event)
+      .where('event_starts_at <= ?', Time.current)
+      .order(event_starts_at: :desc)
+  }
+
   # Position management
   scope :positioned, -> { order(:position, :created_at) }
   scope :by_position, -> { order(:position) }

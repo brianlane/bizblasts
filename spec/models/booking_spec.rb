@@ -302,4 +302,143 @@ RSpec.describe Booking, type: :model do
       end
     end
   end
+
+  describe 'event booking validations' do
+    let(:event_business) { create(:business, time_zone: 'America/New_York') }
+    let(:event_service) { create(:service, :event, business: event_business, event_starts_at: 1.week.from_now.in_time_zone('America/New_York').change(sec: 0, usec: 0)) }
+    let(:event_staff) { create(:staff_member, business: event_business) }
+    let(:event_customer) { create(:tenant_customer, business: event_business) }
+
+    context 'booking date and time validation' do
+      it 'is valid when booking matches the event date and time' do
+        event_start = event_service.event_starts_at
+        event_end = event_start + event_service.duration.minutes
+        booking = build(:booking,
+                       business: event_business,
+                       service: event_service,
+                       staff_member: event_staff,
+                       tenant_customer: event_customer,
+                       start_time: event_start,
+                       end_time: event_end,
+                       quantity: 5)
+        expect(booking).to be_valid
+      end
+
+      it 'is invalid when booking date does not match event date' do
+        wrong_date = event_service.event_starts_at + 1.day
+        wrong_end = wrong_date + event_service.duration.minutes
+        booking = build(:booking,
+                       business: event_business,
+                       service: event_service,
+                       staff_member: event_staff,
+                       tenant_customer: event_customer,
+                       start_time: wrong_date,
+                       end_time: wrong_end,
+                       quantity: 5)
+        expect(booking).not_to be_valid
+        expect(booking.errors[:start_time]).to include(a_string_matching(/must match the scheduled event time/))
+      end
+
+      it 'is invalid when booking time does not match event time' do
+        wrong_time = event_service.event_starts_at.change(hour: (event_service.event_starts_at.hour + 2) % 24)
+        wrong_end = wrong_time + event_service.duration.minutes
+        booking = build(:booking,
+                       business: event_business,
+                       service: event_service,
+                       staff_member: event_staff,
+                       tenant_customer: event_customer,
+                       start_time: wrong_time,
+                       end_time: wrong_end,
+                       quantity: 5)
+        expect(booking).not_to be_valid
+        expect(booking.errors[:start_time]).to include(a_string_matching(/must match the scheduled event time/))
+      end
+    end
+
+    context 'past event validation' do
+      let(:past_event_service) { create(:service, :event, business: event_business, event_starts_at: 1.day.ago.in_time_zone('America/New_York').change(sec: 0, usec: 0)) }
+
+      it 'is invalid when event is in the past' do
+        event_start = past_event_service.event_starts_at
+        event_end = event_start + past_event_service.duration.minutes
+        booking = build(:booking,
+                       business: event_business,
+                       service: past_event_service,
+                       staff_member: event_staff,
+                       tenant_customer: event_customer,
+                       start_time: event_start,
+                       end_time: event_end,
+                       quantity: 5)
+        expect(booking).not_to be_valid
+        expect(booking.errors[:base]).to include(a_string_matching(/has already passed/))
+      end
+    end
+
+    context 'timezone handling' do
+      let(:pst_business) { create(:business, time_zone: 'America/Los_Angeles', state: 'CA') }
+      let(:pst_event) { create(:service, :event, business: pst_business, event_starts_at: 1.week.from_now.in_time_zone('America/Los_Angeles').change(hour: 14, min: 0, sec: 0, usec: 0)) }
+      let(:pst_staff) { create(:staff_member, business: pst_business) }
+      let(:pst_customer) { create(:tenant_customer, business: pst_business) }
+
+      it 'correctly validates bookings across different timezones' do
+        event_start = pst_event.event_starts_at
+        event_end = event_start + pst_event.duration.minutes
+        booking = build(:booking,
+                       business: pst_business,
+                       service: pst_event,
+                       staff_member: pst_staff,
+                       tenant_customer: pst_customer,
+                       start_time: event_start,
+                       end_time: event_end,
+                       quantity: 3)
+        expect(booking).to be_valid
+      end
+
+      it 'rejects bookings with wrong timezone-converted times' do
+        # Try to book at a time that looks correct in UTC but wrong in PST
+        wrong_time = pst_event.event_starts_at.utc + 1.hour
+        wrong_end = wrong_time + pst_event.duration.minutes
+        booking = build(:booking,
+                       business: pst_business,
+                       service: pst_event,
+                       staff_member: pst_staff,
+                       tenant_customer: pst_customer,
+                       start_time: wrong_time,
+                       end_time: wrong_end,
+                       quantity: 3)
+        expect(booking).not_to be_valid
+      end
+    end
+
+    context 'capacity management' do
+      it 'respects min and max bookings for events' do
+        event_start = event_service.event_starts_at
+        event_end = event_start + event_service.duration.minutes
+
+        # Min bookings validation
+        booking_too_few = build(:booking,
+                                business: event_business,
+                                service: event_service,
+                                staff_member: event_staff,
+                                tenant_customer: event_customer,
+                                start_time: event_start,
+                                end_time: event_end,
+                                quantity: event_service.min_bookings - 1)
+        expect(booking_too_few).not_to be_valid
+        expect(booking_too_few.errors[:quantity]).to be_present
+
+        # Max bookings validation
+        booking_too_many = build(:booking,
+                                 business: event_business,
+                                 service: event_service,
+                                 staff_member: event_staff,
+                                 tenant_customer: event_customer,
+                                 start_time: event_start,
+                                 end_time: event_end,
+                                 quantity: event_service.max_bookings + 1)
+        expect(booking_too_many).not_to be_valid
+        expect(booking_too_many.errors[:quantity]).to be_present
+      end
+    end
+  end
 end

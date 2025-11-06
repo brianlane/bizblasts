@@ -82,10 +82,8 @@
                 <span class="text-gray-600"> | Type: Standard</span>
               <% end %>
               <% if service.event? && service.event_starts_at.present? %>
-                <% event_zone = ActiveSupport::TimeZone[service.business&.time_zone.presence || Time.zone.name] || Time.zone %>
-                <% event_start = service.event_starts_at.in_time_zone(event_zone) %>
                 <span class="block text-xs text-purple-700 mt-1 font-medium">
-                  Next Event: <%= event_start.strftime("%b %d, %Y • %l:%M %p").strip %> (<%= event_zone %>)
+                  Next Event: <%= format_event_brief(service) %> (<%= ActiveSupport::TimeZone[service.business&.time_zone.presence || Time.zone.name] || Time.zone %>)
                 </span>
               <% end %>
             </div>

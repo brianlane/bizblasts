@@ -257,7 +257,7 @@
       <% event_start = @service.event_starts_at.in_time_zone(event_zone) %>
       <div class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
         <p class="text-purple-800 text-sm">
-          <strong>Event Schedule:</strong> <%= event_start.strftime("%A, %B %d, %Y at %l:%M %p").strip %> (<%= event_zone %>)
+          <strong>Event Schedule:</strong> <%= event_start.strftime("%A, ") %><%= format_event_datetime(@service) %>
         </p>
       </div>
     <% end %>

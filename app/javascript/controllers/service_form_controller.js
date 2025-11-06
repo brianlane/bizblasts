@@ -25,7 +25,8 @@ export default class extends Controller {
     // Listen for service type changes
     if (this.hasServiceTypeHiddenTarget) {
       this.serviceTypeHiddenTarget.addEventListener('change', this.handleServiceTypeChange.bind(this))
-      this.applyServiceTypeState(this.serviceTypeHiddenTarget.value)
+      // Initialize state by calling the handler with the current target
+      this.handleServiceTypeChange({ target: this.serviceTypeHiddenTarget })
     }
     
     // Listen for subscription checkbox changes
