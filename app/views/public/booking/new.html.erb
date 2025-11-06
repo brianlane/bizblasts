@@ -252,6 +252,16 @@
       <% end %>
     </div>
 
+    <% if @service.event? && @service.event_starts_at.present? %>
+      <% event_zone = ActiveSupport::TimeZone[@service.business&.time_zone.presence || Time.zone.name] || Time.zone %>
+      <% event_start = @service.event_starts_at.in_time_zone(event_zone) %>
+      <div class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
+        <p class="text-purple-800 text-sm">
+          <strong>Event Schedule:</strong> <%= event_start.strftime("%A, %B %d, %Y at %l:%M %p").strip %> (<%= event_zone %>)
+        </p>
+      </div>
+    <% end %>
+
     <%# Add quantity input field - Potentially make this conditional based on service type %>
     <% if @service.experience? %>
       <div class="mb-4">

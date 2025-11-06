@@ -169,6 +169,7 @@ RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
         within('#service_type_dropdown [data-dropdown-target="menu"]') do
           expect(page).to have_content('Standard')
           expect(page).to have_content('Experience')
+          expect(page).to have_content('Event')
         end
       end
     end

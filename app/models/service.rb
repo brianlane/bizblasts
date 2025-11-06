@@ -40,9 +40,14 @@ class Service < ApplicationRecord
   end
 
   # Define service types
-  enum :service_type, { standard: 0, experience: 1 }
+  enum :service_type, { standard: 0, experience: 1, event: 2 }
   # Service-specific availability configuration
+  before_validation :assign_event_schedule, if: :event?
   before_validation :process_service_availability
+
+  def experience?
+    super || event?
+  end
 
   # Normalize availability JSON before validation
   def process_service_availability
@@ -194,6 +199,7 @@ class Service < ApplicationRecord
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
   validates :allow_discounts, inclusion: { in: [true, false] }
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :event_starts_at, presence: true, if: :event?
 
   # Validations for images - Updated for 15MB max with HEIC support
   validates :images, **FileUploadSecurity.image_validation_options
@@ -230,7 +236,7 @@ class Service < ApplicationRecord
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts tips_enabled tip_mailer_if_no_tip_received]
+    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts tips_enabled tip_mailer_if_no_tip_received event_starts_at]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -338,6 +344,13 @@ class Service < ApplicationRecord
   def duration_minutes(variant = nil)
     base_duration(variant)
   end
+  
+  def event_ends_at
+    return unless event_starts_at.present?
+    return unless duration.present?
+
+    event_starts_at + duration.to_i.minutes
+  end
 
   # Position management methods
   def move_to_position(new_position)
@@ -439,6 +452,27 @@ class Service < ApplicationRecord
   end
 
   private
+
+  def assign_event_schedule
+    return if event_starts_at.blank?
+    duration_minutes = duration.to_i
+    return if duration_minutes <= 0
+
+    tz_name = business&.time_zone.presence
+    timezone = ActiveSupport::TimeZone[tz_name] || Time.zone
+    local_start = event_starts_at.in_time_zone(timezone)
+    local_end = local_start + duration_minutes.minutes
+
+    schedule = default_availability_structure
+    date_key = local_start.to_date.iso8601
+    schedule['exceptions'][date_key] = [{
+      'start' => local_start.strftime('%H:%M'),
+      'end' => local_end.strftime('%H:%M')
+    }]
+
+    self.availability = schedule
+    self.enforce_service_availability = true
+  end
 
   def image_size_validation
     images.each do |image|

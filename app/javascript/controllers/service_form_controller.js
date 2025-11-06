@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 console.log("=== SERVICE FORM CONTROLLER MODULE LOADED ===")
 
 export default class extends Controller {
-  static targets = ["serviceTypeHidden", "serviceTypeError", "serviceTypeDropdown", "experienceFields", "form", "subscriptionSettings", "availabilityStatus"]
+  static targets = ["serviceTypeHidden", "serviceTypeError", "serviceTypeDropdown", "experienceFields", "eventFields", "availabilitySection", "form", "subscriptionSettings", "availabilityStatus"]
   
   connect() {
     console.log("=== SERVICE FORM CONTROLLER CONNECTED ===")
@@ -25,6 +25,7 @@ export default class extends Controller {
     // Listen for service type changes
     if (this.hasServiceTypeHiddenTarget) {
       this.serviceTypeHiddenTarget.addEventListener('change', this.handleServiceTypeChange.bind(this))
+      this.applyServiceTypeState(this.serviceTypeHiddenTarget.value)
     }
     
     // Listen for subscription checkbox changes
@@ -60,18 +61,39 @@ export default class extends Controller {
     const value = event.target.value
     console.log("Service type changed to:", value)
     
-    // Show/hide experience fields
+    this.applyServiceTypeState(value)
+    
+    // Clear validation error when a value is selected
+    if (value && value !== '') {
+      this.clearServiceTypeError()
+    }
+  }
+
+  applyServiceTypeState(value) {
+    const isExperienceType = value === 'experience' || value === 'event'
+
     if (this.hasExperienceFieldsTarget) {
-      if (value === 'experience') {
+      if (isExperienceType) {
         this.experienceFieldsTarget.classList.remove('hidden')
       } else {
         this.experienceFieldsTarget.classList.add('hidden')
       }
     }
-    
-    // Clear validation error when a value is selected
-    if (value && value !== '') {
-      this.clearServiceTypeError()
+
+    if (this.hasEventFieldsTarget) {
+      if (value === 'event') {
+        this.eventFieldsTarget.classList.remove('hidden')
+      } else {
+        this.eventFieldsTarget.classList.add('hidden')
+      }
+    }
+
+    if (this.hasAvailabilitySectionTarget) {
+      if (value === 'event') {
+        this.availabilitySectionTarget.classList.add('hidden')
+      } else {
+        this.availabilitySectionTarget.classList.remove('hidden')
+      }
     }
   }
   

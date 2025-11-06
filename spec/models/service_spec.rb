@@ -104,6 +104,34 @@ RSpec.describe Service, type: :model do
     end
   end
 
+  describe 'event services' do
+    let(:business) { create(:business, time_zone: 'UTC') }
+
+    it 'requires an event start time' do
+      service = build(:service, service_type: :event, business: business, min_bookings: 1, max_bookings: 5, event_starts_at: nil)
+      expect(service).not_to be_valid
+      expect(service.errors[:event_starts_at]).to include("can't be blank")
+    end
+
+    it 'treats events as experience services for booking constraints' do
+      service = build(:service, service_type: :event, business: business, min_bookings: 2, max_bookings: 6, event_starts_at: 3.days.from_now.change(sec: 0))
+      service.valid?
+      expect(service.errors[:min_bookings]).to be_empty
+      expect(service.experience?).to be(true)
+    end
+
+    it 'configures availability to a single event date' do
+      start_time = Time.zone.parse('2025-06-01 10:00')
+      service = create(:service, service_type: :event, business: business, min_bookings: 1, max_bookings: 5, duration: 60, event_starts_at: start_time)
+
+      date_key = start_time.to_date.iso8601
+      expect(service.enforce_service_availability?).to be(true)
+      expect(service.availability['exceptions'].keys).to eq([date_key])
+      expect(service.availability['exceptions'][date_key]).to eq([{ 'start' => '10:00', 'end' => '11:00' }])
+      expect(service.spots).to eq(5)
+    end
+  end
+
   describe 'image attachments' do
     it { is_expected.to have_many_attached(:images) }
     it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence') }
