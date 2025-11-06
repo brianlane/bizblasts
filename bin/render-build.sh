@@ -99,6 +99,8 @@ fi
 # Chrome for Testing publishes Linux builds as .zip files
 CHROME_DOWNLOAD_URL="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip"
 CHROME_INSTALL_DIR="$PWD/vendor/chrome"
+CHROME_ARCHIVE_PATH="/tmp/chrome-linux64.zip"
+CHROME_ARCHIVE_FAILURE_REASON=""
 
 # Expected SHA256 checksum for this version (verify manually when updating)
 # To get checksum: curl -sL <URL> | sha256sum
@@ -127,7 +129,7 @@ while [ $DOWNLOAD_ATTEMPTS -lt $MAX_DOWNLOAD_ATTEMPTS ] && [ "$DOWNLOAD_SUCCESS"
   echo "Download attempt ${DOWNLOAD_ATTEMPTS}/${MAX_DOWNLOAD_ATTEMPTS}..."
 
   if curl -fsSL --retry 2 --retry-delay 5 --connect-timeout 30 --max-time 300 \
-     "$CHROME_DOWNLOAD_URL" -o /tmp/chrome-linux64.zip; then
+     "$CHROME_DOWNLOAD_URL" -o "$CHROME_ARCHIVE_PATH"; then
     DOWNLOAD_SUCCESS=true
     echo "✓ Chrome downloaded successfully"
   else
@@ -149,13 +151,14 @@ else
   # Verify checksum if provided (recommended for production)
   if [ -n "$CHROME_EXPECTED_SHA256" ]; then
     echo "Verifying Chrome checksum..."
-    ACTUAL_SHA256=$(sha256sum /tmp/chrome-linux64.zip | awk '{print $1}')
+    ACTUAL_SHA256=$(sha256sum "$CHROME_ARCHIVE_PATH" | awk '{print $1}')
     if [ "$ACTUAL_SHA256" != "$CHROME_EXPECTED_SHA256" ]; then
       echo "ERROR: Chrome checksum mismatch!"
       echo "  Expected: ${CHROME_EXPECTED_SHA256}"
       echo "  Actual:   ${ACTUAL_SHA256}"
       echo "SECURITY WARNING: Checksum verification failed. Not installing Chrome."
-      rm -f /tmp/chrome-linux64.zip
+      rm -f "$CHROME_ARCHIVE_PATH"
+      CHROME_ARCHIVE_FAILURE_REASON="Chrome download succeeded, but checksum verification failed. Archive removed for safety."
       echo "FALLBACK: Continuing without Chrome (manual method will be required)"
     else
       echo "Chrome checksum verified ✓"
@@ -165,9 +168,9 @@ else
   fi
 
   # Install Chrome if download was successful and checksum passed (or skipped)
-  if [ -f /tmp/chrome-linux64.zip ]; then
+  if [ -f "$CHROME_ARCHIVE_PATH" ]; then
     echo "Extracting Chrome..."
-    echo "Archive size: $(du -h /tmp/chrome-linux64.zip | cut -f1)"
+    echo "Archive size: $(du -h "$CHROME_ARCHIVE_PATH" | cut -f1)"
 
     # Check if unzip is available
     if ! command -v unzip &> /dev/null; then
@@ -181,7 +184,7 @@ else
     fi
 
     mkdir -p /tmp/chrome-download
-    if unzip -q /tmp/chrome-linux64.zip -d /tmp/chrome-download 2>&1; then
+    if unzip -q "$CHROME_ARCHIVE_PATH" -d /tmp/chrome-download 2>&1; then
       echo "✓ Chrome archive extracted successfully"
 
       # Check what was extracted
@@ -203,7 +206,7 @@ else
       echo "Make sure unzip is installed and the archive is valid"
     fi
 
-    rm -rf /tmp/chrome-download /tmp/chrome-linux64.zip
+    rm -rf /tmp/chrome-download "$CHROME_ARCHIVE_PATH"
 
     # Verify Chrome installation
     echo "Verifying Chrome installation..."
@@ -266,8 +269,12 @@ else
       fi
     fi
   else
-    echo "✗ ERROR: Chrome archive file not found at /tmp/chrome-linux64.zip"
-    echo "This indicates the download failed but was not caught by error handling"
+    echo "✗ ERROR: Chrome archive file not available at $CHROME_ARCHIVE_PATH"
+    if [ -n "$CHROME_ARCHIVE_FAILURE_REASON" ]; then
+      echo "$CHROME_ARCHIVE_FAILURE_REASON"
+    else
+      echo "This usually indicates the download failed but was not caught by error handling"
+    fi
   fi
 fi
 
