@@ -21,13 +21,44 @@ class PlaceIdExtractionJob < ApplicationJob
     Rails.logger.info "[PlaceIdExtractionJob] Starting extraction for job_id: #{job_id}"
     Rails.logger.info "[PlaceIdExtractionJob] URL (truncated): #{sanitized_url}"
 
-    # SECURITY: Circuit breaker - check recent failure rate
+    # SECURITY: Circuit breaker - check recent failure rate FIRST
+    # This prevents runaway failures from overwhelming the system
     recent_failures = Rails.cache.read('place_id_extraction:recent_failures') || 0
+    browser_check_result = nil
+
     if recent_failures >= CIRCUIT_BREAKER_THRESHOLD
-      error_msg = 'Automatic extraction is temporarily unavailable due to repeated failures. Please use manual method.'
+      # Circuit breaker triggered - but check if Chrome is now available
+      # This allows recovery when Chrome becomes available after repeated failures
       Rails.logger.warn "[PlaceIdExtractionJob] Circuit breaker triggered: #{recent_failures} recent failures"
-      store_status(job_id, status: 'failed', error: error_msg)
-      return
+      Rails.logger.info "[PlaceIdExtractionJob] Checking if Chrome is now available to reset circuit breaker..."
+
+      browser_check_result = check_browser_availability
+      if browser_check_result[:available]
+        # Chrome is now available! Reset counter and allow job to proceed
+        Rails.cache.write('place_id_extraction:recent_failures', 0, expires_in: 1.hour)
+        Rails.logger.info "[PlaceIdExtractionJob] Chrome is available - resetting circuit breaker and proceeding"
+      else
+        # Chrome still unavailable - circuit breaker remains active
+        error_msg = 'Automatic extraction is temporarily unavailable due to repeated failures. Please use manual method.'
+        Rails.logger.warn "[PlaceIdExtractionJob] Chrome still unavailable - circuit breaker remains active"
+        store_status(job_id, status: 'failed', error: error_msg)
+        return
+      end
+    end
+
+    # Pre-flight check: Verify Chrome is available before proceeding
+    # Skip if we already checked during circuit breaker recovery
+    if browser_check_result.nil?
+      browser_check_result = check_browser_availability
+      unless browser_check_result[:available]
+        Rails.logger.error "[PlaceIdExtractionJob] Pre-flight check failed: #{browser_check_result[:error]}"
+        store_status(job_id, status: 'failed', error: browser_check_result[:error])
+        increment_recent_failure_counter
+        return
+      end
+      Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check passed: #{browser_check_result[:browser_path]}"
+    else
+      Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check skipped (already verified during circuit breaker recovery)"
     end
 
     # SECURITY: Check concurrent job limit to prevent resource exhaustion
@@ -393,5 +424,67 @@ class PlaceIdExtractionJob < ApplicationJob
   rescue => e
     Rails.logger.error "[PlaceIdExtractionJob] Failed to increment failure counter: #{e.message}"
     # Don't raise - failure counter is a safety feature, not critical
+  end
+
+  # Pre-flight check to verify Chrome is available and can execute
+  def check_browser_availability
+    # Try to resolve browser path
+    browser_path = PlaceIdExtraction::BrowserPathResolver.resolve
+
+    if browser_path.nil?
+      return {
+        available: false,
+        error: 'Chrome/Chromium executable not found. Please check CUPRITE_BROWSER_PATH environment variable or install Chrome.',
+        browser_path: nil
+      }
+    end
+
+    # Verify the file exists (double-check)
+    unless File.exist?(browser_path)
+      return {
+        available: false,
+        error: "Chrome path resolved to '#{browser_path}' but file does not exist.",
+        browser_path: browser_path
+      }
+    end
+
+    # Verify the file is executable
+    unless File.executable?(browser_path)
+      return {
+        available: false,
+        error: "Chrome binary at '#{browser_path}' is not executable. Check file permissions.",
+        browser_path: browser_path
+      }
+    end
+
+    # Try to execute Chrome --version to verify it can start
+    # SECURITY: Use Open3.capture2e instead of backticks to avoid shell injection
+    begin
+      require 'open3'
+      version_output, status = Open3.capture2e(browser_path, '--version')
+
+      if !status.success?
+        # Chrome failed to execute - likely missing dependencies
+        error_lines = version_output.lines.first(3).join(' ').strip
+        return {
+          available: false,
+          error: "Chrome cannot execute (exit code #{status.exitstatus}). Missing system dependencies? Error: #{error_lines}",
+          browser_path: browser_path
+        }
+      end
+
+      # Chrome executed successfully
+      return {
+        available: true,
+        browser_path: browser_path,
+        version: version_output.strip
+      }
+    rescue => e
+      return {
+        available: false,
+        error: "Failed to check Chrome version: #{e.message}",
+        browser_path: browser_path
+      }
+    end
   end
 end

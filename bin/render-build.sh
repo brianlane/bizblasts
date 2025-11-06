@@ -26,6 +26,60 @@ fi
 echo "Installing dependencies..."
 bundle install
 
+# Install system dependencies for headless Chrome
+echo "Installing system dependencies for Chrome..."
+echo "Note: If you see 'Permission denied' or 'apt-get not found', ensure render.yaml has the packages list configured."
+echo "Attempting to use Render's native package manager first..."
+
+# On Render, packages should be installed via render.yaml, but we'll verify and attempt fallback
+if command -v apt-get &> /dev/null; then
+  echo "apt-get is available, checking if we can use it..."
+
+  # Try without sudo first (Render build environment may not need it)
+  if apt-get update -qq 2>/dev/null; then
+    echo "Installing Chrome dependencies via apt-get..."
+    apt-get install -y \
+      libnss3 \
+      libatk-bridge2.0-0 \
+      libgbm1 \
+      libxkbcommon0 \
+      libgtk-3-0 \
+      libglib2.0-0 \
+      libasound2 \
+      libdrm2 \
+      libxcomposite1 \
+      libxdamage1 \
+      libxfixes3 \
+      libxrandr2 \
+      libcups2 \
+      libpango-1.0-0 \
+      libcairo2 \
+      fonts-liberation \
+      libx11-xcb1 \
+      libxcb-dri3-0 \
+      libxtst6 \
+      libxss1 \
+      2>/dev/null || echo "Warning: Some packages failed to install via apt-get"
+
+    echo "✓ Chrome dependencies installation completed"
+  else
+    echo "Cannot run apt-get (no permission or not available)"
+    echo "Relying on render.yaml packages configuration..."
+  fi
+else
+  echo "apt-get not available, relying on render.yaml packages configuration..."
+fi
+
+# Verify critical libraries are present
+echo "Checking for critical Chrome dependencies..."
+for lib in libnss3.so libgbm.so libgtk-3.so; do
+  if ldconfig -p 2>/dev/null | grep -q "$lib"; then
+    echo "  ✓ $lib found"
+  else
+    echo "  ✗ $lib NOT found (Chrome may not work)"
+  fi
+done
+
 # Install headless Chrome for Cuprite/Ferrum automation
 echo "Fetching headless Chrome (chrome-for-testing)..."
 
@@ -81,16 +135,30 @@ else
     # Verify Chrome installation
     echo "Verifying Chrome installation..."
     if [ -f "$CHROME_INSTALL_DIR/chrome-linux64/chrome" ]; then
-      CHROME_VERSION_OUTPUT=$("$CHROME_INSTALL_DIR/chrome-linux64/chrome" --version 2>&1 || echo "failed")
+      echo "Chrome binary exists at: $CHROME_INSTALL_DIR/chrome-linux64/chrome"
+
+      # Test if Chrome can actually run (not just exist)
+      echo "Testing if Chrome can execute..."
+      CHROME_VERSION_OUTPUT=$("$CHROME_INSTALL_DIR/chrome-linux64/chrome" --version 2>&1 || echo "FAILED_TO_EXECUTE")
+
       if echo "$CHROME_VERSION_OUTPUT" | grep -q "Chrome"; then
-        echo "Chrome installation verified ✓"
-        echo "Chrome version: $CHROME_VERSION_OUTPUT"
+        echo "✓ Chrome installation verified successfully"
+        echo "✓ Chrome version: $CHROME_VERSION_OUTPUT"
       else
-        echo "WARNING: Chrome may not work correctly"
-        echo "Chrome version check output: $CHROME_VERSION_OUTPUT"
+        echo "✗ ERROR: Chrome binary exists but cannot execute"
+        echo "✗ Chrome version check output: $CHROME_VERSION_OUTPUT"
+        echo "✗ This usually means missing system dependencies"
+
+        # Try to diagnose the issue
+        echo "Diagnosing Chrome dependencies..."
+        ldd "$CHROME_INSTALL_DIR/chrome-linux64/chrome" 2>&1 | grep "not found" || echo "All shared libraries found"
+
+        echo "WARNING: Place ID extraction may not work. Chrome cannot start."
       fi
     else
-      echo "ERROR: Chrome executable not found after installation"
+      echo "✗ ERROR: Chrome executable not found after installation at: $CHROME_INSTALL_DIR/chrome-linux64/chrome"
+      echo "Directory contents:"
+      ls -la "$CHROME_INSTALL_DIR" || echo "Install directory doesn't exist"
     fi
   fi
 fi
