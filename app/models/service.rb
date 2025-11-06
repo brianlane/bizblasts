@@ -563,8 +563,6 @@ class Service < ApplicationRecord
     end
   end
 
-  private
-
   # Default availability structure
   def default_availability_structure
     {
