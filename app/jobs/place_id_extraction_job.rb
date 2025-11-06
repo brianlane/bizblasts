@@ -24,14 +24,16 @@ class PlaceIdExtractionJob < ApplicationJob
     # SECURITY: Circuit breaker - check recent failure rate FIRST
     # This prevents runaway failures from overwhelming the system
     recent_failures = Rails.cache.read('place_id_extraction:recent_failures') || 0
+    browser_check_result = nil
+
     if recent_failures >= CIRCUIT_BREAKER_THRESHOLD
       # Circuit breaker triggered - but check if Chrome is now available
       # This allows recovery when Chrome becomes available after repeated failures
       Rails.logger.warn "[PlaceIdExtractionJob] Circuit breaker triggered: #{recent_failures} recent failures"
       Rails.logger.info "[PlaceIdExtractionJob] Checking if Chrome is now available to reset circuit breaker..."
 
-      browser_check_for_recovery = check_browser_availability
-      if browser_check_for_recovery[:available]
+      browser_check_result = check_browser_availability
+      if browser_check_result[:available]
         # Chrome is now available! Reset counter and allow job to proceed
         Rails.cache.write('place_id_extraction:recent_failures', 0, expires_in: 1.hour)
         Rails.logger.info "[PlaceIdExtractionJob] Chrome is available - resetting circuit breaker and proceeding"
@@ -45,17 +47,19 @@ class PlaceIdExtractionJob < ApplicationJob
     end
 
     # Pre-flight check: Verify Chrome is available before proceeding
-    # This runs AFTER circuit breaker check (or after circuit breaker recovery)
-    browser_check_result = check_browser_availability
-    unless browser_check_result[:available]
-      Rails.logger.error "[PlaceIdExtractionJob] Pre-flight check failed: #{browser_check_result[:error]}"
-      store_status(job_id, status: 'failed', error: browser_check_result[:error])
-      increment_recent_failure_counter
-      return
+    # Skip if we already checked during circuit breaker recovery
+    if browser_check_result.nil?
+      browser_check_result = check_browser_availability
+      unless browser_check_result[:available]
+        Rails.logger.error "[PlaceIdExtractionJob] Pre-flight check failed: #{browser_check_result[:error]}"
+        store_status(job_id, status: 'failed', error: browser_check_result[:error])
+        increment_recent_failure_counter
+        return
+      end
+      Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check passed: #{browser_check_result[:browser_path]}"
+    else
+      Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check skipped (already verified during circuit breaker recovery)"
     end
-
-    # Pre-flight passed - Chrome is available
-    Rails.logger.info "[PlaceIdExtractionJob] Pre-flight check passed: #{browser_check_result[:browser_path]}"
 
     # SECURITY: Check concurrent job limit to prevent resource exhaustion
     concurrent_jobs_count = count_concurrent_jobs
