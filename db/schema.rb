@@ -1218,6 +1218,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.index ["allow_discounts"], name: "index_services_on_allow_discounts"
     t.index ["business_id", "position"], name: "index_services_on_business_id_and_position"
     t.index ["business_id"], name: "index_services_on_business_id"
+    t.index ["event_starts_at"], name: "index_services_on_event_starts_at_for_events", where: "(service_type = 2)"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
     t.index ["tips_enabled"], name: "index_services_on_tips_enabled"
   end
