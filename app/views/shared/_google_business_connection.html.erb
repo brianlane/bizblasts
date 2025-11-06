@@ -206,13 +206,29 @@
         </p>
       </div>
 
+        <% flash_place_id = if flash[:business_form_data].is_a?(Hash)
+            flash[:business_form_data]['google_place_id'] || flash[:business_form_data][:google_place_id]
+          end %>
+        <% google_place_field_value = flash_place_id.presence || business.google_place_id %>
+
+        <% if flash[:form_errors].present? %>
+          <div class="p-4 mb-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            <p class="font-semibold">Please fix the following errors:</p>
+            <ul class="mt-2 list-disc list-inside space-y-1">
+              <% Array(flash[:form_errors]).each do |error| %>
+                <li><%= error %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
         <%= form_with model: business, url: business_manager_settings_business_path, method: :patch, local: true, class: "space-y-3" do |form| %>
           <%= hidden_field_tag :return_to, business_manager_settings_integrations_path %>
 
           <div>
             <%= form.label :google_place_id, "Google Place ID", class: "block text-sm font-medium text-gray-700 mb-1" %>
             <%= form.text_field :google_place_id,
-                  value: business.google_place_id,
+                  value: google_place_field_value,
                   placeholder: "ChIJN1t_tDeuEmsRUsoyG83frY4",
                   pattern: "^(ChIJ|GhIJ|E|I).+",
                   title: "Place ID must start with ChIJ, GhIJ, E, or I",

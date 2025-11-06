@@ -63,8 +63,10 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     
     # Log the sync_location parameter to help diagnose issues
     Rails.logger.info "[BUSINESS_SETTINGS] sync_location parameter: #{params[:sync_location].inspect}"
+    permitted_params = business_params
+    return_path = safe_return_path
     
-    if @business.update(business_params)
+    if @business.update(permitted_params)
       # If the user switched back to subdomain mode, run the same removal
       # service used by ActiveAdmin to clean up Render and revert safely.
       if @business.saved_change_to_host_type? && @business.host_type_subdomain?
@@ -102,11 +104,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       flash_already_set = flash[:alert].present? || flash[:notice].present?
 
       # Determine redirect path - allow override via return_to parameter
-      redirect_path = if params[:return_to].present?
-        params[:return_to]
-      else
-        edit_business_manager_settings_business_path
-      end
+      redirect_path = return_path || edit_business_manager_settings_business_path
 
       if params[:sync_location] == '1'
         sync_with_default_location
@@ -123,7 +121,14 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         end
       end
     else
-      render :edit, status: :unprocessable_content
+      if return_path
+        flash[:alert] = format_validation_errors(@business.errors.full_messages)
+        flash[:form_errors] = @business.errors.full_messages
+        flash[:business_form_data] = permitted_params.slice(:google_place_id).to_h
+        redirect_to return_path, status: :see_other
+      else
+        render :edit, status: :unprocessable_content
+      end
     end
   end
 
@@ -343,7 +348,27 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
   def days_of_week
     %w[mon tue wed thu fri sat sun]
   end
-  
+
+  def format_validation_errors(messages)
+    return 'Please fix the errors below.' if messages.blank?
+
+    formatted_list = messages.map { |msg| "\u2022 #{msg}" }.join("\n")
+    "Please fix the following errors:\n#{formatted_list}"
+  end
+
+  def safe_return_path
+    raw = params[:return_to]
+    return if raw.blank?
+
+    path = raw.to_s.strip
+    return if path.blank?
+    return if path.include?('://') || path.start_with?('//')
+    return if path.include?("\r") || path.include?("\n")
+    return unless path.start_with?('/')
+
+    path
+  end
+
   # Sync business data with the default location
   def sync_with_default_location
     default_location = @business.default_location

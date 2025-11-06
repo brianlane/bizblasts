@@ -110,6 +110,26 @@ RSpec.describe "Settings::BusinessController", type: :request do
         expect(response).to redirect_to(edit_business_manager_settings_business_path)
         expect(flash[:notice]).to eq('Business information updated successfully.')
       end
+
+      it "redirects to the provided integrations path when return_to is safe" do
+        patch business_manager_settings_business_path,
+              params: {
+                business: valid_attributes,
+                return_to: business_manager_settings_integrations_path
+              }
+
+        expect(response).to redirect_to(business_manager_settings_integrations_path)
+      end
+
+      it "ignores unsafe return_to URLs" do
+        patch business_manager_settings_business_path,
+              params: {
+                business: valid_attributes,
+                return_to: 'https://evil.com/manage/settings/integrations'
+              }
+
+        expect(response).to redirect_to(edit_business_manager_settings_business_path)
+      end
     end
 
     context "with invalid parameters" do
@@ -126,6 +146,31 @@ RSpec.describe "Settings::BusinessController", type: :request do
         expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Name can&#39;t be blank") # From the custom error display format (HTML encoded)
       end
+
+      it "redirects back to integrations when return_to is provided and preserves errors in flash" do
+        create(:business, google_place_id: "ChIJduplicatePlace")
+
+        patch business_manager_settings_business_path,
+              params: {
+                business: { google_place_id: "ChIJduplicatePlace" },
+                return_to: business_manager_settings_integrations_path
+              }
+
+        expect(response).to redirect_to(business_manager_settings_integrations_path)
+        expect(flash[:alert]).to include("Please fix the following errors")
+        expect(Array(flash[:form_errors])).to include("Google place has already been taken")
+        expect(flash[:business_form_data]['google_place_id']).to eq("ChIJduplicatePlace")
+      end
+
+      it "falls back to rendering edit when return_to is unsafe" do
+        patch business_manager_settings_business_path,
+              params: {
+                business: invalid_attributes,
+                return_to: '//evil.com'
+              }
+
+        expect(response).to render_template(:edit)
+      end
     end
   end
-end 
+end
