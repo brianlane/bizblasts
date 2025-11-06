@@ -101,6 +101,16 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
         json = JSON.parse(response.body)
         expect(json['error']).to include('Invalid Google Maps URL')
       end
+
+      it "accepts valid URLs that contain unicode characters (smart quotes)" do
+        url = "https://www.google.com/maps/place/Bee\u2019s+Best+Bet+Detail+%26+Protection/@33.3923204,-111.9279131,11z/data=!4m14!1m7!3m6!1s0x872b090d325f7fdb:0x79b31f1dbc0a282b!2sBee\u2019s+Best+Bet+Detail+%26+Protection!8m2!3d33.3923204!4d-111.927913!16s%2Fg%2F11q8vxdbtc!3m5!1s0x872b090d325f7fdb:0x79b31f1dbc0a282b!8m2!3d33.3923204!4d-111.927913!16s%2Fg%2F11q8vxdbtc"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['job_id']).to be_present
+      end
     end
 
     context "rate limiting (security)" do
