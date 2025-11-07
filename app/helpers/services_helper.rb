@@ -9,7 +9,7 @@ module ServicesHelper
     event_zone = ActiveSupport::TimeZone[service.business&.time_zone.presence || Time.zone.name] || Time.zone
     event_start = service.event_starts_at.in_time_zone(event_zone)
 
-    "#{event_start.strftime('%B %d, %Y at %l:%M %p').strip} (#{event_zone})"
+    event_start.strftime('%B %d, %Y at %l:%M %p').strip
   end
 
   # Format event date only (without time) for display

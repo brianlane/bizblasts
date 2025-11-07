@@ -28,9 +28,20 @@ export default class extends Controller {
       // Initialize state by calling the handler with the current target
       this.handleServiceTypeChange({ target: this.serviceTypeHiddenTarget })
     }
+
+    if (this.hasServiceTypeDropdownTarget) {
+      this.handleDropdownChange = this.handleDropdownChange.bind(this)
+      this.serviceTypeDropdownTarget.addEventListener('rich-dropdown:change', this.handleDropdownChange)
+    }
     
     // Listen for subscription checkbox changes
     this.setupSubscriptionToggle()
+  }
+  
+  disconnect() {
+    if (this.hasServiceTypeDropdownTarget && this.handleDropdownChange) {
+      this.serviceTypeDropdownTarget.removeEventListener('rich-dropdown:change', this.handleDropdownChange)
+    }
   }
   
   setupSubscriptionToggle() {
@@ -61,13 +72,22 @@ export default class extends Controller {
   handleServiceTypeChange(event) {
     const value = event.target.value
     console.log("Service type changed to:", value)
-    
     this.applyServiceTypeState(value)
     
     // Clear validation error when a value is selected
     if (value && value !== '') {
       this.clearServiceTypeError()
     }
+  }
+
+  handleDropdownChange(event) {
+    const dropdownValue = event?.detail?.value
+    if (!dropdownValue && !this.hasServiceTypeHiddenTarget) return
+    
+    const currentValue = dropdownValue || this.serviceTypeHiddenTarget.value
+    console.log("Service type change via dropdown event:", currentValue)
+    this.applyServiceTypeState(currentValue)
+    this.clearServiceTypeError()
   }
 
   applyServiceTypeState(value) {

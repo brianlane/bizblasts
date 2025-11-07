@@ -20,7 +20,17 @@ class AuthenticationBridgeController < ApplicationController
     unless user_signed_in?
       AuthenticationTracker.track_bridge_failed('unauthenticated', request)
       Rails.logger.warn "[AuthBridge] Unauthenticated access attempt from #{request.remote_ip}"
-      render json: { error: 'Authentication required' }, status: :unauthorized
+
+      respond_to do |format|
+        format.json do
+          render json: { error: 'Authentication required' }, status: :unauthorized
+        end
+        format.any do
+          store_location_for(:user, request.fullpath)
+          flash[:alert] = 'Please sign in to continue.'
+          redirect_to new_user_session_url
+        end
+      end
       return
     end
 

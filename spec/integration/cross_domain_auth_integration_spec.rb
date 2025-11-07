@@ -72,21 +72,31 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
       expect(AuthToken.count).to eq(0)
     end
 
-    it 'requires authentication for token creation' do
-      # Try to create token without being signed in
+    it 'redirects unauthenticated browser requests to sign-in' do
       target_url = "https://example.com/dashboard"
-      get "/auth/bridge", params: { target_url: target_url, business_id: custom_domain_business.id }, headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
 
-      # In Rails, unauthenticated requests typically redirect to login, not return 401
-      # But our auth bridge controller explicitly returns 401 JSON for unauthenticated requests
-      if response.content_type&.include?('application/json')
-        expect(response).to have_http_status(:unauthorized)
-        expect(response.body).to include('Authentication required')
-      else
-        # If it redirects to login instead, that's also valid
-        expect(response).to have_http_status(:redirect)
-        expect(response.location).to include('/users/sign_in')
-      end
+      get "/auth/bridge",
+          params: { target_url: target_url, business_id: custom_domain_business.id },
+          headers: { 'HTTP_USER_AGENT' => 'Test Browser/1.0' }
+
+      expect(response).to have_http_status(:redirect)
+      expect(response).to redirect_to(new_user_session_url)
+      expect(flash[:alert]).to eq('Please sign in to continue.')
+    end
+
+    it 'returns json error for unauthenticated API requests' do
+      target_url = "https://example.com/dashboard"
+
+      get "/auth/bridge",
+          params: { target_url: target_url, business_id: custom_domain_business.id },
+          headers: {
+            'HTTP_USER_AGENT' => 'Test Browser/1.0',
+            'ACCEPT' => 'application/json'
+          }
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(response.media_type).to eq('application/json')
+      expect(JSON.parse(response.body)).to include('error' => 'Authentication required')
     end
   end
 

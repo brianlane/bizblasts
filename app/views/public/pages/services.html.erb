@@ -13,6 +13,15 @@
         <% has_variants = variants.any? %>
         <% default_variant = variants.first if has_variants %>
         
+        <% if service.event? %>
+          <%= render 'public/pages/event_card',
+              service: service,
+              variants: variants,
+              has_variants: has_variants,
+              default_variant: default_variant %>
+          <% next %>
+        <% end %>
+        
         <div class="border rounded-lg p-4 shadow-sm flex flex-col">
           <%# Display Primary Image if available %>
           <% if service.primary_image&.attached? %>
