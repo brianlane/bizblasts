@@ -5,7 +5,7 @@ ActiveAdmin.register Service do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :duration, :active, :business_id
+  permit_params :name, :description, :price, :duration, :active, :business_id, :event_starts_at
   #
   # or
   #
@@ -82,7 +82,7 @@ ActiveAdmin.register Service do
 
 
   # Permit relevant parameters including the association and nested image attributes
-  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :allow_discounts, :availability_settings, :service_type, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :allow_discounts, :availability_settings, :service_type, :event_starts_at, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
 
   # Define index block to correctly display business link
   index do
@@ -135,6 +135,7 @@ ActiveAdmin.register Service do
       f.input :allow_discounts, label: 'Allow Discount Codes', hint: 'When unchecked, this service will be excluded from all discount codes and promo codes'
       
       f.input :service_type, as: :select, collection: Service.service_types.keys.map { |k| [k.humanize, k] }, include_blank: false, input_html: { id: 'service_type_select' }
+      f.input :event_starts_at, hint: 'Only required for Event services. Customers will be limited to this date and time.'
 
       f.input :min_bookings
       f.input :max_bookings
@@ -175,6 +176,7 @@ ActiveAdmin.register Service do
       row :tips_enabled do |service|
         service.tips_enabled? ? "Yes" : "No"
       end
+      row :event_starts_at if resource.event?
       row :service_type do |service|
         service.service_type.humanize if service.service_type
       end

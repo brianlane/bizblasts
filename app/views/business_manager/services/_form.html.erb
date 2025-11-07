@@ -152,6 +152,9 @@
          <div>
            <span class="font-semibold">Experience:</span> Events with multiple attendees. Supports variable quantity (min/max attendees), requires upfront payment to secure spots, and ideal for workshops, tours, or group services.
          </div>
+         <div>
+           <span class="font-semibold">Event:</span> A single-date experience with a fixed start time. Capacity settings still apply, but bookings are limited to this one scheduled date.
+         </div>
        </div>
      </div>
    </div>
@@ -170,14 +173,39 @@
      <% if service.persisted? && service.experience? %>
        <div class="mb-4">
          <span class="block text-gray-700 text-sm font-bold mb-2">Current Spots:</span>
-         <p class="text-gray-900 text-sm"><%= service.spots %></p>
+         <p class="text-gray-900 text-sm"><%= service.spots || 0 %></p>
        </div>
-     <% end %>
-   </div>
+   <% end %>
+  </div>
+
+  <div id="event_fields" class="<%= service.event? ? '' : 'hidden' %>"
+       data-service-form-target="eventFields">
+    <% timezone_name =
+         if service.business&.time_zone.present?
+           service.business.time_zone
+         elsif defined?(current_business) && current_business.present? && current_business.respond_to?(:time_zone) && current_business.time_zone.present?
+           current_business.time_zone
+         else
+           Time.zone.name
+         end %>
+    <% timezone = ActiveSupport::TimeZone[timezone_name] || Time.zone %>
+    <% event_start_value = service.event_starts_at.present? ? service.event_starts_at.in_time_zone(timezone).strftime('%Y-%m-%dT%H:%M') : nil %>
+    <div class="mb-4">
+      <%= form.label :event_starts_at, "Event start (#{timezone_name})", class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= form.datetime_field :event_starts_at,
+            value: event_start_value,
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline",
+            data: { disable_wheel: true } %>
+      <p class="mt-2 text-sm text-gray-600">
+        Customers can only book this experience for the selected date and start time. The end time is calculated automatically using the duration above.
+      </p>
+    </div>
+  </div>
 
   <!-- Service Availability Section -->
-  <div class="mt-6 mb-6 border-t pt-6" 
+  <div class="mt-6 mb-6 border-t pt-6 <%= service.event? ? 'hidden' : '' %>" 
        data-controller="service-availability" 
+       data-service-form-target="availabilitySection"
        data-service-availability-service-name-value="<%= service.persisted? ? service.name : 'New Service' %>">
     <h3 class="text-lg font-semibold mb-2">Service Availability (Optional)</h3>
     

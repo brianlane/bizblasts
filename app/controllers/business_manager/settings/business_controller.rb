@@ -124,6 +124,8 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       if return_path
         flash[:alert] = format_validation_errors(@business.errors.full_messages)
         flash[:form_errors] = @business.errors.full_messages
+        # SECURITY: Only store non-sensitive, validated fields in flash
+        # google_place_id is safe to store as it's a public Google identifier
         flash[:business_form_data] = permitted_params.slice(:google_place_id).to_h
         redirect_to return_path, status: :see_other
       else

@@ -252,12 +252,22 @@
       <% end %>
     </div>
 
+    <% if @service.event? && @service.event_starts_at.present? %>
+      <% event_zone = ActiveSupport::TimeZone[@service.business&.time_zone.presence || Time.zone.name] || Time.zone %>
+      <% event_start = @service.event_starts_at.in_time_zone(event_zone) %>
+      <div class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
+        <p class="text-purple-800 text-sm">
+          <strong>Event Schedule:</strong> <%= event_start.strftime("%A, ") %><%= format_event_datetime(@service) %>
+        </p>
+      </div>
+    <% end %>
+
     <%# Add quantity input field - Potentially make this conditional based on service type %>
     <% if @service.experience? %>
       <div class="mb-4">
         <%= form.label :quantity, "Number of Attendees", class: "block text-sm font-medium text-gray-700 mb-2" %>
         <%= form.number_field :quantity, min: 1, max: @service.max_bookings, class: "form-input rounded border px-3 py-2 w-full", id: 'booking_quantity' %>
-        <p class="text-sm text-gray-500">Min: <%= @service.min_bookings %>, Max: <%= @service.max_bookings %>, Spots Remaining: <%= @service.spots %></p>
+        <p class="text-sm text-gray-500">Min: <%= @service.min_bookings %>, Max: <%= @service.max_bookings %>, Spots Remaining: <%= @service.spots || 0 %></p>
       </div>
     <% else %>
        <%# For standard services, quantity is always 1, submit as hidden field %>
