@@ -59,7 +59,8 @@ RSpec.describe 'Services', type: :request do
       expect(response.body).to include(service_event.name)
       expect(response.body).to include('Type: Standard')
       expect(response.body).to include('Type: Experience')
-      expect(response.body).to include('Type: Event')
+      # Event services use a special card layout with "Limited Date Experience" text
+      expect(response.body).to include('Limited Date Experience')
     end
   end
 
