@@ -153,7 +153,7 @@
          <% if @service.experience? %>
            <p class="text-gray-900 font-medium">Minimum Bookings: <%= @service.min_bookings %></p>
            <p class="text-gray-900 font-medium">Maximum Bookings: <%= @service.max_bookings %></p>
-           <p class="text-gray-900 font-medium">Spots Available: <%= @service.spots %></p>
+           <p class="text-gray-900 font-medium">Spots Available: <%= @service.spots || 0 %></p>
            <% if @service.event? && @service.event_starts_at.present? %>
              <p class="text-gray-900 font-medium">Event Date: <%= format_event_datetime(@service) %></p>
            <% end %>

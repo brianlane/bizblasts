@@ -173,7 +173,7 @@
      <% if service.persisted? && service.experience? %>
        <div class="mb-4">
          <span class="block text-gray-700 text-sm font-bold mb-2">Current Spots:</span>
-         <p class="text-gray-900 text-sm"><%= service.spots %></p>
+         <p class="text-gray-900 text-sm"><%= service.spots || 0 %></p>
        </div>
    <% end %>
   </div>

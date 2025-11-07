@@ -167,7 +167,7 @@ ActiveAdmin.register_page "Dashboard" do
                 "#{event_start.strftime('%b %d, %Y at %l:%M %p').strip} (#{tz})"
               end
               column("Capacity") do |service|
-                "#{service.spots} spots"
+                "#{service.spots || 0} spots"
               end
             end
           else
