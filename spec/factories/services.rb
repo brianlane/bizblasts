@@ -36,6 +36,17 @@ FactoryBot.define do
         }
       end
     end
+
+    trait :event do
+      service_type { :event }
+      min_bookings { 1 }
+      max_bookings { 10 }
+      event_starts_at { 1.week.from_now.change(sec: 0) }
+
+      after(:build) do |service|
+        service.spots ||= service.max_bookings
+      end
+    end
     
     factory :service_with_staff_members do
       transient do

@@ -252,10 +252,16 @@ module BusinessManager
       # Initiates async extraction of Place ID from Google Maps URL
       def lookup_place_id
         google_maps_url = params[:input]&.strip
+
+        if google_maps_url.blank?
+          return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_content
+        end
+
         normalized_url = normalize_google_maps_url(google_maps_url)
 
-        if normalized_url.blank?
-          return render json: { success: false, error: 'Please enter a Google Maps URL' }, status: :unprocessable_content
+        # Check if normalization failed (encoding error)
+        if normalized_url.nil?
+          return render json: { success: false, error: 'Invalid URL encoding. Please check your URL and try again.' }, status: :unprocessable_content
         end
 
         # SECURITY: Strict URL validation to prevent injection attacks

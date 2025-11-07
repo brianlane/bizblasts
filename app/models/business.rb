@@ -214,7 +214,8 @@ class Business < ApplicationRecord
   validates :tier, presence: true, inclusion: { in: tiers.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
-  
+  validate :validate_timezone
+
   # New Validations for hostname/host_type
   validates :hostname, presence: true, uniqueness: { case_sensitive: false }
   validates :host_type, presence: true, inclusion: { in: host_types.keys }
@@ -256,6 +257,7 @@ class Business < ApplicationRecord
   before_validation :normalize_hostname
   before_validation :ensure_hours_is_hash
   before_validation :normalize_stripe_customer_id
+  before_validation :set_default_timezone, on: :create
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
@@ -1039,7 +1041,33 @@ class Business < ApplicationRecord
     # since multiple nil values are allowed but multiple empty strings are not
     self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
-  
+
+  # Set default timezone based on state if none is set
+  def set_default_timezone
+    return if time_zone.present?
+
+    # Map states to timezones - defaults to Eastern if state is not recognized
+    self.time_zone = case state.to_s.upcase
+    when 'HI' then 'Pacific/Honolulu'
+    when 'AK' then 'America/Anchorage'
+    when 'CA', 'OR', 'WA', 'NV' then 'America/Los_Angeles'
+    when 'AZ' then 'America/Phoenix' # Arizona doesn't observe DST
+    when 'MT', 'ID', 'WY', 'UT', 'CO', 'NM' then 'America/Denver'
+    when 'ND', 'SD', 'NE', 'KS', 'OK', 'TX', 'MN', 'IA', 'MO', 'AR', 'LA', 'WI', 'IL', 'MS', 'AL', 'TN' then 'America/Chicago'
+    when 'MI', 'IN', 'OH', 'KY', 'WV', 'GA', 'FL', 'SC', 'NC', 'VA', 'MD', 'DE', 'PA', 'NJ', 'NY', 'CT', 'RI', 'MA', 'VT', 'NH', 'ME', 'DC' then 'America/New_York'
+    else 'America/New_York' # Default to Eastern
+    end
+  end
+
+  # Validate timezone is a valid Rails timezone
+  def validate_timezone
+    return if time_zone.blank? # Allow blank, will be set by callback
+
+    unless ActiveSupport::TimeZone[time_zone]
+      errors.add(:time_zone, "is not a valid timezone")
+    end
+  end
+
   # Validation helper: Free **and Standard** tiers can only use BizBlasts sub-domains.
   # Runs only when creating or updating a non-premium business.
   def non_premium_requires_subdomain_host_type

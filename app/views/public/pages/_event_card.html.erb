@@ -1,0 +1,93 @@
+<%# Specialized card for single-date event services %>
+<% variants ||= service.service_variants.active.by_position %>
+<% has_variants = defined?(has_variants) ? has_variants : variants.any? %>
+<% default_variant ||= variants.first if has_variants %>
+
+<div class="border-2 border-purple-200 rounded-xl bg-gradient-to-b from-white to-purple-50 p-5 shadow-sm flex flex-col relative overflow-hidden">
+  <% if service.primary_image&.attached? %>
+    <div class="mb-4 rounded-lg overflow-hidden shadow-sm">
+      <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+      <%= link_to tenant_service_path(service, link_params) do %>
+        <% img = service.primary_image %>
+        <%= image_tag(
+              rails_public_blob_url(img.variant(:medium)),
+              srcset: [
+                "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+              ].join(', '),
+              sizes: '(max-width: 768px) 100vw, 400px',
+              class: "w-full h-48 object-cover"
+            ) %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <p class="text-xs uppercase tracking-widest text-purple-600 font-semibold flex items-center gap-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[11px]">
+          Event
+        </span>
+        Limited Date Experience
+      </p>
+      <h2 class="text-2xl font-semibold text-gray-900 mt-1">
+        <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+        <%= link_to service.name, tenant_service_path(service, link_params), class: "hover:underline" %>
+      </h2>
+    </div>
+    <div class="text-right">
+      <p class="text-xs uppercase text-gray-500">Investment</p>
+      <p class="text-2xl font-semibold text-gray-900"><%= number_to_currency(service.price) %></p>
+      <% if service.on_promotion? %>
+        <p class="text-xs text-green-600 font-medium">
+          Promo: <%= number_to_currency(service.promotional_price) %> (save <%= service.savings_percentage %>%)
+        </p>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-gray-700 text-sm mt-3"><%= truncate(service.description, length: 180) %></p>
+
+  <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+    <div class="p-3 bg-white rounded-lg border border-purple-100 shadow-sm">
+      <p class="text-xs uppercase text-gray-500 font-semibold">Event Date & Time</p>
+      <p class="text-gray-900 font-medium mt-1"><%= format_event_datetime(service) || 'Coming soon' %></p>
+    </div>
+    <div class="p-3 bg-white rounded-lg border border-purple-100 shadow-sm">
+      <p class="text-xs uppercase text-gray-500 font-semibold">Capacity</p>
+      <p class="text-gray-900 font-medium mt-1">
+        <% if service.min_bookings.present? && service.max_bookings.present? %>
+          <%= service.min_bookings %> - <%= service.max_bookings %> guests
+        <% elsif service.max_bookings.present? %>
+          Up to <%= service.max_bookings %> guests
+        <% else %>
+          Flexible capacity
+        <% end %>
+      </p>
+      <% if service.spots.present? %>
+        <p class="text-xs text-purple-700 mt-1 font-semibold"><%= pluralize(service.spots, 'spot') %> remaining</p>
+      <% end %>
+    </div>
+    <div class="p-3 bg-white rounded-lg border border-purple-100 shadow-sm">
+      <p class="text-xs uppercase text-gray-500 font-semibold">Duration</p>
+      <p class="text-gray-900 font-medium mt-1"><%= service.duration %> minutes</p>
+      <p class="text-xs text-gray-500 mt-1">One-day experience</p>
+    </div>
+  </div>
+
+  <div class="mt-6 flex flex-wrap gap-3">
+    <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+    <%= link_to "View Event Details",
+        tenant_service_path(service, link_params),
+        class: "inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white border border-purple-300 text-purple-700 text-sm font-medium hover:bg-purple-50 transition" %>
+
+    <% first_active_staff = service.staff_members.active.first %>
+    <% if first_active_staff.present? %>
+      <% book_params = { service_id: service.id, staff_member_id: first_active_staff.id } %>
+      <% book_params[:service_variant_id] = default_variant.id if has_variants %>
+      <%= link_to "Reserve Spot",
+          tenant_calendar_path(book_params),
+          class: "inline-flex items-center justify-center px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition" %>
+    <% end %>
+  </div>
+</div>

@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 console.log("=== SERVICE FORM CONTROLLER MODULE LOADED ===")
 
 export default class extends Controller {
-  static targets = ["serviceTypeHidden", "serviceTypeError", "serviceTypeDropdown", "experienceFields", "form", "subscriptionSettings", "availabilityStatus"]
+  static targets = ["serviceTypeHidden", "serviceTypeError", "serviceTypeDropdown", "experienceFields", "eventFields", "availabilitySection", "form", "subscriptionSettings", "availabilityStatus"]
   
   connect() {
     console.log("=== SERVICE FORM CONTROLLER CONNECTED ===")
@@ -25,10 +25,23 @@ export default class extends Controller {
     // Listen for service type changes
     if (this.hasServiceTypeHiddenTarget) {
       this.serviceTypeHiddenTarget.addEventListener('change', this.handleServiceTypeChange.bind(this))
+      // Initialize state by calling the handler with the current target
+      this.handleServiceTypeChange({ target: this.serviceTypeHiddenTarget })
+    }
+
+    if (this.hasServiceTypeDropdownTarget) {
+      this.handleDropdownChange = this.handleDropdownChange.bind(this)
+      this.serviceTypeDropdownTarget.addEventListener('rich-dropdown:change', this.handleDropdownChange)
     }
     
     // Listen for subscription checkbox changes
     this.setupSubscriptionToggle()
+  }
+  
+  disconnect() {
+    if (this.hasServiceTypeDropdownTarget && this.handleDropdownChange) {
+      this.serviceTypeDropdownTarget.removeEventListener('rich-dropdown:change', this.handleDropdownChange)
+    }
   }
   
   setupSubscriptionToggle() {
@@ -59,19 +72,49 @@ export default class extends Controller {
   handleServiceTypeChange(event) {
     const value = event.target.value
     console.log("Service type changed to:", value)
+    this.applyServiceTypeState(value)
     
-    // Show/hide experience fields
+    // Clear validation error when a value is selected
+    if (value && value !== '') {
+      this.clearServiceTypeError()
+    }
+  }
+
+  handleDropdownChange(event) {
+    const dropdownValue = event?.detail?.value
+    if (!dropdownValue && !this.hasServiceTypeHiddenTarget) return
+    
+    const currentValue = dropdownValue || this.serviceTypeHiddenTarget.value
+    console.log("Service type change via dropdown event:", currentValue)
+    this.applyServiceTypeState(currentValue)
+    this.clearServiceTypeError()
+  }
+
+  applyServiceTypeState(value) {
+    const isExperienceType = value === 'experience' || value === 'event'
+
     if (this.hasExperienceFieldsTarget) {
-      if (value === 'experience') {
+      if (isExperienceType) {
         this.experienceFieldsTarget.classList.remove('hidden')
       } else {
         this.experienceFieldsTarget.classList.add('hidden')
       }
     }
-    
-    // Clear validation error when a value is selected
-    if (value && value !== '') {
-      this.clearServiceTypeError()
+
+    if (this.hasEventFieldsTarget) {
+      if (value === 'event') {
+        this.eventFieldsTarget.classList.remove('hidden')
+      } else {
+        this.eventFieldsTarget.classList.add('hidden')
+      }
+    }
+
+    if (this.hasAvailabilitySectionTarget) {
+      if (value === 'event') {
+        this.availabilitySectionTarget.classList.add('hidden')
+      } else {
+        this.availabilitySectionTarget.classList.remove('hidden')
+      }
     }
   }
   

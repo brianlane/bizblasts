@@ -21,6 +21,8 @@ module BookingValidations
     validate :check_max_daily_bookings_policy, on: :create, unless: :business_deleted?
     validate :check_min_duration_policy, on: :create, unless: :business_deleted?
     validate :check_max_duration_policy, on: :create, unless: :business_deleted?
+    validate :event_booking_matches_event_date, on: :create, unless: :business_deleted?
+    validate :event_not_in_past, on: :create, unless: :business_deleted?
   end
   
   # Calculate booking duration in minutes
@@ -123,15 +125,54 @@ module BookingValidations
   # Validate booking does not exceed maximum duration requirement
   def check_max_duration_policy
     return if start_time.blank? || end_time.blank? || business.blank?
-    
+
     policy = business.booking_policy
     return if policy.blank? || policy.max_duration_mins.blank?
-    
+
     max_duration = policy.max_duration_mins
     current_duration = duration
-    
+
     if current_duration > max_duration
       errors.add(:base, "Booking duration (#{current_duration} minutes) cannot exceed the maximum allowed duration (#{max_duration} minutes)")
+    end
+  end
+
+  # Validate event bookings match the scheduled event date and time
+  def event_booking_matches_event_date
+    return unless service&.event?
+    return if service.event_starts_at.blank? || start_time.blank?
+
+    # Get the business timezone, fallback to UTC if not set
+    tz = business&.time_zone.presence || 'UTC'
+    timezone = ActiveSupport::TimeZone[tz] || Time.zone
+
+    # Convert both times to the business timezone for comparison
+    event_start = service.event_starts_at.in_time_zone(timezone)
+    booking_start = start_time.in_time_zone(timezone)
+
+    # Check if the booking date and time match the event date and time
+    if booking_start.to_date != event_start.to_date ||
+       booking_start.hour != event_start.hour ||
+       booking_start.min != event_start.min
+      formatted_event_time = event_start.strftime('%B %d, %Y at %l:%M %p').strip
+      errors.add(:start_time, "must match the scheduled event time: #{formatted_event_time} (#{tz})")
+    end
+  end
+
+  # Validate event is not in the past
+  def event_not_in_past
+    return unless service&.event?
+    return if service.event_starts_at.blank?
+
+    # Get the business timezone, fallback to UTC if not set
+    tz = business&.time_zone.presence || 'UTC'
+    timezone = ActiveSupport::TimeZone[tz] || Time.zone
+
+    event_start = service.event_starts_at.in_time_zone(timezone)
+    current_time = Time.current.in_time_zone(timezone)
+
+    if event_start < current_time
+      errors.add(:base, "This event has already passed and is no longer available for booking")
     end
   end
 end 

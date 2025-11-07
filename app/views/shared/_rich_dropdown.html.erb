@@ -291,6 +291,14 @@
       
       // Trigger change event for form validation
       hiddenField.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Notify listeners that this dropdown value changed
+      dropdownContainer.dispatchEvent(
+        new CustomEvent('rich-dropdown:change', {
+          bubbles: true,
+          detail: { value: itemId, text: itemText }
+        })
+      );
     }
     
     // Option click/touch handlers

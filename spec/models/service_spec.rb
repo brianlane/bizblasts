@@ -104,6 +104,141 @@ RSpec.describe Service, type: :model do
     end
   end
 
+  describe 'event services' do
+    let(:business) { create(:business, time_zone: 'UTC') }
+
+    it 'requires an event start time' do
+      service = build(:service, service_type: :event, business: business, min_bookings: 1, max_bookings: 5, event_starts_at: nil)
+      expect(service).not_to be_valid
+      expect(service.errors[:event_starts_at]).to include("can't be blank")
+    end
+
+    it 'treats events as experience services for booking constraints' do
+      service = build(:service, service_type: :event, business: business, min_bookings: 2, max_bookings: 6, event_starts_at: 3.days.from_now.change(sec: 0))
+      service.valid?
+      expect(service.errors[:min_bookings]).to be_empty
+      expect(service.experience?).to be(true)
+    end
+
+    it 'configures availability to a single event date' do
+      start_time = Time.zone.parse('2025-06-01 10:00')
+      service = create(:service, service_type: :event, business: business, min_bookings: 1, max_bookings: 5, duration: 60, event_starts_at: start_time)
+
+      date_key = start_time.to_date.iso8601
+      expect(service.enforce_service_availability?).to be(true)
+      expect(service.availability['exceptions'].keys).to eq([date_key])
+      expect(service.availability['exceptions'][date_key]).to eq([{ 'start' => '10:00', 'end' => '11:00' }])
+      expect(service.spots).to eq(5)
+    end
+
+    describe 'event availability auto-generation behavior' do
+      let(:start_time) { Time.zone.parse('2025-06-01 10:00') }
+      let(:event_service) do
+        create(:service,
+          service_type: :event,
+          business: business,
+          min_bookings: 1,
+          max_bookings: 5,
+          duration: 60,
+          event_starts_at: start_time
+        )
+      end
+
+      it 'generates availability on initial creation' do
+        date_key = start_time.to_date.iso8601
+        expect(event_service.availability['exceptions'][date_key]).to eq([{ 'start' => '10:00', 'end' => '11:00' }])
+      end
+
+      it 'regenerates availability when event_starts_at changes' do
+        event_service # Create the service
+
+        new_start_time = Time.zone.parse('2025-06-02 14:00')
+        event_service.update!(event_starts_at: new_start_time)
+
+        new_date_key = new_start_time.to_date.iso8601
+        expect(event_service.availability['exceptions'][new_date_key]).to eq([{ 'start' => '14:00', 'end' => '15:00' }])
+      end
+
+      it 'regenerates availability when duration changes' do
+        event_service # Create the service
+
+        event_service.update!(duration: 120) # Change from 60 to 120 minutes
+
+        date_key = start_time.to_date.iso8601
+        expect(event_service.availability['exceptions'][date_key]).to eq([{ 'start' => '10:00', 'end' => '12:00' }])
+      end
+
+      it 'preserves user-modified availability when updating unrelated fields' do
+        event_service # Create the service
+
+        # User manually edits the availability (e.g., adding buffer time)
+        custom_availability = event_service.availability.deep_dup
+        date_key = start_time.to_date.iso8601
+        custom_availability['exceptions'][date_key] = [{ 'start' => '09:30', 'end' => '11:30' }]
+        event_service.update!(availability: custom_availability)
+
+        # Verify custom availability was saved
+        expect(event_service.reload.availability['exceptions'][date_key]).to eq([{ 'start' => '09:30', 'end' => '11:30' }])
+
+        # Update an unrelated field (name, price, etc.)
+        event_service.update!(name: 'Updated Event Name')
+
+        # Custom availability should be preserved
+        expect(event_service.reload.availability['exceptions'][date_key]).to eq([{ 'start' => '09:30', 'end' => '11:30' }])
+      end
+
+      it 'preserves user-modified availability when updating description' do
+        event_service # Create the service
+
+        # User manually edits the availability
+        custom_availability = event_service.availability.deep_dup
+        date_key = start_time.to_date.iso8601
+        custom_availability['exceptions'][date_key] = [{ 'start' => '09:00', 'end' => '12:00' }]
+        event_service.update!(availability: custom_availability)
+
+        # Update description
+        event_service.update!(description: 'Updated description')
+
+        # Custom availability should be preserved
+        expect(event_service.reload.availability['exceptions'][date_key]).to eq([{ 'start' => '09:00', 'end' => '12:00' }])
+      end
+
+      it 'preserves user-modified availability when updating price' do
+        event_service # Create the service
+
+        # User manually edits the availability
+        custom_availability = event_service.availability.deep_dup
+        date_key = start_time.to_date.iso8601
+        custom_availability['exceptions'][date_key] = [{ 'start' => '10:30', 'end' => '11:30' }]
+        event_service.update!(availability: custom_availability)
+
+        # Update price
+        event_service.update!(price: 150.00)
+
+        # Custom availability should be preserved
+        expect(event_service.reload.availability['exceptions'][date_key]).to eq([{ 'start' => '10:30', 'end' => '11:30' }])
+      end
+
+      it 'overrides user modifications when event timing changes' do
+        event_service # Create the service
+
+        # User manually edits the availability
+        custom_availability = event_service.availability.deep_dup
+        date_key = start_time.to_date.iso8601
+        custom_availability['exceptions'][date_key] = [{ 'start' => '09:00', 'end' => '12:00' }]
+        event_service.update!(availability: custom_availability)
+
+        # When event timing changes, availability should be regenerated
+        new_start_time = Time.zone.parse('2025-06-03 15:00')
+        event_service.update!(event_starts_at: new_start_time)
+
+        # Availability should reflect the new event timing
+        new_date_key = new_start_time.to_date.iso8601
+        expect(event_service.availability['exceptions'][new_date_key]).to eq([{ 'start' => '15:00', 'end' => '16:00' }])
+      end
+    end
+  end
+
   describe 'image attachments' do
     it { is_expected.to have_many_attached(:images) }
     it { should validate_content_type_of(:images).allowing('image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence') }
