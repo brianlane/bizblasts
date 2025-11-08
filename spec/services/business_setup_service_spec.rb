@@ -13,7 +13,7 @@ RSpec.describe BusinessSetupService, type: :service do
       end
     end
 
-    context 'when business has all setup items completed' do
+    context 'when business has all setup items completed (service-based)' do
       before do
         # Set up a complete business with all required fields
         business.update!(
@@ -23,10 +23,10 @@ RSpec.describe BusinessSetupService, type: :service do
           email: 'test@business.com',
           address: '123 Business St'
         )
-        
+
         # Create a service
         business_service = create(:service, business: business, active: true)
-        
+
         # Create a staff member with availability
         staff_member = create(:staff_member, business: business, active: true, availability: {
           'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
@@ -38,11 +38,34 @@ RSpec.describe BusinessSetupService, type: :service do
           'sunday' => [],
           'exceptions' => {}
         })
-        
+
         # Associate the staff member with the service
         create(:services_staff_member, service: business_service, staff_member: staff_member)
-        
-        # Create tax rate
+      end
+
+      it 'returns true' do
+        expect(service.setup_complete?).to be true
+      end
+    end
+
+    context 'when business has all setup items completed (product-based)' do
+      before do
+        # Set up a complete business with all required fields
+        business.update!(
+          stripe_account_id: 'acct_test123',
+          description: 'A complete business description',
+          phone: '555-1234',
+          email: 'test@business.com',
+          address: '123 Business St'
+        )
+
+        # Create a product
+        create(:product, business: business, active: true)
+
+        # Create shipping method for products
+        create(:shipping_method, business: business, active: true)
+
+        # Create tax rate for products
         create(:tax_rate, business: business)
       end
 
@@ -125,18 +148,26 @@ RSpec.describe BusinessSetupService, type: :service do
       expect(shipping_item).to be_nil
     end
 
-    it 'includes tax rate setup when none exist' do
+    it 'includes tax rate setup when products exist but no tax rates' do
+      create(:product, business: business, active: true)
+
       expect(service.todo_items).to include(
         hash_including(
-          text: "Configure tax rates for your location",
+          text: "Configure tax rates for your products",
           priority: :low
         )
       )
     end
 
+    it 'excludes tax rate setup when no products exist' do
+      tax_item = service.todo_items.find { |item| item[:text].include?("tax rates") }
+      expect(tax_item).to be_nil
+    end
+
     it 'excludes tax rate setup when tax rates exist' do
+      create(:product, business: business, active: true)
       create(:tax_rate, business: business)
-      
+
       tax_item = service.todo_items.find { |item| item[:text].include?("tax rates") }
       expect(tax_item).to be_nil
     end
@@ -184,7 +215,7 @@ RSpec.describe BusinessSetupService, type: :service do
   end
 
   describe '#setup_summary' do
-    context 'when setup is complete' do
+    context 'when setup is complete (service-based business)' do
       before do
         # Set up a complete business with all required fields
         business.update!(
@@ -194,10 +225,10 @@ RSpec.describe BusinessSetupService, type: :service do
           email: 'test@business.com',
           address: '123 Business St'
         )
-        
+
         # Create a service
         business_service = create(:service, business: business, active: true)
-        
+
         # Create a staff member with availability
         staff_member = create(:staff_member, business: business, active: true, availability: {
           'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
@@ -209,12 +240,9 @@ RSpec.describe BusinessSetupService, type: :service do
           'sunday' => [],
           'exceptions' => {}
         })
-        
+
         # Associate the staff member with the service
         create(:services_staff_member, service: business_service, staff_member: staff_member)
-        
-        # Create tax rate
-        create(:tax_rate, business: business)
       end
 
       it 'returns completion message' do
