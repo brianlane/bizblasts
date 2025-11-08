@@ -133,10 +133,11 @@ RSpec.describe TenantHost do
     let(:subdomain_business) { create(:business, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain') }
     let(:custom_domain_business) { create(:business, :with_custom_domain, hostname: 'custom-test.com', subdomain: 'example') }
     let(:mock_request) { double('request', host: 'test.host', port: 80, protocol: 'https://') }
+    let(:signed_in_user) { build_stubbed(:user) }
 
     context 'with subdomain business' do
       it 'returns direct URL without auth bridge' do
-        url = TenantHost.url_for_with_auth(subdomain_business, mock_request, '/services', user_signed_in: true)
+        url = TenantHost.url_for_with_auth(subdomain_business, mock_request, '/services', user_signed_in: true, current_user: signed_in_user)
         expect(url).to eq('https://testbiz.lvh.me/services')
       end
 
@@ -149,27 +150,32 @@ RSpec.describe TenantHost do
     context 'with custom domain business' do
       context 'when user is signed in and on main domain' do
         it 'routes through auth bridge' do
-          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '/services', user_signed_in: true)
+          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '/services', user_signed_in: true, current_user: signed_in_user)
           expected_target = CGI.escape('https://custom-test.com/services')
           expect(url).to eq("https://test.host/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
         end
 
+        it 'returns direct URL when current_user is missing' do
+          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '/services', user_signed_in: true, current_user: nil)
+          expect(url).to eq('https://custom-test.com/services')
+        end
+
         it 'properly encodes complex URLs with query parameters' do
           complex_path = '/booking/new?service_id=123&staff_id=456&date=2024-01-15'
-          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, complex_path, user_signed_in: true)
+          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, complex_path, user_signed_in: true, current_user: signed_in_user)
 
           expected_target = CGI.escape('https://custom-test.com/booking/new?service_id=123&staff_id=456&date=2024-01-15')
           expect(url).to eq("https://test.host/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
         end
 
         it 'handles root path correctly' do
-          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '/', user_signed_in: true)
+          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '/', user_signed_in: true, current_user: signed_in_user)
           expected_target = CGI.escape('https://custom-test.com/')
           expect(url).to eq("https://test.host/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
         end
 
         it 'handles empty path correctly' do
-          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '', user_signed_in: true)
+          url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, '', user_signed_in: true, current_user: signed_in_user)
           expected_target = CGI.escape('https://custom-test.com')
           expect(url).to eq("https://test.host/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
         end
@@ -186,7 +192,7 @@ RSpec.describe TenantHost do
         let(:custom_domain_request) { double('request', host: 'custom-test.com', port: 443, protocol: 'https://') }
 
         it 'returns direct URL without auth bridge' do
-          url = TenantHost.url_for_with_auth(custom_domain_business, custom_domain_request, '/services', user_signed_in: true)
+        url = TenantHost.url_for_with_auth(custom_domain_business, custom_domain_request, '/services', user_signed_in: true, current_user: signed_in_user)
           expect(url).to eq('https://custom-test.com/services')
         end
       end
@@ -195,7 +201,7 @@ RSpec.describe TenantHost do
         let(:unready_business) { create(:business, hostname: 'notready.com', host_type: 'custom_domain', domain_health_verified: false) }
 
         it 'falls back to subdomain even with auth bridge' do
-          url = TenantHost.url_for_with_auth(unready_business, mock_request, '/services', user_signed_in: true)
+        url = TenantHost.url_for_with_auth(unready_business, mock_request, '/services', user_signed_in: true, current_user: signed_in_user)
           # Should fall back to subdomain and not use auth bridge
           expect(url).to include('.lvh.me')
           expect(url).not_to include('/auth/bridge')
@@ -205,7 +211,7 @@ RSpec.describe TenantHost do
 
     context 'with nil business' do
       it 'returns the path as-is' do
-        url = TenantHost.url_for_with_auth(nil, mock_request, '/services', user_signed_in: true)
+        url = TenantHost.url_for_with_auth(nil, mock_request, '/services', user_signed_in: true, current_user: signed_in_user)
         expect(url).to eq('/services')
       end
     end
@@ -216,7 +222,7 @@ RSpec.describe TenantHost do
       let(:dev_request) { double('request', host: 'lvh.me', port: 3000, protocol: 'http://') }
 
       it 'uses development domain for auth bridge' do
-        url = TenantHost.url_for_with_auth(custom_domain_business, dev_request, '/services', user_signed_in: true)
+        url = TenantHost.url_for_with_auth(custom_domain_business, dev_request, '/services', user_signed_in: true, current_user: signed_in_user)
         expected_target = CGI.escape('http://custom-test.com/services')
         expect(url).to eq("http://lvh.me:3000/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
       end
@@ -226,7 +232,7 @@ RSpec.describe TenantHost do
       let(:port_request) { double('request', host: 'test.host', port: 8080, protocol: 'http://') }
 
       it 'includes port in auth bridge URL' do
-        url = TenantHost.url_for_with_auth(custom_domain_business, port_request, '/services', user_signed_in: true)
+        url = TenantHost.url_for_with_auth(custom_domain_business, port_request, '/services', user_signed_in: true, current_user: signed_in_user)
         expected_target = CGI.escape('http://custom-test.com/services')
         expect(url).to eq("http://test.host:8080/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")
       end
@@ -235,7 +241,7 @@ RSpec.describe TenantHost do
     context 'URL encoding security' do
       it 'properly encodes dangerous characters in target URLs' do
         dangerous_path = '/search?q=<script>alert("xss")</script>&redirect=evil.com'
-        url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, dangerous_path, user_signed_in: true)
+        url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, dangerous_path, user_signed_in: true, current_user: signed_in_user)
 
         # The dangerous characters should be CGI escaped
         expect(url).to include(CGI.escape('https://custom-test.com/search?q=<script>alert("xss")</script>&redirect=evil.com'))
@@ -245,7 +251,7 @@ RSpec.describe TenantHost do
 
       it 'handles unicode characters correctly' do
         unicode_path = '/café/naïve/résumé'
-        url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, unicode_path, user_signed_in: true)
+        url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, unicode_path, user_signed_in: true, current_user: signed_in_user)
 
         # Unicode should be properly encoded
         expected_target = CGI.escape('https://custom-test.com/café/naïve/résumé')
@@ -254,7 +260,7 @@ RSpec.describe TenantHost do
 
       it 'handles URLs with spaces and special characters' do
         special_path = '/path with spaces?param=value with & symbols'
-        url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, special_path, user_signed_in: true)
+        url = TenantHost.url_for_with_auth(custom_domain_business, mock_request, special_path, user_signed_in: true, current_user: signed_in_user)
 
         expected_target = CGI.escape('https://custom-test.com/path with spaces?param=value with & symbols')
         expect(url).to eq("https://test.host/auth/bridge?target_url=#{expected_target}&business_id=#{custom_domain_business.id}")

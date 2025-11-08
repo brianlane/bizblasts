@@ -36,7 +36,7 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <% if order.business %>
                 <% if order.business.hostname.present? %>
-                  <%= link_to order.business.name, TenantHost.url_for_with_auth(order.business, request, '/', user_signed_in: user_signed_in?), 
+                  <%= link_to order.business.name, TenantHost.url_for_with_auth(order.business, request, '/', user_signed_in: user_signed_in?, current_user: current_user), 
                       class: "text-blue-600 hover:underline", target: "_blank" %>
                 <% else %>
                   <%= order.business.name %>

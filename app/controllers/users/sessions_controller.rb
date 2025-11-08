@@ -174,7 +174,8 @@ module Users
                 business,
                 request,
                 path_and_query,
-                user_signed_in: true
+                user_signed_in: true,
+                current_user: resource
               )
             end
           end
@@ -222,7 +223,8 @@ module Users
                 business,
                 request,
                 path_and_query,
-                user_signed_in: true
+                user_signed_in: true,
+                current_user: resource
               )
             end
           end

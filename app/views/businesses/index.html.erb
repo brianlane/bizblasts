@@ -98,7 +98,7 @@
             <div> <%# Top content section %>
               <h2 class="text-xl font-semibold mb-2">
                 <%# Use auth-aware URL helper to handle cross-domain authentication %>
-                <% if (url = TenantHost.url_for_with_auth(business, request, '/', user_signed_in: user_signed_in?)) %>
+                <% if (url = TenantHost.url_for_with_auth(business, request, '/', user_signed_in: user_signed_in?, current_user: current_user)) %>
                   <%= link_to business.name, url, class: "text-blue-600 hover:underline", target: "_blank" %>
                 <% else %>
                   <%= business.name %> <%# Fallback if URL can't be generated %>

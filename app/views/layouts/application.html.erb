@@ -199,7 +199,7 @@
                   <% dashboard_path = business_manager_dashboard_path %>
                 <% else %>
                   <%# User is on main domain or different business subdomain - redirect to their own business %>
-                  <% dashboard_path = TenantHost.url_for_with_auth(business, request, '/manage/dashboard', user_signed_in: user_signed_in?) %>
+                  <% dashboard_path = TenantHost.url_for_with_auth(business, request, '/manage/dashboard', user_signed_in: user_signed_in?, current_user: current_user) %>
                 <% end %>
               <% else %>
                 <% dashboard_path = root_path %>

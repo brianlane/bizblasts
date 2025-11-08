@@ -184,12 +184,13 @@ module TenantHost
   # @param path [String] The path to append (defaults to root '/')
   # @param user_signed_in [Boolean] Whether the current user is signed in
   # @return [String] The complete URL, potentially via auth bridge
-  def url_for_with_auth(business, request, path = '/', user_signed_in: false)
+  def url_for_with_auth(business, request, path = '/', user_signed_in: false, current_user: nil)
     return url_for(business, request, path) unless business
     
     # If user is signed in on main domain and business uses custom domain,
     # route through auth bridge to transfer session
     if user_signed_in && 
+       current_user.present? &&
        business.host_type_custom_domain? && 
        business.custom_domain_allow? &&
        main_domain?(request.host)

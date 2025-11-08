@@ -17,8 +17,8 @@ class UserSidebarItem < ApplicationRecord
       { key: 'staff', label: 'Staff' },
       { key: 'services', label: 'Services' },
       { key: 'products', label: 'Products' },
-      { key: 'shipping_methods', label: 'Shipping Methods' },
-      { key: 'tax_rates', label: 'Tax Rates' },
+      { key: 'shipping_methods', label: 'Shipping Methods', requires_products: true },
+      { key: 'tax_rates', label: 'Tax Rates', requires_products: true },
       { key: 'customers', label: 'Customers' },
       { key: 'referrals', label: 'Referrals' },
       { key: 'loyalty', label: 'Loyalty' },
@@ -27,11 +27,19 @@ class UserSidebarItem < ApplicationRecord
       { key: 'customer_subscriptions', label: 'Subscriptions' },
       { key: 'settings', label: 'Settings' }
     ]
-    # Filter Website Builder by business tier
+
     business = user.business if user.respond_to?(:business)
+
+    # Filter Website Builder by business tier
     unless business&.standard_tier? || business&.premium_tier?
       items.reject! { |i| i[:key] == 'website_builder' }
     end
+
+    # Filter items that require products when business has no active products
+    unless business&.products&.active&.exists?
+      items.reject! { |i| i[:requires_products] }
+    end
+
     items
   end
 end 
