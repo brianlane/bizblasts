@@ -59,34 +59,21 @@ module Webhooks
       
       # Process common keywords
       case body&.strip&.upcase
-      when "HELP"
-        SecureLogger.info "HELP keyword received from #{from}"
-        # Send help response
-        help_message = Sms::MessageTemplates.render('system.help_response', {
-          business_name: 'BizBlasts',
-          phone: ENV.fetch('SUPPORT_PHONE', '555-123-4567')
-        })
-        send_auto_reply(from, help_message) if help_message
+      when "CANCEL"
+        SecureLogger.info "CANCEL keyword received from #{from} - processing booking cancellation"
+        process_booking_cancellation(from)
 
-      when "CANCEL", "STOP", "UNSUBSCRIBE"
+      when "STOP", "UNSUBSCRIBE"
         SecureLogger.info "STOP keyword received from #{from} - processing opt-out"
         process_sms_opt_out(from)
-        
+
       when "START", "SUBSCRIBE", "YES"
         SecureLogger.info "START keyword received from #{from} - processing opt-in"
         process_sms_opt_in(from)
-        
-      when "CONFIRM"
-        SecureLogger.info "CONFIRM keyword received from #{from}"
-        # Could trigger booking confirmation logic here
-        
+
       else
         SecureLogger.info "Other inbound message from #{from}: #{body}"
-        # Send unknown command response for unrecognized messages
-        if body.present? && body.length < 100 # Avoid responding to long messages
-          unknown_message = Sms::MessageTemplates.render('system.unknown_command')
-          send_auto_reply(from, unknown_message) if unknown_message
-        end
+        # Just log non-keyword messages, no auto-reply sent
       end
       
       # Always respond with success to acknowledge receipt
@@ -275,7 +262,79 @@ module Webhooks
       send_auto_reply(phone_number, opt_in_message)
       SecureLogger.info "Processed SMS opt-in for #{phone_number}"
     end
-    
+
+    def process_booking_cancellation(phone_number)
+      # Determine business context
+      business_context = determine_business_context(phone_number)
+
+      unless business_context
+        SecureLogger.warn "Cannot cancel booking - no business context found for #{phone_number}"
+        no_business_message = "We couldn't find any bookings to cancel. If you need assistance, please contact us directly."
+        send_auto_reply(phone_number, no_business_message)
+        return
+      end
+
+      SecureLogger.info "Processing booking cancellation for #{phone_number} with business #{business_context.id}"
+
+      # Find customers in this business
+      customers = find_customers_by_phone(phone_number, business_context)
+
+      if customers.empty?
+        SecureLogger.warn "No customer found for #{phone_number} in business #{business_context.id}"
+        no_customer_message = "We couldn't find any bookings to cancel. If you need assistance, please contact #{business_context.name} directly."
+        send_auto_reply(phone_number, no_customer_message)
+        return
+      end
+
+      # Find the most recent confirmed or pending booking across all matching customers
+      # Order by start_time DESC to get the most upcoming booking
+      booking = Booking.where(tenant_customer: customers)
+                      .where(status: [:confirmed, :pending])
+                      .where('start_time > ?', Time.current)
+                      .order(start_time: :asc)
+                      .first
+
+      unless booking
+        SecureLogger.info "No upcoming bookings found for #{phone_number} in business #{business_context.id}"
+        no_booking_message = "You don't have any upcoming bookings to cancel with #{business_context.name}."
+        send_auto_reply(phone_number, no_booking_message)
+        return
+      end
+
+      # Cancel the booking using BookingManager
+      # Pass notify: false since we'll send a custom SMS confirmation
+      success, error_message = BookingManager.cancel_booking(
+        booking,
+        "Cancelled via SMS by customer",
+        false, # Don't send standard notification
+        current_user: nil
+      )
+
+      if success
+        SecureLogger.info "Successfully cancelled Booking ##{booking.id} via SMS for #{phone_number}"
+
+        # Send cancellation notification (email + SMS)
+        # NotificationService handles both email and SMS based on customer preferences
+        begin
+          NotificationService.booking_cancellation(booking)
+          SecureLogger.info "Sent cancellation notification (email/SMS) for Booking ##{booking.id}"
+        rescue => e
+          SecureLogger.error "Failed to send cancellation notification for Booking ##{booking.id}: #{e.message}"
+        end
+      else
+        SecureLogger.error "Failed to cancel Booking ##{booking.id} via SMS: #{error_message}"
+
+        # Send error message to customer
+        error_sms = if error_message.include?("cancellation window") || error_message.include?("cancel booking within")
+          "Sorry, it's too late to cancel this booking via SMS. Please contact #{business_context.name} directly for assistance."
+        else
+          "We couldn't cancel your booking. Please contact #{business_context.name} directly for assistance."
+        end
+
+        send_auto_reply(phone_number, error_sms)
+      end
+    end
+
     def normalize_phone(phone)
       # Use centralized phone normalization to ensure consistency
       PhoneNormalizer.normalize(phone)
