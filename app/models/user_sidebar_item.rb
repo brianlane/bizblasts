@@ -35,8 +35,8 @@ class UserSidebarItem < ApplicationRecord
       items.reject! { |i| i[:key] == 'website_builder' }
     end
 
-    # Filter items that require products when business has no products
-    unless business&.products&.exists?
+    # Filter items that require products when business has no active products
+    unless business&.products&.active&.exists?
       items.reject! { |i| i[:requires_products] }
     end
 

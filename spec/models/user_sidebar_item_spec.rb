@@ -23,11 +23,11 @@ RSpec.describe UserSidebarItem, type: :model do
       end
     end
 
-    context 'when business has products' do
+    context 'when business has active products' do
       let(:business) { create(:business) }
 
       before do
-        create(:product, business: business)
+        create(:product, business: business, active: true)
       end
 
       it 'includes shipping_methods in default items' do
@@ -38,6 +38,24 @@ RSpec.describe UserSidebarItem, type: :model do
       it 'includes tax_rates in default items' do
         items = described_class.default_items_for(user)
         expect(items.map { |i| i[:key] }).to include('tax_rates')
+      end
+    end
+
+    context 'when business has only inactive products' do
+      let(:business) { create(:business) }
+
+      before do
+        create(:product, business: business, active: false)
+      end
+
+      it 'excludes shipping_methods from default items' do
+        items = described_class.default_items_for(user)
+        expect(items.map { |i| i[:key] }).not_to include('shipping_methods')
+      end
+
+      it 'excludes tax_rates from default items' do
+        items = described_class.default_items_for(user)
+        expect(items.map { |i| i[:key] }).not_to include('tax_rates')
       end
     end
 

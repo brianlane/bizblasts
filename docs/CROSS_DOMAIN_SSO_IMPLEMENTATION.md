@@ -109,8 +109,9 @@ end
 Provides auth-aware URL generation:
 
 ```ruby
-def url_for_with_auth(business, request, path = '/', user_signed_in: false)
-  if user_signed_in && 
+def url_for_with_auth(business, request, path = '/', user_signed_in: false, current_user: nil)
+  if user_signed_in &&
+     current_user.present? &&
      business.host_type_custom_domain? && 
      business.custom_domain_allow? &&
      main_domain?(request.host)
