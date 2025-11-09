@@ -57,6 +57,13 @@ class Rack::Attack
     req.ip if req.path == '/manage/settings/integrations/lookup-place-id' && req.post?
   end
 
+  # SECURITY: Throttle SMS link redirects to prevent click fraud/manipulation
+  # Limit: 60 clicks per minute per IP (reasonable for legitimate SMS clicks)
+  # This mitigates the lack of CSRF protection on this endpoint
+  throttle('sms_link_clicks/ip', limit: 60, period: 1.minute) do |req|
+    req.ip if req.path.start_with?('/s/') && req.get?
+  end
+
   # General request throttling for potential DDoS protection
   throttle('req/ip', limit: 300, period: 5.minutes) do |req|
     req.ip unless req.path.start_with?('/assets', '/cable', '/up', '/healthcheck')

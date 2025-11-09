@@ -193,7 +193,7 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
       it 'sends auto-reply confirmation for new phone number' do
         expect(SmsService).to receive(:send_message).with(
           new_phone,
-          match(/You're now subscribed to .+ SMS notifications\. Reply STOP to unsubscribe or HELP for assistance\./),
+          match(/You're now subscribed to .+ SMS notifications\. Reply STOP to unsubscribe\./),
           hash_including(auto_reply: true)
         ).and_return({ success: true })
 

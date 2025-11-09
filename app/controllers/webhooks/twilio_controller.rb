@@ -173,7 +173,7 @@ module Webhooks
       Business.where.not(tier: 'free').first
     end
     
-    def process_sms_opt_out(phone_number)
+    def process_sms_opt_out(phone_number, skip_auto_reply: false)
       # Determine business context from recent SMS activity (conservative mode for opt-out)
       business_context = determine_business_context(phone_number, conservative: true)
 
@@ -187,8 +187,8 @@ module Webhooks
           SecureLogger.info "Opted out customer #{customer.id} from business #{business_context.id}"
         end
 
-        # Send business-specific confirmation
-        opt_out_message = "You've been unsubscribed from #{business_context.name} SMS. Reply START to re-subscribe or HELP for assistance."
+        # Send business-specific confirmation (unless skip_auto_reply is true)
+        opt_out_message = "You've been unsubscribed from #{business_context.name} SMS. Reply START to re-subscribe."
       else
         SecureLogger.info "Processing global opt-out for #{phone_number} (no business context found)"
 
@@ -208,11 +208,15 @@ module Webhooks
           end
         end
 
-        opt_out_message = "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance."
+        opt_out_message = "You've been unsubscribed from all SMS. Reply START to re-subscribe."
       end
 
-      send_auto_reply(phone_number, opt_out_message)
-      SecureLogger.info "Processed SMS opt-out for #{phone_number}"
+      # Only send auto-reply if not skipped (e.g., when combined message already sent)
+      unless skip_auto_reply
+        send_auto_reply(phone_number, opt_out_message)
+      end
+
+      SecureLogger.info "Processed SMS opt-out for #{phone_number} (skip_auto_reply: #{skip_auto_reply})"
     end
     
     def process_sms_opt_in(phone_number)
@@ -242,7 +246,7 @@ module Webhooks
         end
 
         # Send business-specific confirmation
-        opt_in_message = "You're now subscribed to #{business_context.name} SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
+        opt_in_message = "You're now subscribed to #{business_context.name} SMS notifications. Reply STOP to unsubscribe."
       else
         SecureLogger.info "Processing global opt-in for #{phone_number}"
 
@@ -256,7 +260,7 @@ module Webhooks
           schedule_notification_replay(customer, nil)
         end
 
-        opt_in_message = "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
+        opt_in_message = "You're now subscribed to SMS notifications. Reply STOP to unsubscribe."
       end
 
       send_auto_reply(phone_number, opt_in_message)
@@ -264,13 +268,23 @@ module Webhooks
     end
 
     def process_booking_cancellation(phone_number)
+      # IMPORTANT: Twilio treats 'CANCEL' as a default opt-out keyword (part of STOP synonyms).
+      # To keep application state in sync with Twilio's carrier-level opt-out, this method
+      # implements a dual flow that both cancels the booking AND records the opt-out.
+      # This prevents state mismatch where Twilio marks the number as opted-out but our
+      # application still considers the customer opted-in, which would cause future SMS
+      # sends to fail with '21610' errors.
+
       # Determine business context
       business_context = determine_business_context(phone_number)
 
       unless business_context
         SecureLogger.warn "Cannot cancel booking - no business context found for #{phone_number}"
-        no_business_message = "We couldn't find any bookings to cancel. If you need assistance, please contact us directly."
-        send_auto_reply(phone_number, no_business_message)
+        # Combined message: explains no booking found + confirms opt-out
+        combined_message = "We couldn't find any bookings to cancel. You've been unsubscribed from SMS. Reply START to re-subscribe."
+        send_auto_reply(phone_number, combined_message)
+        # Still record opt-out in database to sync with Twilio
+        process_sms_opt_out(phone_number, skip_auto_reply: true)
         return
       end
 
@@ -281,13 +295,16 @@ module Webhooks
 
       if customers.empty?
         SecureLogger.warn "No customer found for #{phone_number} in business #{business_context.id}"
-        no_customer_message = "We couldn't find any bookings to cancel. If you need assistance, please contact #{business_context.name} directly."
-        send_auto_reply(phone_number, no_customer_message)
+        # Combined message: explains no booking found + confirms opt-out
+        combined_message = "We couldn't find any bookings to cancel. You've been unsubscribed from #{business_context.name} SMS. Reply START to re-subscribe."
+        send_auto_reply(phone_number, combined_message)
+        # Still record opt-out in database to sync with Twilio
+        process_sms_opt_out(phone_number, skip_auto_reply: true)
         return
       end
 
       # Find the most recent confirmed or pending booking across all matching customers
-      # Order by start_time DESC to get the most upcoming booking
+      # Order by start_time ASC to get the soonest upcoming booking
       booking = Booking.where(tenant_customer: customers)
                       .where(status: [:confirmed, :pending])
                       .where('start_time > ?', Time.current)
@@ -296,8 +313,11 @@ module Webhooks
 
       unless booking
         SecureLogger.info "No upcoming bookings found for #{phone_number} in business #{business_context.id}"
-        no_booking_message = "You don't have any upcoming bookings to cancel with #{business_context.name}."
-        send_auto_reply(phone_number, no_booking_message)
+        # Combined message: explains no booking found + confirms opt-out
+        combined_message = "You don't have any upcoming bookings to cancel with #{business_context.name}. You've been unsubscribed from SMS. Reply START to re-subscribe."
+        send_auto_reply(phone_number, combined_message)
+        # Still record opt-out in database to sync with Twilio
+        process_sms_opt_out(phone_number, skip_auto_reply: true)
         return
       end
 
@@ -321,17 +341,25 @@ module Webhooks
         rescue => e
           SecureLogger.error "Failed to send cancellation notification for Booking ##{booking.id}: #{e.message}"
         end
+
+        # IMPORTANT: Process opt-out AFTER successful booking cancellation to sync with Twilio
+        # Twilio automatically treats 'CANCEL' as an opt-out keyword, so we must record the
+        # opt-out in our system to prevent state mismatch and future 21610 errors
+        SecureLogger.info "Processing opt-out after successful CANCEL booking cancellation for #{phone_number} (syncing with Twilio)"
+        process_sms_opt_out(phone_number) # Sends separate opt-out confirmation
       else
         SecureLogger.error "Failed to cancel Booking ##{booking.id} via SMS: #{error_message}"
 
-        # Send error message to customer
-        error_sms = if error_message.include?("cancellation window") || error_message.include?("cancel booking within")
-          "Sorry, it's too late to cancel this booking via SMS. Please contact #{business_context.name} directly for assistance."
+        # Combined message: explains cancellation error + confirms opt-out
+        combined_message = if error_message.include?("cancellation window") || error_message.include?("cancel booking within")
+          "Sorry, it's too late to cancel this booking via SMS. Please contact #{business_context.name} directly. You've been unsubscribed from SMS. Reply START to re-subscribe."
         else
-          "We couldn't cancel your booking. Please contact #{business_context.name} directly for assistance."
+          "We couldn't cancel your booking. Please contact #{business_context.name} directly. You've been unsubscribed from SMS. Reply START to re-subscribe."
         end
 
-        send_auto_reply(phone_number, error_sms)
+        send_auto_reply(phone_number, combined_message)
+        # Still record opt-out in database to sync with Twilio
+        process_sms_opt_out(phone_number, skip_auto_reply: true)
       end
     end
 

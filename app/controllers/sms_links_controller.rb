@@ -1,12 +1,24 @@
 class SmsLinksController < ApplicationController
   # Public controller to handle SMS link redirects
   # Route: /s/:short_code
+  #
+  # SECURITY NOTE: This endpoint remains GET-only so Rails' default CSRF protection
+  # (which applies to non-GET requests) never triggers here. The action does record
+  # analytics side effects, but risk is mitigated by:
+  # 1. URL validation in SmsLink model (only http/https, prevents XSS/injection)
+  # 2. Side effects are analytics only (click count), not security-sensitive state
+  # 3. No user authentication or authorization decisions based on this action
+  # 4. Tracking can be manipulated but this is acceptable for analytics use case
+  #
+  # If stronger tracking integrity is needed in the future, consider:
+  # - Signed/encrypted short codes
+  # - Rate limiting per IP
+  # - Moving analytics to separate async process
 
   # Skip tenant and authentication filters - this is a global redirect service
   skip_before_action :verify_allowed_host!, only: [:redirect]
   skip_before_action :set_tenant, only: [:redirect]
   skip_before_action :authenticate_user!, only: [:redirect], raise: false
-  skip_before_action :verify_authenticity_token, only: [:redirect]
   skip_before_action :handle_cross_domain_authentication, only: [:redirect]
   skip_before_action :check_session_blacklist, only: [:redirect]
 

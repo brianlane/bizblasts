@@ -211,7 +211,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
         # With auto-reply improvements, a customer gets created and auto-reply is sent
         expect(SmsService).to receive(:send_message).with(
           "+15558675309",
-          "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance.",
+          "You've been unsubscribed from all SMS. Reply START to re-subscribe.",
           hash_including(auto_reply: true)
         )
 
@@ -314,7 +314,7 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       # With business context found, should get business-specific message
       expect(SmsService).to receive(:send_message).with(
         "+15558675309",
-        match(/You've been unsubscribed from .+ SMS\. Reply START to re-subscribe or HELP for assistance\./),
+        match(/You've been unsubscribed from .+ SMS\. Reply START to re-subscribe\./),
         hash_including(auto_reply: true)
       )
       
