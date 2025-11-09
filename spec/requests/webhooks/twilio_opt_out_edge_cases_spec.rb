@@ -32,22 +32,21 @@ RSpec.describe "Twilio Webhooks - Opt-Out Edge Cases", type: :request do
       }
     end
 
-    # Test case-insensitive opt-out keywords
+    # Test case-insensitive opt-out keywords (CANCEL removed - it now cancels bookings)
     [
       # Standard keywords in various cases
       "STOP", "stop", "Stop", "StOp", "STOP", "sToP",
-      "CANCEL", "cancel", "Cancel", "CaNcEl",
       "UNSUBSCRIBE", "unsubscribe", "Unsubscribe", "UnSuBsCrIbE",
-      
+
       # Keywords with whitespace
       " STOP", "STOP ", " STOP ", "\tSTOP\t", "\nSTOP\n",
-      " CANCEL ", "\tCANCEL", "UNSUBSCRIBE\n",
-      
+      "UNSUBSCRIBE\n",
+
       # Mixed whitespace and case
-      " stop ", " Cancel\n", "\tUnsubscribe ",
-      
+      " stop ", "\tUnsubscribe ",
+
       # Keywords with extra characters (should still work due to strip)
-      "STOP\r", "CANCEL\r\n", "UNSUBSCRIBE\t\n",
+      "STOP\r", "UNSUBSCRIBE\t\n",
     ].each do |keyword|
       
       it "recognizes '#{keyword.inspect}' as an opt-out keyword" do

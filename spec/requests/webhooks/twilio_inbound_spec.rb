@@ -122,14 +122,12 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
     context 'when customer replies HELP' do
       let(:twilio_params) { super().merge('Body' => 'HELP') }
 
-      it 'sends help response' do
-        expect(SmsService).to receive(:send_message).with(
-          customer.phone,
-          "Mocked template response",
-          hash_including(business_id: business.id, tenant_customer_id: customer.id, auto_reply: true)
-        )
+      it 'treats HELP as unknown message (no auto-reply)' do
+        expect(SmsService).not_to receive(:send_message)
 
         post '/webhooks/twilio/inbound', params: twilio_params
+
+        expect(response).to have_http_status(:ok)
       end
     end
 
@@ -216,24 +214,20 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
         }
       end
 
-      it 'creates minimal customer and sends help response' do
+      it 'treats HELP as unknown message (no customer created, no auto-reply)' do
         expect {
           post '/webhooks/twilio/inbound', params: help_twilio_params
-        }.to change { TenantCustomer.count }.by(1)
+        }.not_to change { TenantCustomer.count }
 
-        new_customer = TenantCustomer.find_by(phone: help_phone)
-        expect(new_customer).to be_present
-        expect(new_customer.phone_opt_in).to be false # HELP doesn't opt them in
+        expect(response).to have_http_status(:ok)
       end
 
-      it 'sends help auto-reply for new phone number' do
-        expect(SmsService).to receive(:send_message).with(
-          help_phone,
-          "Mocked template response",
-          hash_including(auto_reply: true)
-        ).and_return({ success: true })
+      it 'does not send auto-reply for HELP from new phone number' do
+        expect(SmsService).not_to receive(:send_message)
 
         post '/webhooks/twilio/inbound', params: help_twilio_params
+
+        expect(response).to have_http_status(:ok)
       end
     end
 

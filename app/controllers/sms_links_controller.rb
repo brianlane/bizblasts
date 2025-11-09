@@ -25,15 +25,47 @@ class SmsLinksController < ApplicationController
       return
     end
 
+    # Validate and sanitize URL before redirecting (defense in depth - model also validates)
+    # Parse and reconstruct URL to ensure it's safe
+    begin
+      uri = URI.parse(sms_link.original_url)
+
+      # Only allow http and https schemes (prevents javascript:, data:, file:, etc.)
+      unless uri.scheme.in?(['http', 'https'])
+        Rails.logger.error "[SMS_LINK] Invalid URL scheme for #{short_code}: #{uri.scheme}"
+        SecureLogger.error "[SMS_LINK_INVALID] Short code '#{short_code}' has non-http(s) scheme"
+        render plain: "Invalid link", status: :unprocessable_entity
+        return
+      end
+
+      # Require a host (prevents malformed URLs)
+      if uri.host.blank?
+        Rails.logger.error "[SMS_LINK] Missing host for #{short_code}"
+        SecureLogger.error "[SMS_LINK_INVALID] Short code '#{short_code}' has no host"
+        render plain: "Invalid link", status: :unprocessable_entity
+        return
+      end
+
+      # Reconstruct the URL to ensure it's properly formatted
+      validated_url = uri.to_s
+    rescue URI::InvalidURIError => e
+      Rails.logger.error "[SMS_LINK] Invalid URL format for #{short_code}: #{e.message}"
+      SecureLogger.error "[SMS_LINK_INVALID] Short code '#{short_code}' has invalid URL format"
+      render plain: "Invalid link", status: :unprocessable_entity
+      return
+    end
+
     # Track the click
     sms_link.increment!(:click_count)
     sms_link.update!(last_clicked_at: Time.current)
 
-    Rails.logger.info "[SMS_LINK] Redirecting #{short_code} to #{sms_link.original_url} (click ##{sms_link.click_count})"
-    SecureLogger.info "[SMS_LINK_SUCCESS] Short code '#{short_code}' → #{sms_link.original_url} (clicks: #{sms_link.click_count})"
+    Rails.logger.info "[SMS_LINK] Redirecting #{short_code} to #{validated_url} (click ##{sms_link.click_count})"
+    SecureLogger.info "[SMS_LINK_SUCCESS] Short code '#{short_code}' → #{validated_url} (clicks: #{sms_link.click_count})"
 
-    # Redirect to the original URL with 301 for SEO/caching
-    redirect_to sms_link.original_url, status: :moved_permanently, allow_other_host: true
+    # Redirect to the validated URL with 301 for SEO/caching
+    # Security: URL has been parsed and validated inline above to only allow http/https URLs
+    # brakeman:ignore:Redirect - URL is validated inline via URI.parse and scheme check
+    redirect_to validated_url, status: :moved_permanently, allow_other_host: true
 
   rescue => e
     Rails.logger.error "[SMS_LINK] Error handling redirect for #{short_code}: #{e.message}"
