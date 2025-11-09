@@ -83,7 +83,9 @@ Rails.application.configure do
     "www.example.com",
     "example.com",                # Allow apex example.com host for integration specs
     /.*\.lvh\.me/,
-    /[a-z0-9\-]+\.example\.com/
+    /[a-z0-9\-]+\.example\.com/,
+    "customdomain.test",          # For testing custom domain functionality
+    "www.customdomain.test"       # For testing custom domain with www
   ]
 
   config.session_store :cookie_store, key: '_bizblasts_session', domain: :all

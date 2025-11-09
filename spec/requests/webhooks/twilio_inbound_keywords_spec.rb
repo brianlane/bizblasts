@@ -25,57 +25,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     end
   end
 
-  describe 'HELP keyword' do
-    let(:help_params) do
-      {
-        From: customer.phone,
-        Body: 'HELP',
-        MessageSid: "twilio-sid-help-#{SecureRandom.hex(4)}"
-      }
-    end
-
-    it 'responds with help message' do
-      expect(Sms::MessageTemplates).to receive(:render).with('system.help_response', anything).and_return('Help message')
-      post '/webhooks/twilio/inbound', params: help_params
-      expect(response).to have_http_status(:ok)
-    end
-
-    it 'logs HELP keyword received' do
-      allow(Rails.logger).to receive(:info) # Allow other logs first
-      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from #{customer.phone}: HELP"))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("HELP keyword received from #{customer.phone}"))
-
-      post '/webhooks/twilio/inbound', params: help_params
-    end
-
-    it 'does not change opt-in status' do
-      expect {
-        post '/webhooks/twilio/inbound', params: help_params
-      }.not_to change { customer.reload.phone_opt_in? }
-    end
-
-    it 'sends auto-reply with help information' do
-      expect(SmsService).to receive(:send_message).with(
-        customer.phone,
-        anything,
-        hash_including(auto_reply: true)
-      )
-      post '/webhooks/twilio/inbound', params: help_params
-    end
-
-    it 'is case insensitive' do
-      lowercase_params = help_params.merge(Body: 'help')
-
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("HELP keyword received from #{customer.phone}"))
-      allow(Rails.logger).to receive(:info)
-
-      post '/webhooks/twilio/inbound', params: lowercase_params
-      expect(response).to have_http_status(:ok)
-    end
-  end
-
-  describe 'STOP/CANCEL/UNSUBSCRIBE keywords' do
+  describe 'STOP/UNSUBSCRIBE keywords' do
     let(:stop_params) do
       {
         From: customer.phone,
@@ -112,17 +62,8 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       end
     end
 
-    context 'with CANCEL keyword' do
-      let(:cancel_params) { stop_params.merge(Body: 'CANCEL') }
-
-      it 'treats CANCEL same as STOP' do
-        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from #{customer.phone} - processing opt-out"))
-        allow(Rails.logger).to receive(:info)
-
-        post '/webhooks/twilio/inbound', params: cancel_params
-        expect(response).to have_http_status(:ok)
-      end
-    end
+    # CANCEL is now a separate keyword for booking cancellation
+    # See 'CANCEL keyword' describe block below
 
     context 'with UNSUBSCRIBE keyword' do
       let(:unsubscribe_params) { stop_params.merge(Body: 'UNSUBSCRIBE') }
@@ -228,7 +169,237 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
     end
   end
 
-  describe 'CONFIRM keyword' do
+  describe 'CANCEL keyword (booking cancellation)' do
+    let(:service) { create(:service, business: business, name: 'Test Service', duration: 60, price: 100) }
+    let(:staff_member) { create(:staff_member, business: business) }
+    let(:opted_in_customer) { create(:tenant_customer, business: business, phone: '+15558675310', phone_opt_in: true, phone_opt_in_at: Time.current, skip_notification_email: true) }
+    let!(:booking) do
+      create(:booking,
+        business: business,
+        tenant_customer: opted_in_customer,
+        service: service,
+        staff_member: staff_member,
+        start_time: 2.days.from_now,
+        status: :confirmed
+      )
+    end
+
+    let(:cancel_params) do
+      {
+        From: opted_in_customer.phone,
+        Body: 'CANCEL',
+        MessageSid: "twilio-sid-cancel-#{SecureRandom.hex(4)}"
+      }
+    end
+
+    it 'cancels the customer\'s most recent booking' do
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CANCEL keyword received from #{opted_in_customer.phone} - processing booking cancellation"))
+      allow(Rails.logger).to receive(:info)
+
+      expect {
+        post '/webhooks/twilio/inbound', params: cancel_params
+      }.to change { booking.reload.status }.from('confirmed').to('cancelled')
+    end
+
+    it 'sends SMS confirmation of cancellation' do
+      # Note: Dual flow sends 2 messages (cancellation + opt-out confirmation)
+      # Just verify that send_message was called (specific message tests are in dual flow context)
+      expect(SmsService).to receive(:send_message).at_least(:once)
+
+      post '/webhooks/twilio/inbound', params: cancel_params
+    end
+
+    it 'returns success response' do
+      post '/webhooks/twilio/inbound', params: cancel_params
+      expect(response).to have_http_status(:ok)
+      expect(JSON.parse(response.body)).to include('status' => 'received')
+    end
+
+    it 'is case insensitive' do
+      lowercase_params = cancel_params.merge(Body: 'cancel')
+
+      expect {
+        post '/webhooks/twilio/inbound', params: lowercase_params
+      }.to change { booking.reload.status }.from('confirmed').to('cancelled')
+    end
+
+    context 'when customer has no upcoming bookings' do
+      before { booking.update!(status: :cancelled) }
+
+      it 'sends combined message (no booking + opt-out confirmation)' do
+        expect(SmsService).to receive(:send_message).with(
+          opted_in_customer.phone,
+          a_string_matching(/don't have any upcoming bookings.*unsubscribed/i),
+          hash_including(auto_reply: true)
+        )
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+      end
+    end
+
+    context 'when customer has no upcoming bookings (but has business context)' do
+      let(:orphan_customer) { create(:tenant_customer, business: business, phone: '+15551234567', phone_opt_in: false, skip_notification_email: true) }
+      let(:orphan_params) { cancel_params.merge(From: orphan_customer.phone) }
+
+      before do
+        # Ensure no bookings exist for this customer
+        Booking.where(tenant_customer: orphan_customer).destroy_all
+      end
+
+      it 'sends combined message (no booking + opt-out confirmation)' do
+        expect(SmsService).to receive(:send_message).once.with(
+          orphan_customer.phone,
+          a_string_matching(/don't have any upcoming bookings.*unsubscribed/im),
+          hash_including(auto_reply: true)
+        )
+
+        post '/webhooks/twilio/inbound', params: orphan_params
+      end
+    end
+
+    context 'when cancellation fails due to policy window' do
+      before do
+        # Set booking to within cancellation window (less than 24 hours)
+        booking.update!(start_time: 12.hours.from_now)
+        business.create_booking_policy!(cancellation_window_mins: 24 * 60) # 24 hour window
+      end
+
+      it 'sends combined message (cancellation error + opt-out confirmation)' do
+        expect(SmsService).to receive(:send_message).with(
+          opted_in_customer.phone,
+          a_string_matching(/too late to cancel.*unsubscribed/i),
+          hash_including(auto_reply: true)
+        )
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+      end
+
+      it 'does not cancel the booking' do
+        expect {
+          post '/webhooks/twilio/inbound', params: cancel_params
+        }.not_to change { booking.reload.status }
+      end
+    end
+
+    # IMPORTANT: CANCEL is treated as an opt-out keyword by Twilio by default
+    # These tests verify that our dual-flow implementation keeps application state
+    # in sync with Twilio's carrier-level opt-out to prevent 21610 errors
+    context 'Twilio default CANCEL opt-out behavior (dual flow)' do
+      it 'opts out customer from business after cancelling booking' do
+        expect {
+          post '/webhooks/twilio/inbound', params: cancel_params
+        }.to change { opted_in_customer.reload.opted_out_from_business?(business) }.from(false).to(true)
+      end
+
+      it 'opts out even when booking cancellation succeeds' do
+        expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Processing opt-out after successful CANCEL booking cancellation for #{opted_in_customer.phone} (syncing with Twilio)"))
+        allow(Rails.logger).to receive(:info)
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+
+        # Verify both booking cancelled AND customer opted out
+        expect(booking.reload.status).to eq('cancelled')
+        expect(opted_in_customer.reload.opted_out_from_business?(business)).to be true
+      end
+
+      it 'opts out even when no booking exists to cancel' do
+        booking.update!(status: :cancelled) # No upcoming booking
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+
+        expect(opted_in_customer.reload.opted_out_from_business?(business)).to be true
+      end
+
+      it 'opts out even when booking cancellation fails' do
+        # Force cancellation to fail by setting window constraint
+        booking.update!(start_time: 12.hours.from_now)
+        business.create_booking_policy!(cancellation_window_mins: 24 * 60)
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+
+        # Booking should NOT be cancelled but opt-out should still happen
+        expect(booking.reload.status).to eq('confirmed')
+        expect(opted_in_customer.reload.opted_out_from_business?(business)).to be true
+      end
+
+      it 'maintains global opt-in status (business-specific opt-out only)' do
+        post '/webhooks/twilio/inbound', params: cancel_params
+
+        opted_in_customer.reload
+        expect(opted_in_customer.opted_out_from_business?(business)).to be true
+        expect(opted_in_customer.phone_opt_in).to be true # Global opt-in remains
+      end
+
+      it 'sends both cancellation notification and opt-out confirmation when cancellation succeeds' do
+        # Expect two SMS messages when booking cancellation succeeds:
+        # 1. Cancellation notification from NotificationService
+        # 2. Opt-out confirmation from process_sms_opt_out
+        expect(SmsService).to receive(:send_message).twice
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+      end
+
+      it 'sends single combined message when no booking exists' do
+        booking.update!(status: :cancelled) # No upcoming booking
+
+        # Expect only one SMS message (combined no-booking + opt-out)
+        expect(SmsService).to receive(:send_message).once.with(
+          opted_in_customer.phone,
+          a_string_matching(/don't have any upcoming bookings.*unsubscribed/i),
+          hash_including(auto_reply: true)
+        )
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+      end
+
+      it 'sends single combined message when cancellation fails' do
+        # Force cancellation to fail
+        booking.update!(start_time: 12.hours.from_now)
+        business.create_booking_policy!(cancellation_window_mins: 24 * 60)
+
+        # Expect only one SMS message (combined error + opt-out)
+        expect(SmsService).to receive(:send_message).once.with(
+          opted_in_customer.phone,
+          a_string_matching(/too late to cancel.*unsubscribed/i),
+          hash_including(auto_reply: true)
+        )
+
+        post '/webhooks/twilio/inbound', params: cancel_params
+      end
+    end
+  end
+
+  describe 'HELP keyword (no longer supported)' do
+    let(:help_params) do
+      {
+        From: customer.phone,
+        Body: 'HELP',
+        MessageSid: "twilio-sid-help-#{SecureRandom.hex(4)}"
+      }
+    end
+
+    it 'treats HELP as unknown message (no auto-reply)' do
+      expect(SmsService).not_to receive(:send_message)
+      post '/webhooks/twilio/inbound', params: help_params
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'logs HELP message as other inbound' do
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from #{customer.phone}: HELP"))
+      allow(Rails.logger).to receive(:info)
+
+      post '/webhooks/twilio/inbound', params: help_params
+    end
+
+    it 'is case insensitive' do
+      lowercase_params = help_params.merge(Body: 'help')
+      expect(SmsService).not_to receive(:send_message)
+      post '/webhooks/twilio/inbound', params: lowercase_params
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
+  describe 'CONFIRM keyword (no longer supported)' do
     let(:confirm_params) do
       {
         From: customer.phone,
@@ -237,27 +408,22 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       }
     end
 
-    it 'logs CONFIRM keyword received' do
-      allow(Rails.logger).to receive(:info) # Allow other logs first
-      expect(Rails.logger).to receive(:info).with(a_string_matching(/Received Twilio inbound SMS/))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from #{customer.phone}: CONFIRM"))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CONFIRM keyword received from #{customer.phone}"))
-
-      post '/webhooks/twilio/inbound', params: confirm_params
-    end
-
-    it 'returns success response' do
+    it 'treats CONFIRM as unknown message (no auto-reply)' do
+      expect(SmsService).not_to receive(:send_message)
       post '/webhooks/twilio/inbound', params: confirm_params
       expect(response).to have_http_status(:ok)
-      expect(JSON.parse(response.body)).to include('status' => 'received')
+    end
+
+    it 'logs CONFIRM message as other inbound' do
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from #{customer.phone}: CONFIRM"))
+      allow(Rails.logger).to receive(:info)
+
+      post '/webhooks/twilio/inbound', params: confirm_params
     end
 
     it 'is case insensitive' do
       lowercase_params = confirm_params.merge(Body: 'confirm')
-
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CONFIRM keyword received from #{customer.phone}"))
-      allow(Rails.logger).to receive(:info)
-
+      expect(SmsService).not_to receive(:send_message)
       post '/webhooks/twilio/inbound', params: lowercase_params
       expect(response).to have_http_status(:ok)
     end
@@ -281,24 +447,26 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       post '/webhooks/twilio/inbound', params: unknown_params
     end
 
-    it 'sends unknown command response for short messages' do
+    it 'does not send auto-reply for short messages' do
       short_message_params = unknown_params.merge(Body: 'Hello')
 
-      expect(Sms::MessageTemplates).to receive(:render).with('system.unknown_command').and_return('Unknown command message')
-      expect(SmsService).to receive(:send_message).with(
-        customer.phone,
-        'Unknown command message',
-        hash_including(auto_reply: true)
-      )
-
+      expect(SmsService).not_to receive(:send_message)
       post '/webhooks/twilio/inbound', params: short_message_params
     end
 
-    it 'does not send response for long messages' do
+    it 'does not send auto-reply for long messages' do
       long_message_params = unknown_params.merge(Body: 'a' * 101)
 
       expect(SmsService).not_to receive(:send_message)
       post '/webhooks/twilio/inbound', params: long_message_params
+    end
+
+    it 'just logs the message without responding' do
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from #{customer.phone}: Hello, I have a question about my appointment"))
+      allow(Rails.logger).to receive(:info)
+
+      post '/webhooks/twilio/inbound', params: unknown_params
+      expect(response).to have_http_status(:ok)
     end
 
     it 'returns success response' do
@@ -361,7 +529,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
       let(:new_customer_params) do
         {
           From: new_phone,
-          Body: 'HELP',
+          Body: 'YES',
           MessageSid: "twilio-sid-new-#{SecureRandom.hex(4)}"
         }
       end

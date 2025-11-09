@@ -49,7 +49,7 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
       it 'sends business-specific confirmation message' do
         expect(controller).to receive(:send_auto_reply).with(
           '+15551234567',
-          "You've been unsubscribed from #{business1.name} SMS. Reply START to re-subscribe or HELP for assistance."
+          "You've been unsubscribed from #{business1.name} SMS. Reply START to re-subscribe."
         )
 
         post :inbound_message, params: {
@@ -120,7 +120,7 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
       it 'sends global opt-out confirmation' do
         expect(controller).to receive(:send_auto_reply).with(
           '+15551234567',
-          "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance."
+          "You've been unsubscribed from all SMS. Reply START to re-subscribe."
         )
 
         post :inbound_message, params: {
@@ -181,7 +181,7 @@ RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :c
     it 'sends business-specific confirmation' do
       expect(controller).to receive(:send_auto_reply).with(
         '+15551234567',
-        "You're now subscribed to #{business1.name} SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
+        "You're now subscribed to #{business1.name} SMS notifications. Reply STOP to unsubscribe."
       )
 
       post :inbound_message, params: {

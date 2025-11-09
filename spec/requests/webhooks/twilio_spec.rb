@@ -229,10 +229,10 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       }
     end
 
-    it "processes HELP keyword inbound message" do
+    it "processes HELP keyword inbound message (ignored, no auto-reply)" do
       allow(Rails.logger).to receive(:info).and_call_original
       expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from +15558675309: HELP"))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("HELP keyword received from +15558675309"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from +15558675309: HELP"))
 
       post "/webhooks/twilio/inbound", params: inbound_sms_params
 
@@ -240,20 +240,20 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       expect(JSON.parse(response.body)).to include("status" => "received")
     end
 
-    it "processes CANCEL keyword inbound message" do
+    it "processes CANCEL keyword inbound message (booking cancellation)" do
       allow(Rails.logger).to receive(:info).and_call_original
       expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from +15558675309: CANCEL"))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from +15558675309 - processing opt-out"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CANCEL keyword received from +15558675309 - processing booking cancellation"))
 
       post "/webhooks/twilio/inbound", params: cancel_sms_params
 
       expect(response).to have_http_status(:ok)
     end
 
-    it "processes CONFIRM keyword inbound message" do
+    it "processes CONFIRM keyword inbound message (ignored, no auto-reply)" do
       allow(Rails.logger).to receive(:info).and_call_original
       expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from +15558675309: CONFIRM"))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("CONFIRM keyword received from +15558675309"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Other inbound message from +15558675309: CONFIRM"))
 
       post "/webhooks/twilio/inbound", params: confirm_sms_params
 
@@ -270,9 +270,9 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "handles STOP keyword like CANCEL" do
+    it "handles STOP keyword (opt-out)" do
       stop_params = cancel_sms_params.merge(Body: "STOP")
-      
+
       allow(Rails.logger).to receive(:info).and_call_original
       expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from +15558675309: STOP"))
       expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from +15558675309 - processing opt-out"))
@@ -283,13 +283,13 @@ RSpec.describe "Webhooks::TwilioController", type: :request do
     end
 
     it "is case insensitive for keywords" do
-      lowercase_help_params = inbound_sms_params.merge(Body: "help")
-      
-      allow(Rails.logger).to receive(:info).and_call_original
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from +15558675309: help"))
-      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("HELP keyword received from +15558675309"))
+      lowercase_stop_params = inbound_sms_params.merge(Body: "stop")
 
-      post "/webhooks/twilio/inbound", params: lowercase_help_params
+      allow(Rails.logger).to receive(:info).and_call_original
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("Inbound SMS from +15558675309: stop"))
+      expect(Rails.logger).to receive(:info).with(SecureLogger.sanitize_message("STOP keyword received from +15558675309 - processing opt-out"))
+
+      post "/webhooks/twilio/inbound", params: lowercase_stop_params
 
       expect(response).to have_http_status(:ok)
     end
