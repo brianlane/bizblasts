@@ -14,12 +14,19 @@ class SmsLinksController < ApplicationController
       return
     end
     
+    # Ensure the stored URL is safe to redirect to
+    unless safe_redirect_url?(sms_link.original_url)
+      Rails.logger.warn "[SMS_LINK] Unsafe redirect attempted for #{short_code}: #{sms_link.original_url.inspect}"
+      redirect_to root_path, alert: "Link not found"
+      return
+    end
+
     # Track the click
     sms_link.increment!(:click_count)
     sms_link.update!(last_clicked_at: Time.current)
-    
+
     Rails.logger.info "[SMS_LINK] Redirecting #{short_code} to #{sms_link.original_url} (click ##{sms_link.click_count})"
-    
+
     # Redirect to the original URL (may be on a different tenant host)
     redirect_to sms_link.original_url,
                 status: :moved_permanently,
@@ -28,5 +35,14 @@ class SmsLinksController < ApplicationController
   rescue => e
     Rails.logger.error "[SMS_LINK] Error handling redirect for #{short_code}: #{e.message}"
     redirect_to root_path, alert: "Error processing link"
+  end
+
+  private
+
+  def safe_redirect_url?(url)
+    uri = URI.parse(url)
+    uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    false
   end
 end

@@ -36,6 +36,23 @@ RSpec.describe 'SMS short links', type: :request do
       expect(flash[:alert]).to eq('Link not found')
       expect(Rails.logger).to have_received(:warn).with(/\[SMS_LINK\] Short code not found: missing123/)
     end
+
+    it 'rejects stored URLs that are not http(s)' do
+      sms_link = create(:sms_link,
+                        original_url: 'javascript:alert(1)',
+                        short_code: 'unsafe123',
+                        click_count: 0,
+                        last_clicked_at: nil)
+      allow(Rails.logger).to receive(:warn)
+
+      expect {
+        get "/s/#{sms_link.short_code}"
+      }.not_to change { sms_link.reload.click_count }
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq('Link not found')
+      expect(Rails.logger).to have_received(:warn).with(/\[SMS_LINK\] Unsafe redirect attempted/)
+    end
   end
 end
 
