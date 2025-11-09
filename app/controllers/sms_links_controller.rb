@@ -20,8 +20,10 @@ class SmsLinksController < ApplicationController
     
     Rails.logger.info "[SMS_LINK] Redirecting #{short_code} to #{sms_link.original_url} (click ##{sms_link.click_count})"
     
-    # Redirect to the original URL
-    redirect_to sms_link.original_url, status: :moved_permanently
+    # Redirect to the original URL (may be on a different tenant host)
+    redirect_to sms_link.original_url,
+                status: :moved_permanently,
+                allow_other_host: true
     
   rescue => e
     Rails.logger.error "[SMS_LINK] Error handling redirect for #{short_code}: #{e.message}"
