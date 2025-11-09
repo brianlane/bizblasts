@@ -182,11 +182,22 @@ RSpec.describe SmsLinkShortener do
           allow(Rails.env).to receive(:production?).and_return(true)
         end
 
-        it 'still attempts to shorten' do
-          # Service doesn't validate URL format, just shortens it
+        it 'falls back to original URL due to validation failure' do
+          # Model validates URL format for security (only http/https allowed)
+          # Invalid URLs are rejected and service falls back to original URL
           expect {
             described_class.shorten(invalid_url, tracking_params)
-          }.to change(SmsLink, :count).by(1)
+          }.not_to change(SmsLink, :count)
+        end
+
+        it 'returns original URL when validation fails' do
+          result = described_class.shorten(invalid_url, tracking_params)
+          expect(result).to eq(invalid_url)
+        end
+
+        it 'logs error when validation fails' do
+          expect(Rails.logger).to receive(:error).with(a_string_matching(/Failed to shorten URL.*#{Regexp.escape(invalid_url)}/))
+          described_class.shorten(invalid_url, tracking_params)
         end
       end
     end

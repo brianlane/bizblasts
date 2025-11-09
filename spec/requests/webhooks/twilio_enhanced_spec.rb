@@ -20,15 +20,11 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
     end
 
     context 'HELP keyword' do
-      it 'responds with help message' do
+      it 'treats HELP as unknown message (no auto-reply)' do
         twilio_params[:Body] = 'HELP'
-        
-        expect(SmsService).to receive(:send_message).with(
-          '+15551234567',
-          a_string_including('Help'),
-          hash_including(auto_reply: true)
-        )
-        
+
+        expect(SmsService).not_to receive(:send_message)
+
         post '/webhooks/twilio/inbound', params: twilio_params
         expect(response).to have_http_status(:ok)
         expect(JSON.parse(response.body)['status']).to eq('received')
@@ -76,15 +72,11 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
     end
 
     context 'Unknown message' do
-      it 'responds with unknown command message for short messages' do
+      it 'does not respond to short unknown messages' do
         twilio_params[:Body] = 'xyz'
-        
-        expect(SmsService).to receive(:send_message).with(
-          '+15551234567',
-          a_string_including("didn't understand"),
-          hash_including(auto_reply: true)
-        )
-        
+
+        expect(SmsService).not_to receive(:send_message)
+
         post '/webhooks/twilio/inbound', params: twilio_params
         expect(response).to have_http_status(:ok)
       end
