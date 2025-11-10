@@ -137,7 +137,7 @@ gem "rspec-retry", "~> 0.6.2", group: :test
 gem 'geocoder'
 
 # Calendar integrations
-gem 'google-apis-calendar_v3', '~> 0.31'
+gem 'google-apis-calendar_v3', '~> 0.49'
 gem 'googleauth', '~> 1.15'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
