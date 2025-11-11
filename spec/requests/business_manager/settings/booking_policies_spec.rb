@@ -34,6 +34,16 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
         get business_manager_settings_booking_policy_path
         expect(response).to have_http_status(:ok)
       end
+
+      it "displays the configured service radius when enabled" do
+        business.update!(zip: "94105")
+        @booking_policy.update!(service_radius_enabled: true, service_radius_miles: 25)
+
+        get business_manager_settings_booking_policy_path
+
+        expect(response.body).to include("Within 25 miles of 94105")
+        expect(response.body).to include("Service Area")
+      end
     end
 
     context "when logged in as staff (non-manager)" do

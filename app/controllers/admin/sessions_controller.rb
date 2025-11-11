@@ -30,6 +30,9 @@ class Admin::SessionsController < ActiveAdmin::Devise::SessionsController
       # Regenerate the CSRF token for a fresh attempt
       reset_csrf_token
 
+      # Rebuild the resource so the login form has a model instance
+      build_resource({})
+
       # Set an error message
       flash.now[:error] = "Your session has expired. Please try logging in again."
 

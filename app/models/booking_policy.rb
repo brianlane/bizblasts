@@ -13,6 +13,7 @@ class BookingPolicy < ApplicationRecord
   validates :min_advance_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :interval_mins, numericality: { only_integer: true, greater_than_or_equal_to: 5, less_than_or_equal_to: 120 }, 
                             if: :use_fixed_intervals?
+  validates :service_radius_miles, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   # Consider adding serialization for intake_fields if complex structure is needed
   # serialize :intake_fields, JSON
@@ -156,6 +157,15 @@ class BookingPolicy < ApplicationRecord
   # Otherwise, returns nil to indicate the calling code should use its default logic
   def slot_interval_mins(service)
     use_fixed_intervals? ? interval_mins : nil
+  end
+
+  def service_radius_enabled?
+    service_radius_enabled && effective_service_radius_miles.present?
+  end
+
+  def effective_service_radius_miles
+    return nil unless service_radius_enabled
+    (service_radius_miles.presence || 50).to_i
   end
 
   # Returns true if this policy has fixed intervals properly configured

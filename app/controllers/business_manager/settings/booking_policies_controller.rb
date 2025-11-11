@@ -40,6 +40,15 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
     # Remove the virtual parameters
     processed_params.delete(:cancellation_window_hours)
     processed_params.delete(:min_advance_hours)
+
+    # Normalize service radius fields
+    unless processed_params[:service_radius_enabled] == '1' || processed_params[:service_radius_enabled] == true
+      processed_params[:service_radius_enabled] = false
+    else
+      processed_params[:service_radius_enabled] = true
+    end
+
+    processed_params[:service_radius_miles] = processed_params[:service_radius_miles].presence&.to_i
     
     if @booking_policy.update(processed_params)
       redirect_to business_manager_settings_booking_policy_path, notice: 'Booking policies updated successfully.'
@@ -69,7 +78,9 @@ class BusinessManager::Settings::BookingPoliciesController < BusinessManager::Ba
       :min_advance_hours,
       :auto_confirm_bookings,
       :use_fixed_intervals,
-      :interval_mins
+      :interval_mins,
+      :service_radius_enabled,
+      :service_radius_miles
     )
   end
 end 

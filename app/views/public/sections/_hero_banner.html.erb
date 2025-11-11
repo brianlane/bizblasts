@@ -1,21 +1,125 @@
-<div class="hero-banner-section bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-    <div class="text-center">
-      <% if section.content_data['title'].present? %>
-        <h1 class="text-4xl md:text-6xl font-bold mb-6"><%= section.content_data['title'] %></h1>
-      <% end %>
-      
-      <% if section.content_data['subtitle'].present? %>
-        <div class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-          <%= section.content_data['subtitle'] %>
+<% current_business = local_assigns[:business] %>
+<% theme = section.section_config&.dig('theme') %>
+
+<% if theme == 'dark_showcase' %>
+  <% reviews_data = current_business&.google_place_id.present? ? GoogleReviewsService.fetch(current_business) : nil %>
+  <% premium_label = if current_business&.industry.present?
+                       "Premium #{current_business.industry.to_s.humanize}"
+                     elsif section.content_data&.dig('tagline').present?
+                       section.content_data['tagline']
+                     else
+                       'Premium Experience'
+                     end %>
+  <% accent_enabled = current_business&.website_layout_enhanced? %>
+      <div class="hero-banner-section relative overflow-hidden bg-black text-white">
+        <div class="absolute inset-0 opacity-40 <%= accent_enabled ? 'accent-gradient' : 'bg-gradient-to-br from-red-600 via-black to-transparent' %> pointer-events-none"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 flex flex-col lg:flex-row items-start lg:items-center gap-12">
+      <div class="flex-1">
+        <div class="flex items-center gap-4 mb-6">
+          <% if current_business&.logo&.attached? %>
+            <div class="w-16 h-16 rounded-full overflow-hidden border border-white/20 bg-white/90 flex items-center justify-center">
+              <%= image_tag business_logo_url(current_business, size: :medium), alt: "#{current_business&.name} Logo", class: "w-full h-full object-contain" %>
+            </div>
+          <% end %>
+              <div>
+                <p class="text-sm uppercase tracking-widest <%= accent_enabled ? 'accent-text' : 'text-red-400' %>"><%= premium_label %></p>
+            <p class="text-base text-gray-300"><%= [current_business&.city, current_business&.state].compact.join(', ') %></p>
+          </div>
         </div>
-      <% end %>
-      
-      <% if section.content_data['button_text'].present? %>
-        <%= link_to section.content_data['button_text'], 
-                    section.content_data['button_link'] || '#', 
-                    class: "inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors" %>
-      <% end %>
+
+        <h1 class="text-4xl md:text-6xl font-black tracking-tight leading-tight">
+          <%= section.content_data['title'].presence || current_business&.name %>
+        </h1>
+
+        <p class="mt-6 text-lg md:text-xl text-gray-200 max-w-2xl">
+          <%= section.content_data['subtitle'].presence || current_business&.description %>
+        </p>
+
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+          <% if section.content_data['button_text'].present? %>
+                <% primary_button_classes = if accent_enabled
+                                               "inline-flex items-center justify-center px-8 py-3 accent-bg font-semibold rounded-full accent-shadow transition-colors duration-200"
+                                             else
+                                               "inline-flex items-center justify-center px-8 py-3 bg-red-500 hover:bg-red-400 text-white font-semibold rounded-full transition-colors duration-200 shadow-lg shadow-red-500/30"
+                                             end %>
+                <% fallback_path = section.content_data['button_link'].presence || tenant_calendar_path %>
+                <% book_now_path = book_now_path_with_service_area(fallback_path: fallback_path) %>
+                <%= link_to section.content_data['button_text'],
+                            book_now_path,
+                            class: "#{primary_button_classes} #{accent_enabled ? 'accent-link-white' : ''}" %>
+          <% end %>
+
+          <% if section.content_data['secondary_button_text'].present? %>
+            <%= link_to section.content_data['secondary_button_text'],
+                        section.content_data['secondary_button_link'].presence || '#',
+                        class: "inline-flex items-center justify-center px-8 py-3 bg-transparent border border-white/40 text-white font-semibold rounded-full hover:bg-white/10 transition-colors duration-200 #{accent_enabled ? 'accent-link-white' : ''}" %>
+          <% end %>
+        </div>
+
+            <% if reviews_data.present? && reviews_data[:success] && reviews_data[:place].present? %>
+              <div class="mt-8 flex items-center gap-4 text-sm text-gray-300">
+            <div class="flex items-center gap-2">
+              <div class="flex items-center">
+                <% rating = reviews_data[:place][:rating].to_f %>
+                <% (1..5).each do |star| %>
+                  <% filled = star <= rating.floor %>
+                  <% half = !filled && (star - rating).between?(0, 1) && rating % 1 != 0 %>
+                      <% star_class = if filled || half
+                                         accent_enabled ? 'accent-strong' : 'text-yellow-400'
+                                       else
+                                         'text-gray-600'
+                                       end %>
+                      <svg class="w-5 h-5 <%= star_class %>" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                <% end %>
+              </div>
+                  <span class="font-semibold <%= accent_enabled ? 'accent-strong' : 'text-white' %>"><%= rating.round(1) %>/5.0</span>
+            </div>
+            <% if reviews_data[:place][:user_ratings_total] %>
+                  <span class="<%= accent_enabled ? 'accent-text' : 'text-gray-300' %>"><%= reviews_data[:place][:user_ratings_total] %>+ Google reviews</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="flex-1 w-full">
+        <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-gray-800 to-gray-900 shadow-2xl shadow-red-900/20">
+          <% if section.content_data['feature_image_url'].present? %>
+            <%= image_tag section.content_data['feature_image_url'], alt: section.content_data['feature_image_alt'].presence || current_business&.name, class: "w-full h-full object-cover" %>
+          <% elsif current_business&.logo&.attached? %>
+            <div class="flex items-center justify-center py-16">
+              <div class="w-64 h-64 bg-white/90 rounded-2xl flex items-center justify-center p-6">
+                <%= image_tag business_logo_url(current_business, size: :large), alt: "#{current_business&.name} Logo", class: "w-full h-full object-contain" %>
+              </div>
+            </div>
+              <% else %>
+                <div class="aspect-[4/3] <%= accent_enabled ? 'accent-gradient' : 'bg-gradient-to-br from-red-500 via-red-700 to-black' %> rounded-3xl"></div>
+          <% end %>
+        </div>
+      </div>
     </div>
   </div>
-</div> 
+<% else %>
+  <div class="hero-banner-section bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div class="text-center">
+        <% if section.content_data['title'].present? %>
+          <h1 class="text-4xl md:text-6xl font-bold mb-6"><%= section.content_data['title'] %></h1>
+        <% end %>
+        
+        <% if section.content_data['subtitle'].present? %>
+          <div class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+            <%= section.content_data['subtitle'] %>
+          </div>
+        <% end %>
+        
+        <% if section.content_data['button_text'].present? %>
+          <%= link_to section.content_data['button_text'], 
+                      section.content_data['button_link'] || '#', 
+                      class: "inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

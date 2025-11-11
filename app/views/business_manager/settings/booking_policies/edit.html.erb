@@ -323,6 +323,57 @@
             </div>
           </div>
         </div>
+
+        <!-- Service Radius Card -->
+        <div class="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-emerald-500 to-green-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 21a8.38 8.38 0 001.5-4.5 8.5 8.5 0 10-17 0A8.38 8.38 0 005.5 21h14z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Service Area Radius</h3>
+                <p class="text-emerald-100 mt-1">Ensure bookings are within your travel distance</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <%= form.check_box :service_radius_enabled, class: "h-5 w-5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500", id: "service_radius_enabled_checkbox" %>
+                <%= form.label :service_radius_enabled, "Require ZIP code within service radius", class: "ml-3 block text-sm font-medium text-gray-700" %>
+              </div>
+              <div id="service_radius_fields" class="<%= @booking_policy.service_radius_enabled? ? '' : 'hidden' %>">
+                <div class="relative">
+                  <%= form.label :service_radius_miles, class: "block text-sm font-semibold text-gray-700 mb-2" do %>
+                    <span class="flex items-center">
+                      <svg class="w-4 h-4 mr-2 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                      </svg>
+                      Service Radius (miles)
+                    </span>
+                  <% end %>
+                  <%= form.number_field :service_radius_miles,
+                      min: 1,
+                      value: @booking_policy.service_radius_miles || 50,
+                      class: "w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 text-lg",
+                      placeholder: "Default 50" %>
+                  <div class="mt-2 flex items-start space-x-2">
+                    <svg class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-sm text-gray-500">
+                      Customers will be prompted for their ZIP code before booking. If the distance from your business ZIP (<%= current_business.zip.presence || 'not set' %>) exceeds this radius, they'll be asked to contact you instead.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -363,6 +414,18 @@
           intervalSection.classList.remove('hidden');
         } else {
           intervalSection.classList.add('hidden');
+        }
+      });
+    }
+
+    const radiusCheckbox = document.getElementById('service_radius_enabled_checkbox');
+    const radiusFields = document.getElementById('service_radius_fields');
+    if (radiusCheckbox && radiusFields) {
+      radiusCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          radiusFields.classList.remove('hidden');
+        } else {
+          radiusFields.classList.add('hidden');
         }
       });
     }

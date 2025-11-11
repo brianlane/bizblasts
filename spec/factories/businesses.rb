@@ -37,6 +37,7 @@ FactoryBot.define do
     zip { Faker::Address.zip_code }
     description { Faker::Company.catch_phrase }
     website { Faker::Internet.url }
+    enhanced_accent_color { 'red' }
 
     
     # Set tier, ensuring free tier gets subdomain host_type

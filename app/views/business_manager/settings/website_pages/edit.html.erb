@@ -6,7 +6,73 @@
     </div>
     <div class="panel-body mt-4">
       <%= form_with model: @business, url: business_manager_settings_website_pages_path, method: :patch, local: true do |f| %>
-        <fieldset>
+        <fieldset data-controller="enhanced-layout-selector">
+          <legend class="font-semibold">Layout</legend>
+          <p class="text-sm text-gray-600 mt-1">
+            Choose how your public website appears to visitors. Enhanced layout unlocks a storytelling homepage built from your existing business data.
+          </p>
+          <div class="mt-3 space-y-2">
+            <label class="flex items-center space-x-2">
+              <%= f.radio_button :website_layout, 'basic', data: { enhanced_layout_selector_target: "layoutInput", action: "enhanced-layout-selector#toggle" } %>
+              <span>Basic layout (current business landing page)</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              <%= f.radio_button :website_layout, 'enhanced', data: { enhanced_layout_selector_target: "layoutInput", action: "enhanced-layout-selector#toggle" } %>
+              <span>Enhanced layout (immersive homepage with your same content)</span>
+            </label>
+          </div>
+
+          <% accent_options = Business::ACCENT_COLOR_OPTIONS.map { |color| [color.titleize, color] } %>
+          <div id="accent-color-wrapper"
+               data-enhanced-layout-selector-target="accentWrapper"
+               class="mt-4 <%= @business.website_layout_enhanced? ? '' : 'hidden' %>">
+            <label class="block text-sm font-medium text-gray-700 mb-1" id="enhanced-accent-label">
+              Enhanced accent color
+            </label>
+
+            <div class="relative inline-block mt-1"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value="<%= @business.enhanced_accent_color %>">
+              <%= f.hidden_field :enhanced_accent_color,
+                                 value: @business.enhanced_accent_color,
+                                 data: { dropdown_target: "hidden" } %>
+              <button type="button"
+                      id="enhanced-accent-button"
+                      class="relative min-w-[11rem] bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm flex items-center justify-between gap-3"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-labelledby="enhanced-accent-label enhanced-accent-button"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle">
+                <span class="rich-dropdown-text text-gray-900"><%= @business.enhanced_accent_color.titleize %></span>
+                <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+
+              <div class="absolute z-20 mt-1 w-full bg-white shadow-lg rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-hidden hidden"
+                   data-dropdown-target="menu"
+                   role="listbox"
+                   aria-labelledby="enhanced-accent-label">
+                <% accent_options.each do |label, value| %>
+                  <button type="button"
+                          class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors relative"
+                          data-dropdown-target="option"
+                          data-item-id="<%= value %>"
+                          data-item-text="<%= label %>"
+                          data-action="click->dropdown#select"
+                          role="option">
+                    <span><%= label %></span>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-3 sm:mt-2">Choose the highlight color used for buttons and accents in the enhanced layout.</p>
+          </div>
+        </fieldset>
+
+        <fieldset class="mt-6">
           <legend class="font-semibold">Sections</legend>
           <div class="mt-2">
             <%= f.check_box :show_services_section %>

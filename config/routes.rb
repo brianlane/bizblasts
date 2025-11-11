@@ -92,6 +92,8 @@ Rails.application.routes.draw do
       resources :subscriptions, only: [:new, :create] do
         member { get :confirmation }
       end
+      resources :newsletter_subscriptions, only: [:create]
+      resource :service_area_check, only: [:new, :create]
       resources :policy_acceptances, only: [:create, :show]
       get '/policy_status', to: 'policy_acceptances#status'
       post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'

@@ -30,6 +30,16 @@ module ApplicationHelper
     content_tag(:span, text, class: css_class)
   end
 
+  def book_now_path_with_service_area(fallback_path:, service: nil)
+    policy = current_tenant&.booking_policy
+    return fallback_path unless policy&.service_radius_enabled?
+
+    params = {}
+    params[:service_id] = service.id if service.present?
+    params[:return_to] = fallback_path
+    new_service_area_check_path(params)
+  end
+
   # Returns service name together with its variant if the booking has one.
   # Example: "Massage — Deep Tissue"
   def service_with_variant(booking)
@@ -622,6 +632,73 @@ module ApplicationHelper
       Rails.logger.warn "[LOGO HELPER] Failed to generate logo URL for business #{business.id}: #{e.message}"
       nil
     end
+  end
+
+  ACCENT_COLOR_PALETTES = {
+    'red' => {
+      base: '#ef4444',
+      hover: '#f87171',
+      text: '#fca5a5',
+      border: '#f87171',
+      shadow: 'rgba(239, 68, 68, 0.45)',
+      overlay: 'rgba(239, 68, 68, 0.55)'
+    },
+    'orange' => {
+      base: '#f97316',
+      hover: '#fb923c',
+      text: '#fdba74',
+      border: '#fb923c',
+      shadow: 'rgba(249, 115, 22, 0.45)',
+      overlay: 'rgba(249, 115, 22, 0.55)'
+    },
+    'amber' => {
+      base: '#f59e0b',
+      hover: '#fbbf24',
+      text: '#fcd34d',
+      border: '#fbbf24',
+      shadow: 'rgba(245, 158, 11, 0.45)',
+      overlay: 'rgba(245, 158, 11, 0.55)'
+    },
+    'emerald' => {
+      base: '#10b981',
+      hover: '#34d399',
+      text: '#6ee7b7',
+      border: '#34d399',
+      shadow: 'rgba(16, 185, 129, 0.45)',
+      overlay: 'rgba(16, 185, 129, 0.55)'
+    },
+    'sky' => {
+      base: '#0ea5e9',
+      hover: '#38bdf8',
+      text: '#7dd3fc',
+      border: '#38bdf8',
+      shadow: 'rgba(14, 165, 233, 0.45)',
+      overlay: 'rgba(14, 165, 233, 0.55)'
+    },
+    'violet' => {
+      base: '#8b5cf6',
+      hover: '#a855f7',
+      text: '#c4b5fd',
+      border: '#a855f7',
+      shadow: 'rgba(139, 92, 246, 0.45)',
+      overlay: 'rgba(139, 92, 246, 0.55)'
+    }
+  }.freeze
+
+  def accent_palette_for(color)
+    ACCENT_COLOR_PALETTES[color] || ACCENT_COLOR_PALETTES['red']
+  end
+
+  def accent_palette_style(color)
+    palette = accent_palette_for(color)
+    [
+      "--accent-base: #{palette[:base]}",
+      "--accent-hover: #{palette[:hover]}",
+      "--accent-text: #{palette[:text]}",
+      "--accent-border: #{palette[:border]}",
+      "--accent-shadow: #{palette[:shadow]}",
+      "--accent-overlay: #{palette[:overlay]}"
+    ].join('; ')
   end
 
   private

@@ -106,7 +106,9 @@
                   <% if variants.any? %>
                     <% book_params[:service_variant_id] = variants.first.id %>
                   <% end %>
-                  <%= link_to "Book Now", tenant_calendar_path(book_params), data: { "dropdown-updater-target": "bookLink" }, class: "w-full md:w-auto text-center md:text-left inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 whitespace-nowrap" %>
+                  <% default_book_path = tenant_calendar_path(book_params) %>
+                  <% booking_path = book_now_path_with_service_area(fallback_path: default_book_path) %>
+                  <%= link_to "Book Now", booking_path, data: { "dropdown-updater-target": "bookLink" }, class: "w-full md:w-auto text-center md:text-left inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 whitespace-nowrap" %>
                 </div>
               </div>
             </div>

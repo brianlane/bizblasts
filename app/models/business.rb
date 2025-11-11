@@ -114,6 +114,8 @@ class Business < ApplicationRecord
   enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
   enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
+  enum :website_layout, { basic: 'basic', enhanced: 'enhanced' }, suffix: true
+  ACCENT_COLOR_OPTIONS = %w[red orange amber emerald sky violet].freeze
   enum :status, { 
     active: 'active', 
     inactive: 'inactive', 
@@ -212,6 +214,8 @@ class Business < ApplicationRecord
   validates :zip, presence: true # Consider adding format validation
   validates :description, presence: true
   validates :tier, presence: true, inclusion: { in: tiers.keys }
+  validates :enhanced_accent_color, inclusion: { in: ACCENT_COLOR_OPTIONS }
+  validates :website_layout, presence: true, inclusion: { in: website_layouts.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
   validate :validate_timezone
@@ -283,6 +287,7 @@ class Business < ApplicationRecord
   #    already been started/completed.
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
+  after_commit :handle_website_layout_change, if: -> { saved_change_to_website_layout? }
 
   # 3. Invalidate AllowedHostService cache when custom domain configuration changes
   #    This ensures the host validation cache stays in sync with database changes
@@ -335,6 +340,14 @@ class Business < ApplicationRecord
   
   def loyalty_program_active?
     loyalty_program_enabled?
+  end
+  
+  def website_layout_enhanced?
+    enhanced_website_layout?
+  end
+
+  def website_layout_basic?
+    basic_website_layout?
   end
   
   def loyalty_program_enabled?
@@ -882,6 +895,14 @@ class Business < ApplicationRecord
     hostname.present? &&
     # Additional safety: ensure hostname doesn't contain any suspicious patterns
     hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
+  end
+
+  def handle_website_layout_change
+    return unless website_layout_enhanced?
+
+    EnhancedWebsiteLayoutService.apply!(self)
+  rescue => e
+    Rails.logger.error "[BUSINESS CALLBACK] Failed to apply enhanced website layout for business #{safe_identifier_for_logging}: #{e.message}"
   end
 
   # Triggered after *create* for eligible businesses.

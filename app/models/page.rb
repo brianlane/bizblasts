@@ -103,8 +103,15 @@ class Page < ApplicationRecord
   
   def customization_allowed_for_tier
     return if business.nil?
-    return if business.free_tier? && !has_custom_sections? # Allow basic pages for free tier
-    
+
+    if business.free_tier?
+      return if business.website_layout_enhanced?
+      return unless has_custom_sections?
+
+      errors.add(:base, "Advanced website customization requires Standard or Premium tier")
+      return
+    end
+
     unless business.standard_tier? || business.premium_tier?
       errors.add(:base, "Advanced website customization requires Standard or Premium tier")
     end

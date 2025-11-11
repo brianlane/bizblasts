@@ -1,31 +1,58 @@
-<div class="service-list-section py-16 bg-gray-50">
+<% services = business.services.active.positioned %>
+<% enhanced_layout = business&.website_layout_enhanced? %>
+
+<% section_classes = enhanced_layout ? "service-list-section py-16 bg-transparent" : "service-list-section py-16 bg-gray-50" %>
+<% title_classes = enhanced_layout ? "text-3xl font-bold text-center text-white mb-12" : "text-3xl font-bold text-center text-gray-900 mb-12" %>
+<% heading_classes = enhanced_layout ? "text-3xl font-bold text-white mb-4" : "text-3xl font-bold text-gray-900 mb-4" %>
+<% empty_text_classes = enhanced_layout ? "text-gray-400 text-base" : "text-gray-600 text-base" %>
+<% summary_wrapper_classes = enhanced_layout ? "text-center mb-12 text-gray-300" : "text-center mb-12" %>
+<% summary_text_classes = enhanced_layout ? "prose prose-lg max-w-none mx-auto text-gray-300" : "prose prose-lg max-w-none mx-auto" %>
+
+<% card_base_classes = "rounded-2xl shadow-md p-6 transition-transform duration-200" %>
+<% card_classes = enhanced_layout ? "#{card_base_classes} bg-[rgba(15,23,42,0.85)] border border-white/10 text-white hover:-translate-y-1" : "#{card_base_classes} bg-white text-gray-900 hover:-translate-y-1" %>
+<% description_classes = enhanced_layout ? "text-gray-300 mb-4" : "text-gray-600 mb-4" %>
+<% price_classes = enhanced_layout ? "text-2xl font-bold accent-text" : "text-2xl font-bold text-blue-600" %>
+<% cta_classes = enhanced_layout ? "accent-bg px-4 py-2 rounded transition-colors accent-link-white" : "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors" %>
+
+<div class="<%= section_classes %>">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <% if section.content_data['title'].present? %>
-      <h2 class="text-3xl font-bold text-center text-gray-900 mb-12"><%= section.content_data['title'] %></h2>
-    <% end %>
-    
-    <% if section.content_data['description'].present? %>
-      <div class="text-center mb-12">
-        <div class="prose prose-lg max-w-none mx-auto">
-          <%= section.content_data['description'] %>
-        </div>
+    <% if services.empty? %>
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="<%= heading_classes %>"><%= section.content_data['title'].presence || 'Our Services' %></h2>
+        <p class="<%= empty_text_classes %>">
+          We're getting our services ready. Please check back soon or contact us for custom solutions.
+        </p>
       </div>
-    <% end %>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <% business.services.active.positioned.each do |service| %>
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-xl font-semibold text-gray-900 mb-3"><%= service.name %></h3>
-          <% if service.description.present? %>
-            <p class="text-gray-600 mb-4"><%= truncate(service.description, length: 150) %></p>
-          <% end %>
-          <div class="flex justify-between items-center">
-            <span class="text-2xl font-bold text-blue-600">$<%= service.price %></span>
-            <%= link_to "Book Now", "/book?service_id=#{service.id}", 
-                        class: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors" %>
+    <% else %>
+      <% if section.content_data['title'].present? %>
+        <h2 class="<%= title_classes %>"><%= section.content_data['title'] %></h2>
+      <% end %>
+      
+      <% if section.content_data['description'].present? %>
+        <div class="<%= summary_wrapper_classes %>">
+          <div class="<%= summary_text_classes %>">
+            <%= section.content_data['description'] %>
           </div>
         </div>
       <% end %>
-    </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <% services.each do |service| %>
+          <div class="<%= card_classes %>">
+            <h3 class="text-xl font-semibold mb-3 <%= enhanced_layout ? 'text-white' : 'text-gray-900' %>"><%= service.name %></h3>
+            <% if service.description.present? %>
+              <p class="<%= description_classes %>"><%= truncate(service.description, length: 150) %></p>
+            <% end %>
+          <div class="flex justify-between items-center">
+              <span class="<%= price_classes %>">$<%= service.price %></span>
+            <% default_booking_path = new_tenant_booking_path(service_id: service.id) %>
+            <% booking_path = book_now_path_with_service_area(fallback_path: default_booking_path, service: service) %>
+              <%= link_to "Book Now", booking_path,
+                          class: cta_classes %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
   </div>
-</div> 
+</div>

@@ -659,6 +659,7 @@ GEM
     xpath (3.2.0)
       nokogiri (~> 1.8)
     zeitwerk (2.7.3)
+    zip-codes (0.3.7)
 
 PLATFORMS
   aarch64-linux
@@ -736,6 +737,7 @@ DEPENDENCIES
   tzinfo-data
   web-console
   webdrivers
+  zip-codes
 
 BUNDLED WITH
    2.6.9
