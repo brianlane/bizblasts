@@ -37,17 +37,42 @@ class EnhancedWebsiteLayoutService
 
   def ensure_sections!(page)
     allowed_types = definitions.map { |definition| definition[:type] }
-    page.page_sections.where.not(section_type: allowed_types).update_all(active: false) if page.page_sections.loaded? || page.page_sections.exists?
+
+    # Use unscoped query to avoid N+1 and ensure we're not operating on loaded associations
+    # This prevents duplicate queries if page_sections was already loaded
+    PageSection.where(page: page)
+               .where.not(section_type: allowed_types)
+               .update_all(active: false)
+
+    existing_sections = page.page_sections.where(section_type: allowed_types).index_by(&:section_type)
 
     definitions.each_with_index do |definition, index|
-      section = page.page_sections.find_or_initialize_by(section_type: definition[:type])
+      section = existing_sections[definition[:type]] || page.page_sections.build(section_type: definition[:type])
+      existing_sections[definition[:type]] = section
+
       section.position = index
       section.active = true
       section.animation_type = definition[:animation]
-      section.section_config = definition[:config] if definition[:config].present?
-      section.custom_css_classes = definition[:css_classes] if definition[:css_classes].present?
-      section.content = definition[:content] if definition[:content].present?
+      section.section_config = definition[:config] if definition.key?(:config)
+      section.custom_css_classes = definition[:css_classes] if definition.key?(:css_classes)
+      section.content = definition[:content] if definition.key?(:content)
       section.save!
+    rescue ActiveRecord::RecordInvalid => e
+      log_section_error(section, e)
+      if section.respond_to?(:errors)
+        section.errors.add(:base, e.message) unless section.errors[:base].include?(e.message)
+        raise ActiveRecord::RecordInvalid.new(section)
+      else
+        raise
+      end
+    rescue NoMethodError => e
+      if section.respond_to?(:errors) && e.message.include?('errors')
+        log_section_error(section, e)
+        section.errors.add(:base, e.message)
+        raise ActiveRecord::RecordInvalid.new(section)
+      else
+        raise
+      end
     end
   end
 
@@ -106,9 +131,11 @@ class EnhancedWebsiteLayoutService
   end
 
   def hero_content
+    sanitized_name = sanitized_business_name
+    sanitized_subtitle = sanitized_text(hero_subtitle)
     {
-      'title' => business.name,
-      'subtitle' => hero_subtitle,
+      'title' => sanitized_name,
+      'subtitle' => sanitized_subtitle,
       'button_text' => 'Book Now',
       'button_link' => booking_link,
       'secondary_button_text' => 'Contact',
@@ -185,10 +212,11 @@ class EnhancedWebsiteLayoutService
   end
 
   def testimonial_content
+    sanitized_name = sanitized_business_name
     {
       'title' => 'Real Talk With Real Customers',
-      'fallback_quote' => "We rely on #{business.name} because they treat every project like it matters.",
-      'fallback_author' => business.name
+      'fallback_quote' => "We rely on #{sanitized_name} because they treat every project like it matters.",
+      'fallback_author' => sanitized_name
     }
   end
 
@@ -202,10 +230,43 @@ class EnhancedWebsiteLayoutService
   end
 
   def social_content
+    sanitized_name = sanitized_business_name
     {
       'title' => 'Let’s Stay Connected',
-      'description' => "Follow #{business.name} online and keep up with the latest work, promotions, and behind-the-scenes updates."
+      'description' => "Follow #{sanitized_name} online and keep up with the latest work, promotions, and behind-the-scenes updates."
     }
+  end
+
+  def sanitized_business_name
+    sanitized_text(business&.name)
+  end
+
+  def sanitized_text(text)
+    ERB::Util.h(text.to_s)
+  end
+
+  def log_section_error(section, error)
+    return unless Rails.logger
+
+    section_type = section.respond_to?(:section_type) ? section.section_type : 'unknown'
+    business_identifier =
+      if business.respond_to?(:safe_identifier_for_logging)
+        business.safe_identifier_for_logging
+      elsif business&.id
+        business.id
+      else
+        'unknown_business'
+      end
+
+    Rails.logger.error(
+      "[EnhancedWebsiteLayoutService] Failed to save section #{section_type} for business #{business_identifier}: #{error.class} - #{error.message}"
+    )
+  rescue StandardError => log_error
+    if Rails.logger&.respond_to?(:debug)
+      Rails.logger.debug(
+        "[EnhancedWebsiteLayoutService] Logging failure: #{log_error.class} - #{log_error.message}"
+      )
+    end
   end
 
   def booking_link

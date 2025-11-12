@@ -115,29 +115,146 @@ RSpec.describe BookingPolicy, type: :model do
 
   describe '#slot_interval_mins' do
     let(:service) { build(:service, duration: 32) }
-    
+
     context 'when use_fixed_intervals is false' do
       let(:policy) { build(:booking_policy, business: business, use_fixed_intervals: false, interval_mins: 30) }
-      
+
       it 'returns nil to let calling code use default logic' do
         expect(policy.slot_interval_mins(service)).to be_nil
       end
-      
+
       it 'returns nil when service is nil' do
         expect(policy.slot_interval_mins(nil)).to be_nil
       end
     end
-    
+
     context 'when use_fixed_intervals is true' do
       let(:policy) { build(:booking_policy, business: business, use_fixed_intervals: true, interval_mins: 30) }
-      
+
       it 'returns the interval_mins regardless of service duration' do
         expect(policy.slot_interval_mins(service)).to eq(30)
       end
-      
+
       it 'returns the interval_mins when service is nil' do
         expect(policy.slot_interval_mins(nil)).to eq(30)
       end
+    end
+  end
+
+  describe '#service_radius_active?' do
+    context 'when service radius is fully configured' do
+      it 'returns true when enabled with explicit radius' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: true,
+                      service_radius_miles: 25)
+        expect(policy.service_radius_active?).to be true
+      end
+
+      it 'returns true when enabled without explicit radius (uses default)' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: true,
+                      service_radius_miles: nil)
+        expect(policy.service_radius_active?).to be true
+      end
+    end
+
+    context 'when service radius is not fully configured' do
+      it 'returns false when disabled even with radius set' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: false,
+                      service_radius_miles: 25)
+        expect(policy.service_radius_active?).to be false
+      end
+
+      it 'returns false when disabled and no radius' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: false,
+                      service_radius_miles: nil)
+        expect(policy.service_radius_active?).to be false
+      end
+    end
+
+    context 'edge cases' do
+      it 'returns true for zero radius (though validation prevents saving this)' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: true,
+                      service_radius_miles: 0)
+        # Zero is present (not nil/blank), so service_radius_active? returns true
+        # However, validation will prevent this from being saved (must be > 0)
+        expect(policy.service_radius_active?).to be true
+        expect(policy.effective_service_radius_miles).to eq(0)
+        expect(policy).not_to be_valid # Validation catches this
+        expect(policy.errors[:service_radius_miles]).to include('must be greater than 0 when service radius is enabled')
+      end
+
+      it 'returns nil (falsy) when enabled is nil' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: nil,
+                      service_radius_miles: 25)
+        # When the boolean column is nil, the && operator returns nil (not false)
+        expect(policy.service_radius_active?).to be_nil
+        expect(policy.service_radius_active?).to be_falsy
+      end
+    end
+  end
+
+  describe '#effective_service_radius_miles' do
+    context 'when service radius is enabled' do
+      it 'returns the configured radius' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: true,
+                      service_radius_miles: 25)
+        expect(policy.effective_service_radius_miles).to eq(25)
+      end
+
+      it 'returns default of 50 when radius is nil' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: true,
+                      service_radius_miles: nil)
+        expect(policy.effective_service_radius_miles).to eq(50)
+      end
+
+      it 'converts string radius to integer' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: true,
+                      service_radius_miles: "30")
+        expect(policy.effective_service_radius_miles).to eq(30)
+      end
+    end
+
+    context 'when service radius is disabled' do
+      it 'returns nil' do
+        policy = build(:booking_policy, business: business,
+                      service_radius_enabled: false,
+                      service_radius_miles: 25)
+        expect(policy.effective_service_radius_miles).to be_nil
+      end
+    end
+  end
+
+  describe 'method naming to avoid ActiveRecord conflicts' do
+    it 'preserves access to the auto-generated service_radius_enabled boolean column predicate' do
+      policy = build(:booking_policy, business: business,
+                    service_radius_enabled: true,
+                    service_radius_miles: 25)
+
+      # Direct boolean column access (auto-generated by ActiveRecord)
+      expect(policy.service_radius_enabled).to be true
+
+      # Custom method that checks both enabled AND configured
+      expect(policy.service_radius_active?).to be true
+    end
+
+    it 'distinguishes between enabled (column) and active (configured)' do
+      policy = build(:booking_policy, business: business,
+                    service_radius_enabled: true,
+                    service_radius_miles: nil)
+
+      # Column is enabled
+      expect(policy.service_radius_enabled).to be true
+
+      # But feature is active (uses default radius)
+      expect(policy.service_radius_active?).to be true
     end
   end
 end 

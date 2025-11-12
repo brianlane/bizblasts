@@ -28,7 +28,7 @@ module Public
         flash[:notice] = "Great news! We service your area."
         redirect_to @return_to
       when :invalid_zip
-        flash.now[:alert] = "We couldn't find that ZIP code. Please double-check and try again."
+        flash.now[:alert] = "We couldn't find that ZIP code. Please double-check and try again.".html_safe
         render :new, status: :unprocessable_entity
       else
         flash.now[:alert] = "It looks like you're outside our service area. Please contact us to see if we can make an exception."
@@ -47,11 +47,35 @@ module Public
 
       return fallback if proposed.blank?
 
-      uri = URI.parse(proposed) rescue nil
-      if uri&.host.present? && uri.host != request.host
+      # Parse and validate the proposed URL
+      begin
+        uri = URI.parse(proposed)
+
+        # Explicitly reject dangerous schemes (XSS prevention)
+        # Only allow HTTP/HTTPS or no scheme at all (relative paths)
+        if uri.scheme.present?
+          dangerous_schemes = %w[javascript data vbscript file]
+          return fallback if dangerous_schemes.include?(uri.scheme.downcase)
+
+          # Only allow http/https schemes if a scheme is present
+          return fallback unless %w[http https].include?(uri.scheme.downcase)
+        end
+
+        # Reject any URL with a host (including protocol-relative URLs)
+        # Only allow relative paths to prevent open redirects
+        return fallback if uri.host.present?
+
+        # Only return the path component, never a full URL
+        # This prevents open redirect attacks by ensuring we never redirect to external sites
+        path = uri.path.presence
+        return fallback if path.blank?
+
+        # Include query string if present (but still path-only)
+        path += "?#{uri.query}" if uri.query.present?
+        path
+      rescue URI::InvalidURIError
+        # If URL parsing fails, return safe fallback
         fallback
-      else
-        uri&.path.present? ? uri.to_s : proposed
       end
     end
   end

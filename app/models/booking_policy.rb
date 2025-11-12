@@ -20,6 +20,7 @@ class BookingPolicy < ApplicationRecord
 
   validate :min_not_greater_than_max
   validate :fixed_interval_validation
+  validate :service_radius_configuration
 
   # Customer-friendly policy display methods
   def customer_friendly_cancellation_policy
@@ -159,7 +160,10 @@ class BookingPolicy < ApplicationRecord
     use_fixed_intervals? ? interval_mins : nil
   end
 
-  def service_radius_enabled?
+  # Check if service radius is both enabled AND properly configured
+  # This method has a different name to avoid overriding the auto-generated
+  # ActiveRecord predicate for the service_radius_enabled boolean column
+  def service_radius_active?
     service_radius_enabled && effective_service_radius_miles.present?
   end
 
@@ -190,10 +194,20 @@ class BookingPolicy < ApplicationRecord
   def fixed_interval_validation
     return unless use_fixed_intervals?
     return if interval_mins.blank? # Let numericality validation handle blank/nil values
-    
+
     # Only check divisibility by 5 since numericality validation handles the rest
     if interval_mins % 5 != 0
       errors.add(:interval_mins, 'must be divisible by 5 when using fixed intervals')
+    end
+  end
+
+  def service_radius_configuration
+    return unless service_radius_enabled
+
+    if service_radius_miles.blank?
+      errors.add(:service_radius_miles, 'must be specified when service radius is enabled')
+    elsif service_radius_miles <= 0
+      errors.add(:service_radius_miles, 'must be greater than 0 when service radius is enabled')
     end
   end
 end 

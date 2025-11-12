@@ -141,10 +141,128 @@ RSpec.describe "BusinessManager::Settings::BookingPolicies", type: :request do
         end
 
         it "validates that min_duration is not greater than max_duration" do
-          patch business_manager_settings_booking_policy_path, params: { 
-            booking_policy: duration_attributes.merge(min_duration_mins: 120, max_duration_mins: 60) 
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: duration_attributes.merge(min_duration_mins: 120, max_duration_mins: 60)
           }
           expect(response).to have_http_status(:found).or have_http_status(:unprocessable_content)
+        end
+      end
+
+      context "with service radius fields (Bug Fix: Nil Violates Constraint)" do
+        it "preserves existing service_radius_miles when blank and disabled" do
+          @booking_policy.update!(service_radius_enabled: false, service_radius_miles: 50)
+
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '0',
+              service_radius_miles: '' # Blank field
+            }
+          }
+
+          @booking_policy.reload
+          expect(@booking_policy.service_radius_enabled).to be false
+          # Should preserve existing value, not set to nil
+          expect(@booking_policy.service_radius_miles).to eq(50)
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
+        end
+
+        it "updates service_radius_miles when provided with valid value" do
+          @booking_policy.update!(service_radius_enabled: true, service_radius_miles: 50)
+
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '1',
+              service_radius_miles: '25'
+            }
+          }
+
+          @booking_policy.reload
+          expect(@booking_policy.service_radius_enabled).to be true
+          expect(@booking_policy.service_radius_miles).to eq(25)
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
+        end
+
+        it "preserves existing service_radius_miles when enabled with blank field" do
+          @booking_policy.update!(service_radius_enabled: false, service_radius_miles: 50)
+
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '1', # Enabled
+              service_radius_miles: '' # Blank - preserves existing value (50)
+            }
+          }
+
+          @booking_policy.reload
+          expect(@booking_policy.service_radius_enabled).to be true
+          # Blank field preserves existing valid value
+          expect(@booking_policy.service_radius_miles).to eq(50)
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
+        end
+
+        it "rejects zero service_radius_miles when enabled (validation)" do
+          @booking_policy.update!(service_radius_enabled: false, service_radius_miles: 50)
+
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '1',
+              service_radius_miles: '0' # Zero - should fail validation
+            }
+          }
+
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(response).to render_template(:edit)
+        end
+
+        it "allows disabling service radius without changing miles" do
+          @booking_policy.update!(service_radius_enabled: true, service_radius_miles: 25)
+
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '0' # Just disable, don't touch miles
+            }
+          }
+
+          @booking_policy.reload
+          expect(@booking_policy.service_radius_enabled).to be false
+          expect(@booking_policy.service_radius_miles).to eq(25) # Preserved
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
+        end
+
+        it "skips miles update when disabling with cleared numeric field (Codex bug)" do
+          @booking_policy.update!(service_radius_enabled: true, service_radius_miles: 25)
+
+          # User clears the numeric field AND unchecks the checkbox
+          # This was causing a 500 error with NOT NULL constraint violation
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '0', # Disabled
+              service_radius_miles: '' # Cleared field
+            }
+          }
+
+          @booking_policy.reload
+          expect(@booking_policy.service_radius_enabled).to be false
+          # Should preserve existing value (25), not set to nil
+          expect(@booking_policy.service_radius_miles).to eq(25)
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
+        end
+
+        it "skips miles update when disabling even with a value in the field" do
+          @booking_policy.update!(service_radius_enabled: true, service_radius_miles: 25)
+
+          # When disabling, ignore any value in the miles field
+          patch business_manager_settings_booking_policy_path, params: {
+            booking_policy: {
+              service_radius_enabled: '0', # Disabled
+              service_radius_miles: '100' # Some value
+            }
+          }
+
+          @booking_policy.reload
+          expect(@booking_policy.service_radius_enabled).to be false
+          # Should preserve original value (25), not update to 100
+          expect(@booking_policy.service_radius_miles).to eq(25)
+          expect(response).to redirect_to(business_manager_settings_booking_policy_path)
         end
       end
     end

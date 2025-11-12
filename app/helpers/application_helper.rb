@@ -32,7 +32,7 @@ module ApplicationHelper
 
   def book_now_path_with_service_area(fallback_path:, service: nil)
     policy = current_tenant&.booking_policy
-    return fallback_path unless policy&.service_radius_enabled?
+    return fallback_path unless policy&.service_radius_active?
 
     params = {}
     params[:service_id] = service.id if service.present?

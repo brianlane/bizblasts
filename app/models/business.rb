@@ -287,7 +287,9 @@ class Business < ApplicationRecord
   #    already been started/completed.
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
-  after_commit :handle_website_layout_change, if: -> { saved_change_to_website_layout? }
+  after_commit :handle_website_layout_change, if: -> {
+    website_layout_enhanced? && saved_changes.except('updated_at').present?
+  }
 
   # 3. Invalidate AllowedHostService cache when custom domain configuration changes
   #    This ensures the host validation cache stays in sync with database changes
@@ -774,7 +776,7 @@ class Business < ApplicationRecord
   
   # Ensure time_zone present by performing lookup if blank
   def ensure_time_zone!
-    return time_zone if time_zone.present? && time_zone != 'UTC'
+    return time_zone if time_zone.present?
 
     set_time_zone_from_address if respond_to?(:set_time_zone_from_address)
     save(validate: false) if time_zone_changed? && persisted?
@@ -901,8 +903,11 @@ class Business < ApplicationRecord
     return unless website_layout_enhanced?
 
     EnhancedWebsiteLayoutService.apply!(self)
-  rescue => e
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => e
     Rails.logger.error "[BUSINESS CALLBACK] Failed to apply enhanced website layout for business #{safe_identifier_for_logging}: #{e.message}"
+  rescue StandardError => e
+    Rails.logger.error "[BUSINESS CALLBACK] Unexpected error applying enhanced website layout for business #{safe_identifier_for_logging}: #{e.class.name} - #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
   end
 
   # Triggered after *create* for eligible businesses.

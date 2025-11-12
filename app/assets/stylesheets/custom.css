@@ -2247,26 +2247,9 @@ div[data-section-type] a:visited:hover,
   color: #FF8C42 !important; /* Accent color on hover even for visited */
 }
 
-.page-section a.accent-link-white,
-.page-section a.accent-link-white:visited,
-.page-section a.accent-link-white:hover,
-.page-section a.accent-link-white:focus,
-.page-content a.accent-link-white,
-.page-content a.accent-link-white:visited,
-.page-content a.accent-link-white:hover,
-.page-content a.accent-link-white:focus,
-.website-builder-page a.accent-link-white,
-.website-builder-page a.accent-link-white:visited,
-.website-builder-page a.accent-link-white:hover,
-.website-builder-page a.accent-link-white:focus,
-.section-content a.accent-link-white,
-.section-content a.accent-link-white:visited,
-.section-content a.accent-link-white:hover,
-.section-content a.accent-link-white:focus,
-div[data-section-type] a.accent-link-white,
-div[data-section-type] a.accent-link-white:visited,
-div[data-section-type] a.accent-link-white:hover,
-div[data-section-type] a.accent-link-white:focus {
+/* Consolidated accent-link-white styles for better maintainability */
+:is(.page-section, .page-content, .website-builder-page, .section-content, div[data-section-type])
+  a.accent-link-white:is(:link, :visited, :hover, :focus) {
   color: rgba(255, 255, 255, 0.96) !important;
   text-decoration: none !important;
   text-decoration-color: transparent !important;
