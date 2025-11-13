@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'nokogiri'
+require 'cgi'
+require 'uri'
 
 RSpec.describe 'Service Area Check Integration', type: :request do
   let(:business) do
@@ -21,6 +24,30 @@ RSpec.describe 'Service Area Check Integration', type: :request do
     ActsAsTenant.with_tenant(business) do
       # Setup test environment
       host! TenantHost.host_for(business, nil)
+    end
+  end
+
+  describe 'home page book now links' do
+    it 'include service context when service radius is active' do
+      service
+      business.update!(show_services_section: true)
+
+      get tenant_root_path
+
+      expect(response).to have_http_status(:success)
+
+      doc = Nokogiri::HTML(response.body)
+      book_link = doc.css('a[data-dropdown-updater-target="bookLink"]').first
+
+      expect(book_link).to be_present
+
+      link_uri = URI.parse(book_link['href'])
+      params = Rack::Utils.parse_nested_query(link_uri.query)
+
+      expect(params['service_id']).to eq(service.id.to_s)
+      expect(params['return_to']).to be_present
+      decoded_return_to = CGI.unescape(params['return_to'])
+      expect(decoded_return_to).to include("service_id=#{service.id}")
     end
   end
 

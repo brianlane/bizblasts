@@ -116,6 +116,21 @@ class Business < ApplicationRecord
   enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
   enum :website_layout, { basic: 'basic', enhanced: 'enhanced' }, suffix: true
   ACCENT_COLOR_OPTIONS = %w[red orange amber emerald sky violet].freeze
+
+  # Fields that affect the enhanced website layout rendering
+  # When any of these fields change, the layout needs to be re-applied
+  LAYOUT_RELATED_FIELDS = %w[
+    website_layout
+    name
+    description
+    industry
+    city
+    state
+    show_services_section
+    show_products_section
+    enhanced_accent_color
+  ].freeze
+
   enum :status, { 
     active: 'active', 
     inactive: 'inactive', 
@@ -288,7 +303,7 @@ class Business < ApplicationRecord
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
   after_commit :handle_website_layout_change, if: -> {
-    website_layout_enhanced? && saved_changes.except('updated_at').present?
+    website_layout_enhanced? && (saved_changes.keys & LAYOUT_RELATED_FIELDS).any?
   }
 
   # 3. Invalidate AllowedHostService cache when custom domain configuration changes

@@ -397,6 +397,7 @@ module BusinessManager
 
           conflict = current_business.bookings
             .where(staff_member_id: @booking.staff_member_id)
+            .where.not(id: @booking.id)
             .where.not(status: :cancelled)
             .where("start_time < ? AND end_time > ?", buffer_window_end, buffer_window_start)
             .exists?

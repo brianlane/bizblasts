@@ -160,6 +160,23 @@ RSpec.describe "Business Manager Bookings", type: :request do
           expect(response).to redirect_to(business_manager_booking_path(booking))
           expect(flash[:notice]).to include("successfully updated")
         end
+
+        it "allows rescheduling without tripping buffer conflicts on the same booking" do
+          business.booking_policy.update!(buffer_time_mins: 45)
+
+          new_start = booking.start_time + 2.hours
+          new_end = booking.end_time + 2.hours
+
+          patch business_manager_booking_path(booking), params: {
+            booking: {
+              start_time: new_start.iso8601,
+              end_time: new_end.iso8601
+            }
+          }
+
+          expect(response).to redirect_to(business_manager_booking_path(booking))
+          expect(booking.reload.start_time).to be_within(1.second).of(new_start)
+        end
       end
 
       context "with invalid parameters" do
