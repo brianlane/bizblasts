@@ -25,6 +25,7 @@ class User < ApplicationRecord
   # Track which setup reminder tasks the user has dismissed
   has_many :setup_reminder_dismissals, dependent: :destroy
   has_many :user_sidebar_items, dependent: :destroy
+  has_many :invalidated_sessions, dependent: :delete_all
   
   # Referral system associations
   has_many :referrals_made, class_name: 'Referral', foreign_key: 'referrer_id', dependent: :destroy

@@ -35,6 +35,19 @@ RSpec.describe Business, type: :model do
     it { is_expected.to have_many(:clients).through(:client_businesses).source(:user) }
   end
 
+  describe '#destroy' do
+    it 'destroys invalidated sessions for associated users' do
+      business = create(:business)
+      user = create(:user, :manager, business: business)
+      create(:invalidated_session, user: user)
+
+      expect {
+        business.destroy!
+      }.to change(InvalidatedSession, :count).by(-1)
+       .and change(User, :count).by(-1)
+    end
+  end
+
   describe 'time zone helpers' do
     describe '#ensure_time_zone!' do
       let(:business) do
