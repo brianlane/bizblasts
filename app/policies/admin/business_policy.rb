@@ -62,6 +62,14 @@ module Admin
       admin?
     end
 
+    def stripe_diagnostics?
+      admin?
+    end
+
+    def send_stripe_connect_reminder?
+      admin?
+    end
+
     private
 
     # Helper method to check if the user is an admin.

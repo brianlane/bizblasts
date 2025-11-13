@@ -874,8 +874,8 @@ ActiveAdmin.register Business do
               wrapper_html: { class: 'hostname-field-wrapper', style: 'display: none;' },
               hint: "For custom domains (e.g., yourbusiness.com). Auto-generated but can be edited."
 
-      # Hidden field to track host_type (set by JavaScript)
-      f.input :host_type, as: :hidden, input_html: { value: 'subdomain' }
+      # Hidden field to track host_type (set by JavaScript for new records, preserves current value for edits)
+      f.input :host_type, as: :hidden
 
       f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :email, hint: "Primary business email (used for manager login)"
@@ -932,7 +932,7 @@ ActiveAdmin.register Business do
                 ['Violet', 'violet']
               ],
               include_blank: "Select accent color",
-              wrapper_html: { class: 'enhanced-accent-color-wrapper', style: 'display: none;' },
+              wrapper_html: { class: 'enhanced-accent-color-wrapper hidden-by-default' },
               hint: "Choose the accent color theme for the enhanced layout (only applies when Enhanced Layout is selected)"
     end
 
@@ -941,7 +941,6 @@ ActiveAdmin.register Business do
     # Add JavaScript for dynamic field switching and subdomain generation
     script do
       raw <<-JS
-        <script>
           (function() {
             // Slugify function to convert business name to URL-safe subdomain
             function slugify(text) {
@@ -995,15 +994,22 @@ ActiveAdmin.register Business do
               const websiteLayout = $('input[name="business[website_layout]"]:checked').val();
               const accentColorWrapper = $('.enhanced-accent-color-wrapper');
 
+              console.log('updateLayoutFields called');
+              console.log('Selected layout:', websiteLayout);
+              console.log('Found wrappers:', accentColorWrapper.length);
+
               if (websiteLayout === 'enhanced') {
-                accentColorWrapper.show();
+                console.log('Showing accent color field');
+                accentColorWrapper.removeClass('hidden-by-default');
               } else {
-                accentColorWrapper.hide();
+                console.log('Hiding accent color field');
+                accentColorWrapper.addClass('hidden-by-default');
               }
             }
 
             // Initialize on page load
             $(document).ready(function() {
+              console.log('Document ready - initializing layout fields');
               // Get initial tier value
               const initialTier = $('input[name="business[tier]"]:checked').val() || 'free';
               updateFieldsForTier(initialTier);
@@ -1042,12 +1048,23 @@ ActiveAdmin.register Business do
               });
             });
           })();
-        </script>
+      JS
+    end
+
+    # Add CSS styles for form customization
+    content do
+      raw <<-HTML
         <style>
           .subdomain-preview {
             font-weight: bold;
             color: #2a6496;
           }
+
+          /* Hide accent color field by default, show when Enhanced layout selected */
+          .hidden-by-default {
+            display: none !important;
+          }
+
           fieldset.collapsed > ol {
             display: none;
           }
@@ -1087,7 +1104,7 @@ ActiveAdmin.register Business do
             color: white;
           }
         </style>
-      JS
+      HTML
     end
   end
 
