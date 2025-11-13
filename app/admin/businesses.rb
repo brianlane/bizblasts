@@ -108,8 +108,9 @@ ActiveAdmin.register Business do
   # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
-                :active, :tier, :subdomain, :service_template_id, 
+                :active, :tier, :subdomain, :service_template_id,
                 :hostname, :host_type, :canonical_preference, # Added new fields
+                :website_layout, :enhanced_accent_color, # Website layout customization
                 :stripe_customer_id, # Stripe integration
                 :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
                 :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date, # Auto-renewal tracking
@@ -493,6 +494,18 @@ ActiveAdmin.register Business do
       row :description
       row :time_zone
       row :active
+      row :website_layout do |business|
+        business.website_layout&.humanize
+      end
+      row :enhanced_accent_color do |business|
+        if business.website_layout_enhanced?
+          content_tag(:span, business.enhanced_accent_color&.humanize,
+                      class: "accent-color-badge accent-#{business.enhanced_accent_color}",
+                      style: "display: inline-block; padding: 4px 8px; border-radius: 3px; font-weight: bold; text-transform: capitalize;")
+        else
+          "N/A (Basic layout)"
+        end
+      end
       row :created_at
       row :updated_at
     end
@@ -861,8 +874,8 @@ ActiveAdmin.register Business do
               wrapper_html: { class: 'hostname-field-wrapper', style: 'display: none;' },
               hint: "For custom domains (e.g., yourbusiness.com). Auto-generated but can be edited."
 
-      # Hidden field to track host_type (set by JavaScript)
-      f.input :host_type, as: :hidden, input_html: { value: 'subdomain' }
+      # Hidden field to track host_type (set by JavaScript for new records, preserves current value for edits)
+      f.input :host_type, as: :hidden
 
       f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :email, hint: "Primary business email (used for manager login)"
@@ -902,12 +915,32 @@ ActiveAdmin.register Business do
               hint: "Internal notes about domain coverage, cost details, alternatives offered, registrar info, etc."
     end
 
+    # Website Layout & Customization section
+    f.inputs "Website Layout & Customization", class: "website-layout-section" do
+      f.input :website_layout, as: :radio, collection: [
+        ['Basic Layout', 'basic'],
+        ['Enhanced Layout', 'enhanced']
+      ], hint: "Choose the website layout style for this business. Enhanced layout provides modern design with customizable colors."
+
+      f.input :enhanced_accent_color, as: :select,
+              collection: [
+                ['Red', 'red'],
+                ['Orange', 'orange'],
+                ['Amber', 'amber'],
+                ['Emerald', 'emerald'],
+                ['Sky', 'sky'],
+                ['Violet', 'violet']
+              ],
+              include_blank: "Select accent color",
+              wrapper_html: { class: 'enhanced-accent-color-wrapper hidden-by-default' },
+              hint: "Choose the accent color theme for the enhanced layout (only applies when Enhanced Layout is selected)"
+    end
+
     f.actions
 
     # Add JavaScript for dynamic field switching and subdomain generation
     script do
       raw <<-JS
-        <script>
           (function() {
             // Slugify function to convert business name to URL-safe subdomain
             function slugify(text) {
@@ -956,8 +989,27 @@ ActiveAdmin.register Business do
               }
             }
 
+            // Show/hide enhanced_accent_color based on website_layout selection
+            function updateLayoutFields() {
+              const websiteLayout = $('input[name="business[website_layout]"]:checked').val();
+              const accentColorWrapper = $('.enhanced-accent-color-wrapper');
+
+              console.log('updateLayoutFields called');
+              console.log('Selected layout:', websiteLayout);
+              console.log('Found wrappers:', accentColorWrapper.length);
+
+              if (websiteLayout === 'enhanced') {
+                console.log('Showing accent color field');
+                accentColorWrapper.removeClass('hidden-by-default');
+              } else {
+                console.log('Hiding accent color field');
+                accentColorWrapper.addClass('hidden-by-default');
+              }
+            }
+
             // Initialize on page load
             $(document).ready(function() {
+              console.log('Document ready - initializing layout fields');
               // Get initial tier value
               const initialTier = $('input[name="business[tier]"]:checked').val() || 'free';
               updateFieldsForTier(initialTier);
@@ -981,6 +1033,14 @@ ActiveAdmin.register Business do
                 nameTimeout = setTimeout(updateSlugFields, 300); // 300ms debounce
               });
 
+              // Initialize website layout field visibility
+              updateLayoutFields();
+
+              // Listen for website layout changes
+              $('input[name="business[website_layout]"]').on('change', function() {
+                updateLayoutFields();
+              });
+
               // Make advanced sections collapsible on initial load
               $('.advanced-settings, .stripe-section').addClass('collapsed');
               $('.advanced-settings legend, .stripe-section legend').css('cursor', 'pointer').on('click', function() {
@@ -988,12 +1048,23 @@ ActiveAdmin.register Business do
               });
             });
           })();
-        </script>
+      JS
+    end
+
+    # Add CSS styles for form customization
+    content do
+      raw <<-HTML
         <style>
           .subdomain-preview {
             font-weight: bold;
             color: #2a6496;
           }
+
+          /* Hide accent color field by default, show when Enhanced layout selected */
+          .hidden-by-default {
+            display: none !important;
+          }
+
           fieldset.collapsed > ol {
             display: none;
           }
@@ -1006,8 +1077,34 @@ ActiveAdmin.register Business do
           fieldset:not(.collapsed) legend:after {
             content: " ▼";
           }
+
+          /* Accent color badges for show page */
+          .accent-color-badge.accent-red {
+            background-color: #ef4444;
+            color: white;
+          }
+          .accent-color-badge.accent-orange {
+            background-color: #f97316;
+            color: white;
+          }
+          .accent-color-badge.accent-amber {
+            background-color: #eab308;
+            color: black;
+          }
+          .accent-color-badge.accent-emerald {
+            background-color: #10b981;
+            color: white;
+          }
+          .accent-color-badge.accent-sky {
+            background-color: #0ea5e9;
+            color: white;
+          }
+          .accent-color-badge.accent-violet {
+            background-color: #a855f7;
+            color: white;
+          }
         </style>
-      JS
+      HTML
     end
   end
 

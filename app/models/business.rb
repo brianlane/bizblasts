@@ -230,7 +230,7 @@ class Business < ApplicationRecord
   validates :zip, presence: true # Consider adding format validation
   validates :description, presence: true
   validates :tier, presence: true, inclusion: { in: tiers.keys }
-  validates :enhanced_accent_color, inclusion: { in: ACCENT_COLOR_OPTIONS }
+  validates :enhanced_accent_color, inclusion: { in: ACCENT_COLOR_OPTIONS }, allow_nil: true
   validates :website_layout, presence: true, inclusion: { in: website_layouts.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
@@ -981,7 +981,7 @@ class Business < ApplicationRecord
     return unless premium_tier? && hostname.present?
     # Skip if setup already running or completed
     return if cname_pending? || cname_monitoring? || cname_active?
-    
+
     # Run domain setup in background to prevent 502 crashes from external API calls
     Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after host_type change (subdomain -> custom_domain)"
     CustomDomainSetupJob.perform_later(id)
