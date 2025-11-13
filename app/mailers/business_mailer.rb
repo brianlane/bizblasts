@@ -30,6 +30,32 @@ class BusinessMailer < ApplicationMailer
     return nil
   end
 
+  # Send a Stripe connect reminder with a magic link CTA
+  def stripe_connect_reminder(user, business)
+    return unless user.present? && business.present?
+    return if user.unsubscribed_from_emails?
+    return unless user.can_receive_email?(:system)
+
+    @user = user
+    @business = business
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+    @magic_link_url = MagicLinkBuilder.build_for(
+      user,
+      redirect_path: '/manage/settings/business/stripe_onboarding'
+    )
+
+    set_unsubscribe_token(user)
+
+    mail(
+      to: user.email,
+      subject: "Action Needed: Connect Stripe for #{business.name}",
+      reply_to: @support_email
+    )
+  rescue => e
+    Rails.logger.error "[BusinessMailer] Failed to build Stripe connect reminder for business #{business&.id}: #{e.message}"
+    raise
+  end
+
   # Send notification to business when a new booking is made
   def new_booking_notification(booking)
     @booking = booking

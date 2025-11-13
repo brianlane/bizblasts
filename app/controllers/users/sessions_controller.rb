@@ -126,20 +126,52 @@ module Users
       
       # Get the redirect path manually rather than using respond_with
       # This gives us full control over where users go after sign-in
-      redirect_path = after_sign_in_path_for(resource)
+      redirect_path = after_sign_in_path_for(resource).to_s
       
-      # Use redirect_to with allow_other_host: true to handle cross-domain redirects
-      # This is essential for multi-tenant architecture where users may be redirected
-      # from the main site to their tenant's subdomain or custom domain
-      if redirect_path.include?("://") && redirect_path != request.url
+      external_redirect = redirect_path.include?("://") && redirect_path != request.url
+
+      if external_redirect
         Rails.logger.debug "[Sessions::create] Redirecting to external URL: #{redirect_path}"
-        redirect_to redirect_path, allow_other_host: true, status: :see_other
       else
         Rails.logger.debug "[Sessions::create] Redirecting to internal path: #{redirect_path}"
-        redirect_to redirect_path, status: :see_other
       end
+
+      redirect_with_cross_domain_support(redirect_path, status: :see_other, external_redirect: external_redirect)
     end
     
+    protected def require_no_authentication
+      assert_is_devise_resource!
+      return unless is_navigational_format?
+
+      no_input = devise_mapping.no_input_strategies
+
+      authenticated = if no_input.present?
+        args = no_input.dup.push scope: resource_name
+        warden.authenticate?(*args)
+      else
+        warden.authenticated?(resource_name)
+      end
+
+      if authenticated && (resource = warden.user(resource_name))
+        set_flash_message(:alert, 'already_authenticated', scope: 'devise.failure')
+
+        redirect_path = after_sign_in_path_for(resource).to_s
+        external_redirect = redirect_path.include?("://") && redirect_path != request.url
+
+        if external_redirect
+          Rails.logger.debug "[Sessions::require_no_authentication] Redirecting authenticated user to external URL: #{redirect_path}"
+        else
+          Rails.logger.debug "[Sessions::require_no_authentication] Redirecting authenticated user to internal path: #{redirect_path}"
+        end
+
+        redirect_with_cross_domain_support(
+          redirect_path,
+          status: Devise::Controllers::Responder.redirect_status,
+          external_redirect: external_redirect
+        )
+      end
+    end
+
     # Override the path users are redirected to after sign in
     # This method handles three main scenarios:
     # 1. Business users (managers/staff) → Their tenant's management dashboard
@@ -309,6 +341,17 @@ module Users
     end
 
     private
+
+    def redirect_with_cross_domain_support(target, status: Devise::Controllers::Responder.redirect_status, external_redirect: nil)
+      url = target.to_s
+      is_external = external_redirect.nil? ? (url.include?("://") && url != request.url) : external_redirect
+
+      if is_external
+        redirect_to url, allow_other_host: true, status: status
+      else
+        redirect_to url, status: status
+      end
+    end
 
     # Allow JSON authentication requests through CSRF protection
     # This is necessary because:

@@ -68,6 +68,27 @@ RSpec.describe BusinessMailer, type: :mailer do
     end
   end
 
+  describe '#stripe_connect_reminder' do
+    let(:stripe_business) { create(:business, name: 'Reminder Biz', stripe_account_id: 'acct_123') }
+    let(:manager) { create(:user, :manager, business: stripe_business, email: 'owner@biz.com') }
+
+    it 'delivers a reminder email with magic link to onboarding' do
+      mail = described_class.stripe_connect_reminder(manager, stripe_business)
+
+      expect(mail).to be_present
+      expect(mail.subject).to include('Connect Stripe')
+      expect(mail.to).to contain_exactly(manager.email)
+      expect(mail.body.encoded).to include('%2Fmanage%2Fsettings%2Fbusiness%2Fstripe_onboarding')
+    end
+
+    it 'returns a null mail when user cannot receive system emails' do
+      manager.update!(unsubscribed_at: Time.current)
+      expect(manager.unsubscribed_from_emails?).to be true
+      mail = described_class.stripe_connect_reminder(manager, stripe_business)
+      expect(mail.message).to be_a(ActionMailer::Base::NullMail)
+    end
+  end
+
   describe '#new_booking_notification' do
     let(:booking) { create(:booking, business: business, tenant_customer: tenant_customer, service: service, staff_member: staff_member) }
 

@@ -64,7 +64,9 @@ class Users::MagicLinksController < Devise::Passwordless::SessionsController
       %r{\A/client/settings\z},                     # Client settings (legacy)
       %r{\A/manage/settings/profile/edit\z},        # Business settings profile
       %r{\A/manage/dashboard\z},                    # Business dashboard
-      %r{\A/manage/settings\z}                      # Business settings
+      %r{\A/manage/settings\z},                     # Business settings
+      %r{\A/manage/settings/business/edit\z},       # Business info settings page
+      %r{\A/manage/settings/business/stripe_onboarding\z} # Stripe onboarding flow
     ]
     
     # Check if the path matches any allowed pattern
