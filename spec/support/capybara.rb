@@ -15,21 +15,24 @@ Capybara.register_driver(:cuprite) do |app|
     inspector: ENV['INSPECTOR'] == 'true',
     js_errors: true,
     dialog_handler: ->(_page, dialog) { dialog.accept },
+    # Note: pending_connection_errors: false documented to suppress these errors,
+    # but in practice with Ferrum 0.17.1 they still occur when timeout is hit first
     pending_connection_errors: false
   }
 
   # CI-specific settings for better stability
   if ENV['CI'] == 'true'
     options.merge!(
-      process_timeout: 60,
-      timeout: 60,
-      network_timeout: 90,
-      slowmo: 0.05,
+      process_timeout: 90,      # Increased from 60
+      timeout: 90,              # Increased from 60
+      network_timeout: 120,     # Increased from 90
+      slowmo: 0.1,              # Slightly slower to give CI more breathing room
       browser_options: options[:browser_options].merge(
         'single-process' => nil,
         'no-zygote' => nil,
         'memory-pressure-off' => nil,
-        'max_old_space_size' => '2048'
+        'max_old_space_size' => '2048',
+        'disable-features' => 'VizDisplayCompositor'  # Can help with CI stability
       )
     )
   else
@@ -48,7 +51,7 @@ Capybara.javascript_driver = :cuprite
 
 # Configure test timeouts
 if ENV['CI'] == 'true'
-  Capybara.default_max_wait_time = 25 # seconds - balance reliability with runtime
+  Capybara.default_max_wait_time = 30 # seconds - increased for CI stability
   Capybara.server_errors = []         # Don't raise server errors in CI
 else
   Capybara.default_max_wait_time = 30 # seconds

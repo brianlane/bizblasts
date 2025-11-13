@@ -46,6 +46,9 @@ RSpec.describe Business, 'website layout callback', type: :model do
       end
 
       it 'correctly identifies state change as layout-related' do
+        # Ensure state is different before update to guarantee a change
+        business.update!(state: 'CA')
+        business.reload
         business.update!(state: 'NY')
         expect(business.saved_changes.keys & Business::LAYOUT_RELATED_FIELDS).to include('state')
       end
