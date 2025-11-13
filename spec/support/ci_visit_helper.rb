@@ -27,9 +27,6 @@ module CIVisitHelper
   # Override visit to handle pending connection errors more gracefully in CI
   def visit(path)
     if ENV['CI'] == 'true'
-      # Store the expected URL to verify navigation
-      expected_path = path.start_with?('http') ? path : "#{Capybara.app_host}#{path}"
-      
       # In CI, catch pending connection errors and verify if page actually loaded
       begin
         super(path)
@@ -37,23 +34,50 @@ module CIVisitHelper
         # Log the error and verify if navigation actually succeeded
         warn "[CI Visit Helper] PendingConnectionsError for #{path}, verifying navigation..."
         
-        # Check if the browser actually navigated to the target URL
-        # This prevents false positives where we check the old page's body
+        # Get current URL from browser
         current_url = page.driver.browser.current_url rescue nil
         
-        if current_url && current_url.include?(path.split('?').first)
-          # URL changed to target - now verify the page rendered
+        # Build expected URL for comparison
+        expected_url = if path.start_with?('http')
+          path
+        else
+          # For relative paths, use Capybara.app_host + path
+          "#{Capybara.app_host}#{path}"
+        end
+        
+        # Normalize both URLs for comparison:
+        # 1. Remove query strings and fragments
+        # 2. Remove trailing slashes
+        # 3. Parse into URI to compare host, port, and path components separately
+        begin
+          expected_uri = URI.parse(expected_url.split('?').first.split('#').first.chomp('/'))
+          current_uri = URI.parse(current_url.split('?').first.split('#').first.chomp('/')) if current_url
+          
+          # Compare host, path, and port (accounting for default ports)
+          urls_match = current_uri &&
+                      current_uri.host == expected_uri.host &&
+                      current_uri.path == expected_uri.path &&
+                      (current_uri.port == expected_uri.port || 
+                       (expected_uri.port.nil? && current_uri.port == 80) ||
+                       (expected_uri.port.nil? && current_uri.port == 3000))  # Common Rails dev port
+        rescue URI::InvalidURIError => uri_error
+          warn "[CI Visit Helper] URI parsing error: #{uri_error.message}"
+          urls_match = false
+        end
+        
+        if urls_match
+          # URL matches (host, path, and normalized port) - verify the page rendered
           if page.has_css?('body', wait: 2)
-            warn "[CI Visit Helper] Navigation succeeded, page body detected despite pending connections"
+            warn "[CI Visit Helper] Navigation succeeded to #{current_url}, continuing despite pending connections"
             # Give JS a moment to initialize
             sleep 0.3
           else
-            warn "[CI Visit Helper] URL changed but no body element, re-raising error"
+            warn "[CI Visit Helper] URL correct but no body element found, re-raising error"
             raise e
           end
         else
-          # Navigation failed - URL didn't change
-          warn "[CI Visit Helper] Navigation failed (URL: #{current_url}), re-raising error"
+          # Navigation failed - URL didn't change to expected target
+          warn "[CI Visit Helper] Navigation failed - expected: #{expected_url}, got: #{current_url}"
           raise e
         end
       end
