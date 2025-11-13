@@ -5,7 +5,12 @@ RSpec.configure do |config|
     begin
       session = Capybara::Session.new(Capybara.javascript_driver, Capybara.app)
 
-      %w[/assets/application.js /assets/application.css].each do |asset_path|
+      %w[
+        /assets/application.js
+        /assets/application.css
+        /assets/tailwind.css
+        /assets/custom.css
+      ].each do |asset_path|
         session.visit(asset_path)
       end
     rescue => e
