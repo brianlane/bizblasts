@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_13_012847) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1766,7 +1766,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_012847) do
   add_foreign_key "external_calendar_events", "calendar_connections"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
-  add_foreign_key "invalidated_sessions", "users"
+  add_foreign_key "invalidated_sessions", "users", on_delete: :cascade
   add_foreign_key "invoices", "bookings", on_delete: :nullify
   add_foreign_key "invoices", "businesses", on_delete: :cascade
   add_foreign_key "invoices", "orders"

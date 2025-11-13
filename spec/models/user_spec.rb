@@ -10,6 +10,7 @@ RSpec.describe User, type: :model do
     it { is_expected.to have_many(:businesses).through(:client_businesses) }
     it { is_expected.to have_many(:staff_assignments).dependent(:destroy) }
     it { is_expected.to have_many(:assigned_services).through(:staff_assignments).source(:service) }
+    it { is_expected.to have_many(:invalidated_sessions).dependent(:delete_all) }
   end
 
   describe 'validations' do
@@ -94,6 +95,18 @@ RSpec.describe User, type: :model do
         user = build(:user, role: :client, business: business) 
         expect(user).to be_valid 
       end
+    end
+  end
+
+  describe 'dependent destroys' do
+    it 'removes invalidated sessions when the user is destroyed' do
+      business = create(:business)
+      user = create(:user, :manager, business: business)
+      create(:invalidated_session, user: user)
+
+      expect {
+        user.destroy!
+      }.to change(InvalidatedSession, :count).by(-1)
     end
   end
 
