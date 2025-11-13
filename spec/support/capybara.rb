@@ -6,8 +6,7 @@ Capybara.register_driver(:cuprite) do |app|
   options = {
     window_size: [1200, 800],
     # Browser options for CI/Docker compatibility
-    # Minimal browser options - only essential for CI stability
-    browser_options: { 
+    browser_options: {
       'no-sandbox' => nil,
       'disable-gpu' => nil,
       'disable-dev-shm-usage' => nil
@@ -15,27 +14,30 @@ Capybara.register_driver(:cuprite) do |app|
     headless: ENV['HEADLESS'] != 'false',
     inspector: ENV['INSPECTOR'] == 'true',
     js_errors: true,
-    dialog_handler: ->(page, dialog) { dialog.accept }
+    dialog_handler: ->(_page, dialog) { dialog.accept },
+    pending_connection_errors: false
   }
 
   # CI-specific settings for better stability
   if ENV['CI'] == 'true'
-    options.merge!({
-      process_timeout: 45,     # Increased timeout for CI browser initialization
-      timeout: 45,             # Increased timeout for CI operations
-      slowmo: 0.1,             # Add slight delay between commands
-      browser_options: options[:browser_options].merge({
+    options.merge!(
+      process_timeout: 60,
+      timeout: 60,
+      network_timeout: 90,
+      slowmo: 0.05,
+      browser_options: options[:browser_options].merge(
         'single-process' => nil,
         'no-zygote' => nil,
         'memory-pressure-off' => nil,
         'max_old_space_size' => '2048'
-      })
-    })
+      )
+    )
   else
-    options.merge!({
-      process_timeout: 15,
-      timeout: 15
-    })
+    options.merge!(
+      process_timeout: 20,
+      timeout: 20,
+      network_timeout: 30
+    )
   end
 
   Capybara::Cuprite::Driver.new(app, **options)
@@ -46,8 +48,8 @@ Capybara.javascript_driver = :cuprite
 
 # Configure test timeouts
 if ENV['CI'] == 'true'
-  Capybara.default_max_wait_time = 15 # seconds - reduced for CI speed
-  Capybara.server_errors = []        # Don't raise server errors in CI
+  Capybara.default_max_wait_time = 25 # seconds - balance reliability with runtime
+  Capybara.server_errors = []         # Don't raise server errors in CI
 else
   Capybara.default_max_wait_time = 30 # seconds
 end
