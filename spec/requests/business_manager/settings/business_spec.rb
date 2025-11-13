@@ -105,6 +105,23 @@ RSpec.describe "Settings::BusinessController", type: :request do
         expect(business.logo).to be_attached
       end
 
+      it "removes the logo when remove_logo is selected" do
+        File.open(Rails.root.join('spec', 'fixtures', 'files', 'test_image.jpg')) do |file|
+          business.logo.attach(
+            io: file,
+            filename: 'test_image.jpg',
+            content_type: 'image/jpeg'
+          )
+        end
+        business.reload
+        expect(business.logo).to be_attached
+
+        patch business_manager_settings_business_path, params: { business: valid_attributes.merge(remove_logo: '1') }
+        business.reload
+
+        expect(business.logo).not_to be_attached
+      end
+
       it "redirects to the edit business settings page with a notice" do
         patch business_manager_settings_business_path, params: { business: valid_attributes }
         expect(response).to redirect_to(edit_business_manager_settings_business_path)

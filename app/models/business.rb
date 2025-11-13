@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class Business < ApplicationRecord
+  attr_accessor :remove_logo
   # Business represents a tenant in the multi-tenant architecture
   
   # Define the comprehensive list of industries based on showcase examples
@@ -789,12 +790,14 @@ class Business < ApplicationRecord
     end
   end
   
-  # Ensure time_zone present by performing lookup if blank
+  # Ensure time_zone present by performing lookup if blank or placeholder (e.g., UTC)
   def ensure_time_zone!
-    return time_zone if time_zone.present?
+    return time_zone if time_zone_configured?
 
     set_time_zone_from_address if respond_to?(:set_time_zone_from_address)
-    save(validate: false) if time_zone_changed? && persisted?
+    set_default_timezone unless time_zone_configured?
+
+    save(validate: false) if persisted? && time_zone_changed?
     time_zone
   end
 
@@ -1083,9 +1086,21 @@ class Business < ApplicationRecord
     self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
 
+  def placeholder_time_zone?(value = time_zone)
+    value_str = value.to_s.strip
+    return false if value_str.blank?
+
+    %w[UTC ETC/UTC].include?(value_str.upcase)
+  end
+
+  def time_zone_configured?(value = time_zone)
+    value_str = value.to_s.strip
+    value_str.present? && !placeholder_time_zone?(value_str)
+  end
+
   # Set default timezone based on state if none is set
   def set_default_timezone
-    return if time_zone.present?
+    return if time_zone_configured?
 
     # Map states to timezones - defaults to Eastern if state is not recognized
     self.time_zone = case state.to_s.upcase

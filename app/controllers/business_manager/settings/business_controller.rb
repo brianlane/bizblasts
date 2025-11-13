@@ -63,10 +63,17 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     
     # Log the sync_location parameter to help diagnose issues
     Rails.logger.info "[BUSINESS_SETTINGS] sync_location parameter: #{params[:sync_location].inspect}"
+    remove_logo_requested = ActiveModel::Type::Boolean.new.cast(params.dig(:business, :remove_logo))
+    @business.remove_logo = remove_logo_requested
+
     permitted_params = business_params
     return_path = safe_return_path
     
     if @business.update(permitted_params)
+      if remove_logo_requested && permitted_params[:logo].blank? && @business.logo.attached?
+        @business.logo.purge
+      end
+
       # If the user switched back to subdomain mode, run the same removal
       # service used by ActiveAdmin to clean up Render and revert safely.
       if @business.saved_change_to_host_type? && @business.host_type_subdomain?

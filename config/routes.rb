@@ -442,7 +442,6 @@ Rails.application.routes.draw do
       namespace :website do
         resources :pages do
           collection do
-            post :bulk_action
             patch :update_priority
           end
           member do

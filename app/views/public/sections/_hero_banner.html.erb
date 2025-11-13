@@ -24,6 +24,9 @@
               <div>
                 <p class="text-sm uppercase tracking-widest <%= accent_enabled ? 'accent-text' : 'text-red-400' %>"><%= premium_label %></p>
             <p class="text-base text-gray-300"><%= [current_business&.city, current_business&.state].compact.join(', ') %></p>
+                <% if current_business&.phone.present? %>
+                  <p class="text-base text-gray-300"><%= current_business.phone %></p>
+                <% end %>
           </div>
         </div>
 
