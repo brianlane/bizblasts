@@ -4,6 +4,11 @@ ActiveAdmin.register Business do
   # Use numeric ID in action-item links to avoid hostname-with-dot issues
   config.clear_action_items!
 
+  # Action item for creating new business (index page)
+  action_item :new, only: :index do
+    link_to 'New Business', new_admin_business_path, class: 'button'
+  end
+
   action_item :edit, only: :show do
     link_to 'Edit Business', edit_admin_business_path(resource.id)
   end
