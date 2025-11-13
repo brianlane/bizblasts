@@ -157,8 +157,10 @@
             <% if first_active_staff.present? || service.standard? %>
               <% book_params = { service_id: service.id, staff_member_id: first_active_staff&.id } %>
               <% book_params[:service_variant_id] = default_variant.id if has_variants %>
+              <% default_booking_path = tenant_calendar_path(book_params) %>
+              <% booking_path = book_now_path_with_service_area(fallback_path: default_booking_path, service: service) %>
               <%= link_to "Book Now", 
-                  tenant_calendar_path(book_params), 
+                  booking_path, 
                   class: "inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm transition duration-200" %>
             <% end %>
           </div>

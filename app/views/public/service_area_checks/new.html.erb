@@ -1,0 +1,51 @@
+<% content_for :body_class, 'enhanced-layout-active' if current_tenant&.website_layout_enhanced? %>
+
+<div class="min-h-screen py-16 px-4">
+  <div class="max-w-3xl mx-auto">
+    <div class="bg-[rgba(15,23,42,0.85)] border border-white/10 rounded-3xl shadow-2xl backdrop-blur-lg overflow-hidden">
+      <div class="p-8 sm:p-10 space-y-6">
+        <div class="space-y-2">
+          <p class="text-sm uppercase tracking-[0.4em] accent-text">Service Area Check</p>
+          <h1 class="text-3xl sm:text-4xl font-bold text-white">Let's confirm we can come to you</h1>
+          <p class="text-slate-300 text-lg">
+            Enter your ZIP code so we can make sure you're within our service radius before continuing with your booking.
+          </p>
+        </div>
+
+        <% if @service.present? %>
+          <div class="bg-white/5 border border-white/10 rounded-2xl p-5 text-slate-200">
+            <p class="text-sm uppercase tracking-[0.3em] accent-text mb-1">Service Selected</p>
+            <h2 class="text-xl font-semibold text-white"><%= @service.name %></h2>
+            <% if @service.description.present? %>
+              <p class="mt-1 text-sm text-slate-400"><%= @service.description %></p>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%= form_with url: service_area_check_path, method: :post, scope: :service_area_check, html: { class: "space-y-6" } do |form| %>
+          <%= hidden_field_tag :service_id, @service&.id %>
+          <%= hidden_field_tag :return_to, @return_to %>
+
+          <div class="space-y-2">
+            <%= form.label :zip, class: "block text-sm font-semibold text-white" do %>
+              ZIP Code
+            <% end %>
+            <%= form.text_field :zip,
+                placeholder: "Enter ZIP code",
+                class: "w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--accent-base)] focus:border-transparent text-lg",
+                required: true %>
+          </div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <%= link_to "Back", @return_to,
+                class: "inline-flex items-center justify-center px-6 py-3 rounded-xl border border-white/20 text-sm font-medium text-white/80 hover:text-white hover:border-white/40 transition" %>
+
+            <%= form.submit "Check Availability",
+                class: "inline-flex items-center justify-center px-8 py-3 rounded-xl text-sm font-semibold text-white accent-bg accent-shadow transition cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

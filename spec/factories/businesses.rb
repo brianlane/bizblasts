@@ -37,8 +37,10 @@ FactoryBot.define do
     zip { Faker::Address.zip_code }
     description { Faker::Company.catch_phrase }
     website { Faker::Internet.url }
+    enhanced_accent_color { 'red' }
+    website_layout { 'basic' }
 
-    
+
     # Set tier, ensuring free tier gets subdomain host_type
     tier do 
       if host_type == 'custom_domain'
@@ -70,12 +72,17 @@ FactoryBot.define do
     # Traits for specific host types/tiers
     trait :subdomain_host do
       host_type { 'subdomain' }
-      sequence(:hostname) { |n| "factory-subdomain-#{n}" } 
+      sequence(:hostname) { |n| "factory-subdomain-#{n}" }
+    end
+
+    trait :with_subdomain do
+      host_type { 'subdomain' }
+      sequence(:hostname) { |n| "factory-sub-#{n}" }
     end
 
     trait :custom_domain_host do
       host_type { 'custom_domain' }
-      sequence(:hostname) { |n| "factory-domain-#{n}.com" } 
+      sequence(:hostname) { |n| "factory-domain-#{n}.com" }
       tier { [:standard, :premium].sample } # Cannot be free tier
     end
     

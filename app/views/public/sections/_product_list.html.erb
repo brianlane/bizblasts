@@ -1,0 +1,88 @@
+<% current_business = local_assigns[:business] %>
+<% products = [] %>
+<% enhanced_layout = current_business&.website_layout_enhanced? %>
+
+<% if current_business.present? %>
+  <% products = current_business.products.active
+                                   .where(product_type: [:standard, :mixed])
+                                   .positioned
+                                   .select(&:visible_to_customers?) %>
+<% end %>
+
+<% return if products.empty? %>
+
+<% section_classes = enhanced_layout ? "product-list-section py-16 bg-transparent" : "product-list-section bg-white py-16" %>
+<% heading_text_classes = enhanced_layout ? "text-3xl md:text-4xl font-bold text-white mt-2" : "text-3xl md:text-4xl font-bold text-gray-900 mt-2" %>
+<% description_text_classes = enhanced_layout ? "text-gray-300 max-w-2xl" : "text-gray-600 max-w-2xl" %>
+<% card_classes = enhanced_layout ? "rounded-3xl border border-white/10 shadow-sm hover:shadow-lg transition-shadow duration-200 bg-[rgba(15,23,42,0.85)] flex flex-col" : "rounded-3xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow duration-200 bg-white flex flex-col" %>
+<% title_classes = enhanced_layout ? "text-xl font-semibold text-white" : "text-xl font-semibold text-gray-900" %>
+<% body_text_classes = enhanced_layout ? "mt-4 text-gray-300 text-sm leading-relaxed" : "mt-4 text-gray-600 text-sm leading-relaxed" %>
+<% price_classes = enhanced_layout ? "text-2xl font-bold text-white" : "text-2xl font-bold text-gray-900" %>
+<% link_classes = enhanced_layout ? "text-sm font-medium accent-link-white" : "text-sm font-medium text-red-600 hover:text-red-500 transition-colors" %>
+<% link_style = enhanced_layout ? "color: #ffffff !important;" : nil %>
+<% add_to_cart_classes = enhanced_layout ? "w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white accent-bg rounded-full transition-colors cursor-pointer" : "w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-full transition-colors cursor-pointer" %>
+<% footer_classes = enhanced_layout ? "px-6 py-4 bg-[rgba(11,17,32,0.9)] border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" : "px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" %>
+<% low_stock_classes = enhanced_layout ? "text-xs text-amber-300 font-medium uppercase tracking-wide" : "text-xs text-amber-600 font-medium uppercase tracking-wide" %>
+
+<div class="<%= section_classes %>">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+      <div>
+        <p class="text-sm uppercase tracking-[0.3em] <%= enhanced_layout ? 'accent-text' : 'text-red-500' %>">Products</p>
+        <h2 class="<%= heading_text_classes %>">
+          <%= section.content_data['title'].presence || 'Featured Products' %>
+        </h2>
+      </div>
+      <% if section.content_data['description'].present? %>
+        <p class="<%= description_text_classes %>">
+          <%= section.content_data['description'] %>
+        </p>
+      <% end %>
+    </div>
+
+    <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <% products.each do |product| %>
+        <div class="<%= card_classes %>">
+          <div class="px-6 py-5 flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="<%= title_classes %>"><%= product.name %></h3>
+              <% if product.featured? %>
+                <span class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white <%= enhanced_layout ? 'accent-bg rounded-full' : 'bg-red-500 rounded-full' %>">Featured</span>
+              <% end %>
+            </div>
+
+            <% if product.description.present? %>
+              <p class="<%= body_text_classes %>">
+                <%= truncate(product.description, length: 160) %>
+              </p>
+            <% end %>
+
+            <div class="mt-6 flex items-center justify-between">
+              <span class="<%= price_classes %>"><%= number_to_currency(product.price) %></span>
+              <% if product.stock_quantity.to_i <= 5 %>
+                <span class="<%= low_stock_classes %>">Limited Stock</span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="<%= footer_classes %>">
+            <%= link_to 'View Product',
+                        product_path(product),
+                        class: link_classes,
+                        style: link_style %>
+            <% if product.product_variants.any? %>
+              <% default_variant = product.product_variants.order(:created_at).first %>
+              <%= form_with url: line_items_path, method: :post, local: true, class: "w-full sm:w-auto" do |f| %>
+                <%= f.hidden_field :product_variant_id, value: default_variant.id %>
+                <%= f.hidden_field :quantity, value: 1 %>
+                <%= f.submit 'Add to Cart',
+                            class: add_to_cart_classes %>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+

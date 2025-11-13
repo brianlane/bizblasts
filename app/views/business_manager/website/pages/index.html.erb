@@ -3,8 +3,7 @@
 <div class="space-y-6" 
      data-controller="pages-manager" 
      data-pages-manager-update-priority-url-value="<%= update_priority_business_manager_website_pages_path %>" 
-     data-pages-manager-bulk-action-url-value="<%= bulk_action_business_manager_website_pages_path %>"
-     data-action="keydown@document->pages-manager#handleKeyDown click@document->pages-manager#closeMenus">
+     data-action="click@document->pages-manager#closeMenus">
   <!-- Header -->
   <div class="flex justify-between items-center">
     <div>
@@ -130,16 +129,6 @@
            data-page-card-view-count-value="<%= page.view_count %>"
            data-page-card-performance-score-value="<%= page.performance_score || 0 %>"
            data-page-id="<%= page.id %>">
-        
-        <!-- Selection Checkbox -->
-        <div class="absolute top-3 left-3 z-10">
-          <input type="checkbox" 
-                 value="<%= page.id %>" 
-                 data-pages-manager-target="pageCheckbox"
-                 data-action="change->pages-manager#pageCheckboxChanged"
-                 class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-        </div>
-
         <!-- Enhanced Page Preview -->
         <div class="h-40 bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg relative overflow-hidden" data-page-card-target="thumbnail">
           <!-- Priority Indicator -->

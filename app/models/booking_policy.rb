@@ -13,12 +13,14 @@ class BookingPolicy < ApplicationRecord
   validates :min_advance_mins, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :interval_mins, numericality: { only_integer: true, greater_than_or_equal_to: 5, less_than_or_equal_to: 120 }, 
                             if: :use_fixed_intervals?
+  validates :service_radius_miles, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   # Consider adding serialization for intake_fields if complex structure is needed
   # serialize :intake_fields, JSON
 
   validate :min_not_greater_than_max
   validate :fixed_interval_validation
+  validate :service_radius_configuration
 
   # Customer-friendly policy display methods
   def customer_friendly_cancellation_policy
@@ -158,6 +160,18 @@ class BookingPolicy < ApplicationRecord
     use_fixed_intervals? ? interval_mins : nil
   end
 
+  # Check if service radius is both enabled AND properly configured
+  # This method has a different name to avoid overriding the auto-generated
+  # ActiveRecord predicate for the service_radius_enabled boolean column
+  def service_radius_active?
+    service_radius_enabled && effective_service_radius_miles.present?
+  end
+
+  def effective_service_radius_miles
+    return nil unless service_radius_enabled
+    (service_radius_miles.presence || 50).to_i
+  end
+
   # Returns true if this policy has fixed intervals properly configured
   def fixed_interval_configured?
     use_fixed_intervals? && interval_mins.present?
@@ -180,10 +194,20 @@ class BookingPolicy < ApplicationRecord
   def fixed_interval_validation
     return unless use_fixed_intervals?
     return if interval_mins.blank? # Let numericality validation handle blank/nil values
-    
+
     # Only check divisibility by 5 since numericality validation handles the rest
     if interval_mins % 5 != 0
       errors.add(:interval_mins, 'must be divisible by 5 when using fixed intervals')
+    end
+  end
+
+  def service_radius_configuration
+    return unless service_radius_enabled
+
+    if service_radius_miles.blank?
+      errors.add(:service_radius_miles, 'must be specified when service radius is enabled')
+    elsif service_radius_miles <= 0
+      errors.add(:service_radius_miles, 'must be greater than 0 when service radius is enabled')
     end
   end
 end 

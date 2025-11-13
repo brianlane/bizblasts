@@ -30,6 +30,11 @@ class Admin::SessionsController < ActiveAdmin::Devise::SessionsController
       # Regenerate the CSRF token for a fresh attempt
       reset_csrf_token
 
+      # Rebuild the resource so the login form has a model instance
+      # Empty hash is intentional - we don't want to pre-populate any user data
+      # This is the standard Devise pattern for building a blank resource
+      build_resource({})
+
       # Set an error message
       flash.now[:error] = "Your session has expired. Please try logging in again."
 

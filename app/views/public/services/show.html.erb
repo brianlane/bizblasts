@@ -262,8 +262,10 @@
               <% elsif @service.service_variants.active.count == 1 %>
                 <% calendar_params[:service_variant_id] = @service.service_variants.active.first.id %>
               <% end %>
+              <% default_booking_path = tenant_calendar_path(calendar_params) %>
+              <% booking_path = book_now_path_with_service_area(fallback_path: default_booking_path, service: @service) %>
               <%= link_to "Book Now", 
-                  tenant_calendar_path(calendar_params), 
+                  booking_path, 
                   data: { "dropdown-updater-target": "bookLink" },
                   id: "book-now-link", class: "w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300" %>
             <% else %>
@@ -405,8 +407,10 @@
          <% elsif @service.service_variants.active.count == 1 %>
            <% booking_params[:service_variant_id] = @service.service_variants.active.first.id %>
          <% end %>
-         <%= link_to "Book Now", 
-             tenant_calendar_path(booking_params), 
+        <% default_path = tenant_calendar_path(booking_params) %>
+        <% booking_path = book_now_path_with_service_area(fallback_path: default_path, service: @service) %>
+        <%= link_to "Book Now", 
+            booking_path, 
              data: { "dropdown-updater-target": "bookLink" },
              class: "inline-block bg-green-600 text-white text-xl font-bold px-8 py-4 rounded-full hover:bg-green-700 transition duration-300" %>
       <% else %>

@@ -5,9 +5,10 @@ RSpec.describe TenantCustomer, type: :model do
   
   describe 'validations' do
     subject { build(:tenant_customer, business: business) }
-    
-    it { should validate_presence_of(:first_name) }
-    it { should validate_presence_of(:last_name) }
+
+    # first_name and last_name are now optional to support newsletter signups
+    it { should validate_length_of(:first_name).is_at_most(255) }
+    it { should validate_length_of(:last_name).is_at_most(255) }
     it { should validate_presence_of(:email) }
     
     describe 'email uniqueness per business' do

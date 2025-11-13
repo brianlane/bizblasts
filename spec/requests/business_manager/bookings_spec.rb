@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager Bookings", type: :request do
-  let!(:business) { create(:business) }
+  let!(:business) { create(:business, state: 'CA', time_zone: 'America/Los_Angeles') }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff) { create(:user, :staff, business: business) }
   let!(:client) { create(:user, :client) } # Not associated with the business
@@ -160,6 +160,23 @@ RSpec.describe "Business Manager Bookings", type: :request do
           expect(response).to redirect_to(business_manager_booking_path(booking))
           expect(flash[:notice]).to include("successfully updated")
         end
+
+        it "allows rescheduling without tripping buffer conflicts on the same booking" do
+          business.booking_policy.update!(buffer_time_mins: 45)
+
+          new_start = booking.start_time + 2.hours
+          new_end = booking.end_time + 2.hours
+
+          patch business_manager_booking_path(booking), params: {
+            booking: {
+              start_time: new_start.iso8601,
+              end_time: new_end.iso8601
+            }
+          }
+
+          expect(response).to redirect_to(business_manager_booking_path(booking))
+          expect(booking.reload.start_time).to be_within(1.second).of(new_start)
+        end
       end
 
       context "with invalid parameters" do
@@ -309,8 +326,14 @@ RSpec.describe "Business Manager Bookings", type: :request do
 
       it "updates the booking start_time and redirects" do
         patch update_schedule_business_manager_booking_path(booking), params: { date: new_date, start_time: new_time }
-        expected = Time.zone.parse("#{new_date} #{new_time}")
-        expect(booking.reload.start_time.to_i).to eq(expected.to_i)
+
+        reloaded_booking = booking.reload
+        business_timezone = reloaded_booking.business.reload.time_zone
+        expected = Time.use_zone(business_timezone) do
+          Time.zone.parse("#{new_date} #{new_time}")
+        end
+
+        expect(reloaded_booking.start_time.utc.to_i).to eq(expected.utc.to_i)
         expect(response).to redirect_to(business_manager_booking_path(booking))
         expect(flash[:notice]).to include("rescheduled")
       end
@@ -526,7 +549,9 @@ RSpec.describe "Business Manager Bookings", type: :request do
           Booking.where(staff_member: staff_member, start_time: date.all_day).delete_all
           
           # Create an existing booking at 9:00
-          existing_booking_start = Time.zone.local(date.year, date.month, date.day, 9, 0)
+          existing_booking_start = Time.use_zone(business.time_zone) do
+            Time.zone.local(date.year, date.month, date.day, 9, 0)
+          end
           create(:booking,
             business: business,
             service: service,

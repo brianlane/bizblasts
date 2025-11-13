@@ -26,6 +26,10 @@ RSpec.describe 'Page Builder System', type: :system do
       expect(page).to have_content('About Us')
     end
 
+    it 'does not render bulk selection checkboxes' do
+      expect(page).not_to have_css('input[type="checkbox"][data-pages-manager-target="pageCheckbox"]')
+    end
+
     it 'provides page creation interface' do
       expect(page).to have_link('Create Page').or have_link('New Page')
     end

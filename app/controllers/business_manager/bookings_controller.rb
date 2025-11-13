@@ -385,6 +385,29 @@ module BusinessManager
         end
       end
 
+      # Buffer time policy
+      if policy.buffer_time_mins.present? && @booking.staff_member_id.present? && @booking.start_time.present?
+        duration_mins = duration.to_i
+        @booking.end_time ||= @booking.start_time + duration_mins.minutes if duration_mins.positive?
+
+        if @booking.end_time.present?
+          buffer = policy.buffer_time_mins.minutes
+          buffer_window_start = @booking.start_time - buffer
+          buffer_window_end = @booking.end_time + buffer
+
+          conflict = current_business.bookings
+            .where(staff_member_id: @booking.staff_member_id)
+            .where.not(id: @booking.id)
+            .where.not(status: :cancelled)
+            .where("start_time < ? AND end_time > ?", buffer_window_end, buffer_window_start)
+            .exists?
+
+          if conflict
+            @booking.errors.add(:base, "Requested booking conflicts with another existing booking due to buffer time policy")
+          end
+        end
+      end
+
       # Duration constraints policy
       if policy.min_duration_mins.present? && duration.to_i < policy.min_duration_mins
         @booking.errors.add(:base, "Booking cannot be less than the minimum required duration")

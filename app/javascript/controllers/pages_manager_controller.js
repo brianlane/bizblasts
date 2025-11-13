@@ -2,16 +2,13 @@ import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 
 export default class extends Controller {
-  static targets = ["pageGrid", "bulkActions", "pageCheckbox", "sortSelect"]
+  static targets = ["pageGrid", "sortSelect"]
   static values = { 
-    updatePriorityUrl: String,
-    bulkActionUrl: String
+    updatePriorityUrl: String
   }
 
   connect() {
     this.initializeSortable()
-    this.initializeBulkActions()
-    this.updateBulkActionsVisibility()
   }
 
   initializeSortable() {
@@ -19,90 +16,10 @@ export default class extends Controller {
       this.sortable = Sortable.create(this.pageGridTarget, {
         animation: 150,
         ghostClass: "opacity-50",
-        onEnd: (evt) => {
+        onEnd: () => {
           this.updatePageOrder()
         }
       })
-    }
-  }
-
-  initializeBulkActions() {
-    // Show/hide bulk actions based on selection
-    this.pageCheckboxTargets.forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
-        this.updateBulkActionsVisibility()
-      })
-    })
-  }
-
-  pageCheckboxChanged() {
-    this.updateBulkActionsVisibility()
-    
-  }
-
-  updateBulkActionsVisibility() {
-    const selectedCount = this.getSelectedPageIds().length
-    
-    if (this.hasBulkActionsTarget) {
-      if (selectedCount > 0) {
-        this.bulkActionsTarget.classList.remove('hidden')
-        this.updateBulkActionText(selectedCount)
-      } else {
-        this.bulkActionsTarget.classList.add('hidden')
-      }
-    }
-  }
-
-  updateBulkActionText(count) {
-    const text = this.bulkActionsTarget.querySelector('[data-selected-count]')
-    if (text) {
-      text.textContent = `${count} selected`
-    }
-  }
-
-  getSelectedPageIds() {
-    return this.pageCheckboxTargets
-      .filter(checkbox => checkbox.checked)
-      .map(checkbox => checkbox.value)
-  }
-
-  async performBulkAction(event) {
-    const action = event.currentTarget.dataset.bulkAction
-    const selectedIds = this.getSelectedPageIds()
-    
-    if (selectedIds.length === 0) {
-      alert('Please select at least one page')
-      return
-    }
-
-    // Confirm destructive actions
-    if (action === 'delete') {
-      if (!confirm(`Are you sure you want to delete ${selectedIds.length} page(s)? This cannot be undone.`)) {
-        return
-      }
-    }
-
-    try {
-      const response = await fetch(this.bulkActionUrlValue, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-          page_ids: selectedIds,
-          bulk_action: action
-        })
-      })
-
-      if (response.ok) {
-        window.location.reload()
-      } else {
-        throw new Error('Bulk action failed')
-      }
-    } catch (error) {
-      console.error('Bulk action error:', error)
-      alert('Failed to perform bulk action. Please try again.')
     }
   }
 

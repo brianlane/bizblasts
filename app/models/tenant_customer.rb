@@ -28,8 +28,8 @@ class TenantCustomer < ApplicationRecord
   encrypts :phone, deterministic: true
 
   # Base validations - updated to match User model
-  validates :first_name, presence: true
-  validates :last_name, presence: true
+  validates :first_name, length: { maximum: 255 }, allow_blank: true
+  validates :last_name, length: { maximum: 255 }, allow_blank: true
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   # Note: uniqueness is now enforced by database index on business_id + LOWER(email)
   # Phone is optional - remove conflicting validation rules

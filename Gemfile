@@ -135,6 +135,7 @@ gem 'ostruct'
 gem "kaminari", "~> 1.2"
 gem "rspec-retry", "~> 0.6.2", group: :test
 gem 'geocoder'
+gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
 gem 'google-apis-calendar_v3', '~> 0.31'

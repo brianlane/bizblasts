@@ -24,6 +24,29 @@ ActiveAdmin.register Business do
             data: { turbo: false, confirm: 'Restart DNS monitoring for another hour?' }
   end
 
+  action_item :send_stripe_connect_reminder, only: :show do
+    needs_reminder = resource.stripe_account_id.blank?
+
+    unless needs_reminder
+      begin
+        needs_reminder = !StripeService.check_onboarding_status(resource)
+      rescue => e
+        Rails.logger.warn "[ADMIN] Unable to verify Stripe onboarding status for business #{resource.id}: #{e.message}"
+        needs_reminder = true
+      end
+    end
+
+    if needs_reminder
+      link_to 'Send Stripe Connect Reminder',
+              send_stripe_connect_reminder_admin_business_path(resource.id),
+              class: 'button aa-post-confirm',
+              data: {
+                turbo: false,
+                confirm: 'Send a magic-link email prompting this business to finish connecting Stripe?'
+              }
+    end
+  end
+
   action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
     link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id),
             class: 'button aa-post-confirm',
@@ -210,6 +233,49 @@ ActiveAdmin.register Business do
     rescue => e
       redirect_to admin_business_path(resource.id), alert: "Error removing domain: #{e.message}"
     end
+  end
+
+  member_action :send_stripe_connect_reminder, method: :post do
+    business = Business.find(params[:id])
+    user = business.users.where(role: [:manager]).first || business.users.where(role: [:staff]).first
+
+    unless user
+      redirect_to admin_business_path(business.id), alert: 'No business manager or staff user available to email.'
+      return
+    end
+
+    created_connect_account = false
+
+    if business.stripe_account_id.blank?
+      begin
+        StripeService.create_connect_account(business)
+        created_connect_account = true
+      rescue Stripe::StripeError => e
+        Rails.logger.error "[ADMIN] Failed to create Stripe account for business #{business.id}: #{e.message}"
+        redirect_to admin_business_path(business.id), alert: "Could not create Stripe account: #{e.message}"
+        return
+      rescue => e
+        Rails.logger.error "[ADMIN] Unexpected error creating Stripe account for business #{business.id}: #{e.message}"
+        redirect_to admin_business_path(business.id), alert: 'Unexpected error while creating Stripe account.'
+        return
+      end
+    end
+
+    mail = BusinessMailer.stripe_connect_reminder(user, business)
+
+    unless mail
+      message = 'Unable to generate reminder email. Verify the user can receive system emails.'
+      redirect_to admin_business_path(business.id), alert: message
+      return
+    end
+
+    mail.deliver_later
+    business.update!(stripe_connect_reminder_sent_at: Time.current)
+
+    notice_message = 'Stripe connect reminder email queued for delivery.'
+    notice_message += ' A new Stripe account was created to support onboarding.' if created_connect_account
+
+    redirect_to admin_business_path(business.id), notice: notice_message
   end
 
   member_action :domain_status, method: :get do
@@ -771,32 +837,53 @@ ActiveAdmin.register Business do
   # Form configuration updated
   form do |f|
     f.inputs "Business Details" do
-      f.input :name
-      f.input :subdomain
-      f.input :hostname
-      f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
-      f.input :canonical_preference, as: :select, collection: Business.canonical_preferences.keys.map { |k| [k.humanize, k] }, include_blank: false, hint: "Choose canonical URL format for custom domains"
-      f.input :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }, include_blank: false
+      f.input :name, hint: "Business name (used to auto-generate subdomain/hostname)"
+
+      # Tier selection - drives subdomain vs hostname display
+      f.input :tier, as: :radio, collection: [
+        ['Free - $0/month (BizBlasts subdomain)', 'free'],
+        ['Standard - $9.99/month (BizBlasts subdomain)', 'standard'],
+        ['Premium - $29.99/month (Custom domain)', 'premium']
+      ], hint: "Tier determines hosting type"
+
+      # Subdomain field (for Free/Standard)
+      f.input :subdomain,
+              wrapper_html: { class: 'subdomain-field-wrapper', style: 'display: none;' },
+              hint: "Auto-generated from business name. Will appear as: <span class='subdomain-preview'></span>"
+
+      # Hostname field (for Premium)
+      f.input :hostname,
+              wrapper_html: { class: 'hostname-field-wrapper', style: 'display: none;' },
+              hint: "For custom domains (e.g., yourbusiness.com). Auto-generated but can be edited."
+
+      # Hidden field to track host_type (set by JavaScript)
+      f.input :host_type, as: :hidden, input_html: { value: 'subdomain' }
+
       f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
+      f.input :email, hint: "Primary business email (used for manager login)"
       f.input :phone
-      f.input :email
-      f.input :website
       f.input :address
       f.input :city
-      f.input :state
+      f.input :state, as: :select, collection: ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
       f.input :zip
-      f.input :description, as: :text
-      f.input :time_zone, as: :select, collection: ActiveSupport::TimeZone.all.map { |tz| [tz.to_s, tz.name] }
-      f.input :active
-      f.input :service_template # Assuming this is the correct association name
     end
-    
+
+    # Advanced/Optional section (collapsible)
+    f.inputs "Advanced Settings (Optional)", class: "advanced-settings" do
+      f.input :description, as: :text, hint: "Optional - can be added later"
+      f.input :website
+      f.input :time_zone, as: :select, collection: ActiveSupport::TimeZone.all.map { |tz| [tz.to_s, tz.name] }, hint: "Auto-set from state if left blank"
+      f.input :active, hint: "Uncheck to create business as inactive"
+      f.input :canonical_preference, as: :select, collection: Business.canonical_preferences.keys.map { |k| [k.humanize, k] }, include_blank: false, hint: "For custom domains: www vs apex"
+      f.input :service_template
+    end
+
     # Stripe Integration section
-    f.inputs "Stripe Integration" do
+    f.inputs "Stripe Integration (Optional)", class: "stripe-section" do
       f.input :stripe_account_id, label: "Stripe Connect Account ID", hint: "The Stripe Connect account ID for accepting payments (automatically set when connected)"
       f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "The Stripe customer ID for business subscriptions (automatically set when paying for plans)"
     end
-    
+
     # Domain Coverage section (only for Premium tier businesses)
     f.inputs "Domain Coverage (Premium Only)", class: "domain-coverage-section" do
       f.input :domain_coverage_applied, as: :boolean, label: "Domain coverage has been applied"
@@ -806,11 +893,155 @@ ActiveAdmin.register Business do
       f.input :domain_renewal_date, as: :datepicker, label: "Domain renewal date"
       f.input :domain_coverage_expires_at, as: :datepicker, label: "Coverage expires on", hint: "When BizBlasts coverage ends (usually 1 year from registration)"
       f.input :domain_auto_renewal_enabled, as: :boolean, label: "Auto-renewal enabled at registrar"
-      f.input :domain_coverage_notes, as: :text, label: "Coverage notes", 
+      f.input :domain_coverage_notes, as: :text, label: "Coverage notes",
               hint: "Internal notes about domain coverage, cost details, alternatives offered, registrar info, etc."
     end
-    
+
     f.actions
+
+    # Add JavaScript for dynamic field switching and subdomain generation
+    script do
+      raw <<-JS
+        <script>
+          (function() {
+            // Slugify function to convert business name to URL-safe subdomain
+            function slugify(text) {
+              return text.toString().toLowerCase()
+                .trim()
+                .replace(/\\s+/g, '-')           // Replace spaces with -
+                .replace(/[^\\w\\-]+/g, '')       // Remove all non-word chars
+                .replace(/\\-\\-+/g, '-')         // Replace multiple - with single -
+                .replace(/^-+/, '')              // Trim - from start of text
+                .replace(/-+$/, '');             // Trim - from end of text
+            }
+
+            // Update subdomain/hostname field visibility based on tier
+            function updateFieldsForTier(tier) {
+              const subdomainWrapper = $('.subdomain-field-wrapper');
+              const hostnameWrapper = $('.hostname-field-wrapper');
+              const hostTypeField = $('#business_host_type');
+
+              if (tier === 'premium') {
+                // Premium: show hostname field, hide subdomain
+                subdomainWrapper.hide();
+                hostnameWrapper.show();
+                hostTypeField.val('custom_domain');
+              } else {
+                // Free/Standard: show subdomain field, hide hostname
+                subdomainWrapper.show();
+                hostnameWrapper.hide();
+                hostTypeField.val('subdomain');
+              }
+            }
+
+            // Auto-generate subdomain/hostname from business name
+            function updateSlugFields() {
+              const businessName = $('#business_name').val();
+              const tier = $('input[name="business[tier]"]:checked').val();
+              const slug = slugify(businessName);
+
+              if (tier === 'premium') {
+                // For premium, suggest a .com domain
+                $('#business_hostname').val(slug + '.com');
+              } else {
+                // For free/standard, just use the slug
+                $('#business_subdomain').val(slug);
+                // Update preview
+                $('.subdomain-preview').text(slug + '.bizblasts.com');
+              }
+            }
+
+            // Initialize on page load
+            $(document).ready(function() {
+              // Get initial tier value
+              const initialTier = $('input[name="business[tier]"]:checked').val() || 'free';
+              updateFieldsForTier(initialTier);
+
+              // If there's a name, generate initial slug
+              if ($('#business_name').val()) {
+                updateSlugFields();
+              }
+
+              // Listen for tier changes
+              $('input[name="business[tier]"]').on('change', function() {
+                const tier = $(this).val();
+                updateFieldsForTier(tier);
+                updateSlugFields(); // Regenerate slug for new tier
+              });
+
+              // Listen for name changes and auto-generate slug (debounced)
+              let nameTimeout;
+              $('#business_name').on('keyup', function() {
+                clearTimeout(nameTimeout);
+                nameTimeout = setTimeout(updateSlugFields, 300); // 300ms debounce
+              });
+
+              // Make advanced sections collapsible on initial load
+              $('.advanced-settings, .stripe-section').addClass('collapsed');
+              $('.advanced-settings legend, .stripe-section legend').css('cursor', 'pointer').on('click', function() {
+                $(this).parent().toggleClass('collapsed');
+              });
+            });
+          })();
+        </script>
+        <style>
+          .subdomain-preview {
+            font-weight: bold;
+            color: #2a6496;
+          }
+          fieldset.collapsed > ol {
+            display: none;
+          }
+          fieldset legend {
+            cursor: pointer;
+          }
+          fieldset.collapsed legend:after {
+            content: " ▶";
+          }
+          fieldset:not(.collapsed) legend:after {
+            content: " ▼";
+          }
+        </style>
+      JS
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # After Create Callback: Auto-create Manager User & StaffMember
+  # ---------------------------------------------------------------------------
+  after_create do |business|
+    # Create manager user with business email
+    # Generate temporary secure password (user will reset via magic link)
+    temp_password = SecureRandom.urlsafe_base64(16)
+
+    user = User.create!(
+      email: business.email,
+      first_name: 'Business',
+      last_name: 'Manager',
+      role: :manager,
+      business_id: business.id,
+      password: temp_password,
+      password_confirmation: temp_password
+    )
+
+    # Create staff member with default Mon-Fri 9am-5pm availability
+    StaffMember.create!(
+      business: business,
+      user: user,
+      name: user.full_name,
+      email: user.email,
+      active: true,
+      availability: {
+        'monday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'tuesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'wednesday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'thursday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'friday' => [{ 'start' => '09:00', 'end' => '17:00' }],
+        'saturday' => [],
+        'sunday' => [],
+        'exceptions' => {}
+      }
+    )
   end
 
   # ---------------------------------------------------------------------------

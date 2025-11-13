@@ -35,6 +35,42 @@ RSpec.describe Business, type: :model do
     it { is_expected.to have_many(:clients).through(:client_businesses).source(:user) }
   end
 
+  describe 'time zone helpers' do
+    describe '#ensure_time_zone!' do
+      let(:business) do
+        build(
+          :business,
+          time_zone: 'UTC',
+          state: 'CA',
+          address: '123 Test St',
+          city: 'Los Angeles',
+          zip: '90001'
+        )
+      end
+
+      it 'treats UTC as a placeholder and performs address lookup' do
+        called = false
+        allow(business).to receive(:set_time_zone_from_address) do
+          called = true
+          business.time_zone = 'America/Los_Angeles'
+        end
+
+        business.ensure_time_zone!
+
+        expect(called).to be(true)
+        expect(business.time_zone).to eq('America/Los_Angeles')
+      end
+
+      it 'falls back to state-based default when lookup does not set a timezone' do
+        expect(business).to receive(:set_time_zone_from_address)
+
+        business.ensure_time_zone!
+
+        expect(business.time_zone).to eq('America/Los_Angeles')
+      end
+    end
+  end
+
   describe 'enums' do
     it { is_expected.to define_enum_for(:tier).with_values(free: 'free', standard: 'standard', premium: 'premium').backed_by_column_of_type(:string).with_suffix(true) }
     

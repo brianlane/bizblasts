@@ -155,6 +155,16 @@
                   </div>
                 </div>
               </div>
+              <div class="flex items-center gap-2 mb-4">
+                <%= form.check_box :remove_logo,
+                      class: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded cursor-pointer" %>
+                <%= form.label :remove_logo,
+                      "Remove current logo",
+                      class: "text-sm text-gray-700 cursor-pointer" %>
+              </div>
+              <p class="text-xs text-gray-500 mb-4">
+                Selecting this option deletes the current logo when you save.
+              </p>
             <% end %>
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
               <%= form.file_field :logo, 

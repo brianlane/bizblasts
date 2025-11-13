@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_13_012847) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -157,6 +157,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.integer "max_duration_mins"
     t.integer "min_advance_mins", default: 0
     t.integer "min_duration_mins"
+    t.boolean "service_radius_enabled", default: false, null: false
+    t.integer "service_radius_miles", default: 50, null: false
     t.datetime "updated_at", null: false
     t.boolean "use_fixed_intervals", default: false, null: false
     t.index ["business_id"], name: "index_booking_policies_on_business_id"
@@ -246,6 +248,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.date "domain_registration_date"
     t.date "domain_renewal_date"
     t.string "email"
+    t.string "enhanced_accent_color", default: "red", null: false
     t.string "facebook_url"
     t.text "google_business_address"
     t.boolean "google_business_manual", default: false
@@ -282,6 +285,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.string "status", default: "active", null: false
     t.boolean "stock_management_enabled", default: true, null: false
     t.string "stripe_account_id"
+    t.datetime "stripe_connect_reminder_sent_at"
     t.string "stripe_customer_id"
     t.string "subdomain"
     t.boolean "subscription_discount_enabled", default: false, null: false
@@ -296,6 +300,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.string "twitter_url"
     t.datetime "updated_at", null: false
     t.string "website"
+    t.string "website_layout", default: "basic", null: false
     t.string "youtube_url"
     t.string "zip"
     t.index ["canonical_preference"], name: "index_businesses_on_canonical_preference"
@@ -319,6 +324,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
     t.index ["subscription_discount_enabled"], name: "index_businesses_on_subscription_discount_enabled"
+    t.index ["website_layout"], name: "index_businesses_on_website_layout"
     t.check_constraint "subscription_discount_value >= 0::numeric", name: "businesses_subscription_discount_value_positive"
   end
 
@@ -1561,9 +1567,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_06_182919) do
     t.datetime "created_at", null: false
     t.string "email"
     t.boolean "email_marketing_opt_out"
-    t.string "first_name", null: false
+    t.string "first_name"
     t.datetime "last_appointment"
-    t.string "last_name", null: false
+    t.string "last_name"
     t.text "notes"
     t.string "phone"
     t.boolean "phone_marketing_opt_out", default: false, null: false

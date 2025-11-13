@@ -137,9 +137,21 @@
     <%= javascript_include_tag "application", defer: true %>
   </head>
 
-  <body>
+  <% enhanced_body = content_for?(:body_class) && content_for(:body_class).include?('enhanced-layout-active') %>
+  <% body_classes = content_for?(:body_class) ? content_for(:body_class) : '' %>
+  <% accent_style = if enhanced_body && ActsAsTenant.current_tenant
+                      accent_palette_style(ActsAsTenant.current_tenant.enhanced_accent_color)
+                    else
+                      ''
+                    end %>
+  <body class="<%= body_classes %>" style="<%= accent_style %>">
     <%# Enhanced Professional Navigation Header %>
-    <nav class="bg-white border-b border-gray-200 shadow-sm">
+    <% nav_classes = if enhanced_body
+         "bg-[rgba(10,17,33,0.92)] border-b border-white/10 shadow-[0_12px_30px_-20px_rgba(8,11,24,0.8)] backdrop-blur-lg"
+       else
+         "bg-white border-b border-gray-200 shadow-sm"
+       end %>
+    <nav class="<%= nav_classes %>">
       <!-- Main Header -->
       <div class="container mx-auto px-4 py-3">
         <div class="flex justify-between items-center">
@@ -164,11 +176,11 @@
 
               <!-- Company Name - links to tenant home -->
               <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity" do %>
-                <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
+                <span class="font-bold text-lg whitespace-nowrap <%= enhanced_body ? 'text-blue-200' : 'text-primary' %>"><%= ActsAsTenant.current_tenant.name %></span>
               <% end %>
             <% else %>
               <%= link_to root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
-                <span class="font-bold text-lg text-primary whitespace-nowrap">BizBlasts</span>
+                <span class="font-bold text-lg whitespace-nowrap <%= enhanced_body ? 'text-blue-200' : 'text-primary' %>">BizBlasts</span>
               <% end %>
             <% end %>
           </div>
@@ -223,7 +235,8 @@
               <!-- Guest User Actions -->
               <div class="flex items-stretch md:items-center space-x-2 md:space-x-0 md:space-x-3">
                 <% unless request.path == new_user_session_path %>
-                  <%= link_to "Sign In", new_user_session_path, class: "bg-white border border-primary text-primary px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 text-center text-xs md:text-base" %>
+                  <% sign_in_classes = enhanced_body ? "bg-primary text-white hover:bg-blue-600 accent-link-white" : "bg-white border border-primary text-primary hover:bg-gray-50" %>
+                  <%= link_to "Sign In", new_user_session_path, class: "#{sign_in_classes} px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
                 <% end %>
                 <%= link_to "Customer Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
                 <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
@@ -369,47 +382,62 @@
     <%# Flash messages %>
     <div class="container mx-auto px-4">
       <% flash.each do |type, msg| %>
-        <div class="flash-message flash-<%= type %> mb-4 p-3 rounded 
-                    <%= type == 'notice' ? 'bg-success text-white' : '' %> 
-                    <%= type == 'alert' ? 'bg-error text-white' : '' %>
-             role="alert">
+        <% flash_classes = ["flash-message", "flash-#{type}", "mb-4", "p-3", "rounded"] %>
+        <% if enhanced_body %>
+          <% if type == 'notice' %>
+            <% flash_classes << "bg-[var(--accent-base)] text-white shadow-lg shadow-[rgba(0,0,0,0.35)] border-none" %>
+          <% elsif type == 'alert' %>
+            <% flash_classes << "bg-red-500 text-white shadow-lg shadow-[rgba(0,0,0,0.35)] border-none" %>
+          <% else %>
+            <% flash_classes << "bg-[rgba(15,23,42,0.85)] text-white shadow border border-white/10" %>
+          <% end %>
+        <% else %>
+          <% flash_classes << (type == 'notice' ? 'bg-success text-white' : '') %>
+          <% flash_classes << (type == 'alert' ? 'bg-error text-white' : '') %>
+        <% end %>
+        <div class="<%= flash_classes.join(' ') %>" role="alert">
           <%= msg %>
         </div>
       <% end %>
     </div>
 
-    <main class="container mx-auto px-4">
+    <% main_classes = "container mx-auto px-4" %>
+    <main class="<%= main_classes %>">
       <%= yield %>
     </main>
 
     <!-- Combined Footer with Policy Links and Copyright -->
-    <footer class="bg-gray-50 py-2">
-      <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+    <% enhanced_body = content_for?(:body_class) && content_for(:body_class).include?('enhanced-layout-active') %>
+    <% footer_classes = enhanced_body ? "bg-transparent py-6" : "bg-gray-50 py-2" %>
+    <% footer_text_classes = enhanced_body ? "container mx-auto px-4 text-center text-sm text-gray-400" : "container mx-auto px-4 text-center text-sm text-gray-500" %>
+
+    <footer class="<%= footer_classes %>">
+      <div class="<%= footer_text_classes %>">
         <% if ActsAsTenant.current_tenant %>
           <!-- Tenant pages: Policy links left, copyright right -->
           <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
             <!-- Policy Links -->
             <div>
-              <a href="#" class="termly-display-preferences">Consent Preferences</a>
+              <a href="#" class="termly-display-preferences <%= 'text-gray-300 hover:text-gray-100' if enhanced_body %>">Consent Preferences</a>
               •
-              <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+              <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
               •
-              <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+              <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
             </div>
             
             <!-- Business Copyright -->
-            <div class="text-gray-600">
+            <div class="<%= enhanced_body ? 'text-gray-300' : 'text-gray-600' %>">
               &copy; <%= Date.current.year %> <%= ActsAsTenant.current_tenant.name %>. All rights reserved.
             </div>
           </div>
         <% else %>
           <!-- Main domain: Policy links centered -->
           <div>
-            <a href="#" class="termly-display-preferences">Consent Preferences</a>
+            <a href="#" class="termly-display-preferences <%= 'text-gray-300 hover:text-gray-100' if enhanced_body %>">Consent Preferences</a>
             •
-            <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+            <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
             •
-            <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences", data: { turbo: false } %>
+            <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
           </div>
         <% end %>
       </div>

@@ -57,6 +57,7 @@ RSpec.describe "Admin::SessionsController CSRF Protection", type: :request do
 
         expect(controller_file).to include('render :new')
         expect(controller_file).to include('status: :unprocessable_content')
+        expect(controller_file).to include('build_resource({})')
       end
     end
 
@@ -137,7 +138,7 @@ RSpec.describe "Admin::SessionsController CSRF Protection", type: :request do
       # Should either succeed (if no CSRF enforcement in test) or redirect
       # The important thing is it doesn't crash
       expect(response).to have_http_status(:redirect)
-        .or have_http_status(:unprocessable_entity)
+        .or have_http_status(:unprocessable_content)
         .or have_http_status(:ok)
     end
   end

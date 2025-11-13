@@ -1,5 +1,5 @@
 class BusinessManager::Website::PagesController < BusinessManager::Website::BaseController
-  before_action :set_page, except: [:index, :new, :create, :bulk_action, :update_priority]
+  before_action :set_page, except: [:index, :new, :create, :update_priority]
   
   def index
     sort_param = params[:sort] || 'default'
@@ -144,35 +144,6 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
       redirect_to business_manager_website_page_path(@page), 
                   alert: 'Failed to duplicate page'
     end
-  end
-  
-  def bulk_action
-    page_ids = params[:page_ids] || []
-    action = params[:bulk_action]
-    
-    return redirect_to business_manager_website_pages_path, alert: 'No pages selected' if page_ids.empty?
-    
-    pages = current_business.pages.where(id: page_ids)
-    
-    case action
-    when 'publish'
-      pages.update_all(status: :published, published_at: Time.current)
-      message = "#{pages.count} pages published successfully"
-    when 'draft'
-      pages.update_all(status: :draft)
-      message = "#{pages.count} pages moved to draft"
-    when 'archive'
-      pages.update_all(status: :archived)
-      message = "#{pages.count} pages archived"
-    when 'delete'
-      deleted_count = pages.count
-      pages.each(&:destroy)
-      message = "#{deleted_count} pages deleted successfully"
-    else
-      return redirect_to business_manager_website_pages_path, alert: 'Invalid action'
-    end
-    
-    redirect_to business_manager_website_pages_path, notice: message
   end
   
   def update_priority

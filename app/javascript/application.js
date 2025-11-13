@@ -124,6 +124,7 @@ import ServiceAvailabilityController from './controllers/service_availability_co
 import GoogleBusinessSearchController from './controllers/google_business_search_controller';
 import QrPaymentController from './controllers/qr_payment_controller';
 import PlaceIdLookupController from './controllers/place_id_lookup_controller';
+import EnhancedLayoutSelectorController from './controllers/enhanced_layout_selector_controller';
 
 application.register('page-editor', PageEditorController);
 application.register('theme-editor', ThemeEditorController);
@@ -142,6 +143,7 @@ application.register('service-availability', ServiceAvailabilityController);
 application.register('google-business-search', GoogleBusinessSearchController);
 application.register('qr-payment', QrPaymentController);
 application.register('place-id-lookup', PlaceIdLookupController);
+application.register('enhanced-layout-selector', EnhancedLayoutSelectorController);
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -158,7 +160,7 @@ function autoDiscoverControllers() {
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
-      'place-id-lookup'
+      'place-id-lookup', 'enhanced-layout-selector'
     ]);
     
     // Dynamically import and register each controller

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class Business < ApplicationRecord
+  attr_accessor :remove_logo
   # Business represents a tenant in the multi-tenant architecture
   
   # Define the comprehensive list of industries based on showcase examples
@@ -114,6 +115,23 @@ class Business < ApplicationRecord
   enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
   enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
+  enum :website_layout, { basic: 'basic', enhanced: 'enhanced' }, suffix: true
+  ACCENT_COLOR_OPTIONS = %w[red orange amber emerald sky violet].freeze
+
+  # Fields that affect the enhanced website layout rendering
+  # When any of these fields change, the layout needs to be re-applied
+  LAYOUT_RELATED_FIELDS = %w[
+    website_layout
+    name
+    description
+    industry
+    city
+    state
+    show_services_section
+    show_products_section
+    enhanced_accent_color
+  ].freeze
+
   enum :status, { 
     active: 'active', 
     inactive: 'inactive', 
@@ -212,6 +230,8 @@ class Business < ApplicationRecord
   validates :zip, presence: true # Consider adding format validation
   validates :description, presence: true
   validates :tier, presence: true, inclusion: { in: tiers.keys }
+  validates :enhanced_accent_color, inclusion: { in: ACCENT_COLOR_OPTIONS }
+  validates :website_layout, presence: true, inclusion: { in: website_layouts.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
   validate :validate_timezone
@@ -283,6 +303,9 @@ class Business < ApplicationRecord
   #    already been started/completed.
   after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
+  after_commit :handle_website_layout_change, if: -> {
+    website_layout_enhanced? && (saved_changes.keys & LAYOUT_RELATED_FIELDS).any?
+  }
 
   # 3. Invalidate AllowedHostService cache when custom domain configuration changes
   #    This ensures the host validation cache stays in sync with database changes
@@ -335,6 +358,14 @@ class Business < ApplicationRecord
   
   def loyalty_program_active?
     loyalty_program_enabled?
+  end
+  
+  def website_layout_enhanced?
+    enhanced_website_layout?
+  end
+
+  def website_layout_basic?
+    basic_website_layout?
   end
   
   def loyalty_program_enabled?
@@ -759,12 +790,14 @@ class Business < ApplicationRecord
     end
   end
   
-  # Ensure time_zone present by performing lookup if blank
+  # Ensure time_zone present by performing lookup if blank or placeholder (e.g., UTC)
   def ensure_time_zone!
-    return time_zone if time_zone.present? && time_zone != 'UTC'
+    return time_zone if time_zone_configured?
 
     set_time_zone_from_address if respond_to?(:set_time_zone_from_address)
-    save(validate: false) if time_zone_changed? && persisted?
+    set_default_timezone unless time_zone_configured?
+
+    save(validate: false) if persisted? && time_zone_changed?
     time_zone
   end
 
@@ -882,6 +915,17 @@ class Business < ApplicationRecord
     hostname.present? &&
     # Additional safety: ensure hostname doesn't contain any suspicious patterns
     hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
+  end
+
+  def handle_website_layout_change
+    return unless website_layout_enhanced?
+
+    EnhancedWebsiteLayoutService.apply!(self)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BUSINESS CALLBACK] Failed to apply enhanced website layout for business #{safe_identifier_for_logging}: #{e.message}"
+  rescue StandardError => e
+    Rails.logger.error "[BUSINESS CALLBACK] Unexpected error applying enhanced website layout for business #{safe_identifier_for_logging}: #{e.class.name} - #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
   end
 
   # Triggered after *create* for eligible businesses.
@@ -1042,9 +1086,21 @@ class Business < ApplicationRecord
     self.stripe_customer_id = nil if stripe_customer_id.blank?
   end
 
+  def placeholder_time_zone?(value = time_zone)
+    value_str = value.to_s.strip
+    return false if value_str.blank?
+
+    %w[UTC ETC/UTC].include?(value_str.upcase)
+  end
+
+  def time_zone_configured?(value = time_zone)
+    value_str = value.to_s.strip
+    value_str.present? && !placeholder_time_zone?(value_str)
+  end
+
   # Set default timezone based on state if none is set
   def set_default_timezone
-    return if time_zone.present?
+    return if time_zone_configured?
 
     # Map states to timezones - defaults to Eastern if state is not recognized
     self.time_zone = case state.to_s.upcase

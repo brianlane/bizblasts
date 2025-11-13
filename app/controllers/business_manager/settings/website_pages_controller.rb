@@ -36,6 +36,8 @@ module BusinessManager
           :show_services_section,
           :show_products_section,
           :show_estimate_page,
+          :website_layout,
+          :enhanced_accent_color,
           :facebook_url,
           :twitter_url,
           :instagram_url,
