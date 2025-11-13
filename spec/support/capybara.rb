@@ -15,6 +15,8 @@ Capybara.register_driver(:cuprite) do |app|
     inspector: ENV['INSPECTOR'] == 'true',
     js_errors: true,
     dialog_handler: ->(_page, dialog) { dialog.accept },
+    # Note: pending_connection_errors: false documented to suppress these errors,
+    # but in practice with Ferrum 0.17.1 they still occur when timeout is hit first
     pending_connection_errors: false
   }
 
