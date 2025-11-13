@@ -3,18 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Registration", type: :system do
-  # Use truncation strategy for system tests to avoid transaction issues
-  before(:all) do
-    DatabaseCleaner.strategy = :truncation
-  end
-
-  after(:all) do
-    DatabaseCleaner.strategy = :transaction # Reset to default
-  end
-
-  before(:each) do
-    DatabaseCleaner.clean
-    
+  before do
     # Create required policy versions for business registration
     create(:policy_version, policy_type: 'privacy_policy', version: 'v1.0', active: true)
     create(:policy_version, policy_type: 'terms_of_service', version: 'v1.0', active: true)
@@ -23,7 +12,7 @@ RSpec.describe "Business Registration", type: :system do
     
     # Business registration is on the main domain (no subdomain)
     switch_to_main_domain
-    
+
     # Mock Stripe API key configuration
     allow(Rails.application.credentials).to receive(:stripe).and_return({ 
       secret_key: 'sk_test_xyz', 
