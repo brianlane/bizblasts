@@ -27,12 +27,12 @@ module CIVisitHelper
   # Override visit to handle pending connection errors more gracefully in CI
   def visit(path)
     if ENV['CI'] == 'true'
-      # In CI, catch pending connection errors and verify if page actually loaded
+      # In CI, catch pending connection errors and timeouts, then verify if page actually loaded
       begin
         super(path)
-      rescue Ferrum::PendingConnectionsError => e
+      rescue Ferrum::PendingConnectionsError, Ferrum::TimeoutError => e
         # Log the error and verify if navigation actually succeeded
-        warn "[CI Visit Helper] PendingConnectionsError for #{path}, verifying navigation..."
+        warn "[CI Visit Helper] #{e.class.name} for #{path}, verifying navigation..."
         
         # Get current URL from browser
         current_url = page.driver.browser.current_url rescue nil

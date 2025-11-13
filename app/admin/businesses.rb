@@ -979,12 +979,19 @@ ActiveAdmin.register Business do
               const slug = slugify(businessName);
 
               if (tier === 'premium') {
-                // For premium, suggest a .com domain
-                $('#business_hostname').val(slug + '.com');
+                // Only auto-generate hostname if it's empty (new business)
+                // Don't overwrite existing hostnames for businesses being edited
+                const hostnameField = $('#business_hostname');
+                if (!hostnameField.val() || hostnameField.val().trim() === '') {
+                  hostnameField.val(slug + '.com');
+                }
               } else {
-                // For free/standard, just use the slug
-                $('#business_subdomain').val(slug);
-                // Update preview
+                // Only auto-generate subdomain if it's empty (new business)
+                const subdomainField = $('#business_subdomain');
+                if (!subdomainField.val() || subdomainField.val().trim() === '') {
+                  subdomainField.val(slug);
+                }
+                // Always update preview for subdomain
                 $('.subdomain-preview').text(slug + '.bizblasts.com');
               }
             }

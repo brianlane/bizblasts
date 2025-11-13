@@ -191,7 +191,7 @@ class AllowedHostService
 
       Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
         Business.where(host_type: 'custom_domain')
-                .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
+                .where(status: ['active', 'cname_pending', 'cname_monitoring', 'cname_active'])
                 .where('LOWER(hostname) IN (?)', candidates)
                 .exists?
       end
