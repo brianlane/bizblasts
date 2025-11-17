@@ -89,7 +89,7 @@ RSpec.describe 'Tenant Isolation Security', type: :request do
 
   describe 'Data sanitization in logs' do
     it 'does not log sensitive data' do
-      allow(Rails.logger).to receive(:info)
+      allow(Rails.logger).to receive(:info).and_call_original
 
       # Test that SecureLogger sanitizes properly
       SecureLogger.info("User email: #{manager1.email}")
@@ -99,10 +99,10 @@ RSpec.describe 'Tenant Isolation Security', type: :request do
         a_string_including(manager1.email)
       )
 
-      # But sanitized emails should be logged
+      # But sanitized emails should be logged (at least once)
       expect(Rails.logger).to have_received(:info).with(
         a_string_including('***@***')
-      )
+      ).at_least(:once)
     end
   end
 end
