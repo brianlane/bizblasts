@@ -322,8 +322,15 @@ jobs:
             echo "No request specs found for group 1"
           fi
 
-      - name: Run controller tests
-        run: bundle exec rspec spec/controllers --format documentation
+      - name: Run controller tests group 1
+        run: |
+          TESTS=$(./bin/split_controller_tests.rb 1)
+          if [ -n "$TESTS" ]; then
+            echo "Running controller spec group 1..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No controller specs found for group 1"
+          fi
 
   # Request tests group 2
   test_requests_2:
@@ -422,6 +429,16 @@ jobs:
             bundle exec rspec $TESTS --format documentation
           else
             echo "No request specs found for group 2"
+          fi
+
+      - name: Run controller tests group 2
+        run: |
+          TESTS=$(./bin/split_controller_tests.rb 2)
+          if [ -n "$TESTS" ]; then
+            echo "Running controller spec group 2..."
+            bundle exec rspec $TESTS --format documentation
+          else
+            echo "No controller specs found for group 2"
           fi
 
   # Service and business logic tests - Group 1

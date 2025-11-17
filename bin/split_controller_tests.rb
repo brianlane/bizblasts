@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
 
-# Script to automatically split request specs into 2 balanced groups
+# Script to automatically split controller specs into 2 balanced groups
 require 'find'
 
-def find_request_tests
+def find_controller_tests
   tests = []
-  Find.find('spec/requests') do |path|
+  Find.find('spec/controllers') do |path|
     tests << path if path.end_with?('_spec.rb')
   end
   tests.sort
@@ -42,10 +42,10 @@ def main
     exit 0
   end
 
-  tests = find_request_tests
+  tests = find_controller_tests
 
   if tests.empty?
-    puts "No request specs found"
+    puts "No controller specs found"
     exit 0
   end
 
@@ -68,4 +68,4 @@ def main
   end
 end
 
-main if __FILE__ == $0 
+main if __FILE__ == $0
