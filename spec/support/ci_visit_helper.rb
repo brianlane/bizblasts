@@ -34,8 +34,8 @@ module CIVisitHelper
         # Log the error and verify if navigation actually succeeded
         warn "[CI Visit Helper] #{e.class.name} for #{path}, verifying navigation..."
         
-        # Get current URL from browser
-        current_url = page.driver.browser.current_url rescue nil
+        # Get current URL from browser (use Capybara's API for reliability)
+        current_url = page.current_url rescue nil
         
         # Build expected URL for comparison
         expected_url = if path.start_with?('http')
@@ -79,7 +79,7 @@ module CIVisitHelper
           # Navigation failed - attempt a single forced navigation without waiting for network idle
           warn "[CI Visit Helper] Navigation mismatch detected, attempting forced navigation to #{expected_url}"
           begin
-            page.driver.browser.page.go_to(expected_url)
+            page.driver.browser.goto(expected_url)
             if page.has_css?('body', wait: 5)
               warn "[CI Visit Helper] Forced navigation succeeded for #{expected_url}"
               sleep 0.3
