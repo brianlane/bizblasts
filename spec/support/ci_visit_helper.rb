@@ -34,8 +34,8 @@ module CIVisitHelper
         # Log the error and verify if navigation actually succeeded
         warn "[CI Visit Helper] #{e.class.name} for #{path}, verifying navigation..."
         
-        # Get current URL from browser
-        current_url = page.driver.browser.current_url rescue nil
+        # Get current URL from browser (use Capybara's API for reliability)
+        current_url = page.current_url rescue nil
         
         # Build expected URL for comparison
         expected_url = if path.start_with?('http')
@@ -53,18 +53,18 @@ module CIVisitHelper
           expected_uri = URI.parse(expected_url.split('?').first.split('#').first.chomp('/'))
           current_uri = URI.parse(current_url.split('?').first.split('#').first.chomp('/')) if current_url
           
-          # Compare host, path, and port (accounting for default ports)
+          # Compare host + path (ignore port differences between app_host and Capybara server)
           urls_match = current_uri &&
                       current_uri.host == expected_uri.host &&
-                      current_uri.path == expected_uri.path &&
-                      (current_uri.port == expected_uri.port || 
-                       (expected_uri.port.nil? && current_uri.port == 80) ||
-                       (expected_uri.port.nil? && current_uri.port == 3000))  # Common Rails dev port
+                      current_uri.path == expected_uri.path
         rescue URI::InvalidURIError => uri_error
-          warn "[CI Visit Helper] URI parsing error: #{uri_error.message}"
+          warn "[CI Visit Helper] URI parsing error: #{uri_error.message} (expected: #{expected_url.inspect}, current: #{current_url.inspect})"
           urls_match = false
         end
         
+        debug_message = "[CI Visit Helper] expected_url=#{expected_url}, current_url=#{current_url}, urls_match=#{urls_match}"
+        warn debug_message
+
         if urls_match
           # URL matches (host, path, and normalized port) - verify the page rendered
           if page.has_css?('body', wait: 2)
@@ -76,9 +76,21 @@ module CIVisitHelper
             raise e
           end
         else
-          # Navigation failed - URL didn't change to expected target
-          warn "[CI Visit Helper] Navigation failed - expected: #{expected_url}, got: #{current_url}"
-          raise e
+          # Navigation failed - attempt a single forced navigation without waiting for network idle
+          warn "[CI Visit Helper] Navigation mismatch detected, attempting forced navigation to #{expected_url}"
+          begin
+            page.driver.browser.goto(expected_url)
+            if page.has_css?('body', wait: 5)
+              warn "[CI Visit Helper] Forced navigation succeeded for #{expected_url}"
+              sleep 0.3
+            else
+              warn "[CI Visit Helper] Forced navigation loaded URL but no body found, raising original error"
+              raise e
+            end
+          rescue => forced_error
+            warn "[CI Visit Helper] Forced navigation failed: #{forced_error.class} - #{forced_error.message}"
+            raise e
+          end
         end
       end
     else

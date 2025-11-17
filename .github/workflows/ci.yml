@@ -322,9 +322,6 @@ jobs:
             echo "No request specs found for group 1"
           fi
 
-      - name: Run controller tests
-        run: bundle exec rspec spec/controllers --format documentation
-
   # Request tests group 2
   test_requests_2:
     runs-on: ubuntu-latest
@@ -1367,20 +1364,25 @@ jobs:
       - name: Run other tests
         run: |
           set -e  # Exit immediately if any command exits with a non-zero status
-          # Run tests from directories that exist and have spec files
+
+          # Run controller tests
+          echo "Running controller tests..."
+          bundle exec rspec spec/controllers --format documentation
+
+          # Run tests from other directories that exist and have spec files
           SPEC_DIRS=""
           for dir in spec/helpers spec/lib spec/views spec/security spec/channels; do
             if [ -d "$dir" ] && find "$dir" -name "*_spec.rb" | grep -q .; then
               SPEC_DIRS="$SPEC_DIRS $dir"
             fi
           done
-          
+
           # Handle JavaScript specs separately since they're .js files
           if [ -d "spec/javascript" ] && find "spec/javascript" -name "*_spec.js" | grep -q .; then
             echo "Found JavaScript specs, but RSpec doesn't run .js files directly"
             echo "JavaScript specs should be run with a JavaScript test runner"
           fi
-          
+
           if [ -n "$SPEC_DIRS" ]; then
             echo "Running other tests from: $SPEC_DIRS"
             bundle exec rspec $SPEC_DIRS --format documentation
