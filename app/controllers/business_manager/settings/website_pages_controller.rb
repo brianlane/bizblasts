@@ -44,7 +44,12 @@ module BusinessManager
           :pinterest_url,
           :linkedin_url,
           :tiktok_url,
-          :youtube_url
+          :youtube_url,
+          :gallery_enabled,
+          :show_gallery_section,
+          :video_display_location,
+          :gallery_columns,
+          :gallery_layout
         )
       end
     end

@@ -101,6 +101,7 @@ class EnhancedWebsiteLayoutService
 
     sections << service_section_definition if include_service_section?
     sections << product_section_definition if include_product_section?
+    sections << gallery_section_definition if include_gallery_section?
 
     sections << {
       type: 'testimonial',
@@ -208,6 +209,38 @@ class EnhancedWebsiteLayoutService
         'title' => 'Featured Products',
         'description' => "Premium products we trust and use."
       }
+    }
+  end
+
+  def include_gallery_section?
+    business.gallery_enabled? &&
+    business.show_gallery_section? &&
+    (business.gallery_photos.featured.any? || business.gallery_photos.any? || business.gallery_video.attached?)
+  end
+
+  def gallery_section_definition
+    {
+      type: 'gallery',
+      animation: 'fadeIn',
+      config: gallery_config,
+      content: gallery_content
+    }
+  end
+
+  def gallery_config
+    {
+      'layout' => business.gallery_layout || 'grid',
+      'columns' => business.gallery_columns || 3,
+      'show_featured' => business.featured_gallery_photos.any?,
+      'show_video' => business.gallery_video.attached? && business.video_display_location_gallery?
+    }
+  end
+
+  def gallery_content
+    sanitized_name = sanitized_business_name
+    {
+      'title' => 'Our Gallery',
+      'description' => "Explore our work and see what makes #{sanitized_name} stand out."
     }
   end
 

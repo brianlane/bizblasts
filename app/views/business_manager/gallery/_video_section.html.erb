@@ -1,0 +1,184 @@
+<%# Local variables: business, video_info %>
+
+<div class="bg-white rounded-lg shadow mb-8">
+  <div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold text-gray-900">Featured Video</h2>
+      <span class="text-sm text-gray-500">MP4, WebM, MOV up to 50MB</span>
+    </div>
+
+    <% if video_info.present? %>
+      <!-- Existing Video -->
+      <div class="border border-gray-200 rounded-lg p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Video Preview -->
+          <div class="bg-gray-100 rounded-lg overflow-hidden">
+            <video controls class="w-full h-64 object-cover">
+              <source src="<%= video_info[:url] %>" type="<%= video_info[:content_type] %>">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          <!-- Video Settings -->
+          <div>
+            <%= form_with url: business_manager_gallery_video_path, method: :patch,
+                         data: { turbo: true } do |f| %>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Video Title (Optional)</label>
+                  <%= f.text_field :video_title, value: video_info[:title],
+                                  class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                                  placeholder: "e.g., Welcome Video" %>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Display Location</label>
+                  <div class="space-y-2">
+                    <label class="flex items-center">
+                      <%= f.radio_button :video_display_location, 'hero',
+                                        checked: business.video_display_location_hero?,
+                                        class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                      <span class="ml-2 text-sm text-gray-700">
+                        Hero Section Only
+                        <span class="text-gray-500 text-xs block">Auto-plays as background video</span>
+                      </span>
+                    </label>
+
+                    <label class="flex items-center">
+                      <%= f.radio_button :video_display_location, 'gallery',
+                                        checked: business.video_display_location_gallery?,
+                                        class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                      <span class="ml-2 text-sm text-gray-700">
+                        Gallery Section Only
+                        <span class="text-gray-500 text-xs block">Shows with play controls in gallery</span>
+                      </span>
+                    </label>
+
+                    <label class="flex items-center">
+                      <%= f.radio_button :video_display_location, 'both',
+                                        checked: business.video_display_location_both?,
+                                        class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                      <span class="ml-2 text-sm text-gray-700">
+                        Both Locations
+                        <span class="text-gray-500 text-xs block">Hero background + gallery section</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <% if business.video_display_location_hero? || business.video_display_location_both? %>
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <label class="flex items-start">
+                      <%= f.check_box :video_autoplay_hero,
+                                     checked: business.video_autoplay_hero?,
+                                     class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-0.5" %>
+                      <span class="ml-2">
+                        <span class="text-sm font-medium text-gray-900">Autoplay in Hero</span>
+                        <span class="text-xs text-gray-600 block mt-1">
+                          Video will loop silently in the background (like Losne Massage)
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                <% end %>
+
+                <!-- Video Info -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <dl class="grid grid-cols-2 gap-2 text-sm">
+                    <dt class="text-gray-500">Filename:</dt>
+                    <dd class="text-gray-900 font-medium truncate"><%= video_info[:filename] %></dd>
+
+                    <dt class="text-gray-500">File Size:</dt>
+                    <dd class="text-gray-900 font-medium"><%= video_info[:size_human] %></dd>
+
+                    <dt class="text-gray-500">Format:</dt>
+                    <dd class="text-gray-900 font-medium"><%= video_info[:content_type] %></dd>
+                  </dl>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-3">
+                  <%= f.submit "Save Settings", class: "btn btn-primary flex-1" %>
+                  <%= button_to "Remove Video",
+                               business_manager_gallery_video_path,
+                               method: :delete,
+                               data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to remove this video?" },
+                               class: "btn btn-danger" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <!-- Upload Video Form -->
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-500 transition">
+        <%= form_with url: business_manager_gallery_video_path, method: :post,
+                     data: { turbo: true }, multipart: true do |f| %>
+          <div class="text-center mb-6">
+            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            <h3 class="mt-2 text-lg font-medium text-gray-900">Upload Your Featured Video</h3>
+            <p class="mt-1 text-sm text-gray-500">Showcase your business with a compelling video</p>
+          </div>
+
+          <div class="max-w-md mx-auto space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Select Video File</label>
+              <%= f.file_field :video_file, accept: "video/*", required: true,
+                              class: "block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" %>
+              <p class="mt-1 text-xs text-gray-500">MP4, WebM, MOV, or AVI up to 50MB</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Video Title (Optional)</label>
+              <%= f.text_field :video_title,
+                              class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                              placeholder: "e.g., Welcome to Our Business" %>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Where should this video appear?</label>
+              <div class="space-y-2">
+                <label class="flex items-center">
+                  <%= f.radio_button :video_display_location, 'hero', checked: true,
+                                    class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                  <span class="ml-2 text-sm text-gray-700">Hero Section (Autoplay Background)</span>
+                </label>
+
+                <label class="flex items-center">
+                  <%= f.radio_button :video_display_location, 'gallery',
+                                    class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                  <span class="ml-2 text-sm text-gray-700">Gallery Section (With Controls)</span>
+                </label>
+
+                <label class="flex items-center">
+                  <%= f.radio_button :video_display_location, 'both',
+                                    class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                  <span class="ml-2 text-sm text-gray-700">Both Locations</span>
+                </label>
+              </div>
+            </div>
+
+            <%= f.hidden_field :video_autoplay_hero, value: true %>
+
+            <%= f.submit "Upload Video", class: "btn btn-primary w-full" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Video Tips -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <h4 class="text-sm font-medium text-blue-900 mb-2">💡 Video Tips</h4>
+      <ul class="text-sm text-blue-800 space-y-1">
+        <li>• Keep videos short (30-60 seconds) for best engagement</li>
+        <li>• Use high-quality footage with good lighting</li>
+        <li>• Hero videos work best when muted (like Losne Massage)</li>
+        <li>• Consider mobile users - videos should load quickly</li>
+        <li>• Test your video on different devices before going live</li>
+      </ul>
+    </div>
+  </div>
+</div>

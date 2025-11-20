@@ -1,0 +1,229 @@
+<% content_for :title, "Gallery Management" %>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Photos & Videos Gallery</h1>
+        <p class="mt-2 text-sm text-gray-600">
+          Manage your gallery photos (<%= @photos_count %>/100) and featured video for your website.
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <%= link_to "View Gallery Live", public_pages_path, target: "_blank", class: "btn btn-secondary cursor-pointer" %>
+        <%= link_to edit_business_manager_settings_website_pages_path, class: "btn btn-outline cursor-pointer" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          Gallery Settings
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div id="flash">
+    <%= render 'shared/flash' if flash.any? %>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 bg-blue-100 rounded-md p-3">
+          <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Total Photos</p>
+          <p class="text-2xl font-semibold text-gray-900"><%= @photos_count %>/100</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 bg-yellow-100 rounded-md p-3">
+          <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Featured</p>
+          <p class="text-2xl font-semibold text-gray-900"><%= @featured_photos.count %>/5</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 bg-purple-100 rounded-md p-3">
+          <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Featured Video</p>
+          <p class="text-2xl font-semibold text-gray-900"><%= @video_info.present? ? "Yes" : "No" %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
+          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Gallery Status</p>
+          <p class="text-2xl font-semibold text-gray-900"><%= @business.gallery_enabled? ? "Enabled" : "Disabled" %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Section -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Upload New Photos</h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Upload from Computer -->
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-500 transition"
+             data-controller="photo-upload">
+          <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Upload from Computer</h3>
+            <p class="mt-1 text-sm text-gray-500">PNG, JPG, GIF, WebP, HEIC up to 15MB</p>
+            <%= form_with url: business_manager_gallery_photos_path, method: :post,
+                         data: { turbo_frame: "_top" }, class: "mt-4" do |f| %>
+              <%= f.file_field :image, accept: "image/*", multiple: true,
+                              class: "hidden", id: "photo_upload",
+                              data: { action: "change->photo-upload#handleFiles" } %>
+              <%= f.label :photo_upload, class: "btn btn-primary cursor-pointer" do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Choose Photos
+              <% end %>
+            <% end %>
+            <p class="mt-2 text-xs text-gray-500"><%= @photos_count < 100 ? "#{100 - @photos_count} slots remaining" : "Gallery full" %></p>
+          </div>
+        </div>
+
+        <!-- Link from Services/Products -->
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-500 transition">
+          <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Link Existing Images</h3>
+            <p class="mt-1 text-sm text-gray-500">Add photos from your services or products</p>
+            <button type="button"
+                    data-action="click->gallery-manager#openLinkModal"
+                    class="btn btn-secondary mt-4">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+              </svg>
+              Link Images
+            </button>
+            <p class="mt-2 text-xs text-gray-500">
+              <% available_count = @available_images[:services].count + @available_images[:products].count %>
+              <%= available_count %> images available
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Featured Photos Section -->
+  <% if @featured_photos.any? %>
+    <div class="bg-white rounded-lg shadow mb-8">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Featured Photos (Up to 5)</h2>
+          <span class="text-sm text-gray-500">These will be highlighted on your website</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" id="featured_photos_grid">
+          <% @featured_photos.each do |photo| %>
+            <%= render 'business_manager/gallery/photo_card', photo: photo, featured: true %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Video Section -->
+  <div id="gallery_video_section">
+    <%= render 'business_manager/gallery/video_section', business: @business, video_info: @video_info %>
+  </div>
+
+  <!-- All Gallery Photos -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">All Gallery Photos</h2>
+        <div class="flex items-center gap-4">
+          <label class="flex items-center text-sm text-gray-700">
+            <input type="checkbox"
+                   data-action="change->gallery-manager#toggleReorderMode"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2">
+            Reorder Mode
+          </label>
+          <select class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  data-action="change->gallery-manager#changeView">
+            <option value="grid">Grid View</option>
+            <option value="list">List View</option>
+          </select>
+        </div>
+      </div>
+
+      <% if @gallery_photos.any? %>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+             id="gallery_photos_grid"
+             data-controller="sortable"
+             data-sortable-animation-value="150">
+          <% @gallery_photos.each do |photo| %>
+            <%= render 'business_manager/gallery/photo_card', photo: photo %>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No photos yet</h3>
+          <p class="mt-1 text-sm text-gray-500">Get started by uploading your first photo or linking existing images.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Link Images Modal -->
+<div id="link_images_modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 z-50" data-controller="modal">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-medium text-gray-900">Link Existing Images</h3>
+          <button type="button" data-action="click->modal#close" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <%= render 'business_manager/gallery/link_images_content', available_images: @available_images %>
+      </div>
+    </div>
+  </div>
+</div>

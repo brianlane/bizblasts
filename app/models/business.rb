@@ -116,6 +116,8 @@ class Business < ApplicationRecord
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
   enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
   enum :website_layout, { basic: 'basic', enhanced: 'enhanced' }, suffix: true
+  enum :video_display_location, { hero: 0, gallery: 1, both: 2 }, prefix: true
+  enum :gallery_layout, { grid: 0, masonry: 1, carousel: 2 }, prefix: true
   ACCENT_COLOR_OPTIONS = %w[red orange amber emerald sky violet].freeze
 
   # Fields that affect the enhanced website layout rendering
@@ -208,6 +210,9 @@ class Business < ApplicationRecord
   # Website customization associations
   has_many :website_themes, dependent: :destroy
   has_one :active_website_theme, -> { where(active: true) }, class_name: 'WebsiteTheme'
+
+  # Gallery associations
+  has_many :gallery_photos, -> { order(:position) }, dependent: :destroy
   
   # Tip configuration helper methods
   def tip_configuration_or_default
@@ -807,12 +812,29 @@ class Business < ApplicationRecord
     attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
     attachable.variant :large, resize_to_limit: [600, 600], quality: 90
   end
+
+  # Active Storage attachment for gallery video
+  has_one_attached :gallery_video do |attachable|
+    attachable.variant :thumbnail, resize_to_limit: [400, 300]
+  end
   
   # Logo validations - Updated for HEIC support
   validates :logo, **FileUploadSecurity.image_validation_options
-  
+
+  # Gallery video validations
+  validates :gallery_video,
+            content_type: { in: %w[video/mp4 video/webm video/quicktime video/x-msvideo],
+                            message: 'must be a valid video format (MP4, WebM, MOV, or AVI)' },
+            size: { less_than: 50.megabytes, message: 'must be less than 50MB' },
+            if: -> { gallery_video.attached? }
+
+  validates :gallery_columns, numericality: { only_integer: true, greater_than_or_equal_to: 2, less_than_or_equal_to: 4 }, allow_nil: true
+
   # Background processing for logo
   after_commit :process_logo, if: -> { logo.attached? }
+
+  # Background processing for gallery video
+  after_commit :process_gallery_video, if: -> { gallery_video.attached? }
 
   # Ensure hostname is populated for subdomain host_type
   before_validation :sync_hostname_with_subdomain, if: :host_type_subdomain?
@@ -875,6 +897,45 @@ class Business < ApplicationRecord
     else
       0  # Default to no SMS for unknown tiers
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Gallery helper methods
+
+  # Get featured gallery photos (max 5)
+  # @return [ActiveRecord::Relation<GalleryPhoto>]
+  def featured_gallery_photos
+    gallery_photos.featured.limit(5)
+  end
+
+  # Check if video should display in hero section
+  # @return [Boolean]
+  def hero_video?
+    gallery_video.attached? && (video_display_location_hero? || video_display_location_both?)
+  end
+
+  # Check if video should display in gallery section
+  # @return [Boolean]
+  def gallery_video_display?
+    gallery_video.attached? && (video_display_location_gallery? || video_display_location_both?)
+  end
+
+  # Get total count of gallery photos
+  # @return [Integer]
+  def gallery_photos_count
+    gallery_photos.count
+  end
+
+  # Check if gallery is ready to display (has photos or video)
+  # @return [Boolean]
+  def gallery_ready?
+    gallery_enabled? && (gallery_photos.any? || gallery_video.attached?)
+  end
+
+  # Get gallery columns for responsive layout
+  # @return [Integer]
+  def gallery_display_columns
+    gallery_columns || 3
   end
 
   # Helper method to get a safe business identifier for logging
@@ -1046,7 +1107,7 @@ class Business < ApplicationRecord
   # ---------------------------------------------------------------------------
   def process_logo
     return unless logo.attached?
-    
+
     begin
       return unless logo.blob.byte_size > 2.megabytes
       # Pass the attachment ID instead of the attached object
@@ -1055,6 +1116,19 @@ class Business < ApplicationRecord
       Rails.logger.warn "Logo blob not found for business #{id}: #{e.message}"
     rescue => e
       Rails.logger.error "Failed to enqueue logo processing job for business #{id}: #{e.message}"
+    end
+  end
+
+  def process_gallery_video
+    return unless gallery_video.attached?
+
+    begin
+      # Enqueue background job for video processing (thumbnail generation, compression)
+      ProcessGalleryVideoJob.perform_later(gallery_video.attachment.id)
+    rescue ActiveStorage::FileNotFoundError => e
+      Rails.logger.warn "Gallery video blob not found for business #{id}: #{e.message}"
+    rescue => e
+      Rails.logger.error "Failed to enqueue gallery video processing job for business #{id}: #{e.message}"
     end
   end
   

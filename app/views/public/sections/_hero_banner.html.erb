@@ -12,8 +12,21 @@
                      end %>
   <% accent_enabled = current_business&.website_layout_enhanced? %>
       <div class="hero-banner-section relative overflow-hidden bg-black text-white">
-        <div class="absolute inset-0 opacity-40 <%= accent_enabled ? 'accent-gradient' : 'bg-gradient-to-br from-red-600 via-black to-transparent' %> pointer-events-none"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 flex flex-col lg:flex-row items-start lg:items-center gap-12">
+        <% if current_business&.hero_video? && current_business.gallery_video.attached? %>
+          <!-- Hero Video Background -->
+          <video autoplay loop muted playsinline
+                 class="absolute inset-0 w-full h-full object-cover"
+                 data-controller="hero-video"
+                 style="z-index: 0;">
+            <source src="<%= url_for(current_business.gallery_video) %>" type="<%= current_business.gallery_video.content_type %>">
+          </video>
+          <!-- Video Overlay for text readability -->
+          <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" style="z-index: 1;"></div>
+        <% else %>
+          <!-- Fallback Gradient Background -->
+          <div class="absolute inset-0 opacity-40 <%= accent_enabled ? 'accent-gradient' : 'bg-gradient-to-br from-red-600 via-black to-transparent' %> pointer-events-none"></div>
+        <% end %>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 flex flex-col lg:flex-row items-start lg:items-center gap-12" style="z-index: 2;">
       <div class="flex-1">
         <div class="flex items-center gap-4 mb-6">
           <% if current_business&.logo&.attached? %>
