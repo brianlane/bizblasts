@@ -35,5 +35,11 @@
     "sortablejs": "^1.15.2",
     "trix": "^2.1.4",
     "vue": "^3.4.38"
+  },
+  "resolutions": {
+    "js-yaml": "^4.1.0"
+  },
+  "overrides": {
+    "js-yaml": "^4.1.0"
   }
 }
