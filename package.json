@@ -13,6 +13,7 @@
     "lint:fix": "eslint app/assets/javascripts app/javascript spec/javascript --ext .js --fix"
   },
   "devDependencies": {
+    "@istanbuljs/load-nyc-config": "file:vendor/npm/@istanbuljs/load-nyc-config",
     "@activeadmin/activeadmin": "^3.3.0",
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
