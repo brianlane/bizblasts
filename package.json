@@ -13,6 +13,7 @@
     "lint:fix": "eslint app/assets/javascripts app/javascript spec/javascript --ext .js --fix"
   },
   "devDependencies": {
+    "@istanbuljs/load-nyc-config": "file:vendor/npm/@istanbuljs/load-nyc-config",
     "@activeadmin/activeadmin": "^3.3.0",
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
@@ -35,11 +36,5 @@
     "sortablejs": "^1.15.2",
     "trix": "^2.1.4",
     "vue": "^3.4.38"
-  },
-  "resolutions": {
-    "js-yaml": "^4.1.0"
-  },
-  "overrides": {
-    "js-yaml": "^4.1.0"
   }
 }
