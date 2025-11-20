@@ -1124,7 +1124,7 @@ class Business < ApplicationRecord
 
     begin
       # Enqueue background job for video processing (thumbnail generation, compression)
-      ProcessGalleryVideoJob.perform_later(gallery_video.attachment.id)
+      ProcessGalleryVideoJob.perform_later(id)
     rescue ActiveStorage::FileNotFoundError => e
       Rails.logger.warn "Gallery video blob not found for business #{id}: #{e.message}"
     rescue => e

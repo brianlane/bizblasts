@@ -50,6 +50,10 @@ class GalleryVideoService
     raise VideoNotFoundError, "No video attached" unless business.gallery_video.attached?
 
     valid_locations = %i[hero gallery both]
+
+    # Handle nil or empty location gracefully
+    raise ArgumentError, "Display location cannot be nil or empty" if location.blank?
+
     location_sym = location.to_sym
 
     unless valid_locations.include?(location_sym)

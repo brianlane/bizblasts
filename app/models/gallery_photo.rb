@@ -21,11 +21,11 @@
 
 class GalleryPhoto < ApplicationRecord
   # Enums
-  enum photo_source: {
+  enum :photo_source, {
     gallery: 0,      # Photo uploaded directly to gallery
     service: 1,      # Photo from a service
     product: 2       # Photo from a product
-  }, _prefix: true
+  }, prefix: true
 
   # Associations
   belongs_to :business

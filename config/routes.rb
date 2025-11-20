@@ -246,20 +246,16 @@ Rails.application.routes.draw do
       end
 
       # Gallery management
-      resource :gallery, only: [:index], controller: 'gallery' do
-        collection do
-          get '/', action: :index
-          post 'photos', action: :create_photo
-          post 'photos/reorder', action: :reorder_photos
-          post 'video', action: :create_video
-          patch 'video', action: :update_video
-          delete 'video', action: :destroy_video
-        end
-        member do
-          patch 'photos/:id', action: :update_photo, as: :update_photo
-          delete 'photos/:id', action: :destroy_photo, as: :destroy_photo
-          post 'photos/:id/toggle_featured', action: :toggle_featured, as: :toggle_featured_photo
-        end
+      get 'gallery', to: 'gallery#index', as: :gallery_index
+      scope path: 'gallery', as: :gallery, controller: 'gallery' do
+        post 'photos', action: :create_photo, as: :photos
+        post 'photos/reorder', action: :reorder_photos, as: :reorder_photos
+        patch 'photos/:id', action: :update_photo, as: :update_photo
+        delete 'photos/:id', action: :destroy_photo, as: :destroy_photo
+        post 'photos/:id/toggle_featured', action: :toggle_featured, as: :toggle_featured_photo
+        post 'video', action: :create_video, as: :video
+        patch 'video', action: :update_video, as: :update_video
+        delete 'video', action: :destroy_video, as: :destroy_video
       end
 
       # Bookings management

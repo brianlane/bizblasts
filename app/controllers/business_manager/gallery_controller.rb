@@ -27,14 +27,14 @@ module BusinessManager
       end
     rescue GalleryPhotoService::MaxPhotosExceededError => e
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, alert: e.message }
+        format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
         format.json { render json: { error: e.message }, status: :unprocessable_entity }
         format.turbo_stream { render turbo_stream: turbo_stream.replace('flash', partial: 'shared/flash', locals: { alert: e.message }) }
       end
     rescue StandardError => e
       Rails.logger.error "Failed to create gallery photo: #{e.message}"
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, alert: 'Failed to add photo to gallery' }
+        format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to add photo to gallery' }
         format.json { render json: { error: e.message }, status: :unprocessable_entity }
         format.turbo_stream { render turbo_stream: turbo_stream.replace('flash', partial: 'shared/flash', locals: { alert: 'Failed to add photo' }) }
       end
@@ -46,19 +46,19 @@ module BusinessManager
 
       if GalleryPhotoService.update_photo(@gallery_photo, attributes)
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, notice: 'Photo updated successfully' }
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo updated successfully' }
           format.json { render json: @gallery_photo, status: :ok }
           format.turbo_stream { render turbo_stream: turbo_stream.replace("gallery_photo_#{@gallery_photo.id}", partial: 'gallery_photo_card', locals: { photo: @gallery_photo }) }
         end
       else
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, alert: @gallery_photo.errors.full_messages.join(', ') }
+          format.html { redirect_to business_manager_gallery_index_path, alert: @gallery_photo.errors.full_messages.join(', ') }
           format.json { render json: { errors: @gallery_photo.errors.full_messages }, status: :unprocessable_entity }
         end
       end
     rescue GalleryPhotoService::MaxFeaturedPhotosExceededError => e
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, alert: e.message }
+        format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
         format.json { render json: { error: e.message }, status: :unprocessable_entity }
       end
     end
@@ -67,13 +67,13 @@ module BusinessManager
     def destroy_photo
       if GalleryPhotoService.remove(@gallery_photo)
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, notice: 'Photo removed successfully' }
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo removed successfully' }
           format.json { head :no_content }
           format.turbo_stream { render turbo_stream: turbo_stream.remove("gallery_photo_#{@gallery_photo.id}") }
         end
       else
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, alert: 'Failed to remove photo' }
+          format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to remove photo' }
           format.json { render json: { error: 'Failed to remove photo' }, status: :unprocessable_entity }
         end
       end
@@ -85,13 +85,13 @@ module BusinessManager
 
       if photo_ids.present? && GalleryPhotoService.reorder(@business, photo_ids)
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, notice: 'Photos reordered successfully' }
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Photos reordered successfully' }
           format.json { render json: { success: true }, status: :ok }
         end
       else
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, alert: 'Failed to reorder photos' }
-          format.json { render json: { error: 'Failed to reorder photos' }, status: :unprocessable_entity }
+          format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to reorder photos' }
+          format.json { render json: { success: false, error: 'Failed to reorder photos' }, status: :unprocessable_entity }
         end
       end
     end
@@ -102,19 +102,19 @@ module BusinessManager
 
       if GalleryPhotoService.toggle_featured(@gallery_photo)
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, notice: 'Photo featured status updated' }
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo featured status updated' }
           format.json { render json: { featured: @gallery_photo.featured }, status: :ok }
           format.turbo_stream { render turbo_stream: turbo_stream.replace("gallery_photo_#{@gallery_photo.id}", partial: 'gallery_photo_card', locals: { photo: @gallery_photo }) }
         end
       else
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, alert: 'Failed to update featured status' }
+          format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to update featured status' }
           format.json { render json: { error: 'Failed to update' }, status: :unprocessable_entity }
         end
       end
     rescue GalleryPhotoService::MaxFeaturedPhotosExceededError => e
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, alert: e.message }
+        format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
         format.json { render json: { error: e.message }, status: :unprocessable_entity }
       end
     end
@@ -131,7 +131,7 @@ module BusinessManager
       GalleryVideoService.upload(@business, video_file, attributes)
 
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, notice: 'Video uploaded successfully' }
+        format.html { redirect_to business_manager_gallery_index_path, notice: 'Video uploaded successfully' }
         format.json { render json: GalleryVideoService.video_info(@business), status: :created }
         format.turbo_stream do
           render turbo_stream: [
@@ -142,7 +142,7 @@ module BusinessManager
       end
     rescue GalleryVideoService::VideoUploadError => e
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, alert: e.message }
+        format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
         format.json { render json: { error: e.message }, status: :unprocessable_entity }
         format.turbo_stream { render turbo_stream: turbo_stream.replace('flash', partial: 'shared/flash', locals: { alert: e.message }) }
       end
@@ -150,15 +150,26 @@ module BusinessManager
 
     # PATCH /manage/gallery/video
     def update_video
+      # Handle both nested video[...] params and flat params
+      video_params = params[:video] || {}
+
+      location = video_params[:display_location].presence || params[:video_display_location].presence
+      autoplay = if video_params.key?(:autoplay_hero)
+                   video_params[:autoplay_hero] != 'false'
+                 else
+                   params[:video_autoplay_hero] != 'false'
+                 end
+      title = video_params[:title].presence || params[:video_title].presence
+
       GalleryVideoService.update_display_settings(
         @business,
-        location: params[:video_display_location],
-        autoplay: params[:video_autoplay_hero] != 'false',
-        title: params[:video_title]
+        location: location,
+        autoplay: autoplay,
+        title: title
       )
 
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, notice: 'Video settings updated' }
+        format.html { redirect_to business_manager_gallery_index_path, notice: 'Video settings updated' }
         format.json { render json: GalleryVideoService.video_info(@business), status: :ok }
         format.turbo_stream do
           render turbo_stream: [
@@ -167,9 +178,9 @@ module BusinessManager
           ]
         end
       end
-    rescue GalleryVideoService::VideoNotFoundError => e
+    rescue GalleryVideoService::VideoNotFoundError, ArgumentError => e
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, alert: e.message }
+        format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
         format.json { render json: { error: e.message }, status: :unprocessable_entity }
       end
     end
@@ -178,7 +189,7 @@ module BusinessManager
     def destroy_video
       if GalleryVideoService.remove(@business)
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, notice: 'Video removed successfully' }
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Video removed successfully' }
           format.json { head :no_content }
           format.turbo_stream do
             render turbo_stream: [
@@ -189,7 +200,7 @@ module BusinessManager
         end
       else
         respond_to do |format|
-          format.html { redirect_to business_manager_gallery_path, alert: 'Failed to remove video' }
+          format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to remove video' }
           format.json { render json: { error: 'Failed to remove video' }, status: :unprocessable_entity }
         end
       end
@@ -217,7 +228,7 @@ module BusinessManager
       @gallery_photo = GalleryPhotoService.add_from_upload(@business, file, attributes)
 
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, notice: 'Photo added successfully' }
+        format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo added successfully' }
         format.json { render json: @gallery_photo, status: :created }
         format.turbo_stream do
           render turbo_stream: [
@@ -243,7 +254,7 @@ module BusinessManager
       )
 
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_path, notice: 'Photo added from existing image' }
+        format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo added from existing image' }
         format.json { render json: @gallery_photo, status: :created }
         format.turbo_stream do
           render turbo_stream: [

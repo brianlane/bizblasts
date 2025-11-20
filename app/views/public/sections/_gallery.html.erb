@@ -1,5 +1,6 @@
 <%# Gallery Section for Public Display %>
 <% current_business = local_assigns[:business] %>
+<% section = local_assigns[:section] %>
 <% accent_enabled = current_business&.website_layout_enhanced? %>
 
 <% if current_business&.gallery_ready? && current_business.show_gallery_section? %>

@@ -7,6 +7,9 @@ class GalleryPhotoService
   class MaxFeaturedPhotosExceededError < StandardError; end
   class PhotoNotFoundError < StandardError; end
 
+  # Allowed source types to prevent code injection via constantize
+  ALLOWED_SOURCE_TYPES = %w[Service Product].freeze
+
   # Add a new photo from upload
   # @param business [Business] The business to add the photo to
   # @param file [ActionDispatch::Http::UploadedFile] The uploaded photo file
@@ -45,6 +48,9 @@ class GalleryPhotoService
   # @raise [MaxPhotosExceededError] if business already has 100 photos
   def self.add_from_existing(business, source_type, source_id, attachment_id, attributes = {})
     raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery" if business.gallery_photos.count >= 100
+
+    # Validate source_type to prevent code injection
+    raise ArgumentError, "Invalid source_type. Must be one of: #{ALLOWED_SOURCE_TYPES.join(', ')}" unless ALLOWED_SOURCE_TYPES.include?(source_type)
 
     # Validate that the source exists and belongs to the business
     source = source_type.constantize.find(source_id)
@@ -101,10 +107,19 @@ class GalleryPhotoService
     return false if photo_ids_array.blank?
 
     ActiveRecord::Base.transaction do
+      # First pass: Set all positions to temporary negative values to avoid unique constraint violations
+      # This ensures we can reorder without conflicts since negative positions won't collide
       photo_ids_array.each_with_index do |photo_id, index|
         photo = business.gallery_photos.find(photo_id)
-        new_position = index + 1
-        photo.update_column(:position, new_position) if photo.position != new_position
+        temp_position = -(index + 1)
+        photo.update_column(:position, temp_position)
+      end
+
+      # Second pass: Set positions to their final positive values
+      photo_ids_array.each_with_index do |photo_id, index|
+        photo = business.gallery_photos.find(photo_id)
+        final_position = index + 1
+        photo.update_column(:position, final_position)
       end
     end
 
