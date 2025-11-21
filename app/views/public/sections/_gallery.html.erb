@@ -4,6 +4,7 @@
 <% accent_enabled = current_business&.website_layout_enhanced? %>
 
 <% if current_business&.gallery_ready? && current_business.show_gallery_section? %>
+  <div data-controller="gallery-lightbox">
   <div class="gallery-section py-16 lg:py-24 bg-white" id="gallery">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -106,8 +107,18 @@
         <div class="mt-16">
           <h3 class="text-2xl font-semibold text-gray-900 mb-8 text-center">Gallery</h3>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-<%= current_business.gallery_display_columns %> gap-6"
-               data-controller="gallery-lightbox">
+          <%
+            # Tailwind JIT requires complete class names, not dynamic interpolation
+            grid_cols_class = case current_business.gallery_display_columns
+            when 2 then "lg:grid-cols-2"
+            when 3 then "lg:grid-cols-3"
+            when 4 then "lg:grid-cols-4"
+            when 5 then "lg:grid-cols-5"
+            when 6 then "lg:grid-cols-6"
+            else "lg:grid-cols-3" # default
+            end
+          %>
+          <div class="grid grid-cols-1 sm:grid-cols-2 <%= grid_cols_class %> gap-6">
             <% all_photos.each_with_index do |photo, index| %>
               <div class="group relative aspect-w-4 aspect-h-3 rounded-lg overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer"
                    data-action="click->gallery-lightbox#open"
@@ -186,5 +197,6 @@
       <p class="text-gray-300 text-sm" data-gallery-lightbox-target="description"></p>
       <p class="text-gray-400 text-xs mt-2" data-gallery-lightbox-target="counter"></p>
     </div>
+  </div>
   </div>
 <% end %>
