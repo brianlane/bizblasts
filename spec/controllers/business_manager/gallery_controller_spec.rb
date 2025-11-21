@@ -199,7 +199,7 @@ RSpec.describe BusinessManager::GalleryController, type: :controller do
       it 'responds with json error' do
         post :reorder_photos, params: { photo_ids: [] }, format: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['success']).to be false
       end
@@ -232,7 +232,7 @@ RSpec.describe BusinessManager::GalleryController, type: :controller do
       it 'responds with error' do
         post :toggle_featured, params: { id: photo.id }, format: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['error']).to match(/Maximum 5/)
       end

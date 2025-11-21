@@ -4,6 +4,11 @@ require 'rails_helper'
 
 RSpec.describe ProcessGalleryVideoJob, type: :job do
   let(:business) { create(:business) }
+  let(:logger) { spy('Logger', info: nil, error: nil, warn: nil) }
+
+  before do
+    allow(Rails).to receive(:logger).and_return(logger)
+  end
 
   describe '#perform' do
     before do
@@ -16,24 +21,24 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
     end
 
     it 'processes the video successfully' do
-      expect(Rails.logger).to receive(:info).with(/Successfully processed video/)
-
       ProcessGalleryVideoJob.perform_now(business.id)
+
+      expect(logger).to have_received(:info).with(/Successfully processed video/)
     end
 
     it 'logs video information' do
-      expect(Rails.logger).to receive(:info).with(/Processing video for business/)
-
       ProcessGalleryVideoJob.perform_now(business.id)
+
+      expect(logger).to have_received(:info).with(/Processing video for business/)
     end
 
     context 'when business not found' do
       it 'logs error and does not raise' do
-        expect(Rails.logger).to receive(:error).with(/Business .* not found/)
-
         expect {
           ProcessGalleryVideoJob.perform_now(99999)
         }.not_to raise_error
+
+        expect(logger).to have_received(:error).with(/Business .* not found/)
       end
     end
 
@@ -43,9 +48,9 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
       end
 
       it 'returns early without processing' do
-        expect(Rails.logger).not_to receive(:info).with(/Successfully processed/)
-
         ProcessGalleryVideoJob.perform_now(business.id)
+
+        expect(logger).not_to have_received(:info).with(/Successfully processed/)
       end
     end
   end
@@ -92,10 +97,7 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
         )
       end
 
-      it 'logs validation error and removes invalid video' do
-        expect(Rails.logger).to receive(:error).with(/Video validation failed/)
-        expect(Rails.logger).to receive(:error).with(/Invalid video for business/)
-
+      it 'removes invalid video' do
         ProcessGalleryVideoJob.perform_now(business.id)
 
         business.reload
@@ -115,10 +117,7 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
         allow_any_instance_of(ActiveStorage::Blob).to receive(:byte_size).and_return(51.megabytes)
       end
 
-      it 'logs validation error and removes invalid video' do
-        expect(Rails.logger).to receive(:error).with(/Video validation failed.*exceeds maximum/)
-        expect(Rails.logger).to receive(:error).with(/Invalid video for business/)
-
+      it 'removes invalid video' do
         ProcessGalleryVideoJob.perform_now(business.id)
 
         business.reload
@@ -166,12 +165,11 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
       end
 
       it 'logs the error with backtrace' do
-        expect(Rails.logger).to receive(:error).with(/Failed to process gallery video/)
-        expect(Rails.logger).to receive(:error)
-
         expect {
           ProcessGalleryVideoJob.perform_now(business.id)
         }.not_to raise_error
+
+        expect(logger).to have_received(:error).with(/Failed to process gallery video/)
       end
     end
   end

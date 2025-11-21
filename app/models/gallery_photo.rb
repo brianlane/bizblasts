@@ -65,7 +65,7 @@ class GalleryPhoto < ApplicationRecord
   # Callbacks
   before_validation :set_next_position, on: :create, if: -> { position.blank? }
   after_destroy :reorder_positions
-  after_commit :process_image_async, on: [:create, :update], if: -> { photo_source_gallery? && saved_change_to_attribute?(:id) }
+  after_commit :process_image_async, on: [:create, :update], if: :should_process_image?
 
   # Instance Methods
 
@@ -97,17 +97,17 @@ class GalleryPhoto < ApplicationRecord
     return if position == new_position
 
     transaction do
-      if new_position > position
-        # Moving down - shift photos up
-        business.gallery_photos.where("position > ? AND position <= ?", position, new_position)
-                .update_all("position = position - 1")
-      else
-        # Moving up - shift photos down
-        business.gallery_photos.where("position >= ? AND position < ?", new_position, position)
-                .update_all("position = position + 1")
+      ordered_ids = business.gallery_photos.order(:position).lock.pluck(:id)
+      ordered_ids.delete(id)
+      ordered_ids.insert(new_position - 1, id)
+
+      ordered_ids.each_with_index do |photo_id, index|
+        business.gallery_photos.where(id: photo_id).update_all(position: -(index + 1))
       end
 
-      update!(position: new_position)
+      ordered_ids.each_with_index do |photo_id, index|
+        business.gallery_photos.where(id: photo_id).update_all(position: index + 1)
+      end
     end
   end
 
@@ -129,8 +129,27 @@ class GalleryPhoto < ApplicationRecord
 
   private
 
+  def should_process_image?
+    return false unless photo_source_gallery?
+
+    saved_change_to_attribute?(:id) || image_attachment_previously_changed?
+  end
+
+  def image_attachment_previously_changed?
+    attachment = image_attachment
+    return false unless attachment
+
+    changes = attachment.previous_changes
+    return false if changes.blank?
+
+    (changes.key?('id') && changes['id'].present?) ||
+      (changes.key?('blob_id') && changes['blob_id'].present?)
+  end
+
   # Set the next available position for new photos
   def set_next_position
+    return unless business
+
     max_position = business.gallery_photos.maximum(:position) || 0
     self.position = max_position + 1
   end

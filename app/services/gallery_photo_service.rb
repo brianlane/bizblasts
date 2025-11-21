@@ -18,13 +18,19 @@ class GalleryPhotoService
   # @raise [MaxPhotosExceededError] if business already has 100 photos
   def self.add_from_upload(business, file, attributes = {})
     raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery" if business.gallery_photos.count >= 100
+    featured_requested = ActiveModel::Type::Boolean.new.cast(attributes[:featured])
+    display_in_hero = ActiveModel::Type::Boolean.new.cast(attributes[:display_in_hero])
+
+    if featured_requested && business.gallery_photos.where(featured: true).count >= 5
+      raise MaxFeaturedPhotosExceededError, "Maximum 5 photos can be featured. Please unfeature another photo first."
+    end
 
     gallery_photo = business.gallery_photos.build(
       photo_source: :gallery,
       title: attributes[:title],
       description: attributes[:description],
-      featured: attributes[:featured] || false,
-      display_in_hero: attributes[:display_in_hero] || false
+      featured: featured_requested || false,
+      display_in_hero: display_in_hero || false
     )
 
     gallery_photo.image.attach(file)

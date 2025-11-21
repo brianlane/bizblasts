@@ -28,14 +28,14 @@ module BusinessManager
     rescue GalleryPhotoService::MaxPhotosExceededError => e
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
-        format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
         format.turbo_stream { render turbo_stream: turbo_stream.replace('flash', partial: 'shared/flash', locals: { alert: e.message }) }
       end
     rescue StandardError => e
       Rails.logger.error "Failed to create gallery photo: #{e.message}"
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to add photo to gallery' }
-        format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
         format.turbo_stream { render turbo_stream: turbo_stream.replace('flash', partial: 'shared/flash', locals: { alert: 'Failed to add photo' }) }
       end
     end
@@ -53,13 +53,13 @@ module BusinessManager
       else
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, alert: @gallery_photo.errors.full_messages.join(', ') }
-          format.json { render json: { errors: @gallery_photo.errors.full_messages }, status: :unprocessable_entity }
+          format.json { render json: { errors: @gallery_photo.errors.full_messages }, status: :unprocessable_content }
         end
       end
     rescue GalleryPhotoService::MaxFeaturedPhotosExceededError => e
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
-        format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
       end
     end
 
@@ -74,7 +74,7 @@ module BusinessManager
       else
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to remove photo' }
-          format.json { render json: { error: 'Failed to remove photo' }, status: :unprocessable_entity }
+          format.json { render json: { error: 'Failed to remove photo' }, status: :unprocessable_content }
         end
       end
     end
@@ -91,7 +91,7 @@ module BusinessManager
       else
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to reorder photos' }
-          format.json { render json: { success: false, error: 'Failed to reorder photos' }, status: :unprocessable_entity }
+          format.json { render json: { success: false, error: 'Failed to reorder photos' }, status: :unprocessable_content }
         end
       end
     end
@@ -109,13 +109,13 @@ module BusinessManager
       else
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to update featured status' }
-          format.json { render json: { error: 'Failed to update' }, status: :unprocessable_entity }
+          format.json { render json: { error: 'Failed to update' }, status: :unprocessable_content }
         end
       end
     rescue GalleryPhotoService::MaxFeaturedPhotosExceededError => e
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
-        format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
       end
     end
 
@@ -143,7 +143,7 @@ module BusinessManager
     rescue GalleryVideoService::VideoUploadError => e
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
-        format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
         format.turbo_stream { render turbo_stream: turbo_stream.replace('flash', partial: 'shared/flash', locals: { alert: e.message }) }
       end
     end
@@ -181,7 +181,7 @@ module BusinessManager
     rescue GalleryVideoService::VideoNotFoundError, ArgumentError => e
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, alert: e.message }
-        format.json { render json: { error: e.message }, status: :unprocessable_entity }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
       end
     end
 
@@ -201,7 +201,7 @@ module BusinessManager
       else
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to remove video' }
-          format.json { render json: { error: 'Failed to remove video' }, status: :unprocessable_entity }
+          format.json { render json: { error: 'Failed to remove video' }, status: :unprocessable_content }
         end
       end
     end

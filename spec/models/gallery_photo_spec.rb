@@ -4,7 +4,7 @@ require 'rails_helper'
 
 RSpec.describe GalleryPhoto, type: :model do
   let(:business) { create(:business) }
-  let(:gallery_photo) { build(:gallery_photo, business: business) }
+  subject(:gallery_photo) { create(:gallery_photo, business: business) }
 
   describe 'associations' do
     it { is_expected.to belong_to(:business) }
@@ -165,7 +165,16 @@ RSpec.describe GalleryPhoto, type: :model do
 
     context 'for service/product photos' do
       let(:service) { create(:service, business: business) }
-      let(:attachment) { create(:active_storage_attachment) }
+      let(:attachment) do
+        File.open(Rails.root.join('spec/fixtures/files/test-image.jpg')) do |file|
+          service.images.attach(
+            io: file,
+            filename: 'service-photo.jpg',
+            content_type: 'image/jpeg'
+          )
+        end
+        service.images.attachments.first
+      end
 
       it 'fetches URL from source attachment' do
         photo = create(:gallery_photo,

@@ -108,7 +108,7 @@ RSpec.describe 'Service Area Check Integration', type: :request do
                service_area_check: { zip: '10001' }
              }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include('outside our service area')
         expect(flash[:notice]).to be_nil
       end
@@ -130,7 +130,7 @@ RSpec.describe 'Service Area Check Integration', type: :request do
                service_area_check: { zip: '99999' }
              }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("couldn't find that ZIP code")
       end
     end
@@ -143,7 +143,7 @@ RSpec.describe 'Service Area Check Integration', type: :request do
                service_area_check: { zip: '' }
              }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include('Please enter a ZIP code')
       end
     end

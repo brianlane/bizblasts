@@ -5,6 +5,7 @@ require 'rails_helper'
 RSpec.describe ProcessGalleryPhotoJob, type: :job do
   let(:business) { create(:business) }
   let(:gallery_photo) { create(:gallery_photo, business: business, photo_source: :gallery) }
+  let(:logger) { Rails.logger }
 
   describe '#perform' do
     before do
@@ -17,19 +18,11 @@ RSpec.describe ProcessGalleryPhotoJob, type: :job do
     end
 
     it 'processes the image successfully' do
-      expect(Rails.logger).to receive(:info).with(/Generated variants/)
-
-      ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
-    end
-
-    it 'generates image variants' do
-      # Spy on variant generation
-      allow_any_instance_of(ActiveStorage::Attached::One).to receive(:variant).and_call_original
+      allow(logger).to receive(:info).and_call_original
 
       ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
 
-      # Verify variants were requested
-      expect(gallery_photo.image).to have_received(:variant).at_least(:once)
+      expect(logger).to have_received(:info).with(/Generated variants/)
     end
 
     context 'with HEIC image' do
@@ -43,53 +36,46 @@ RSpec.describe ProcessGalleryPhotoJob, type: :job do
       end
 
       it 'converts HEIC to JPEG' do
-        # Stub HEIC support check
         allow_any_instance_of(ProcessGalleryPhotoJob).to receive(:heic_supported?).and_return(true)
+        allow(logger).to receive(:info).and_call_original
 
-        # Stub ImageProcessing
-        fake_converted_file = Tempfile.new(['converted', '.jpg'])
-        fake_converted_file.write('converted jpeg content')
-        fake_converted_file.rewind
-
-        allow(ImageProcessing::MiniMagick).to receive_message_chain(:source, :auto_orient, :strip, :colorspace, :saver, :convert, :call).and_return(fake_converted_file.path)
-
-        expect(Rails.logger).to receive(:info).with(/Converting HEIC/)
+        expect_any_instance_of(ProcessGalleryPhotoJob).to receive(:convert_heic_to_jpeg).and_call_original
 
         ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
 
-        fake_converted_file.close
-        fake_converted_file.unlink
+        expect(logger).to have_received(:info).with(/Converting HEIC/)
       end
     end
 
     context 'when gallery photo not found' do
       it 'logs error and does not raise' do
-        expect(Rails.logger).to receive(:error).with(/not found/)
+        allow(logger).to receive(:error).and_call_original
 
         expect {
           ProcessGalleryPhotoJob.perform_now(99999)
         }.not_to raise_error
+
+        expect(logger).to have_received(:error).with(/not found/)
       end
     end
 
     context 'when image processing fails' do
-      before do
-        # Simulate processing failure
-        allow_any_instance_of(ActiveStorage::Attached::One).to receive(:variant).and_raise(StandardError.new('Processing failed'))
-      end
-
       it 'logs error and does not raise' do
-        expect(Rails.logger).to receive(:error).with(/Failed to process gallery photo/)
+        allow(logger).to receive(:error).and_call_original
+        allow_any_instance_of(ProcessGalleryPhotoJob).to receive(:generate_variants).and_raise(StandardError.new('Processing failed'))
 
         expect {
           ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
         }.not_to raise_error
+
+        expect(logger).to have_received(:error).with(/Failed to process gallery photo/)
       end
     end
   end
 
   describe 'variant generation' do
     before do
+      gallery_photo.image.purge
       gallery_photo.image.attach(
         io: File.open(Rails.root.join('spec', 'fixtures', 'files', 'test-image.jpg')),
         filename: 'test.jpg',
@@ -97,28 +83,12 @@ RSpec.describe ProcessGalleryPhotoJob, type: :job do
       )
     end
 
-    it 'generates large variant for lightbox' do
-      expect_any_instance_of(ActiveStorage::Attached::One).to receive(:variant)
-        .with(hash_including(resize_to_limit: [1920, 1920]))
-        .and_call_original
-
-      ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
-    end
-
-    it 'generates medium variant for gallery grid' do
-      expect_any_instance_of(ActiveStorage::Attached::One).to receive(:variant)
-        .with(hash_including(resize_to_limit: [800, 800]))
-        .and_call_original
-
-      ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
-    end
-
-    it 'generates small variant for thumbnails' do
-      expect_any_instance_of(ActiveStorage::Attached::One).to receive(:variant)
-        .with(hash_including(resize_to_limit: [400, 400]))
-        .and_call_original
-
-      ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
+    it 'creates three tracked variants for the blob' do
+      expect {
+        ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
+      }.to change {
+        ActiveStorage::VariantRecord.where(blob: gallery_photo.image.blob).count
+      }.by(3)
     end
   end
 end

@@ -71,7 +71,7 @@ RSpec.describe "BusinessManager::Settings::Locations", type: :request do
         end.to change(Location, :count).by(0)
       end
 
-      it "renders a unprocessable_entity response" do
+      it "renders a unprocessable_content response" do
         post business_manager_settings_locations_path, params: { location: invalid_attributes }
         expect(response).to have_http_status(:unprocessable_content)
       end
@@ -110,7 +110,7 @@ RSpec.describe "BusinessManager::Settings::Locations", type: :request do
     context "with invalid parameters" do
       let(:invalid_attributes) { { name: "" } }
 
-      it "renders a unprocessable_entity response" do
+      it "renders a unprocessable_content response" do
         patch business_manager_settings_location_path(location), params: { location: invalid_attributes }
         expect(response).to have_http_status(:unprocessable_content)
       end

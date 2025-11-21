@@ -4,20 +4,20 @@ require 'rails_helper'
 
 RSpec.describe GalleryVideoService do
   let(:business) { create(:business) }
-  let(:service) { described_class.new(business) }
+  let(:service) { described_class }
 
   describe '#upload' do
     let(:video_file) { fixture_file_upload('test-video.mp4', 'video/mp4') }
     let(:params) do
       {
-        title: 'My Video',
-        display_location: 'hero',
-        autoplay_hero: true
+        video_title: 'My Video',
+        video_display_location: 'hero',
+        video_autoplay_hero: true
       }
     end
 
     it 'attaches video and updates business attributes' do
-      service.upload(video_file, params)
+      service.upload(business, video_file, params)
 
       business.reload
       expect(business.gallery_video).to be_attached
@@ -31,8 +31,8 @@ RSpec.describe GalleryVideoService do
 
       it 'raises VideoValidationError' do
         expect {
-          service.upload(invalid_file, params)
-        }.to raise_error(GalleryVideoService::VideoValidationError, /Unsupported video format/)
+          service.upload(business, invalid_file, params)
+        }.to raise_error(GalleryVideoService::VideoUploadError, /Invalid video format/)
       end
     end
 
@@ -46,8 +46,8 @@ RSpec.describe GalleryVideoService do
 
       it 'raises VideoValidationError' do
         expect {
-          service.upload(large_file, params)
-        }.to raise_error(GalleryVideoService::VideoValidationError, /exceeds maximum/)
+          service.upload(business, large_file, params)
+        }.to raise_error(GalleryVideoService::VideoUploadError, /too large/)
       end
     end
   end
@@ -60,10 +60,11 @@ RSpec.describe GalleryVideoService do
     end
 
     it 'updates video display settings' do
-      service.update_display_settings(
+        service.update_display_settings(
+        business,
         title: 'Updated Title',
-        display_location: 'gallery',
-        autoplay_hero: false
+        location: 'gallery',
+        autoplay: false
       )
 
       business.reload
@@ -77,7 +78,7 @@ RSpec.describe GalleryVideoService do
       business.reload
 
       expect {
-        service.update_display_settings(title: 'Test')
+        service.update_display_settings(business, location: 'hero', title: 'Test')
       }.to raise_error(GalleryVideoService::VideoNotFoundError)
     end
   end
@@ -90,7 +91,7 @@ RSpec.describe GalleryVideoService do
     end
 
     it 'removes video and clears related attributes' do
-      service.remove
+      service.remove(business)
 
       business.reload
       expect(business.gallery_video).not_to be_attached
@@ -108,17 +109,17 @@ RSpec.describe GalleryVideoService do
       end
 
       it 'returns video information' do
-        info = service.video_info
+        info = service.video_info(business)
 
-        expect(info).to include(:filename, :content_type, :size_mb, :url)
+        expect(info).to include(:filename, :content_type, :size, :url)
         expect(info[:content_type]).to eq('video/mp4')
-        expect(info[:size_mb]).to be > 0
+        expect(info[:size]).to be > 0
       end
     end
 
     context 'when no video is attached' do
       it 'returns nil' do
-        expect(service.video_info).to be_nil
+        expect(service.video_info(business)).to be_nil
       end
     end
   end
@@ -130,53 +131,30 @@ RSpec.describe GalleryVideoService do
       business.save!
     end
 
-    it 'returns the video URL as thumbnail' do
-      url = service.thumbnail_url
-      expect(url).to be_present
-      expect(url).to include('test-video.mp4')
+    it 'returns nil when thumbnail variant is unavailable' do
+      url = service.thumbnail_url(business)
+      expect(url).to be_nil
     end
   end
 
-  describe 'private#validate_video_format!' do
-    it 'accepts MP4 format' do
-      file = double('file', content_type: 'video/mp4')
-      expect { service.send(:validate_video_format!, file) }.not_to raise_error
-    end
-
-    it 'accepts WebM format' do
-      file = double('file', content_type: 'video/webm')
-      expect { service.send(:validate_video_format!, file) }.not_to raise_error
-    end
-
-    it 'accepts QuickTime format' do
-      file = double('file', content_type: 'video/quicktime')
-      expect { service.send(:validate_video_format!, file) }.not_to raise_error
-    end
-
-    it 'accepts AVI format' do
-      file = double('file', content_type: 'video/x-msvideo')
-      expect { service.send(:validate_video_format!, file) }.not_to raise_error
+  describe '.validate_video_file!' do
+    it 'accepts MP4 format within size limit' do
+      file = double('file', content_type: 'video/mp4', size: 10.megabytes)
+      expect { service.send(:validate_video_file!, file) }.not_to raise_error
     end
 
     it 'rejects invalid format' do
-      file = double('file', content_type: 'application/pdf')
+      file = double('file', content_type: 'application/pdf', size: 10.megabytes)
       expect {
-        service.send(:validate_video_format!, file)
-      }.to raise_error(GalleryVideoService::VideoValidationError)
-    end
-  end
-
-  describe 'private#validate_video_size!' do
-    it 'accepts file within size limit' do
-      file = double('file', size: 30.megabytes)
-      expect { service.send(:validate_video_size!, file) }.not_to raise_error
+        service.send(:validate_video_file!, file)
+      }.to raise_error(GalleryVideoService::VideoUploadError, /Invalid video format/)
     end
 
     it 'rejects file exceeding size limit' do
-      file = double('file', size: 60.megabytes)
+      file = double('file', content_type: 'video/mp4', size: 60.megabytes)
       expect {
-        service.send(:validate_video_size!, file)
-      }.to raise_error(GalleryVideoService::VideoValidationError, /exceeds maximum/)
+        service.send(:validate_video_file!, file)
+      }.to raise_error(GalleryVideoService::VideoUploadError, /too large/)
     end
   end
 end

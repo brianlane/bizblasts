@@ -48,7 +48,16 @@ RSpec.describe GalleryPhotoService do
 
   describe '.add_from_existing' do
     let(:existing_service) { create(:service, business: business) }
-    let(:attachment) { create(:active_storage_attachment, record: existing_service) }
+    let(:attachment) do
+      File.open(Rails.root.join('spec/fixtures/files/test-image.jpg')) do |file|
+        existing_service.images.attach(
+          io: file,
+          filename: 'service-photo.jpg',
+          content_type: 'image/jpeg'
+        )
+      end
+      existing_service.images.attachments.first
+    end
 
     it 'creates a photo linked to existing service image' do
       result = described_class.add_from_existing(
