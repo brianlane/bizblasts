@@ -6,8 +6,6 @@
 # - Works well for US addresses when properly filtered
 # - No rate limits for reasonable usage
 
-return if Rails.env.test?
-
 Geocoder.configure(
   # Geocoding options
   timeout: 5,                 # geocoding service timeout (secs)

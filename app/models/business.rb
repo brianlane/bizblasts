@@ -929,7 +929,7 @@ class Business < ApplicationRecord
   # Check if gallery is ready to display (has photos or video)
   # @return [Boolean]
   def gallery_ready?
-    gallery_enabled? && (gallery_photos.any? || gallery_video.attached?)
+    gallery_enabled? && (gallery_photos.exists? || gallery_video.attached?)
   end
 
   # Get gallery columns for responsive layout

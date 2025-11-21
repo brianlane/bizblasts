@@ -17,31 +17,45 @@ class GalleryPhotoService
   # @return [GalleryPhoto] The created gallery photo
   # @raise [MaxPhotosExceededError] if business already has 100 photos
   def self.add_from_upload(business, file, attributes = {})
-    raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery" if business.gallery_photos.count >= 100
     featured_requested = ActiveModel::Type::Boolean.new.cast(attributes[:featured])
     display_in_hero = ActiveModel::Type::Boolean.new.cast(attributes[:display_in_hero])
 
-    if featured_requested && business.gallery_photos.where(featured: true).count >= 5
-      raise MaxFeaturedPhotosExceededError, "Maximum 5 photos can be featured. Please unfeature another photo first."
+    gallery_photo = nil
+
+    # Use transaction with lock to prevent race conditions
+    ActiveRecord::Base.transaction do
+      # Lock the business record to prevent concurrent photo creation
+      locked_business = Business.lock.find(business.id)
+
+      # Check photo count limit with lock held
+      if locked_business.gallery_photos.count >= 100
+        raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery"
+      end
+
+      # Check featured count limit with lock held
+      if featured_requested && locked_business.gallery_photos.where(featured: true).count >= 5
+        raise MaxFeaturedPhotosExceededError, "Maximum 5 photos can be featured. Please unfeature another photo first."
+      end
+
+      gallery_photo = locked_business.gallery_photos.build(
+        photo_source: :gallery,
+        title: attributes[:title],
+        description: attributes[:description],
+        featured: featured_requested || false,
+        display_in_hero: display_in_hero || false
+      )
+
+      gallery_photo.image.attach(file)
+
+      if gallery_photo.save
+        Rails.logger.info "GalleryPhoto created for business #{locked_business.id}: #{gallery_photo.id}"
+      else
+        Rails.logger.error "Failed to create GalleryPhoto for business #{locked_business.id}: #{gallery_photo.errors.full_messages.join(', ')}"
+        raise ActiveRecord::RecordInvalid, gallery_photo
+      end
     end
 
-    gallery_photo = business.gallery_photos.build(
-      photo_source: :gallery,
-      title: attributes[:title],
-      description: attributes[:description],
-      featured: featured_requested || false,
-      display_in_hero: display_in_hero || false
-    )
-
-    gallery_photo.image.attach(file)
-
-    if gallery_photo.save
-      Rails.logger.info "GalleryPhoto created for business #{business.id}: #{gallery_photo.id}"
-      gallery_photo
-    else
-      Rails.logger.error "Failed to create GalleryPhoto for business #{business.id}: #{gallery_photo.errors.full_messages.join(', ')}"
-      raise ActiveRecord::RecordInvalid, gallery_photo
-    end
+    gallery_photo
   end
 
   # Add a photo reference from existing service/product image
@@ -53,8 +67,6 @@ class GalleryPhotoService
   # @return [GalleryPhoto] The created gallery photo
   # @raise [MaxPhotosExceededError] if business already has 100 photos
   def self.add_from_existing(business, source_type, source_id, attachment_id, attributes = {})
-    raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery" if business.gallery_photos.count >= 100
-
     # Validate source_type to prevent code injection
     raise ArgumentError, "Invalid source_type. Must be one of: #{ALLOWED_SOURCE_TYPES.join(', ')}" unless ALLOWED_SOURCE_TYPES.include?(source_type)
 
@@ -67,19 +79,32 @@ class GalleryPhotoService
     raise ArgumentError, "Attachment does not belong to source" unless attachment.record_id == source_id && attachment.record_type == source_type
 
     photo_source_enum = source_type.downcase.to_sym # :service or :product
+    gallery_photo = nil
 
-    gallery_photo = business.gallery_photos.create!(
-      photo_source: photo_source_enum,
-      source_type: source_type,
-      source_id: source_id,
-      source_attachment_id: attachment_id,
-      title: attributes[:title] || source.name,
-      description: attributes[:description],
-      featured: attributes[:featured] || false,
-      display_in_hero: attributes[:display_in_hero] || false
-    )
+    # Use transaction with lock to prevent race conditions
+    ActiveRecord::Base.transaction do
+      # Lock the business record to prevent concurrent photo creation
+      locked_business = Business.lock.find(business.id)
 
-    Rails.logger.info "GalleryPhoto created from #{source_type} for business #{business.id}: #{gallery_photo.id}"
+      # Check photo count limit with lock held
+      if locked_business.gallery_photos.count >= 100
+        raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery"
+      end
+
+      gallery_photo = locked_business.gallery_photos.create!(
+        photo_source: photo_source_enum,
+        source_type: source_type,
+        source_id: source_id,
+        source_attachment_id: attachment_id,
+        title: attributes[:title] || source.name,
+        description: attributes[:description],
+        featured: attributes[:featured] || false,
+        display_in_hero: attributes[:display_in_hero] || false
+      )
+
+      Rails.logger.info "GalleryPhoto created from #{source_type} for business #{locked_business.id}: #{gallery_photo.id}"
+    end
+
     gallery_photo
   end
 
@@ -88,21 +113,30 @@ class GalleryPhotoService
   # @return [Boolean] Success status
   # @raise [MaxFeaturedPhotosExceededError] if trying to feature a 6th photo
   def self.toggle_featured(gallery_photo)
-    if gallery_photo.featured?
-      gallery_photo.update!(featured: false)
-      Rails.logger.info "GalleryPhoto #{gallery_photo.id} unfeatured"
-      true
-    else
-      featured_count = gallery_photo.business.gallery_photos.where(featured: true).where.not(id: gallery_photo.id).count
+    # Use transaction with lock to prevent race conditions
+    ActiveRecord::Base.transaction do
+      # Lock the business record to prevent concurrent featured photo changes
+      locked_business = Business.lock.find(gallery_photo.business_id)
+      # Reload the photo to get fresh data within the transaction
+      gallery_photo.reload
 
-      if featured_count >= 5
-        raise MaxFeaturedPhotosExceededError, "Maximum 5 photos can be featured. Please unfeature another photo first."
+      if gallery_photo.featured?
+        gallery_photo.update!(featured: false)
+        Rails.logger.info "GalleryPhoto #{gallery_photo.id} unfeatured"
+      else
+        # Check featured count with lock held
+        featured_count = locked_business.gallery_photos.where(featured: true).where.not(id: gallery_photo.id).count
+
+        if featured_count >= 5
+          raise MaxFeaturedPhotosExceededError, "Maximum 5 photos can be featured. Please unfeature another photo first."
+        end
+
+        gallery_photo.update!(featured: true)
+        Rails.logger.info "GalleryPhoto #{gallery_photo.id} featured"
       end
-
-      gallery_photo.update!(featured: true)
-      Rails.logger.info "GalleryPhoto #{gallery_photo.id} featured"
-      true
     end
+
+    true
   end
 
   # Reorder photos in bulk

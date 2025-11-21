@@ -101,6 +101,8 @@ module BusinessManager
       @gallery_photo = @business.gallery_photos.find(params[:id])
 
       if GalleryPhotoService.toggle_featured(@gallery_photo)
+        # Reload to get fresh database state after service modifies the record
+        @gallery_photo.reload
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo featured status updated' }
           format.json { render json: { featured: @gallery_photo.featured }, status: :ok }
