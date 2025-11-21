@@ -218,7 +218,7 @@ module BusinessManager
     end
 
     def create_from_upload
-      file = params[:image]
+      files = params[:image].is_a?(Array) ? params[:image] : [params[:image]]
       attributes = {
         title: params[:title],
         description: params[:description],
@@ -226,16 +226,22 @@ module BusinessManager
         display_in_hero: params[:display_in_hero] == 'true'
       }
 
-      @gallery_photo = GalleryPhotoService.add_from_upload(@business, file, attributes)
+      @gallery_photos = files.map do |file|
+        GalleryPhotoService.add_from_upload(@business, file, attributes)
+      end
+
+      count = @gallery_photos.count
+      message = count == 1 ? 'Photo added successfully' : "#{count} photos added successfully"
 
       respond_to do |format|
-        format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo added successfully' }
-        format.json { render json: @gallery_photo, status: :created }
+        format.html { redirect_to business_manager_gallery_index_path, notice: message }
+        format.json { render json: @gallery_photos, status: :created }
         format.turbo_stream do
-          render turbo_stream: [
-            turbo_stream.append('gallery_photos_grid', partial: 'gallery_photo_card', locals: { photo: @gallery_photo }),
-            turbo_stream.replace('flash', partial: 'shared/flash', locals: { notice: 'Photo added successfully' })
-          ]
+          streams = @gallery_photos.map do |photo|
+            turbo_stream.append('gallery_photos_grid', partial: 'gallery_photo_card', locals: { photo: photo })
+          end
+          streams << turbo_stream.replace('flash', partial: 'shared/flash', locals: { notice: message })
+          render turbo_stream: streams
         end
       end
     end

@@ -9,6 +9,9 @@ class ProcessGalleryPhotoJob < ApplicationJob
 
     blob = attachment.blob
 
+    # Ensure blob is analyzed (required for blob.image? to work correctly)
+    blob.analyze unless blob.analyzed?
+
     # Convert HEIC to JPEG if needed - MUST happen before variant generation
     if FileUploadSecurity.heic_format?(blob.content_type)
       convert_heic_to_jpeg(attachment)

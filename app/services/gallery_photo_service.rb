@@ -241,7 +241,7 @@ class GalleryPhotoService
           source_name: service.name,
           attachment_id: attachment.id,
           attachment_filename: attachment.filename.to_s,
-          thumbnail_url: Rails.application.routes.url_helpers.polymorphic_path(attachment.variant(resize_to_limit: [200, 200]))
+          thumbnail_url: Rails.application.routes.url_helpers.rails_representation_path(attachment.variant(resize_to_limit: [200, 200]), only_path: true)
         }
       end.compact
     end
@@ -261,7 +261,7 @@ class GalleryPhotoService
           source_name: product.name,
           attachment_id: attachment.id,
           attachment_filename: attachment.filename.to_s,
-          thumbnail_url: Rails.application.routes.url_helpers.polymorphic_path(attachment.variant(resize_to_limit: [200, 200]))
+          thumbnail_url: Rails.application.routes.url_helpers.rails_representation_path(attachment.variant(resize_to_limit: [200, 200]), only_path: true)
         }
       end.compact
     end

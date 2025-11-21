@@ -169,10 +169,17 @@
             </svg>
             Shipping Method
           </h2>
-          <%= f.label :shipping_method_id, 'Select shipping method', class: 'block text-sm font-medium text-gray-700 mb-2' %>
-          <%= f.collection_select :shipping_method_id, shipping_methods, :id, :name, 
-              { prompt: 'Select shipping method' }, 
-              { class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary' } %>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select shipping method</label>
+          <%= render 'shared/rich_dropdown',
+            collection: shipping_methods,
+            field_name: 'order[shipping_method_id]',
+            selected_value: @order.shipping_method_id,
+            prompt_text: 'Select shipping method',
+            value_method: :id,
+            text_method: :name,
+            price_method: :cost,
+            required: false,
+            dropdown_id: 'shipping_method_dropdown' %>
         </div>
       <% end %>
       
@@ -276,19 +283,15 @@
             <span class="order-subtotal"><%= number_to_currency(@order.subtotal_amount) %></span>
           </div>
           
-          <% if @order.shipping_amount&.positive? %>
-            <div class="flex justify-between">
-              <span>Shipping:</span>
-              <span><%= number_to_currency(@order.shipping_amount) %></span>
-            </div>
-          <% end %>
+          <div class="flex justify-between shipping-row" <%= 'style="display: none;"'.html_safe unless @order.shipping_amount&.positive? %>>
+            <span>Shipping:</span>
+            <span class="shipping-amount"><%= @order.shipping_amount&.positive? ? number_to_currency(@order.shipping_amount) : '$0.00' %></span>
+          </div>
           
-          <% if @order.tax_amount&.positive? %>
-            <div class="flex justify-between">
-              <span>Tax:</span>
-              <span><%= number_to_currency(@order.tax_amount) %></span>
-            </div>
-          <% end %>
+          <div class="flex justify-between tax-row" <%= 'style="display: none;"'.html_safe unless @order.tax_amount&.positive? %>>
+            <span>Tax:</span>
+            <span class="tax-amount"><%= @order.tax_amount&.positive? ? number_to_currency(@order.tax_amount) : '$0.00' %></span>
+          </div>
           
           <div class="flex justify-between tip-amount-display" style="display: none;">
             <span>Tip:</span>
@@ -319,6 +322,142 @@ function initializeOrderPromoAndTipHandling() {
   const tipAmountDisplay = document.querySelector('.tip-amount-display');
   const tipAmountValue = document.querySelector('.tip-amount-value');
   const baseAmount = <%= @order.subtotal_amount.to_f %>;
+  
+  // Initialize shipping method data
+  const shippingMethodsData = {
+    <% shipping_methods = ShippingMethod.where(active: true, business_id: @order.business_id) %>
+    <% shipping_methods.each do |method| %>
+      '<%= method.id %>': {
+        name: '<%= method.name %>',
+        cost: <%= method.cost %>
+      },
+    <% end %>
+  };
+  
+  // Tax rate information
+  const taxRatePercent = <%= @order.tax_rate&.rate || 0 %>;
+  const taxAppliesToShipping = <%= @order.tax_rate&.applies_to_shipping? || false %>;
+  
+  // Shipping method change handler
+  const shippingDropdown = document.getElementById('shipping_method_dropdown');
+  if (shippingDropdown) {
+    shippingDropdown.addEventListener('rich-dropdown:change', function(event) {
+      const shippingMethodId = event.detail.value;
+      updateOrderSummaryWithShipping(shippingMethodId);
+    });
+  }
+  
+  function updateOrderSummaryWithShipping(shippingMethodId) {
+    const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
+    let shippingCost = 0;
+    
+    // Get shipping cost from selected method
+    if (shippingMethodId && shippingMethodsData[shippingMethodId]) {
+      shippingCost = shippingMethodsData[shippingMethodId].cost;
+    }
+    
+    // Calculate tax
+    let taxableAmount = originalSubtotal;
+    if (taxAppliesToShipping) {
+      taxableAmount += shippingCost;
+    }
+    const taxAmount = taxableAmount * (taxRatePercent / 100);
+    
+    // Calculate total
+    let total = originalSubtotal + shippingCost + taxAmount;
+    
+    // Apply promo discount if present
+    const promoDiscountRow = document.getElementById('promo-discount-row');
+    if (promoDiscountRow) {
+      const discountAmountText = document.getElementById('promo-discount-amount')?.textContent || '-$0.00';
+      const discountAmount = parseFloat(discountAmountText.replace(/[-$]/g, '')) || 0;
+      total -= discountAmount;
+    }
+    
+    // Update shipping display in order summary
+    updateShippingDisplay(shippingCost);
+    
+    // Update tax display
+    updateTaxDisplay(taxAmount);
+    
+    // Update total
+    if (orderTotal) {
+      orderTotal.textContent = '$' + total.toFixed(2);
+      orderTotal.dataset.orderTotal = total.toFixed(2);
+    }
+  }
+  
+  function updateShippingDisplay(shippingCost) {
+    const orderSummary = document.querySelector('.order-summary');
+    if (!orderSummary) return;
+    
+    let shippingRow = orderSummary.querySelector('.shipping-row');
+    
+    if (shippingCost > 0) {
+      if (!shippingRow) {
+        // Create shipping row if it doesn't exist
+        shippingRow = document.createElement('div');
+        shippingRow.className = 'flex justify-between shipping-row';
+        shippingRow.innerHTML = `
+          <span>Shipping:</span>
+          <span class="shipping-amount">$${shippingCost.toFixed(2)}</span>
+        `;
+        
+        // Insert after subtotal
+        const subtotalRow = orderSummary.querySelector('div:first-child');
+        if (subtotalRow && subtotalRow.nextSibling) {
+          orderSummary.insertBefore(shippingRow, subtotalRow.nextSibling);
+        } else {
+          orderSummary.prepend(shippingRow);
+        }
+      } else {
+        // Update existing shipping row
+        const shippingAmountElement = shippingRow.querySelector('.shipping-amount');
+        if (shippingAmountElement) {
+          shippingAmountElement.textContent = '$' + shippingCost.toFixed(2);
+        }
+        shippingRow.style.display = 'flex';
+      }
+    } else if (shippingRow) {
+      // Hide shipping row if cost is 0
+      shippingRow.style.display = 'none';
+    }
+  }
+  
+  function updateTaxDisplay(taxAmount) {
+    const orderSummary = document.querySelector('.order-summary');
+    if (!orderSummary) return;
+    
+    let taxRow = orderSummary.querySelector('.tax-row');
+    
+    if (taxAmount > 0) {
+      if (!taxRow) {
+        // Create tax row if it doesn't exist
+        taxRow = document.createElement('div');
+        taxRow.className = 'flex justify-between tax-row';
+        taxRow.innerHTML = `
+          <span>Tax:</span>
+          <span class="tax-amount">$${taxAmount.toFixed(2)}</span>
+        `;
+        
+        // Insert before hr element
+        const hrElement = orderSummary.querySelector('hr');
+        if (hrElement) {
+          orderSummary.insertBefore(taxRow, hrElement);
+        }
+      } else {
+        // Update existing tax row
+        const taxAmountElement = taxRow.querySelector('.tax-amount');
+        if (taxAmountElement) {
+          taxAmountElement.textContent = '$' + taxAmount.toFixed(2);
+        }
+        taxRow.style.display = 'flex';
+      }
+    } else if (taxRow) {
+      // Hide tax row if amount is 0
+      taxRow.style.display = 'none';
+    }
+  }
   
   // Promo code functionality
   const applyButton = document.getElementById('apply_order_promo_code');
@@ -417,7 +556,7 @@ function initializeOrderPromoAndTipHandling() {
   function updateOrderSummary(discountAmount, formattedDiscount) {
     // Add discount row to order summary if it doesn't exist
     let discountRow = document.getElementById('promo-discount-row');
-    const orderSummary = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+    const orderSummary = document.querySelector('.order-summary');
     
     if (!discountRow && orderSummary) {
       discountRow = document.createElement('div');
@@ -441,27 +580,38 @@ function initializeOrderPromoAndTipHandling() {
       }
     }
     
+    // Get current shipping cost from the displayed amount
+    const shippingAmountElement = document.querySelector('.shipping-amount');
+    const currentShipping = shippingAmountElement 
+      ? parseFloat(shippingAmountElement.textContent.replace('$', '')) || 0 
+      : <%= @order.shipping_amount.to_f %>;
+    
     // Calculate proper total with discount applied to subtotal and tax recalculated
     const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
-    const originalTax = <%= @order.tax_amount.to_f %>;
-    const originalShipping = <%= @order.shipping_amount.to_f %>;
     const discountValue = parseFloat(discountAmount);
     
     // Apply discount to subtotal
     const discountedSubtotal = Math.max(0, originalSubtotal - discountValue);
     
-    // Recalculate tax on discounted subtotal (assuming same tax rate)
-    const taxRate = originalSubtotal > 0 ? (originalTax / originalSubtotal) : 0;
-    const newTax = discountedSubtotal * taxRate;
+    // Recalculate tax based on tax settings
+    let taxableAmount = discountedSubtotal;
+    if (taxAppliesToShipping) {
+      taxableAmount += currentShipping;
+    }
+    const newTax = taxableAmount * (taxRatePercent / 100);
+    
+    // Update tax display
+    updateTaxDisplay(newTax);
     
     // Calculate new total
-    const newTotal = discountedSubtotal + newTax + originalShipping;
+    const newTotal = discountedSubtotal + newTax + currentShipping;
     
     // Update the total element
     const totalElement = document.querySelector('.order-total');
     if (totalElement) {
       const formattedTotal = '$' + newTotal.toFixed(2);
       totalElement.textContent = formattedTotal;
+      totalElement.dataset.orderTotal = newTotal.toFixed(2);
     }
   }
   
@@ -477,8 +627,16 @@ function initializeOrderPromoAndTipHandling() {
       const currentTotal = parseFloat(orderTotal.textContent.replace('$', '')) || <%= @order.total_amount.to_f %>;
       const newTotal = currentTotal + tipAmount;
       orderTotal.textContent = '$' + newTotal.toFixed(2);
+      orderTotal.dataset.orderTotal = newTotal.toFixed(2);
     } else {
       tipAmountDisplay.style.display = 'none';
+      
+      // Get current shipping cost from the displayed amount
+      const shippingAmountElement = document.querySelector('.shipping-amount');
+      const currentShipping = shippingAmountElement 
+        ? parseFloat(shippingAmountElement.textContent.replace('$', '')) || 0 
+        : <%= @order.shipping_amount.to_f %>;
+      
       // Reset to base total (might have discount applied)
       const discountRow = document.getElementById('promo-discount-row');
       if (discountRow) {
@@ -487,18 +645,33 @@ function initializeOrderPromoAndTipHandling() {
         const discountAmount = parseFloat(discountAmountText.replace(/[-$]/g, '')) || 0;
         
         const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
-        const originalTax = <%= @order.tax_amount.to_f %>;
-        const originalShipping = <%= @order.shipping_amount.to_f %>;
         
         const discountedSubtotal = Math.max(0, originalSubtotal - discountAmount);
-        const taxRate = originalSubtotal > 0 ? (originalTax / originalSubtotal) : 0;
-        const newTax = discountedSubtotal * taxRate;
-        const totalWithoutTip = discountedSubtotal + newTax + originalShipping;
+        
+        // Recalculate tax based on tax settings
+        let taxableAmount = discountedSubtotal;
+        if (taxAppliesToShipping) {
+          taxableAmount += currentShipping;
+        }
+        const newTax = taxableAmount * (taxRatePercent / 100);
+        
+        const totalWithoutTip = discountedSubtotal + newTax + currentShipping;
         
         orderTotal.textContent = '$' + totalWithoutTip.toFixed(2);
+        orderTotal.dataset.orderTotal = totalWithoutTip.toFixed(2);
       } else {
-        // No discount, use original total
-        orderTotal.textContent = '$' + <%= @order.total_amount.to_f %>.toFixed(2);
+        // No discount, recalculate base total with current shipping
+        const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
+        
+        let taxableAmount = originalSubtotal;
+        if (taxAppliesToShipping) {
+          taxableAmount += currentShipping;
+        }
+        const newTax = taxableAmount * (taxRatePercent / 100);
+        
+        const totalWithoutTip = originalSubtotal + newTax + currentShipping;
+        orderTotal.textContent = '$' + totalWithoutTip.toFixed(2);
+        orderTotal.dataset.orderTotal = totalWithoutTip.toFixed(2);
       }
     }
   });
@@ -515,6 +688,12 @@ function initializeOrderPromoAndTipHandling() {
     if (validator) {
       CustomerFormValidation.setupConditionalValidation(validator, '#new-tenant-customer-fields');
     }
+  }
+  
+  // Initialize shipping display on page load if a shipping method is already selected
+  const initialShippingMethodId = '<%= @order.shipping_method_id %>';
+  if (initialShippingMethodId && shippingMethodsData[initialShippingMethodId]) {
+    updateOrderSummaryWithShipping(initialShippingMethodId);
   }
 }
 
