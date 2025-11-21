@@ -53,6 +53,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
+  # Enable variant tracking so VariantRecord entries are created during tests
+  config.active_storage.track_variants = true
+
   config.action_mailer.delivery_method = :test
   config.action_mailer.perform_deliveries = true
   config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }

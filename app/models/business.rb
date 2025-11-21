@@ -828,7 +828,7 @@ class Business < ApplicationRecord
             size: { less_than: 50.megabytes, message: 'must be less than 50MB' },
             if: -> { gallery_video.attached? }
 
-  validates :gallery_columns, numericality: { only_integer: true, greater_than_or_equal_to: 2, less_than_or_equal_to: 4 }
+  validates :gallery_columns, numericality: { only_integer: true, greater_than_or_equal_to: 2, less_than_or_equal_to: 6 }
 
   # Background processing for logo
   after_commit :process_logo, if: -> { logo.attached? }

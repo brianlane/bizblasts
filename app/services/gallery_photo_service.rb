@@ -91,6 +91,12 @@ class GalleryPhotoService
         raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery"
       end
 
+      # Check featured count limit with lock held
+      featured_requested = attributes[:featured] == true || attributes[:featured] == 'true'
+      if featured_requested && locked_business.gallery_photos.where(featured: true).count >= 5
+        raise MaxFeaturedPhotosExceededError, "Maximum 5 photos can be featured. Please unfeature another photo first."
+      end
+
       gallery_photo = locked_business.gallery_photos.create!(
         photo_source: photo_source_enum,
         source_type: source_type,
@@ -235,7 +241,7 @@ class GalleryPhotoService
           source_name: service.name,
           attachment_id: attachment.id,
           attachment_filename: attachment.filename.to_s,
-          thumbnail_url: Rails.application.routes.url_helpers.url_for(attachment.variant(resize_to_limit: [200, 200]))
+          thumbnail_url: Rails.application.routes.url_helpers.polymorphic_path(attachment.variant(resize_to_limit: [200, 200]))
         }
       end.compact
     end
@@ -255,7 +261,7 @@ class GalleryPhotoService
           source_name: product.name,
           attachment_id: attachment.id,
           attachment_filename: attachment.filename.to_s,
-          thumbnail_url: Rails.application.routes.url_helpers.url_for(attachment.variant(resize_to_limit: [200, 200]))
+          thumbnail_url: Rails.application.routes.url_helpers.polymorphic_path(attachment.variant(resize_to_limit: [200, 200]))
         }
       end.compact
     end

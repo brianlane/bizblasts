@@ -89,8 +89,12 @@ export default class extends Controller {
   }
 
   getPhotosData() {
-    // Extract photo data from the grid
-    const photoElements = this.element.querySelectorAll("[data-photo-index]")
+    // Extract photo data from the grid only (not from featured carousel)
+    // The grid section has class "grid" so we query within that container only
+    const gridContainer = this.element.querySelector(".grid")
+    if (!gridContainer) return []
+
+    const photoElements = gridContainer.querySelectorAll("[data-photo-index]")
     return Array.from(photoElements).map((el) => {
       const img = el.querySelector("img")
       const titleEl = el.querySelector("h4")

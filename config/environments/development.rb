@@ -37,6 +37,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
+  # Enable variant tracking for database-backed variant management
+  config.active_storage.track_variants = true
+
   # ActionMailer configuration for development
   config.action_mailer.delivery_method = :resend
   config.action_mailer.perform_deliveries = true
