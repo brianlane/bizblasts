@@ -76,7 +76,7 @@ class GalleryPhotoService
 
     # Validate that the attachment exists and belongs to the source
     attachment = ActiveStorage::Attachment.find(attachment_id)
-    raise ArgumentError, "Attachment does not belong to source" unless attachment.record_id == source_id && attachment.record_type == source_type
+    raise ArgumentError, "Attachment does not belong to source" unless attachment.record_id == source.id && attachment.record_type == source_type
 
     photo_source_enum = source_type.downcase.to_sym # :service or :product
     gallery_photo = nil
