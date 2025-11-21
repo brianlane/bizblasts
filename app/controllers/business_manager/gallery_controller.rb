@@ -125,7 +125,7 @@ module BusinessManager
       attributes = {
         video_title: params[:video_title],
         video_display_location: params[:video_display_location] || 'hero',
-        video_autoplay_hero: params[:video_autoplay_hero] != 'false'
+        video_autoplay_hero: ActiveModel::Type::Boolean.new.cast(params[:video_autoplay_hero])
       }
 
       GalleryVideoService.upload(@business, video_file, attributes)
@@ -154,19 +154,18 @@ module BusinessManager
       video_params = params[:video] || {}
 
       location = video_params[:display_location].presence || params[:video_display_location].presence
-      autoplay = if video_params.key?(:autoplay_hero)
-                   video_params[:autoplay_hero] != 'false'
-                 else
-                   params[:video_autoplay_hero] != 'false'
-                 end
       title = video_params[:title].presence || params[:video_title].presence
 
-      GalleryVideoService.update_display_settings(
-        @business,
-        location: location,
-        autoplay: autoplay,
-        title: title
-      )
+      # Build service parameters hash
+      service_params = { location: location, title: title }
+
+      # Only include autoplay if explicitly provided (to use service default otherwise)
+      if video_params.key?(:autoplay_hero) || params.key?(:video_autoplay_hero)
+        autoplay_value = video_params[:autoplay_hero] || params[:video_autoplay_hero]
+        service_params[:autoplay] = ActiveModel::Type::Boolean.new.cast(autoplay_value)
+      end
+
+      GalleryVideoService.update_display_settings(@business, **service_params)
 
       respond_to do |format|
         format.html { redirect_to business_manager_gallery_index_path, notice: 'Video settings updated' }
