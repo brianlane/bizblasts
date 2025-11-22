@@ -50,7 +50,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           # Should show tip option but don't add tip
           expect(page).to have_content('Add a Tip (Optional)')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe (mocked)
@@ -81,7 +81,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '0.25'
           find('#tip_amount', visible: false).set('0.25')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should show validation error
@@ -108,7 +108,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '-5.00'
           find('#tip_amount', visible: false).set('-5.00')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe since negative amounts are converted to 0
@@ -139,7 +139,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '50.00'
           find('#tip_amount', visible: false).set('50.00')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe
@@ -174,7 +174,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
         # Set tip amount manually (since JavaScript doesn't run with rack_test)
         find('#tip_amount', visible: false).set('10.00')
         
-        select 'Standard Shipping', from: 'order_shipping_method_id'
+        select_shipping_method 'Standard Shipping'
         click_button 'Complete Order'
         
         # Should redirect to Stripe
@@ -214,7 +214,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '7.50'
           find('#tip_amount', visible: false).set('7.50')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe
@@ -249,7 +249,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '0.10'
           find('#tip_amount', visible: false).set('0.10')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should show validation error
@@ -283,7 +283,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           # Should not show tip option since no products have tips enabled
           expect(page).not_to have_content('Add a Tip (Optional)')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe
@@ -310,7 +310,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           # Should show tip option since at least one product allows tips
           expect(page).to have_content('Add a Tip (Optional)')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe
@@ -335,7 +335,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           # Should not show tip option
           expect(page).not_to have_content('Add a Tip (Optional)')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe
@@ -367,7 +367,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           # Mock Stripe error
           allow(StripeService).to receive(:create_payment_checkout_session).and_raise(Stripe::StripeError.new('Connection error'))
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should handle error gracefully
@@ -401,7 +401,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           # Mock Stripe error for missing account
           allow(StripeService).to receive(:create_payment_checkout_session).and_raise(Stripe::StripeError.new('No such account'))
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should show error about Stripe connection
@@ -432,7 +432,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '2.99'
           find('#tip_amount', visible: false).set('2.99')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe
@@ -463,7 +463,7 @@ RSpec.describe 'Product Tipping Flow', type: :system do
           fill_in 'custom-tip-amount', with: '0.50'
           find('#tip_amount', visible: false).set('0.50')
           
-          select 'Standard Shipping', from: 'order_shipping_method_id'
+          select_shipping_method 'Standard Shipping'
           click_button 'Complete Order'
           
           # Should redirect to Stripe

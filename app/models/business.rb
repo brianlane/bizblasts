@@ -813,10 +813,8 @@ class Business < ApplicationRecord
     attachable.variant :large, resize_to_limit: [600, 600], quality: 90
   end
 
-  # Active Storage attachment for gallery video
-  has_one_attached :gallery_video do |attachable|
-    attachable.variant :thumbnail, resize_to_limit: [400, 300]
-  end
+  # Active Storage attachment for gallery video (no variants until ffmpeg support is added)
+  has_one_attached :gallery_video
   
   # Logo validations - Updated for HEIC support
   validates :logo, **FileUploadSecurity.image_validation_options

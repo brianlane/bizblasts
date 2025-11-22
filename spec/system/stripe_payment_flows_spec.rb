@@ -187,7 +187,17 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Checkout
         visit cart_path
         click_link 'Checkout'
-        select 'Standard', from: 'Select shipping method'
+        
+        # Dismiss cookie banner if it appears on checkout page
+        begin
+          if page.has_button?('Accept', wait: 2)
+            click_button 'Accept'
+          end
+        rescue Capybara::ElementNotFound
+          # Banner might not appear - continue with test
+        end
+        
+        select_shipping_method 'Standard'
         click_button 'Complete Order'
         
         # Should redirect to Stripe (mocked)
@@ -256,7 +266,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Last Name', with: 'Buyer'
         fill_in 'Email', with: 'buyer@example.com'
         fill_in 'Phone', with: '555-9999'
-        select 'Express', from: 'Select shipping method'
+        select_shipping_method 'Express'
         
         # Dismiss cookie banner one more time if it appears before placing order
         begin

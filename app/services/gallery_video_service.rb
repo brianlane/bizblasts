@@ -120,14 +120,9 @@ class GalleryVideoService
   def self.thumbnail_url(business)
     return nil unless business.gallery_video.attached?
 
-    # Check if thumbnail variant is available (processed by background job)
-    begin
-      Rails.application.routes.url_helpers.url_for(
-        business.gallery_video.variant(:thumbnail)
-      )
-    rescue StandardError
-      nil
-    end
+    # Thumbnail generation via ActiveStorage variants requires ffmpeg, which isn't available.
+    # Return nil so callers can gracefully skip poster images until support is added.
+    nil
   end
 
   private

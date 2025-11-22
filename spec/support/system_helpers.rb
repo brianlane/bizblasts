@@ -79,6 +79,62 @@ module SystemHelpers
     end
   end
 
+  # Helper method to select from rich dropdowns (new JavaScript dropdown component)
+  # Usage: select_from_rich_dropdown("Option Text", "dropdown_id")
+  def select_from_rich_dropdown(option_text, dropdown_id)
+    if Capybara.current_driver == :rack_test || !page.driver.respond_to?(:browser)
+      # Non-JS driver (rack_test) - set the hidden field directly
+      # Find the hidden field for this dropdown
+      hidden_field = find("##{dropdown_id}_hidden", visible: false)
+      
+      # Find all option elements with data-item-id attributes
+      options = all("##{dropdown_id} [data-item-id]", visible: :all)
+      
+      # Find the matching option by text
+      matching_option = options.find do |opt|
+        opt['data-item-text']&.include?(option_text) || opt.text(:all).include?(option_text)
+      end
+      
+      if matching_option
+        hidden_field.set(matching_option['data-item-id'])
+      else
+        raise "Could not find option '#{option_text}' in dropdown '#{dropdown_id}'"
+      end
+    else
+      # JavaScript driver - interact with the rich dropdown UI
+      dropdown = find("##{dropdown_id}", wait: 5)
+      button = dropdown.find("[data-dropdown-target='button']", wait: 5)
+      button.click
+      
+      # Wait for dropdown menu to appear
+      sleep 0.5
+      
+      # Find the option by its text content (this works better than exact data-item-text match)
+      options = dropdown.all("[data-dropdown-target='option']", wait: 5)
+      matching_option = options.find { |opt| opt.text.include?(option_text) || opt['data-item-text'] == option_text }
+      
+      if matching_option
+        option_id = matching_option['data-item-id']
+        matching_option.click
+        
+        # Wait for the hidden field to be populated with the selected value
+        hidden_field = find("##{dropdown_id}_hidden", visible: false)
+        expect(hidden_field.value).to eq(option_id), "Expected hidden field to have value '#{option_id}' but got '#{hidden_field.value}'"
+        
+        # Brief additional pause to ensure any event handlers complete
+        sleep 0.2
+      else
+        raise "Could not find option '#{option_text}' in dropdown '#{dropdown_id}'. Available options: #{options.map(&:text).join(', ')}"
+      end
+    end
+  end
+
+  # Convenience method to select a shipping method from the order checkout page
+  # Usage: select_shipping_method("Standard Shipping")
+  def select_shipping_method(method_name)
+    select_from_rich_dropdown(method_name, 'shipping_method_dropdown')
+  end
+
   # Helper method to select from custom dropdowns
   # Usage: select_from_custom_dropdown("Option Text", "dropdown_type")
   # Supports: "Tax Rate", "Shipping Method", "Customer", "User Role", "User", "Integration Type"
@@ -90,10 +146,8 @@ module SystemHelpers
       # Click the option
       find('[data-tax-dropdown-target="option"]', text: option_text, wait: 5).click
     when 'shipping', 'shipping method', 'shipping_method'
-      # Click the shipping dropdown button
-      find('[data-shipping-dropdown-target="button"]', wait: 5).click
-      # Click the option
-      find('[data-shipping-dropdown-target="option"]', text: option_text, wait: 5).click
+      # Use the new rich dropdown for shipping methods
+      select_from_rich_dropdown(option_text, 'shipping_method_dropdown')
     when 'customer'
       # Click the customer dropdown button
       find('[data-customer-dropdown-target="button"]', wait: 5).click
