@@ -150,6 +150,30 @@ RSpec.describe GalleryPhotoService do
       expect(photo1.position).to eq(2)
       expect(photo2.position).to eq(3)
     end
+
+    context 'when not all photos are provided' do
+      let!(:photo4) { create(:gallery_photo, business: business, position: 4) }
+
+      it 'keeps remaining photos in their relative order after the provided ids' do
+        described_class.reorder(business, [photo2.id, photo3.id])
+
+        expect(business.gallery_photos.order(:position).pluck(:id)).to eq(
+          [photo2.id, photo3.id, photo1.id, photo4.id]
+        )
+      end
+    end
+
+    it 'returns false when attempting to reorder photos from another business' do
+      other_photo = create(:gallery_photo, position: 1)
+
+      expect(described_class.reorder(business, [other_photo.id])).to be(false)
+      expect(business.gallery_photos.order(:position).pluck(:id)).to eq([photo1.id, photo2.id, photo3.id])
+    end
+
+    it 'returns false when duplicate ids are provided' do
+      expect(described_class.reorder(business, [photo1.id, photo1.id])).to be(false)
+      expect(business.gallery_photos.order(:position).pluck(:id)).to eq([photo1.id, photo2.id, photo3.id])
+    end
   end
 
   describe '.remove' do

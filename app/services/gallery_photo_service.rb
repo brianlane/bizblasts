@@ -152,20 +152,39 @@ class GalleryPhotoService
   def self.reorder(business, photo_ids_array)
     return false if photo_ids_array.blank?
 
+    ordered_ids = Array(photo_ids_array).map(&:to_i)
+    return false if ordered_ids.empty?
+
+    if ordered_ids.uniq.length != ordered_ids.length
+      raise ArgumentError, "Duplicate photo IDs are not allowed"
+    end
+
     ActiveRecord::Base.transaction do
-      # First pass: Set all positions to temporary negative values to avoid unique constraint violations
-      # This ensures we can reorder without conflicts since negative positions won't collide
-      photo_ids_array.each_with_index do |photo_id, index|
-        photo = business.gallery_photos.find(photo_id)
-        temp_position = -(index + 1)
-        photo.update_column(:position, temp_position)
+      # Lock all photos for this business to prevent concurrent reorders from conflicting
+      locked_photos = business.gallery_photos.order(:position).lock.to_a
+      photos_by_id = locked_photos.index_by(&:id)
+      current_ids = locked_photos.map(&:id)
+
+      missing_ids = ordered_ids - current_ids
+      if missing_ids.any?
+        raise PhotoNotFoundError, "Photos #{missing_ids.join(', ')} do not belong to business #{business.id}"
       end
 
-      # Second pass: Set positions to their final positive values
-      photo_ids_array.each_with_index do |photo_id, index|
-        photo = business.gallery_photos.find(photo_id)
-        final_position = index + 1
-        photo.update_column(:position, final_position)
+      # Preserve the relative order of any photos not explicitly passed in
+      remaining_ids = current_ids - ordered_ids
+      final_order = ordered_ids + remaining_ids
+
+      # Use a high positive offset so validations remain satisfied while we reshuffle
+      max_position = locked_photos.map(&:position).compact.max || 0
+      offset = max_position + final_order.size + 5
+
+      final_order.each_with_index do |photo_id, index|
+        temp_position = offset + index + 1
+        photos_by_id.fetch(photo_id).update!(position: temp_position)
+      end
+
+      final_order.each_with_index do |photo_id, index|
+        photos_by_id.fetch(photo_id).update!(position: index + 1)
       end
     end
 

@@ -337,7 +337,10 @@ function initializeOrderPromoAndTipHandling() {
   // Tax rate information
   const taxRatePercent = <%= @order.tax_rate&.rate || 0 %>;
   const taxAppliesToShipping = <%= @order.tax_rate&.applies_to_shipping? || false %>;
-  
+
+  // Shared state for current shipping amount (prevents stale DOM reads)
+  let currentShippingAmount = <%= @order.shipping_amount.to_f %>;
+
   // Shipping method change handler
   const shippingDropdown = document.getElementById('shipping_method_dropdown');
   if (shippingDropdown) {
@@ -350,36 +353,42 @@ function initializeOrderPromoAndTipHandling() {
   function updateOrderSummaryWithShipping(shippingMethodId) {
     const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
     let shippingCost = 0;
-    
+
     // Get shipping cost from selected method
     if (shippingMethodId && shippingMethodsData[shippingMethodId]) {
       shippingCost = shippingMethodsData[shippingMethodId].cost;
     }
-    
-    // Calculate tax
-    let taxableAmount = originalSubtotal;
+
+    // Update shared state
+    currentShippingAmount = shippingCost;
+
+    // Get promo discount if present
+    let discountAmount = 0;
+    const promoDiscountRow = document.getElementById('promo-discount-row');
+    if (promoDiscountRow) {
+      const discountAmountText = document.getElementById('promo-discount-amount')?.textContent || '-$0.00';
+      discountAmount = parseFloat(discountAmountText.replace(/[-$]/g, '')) || 0;
+    }
+
+    // Apply discount to subtotal first
+    const discountedSubtotal = Math.max(0, originalSubtotal - discountAmount);
+
+    // Calculate tax on discounted subtotal (and shipping if applicable)
+    let taxableAmount = discountedSubtotal;
     if (taxAppliesToShipping) {
       taxableAmount += shippingCost;
     }
     const taxAmount = taxableAmount * (taxRatePercent / 100);
-    
+
     // Calculate total
-    let total = originalSubtotal + shippingCost + taxAmount;
-    
-    // Apply promo discount if present
-    const promoDiscountRow = document.getElementById('promo-discount-row');
-    if (promoDiscountRow) {
-      const discountAmountText = document.getElementById('promo-discount-amount')?.textContent || '-$0.00';
-      const discountAmount = parseFloat(discountAmountText.replace(/[-$]/g, '')) || 0;
-      total -= discountAmount;
-    }
-    
+    const total = discountedSubtotal + shippingCost + taxAmount;
+
     // Update shipping display in order summary
     updateShippingDisplay(shippingCost);
-    
+
     // Update tax display
     updateTaxDisplay(taxAmount);
-    
+
     // Update total
     if (orderTotal) {
       orderTotal.textContent = '$' + total.toFixed(2);
@@ -579,32 +588,26 @@ function initializeOrderPromoAndTipHandling() {
         discountAmountElement.textContent = `-${formattedDiscount}`;
       }
     }
-    
-    // Get current shipping cost from the displayed amount
-    const shippingAmountElement = document.querySelector('.shipping-amount');
-    const currentShipping = shippingAmountElement 
-      ? parseFloat(shippingAmountElement.textContent.replace('$', '')) || 0 
-      : <%= @order.shipping_amount.to_f %>;
-    
+
     // Calculate proper total with discount applied to subtotal and tax recalculated
     const originalSubtotal = <%= @order.subtotal_amount.to_f %>;
     const discountValue = parseFloat(discountAmount);
-    
+
     // Apply discount to subtotal
     const discountedSubtotal = Math.max(0, originalSubtotal - discountValue);
-    
-    // Recalculate tax based on tax settings
+
+    // Recalculate tax based on tax settings (using shared shipping state)
     let taxableAmount = discountedSubtotal;
     if (taxAppliesToShipping) {
-      taxableAmount += currentShipping;
+      taxableAmount += currentShippingAmount;
     }
     const newTax = taxableAmount * (taxRatePercent / 100);
-    
+
     // Update tax display
     updateTaxDisplay(newTax);
-    
+
     // Calculate new total
-    const newTotal = discountedSubtotal + newTax + currentShipping;
+    const newTotal = discountedSubtotal + newTax + currentShippingAmount;
     
     // Update the total element
     const totalElement = document.querySelector('.order-total');
