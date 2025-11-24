@@ -297,9 +297,20 @@ RSpec.describe ServiceAreaChecker, 'edge cases' do
     end
 
     it 'handles ZIP codes with spaces' do
-      mock_result = OpenStruct.new(coordinates: [34.0736, -118.4004], country_code: 'us')
+      # Mock business ZIP coordinates
+      business_result = OpenStruct.new(
+        coordinates: [34.1030, -118.4105],
+        latitude: 34.1030,
+        longitude: -118.4105,
+        country_code: 'us'
+      )
       allow_any_instance_of(ServiceAreaChecker).to receive(:geocode_with_structured_search)
-        .with('90211').and_return([mock_result])
+        .with('90210').and_return([business_result])
+
+      # Mock customer ZIP coordinates (with spaces stripped)
+      customer_result = OpenStruct.new(coordinates: [34.0736, -118.4004], country_code: 'us')
+      allow_any_instance_of(ServiceAreaChecker).to receive(:geocode_with_structured_search)
+        .with('90211').and_return([customer_result])
 
       result = checker.within_radius?('  90211  ', radius_miles: 50)
 

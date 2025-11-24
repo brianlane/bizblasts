@@ -50,7 +50,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
       click_link 'Proceed to Checkout'
       
       # Fill out checkout form
-      select 'Standard', from: 'order_shipping_method_id'
+      select_shipping_method 'Standard'
       click_button 'Complete Order'
       
       # Should redirect to Stripe (mocked)
@@ -83,7 +83,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
       click_link 'Proceed to Checkout'
       
       # Fill out checkout form
-      select 'Standard', from: 'order_shipping_method_id'
+      select_shipping_method 'Standard'
       click_button 'Complete Order'
       
       # Expect the line item stock validation message
@@ -110,7 +110,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
       fill_in 'Phone', with: '555-5555'
       
       # Fill out checkout form
-      select 'Standard', from: 'order_shipping_method_id'
+      select_shipping_method 'Standard'
       click_button 'Complete Order'
       
       # Should redirect to Stripe (mocked)
@@ -145,7 +145,7 @@ RSpec.describe 'Product Cart and Checkout Flow', type: :system do
       fill_in 'Confirm Password', with: 'securepass'
       
       # Fill out checkout form
-      select 'Standard', from: 'order_shipping_method_id'
+      select_shipping_method 'Standard'
       click_button 'Complete Order'
       
       # With email confirmation enabled, user creation redirects to sign-in

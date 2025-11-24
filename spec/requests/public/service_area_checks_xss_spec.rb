@@ -199,7 +199,7 @@ RSpec.describe "Public::ServiceAreaChecksController XSS Protection", type: :requ
           return_to: "data:text/html,<script>alert('XSS')</script>",
           service_area_check: { zip: "" }
         )
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(assigns(:return_to)).not_to include("data:")
         expect(assigns(:return_to)).to eq(new_tenant_booking_path(service_id: service.id))
       end

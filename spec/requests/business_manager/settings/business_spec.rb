@@ -157,7 +157,7 @@ RSpec.describe "Settings::BusinessController", type: :request do
         expect(business.name).to eq(original_name)
       end
 
-      it "renders the edit template with unprocessable_entity status and errors" do
+      it "renders the edit template with unprocessable_content status and errors" do
         patch business_manager_settings_business_path, params: { business: invalid_attributes }
         expect(response).to render_template(:edit)
         expect(response).to have_http_status(:unprocessable_content)

@@ -245,6 +245,18 @@ Rails.application.routes.draw do
         end
       end
 
+      # Gallery management
+      get 'gallery', to: 'gallery#index', as: :gallery_index
+      scope path: 'gallery', as: :gallery, controller: 'gallery' do
+        post 'photos', action: :create_photo, as: :photos
+        post 'photos/reorder', action: :reorder_photos, as: :reorder_photos
+        patch 'photos/:id', action: :update_photo, as: :update_photo
+        delete 'photos/:id', action: :destroy_photo, as: :destroy_photo
+        post 'video', action: :create_video, as: :video
+        patch 'video', action: :update_video, as: :update_video
+        delete 'video', action: :destroy_video, as: :destroy_video
+      end
+
       # Bookings management
       resources :bookings, only: [:index, :show, :new, :edit, :update, :create] do
         member do

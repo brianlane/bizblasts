@@ -41,4 +41,3 @@ Geocoder.configure(
     email: ENV['SUPPORT_EMAIL'] # Nominatim requires a valid email for identification
   }
 )
-

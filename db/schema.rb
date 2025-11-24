@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -250,6 +250,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
     t.string "email"
     t.string "enhanced_accent_color", default: "red", null: false
     t.string "facebook_url"
+    t.integer "gallery_columns", default: 3, null: false
+    t.boolean "gallery_enabled", default: false, null: false
+    t.integer "gallery_layout", default: 0, null: false
     t.text "google_business_address"
     t.boolean "google_business_manual", default: false
     t.string "google_business_name"
@@ -276,6 +279,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
     t.boolean "render_domain_added", default: false, null: false
     t.bigint "service_template_id"
     t.boolean "show_estimate_page", default: true, null: false
+    t.boolean "show_gallery_section", default: true, null: false
     t.boolean "show_products_section", default: true, null: false
     t.boolean "show_services_section", default: true, null: false
     t.boolean "sms_auto_invitations_enabled", default: true, null: false
@@ -299,6 +303,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
     t.boolean "tip_mailer_if_no_tip_received", default: true, null: false
     t.string "twitter_url"
     t.datetime "updated_at", null: false
+    t.boolean "video_autoplay_hero", default: true, null: false
+    t.integer "video_display_location", default: 0, null: false
+    t.string "video_title"
     t.string "website"
     t.string "website_layout", default: "basic", null: false
     t.string "youtube_url"
@@ -310,6 +317,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
     t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
     t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"
     t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
+    t.index ["gallery_enabled"], name: "index_businesses_on_gallery_enabled"
     t.index ["google_business_manual"], name: "index_businesses_on_google_business_manual"
     t.index ["google_place_id"], name: "index_businesses_on_google_place_id", unique: true
     t.index ["host_type", "status", "domain_health_verified"], name: "index_businesses_on_custom_domain_health"
@@ -324,6 +332,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
     t.index ["stripe_account_id"], name: "index_businesses_on_stripe_account_id", unique: true
     t.index ["stripe_customer_id"], name: "index_businesses_on_stripe_customer_id", unique: true
     t.index ["subscription_discount_enabled"], name: "index_businesses_on_subscription_discount_enabled"
+    t.index ["video_display_location"], name: "index_businesses_on_video_display_location"
     t.index ["website_layout"], name: "index_businesses_on_website_layout"
     t.check_constraint "subscription_discount_value >= 0::numeric", name: "businesses_subscription_discount_value_positive"
   end
@@ -561,6 +570,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
     t.index ["slug", "sluggable_type"], name: "index_friendly_id_slugs_on_slug_and_sluggable_type"
     t.index ["sluggable_id"], name: "index_friendly_id_slugs_on_sluggable_id"
     t.index ["sluggable_type"], name: "index_friendly_id_slugs_on_sluggable_type"
+  end
+
+  create_table "gallery_photos", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "photo_source", default: 0, null: false
+    t.integer "position", null: false
+    t.integer "source_attachment_id"
+    t.integer "source_id"
+    t.string "source_type"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["business_id", "position"], name: "index_gallery_photos_on_business_id_and_position", unique: true
+    t.index ["business_id"], name: "index_gallery_photos_on_business_id"
+    t.index ["source_type", "source_id"], name: "index_gallery_photos_on_source_type_and_source_id", where: "(source_type IS NOT NULL)"
   end
 
   create_table "integration_credentials", force: :cascade do |t|
@@ -1764,6 +1789,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_163000) do
   add_foreign_key "estimates", "businesses"
   add_foreign_key "estimates", "tenant_customers"
   add_foreign_key "external_calendar_events", "calendar_connections"
+  add_foreign_key "gallery_photos", "businesses"
   add_foreign_key "integration_credentials", "businesses", on_delete: :cascade
   add_foreign_key "integrations", "businesses", on_delete: :cascade
   add_foreign_key "invalidated_sessions", "users", on_delete: :cascade

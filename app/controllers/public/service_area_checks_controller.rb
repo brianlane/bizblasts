@@ -14,7 +14,7 @@ module Public
 
       if zip.blank?
         flash.now[:alert] = "Please enter a ZIP code."
-        return render :new, status: :unprocessable_entity
+        return render :new, status: :unprocessable_content
       end
 
       policy = current_tenant.booking_policy
@@ -29,10 +29,10 @@ module Public
         redirect_to @return_to
       when :invalid_zip
         flash.now[:alert] = "We couldn't find that ZIP code. Please double-check and try again.".html_safe
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       else
         flash.now[:alert] = "It looks like you're outside our service area. Please contact us to see if we can make an exception."
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -80,4 +80,3 @@ module Public
     end
   end
 end
-

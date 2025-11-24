@@ -62,6 +62,57 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
         expect(home_page.page_sections.pluck(:section_type)).not_to include('product_list')
       end
     end
+
+    context 'with gallery enabled' do
+      let!(:service) { create(:service, business: business, name: 'Premium Detail') }
+
+      before do
+        business.update!(gallery_enabled: true, show_gallery_section: true)
+      end
+
+      it 'returns gallery_layout as a string when set to a symbol enum value' do
+        business.update!(gallery_layout: :masonry)
+        create(:gallery_photo, business: business)
+
+        described_class.apply!(business)
+        home_page = business.pages.find_by(slug: 'home')
+        gallery_section = home_page.page_sections.find_by(section_type: 'gallery')
+
+        expect(gallery_section).to be_present
+        expect(gallery_section.section_config['layout']).to eq('masonry')
+        expect(gallery_section.section_config['layout']).to be_a(String)
+      end
+
+      it 'returns gallery_layout as a string when using default value' do
+        # gallery_layout defaults to :grid (0) via database default
+        business.update!(gallery_layout: :grid)
+        create(:gallery_photo, business: business)
+
+        described_class.apply!(business)
+        home_page = business.pages.find_by(slug: 'home')
+        gallery_section = home_page.page_sections.find_by(section_type: 'gallery')
+
+        expect(gallery_section).to be_present
+        expect(gallery_section.section_config['layout']).to eq('grid')
+        expect(gallery_section.section_config['layout']).to be_a(String)
+      end
+
+      it 'ensures type consistency between different gallery_layout values' do
+        # Test that all enum values return strings consistently
+        %i[grid masonry carousel].each do |layout|
+          business.update!(gallery_layout: layout)
+          business.pages.destroy_all
+          create(:gallery_photo, business: business) unless business.gallery_photos.any?
+
+          described_class.apply!(business)
+          home_page = business.pages.find_by(slug: 'home')
+          gallery_section = home_page.page_sections.find_by(section_type: 'gallery')
+
+          expect(gallery_section.section_config['layout']).to be_a(String)
+          expect(gallery_section.section_config['layout']).to eq(layout.to_s)
+        end
+      end
+    end
   end
 end
 

@@ -101,6 +101,7 @@ class EnhancedWebsiteLayoutService
 
     sections << service_section_definition if include_service_section?
     sections << product_section_definition if include_product_section?
+    sections << gallery_section_definition if include_gallery_section?
 
     sections << {
       type: 'testimonial',
@@ -211,6 +212,34 @@ class EnhancedWebsiteLayoutService
     }
   end
 
+  def include_gallery_section?
+    business.gallery_enabled? &&
+    business.show_gallery_section? &&
+    (business.gallery_photos.any? || business.gallery_video.attached?)
+  end
+
+  def gallery_section_definition
+    {
+      type: 'gallery',
+      animation: 'fadeIn',
+      config: gallery_config,
+      content: gallery_content
+    }
+  end
+
+  def gallery_config
+    {
+      'layout' => business.gallery_layout&.to_s || 'grid',
+      'columns' => business.gallery_columns || 3,
+      'show_featured' => false,
+      'show_video' => business.gallery_video.attached? && business.video_display_location_gallery?
+    }
+  end
+
+  def gallery_content
+    {}
+  end
+
   def testimonial_content
     sanitized_name = sanitized_business_name
     {
@@ -285,4 +314,3 @@ class EnhancedWebsiteLayoutService
     Rails.application.routes.url_helpers
   end
 end
-

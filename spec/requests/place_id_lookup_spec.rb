@@ -45,7 +45,7 @@ RSpec.describe 'Place ID Lookup - Async Extraction', type: :request do
       it 'returns error for blank input' do
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: '' }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['success']).to be false
         expect(json['error']).to include('Please enter a Google Maps URL')
@@ -54,7 +54,7 @@ RSpec.describe 'Place ID Lookup - Async Extraction', type: :request do
       it 'returns error when not a Google Maps URL' do
         post lookup_place_id_business_manager_settings_integrations_path, params: { input: 'https://example.com' }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['success']).to be false
         expect(json['error']).to include('valid Google Maps URL')
