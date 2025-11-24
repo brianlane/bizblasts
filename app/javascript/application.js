@@ -125,6 +125,10 @@ import GoogleBusinessSearchController from './controllers/google_business_search
 import QrPaymentController from './controllers/qr_payment_controller';
 import PlaceIdLookupController from './controllers/place_id_lookup_controller';
 import EnhancedLayoutSelectorController from './controllers/enhanced_layout_selector_controller';
+import PhotoUploadController from './controllers/photo_upload_controller';
+import GalleryManagerController from './controllers/gallery_manager_controller';
+import GalleryLightboxController from './controllers/gallery_lightbox_controller';
+import GalleryCarouselController from './controllers/gallery_carousel_controller';
 
 application.register('page-editor', PageEditorController);
 application.register('theme-editor', ThemeEditorController);
@@ -144,6 +148,10 @@ application.register('google-business-search', GoogleBusinessSearchController);
 application.register('qr-payment', QrPaymentController);
 application.register('place-id-lookup', PlaceIdLookupController);
 application.register('enhanced-layout-selector', EnhancedLayoutSelectorController);
+application.register('photo-upload', PhotoUploadController);
+application.register('gallery-manager', GalleryManagerController);
+application.register('gallery-lightbox', GalleryLightboxController);
+application.register('gallery-carousel', GalleryCarouselController);
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -160,7 +168,7 @@ function autoDiscoverControllers() {
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
-      'place-id-lookup', 'enhanced-layout-selector'
+      'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel'
     ]);
     
     // Dynamically import and register each controller

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_20_190802) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -576,8 +576,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_190802) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.text "description"
-    t.boolean "display_in_hero", default: false, null: false
-    t.boolean "featured", default: false, null: false
     t.integer "photo_source", default: 0, null: false
     t.integer "position", null: false
     t.integer "source_attachment_id"
@@ -585,7 +583,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_190802) do
     t.string "source_type"
     t.string "title"
     t.datetime "updated_at", null: false
-    t.index ["business_id", "featured"], name: "index_gallery_photos_on_business_id_and_featured"
     t.index ["business_id", "position"], name: "index_gallery_photos_on_business_id_and_position", unique: true
     t.index ["business_id"], name: "index_gallery_photos_on_business_id"
     t.index ["source_type", "source_id"], name: "index_gallery_photos_on_source_type_and_source_id", where: "(source_type IS NOT NULL)"

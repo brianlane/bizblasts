@@ -7,7 +7,7 @@ RSpec.describe GalleryPhotoService do
 
   describe '.add_from_upload' do
     let(:file) { fixture_file_upload('test-image.jpg', 'image/jpeg') }
-    let(:params) { { title: 'Test Photo', description: 'A test photo', featured: true } }
+    let(:params) { { title: 'Test Photo', description: 'A test photo' } }
 
     it 'creates a new gallery photo with uploaded image' do
       expect {
@@ -17,7 +17,6 @@ RSpec.describe GalleryPhotoService do
       photo = business.gallery_photos.last
       expect(photo.title).to eq('Test Photo')
       expect(photo.description).to eq('A test photo')
-      expect(photo.featured).to be true
       expect(photo.image).to be_attached
     end
 
@@ -33,17 +32,6 @@ RSpec.describe GalleryPhotoService do
       end
     end
 
-    context 'when trying to feature a 6th photo' do
-      before do
-        create_list(:gallery_photo, 5, business: business, featured: true)
-      end
-
-      it 'raises MaxFeaturedPhotosExceededError' do
-        expect {
-          described_class.add_from_upload(business, file, { featured: true })
-        }.to raise_error(GalleryPhotoService::MaxFeaturedPhotosExceededError, /Maximum 5/)
-      end
-    end
   end
 
   describe '.add_from_existing' do
@@ -109,28 +97,6 @@ RSpec.describe GalleryPhotoService do
           {}
         )
       }.to raise_error(ArgumentError, /Invalid source_type/)
-    end
-  end
-
-  describe '.toggle_featured' do
-    let(:photo) { create(:gallery_photo, business: business, featured: false) }
-
-    it 'toggles photo featured status' do
-      expect {
-        described_class.toggle_featured(photo)
-      }.to change { photo.reload.featured }.from(false).to(true)
-    end
-
-    context 'when 5 photos are already featured' do
-      before do
-        create_list(:gallery_photo, 5, business: business, featured: true)
-      end
-
-      it 'raises MaxFeaturedPhotosExceededError' do
-        expect {
-          described_class.toggle_featured(photo)
-        }.to raise_error(GalleryPhotoService::MaxFeaturedPhotosExceededError)
-      end
     end
   end
 

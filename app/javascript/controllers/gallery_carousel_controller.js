@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Gallery carousel controller for featured photos
+// Gallery carousel controller for photos
 export default class extends Controller {
   static targets = ["track", "slide", "indicator"]
 

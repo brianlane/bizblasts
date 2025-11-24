@@ -9,8 +9,6 @@
 #  title                 :string
 #  description           :text
 #  position              :integer          not null
-#  featured              :boolean          default(FALSE), not null
-#  display_in_hero       :boolean          default(FALSE), not null
 #  photo_source          :integer          default("gallery"), not null
 #  source_type           :string
 #  source_id             :integer
@@ -44,9 +42,6 @@ class GalleryPhoto < ApplicationRecord
   # Validate that business doesn't exceed 100 photos
   validate :max_photos_per_business, on: :create
 
-  # Validate that business doesn't exceed 5 featured photos
-  validate :max_featured_photos_per_business, if: :featured?
-
   # Validate that photo has either attached image or source reference
   validate :has_photo_source
 
@@ -54,9 +49,6 @@ class GalleryPhoto < ApplicationRecord
   validate :validate_image_attachment, if: -> { photo_source_gallery? && image.attached? }
 
   # Scopes
-  scope :featured, -> { where(featured: true).order(:position) }
-  scope :not_featured, -> { where(featured: false).order(:position) }
-  scope :hero_display, -> { where(display_in_hero: true).order(:position) }
   scope :by_position, -> { order(:position) }
   scope :gallery_uploads, -> { where(photo_source: :gallery) }
   scope :from_services, -> { where(photo_source: :service) }
@@ -74,7 +66,7 @@ class GalleryPhoto < ApplicationRecord
   # @return [String] URL to the image variant
   def image_url(variant = :medium)
     if photo_source_gallery? && image.attached?
-      Rails.application.routes.url_helpers.url_for(image.variant(variant_options(variant)))
+      Rails.application.routes.url_helpers.rails_blob_path(image.variant(variant_options(variant)), only_path: true)
     elsif photo_source_service? || photo_source_product?
       fetch_source_image_url(variant)
     end
@@ -107,22 +99,6 @@ class GalleryPhoto < ApplicationRecord
 
       ordered_ids.each_with_index do |photo_id, index|
         business.gallery_photos.where(id: photo_id).update_all(position: index + 1)
-      end
-    end
-  end
-
-  # Toggle featured status (with 5-photo limit enforcement)
-  # @return [Boolean] Success status
-  def toggle_featured!
-    if featured?
-      update!(featured: false)
-    else
-      # Check if we can add another featured photo
-      if business.gallery_photos.featured.count < 5
-        update!(featured: true)
-      else
-        errors.add(:featured, "Maximum 5 photos can be featured")
-        false
       end
     end
   end
@@ -167,13 +143,6 @@ class GalleryPhoto < ApplicationRecord
     end
   end
 
-  # Validate max 5 featured photos per business
-  def max_featured_photos_per_business
-    if featured? && business.gallery_photos.where(featured: true).where.not(id: id).count >= 5
-      errors.add(:featured, "Maximum 5 photos can be featured")
-    end
-  end
-
   # Validate that photo has either attached image or source reference
   def has_photo_source
     if photo_source_gallery? && !image.attached?
@@ -205,13 +174,13 @@ class GalleryPhoto < ApplicationRecord
   def variant_options(variant)
     case variant
     when :thumb
-      { resize_to_fill: [400, 300], format: :webp, saver: { quality: 80 } }
+      { resize_to_fill: [400, 300], format: :webp }
     when :medium
-      { resize_to_fill: [1200, 900], format: :webp, saver: { quality: 85 } }
+      { resize_to_fill: [1200, 900], format: :webp }
     when :large
-      { resize_to_limit: [2000, 2000], format: :webp, saver: { quality: 90 } }
+      { resize_to_limit: [2000, 2000], format: :webp }
     else
-      { resize_to_fill: [1200, 900], format: :webp, saver: { quality: 85 } }
+      { resize_to_fill: [1200, 900], format: :webp }
     end
   end
 
@@ -224,8 +193,9 @@ class GalleryPhoto < ApplicationRecord
     attachment = ActiveStorage::Attachment.find_by(id: source_attachment_id)
     return nil unless attachment&.blob
 
-    Rails.application.routes.url_helpers.url_for(
-      attachment.variant(variant_options(variant))
+    Rails.application.routes.url_helpers.rails_blob_path(
+      attachment.variant(variant_options(variant)),
+      only_path: true
     )
   rescue StandardError => e
     Rails.logger.error("GalleryPhoto#fetch_source_image_url error: #{e.message}")

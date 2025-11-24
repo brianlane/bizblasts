@@ -37,18 +37,6 @@ RSpec.describe GalleryPhoto, type: :model do
       end
     end
 
-    context 'max featured photos' do
-      before do
-        create_list(:gallery_photo, 5, business: business, featured: true)
-      end
-
-      it 'does not allow more than 5 featured photos' do
-        photo = build(:gallery_photo, business: business, featured: true)
-        expect(photo).not_to be_valid
-        expect(photo.errors[:featured]).to include('Maximum 5 photos can be featured')
-      end
-    end
-
     context 'photo source validation' do
       it 'requires attached image for gallery photos' do
         photo = build(:gallery_photo, business: business, photo_source: :gallery)
@@ -94,30 +82,6 @@ RSpec.describe GalleryPhoto, type: :model do
   end
 
   describe 'scopes' do
-    let!(:featured_photo1) { create(:gallery_photo, business: business, featured: true, position: 1) }
-    let!(:featured_photo2) { create(:gallery_photo, business: business, featured: true, position: 2) }
-    let!(:regular_photo) { create(:gallery_photo, business: business, featured: false, position: 3) }
-    let!(:hero_photo) { create(:gallery_photo, business: business, display_in_hero: true, position: 4) }
-
-    describe '.featured' do
-      it 'returns only featured photos ordered by position' do
-        expect(business.gallery_photos.featured).to eq([featured_photo1, featured_photo2])
-      end
-    end
-
-    describe '.not_featured' do
-      it 'returns only non-featured photos' do
-        expect(business.gallery_photos.not_featured.pluck(:id)).to include(regular_photo.id)
-        expect(business.gallery_photos.not_featured.pluck(:id)).not_to include(featured_photo1.id)
-      end
-    end
-
-    describe '.hero_display' do
-      it 'returns photos marked for hero display' do
-        expect(business.gallery_photos.hero_display).to eq([hero_photo])
-      end
-    end
-
     describe '.gallery_uploads' do
       let!(:gallery_upload) { create(:gallery_photo, business: business, photo_source: :gallery) }
 
@@ -219,28 +183,4 @@ RSpec.describe GalleryPhoto, type: :model do
     end
   end
 
-  describe '#toggle_featured!' do
-    let(:photo) { create(:gallery_photo, business: business, featured: false) }
-
-    it 'toggles featured status to true' do
-      expect { photo.toggle_featured! }.to change { photo.featured }.from(false).to(true)
-    end
-
-    it 'toggles featured status to false' do
-      photo.update!(featured: true)
-      expect { photo.toggle_featured! }.to change { photo.featured }.from(true).to(false)
-    end
-
-    context 'when 5 photos are already featured' do
-      before do
-        create_list(:gallery_photo, 5, business: business, featured: true)
-      end
-
-      it 'does not allow featuring another photo' do
-        result = photo.toggle_featured!
-        expect(result).to be false
-        expect(photo.errors[:featured]).to include('Maximum 5 photos can be featured')
-      end
-    end
-  end
 end

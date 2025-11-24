@@ -252,7 +252,6 @@ Rails.application.routes.draw do
         post 'photos/reorder', action: :reorder_photos, as: :reorder_photos
         patch 'photos/:id', action: :update_photo, as: :update_photo
         delete 'photos/:id', action: :destroy_photo, as: :destroy_photo
-        post 'photos/:id/toggle_featured', action: :toggle_featured, as: :toggle_featured_photo
         post 'video', action: :create_video, as: :video
         patch 'video', action: :update_video, as: :update_video
         delete 'video', action: :destroy_video, as: :destroy_video

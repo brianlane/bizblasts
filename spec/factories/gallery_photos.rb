@@ -5,8 +5,6 @@ FactoryBot.define do
     association :business
     sequence(:title) { |n| "Gallery Photo #{n}" }
     description { Faker::Lorem.sentence }
-    featured { false }
-    display_in_hero { false }
     photo_source { :gallery }
     # Position will be set automatically by the model
 
@@ -19,14 +17,6 @@ FactoryBot.define do
           content_type: 'image/jpeg'
         )
       end
-    end
-
-    trait :featured do
-      featured { true }
-    end
-
-    trait :hero_display do
-      display_in_hero { true }
     end
 
     trait :from_service do

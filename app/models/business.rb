@@ -900,12 +900,6 @@ class Business < ApplicationRecord
   # ---------------------------------------------------------------------------
   # Gallery helper methods
 
-  # Get featured gallery photos (max 5)
-  # @return [ActiveRecord::Relation<GalleryPhoto>]
-  def featured_gallery_photos
-    gallery_photos.featured.limit(5)
-  end
-
   # Check if video should display in hero section
   # @return [Boolean]
   def hero_video?

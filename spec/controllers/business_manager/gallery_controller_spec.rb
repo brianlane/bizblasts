@@ -48,8 +48,7 @@ RSpec.describe BusinessManager::GalleryController, type: :controller do
       {
         image: fixture_file_upload('test_image.jpg', 'image/jpeg'),
         title: 'Test Photo',
-        description: 'Test Description',
-        featured: 'true'
+        description: 'Test Description'
       }
     end
 
@@ -202,39 +201,6 @@ RSpec.describe BusinessManager::GalleryController, type: :controller do
         expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['success']).to be false
-      end
-    end
-  end
-
-  describe 'POST #toggle_featured' do
-    let(:photo) { create(:gallery_photo, business: business, featured: false) }
-
-    it 'toggles featured status' do
-      post :toggle_featured, params: { id: photo.id }
-
-      photo.reload
-      expect(photo.featured).to be true
-    end
-
-    it 'responds with json for json format' do
-      post :toggle_featured, params: { id: photo.id }, format: :json
-
-      expect(response).to have_http_status(:success)
-      json_response = JSON.parse(response.body)
-      expect(json_response['featured']).to be true
-    end
-
-    context 'when 5 photos are already featured' do
-      before do
-        create_list(:gallery_photo, 5, business: business, featured: true)
-      end
-
-      it 'responds with error' do
-        post :toggle_featured, params: { id: photo.id }, format: :json
-
-        expect(response).to have_http_status(:unprocessable_content)
-        json_response = JSON.parse(response.body)
-        expect(json_response['error']).to match(/Maximum 5/)
       end
     end
   end

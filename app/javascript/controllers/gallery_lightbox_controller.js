@@ -96,12 +96,9 @@ export default class extends Controller {
 
     const photoElements = gridContainer.querySelectorAll("[data-photo-index]")
     return Array.from(photoElements).map((el) => {
-      const img = el.querySelector("img")
-      const titleEl = el.querySelector("h4")
-
       return {
-        url: img.src.replace("/medium/", "/large/"), // Get large version
-        title: titleEl?.textContent || "",
+        url: el.dataset.photoUrl, // Use the large URL from data attribute
+        title: el.dataset.photoTitle || "",
         description: ""
       }
     })

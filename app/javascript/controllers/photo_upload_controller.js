@@ -3,6 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Photo upload controller for drag-and-drop
 export default class extends Controller {
   connect() {
+    console.log("Photo upload controller connected")
     this.setupDragAndDrop()
   }
 
@@ -43,7 +44,26 @@ export default class extends Controller {
     this.handleFiles(files)
   }
 
-  handleFiles(files) {
+  handleFiles(filesOrEvent) {
+    console.log("handleFiles called with:", filesOrEvent)
+    // Handle both Event objects (from file picker) and FileList (from drag-and-drop)
+    let files
+    if (filesOrEvent instanceof Event) {
+      // Called from file input change event
+      files = filesOrEvent.target.files
+      const fileInput = filesOrEvent.target
+
+      // Auto-submit the form when files are selected
+      if (files.length > 0 && fileInput.form) {
+        console.log(`${files.length} file(s) selected, submitting form...`)
+        fileInput.form.requestSubmit()
+      }
+      return
+    } else {
+      // Called from drag-and-drop
+      files = filesOrEvent
+    }
+
     const fileInput = this.element.querySelector('input[type="file"]')
     if (fileInput) {
       // Create a DataTransfer object and add files
@@ -58,8 +78,8 @@ export default class extends Controller {
       // Optionally trigger form submission or show preview
       console.log(`${files.length} files ready for upload`)
 
-      // Auto-submit if only one file
-      if (files.length === 1) {
+      // Auto-submit the form
+      if (files.length > 0 && fileInput.form) {
         fileInput.form.requestSubmit()
       }
     }

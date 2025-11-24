@@ -2616,12 +2616,6 @@ body.enhanced-layout-active nav .bg-primary {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.photo-badge.featured {
-  right: 0.75rem;
-  background: rgba(255, 140, 66, 0.95);
-  color: white;
-}
-
 .photo-badge.source {
   left: 0.75rem;
   background: rgba(87, 197, 182, 0.95);
@@ -2725,6 +2719,24 @@ body.enhanced-layout-active nav .bg-primary {
   border-radius: 1rem;
   padding: 3rem 0;
   overflow: hidden;
+}
+
+.website-builder-page.enhanced-layout .gallery-section {
+  background: radial-gradient(circle at 5% 0%, rgba(59, 130, 246, 0.18) 0%, rgba(10, 17, 32, 0.94) 35%, rgba(6, 10, 20, 0.97) 100%),
+              radial-gradient(circle at 95% 100%, rgba(244, 63, 94, 0.14) 0%, rgba(8, 13, 28, 0.94) 45%, rgba(4, 7, 16, 0.98) 100%);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 35px 90px -55px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+}
+
+.website-builder-page.enhanced-layout .gallery-section h2,
+.website-builder-page.enhanced-layout .gallery-section h3 {
+  color: #f8fafc;
+}
+
+.website-builder-page.enhanced-layout .gallery-section p {
+  color: #cbd5e1;
 }
 
 /* Gallery Grid Layout */
@@ -3184,4 +3196,20 @@ body.enhanced-layout-active nav .bg-primary {
   .gallery-photo-item:hover {
     transform: none !important;
   }
+}
+
+/* Sortable.js drag and drop styles */
+.sortable-ghost {
+  opacity: 0.4;
+  background: #f3f4f6;
+}
+
+.sortable-chosen {
+  box-shadow: 0 0 0 2px #3b82f6;
+  opacity: 1;
+}
+
+.sortable-drag {
+  opacity: 0.8;
+  transform: rotate(2deg);
 }

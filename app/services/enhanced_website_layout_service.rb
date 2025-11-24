@@ -215,7 +215,7 @@ class EnhancedWebsiteLayoutService
   def include_gallery_section?
     business.gallery_enabled? &&
     business.show_gallery_section? &&
-    (business.gallery_photos.featured.any? || business.gallery_photos.any? || business.gallery_video.attached?)
+    (business.gallery_photos.any? || business.gallery_video.attached?)
   end
 
   def gallery_section_definition
@@ -231,17 +231,13 @@ class EnhancedWebsiteLayoutService
     {
       'layout' => business.gallery_layout || 'grid',
       'columns' => business.gallery_columns || 3,
-      'show_featured' => business.featured_gallery_photos.any?,
+      'show_featured' => false,
       'show_video' => business.gallery_video.attached? && business.video_display_location_gallery?
     }
   end
 
   def gallery_content
-    sanitized_name = sanitized_business_name
-    {
-      'title' => 'Our Gallery',
-      'description' => "Explore our work and see what makes #{sanitized_name} stand out."
-    }
+    {}
   end
 
   def testimonial_content
@@ -318,4 +314,3 @@ class EnhancedWebsiteLayoutService
     Rails.application.routes.url_helpers
   end
 end
-

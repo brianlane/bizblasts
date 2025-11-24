@@ -104,7 +104,7 @@ class GalleryVideoService
       size: business.gallery_video.byte_size,
       size_human: ActiveSupport::NumberHelper.number_to_human_size(business.gallery_video.byte_size),
       content_type: business.gallery_video.content_type,
-      url: Rails.application.routes.url_helpers.url_for(business.gallery_video),
+      url: Rails.application.routes.url_helpers.rails_blob_path(business.gallery_video, only_path: true),
       thumbnail_url: thumbnail_url(business),
       display_location: business.video_display_location,
       autoplay_hero: business.video_autoplay_hero?,

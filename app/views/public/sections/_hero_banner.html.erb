@@ -18,7 +18,7 @@
                  class="absolute inset-0 w-full h-full object-cover"
                  data-controller="hero-video"
                  style="z-index: 0;">
-            <source src="<%= url_for(current_business.gallery_video) %>" type="<%= current_business.gallery_video.content_type %>">
+            <source src="<%= rails_blob_path(current_business.gallery_video, only_path: true) %>" type="<%= current_business.gallery_video.content_type %>">
           </video>
           <!-- Video Overlay for text readability -->
           <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" style="z-index: 1;"></div>
@@ -99,21 +99,28 @@
         <% end %>
       </div>
 
-      <div class="flex-1 w-full">
-        <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-gray-800 to-gray-900 shadow-2xl shadow-red-900/20">
-          <% if section.content_data['feature_image_url'].present? %>
-            <%= image_tag section.content_data['feature_image_url'], alt: section.content_data['feature_image_alt'].presence || current_business&.name, class: "w-full h-full object-cover" %>
-          <% elsif current_business&.logo&.attached? %>
-            <div class="flex items-center justify-center py-16">
-              <div class="w-64 h-64 bg-white/90 rounded-2xl flex items-center justify-center p-6">
-                <%= image_tag business_logo_url(current_business, size: :large), alt: "#{current_business&.name} Logo", class: "w-full h-full object-contain" %>
+      <% # Only show right side component if: feature image exists, OR logo exists, OR video is NOT playing %>
+      <% show_right_component = section.content_data['feature_image_url'].present? ||
+                                 current_business&.logo&.attached? ||
+                                 !current_business&.hero_video? %>
+
+      <% if show_right_component %>
+        <div class="flex-1 w-full">
+          <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-gray-800 to-gray-900 shadow-2xl shadow-red-900/20">
+            <% if section.content_data['feature_image_url'].present? %>
+              <%= image_tag section.content_data['feature_image_url'], alt: section.content_data['feature_image_alt'].presence || current_business&.name, class: "w-full h-full object-cover" %>
+            <% elsif current_business&.logo&.attached? %>
+              <div class="flex items-center justify-center py-16">
+                <div class="w-64 h-64 bg-white/90 rounded-2xl flex items-center justify-center p-6">
+                  <%= image_tag business_logo_url(current_business, size: :large), alt: "#{current_business&.name} Logo", class: "w-full h-full object-contain" %>
+                </div>
               </div>
-            </div>
-              <% else %>
-                <div class="aspect-[4/3] <%= accent_enabled ? 'accent-gradient' : 'bg-gradient-to-br from-red-500 via-red-700 to-black' %> rounded-3xl"></div>
-          <% end %>
+            <% else %>
+              <div class="aspect-[4/3] <%= accent_enabled ? 'accent-gradient' : 'bg-gradient-to-br from-red-500 via-red-700 to-black' %> rounded-3xl"></div>
+            <% end %>
+          </div>
         </div>
-      </div>
+      <% end %>
     </div>
   </div>
 <% else %>
