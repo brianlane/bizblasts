@@ -7,6 +7,6 @@ class Client::EstimatesController < ApplicationController
   end
 
   def show
-    @estimate = authorize(Estimate.find_by_token!(params[:id]))
+    @estimate = authorize(Estimate.find(params[:id]))
   end
 end 

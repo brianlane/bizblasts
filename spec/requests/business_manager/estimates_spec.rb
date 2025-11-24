@@ -19,7 +19,8 @@ RSpec.describe "/business_manager/estimates", type: :request do
   }
 
   let(:invalid_attributes) {
-    { total: -100, first_name: '' } # first_name is required for new customer
+    # When tenant_customer_id is nil, contact fields are required
+    { tenant_customer_id: nil, first_name: '', last_name: '', email: '', phone: '', address: '', city: '', state: '', zip: '' }
   }
 
   describe "GET /index" do

@@ -164,9 +164,13 @@ class Invoice < ApplicationRecord
         due_date: 7.days.from_now,
         status: :pending
       )
+      # Use staff member from booking if available
+      staff_member = estimate.booking&.staff_member
+      
       estimate.estimate_items.each do |item|
         invoice.line_items.create!(
           service: item.service,
+          staff_member: staff_member,
           quantity: item.qty,
           price: item.cost_rate,
           total_amount: item.total

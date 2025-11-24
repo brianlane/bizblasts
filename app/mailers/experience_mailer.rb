@@ -9,7 +9,7 @@ class ExperienceMailer < ApplicationMailer
     @tip_url = new_tip_url(
       booking_id: @booking.id,
       token: @booking.generate_tip_token,
-      host: "#{@business.subdomain}.#{Rails.application.config.default_domain}"
+      host: "#{@business.subdomain}.#{Rails.application.config.main_domain}"
     )
     
     # Set business context for email styling
@@ -22,7 +22,7 @@ class ExperienceMailer < ApplicationMailer
     mail(
       to: @customer.email,
       subject: "Thank you for choosing #{@business.name} - Share your appreciation",
-      from: "#{@business.name} <noreply@#{@business.subdomain}.#{Rails.application.config.default_domain}>",
+      from: "#{@business.name} <noreply@#{@business.subdomain}.#{Rails.application.config.main_domain}>",
       reply_to: @business.email
     )
   end

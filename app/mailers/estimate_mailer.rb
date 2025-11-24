@@ -6,7 +6,7 @@ class EstimateMailer < ApplicationMailer
   # Sends the estimate to the customer
   def send_estimate(estimate)
     @estimate = estimate
-    @url = tenant_estimate_url(@estimate.token)
+    @url = public_estimate_url(token: @estimate.token, host: "#{@estimate.business.subdomain}.#{Rails.application.config.main_domain}")
     mail(to: @estimate.customer_email, subject: "Your Estimate ##{@estimate.id} from #{estimate.business.name}")
   end
 
@@ -26,6 +26,10 @@ class EstimateMailer < ApplicationMailer
   def request_changes_notification(estimate, message)
     @estimate = estimate
     @message = message
-    mail(to: estimate.business.admin_users.pluck(:email), subject: "Change Request for Estimate ##{estimate.id}")
+    # Get emails from business managers (admin_users association doesn't exist on Business)
+    manager_emails = estimate.business.users.where(role: :manager).pluck(:email)
+    return if manager_emails.empty?
+
+    mail(to: manager_emails, subject: "Change Request for Estimate ##{estimate.id}")
   end
 end 

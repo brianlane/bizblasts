@@ -13,11 +13,11 @@ class EstimateToBookingService
       booking = Booking.create!(
         business: estimate.business,
         tenant_customer: estimate.tenant_customer,
-        start_time: estimate.proposed_start_time,
-        # Use start_time + service duration from first item if available
+        staff_member: find_staff_member,
+        start_time: estimate.proposed_start_time || Time.current,
         end_time: calculate_end_time,
         service: primary_service,
-        quantity: total_quantity,
+        quantity: [total_quantity, 1].max, # Ensure minimum of 1
         amount: estimate.subtotal,
         original_amount: estimate.subtotal,
         discount_amount: 0,
@@ -43,15 +43,36 @@ class EstimateToBookingService
     estimate.estimate_items.first&.service
   end
 
-  # Calculates end_time: use proposed_start_time + primary_service.duration if present
+  # Finds an appropriate staff member for the booking
+  # Priority: 1. Staff who can perform the primary service
+  #           2. Any active staff member
+  #           3. First staff member of the business
+  def find_staff_member
+    service = primary_service
+    
+    # Try to find a staff member who can perform this service
+    if service.present?
+      staff_for_service = estimate.business.staff_members.joins(:services).where(services: { id: service.id }).first
+      return staff_for_service if staff_for_service.present?
+    end
+    
+    # Fallback to first active staff member
+    estimate.business.staff_members.first
+  end
+
+  # Calculates end_time: use proposed_end_time if present, otherwise calculate from service duration
+  # Falls back to 60 minutes if no service duration available
   def calculate_end_time
-    start = estimate.proposed_start_time
+    return estimate.proposed_end_time if estimate.proposed_end_time.present?
+    
+    start = estimate.proposed_start_time || Time.current
     duration = primary_service&.duration.to_i
-    start + duration.minutes if start
+    duration = 60 if duration <= 0 # Default to 1 hour if no duration
+    start + duration.minutes
   end
 
   # Sum of all quantities in line items
   def total_quantity
     estimate.estimate_items.sum(&:qty)
   end
-end 
+end
