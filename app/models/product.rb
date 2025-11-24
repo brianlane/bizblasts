@@ -3,7 +3,7 @@ class Product < ApplicationRecord
   # Assuming TenantScoped concern handles belongs_to :business and default scoping
   include TenantScoped
 
-  has_many :product_variants, dependent: :destroy
+  has_many :product_variants, -> { order(:id) }, dependent: :destroy
   # If variants are mandatory, line_items might associate through variants
   # has_many :line_items, dependent: :destroy # Use this if products DON'T have variants
   has_many :line_items, through: :product_variants # Use this if products MUST have variants
