@@ -166,6 +166,16 @@ module BusinessManager
     def create_from_upload
       files = params[:image].is_a?(Array) ? params[:image] : [params[:image]]
       files = files.reject(&:blank?)  # Filter out empty strings from file array
+
+      # Validate that at least one file was provided
+      if files.empty?
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: 'Please select at least one image file' }
+          format.json { render json: { error: 'No image file provided' }, status: :unprocessable_content }
+        end
+        return
+      end
+
       attributes = {
         title: params[:title],
         description: params[:description]
