@@ -55,7 +55,7 @@ class GalleryPhoto < ApplicationRecord
   scope :from_products, -> { where(photo_source: :product) }
 
   # Callbacks
-  before_validation :set_next_position, on: :create, if: -> { position.blank? }
+  before_validation :acquire_lock_and_set_position, on: :create, if: -> { position.blank? }
   after_destroy :reorder_positions
   after_commit :process_image_async, on: [:create, :update], if: :should_process_image?
 
@@ -122,10 +122,21 @@ class GalleryPhoto < ApplicationRecord
       (changes.key?('blob_id') && changes['blob_id'].present?)
   end
 
-  # Set the next available position for new photos
-  def set_next_position
+  # Acquire a row-level lock on the business record, then set the next position.
+  # This prevents race conditions where two concurrent requests could:
+  # 1. Both see the same max position and create duplicates
+  # 2. Both pass the max_photos validation when at 99 photos
+  #
+  # The lock is held for the duration of the save transaction, ensuring
+  # atomicity of both the count check (in validation) and position assignment.
+  def acquire_lock_and_set_position
     return unless business
 
+    # Acquire a row-level lock on the business record
+    # This ensures only one gallery photo can be created at a time per business
+    business.lock!
+
+    # Now safely get the next position with the lock held
     max_position = business.gallery_photos.maximum(:position) || 0
     self.position = max_position + 1
   end
@@ -137,7 +148,18 @@ class GalleryPhoto < ApplicationRecord
   end
 
   # Validate max 100 photos per business
+  # Uses pessimistic locking to prevent race conditions where concurrent requests
+  # could both see 99 photos and both create a new one, exceeding the limit.
+  # The lock is acquired on the business record, ensuring only one photo
+  # creation can proceed at a time per business.
   def max_photos_per_business
+    return unless business
+
+    # Acquire a row-level lock on the business record for accurate count
+    # This is safe to call even if acquire_lock_and_set_position already
+    # acquired the lock - subsequent lock! calls in the same transaction are no-ops
+    business.lock!
+
     if business.gallery_photos.count >= 100
       errors.add(:base, "Maximum 100 photos allowed per gallery")
     end

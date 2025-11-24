@@ -35,6 +35,35 @@ RSpec.describe GalleryPhoto, type: :model do
         expect(photo).not_to be_valid
         expect(photo.errors[:base]).to include('Maximum 100 photos allowed per gallery')
       end
+
+      it 'acquires a lock on the business when position is explicitly provided' do
+        # This tests that the validation acquires a lock even when position
+        # is explicitly set (bypassing the acquire_lock_and_set_position callback)
+        photo = build(:gallery_photo, business: business, position: 101)
+        expect(business).to receive(:lock!).and_call_original
+        photo.valid?
+      end
+    end
+
+    context 'race condition prevention' do
+      it 'acquires a lock on the business record during validation' do
+        # When position is auto-assigned, lock should be acquired in callback
+        photo = build(:gallery_photo, business: business)
+        expect(business).to receive(:lock!).at_least(:once).and_call_original
+        photo.valid?
+      end
+
+      it 'prevents duplicate positions by locking during position assignment' do
+        # Create initial photo
+        photo1 = create(:gallery_photo, business: business)
+        expect(photo1.position).to eq(1)
+
+        # Verify lock is acquired before setting position for second photo
+        photo2 = build(:gallery_photo, business: business)
+        expect(business).to receive(:lock!).at_least(:once).and_call_original
+        photo2.save!
+        expect(photo2.position).to eq(2)
+      end
     end
 
     context 'photo source validation' do

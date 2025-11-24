@@ -229,7 +229,7 @@ class EnhancedWebsiteLayoutService
 
   def gallery_config
     {
-      'layout' => business.gallery_layout || 'grid',
+      'layout' => business.gallery_layout&.to_s || 'grid',
       'columns' => business.gallery_columns || 3,
       'show_featured' => false,
       'show_video' => business.gallery_video.attached? && business.video_display_location_gallery?
