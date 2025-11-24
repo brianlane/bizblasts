@@ -139,7 +139,7 @@ gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
 gem 'google-apis-calendar_v3', '~> 0.49'
-gem 'googleauth', '~> 1.15'
+gem 'googleauth', '~> 1.16'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.12'
